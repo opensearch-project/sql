@@ -14,7 +14,10 @@ import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.FunctionImplementation;
 import org.opensearch.sql.opensearch.storage.script.core.ExpressionScript;
 
 /**
@@ -49,7 +52,8 @@ class ExpressionFilterScript extends FilterScript {
     }
 
     // refer to https://github.com/opensearch-project/sql/issues/2796
-    if (result.type() == ExprCoreType.INTEGER) {
+    if (isRegexpExpression(expression)) {
+      assert result.type() == ExprCoreType.INTEGER;
       if (result.integerValue() == 0) {
         result = ExprBooleanValue.of(false);
       } else if (result.integerValue() == 1) {
@@ -65,5 +69,12 @@ class ExpressionFilterScript extends FilterScript {
               expression, result));
     }
     return result;
+  }
+
+  private boolean isRegexpExpression(Expression expression) {
+    return expression instanceof FunctionImplementation
+        && ((FunctionExpression) expression)
+            .getFunctionName()
+            .equals(BuiltinFunctionName.REGEXP.getName());
   }
 }
