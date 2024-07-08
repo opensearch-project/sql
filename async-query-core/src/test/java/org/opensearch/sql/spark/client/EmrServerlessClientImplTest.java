@@ -4,9 +4,7 @@
 
 package org.opensearch.sql.spark.client;
 
-import static java.util.Collections.emptyList;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,36 +30,21 @@ import java.util.HashMap;
 import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.metrics.MetricsService;
 
 @ExtendWith(MockitoExtension.class)
 public class EmrServerlessClientImplTest {
   @Mock private AWSEMRServerless emrServerless;
-  @Mock private OpenSearchSettings settings;
   @Mock private MetricsService metricsService;
 
   @Captor private ArgumentCaptor<StartJobRunRequest> startJobRunRequestArgumentCaptor;
-
-  @BeforeEach
-  public void setUp() {
-    doReturn(emptyList()).when(settings).getSettings();
-    when(settings.getSettingValue(Settings.Key.METRICS_ROLLING_INTERVAL)).thenReturn(3600L);
-    when(settings.getSettingValue(Settings.Key.METRICS_ROLLING_WINDOW)).thenReturn(600L);
-    LocalClusterState.state().setPluginSettings(settings);
-    Metrics.getInstance().registerDefaultMetrics();
-  }
 
   @Test
   void testStartJobRun() {

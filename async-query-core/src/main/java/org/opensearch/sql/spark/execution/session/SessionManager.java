@@ -33,7 +33,7 @@ public class SessionManager {
             .sessionId(sessionIdProvider.getSessionId(request))
             .sessionStorageService(sessionStorageService)
             .statementStorageService(statementStorageService)
-            .serverlessClient(emrServerlessClientFactory.getClient())
+            .serverlessClient(emrServerlessClientFactory.getClient(request.getAccountId()))
             .build();
     session.open(request, asyncQueryRequestContext);
     return session;
@@ -65,7 +65,7 @@ public class SessionManager {
               .sessionId(sessionId)
               .sessionStorageService(sessionStorageService)
               .statementStorageService(statementStorageService)
-              .serverlessClient(emrServerlessClientFactory.getClient())
+              .serverlessClient(emrServerlessClientFactory.getClient(model.get().getAccountId()))
               .sessionModel(model.get())
               .sessionInactivityTimeoutMilli(
                   sessionConfigSupplier.getSessionInactivityTimeoutMillis())

@@ -27,9 +27,9 @@ public class QueryHandlerFactory {
   private final EMRServerlessClientFactory emrServerlessClientFactory;
   private final MetricsService metricsService;
 
-  public RefreshQueryHandler getRefreshQueryHandler() {
+  public RefreshQueryHandler getRefreshQueryHandler(String accountId) {
     return new RefreshQueryHandler(
-        emrServerlessClientFactory.getClient(),
+        emrServerlessClientFactory.getClient(accountId),
         jobExecutionResponseReader,
         flintIndexMetadataService,
         leaseManager,
@@ -37,17 +37,17 @@ public class QueryHandlerFactory {
         metricsService);
   }
 
-  public StreamingQueryHandler getStreamingQueryHandler() {
+  public StreamingQueryHandler getStreamingQueryHandler(String accountId) {
     return new StreamingQueryHandler(
-        emrServerlessClientFactory.getClient(),
+        emrServerlessClientFactory.getClient(accountId),
         jobExecutionResponseReader,
         leaseManager,
         metricsService);
   }
 
-  public BatchQueryHandler getBatchQueryHandler() {
+  public BatchQueryHandler getBatchQueryHandler(String accountId) {
     return new BatchQueryHandler(
-        emrServerlessClientFactory.getClient(),
+        emrServerlessClientFactory.getClient(accountId),
         jobExecutionResponseReader,
         leaseManager,
         metricsService);
