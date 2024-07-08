@@ -15,8 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
@@ -35,17 +33,13 @@ import org.opensearch.sql.legacy.domain.hints.HintType;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
-import org.opensearch.sql.legacy.executor.join.ElasticUtils;
-import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
 import org.opensearch.sql.legacy.utils.Util;
 
 /** Created by Eliran on 26/8/2016. */
-public class MinusExecutor implements ElasticHitsExecutor {
-  private static final Logger LOG = LogManager.getLogger();
-  private Client client;
+public class MinusExecutor extends ElasticHitsExecutor {
   private MultiQueryRequestBuilder builder;
   private SearchHits minusHits;
   private boolean useTermsOptimization;
@@ -57,7 +51,6 @@ public class MinusExecutor implements ElasticHitsExecutor {
   private String[] fieldsOrderFirstTable;
   private String[] fieldsOrderSecondTable;
   private String seperator;
-  private PointInTimeHandler pit;
 
   public MinusExecutor(Client client, MultiQueryRequestBuilder builder) {
     this.client = client;
@@ -214,7 +207,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
   private Set<ComperableHitResult> runWithScrollings() {
 
     SearchResponse scrollResp =
-        ElasticUtils.getResponseWithHits(
+        getResponseWithHits(
             client,
             builder.getFirstSearchRequest(),
             builder.getOriginalSelect(true),
@@ -236,7 +229,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
         break;
       }
       scrollResp =
-          ElasticUtils.getResponseWithHits(
+          getResponseWithHits(
               client,
               builder.getFirstSearchRequest(),
               builder.getOriginalSelect(true),
@@ -246,7 +239,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
       hits = scrollResp.getHits().getHits();
     }
     scrollResp =
-        ElasticUtils.getResponseWithHits(
+        getResponseWithHits(
             this.client,
             this.builder.getSecondSearchRequest(),
             builder.getOriginalSelect(false),
@@ -266,7 +259,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
         break;
       }
       scrollResp =
-          ElasticUtils.getResponseWithHits(
+          getResponseWithHits(
               client,
               builder.getSecondSearchRequest(),
               builder.getOriginalSelect(false),
@@ -337,7 +330,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
   private MinusOneFieldAndOptimizationResult runWithScrollingAndAddFilter(
       String firstFieldName, String secondFieldName) throws SqlParseException {
     SearchResponse scrollResp =
-        ElasticUtils.getResponseWithHits(
+        getResponseWithHits(
             client,
             builder.getFirstSearchRequest(),
             builder.getOriginalSelect(true),
@@ -371,7 +364,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
         break;
       }
       SearchResponse responseForSecondTable =
-          ElasticUtils.getResponseWithHits(
+          getResponseWithHits(
               this.client,
               queryAction.getRequestBuilder(),
               secondQuerySelect,
@@ -389,7 +382,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
           break;
         }
         responseForSecondTable =
-            ElasticUtils.getResponseWithHits(
+            getResponseWithHits(
                 client,
                 queryAction.getRequestBuilder(),
                 secondQuerySelect,
@@ -405,7 +398,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
         break;
       }
       scrollResp =
-          ElasticUtils.getResponseWithHits(
+          getResponseWithHits(
               client,
               builder.getFirstSearchRequest(),
               builder.getOriginalSelect(true),

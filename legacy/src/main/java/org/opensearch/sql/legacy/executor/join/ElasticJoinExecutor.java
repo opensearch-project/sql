@@ -15,8 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
@@ -33,7 +31,6 @@ import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
-import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
@@ -43,17 +40,14 @@ import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 
 /** Created by Eliran on 15/9/2015. */
-public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
-  private static final Logger LOG = LogManager.getLogger();
+public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
 
   protected List<SearchHit> results; // Keep list to avoid copy to new array in SearchHits
   protected MetaSearchResult metaResults;
   protected final int MAX_RESULTS_ON_ONE_FETCH = 10000;
   private Set<String> aliasesOnReturn;
   private boolean allFieldsReturn;
-  protected Client client;
   protected String[] indices;
-  protected PointInTimeHandler pit;
 
   protected ElasticJoinExecutor(Client client, JoinRequestBuilder requestBuilder) {
     metaResults = new MetaSearchResult();
@@ -278,7 +272,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
   public SearchResponse getResponseWithHits(
       TableInJoinRequestBuilder tableRequest, int size, SearchResponse previousResponse) {
 
-    return ElasticUtils.getResponseWithHits(
+    return getResponseWithHits(
         client,
         tableRequest.getRequestBuilder(),
         tableRequest.getOriginalSelect(),
