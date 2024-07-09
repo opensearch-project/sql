@@ -103,35 +103,49 @@ The example show a lookup to add the name of a person from a lookup index with d
 PPL query::
 
     os> source=accounts;
-    fetched rows / total rows = 3/3
-    +------------------+----------+------------+
-    | account_number   | gender   | department |
-    |------------------+----------+------------|
-    | 1                | M        | finance    |
-    | 13               | F        | it         |
-    | 20               | M        | it         |
-    +------------------+----------+------------+
+    fetched rows / total rows = 4/4
+    +------------------+----------+------------+------------------+
+    | account_number   | gender   | department | name             |
+    |------------------+----------+------------+------------------|
+    | 1                | M        | finance    | John Miller      |
+    | 13               | F        | it         | Melinda Williams |
+    | 20               | M        | it         | NULL             |
+    | 21               | F        | finance    | Mandy Smith      |
+    +------------------+----------+------------+------------------+
 
     os> source=hr;
-    fetched rows / total rows = 4/4
-    +------------------+----------+------------+--------+
-    | employee_number  | name     | dep        | active |
-    |------------------+----------|------------|--------|
-    | 1                | John     | finance    | true   |
-    | 13               | Alice    | finance    | false  |
-    | 13               | Melinda  | it         | true   |
-    | 19               | Jack     | finance    | true   |
-    +------------------+----------+------------+--------+
+    fetched rows / total rows = 5/5
+    +------------------+--------------+------------+--------+
+    | employee_number  | name         | dep        | active |
+    |------------------+--------------|------------|--------|
+    | 1                | John n/a     | finance    | true   |
+    | 13               | Alice n/a    | finance    | false  |
+    | 13               | Melinda n/a  | it         | true   |
+    | 19               | Jack n/a     | finance    | true   |
+    | 21               | NULL         | finance    | false  |
+    +------------------+--------------+------------+--------+
 
-    os> source=accounts | lookup hr employee_number AS account_number, dep AS department appendonly=true name AS given_name, active AS is_active ;
-    fetched rows / total rows = 2/2
-    +------------------+----------+----------------+------------+-----------+
-    | account_number   | gender   | given_name     | department | is_active |
-    |------------------+----------|----------------|------------|-----------|
-    | 1                | M        | John           | finance    | true      |
-    | 13               | F        | Melinda        | it         | true      |
-    | 20               | M        | NULL           | it         | true      |
-    +------------------+----------+----------------+------------+-----------+
+    os> source=accounts | lookup hr employee_number AS account_number, dep AS department appendonly=true;
+    fetched rows / total rows = 4/4
+    +------------------+----------+------------------+------------+-----------+---------+-----------------+
+    | account_number   | gender   | name             | department | active    | dep     | employee_number |
+    |------------------+----------|------------------|------------|-----------|---------|-----------------|
+    | 1                | M        | John Miller      | finance    | true      | finance | 1               |
+    | 13               | F        | Melinda Williams | it         | true      | it      | 13              |
+    | 20               | M        | NULL             | it         | NULL      | NULL    | NULL            |
+    | 21               | F        | Mandy Smith      | it         | NULL      | it      | 21              |
+    +------------------+----------+------------------+------------+-----------+---------+-----------------+
+
+    os> source=accounts | lookup hr employee_number AS account_number, dep AS department appendonly=false;
+    fetched rows / total rows = 4/4
+    +------------------+----------+------------------+------------+-----------+---------+-----------------+
+    | account_number   | gender   | name             | department | active    | dep     | employee_number |
+    |------------------+----------|------------------|------------|-----------|---------|-----------------|
+    | 1                | M        | John n/a         | finance    | true      | finance | 1               |
+    | 13               | F        | Melinda /na      | it         | true      | it      | 13              |
+    | 20               | M        | NULL             | it         | NULL      | NULL    | NULL            |
+    | 21               | F        | Mandy Smith      | it         | NULL      | it      | 21              |
+    +------------------+----------+------------------+------------+-----------+---------+-----------------+
 
 
 Limitation
