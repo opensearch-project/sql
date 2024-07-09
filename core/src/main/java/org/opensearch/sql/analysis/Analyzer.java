@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -544,7 +545,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         node.getIndexName(),
         matchFieldMap,
         appendOnly,
-        analyzeLookupCopyFields(node.getCopyFieldList(), queryContext, table));
+        analyzeLookupCopyFields(node.getCopyFieldList(), queryContext, table, appendOnly));
   }
 
   private ImmutableMap<ReferenceExpression, ReferenceExpression> analyzeLookupMatchFields(
@@ -573,48 +574,50 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   private ImmutableMap<ReferenceExpression, ReferenceExpression> analyzeLookupCopyFields(
-      List<Map> inputMap, AnalysisContext context, Table table) {
-
-    TypeEnvironment curEnv = context.peek();
-    java.util.Map<String, ExprType> fieldTypes = table.getFieldTypes();
+      List<Map> inputMap, AnalysisContext context, Table table, Boolean appendOnly) {
 
     if (inputMap.isEmpty()) {
-      fieldTypes.forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
       return ImmutableMap.<ReferenceExpression, ReferenceExpression>builder().build();
     }
+
+    TypeEnvironment curEnv = context.peek();
+    Set<String> queryTableFieldNames = curEnv.lookupAllFields(Namespace.FIELD_NAME).keySet();
+    java.util.Map<String, ExprType> fieldTypes = table.getFieldTypes();
 
     ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> copyMapBuilder =
         new ImmutableMap.Builder<>();
     for (Map resultMap : inputMap) {
-      if (resultMap.getOrigin() instanceof Field && resultMap.getTarget() instanceof Field) {
-        String fieldName = ((Field) resultMap.getOrigin()).getField().toString();
-        ExprType ex = fieldTypes.get(fieldName);
-
-        if (ex == null) {
-          throw new SemanticCheckException(String.format("no such field %s", fieldName));
-        }
-
-        ReferenceExpression origin = new ReferenceExpression(fieldName, ex);
-
-        if (resultMap.getTarget().equals(resultMap.getOrigin())) {
-
-          curEnv.define(origin);
-          copyMapBuilder.put(origin, origin);
-        } else {
-          ReferenceExpression target =
-              new ReferenceExpression(((Field) resultMap.getTarget()).getField().toString(), ex);
-          curEnv.define(target);
-          copyMapBuilder.put(origin, target);
-        }
-      } else {
+      if (!(resultMap.getOrigin() instanceof Field && resultMap.getTarget() instanceof Field)) {
         throw new SemanticCheckException(
             String.format(
                 "the origin and target expected to be field, but is %s/%s",
                 resultMap.getOrigin(), resultMap.getTarget()));
       }
-    }
 
+      String originFieldNameInLookupTable = ((Field) resultMap.getOrigin()).getField().toString();
+      String targetFieldNameInQueryTable = ((Field) resultMap.getTarget()).getField().toString();
+      ExprType ex = fieldTypes.get(originFieldNameInLookupTable);
+
+      if (ex == null) {
+        throw new SemanticCheckException(
+            String.format("no such field %s", originFieldNameInLookupTable));
+      }
+
+      ReferenceExpression origin = new ReferenceExpression(originFieldNameInLookupTable, ex);
+      ReferenceExpression target =
+          new ReferenceExpression(((Field) resultMap.getTarget()).getField().toString(), ex);
+
+      if (shouldAppendField(appendOnly, targetFieldNameInQueryTable, queryTableFieldNames)) {
+        curEnv.define(target.equals(origin) ? origin : target);
+      }
+      copyMapBuilder.put(origin, target);
+    }
     return copyMapBuilder.build();
+  }
+
+  private static boolean shouldAppendField(
+      Boolean appendOnly, String k, Set<String> queryTableFieldNames) {
+    return !appendOnly || !queryTableFieldNames.contains(k);
   }
 
   /** Logical head is identical to {@link LogicalLimit}. */
