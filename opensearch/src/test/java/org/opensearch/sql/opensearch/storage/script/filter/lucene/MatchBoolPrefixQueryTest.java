@@ -27,6 +27,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchBoolPrefixQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -65,7 +66,7 @@ public class MatchBoolPrefixQueryTest {
         List.of(
             DSL.namedArgument(
                 "field", new ReferenceExpression("field_value", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "query_value"));
+            OpenSearchDSL.namedArgument("query", "query_value"));
     Assertions.assertNotNull(matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
 
@@ -79,7 +80,7 @@ public class MatchBoolPrefixQueryTest {
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
-    List<Expression> arguments = List.of(DSL.namedArgument("field", "field_value"));
+    List<Expression> arguments = List.of(OpenSearchDSL.namedArgument("field", "field_value"));
     assertThrows(
         SyntaxCheckException.class,
         () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));
@@ -91,8 +92,8 @@ public class MatchBoolPrefixQueryTest {
         List.of(
             DSL.namedArgument(
                 "field", new ReferenceExpression("field_value", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "query_value"),
-            DSL.namedArgument("unsupported", "unsupported_value"));
+            OpenSearchDSL.namedArgument("query", "query_value"),
+            OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(
         SemanticCheckException.class,
         () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));

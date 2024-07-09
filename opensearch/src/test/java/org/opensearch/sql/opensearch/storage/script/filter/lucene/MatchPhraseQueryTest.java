@@ -23,6 +23,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhraseQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -56,8 +57,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "test2"),
-            DSL.namedArgument("unsupported", "3"));
+            OpenSearchDSL.namedArgument("query", "test2"),
+            OpenSearchDSL.namedArgument("unsupported", "3"));
     Assertions.assertThrows(
         SemanticCheckException.class,
         () -> matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
@@ -68,8 +69,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("analyzer", "standard"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("analyzer", "standard"));
     Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
@@ -78,7 +79,7 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "test2"));
+            OpenSearchDSL.namedArgument("query", "test2"));
     Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
@@ -87,8 +88,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("slop", "2"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("slop", "2"));
     Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
@@ -97,8 +98,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("zero_terms_query", "ALL"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("zero_terms_query", "ALL"));
     Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
@@ -107,8 +108,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("zero_terms_query", "all"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("zero_terms_query", "all"));
     Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
@@ -139,8 +140,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "test2"),
-            DSL.namedArgument("unsupported", "3"));
+            OpenSearchDSL.namedArgument("query", "test2"),
+            OpenSearchDSL.namedArgument("unsupported", "3"));
     Assertions.assertThrows(
         SemanticCheckException.class,
         () ->
@@ -153,8 +154,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("analyzer", "standard"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("analyzer", "standard"));
     Assertions.assertNotNull(
         matchPhraseQuery.build(
             new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
@@ -165,7 +166,7 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "test2"));
+            OpenSearchDSL.namedArgument("query", "test2"));
     Assertions.assertNotNull(
         matchPhraseQuery.build(
             new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
@@ -176,8 +177,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("slop", "2"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("slop", "2"));
     Assertions.assertNotNull(
         matchPhraseQuery.build(
             new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
@@ -188,8 +189,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("zero_terms_query", "ALL"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("zero_terms_query", "ALL"));
     Assertions.assertNotNull(
         matchPhraseQuery.build(
             new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
@@ -200,8 +201,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("zero_terms_query", "all"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("zero_terms_query", "all"));
     Assertions.assertNotNull(
         matchPhraseQuery.build(
             new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
@@ -230,8 +231,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "test2"),
-            DSL.namedArgument("unsupported", "3"));
+            OpenSearchDSL.namedArgument("query", "test2"),
+            OpenSearchDSL.namedArgument("unsupported", "3"));
     Assertions.assertThrows(
         SemanticCheckException.class,
         () -> matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
@@ -242,8 +243,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("analyzer", "standard"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("analyzer", "standard"));
     Assertions.assertNotNull(
         matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
@@ -253,7 +254,7 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "test2"));
+            OpenSearchDSL.namedArgument("query", "test2"));
     Assertions.assertNotNull(
         matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
@@ -263,8 +264,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("slop", "2"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("slop", "2"));
     Assertions.assertNotNull(
         matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
@@ -274,8 +275,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("zero_terms_query", "ALL"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("zero_terms_query", "ALL"));
     Assertions.assertNotNull(
         matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
@@ -285,8 +286,8 @@ public class MatchPhraseQueryTest {
     List<Expression> arguments =
         List.of(
             DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
-            DSL.namedArgument("query", "t2"),
-            DSL.namedArgument("zero_terms_query", "all"));
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("zero_terms_query", "all"));
     Assertions.assertNotNull(
         matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }

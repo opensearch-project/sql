@@ -41,7 +41,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.expression.DSL.literal;
+import static org.opensearch.sql.datasource.model.EmptyDataSourceService.getEmptyDataSourceService;
 import static org.opensearch.sql.utils.MLCommonsConstants.ACTION;
 import static org.opensearch.sql.utils.MLCommonsConstants.ALGO;
 import static org.opensearch.sql.utils.MLCommonsConstants.ASYNC;
@@ -76,7 +76,6 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
-import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -87,18 +86,27 @@ import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
-import org.opensearch.sql.expression.function.OpenSearchFunctions;
+import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.FunctionImplementation;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
-import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -275,104 +283,6 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void analyze_filter_visit_score_function() {
-    UnresolvedPlan unresolvedPlan =
-        AstDSL.filter(
-            AstDSL.relation("schema"),
-            new ScoreFunction(
-                AstDSL.function(
-                    "match_phrase_prefix",
-                    AstDSL.unresolvedArg("field", stringLiteral("field_value1")),
-                    AstDSL.unresolvedArg("query", stringLiteral("search query")),
-                    AstDSL.unresolvedArg("boost", stringLiteral("3"))),
-                AstDSL.doubleLiteral(1.0)));
-    assertAnalyzeEqual(
-        LogicalPlanDSL.filter(
-            LogicalPlanDSL.relation("schema", table),
-            DSL.match_phrase_prefix(
-                DSL.namedArgument("field", "field_value1"),
-                DSL.namedArgument("query", "search query"),
-                DSL.namedArgument("boost", "3.0"))),
-        unresolvedPlan);
-
-    LogicalPlan logicalPlan = analyze(unresolvedPlan);
-    OpenSearchFunctions.OpenSearchFunction relevanceQuery =
-        (OpenSearchFunctions.OpenSearchFunction) ((LogicalFilter) logicalPlan).getCondition();
-    assertEquals(true, relevanceQuery.isScoreTracked());
-  }
-
-  @Test
-  public void analyze_filter_visit_without_score_function() {
-    UnresolvedPlan unresolvedPlan =
-        AstDSL.filter(
-            AstDSL.relation("schema"),
-            AstDSL.function(
-                "match_phrase_prefix",
-                AstDSL.unresolvedArg("field", stringLiteral("field_value1")),
-                AstDSL.unresolvedArg("query", stringLiteral("search query")),
-                AstDSL.unresolvedArg("boost", stringLiteral("3"))));
-    assertAnalyzeEqual(
-        LogicalPlanDSL.filter(
-            LogicalPlanDSL.relation("schema", table),
-            DSL.match_phrase_prefix(
-                DSL.namedArgument("field", "field_value1"),
-                DSL.namedArgument("query", "search query"),
-                DSL.namedArgument("boost", "3"))),
-        unresolvedPlan);
-
-    LogicalPlan logicalPlan = analyze(unresolvedPlan);
-    OpenSearchFunctions.OpenSearchFunction relevanceQuery =
-        (OpenSearchFunctions.OpenSearchFunction) ((LogicalFilter) logicalPlan).getCondition();
-    assertEquals(false, relevanceQuery.isScoreTracked());
-  }
-
-  @Test
-  public void analyze_filter_visit_score_function_with_double_boost() {
-    UnresolvedPlan unresolvedPlan =
-        AstDSL.filter(
-            AstDSL.relation("schema"),
-            new ScoreFunction(
-                AstDSL.function(
-                    "match_phrase_prefix",
-                    AstDSL.unresolvedArg("field", stringLiteral("field_value1")),
-                    AstDSL.unresolvedArg("query", stringLiteral("search query")),
-                    AstDSL.unresolvedArg("slop", stringLiteral("3"))),
-                new Literal(3.0, DataType.DOUBLE)));
-
-    assertAnalyzeEqual(
-        LogicalPlanDSL.filter(
-            LogicalPlanDSL.relation("schema", table),
-            DSL.match_phrase_prefix(
-                DSL.namedArgument("field", "field_value1"),
-                DSL.namedArgument("query", "search query"),
-                DSL.namedArgument("slop", "3"),
-                DSL.namedArgument("boost", "3.0"))),
-        unresolvedPlan);
-
-    LogicalPlan logicalPlan = analyze(unresolvedPlan);
-    OpenSearchFunctions.OpenSearchFunction relevanceQuery =
-        (OpenSearchFunctions.OpenSearchFunction) ((LogicalFilter) logicalPlan).getCondition();
-    assertEquals(true, relevanceQuery.isScoreTracked());
-  }
-
-  @Test
-  public void analyze_filter_visit_score_function_with_unsupported_boost_SemanticCheckException() {
-    UnresolvedPlan unresolvedPlan =
-        AstDSL.filter(
-            AstDSL.relation("schema"),
-            new ScoreFunction(
-                AstDSL.function(
-                    "match_phrase_prefix",
-                    AstDSL.unresolvedArg("field", stringLiteral("field_value1")),
-                    AstDSL.unresolvedArg("query", stringLiteral("search query")),
-                    AstDSL.unresolvedArg("boost", stringLiteral("3"))),
-                AstDSL.stringLiteral("3.0")));
-    SemanticCheckException exception =
-        assertThrows(SemanticCheckException.class, () -> analyze(unresolvedPlan));
-    assertEquals("Expected boost type 'DOUBLE' but got 'STRING'", exception.getMessage());
-  }
-
-  @Test
   public void head_relation() {
     assertAnalyzeEqual(
         LogicalPlanDSL.limit(LogicalPlanDSL.relation("schema", table), 10, 0),
@@ -527,22 +437,44 @@ class AnalyzerTest extends AnalyzerTestBase {
             new NamedExpression(
                 "nested(message.info)", DSL.nested(DSL.ref("message.info", STRING)), null));
 
-    assertAnalyzeEqual(
-        LogicalPlanDSL.project(
-            LogicalPlanDSL.nested(
-                LogicalPlanDSL.relation("schema", table), nestedArgs, projectList),
-            DSL.named("nested(message.info)", DSL.nested(DSL.ref("message.info", STRING)))),
+    UnresolvedPlan unresolvedPlan =
         AstDSL.projectWithArg(
             AstDSL.relation("schema"),
             AstDSL.defaultFieldsArgs(),
             AstDSL.alias(
                 "nested(message.info)",
                 function("nested", qualifiedName("message", "info")),
-                null)));
+                null));
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.nested(
+                LogicalPlanDSL.relation("schema", table), nestedArgs, projectList),
+            DSL.named("nested(message.info)", DSL.nested(DSL.ref("message.info", STRING)))),
+        unresolvedPlan);
 
     assertTrue(isNestedFunction(DSL.nested(DSL.ref("message.info", STRING))));
     assertFalse(isNestedFunction(DSL.literal("fieldA")));
-    assertFalse(isNestedFunction(DSL.match(DSL.namedArgument("field", literal("message")))));
+  }
+
+  @Test
+  void nested_query() {
+    FunctionImplementation result =
+        BuiltinFunctionRepository.getInstance(dataSourceService)
+            .compile(
+                new FunctionProperties(),
+                FunctionName.of("nested"),
+                List.of(DSL.ref("message.info", STRING)));
+    FunctionExpression expr = (FunctionExpression) result;
+    assertEquals(
+        String.format(
+            "FunctionExpression(functionName=%s, arguments=[message.info])",
+            BuiltinFunctionName.NESTED.getName()),
+        expr.toString());
+    Environment<Expression, ExprValue> nestedTuple =
+        ExprValueUtils.tupleValue(Map.of("message", Map.of("info", "result"))).bindingTuples();
+    assertEquals(expr.valueOf(nestedTuple), ExprValueUtils.stringValue("result"));
+    assertEquals(expr.type(), STRING);
   }
 
   @Test
@@ -1529,19 +1461,42 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void table_function_with_no_datasource() {
+  public void table_function_with_datasource_with_no_functions() {
+    DataSourceService dataSourceService = getEmptyDataSourceService();
+    Analyzer analyzer =
+        new Analyzer(
+            super.expressionAnalyzer,
+            dataSourceService,
+            BuiltinFunctionRepository.getInstance(dataSourceService));
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () ->
+                analyzer.analyze(
+                    AstDSL.tableFunction(
+                        List.of("query_range"),
+                        unresolvedArg("query", stringLiteral("http_latency")),
+                        unresolvedArg("", intLiteral(12345)),
+                        unresolvedArg("", intLiteral(12345)),
+                        unresolvedArg(null, intLiteral(14))),
+                    new AnalysisContext()));
+    assertEquals("unsupported function name: query_range", exception.getMessage());
+  }
+
+  @Test
+  public void unsupported_table_function() {
     ExpressionEvaluationException exception =
         assertThrows(
             ExpressionEvaluationException.class,
             () ->
                 analyze(
                     AstDSL.tableFunction(
-                        List.of("query_range"),
+                        List.of("unsupported"),
                         unresolvedArg("query", stringLiteral("http_latency")),
                         unresolvedArg("", intLiteral(12345)),
                         unresolvedArg("", intLiteral(12345)),
                         unresolvedArg(null, intLiteral(14)))));
-    assertEquals("unsupported function name: query_range", exception.getMessage());
+    assertEquals("unsupported function name: unsupported", exception.getMessage());
   }
 
   @Test
