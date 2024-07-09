@@ -77,14 +77,17 @@ import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContent
 import org.opensearch.sql.spark.execution.xcontent.FlintIndexStateModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
+import org.opensearch.sql.spark.flint.FlintIndexClient;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.FlintIndexType;
+import org.opensearch.sql.spark.flint.OpenSearchFlintIndexClient;
 import org.opensearch.sql.spark.flint.OpenSearchFlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
+import org.opensearch.sql.spark.metrics.OpenSearchMetricsService;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 import org.opensearch.sql.storage.DataSourceFactory;
@@ -99,6 +102,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected org.opensearch.sql.common.setting.Settings pluginSettings;
   protected SessionConfigSupplier sessionConfigSupplier;
   protected NodeClient client;
+  protected FlintIndexClient flintIndexClient;
   protected DataSourceServiceImpl dataSourceService;
   protected ClusterSettings clusterSettings;
   protected FlintIndexMetadataService flintIndexMetadataService;
@@ -141,6 +145,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 .putList(DATASOURCE_URI_HOSTS_DENY_LIST.getKey(), Collections.emptyList())
                 .build())
         .get();
+    flintIndexClient = new OpenSearchFlintIndexClient(client);
     dataSourceService = createDataSourceService();
     DataSourceMetadata dm =
         new DataSourceMetadata.Builder()
@@ -190,7 +195,10 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected FlintIndexOpFactory getFlintIndexOpFactory(
       EMRServerlessClientFactory emrServerlessClientFactory) {
     return new FlintIndexOpFactory(
-        flintIndexStateModelService, client, flintIndexMetadataService, emrServerlessClientFactory);
+        flintIndexStateModelService,
+        flintIndexClient,
+        flintIndexMetadataService,
+        emrServerlessClientFactory);
   }
 
   @After
@@ -259,10 +267,11 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
             new OpenSearchIndexDMLResultStorageService(dataSourceService, stateStore),
             new FlintIndexOpFactory(
                 flintIndexStateModelService,
-                client,
+                flintIndexClient,
                 new FlintIndexMetadataServiceImpl(client),
                 emrServerlessClientFactory),
-            emrServerlessClientFactory);
+            emrServerlessClientFactory,
+            new OpenSearchMetricsService());
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
             this.dataSourceService,
@@ -342,7 +351,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   public static class LocalEMRServerlessClientFactory implements EMRServerlessClientFactory {
 
     @Override
-    public EMRServerlessClient getClient() {
+    public EMRServerlessClient getClient(String accountId) {
       return new LocalEMRSClient();
     }
   }

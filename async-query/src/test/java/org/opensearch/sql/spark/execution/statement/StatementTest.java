@@ -19,7 +19,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
@@ -39,6 +38,7 @@ import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
 import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
 import org.opensearch.sql.spark.rest.model.LangType;
+import org.opensearch.sql.spark.utils.IDUtils;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class StatementTest extends OpenSearchIntegTestCase {
@@ -61,7 +61,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
         new OpenSearchStatementStorageService(stateStore, new StatementModelXContentSerializer());
     sessionStorageService =
         new OpenSearchSessionStorageService(stateStore, new SessionModelXContentSerializer());
-    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
 
     sessionManager =
         new SessionManager(
@@ -279,7 +279,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void failToSubmitStatementInDeletedSession() {
-    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
     Session session =
         sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
@@ -368,8 +368,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   }
 
   private QueryRequest queryRequest() {
-    return new QueryRequest(
-        AsyncQueryId.newAsyncQueryId(TEST_DATASOURCE_NAME).getId(), LangType.SQL, "select 1");
+    return new QueryRequest(IDUtils.encode(TEST_DATASOURCE_NAME), LangType.SQL, "select 1");
   }
 
   private Statement createStatement(StatementId stId) {

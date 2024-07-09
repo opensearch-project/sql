@@ -38,8 +38,11 @@ configurations {
     }
 }
 
-// Make sure the downloadG4File task runs before the generateGrammarSource task
-generateGrammarSource.dependsOn downloadG4Files
+// skip download in case of offline build
+if (!gradle.startParameter.offline) {
+    // Make sure the downloadG4File task runs before the generateGrammarSource task
+    generateGrammarSource.dependsOn downloadG4Files
+}
 
 dependencies {
     antlr "org.antlr:antlr4:4.7.1"
@@ -47,7 +50,6 @@ dependencies {
     implementation project(':core')
     implementation project(':spark') // TODO: dependency to spark should be eliminated
     implementation project(':datasources') // TODO: dependency to datasources should be eliminated
-    implementation project(':legacy') // TODO: dependency to legacy should be eliminated
     implementation 'org.json:json:20231013'
     implementation 'com.google.code.gson:gson:2.8.9'
 

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.spark.rest.model;
+package org.opensearch.sql.spark.transport.format;
 
 import java.io.IOException;
 import org.junit.jupiter.api.Assertions;
@@ -12,8 +12,10 @@ import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
+import org.opensearch.sql.spark.rest.model.LangType;
 
-public class CreateAsyncQueryRequestTest {
+public class CreateAsyncQueryRequestConverterTest {
 
   @Test
   public void fromXContent() throws IOException {
@@ -24,7 +26,7 @@ public class CreateAsyncQueryRequestTest {
             + "  \"query\": \"select 1\"\n"
             + "}";
     CreateAsyncQueryRequest queryRequest =
-        CreateAsyncQueryRequest.fromXContentParser(xContentParser(request));
+        CreateAsyncQueryRequestConverter.fromXContentParser(xContentParser(request));
     Assertions.assertEquals("my_glue", queryRequest.getDatasource());
     Assertions.assertEquals(LangType.SQL, queryRequest.getLang());
     Assertions.assertEquals("select 1", queryRequest.getQuery());
@@ -48,7 +50,7 @@ public class CreateAsyncQueryRequestTest {
     IllegalArgumentException illegalArgumentException =
         Assertions.assertThrows(
             IllegalArgumentException.class,
-            () -> CreateAsyncQueryRequest.fromXContentParser(xContentParser(request)));
+            () -> CreateAsyncQueryRequestConverter.fromXContentParser(xContentParser(request)));
     Assertions.assertTrue(
         illegalArgumentException
             .getMessage()
@@ -67,7 +69,7 @@ public class CreateAsyncQueryRequestTest {
     IllegalArgumentException illegalArgumentException =
         Assertions.assertThrows(
             IllegalArgumentException.class,
-            () -> CreateAsyncQueryRequest.fromXContentParser(xContentParser(request)));
+            () -> CreateAsyncQueryRequestConverter.fromXContentParser(xContentParser(request)));
     Assertions.assertEquals(
         "Error while parsing the request body: Unknown field: random",
         illegalArgumentException.getMessage());
@@ -81,7 +83,7 @@ public class CreateAsyncQueryRequestTest {
     IllegalArgumentException illegalArgumentException =
         Assertions.assertThrows(
             IllegalArgumentException.class,
-            () -> CreateAsyncQueryRequest.fromXContentParser(xContentParser(request)));
+            () -> CreateAsyncQueryRequestConverter.fromXContentParser(xContentParser(request)));
     Assertions.assertEquals(
         "Error while parsing the request body: Can't get text on a START_ARRAY at 1:16",
         illegalArgumentException.getMessage());
@@ -97,7 +99,7 @@ public class CreateAsyncQueryRequestTest {
             + "  \"sessionId\": \"00fdjevgkf12s00q\"\n"
             + "}";
     CreateAsyncQueryRequest queryRequest =
-        CreateAsyncQueryRequest.fromXContentParser(xContentParser(request));
+        CreateAsyncQueryRequestConverter.fromXContentParser(xContentParser(request));
     Assertions.assertEquals("00fdjevgkf12s00q", queryRequest.getSessionId());
   }
 
