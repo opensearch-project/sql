@@ -30,8 +30,19 @@ public abstract class ElasticHitsExecutor {
   protected PointInTimeHandler pit;
   protected Client client;
 
+  /**
+   * Executes search request
+   *
+   * @throws IOException If an input or output exception occurred
+   * @throws SqlParseException If parsing exception occurred
+   */
   protected abstract void run() throws IOException, SqlParseException;
 
+  /**
+   * Get search hits after execution
+   *
+   * @return Search hits
+   */
   protected abstract SearchHits getHits();
 
   /**
