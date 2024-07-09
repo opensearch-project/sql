@@ -128,6 +128,45 @@ class SQLServiceTest {
   }
 
   @Test
+  public void can_execute_raw_format_request() {
+    sqlService.execute(
+        new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "raw"),
+        new ResponseListener<QueryResponse>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            assertNotNull(response);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail(e);
+          }
+        });
+  }
+
+  @Test
+  public void can_execute_pretty_raw_format_request() {
+    sqlService.execute(
+        new SQLQueryRequest(
+            new JSONObject(),
+            "SELECT 123",
+            QUERY,
+            Map.of("format", "jdbc", "pretty", "true"),
+            "n:cursor"),
+        new ResponseListener<QueryResponse>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            assertNotNull(response);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail(e);
+          }
+        });
+  }
+
+  @Test
   public void can_explain_sql_query() {
     doAnswer(
             invocation -> {
