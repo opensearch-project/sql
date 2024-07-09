@@ -222,6 +222,16 @@ public class SQLQueryRequestTest {
     assertTrue(csvRequest.isSupported());
   }
 
+  @Test
+  public void test_to_string_with_anonymizer() {
+    SQLQueryRequest request = SQLQueryRequestBuilder.request("SELECT 1").build();
+    String actual = request.toString(s -> "***");
+    String expected =
+        "SQLQueryRequest(query=***, path=_plugins/_sql, format=jdbc, params={}, sanitize=true,"
+            + " cursor=Optional.empty)";
+    assertEquals(expected, actual);
+  }
+
   /** SQL query request build helper to improve test data setup readability. */
   private static class SQLQueryRequestBuilder {
     private String jsonContent;

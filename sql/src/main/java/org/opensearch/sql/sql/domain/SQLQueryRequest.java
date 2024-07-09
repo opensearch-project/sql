@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -147,5 +148,23 @@ public class SQLQueryRequest {
       return Boolean.parseBoolean(params.get(QUERY_PARAMS_SANITIZE));
     }
     return true;
+  }
+
+  /** A new toString() with anonymizer parameter to anonymize its query statement. */
+  public String toString(Function<String, String> anonymizer) {
+    return "SQLQueryRequest("
+        + "query="
+        + anonymizer.apply(getQuery())
+        + ", path="
+        + path
+        + ", format="
+        + format
+        + ", params="
+        + params
+        + ", sanitize="
+        + sanitize
+        + ", cursor="
+        + getCursor()
+        + ')';
   }
 }
