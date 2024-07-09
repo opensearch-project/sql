@@ -138,8 +138,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController),
-        new RestDataSourceQueryAction(),
-        new RestAsyncQueryManagementAction());
+        new RestDataSourceQueryAction((OpenSearchSettings) pluginSettings),
+        new RestAsyncQueryManagementAction((OpenSearchSettings) pluginSettings));
   }
 
   /** Register action and handler so that transportClient can find proxy for action. */
@@ -274,7 +274,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     }
     DataSourceMetadataStorage dataSourceMetadataStorage =
         new OpenSearchDataSourceMetadataStorage(
-            client, clusterService, new EncryptorImpl(masterKey));
+            client,
+            clusterService,
+            new EncryptorImpl(masterKey),
+            (OpenSearchSettings) pluginSettings);
     DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper =
         new DataSourceUserAuthorizationHelperImpl(client);
     return new DataSourceServiceImpl(

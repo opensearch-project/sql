@@ -139,6 +139,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<Boolean> DATASOURCE_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.DATASOURCES_ENABLED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<Boolean> ASYNC_QUERY_ENABLED_SETTING =
       Setting.boolSetting(
           Key.ASYNC_QUERY_ENABLED.getKeyValue(),
@@ -281,6 +288,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.DATASOURCES_ENABLED,
+        DATASOURCE_ENABLED_SETTING,
+        new Updater(Key.DATASOURCES_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.ASYNC_QUERY_ENABLED,
         ASYNC_QUERY_ENABLED_SETTING,
         new Updater(Key.ASYNC_QUERY_ENABLED));
@@ -403,6 +416,7 @@ public class OpenSearchSettings extends Settings {
         .add(METRICS_ROLLING_WINDOW_SETTING)
         .add(METRICS_ROLLING_INTERVAL_SETTING)
         .add(DATASOURCE_URI_HOSTS_DENY_LIST)
+        .add(DATASOURCE_ENABLED_SETTING)
         .add(ASYNC_QUERY_ENABLED_SETTING)
         .add(SPARK_EXECUTION_ENGINE_CONFIG)
         .add(SPARK_EXECUTION_SESSION_LIMIT_SETTING)
