@@ -17,7 +17,6 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.expression.function.FunctionImplementation;
 import org.opensearch.sql.opensearch.storage.script.core.ExpressionScript;
 
 /**
@@ -72,7 +71,7 @@ class ExpressionFilterScript extends FilterScript {
   }
 
   private boolean isRegexpExpression(Expression expression) {
-    return expression instanceof FunctionImplementation
+    return expression instanceof FunctionExpression
         && ((FunctionExpression) expression)
             .getFunctionName()
             .equals(BuiltinFunctionName.REGEXP.getName());
