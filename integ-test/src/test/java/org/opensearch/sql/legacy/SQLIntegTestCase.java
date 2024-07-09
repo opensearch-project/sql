@@ -54,6 +54,7 @@ import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -170,6 +171,15 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
             "transient",
             Settings.Key.QUERY_SIZE_LIMIT.getKeyValue(),
             DEFAULT_QUERY_SIZE_LIMIT.toString()));
+  }
+
+  @SneakyThrows
+  protected void setDataSourcesEnabled(String clusterSettingType, boolean value) {
+    updateClusterSettings(
+        new ClusterSetting(
+            clusterSettingType,
+            Settings.Key.DATASOURCES_ENABLED.getKeyValue(),
+            Boolean.toString(value)));
   }
 
   protected static void wipeAllClusterSettings() throws IOException {

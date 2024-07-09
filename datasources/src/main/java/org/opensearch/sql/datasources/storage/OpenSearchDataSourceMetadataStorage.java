@@ -42,11 +42,13 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.encryptor.Encryptor;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.utils.XContentParserUtils;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 
 public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataStorage {
 
@@ -61,6 +63,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
   private final ClusterService clusterService;
 
   private final Encryptor encryptor;
+  private final OpenSearchSettings settings;
 
   /**
    * This class implements DataSourceMetadataStorage interface using OpenSearch as underlying
@@ -71,14 +74,21 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
    * @param encryptor Encryptor.
    */
   public OpenSearchDataSourceMetadataStorage(
-      Client client, ClusterService clusterService, Encryptor encryptor) {
+      Client client,
+      ClusterService clusterService,
+      Encryptor encryptor,
+      OpenSearchSettings settings) {
     this.client = client;
     this.clusterService = clusterService;
     this.encryptor = encryptor;
+    this.settings = settings;
   }
 
   @Override
   public List<DataSourceMetadata> getDataSourceMetadata() {
+    if (!isEnabled()) {
+      return Collections.emptyList();
+    }
     if (!this.clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME)) {
       createDataSourcesIndex();
       return Collections.emptyList();
@@ -88,6 +98,9 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
 
   @Override
   public Optional<DataSourceMetadata> getDataSourceMetadata(String datasourceName) {
+    if (!isEnabled()) {
+      return Optional.empty();
+    }
     if (!this.clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME)) {
       createDataSourcesIndex();
       return Optional.empty();
@@ -101,6 +114,9 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
 
   @Override
   public void createDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {
+    if (!isEnabled()) {
+      throw new IllegalStateException("Data source management is disabled");
+    }
     encryptDecryptAuthenticationData(dataSourceMetadata, true);
     if (!this.clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME)) {
       createDataSourcesIndex();
@@ -134,6 +150,9 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
 
   @Override
   public void updateDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {
+    if (!isEnabled()) {
+      throw new IllegalStateException("Data source management is disabled");
+    }
     encryptDecryptAuthenticationData(dataSourceMetadata, true);
     UpdateRequest updateRequest =
         new UpdateRequest(DATASOURCE_INDEX_NAME, dataSourceMetadata.getName());
@@ -163,6 +182,9 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
 
   @Override
   public void deleteDataSourceMetadata(String datasourceName) {
+    if (!isEnabled()) {
+      throw new IllegalStateException("Data source management is disabled");
+    }
     DeleteRequest deleteRequest = new DeleteRequest(DATASOURCE_INDEX_NAME);
     deleteRequest.id(datasourceName);
     deleteRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
@@ -301,5 +323,9 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
         .findFirst()
         .ifPresent(list::add);
     encryptOrDecrypt(propertiesMap, isEncryption, list);
+  }
+
+  private boolean isEnabled() {
+    return settings.getSettingValue(Settings.Key.DATASOURCES_ENABLED);
   }
 }
