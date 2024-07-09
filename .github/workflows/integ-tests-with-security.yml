@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ 11, 17, 21 ]
+        java: [21]
 
     runs-on: ubuntu-latest
     container:
@@ -29,6 +29,10 @@ jobs:
       image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
       # need to switch to root so that github actions can install runner binary on container without permission issues.
       options: --user root
+
+    # Allow using Node16 actions
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
     - uses: actions/checkout@v3
@@ -60,7 +64,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ windows-latest ]
-        java: [ 11, 17, 21 ]
+        java: [21]
 
     runs-on: ${{ matrix.os }}
 

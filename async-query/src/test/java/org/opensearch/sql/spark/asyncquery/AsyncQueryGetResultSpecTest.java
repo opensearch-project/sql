@@ -25,7 +25,6 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryResult;
 import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
@@ -38,6 +37,7 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.transport.format.AsyncQueryResultResponseFormatter;
+import org.opensearch.sql.spark.transport.model.AsyncQueryResult;
 
 public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
@@ -417,7 +417,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     private Interaction interaction;
 
     AssertionHelper(String query, LocalEMRSClient emrClient) {
-      EMRServerlessClientFactory emrServerlessClientFactory = () -> emrClient;
+      EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrClient;
       this.queryService =
           createAsyncQueryExecutorService(
               emrServerlessClientFactory,

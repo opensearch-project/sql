@@ -75,6 +75,7 @@ import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
+import org.opensearch.sql.spark.metrics.MetricsService;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
 
@@ -94,6 +95,7 @@ public class SparkQueryDispatcherTest {
   @Mock private SparkSubmitParameterModifier sparkSubmitParameterModifier;
   @Mock private QueryIdProvider queryIdProvider;
   @Mock private AsyncQueryRequestContext asyncQueryRequestContext;
+  @Mock private MetricsService metricsService;
 
   @Mock(answer = RETURNS_DEEP_STUBS)
   private Session session;
@@ -117,7 +119,8 @@ public class SparkQueryDispatcherTest {
             leaseManager,
             indexDMLResultStorageService,
             flintIndexOpFactory,
-            emrServerlessClientFactory);
+            emrServerlessClientFactory,
+            metricsService);
     sparkQueryDispatcher =
         new SparkQueryDispatcher(
             dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
@@ -125,7 +128,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchSelectQuery() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
@@ -176,7 +179,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchSelectQueryWithLakeFormation() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
@@ -217,7 +220,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchSelectQueryWithBasicAuthIndexStoreDatasource() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
@@ -259,7 +262,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchSelectQueryWithNoAuthIndexStoreDatasource() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
@@ -365,7 +368,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchCreateAutoRefreshIndexQuery() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(INDEX_TAG_KEY, "flint_my_glue_default_http_logs_elb_and_requesturi_index");
@@ -410,7 +413,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchCreateManualRefreshIndexQuery() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, "my_glue");
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
@@ -453,7 +456,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchWithPPLQuery() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
@@ -496,7 +499,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchQueryWithoutATableAndDataSourceName() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
@@ -537,7 +540,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchIndexQueryWithoutADatasourceName() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(INDEX_TAG_KEY, "flint_my_glue_default_http_logs_elb_and_requesturi_index");
@@ -582,7 +585,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchMaterializedViewQuery() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(INDEX_TAG_KEY, "flint_mv_1");
@@ -627,7 +630,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchShowMVQuery() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
@@ -668,7 +671,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testRefreshIndexQuery() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
@@ -709,7 +712,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchDescribeIndexQuery() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
@@ -750,7 +753,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchAlterToAutoRefreshIndexQuery() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, "my_glue");
     tags.put(INDEX_TAG_KEY, "flint_my_glue_default_http_logs_elb_and_requesturi_index");
@@ -903,7 +906,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelJob() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, false))
         .thenReturn(
             new CancelJobRunResult()
@@ -965,7 +968,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelQueryWithNoSessionId() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, false))
         .thenReturn(
             new CancelJobRunResult()
@@ -979,7 +982,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testGetQueryResponse() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.PENDING)));
     // simulate result index is not created yet
@@ -1076,7 +1079,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchQueryWithExtraSparkSubmitParameters() {
-    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);

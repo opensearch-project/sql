@@ -188,7 +188,7 @@ indexColTypeList
     ;
 
 indexColType
-    : identifier skipType=(PARTITION | VALUE_SET | MIN_MAX | BLOOM_FILTER)
+    : multipartIdentifier skipType=(PARTITION | VALUE_SET | MIN_MAX | BLOOM_FILTER)
         (LEFT_PAREN skipParams RIGHT_PAREN)?
     ;
 
