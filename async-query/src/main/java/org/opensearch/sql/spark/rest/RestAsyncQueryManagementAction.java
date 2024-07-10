@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -26,11 +27,14 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.utils.MetricUtils;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
+import org.opensearch.sql.opensearch.util.RestRequestUtil;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.leasemanager.ConcurrencyLimitExceededException;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
@@ -44,12 +48,15 @@ import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRequest;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
 
+@RequiredArgsConstructor
 public class RestAsyncQueryManagementAction extends BaseRestHandler {
 
   public static final String ASYNC_QUERY_ACTIONS = "async_query_actions";
   public static final String BASE_ASYNC_QUERY_ACTION_URL = "/_plugins/_async_query";
 
   private static final Logger LOG = LogManager.getLogger(RestAsyncQueryManagementAction.class);
+
+  private final OpenSearchSettings settings;
 
   @Override
   public String getName() {
@@ -99,6 +106,9 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
   @Override
   protected RestChannelConsumer prepareRequest(RestRequest restRequest, NodeClient nodeClient)
       throws IOException {
+    if (!dataSourcesEnabled()) {
+      return dataSourcesDisabledError(restRequest);
+    }
     switch (restRequest.method()) {
       case POST:
         return executePostRequest(restRequest, nodeClient);
@@ -270,5 +280,22 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
             MetricName.ASYNC_QUERY_CANCEL_API_FAILED_REQ_COUNT_CUS);
         break;
     }
+  }
+
+  private boolean dataSourcesEnabled() {
+    return settings.getSettingValue(Settings.Key.DATASOURCES_ENABLED);
+  }
+
+  private RestChannelConsumer dataSourcesDisabledError(RestRequest request) {
+
+    RestRequestUtil.consumeAllRequestParameters(request);
+
+    return channel -> {
+      reportError(
+          channel,
+          new IllegalAccessException(
+              String.format("%s setting is false", Settings.Key.DATASOURCES_ENABLED.getKeyValue())),
+          BAD_REQUEST);
+    };
   }
 }
