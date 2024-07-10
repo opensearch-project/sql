@@ -230,7 +230,10 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     String masterKey = "a57d991d9b573f75b9bba1df";
     DataSourceMetadataStorage dataSourceMetadataStorage =
         new OpenSearchDataSourceMetadataStorage(
-            client, clusterService, new EncryptorImpl(masterKey));
+            client,
+            clusterService,
+            new EncryptorImpl(masterKey),
+            (OpenSearchSettings) pluginSettings);
     return new DataSourceServiceImpl(
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(new GlueDataSourceFactory(pluginSettings))
