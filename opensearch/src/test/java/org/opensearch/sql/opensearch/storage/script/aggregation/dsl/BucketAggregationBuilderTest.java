@@ -6,10 +6,12 @@
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 import static org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
@@ -34,10 +36,15 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
@@ -150,6 +157,38 @@ class BucketAggregationBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(Arrays.asList(asc(named("date", ref("date", dataType))))));
+  }
+
+  /** Add this unit test in case build bucket aggregation with unsupported expression in future */
+  @Test
+  void should_throw_exception_for_unsupported_expression() {
+    Expression unsupportedExpression =
+        new Expression() {
+          @Override
+          public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+            return ExprValueUtils.nullValue();
+          }
+
+          @Override
+          public ExprType type() {
+            return UNKNOWN;
+          }
+
+          @Override
+          public <T, C> T accept(ExpressionNodeVisitor<T, C> visitor, C context) {
+            return null;
+          }
+
+          @Override
+          public String toString() {
+            return "unknown";
+          }
+        };
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class,
+            () -> buildQuery(Arrays.asList(asc(named("UNKNOWN", unsupportedExpression)))));
+    assertEquals("bucket aggregation doesn't support expression unknown", exception.getMessage());
   }
 
   @SneakyThrows

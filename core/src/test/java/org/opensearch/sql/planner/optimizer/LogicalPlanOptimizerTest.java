@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.planner.optimizer;
 
+import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -120,6 +121,43 @@ class LogicalPlanOptimizerTest {
                         DSL.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L)))),
                     Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))),
                 DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))))));
+  }
+
+  @Test
+  void eliminate_nested_in_aggregation() {
+    List<Map<String, ReferenceExpression>> nestedArgs =
+        ImmutableList.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)));
+    List<NamedExpression> projectList =
+        ImmutableList.of(
+            DSL.named(
+                "count(nested(message.info, message))",
+                DSL.ref("count(nested(message.info, message))", INTEGER)));
+
+    assertEquals(
+        aggregation(
+            tableScanBuilder,
+            ImmutableList.of(
+                DSL.named(
+                    "count(nested(message.info, message))",
+                    DSL.count(
+                        DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", ARRAY))))),
+            emptyList()),
+        optimize(
+            nested(
+                aggregation(
+                    relation("schema", table),
+                    ImmutableList.of(
+                        DSL.named(
+                            "count(nested(message.info, message))",
+                            DSL.count(
+                                DSL.nested(
+                                    DSL.ref("message.info", STRING), DSL.ref("message", ARRAY))))),
+                    emptyList()),
+                nestedArgs,
+                projectList)));
   }
 
   @Test

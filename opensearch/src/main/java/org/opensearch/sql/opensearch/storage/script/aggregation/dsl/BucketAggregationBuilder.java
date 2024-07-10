@@ -68,7 +68,8 @@ public class BucketAggregationBuilder {
       if (List.of(TIMESTAMP, TIME, DATE).contains(expr.getDelegated().type())) {
         sourceBuilder.userValuetypeHint(ValueType.LONG);
       }
-      return helper.build(expr.getDelegated(), sourceBuilder::field, sourceBuilder::script);
+      return helper.buildComposite(
+          expr.getDelegated(), sourceBuilder::field, sourceBuilder::script);
     }
   }
 
