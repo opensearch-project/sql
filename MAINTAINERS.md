@@ -21,6 +21,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Sean Kao          | [seankao-az](https://github.com/seankao-az)         | Amazon      |
 | Anirudha Jadhav   | [anirudha](https://github.com/anirudha)             | Amazon      |
 | Tomoyuki Morita   | [ykmr1224](https://github.com/ykmr1224)             | Amazon      |
+| Lantao Jin        | [LantaoJin](https://github.com/LantaoJin)           | Amazon      |
 | Max Ksyunz        | [MaxKsyunz](https://github.com/MaxKsyunz)           | Improving   |
 | Yury Fridlyand    | [Yury-Fridlyand](https://github.com/Yury-Fridlyand) | Improving   |
 | Andrew Carbonetto | [acarbonetto](https://github.com/acarbonetto)       | Improving   |
