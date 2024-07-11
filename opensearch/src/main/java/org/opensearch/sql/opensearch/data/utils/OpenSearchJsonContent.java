@@ -135,7 +135,6 @@ public class OpenSearchJsonContent implements Content {
             NamedXContentRegistry.EMPTY,
             DeprecationHandler.IGNORE_DEPRECATIONS,
             value.traverse())) {
-      assert parser.currentToken() == null;
       parser.nextToken();
       GeoPoint point = new GeoPoint();
       GeoUtils.parseGeoPoint(parser, point, true);
@@ -148,17 +147,5 @@ public class OpenSearchJsonContent implements Content {
   /** Getter for value. If value is array the whole array is returned. */
   private JsonNode value() {
     return value;
-  }
-
-  /** Get doubleValue from JsonNode if possible. */
-  private Double extractDoubleValue(JsonNode node) {
-    if (node.isTextual()) {
-      return Double.valueOf(node.textValue());
-    }
-    if (node.isNumber()) {
-      return node.doubleValue();
-    } else {
-      throw new IllegalStateException("node must be a number");
-    }
   }
 }

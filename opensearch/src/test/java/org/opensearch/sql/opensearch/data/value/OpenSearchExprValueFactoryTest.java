@@ -600,6 +600,18 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
+  public void constructArrayOfGeoPointsReturnsFirstIndex() {
+    assertEquals(
+        new OpenSearchExprGeoPointValue(42.60355556, -97.25263889),
+        tupleValue(
+                "{\"geoV\":["
+                    + "{\"lat\":42.60355556,\"lon\":-97.25263889},"
+                    + "{\"lat\":-33.6123556,\"lon\":66.287449}"
+                    + "]}")
+            .get("geoV"));
+  }
+
+  @Test
   public void constructArrayOfIPsReturnsFirstIndex() {
     assertEquals(
         new OpenSearchExprIpValue("192.168.0.1"),

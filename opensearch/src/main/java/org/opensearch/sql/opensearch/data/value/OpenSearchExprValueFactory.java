@@ -63,7 +63,6 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchGeoPointType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchIpType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
@@ -419,8 +418,7 @@ public class OpenSearchExprValueFactory {
       Content content, String prefix, ExprType type, boolean supportArrays) {
     if (type instanceof OpenSearchIpType
         || type instanceof OpenSearchBinaryType
-        || type instanceof OpenSearchDateType
-        || type instanceof OpenSearchGeoPointType) {
+        || type instanceof OpenSearchDateType) {
       return parse(content, prefix, Optional.of(type), supportArrays);
     } else if (content.isString()) {
       return parse(content, prefix, Optional.of(OpenSearchDataType.of(STRING)), supportArrays);
