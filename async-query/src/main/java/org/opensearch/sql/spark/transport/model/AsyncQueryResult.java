@@ -1,4 +1,9 @@
-package org.opensearch.sql.spark.asyncquery.model;
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.spark.transport.model;
 
 import java.util.Collection;
 import lombok.Getter;

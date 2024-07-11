@@ -41,6 +41,7 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportGetAsyncQueryResultAction;
+import org.opensearch.sql.spark.transport.format.CreateAsyncQueryRequestConverter;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionRequest;
@@ -129,7 +130,7 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
       try {
         MetricUtils.incrementNumericalMetric(MetricName.ASYNC_QUERY_CREATE_API_REQUEST_COUNT);
         CreateAsyncQueryRequest submitJobRequest =
-            CreateAsyncQueryRequest.fromXContentParser(restRequest.contentParser());
+            CreateAsyncQueryRequestConverter.fromXContentParser(restRequest.contentParser());
         Scheduler.schedule(
             nodeClient,
             () ->
