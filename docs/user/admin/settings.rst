@@ -630,3 +630,84 @@ Request ::
         }
       }
     }
+
+plugins.query.datasources.enabled
+=================================
+
+Description
+-----------
+
+This setting controls whether datasources are enabled.
+
+1. The default value is true
+2. This setting is node scope
+3. This setting can be updated dynamically
+
+Update Settings Request::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT 'localhost:9200/_cluster/settings?pretty' \
+    ... -d '{"transient":{"plugins.query.datasources.enabled":"false"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "query": {
+            "datasources": {
+              "enabled": "false"
+            }
+          }
+        }
+      }
+    }
+
+When Attempting to Call Data Source APIs::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X GET 'localhost:9200/_plugins/_query/_datasources'
+    {
+      "status": 400,
+      "error": {
+        "type": "OpenSearchStatusException",
+        "reason": "Invalid Request",
+        "details": "plugins.query.datasources.enabled setting is false"
+      }
+    }
+
+When Attempting to List Data Source::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X POST 'localhost:9200/_plugins/_ppl' \
+    ... -d '{"query":"show datasources"}'
+    {
+      "schema": [
+        {
+          "name": "DATASOURCE_NAME",
+          "type": "string"
+        },
+        {
+          "name": "CONNECTOR_TYPE",
+          "type": "string"
+        }
+      ],
+      "datarows": [],
+      "total": 0,
+      "size": 0
+    }
+
+To Re-enable Data Sources:::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT 'localhost:9200/_cluster/settings?pretty' \
+    ... -d '{"transient":{"plugins.query.datasources.enabled":"true"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "query": {
+            "datasources": {
+              "enabled": "true"
+            }
+          }
+        }
+      }
+    }
+
