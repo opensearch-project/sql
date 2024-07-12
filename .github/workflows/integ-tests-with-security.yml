@@ -60,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-latest, macos-latest ]
+        os: [ windows-latest ]
         java: [ 11, 17, 21 ]
 
     runs-on: ${{ matrix.os }}
