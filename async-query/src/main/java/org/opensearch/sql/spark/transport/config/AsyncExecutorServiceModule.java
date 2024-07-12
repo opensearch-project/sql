@@ -15,6 +15,7 @@ import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.legacy.metrics.GaugeMetric;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
@@ -23,6 +24,8 @@ import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.asyncquery.OpenSearchAsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactoryImpl;
+import org.opensearch.sql.spark.config.OpenSearchExtraParameterComposer;
+import org.opensearch.sql.spark.config.SparkExecutionEngineConfigClusterSettingLoader;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
 import org.opensearch.sql.spark.dispatcher.DatasourceEmbeddedQueryIdProvider;
@@ -53,6 +56,9 @@ import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.metrics.MetricsService;
 import org.opensearch.sql.spark.metrics.OpenSearchMetricsService;
+import org.opensearch.sql.spark.parameter.S3GlueDataSourceSparkParameterComposer;
+import org.opensearch.sql.spark.parameter.SparkParameterComposerCollection;
+import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilderProvider;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 
@@ -111,7 +117,8 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       IndexDMLResultStorageService indexDMLResultStorageService,
       FlintIndexOpFactory flintIndexOpFactory,
       EMRServerlessClientFactory emrServerlessClientFactory,
-      MetricsService metricsService) {
+      MetricsService metricsService,
+      SparkSubmitParametersBuilderProvider sparkSubmitParametersBuilderProvider) {
     return new QueryHandlerFactory(
         openSearchJobExecutionResponseReader,
         flintIndexMetadataReader,
@@ -120,7 +127,8 @@ public class AsyncExecutorServiceModule extends AbstractModule {
         indexDMLResultStorageService,
         flintIndexOpFactory,
         emrServerlessClientFactory,
-        metricsService);
+        metricsService,
+        sparkSubmitParametersBuilderProvider);
   }
 
   @Provides
@@ -145,6 +153,15 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   public FlintIndexStateModelService flintIndexStateModelService(
       StateStore stateStore, FlintIndexStateModelXContentSerializer serializer) {
     return new OpenSearchFlintIndexStateModelService(stateStore, serializer);
+  }
+
+  @Provides
+  public SparkSubmitParametersBuilderProvider sparkSubmitParametersBuilderProvider(
+      Settings settings, SparkExecutionEngineConfigClusterSettingLoader clusterSettingLoader) {
+    SparkParameterComposerCollection collection = new SparkParameterComposerCollection();
+    collection.register(DataSourceType.S3GLUE, new S3GlueDataSourceSparkParameterComposer());
+    collection.register(new OpenSearchExtraParameterComposer(clusterSettingLoader));
+    return new SparkSubmitParametersBuilderProvider(collection);
   }
 
   @Provides
@@ -197,8 +214,15 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   }
 
   @Provides
-  public SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier(Settings settings) {
-    return new SparkExecutionEngineConfigSupplierImpl(settings);
+  public SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier(
+      Settings settings, SparkExecutionEngineConfigClusterSettingLoader clusterSettingLoader) {
+    return new SparkExecutionEngineConfigSupplierImpl(settings, clusterSettingLoader);
+  }
+
+  @Provides
+  public SparkExecutionEngineConfigClusterSettingLoader
+      sparkExecutionEngineConfigClusterSettingLoader(Settings settings) {
+    return new SparkExecutionEngineConfigClusterSettingLoader(settings);
   }
 
   @Provides

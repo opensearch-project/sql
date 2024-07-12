@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
-import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
@@ -25,6 +24,7 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.metrics.MetricsService;
+import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilderProvider;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /**
@@ -37,6 +37,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   protected final JobExecutionResponseReader jobExecutionResponseReader;
   protected final LeaseManager leaseManager;
   protected final MetricsService metricsService;
+  protected final SparkSubmitParametersBuilderProvider sparkSubmitParametersBuilderProvider;
 
   @Override
   protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
@@ -80,12 +81,16 @@ public class BatchQueryHandler extends AsyncQueryHandler {
             dispatchQueryRequest.getAccountId(),
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
-            SparkSubmitParameters.builder()
+            sparkSubmitParametersBuilderProvider
+                .getSparkSubmitParametersBuilder()
                 .clusterName(clusterName)
-                .dataSource(context.getDataSourceMetadata())
                 .query(dispatchQueryRequest.getQuery())
-                .build()
+                .dataSource(
+                    context.getDataSourceMetadata(),
+                    dispatchQueryRequest,
+                    context.getAsyncQueryRequestContext())
                 .acceptModifier(dispatchQueryRequest.getSparkSubmitParameterModifier())
+                .acceptComposers(dispatchQueryRequest, context.getAsyncQueryRequestContext())
                 .toString(),
             tags,
             false,
