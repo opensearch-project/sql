@@ -385,8 +385,9 @@ Y:                                  'Y';
 //STRING_LITERAL:                     DQUOTA_STRING | SQUOTA_STRING | BQUOTA_STRING;
 ID:                                 ID_LITERAL;
 CLUSTER:                            CLUSTER_PREFIX_LITERAL;
-INTEGER_LITERAL:                    DEC_DIGIT+;
-DECIMAL_LITERAL:                    (DEC_DIGIT+)? '.' DEC_DIGIT+;
+INTEGER_LITERAL:                    INTEGER_NUM;
+DECIMAL_LITERAL:                    DECIMAL_NUM;
+EXPONENT_LITERAL:                   INTEGER_NUM EXPONENT_NUM | DECIMAL_NUM EXPONENT_NUM;
 
 fragment DATE_SUFFIX:               ([\-.][*0-9]+)+;
 fragment ID_LITERAL:                [@*A-Z]+?[*A-Z_\-0-9]*;
@@ -396,6 +397,9 @@ DQUOTA_STRING:                      '"' ( '\\'. | '""' | ~('"'| '\\') )* '"';
 SQUOTA_STRING:                      '\'' ('\\'. | '\'\'' | ~('\'' | '\\'))* '\'';
 BQUOTA_STRING:                      '`' ( '\\'. | '``' | ~('`'|'\\'))* '`';
 fragment DEC_DIGIT:                 [0-9];
+fragment INTEGER_NUM:               DEC_DIGIT+;
+fragment DECIMAL_NUM:               (DEC_DIGIT+)? '.' DEC_DIGIT+;
+fragment EXPONENT_NUM:              'E' [-+]? DEC_DIGIT+;
 
 
 ERROR_RECOGNITION:                  .    -> channel(ERRORCHANNEL);

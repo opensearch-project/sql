@@ -503,6 +503,44 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testExponentLiteralExpr() {
+    List<String> scientificNotationList =
+        List.of(
+            "9e1",
+            "+9e+1",
+            "900e-1",
+            "9.0e1",
+            "9.0e+1",
+            "9.0E1",
+            ".9e+2",
+            "0.09e+3",
+            "900.0e-1",
+            "+900.0E-1");
+    for (String scientificNotation : scientificNotationList) {
+      assertEqual(
+          "source=t b=" + scientificNotation,
+          filter(relation("t"), compare("=", field("b"), doubleLiteral(90.0))));
+    }
+    List<String> negativeScientificNotationList =
+        List.of(
+            "-9e1",
+            "-9e+1",
+            "-900e-1",
+            "-9.0e1",
+            "-9.0e+1",
+            "-9.0E1",
+            "-.9e+2",
+            "-0.09e+3",
+            "-900.0e-1",
+            "-900.0E-1");
+    for (String negativeScientificNotation : negativeScientificNotationList) {
+      assertEqual(
+          "source=t b=" + negativeScientificNotation,
+          filter(relation("t"), compare("=", field("b"), doubleLiteral(-90.0))));
+    }
+  }
+
+  @Test
   public void testBooleanLiteralExpr() {
     assertEqual(
         "source=t a=true", filter(relation("t"), compare("=", field("a"), booleanLiteral(true))));
