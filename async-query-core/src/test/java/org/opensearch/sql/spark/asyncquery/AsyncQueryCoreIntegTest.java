@@ -133,7 +133,7 @@ public class AsyncQueryCoreIntegTest {
   @BeforeEach
   public void setUp() {
     emrServerlessClientFactory =
-        () -> new EmrServerlessClientImpl(awsemrServerless, metricsService);
+        (accountId) -> new EmrServerlessClientImpl(awsemrServerless, metricsService);
     SessionManager sessionManager =
         new SessionManager(
             sessionStorageService,
