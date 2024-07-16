@@ -7,10 +7,12 @@ package org.opensearch.sql.plugin;
 
 import static java.util.Collections.singletonList;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -39,9 +41,11 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ScriptPlugin;
+import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
@@ -58,7 +62,11 @@ import org.opensearch.sql.datasources.rest.RestDataSourceQueryAction;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage;
-import org.opensearch.sql.datasources.transport.*;
+import org.opensearch.sql.datasources.transport.TransportCreateDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportDeleteDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportPatchDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -97,7 +105,7 @@ import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
+public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, SystemIndexPlugin {
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
@@ -138,8 +146,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController),
-        new RestDataSourceQueryAction(),
-        new RestAsyncQueryManagementAction());
+        new RestDataSourceQueryAction((OpenSearchSettings) pluginSettings),
+        new RestAsyncQueryManagementAction((OpenSearchSettings) pluginSettings));
   }
 
   /** Register action and handler so that transportClient can find proxy for action. */
@@ -274,7 +282,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     }
     DataSourceMetadataStorage dataSourceMetadataStorage =
         new OpenSearchDataSourceMetadataStorage(
-            client, clusterService, new EncryptorImpl(masterKey));
+            client,
+            clusterService,
+            new EncryptorImpl(masterKey),
+            (OpenSearchSettings) pluginSettings);
     DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper =
         new DataSourceUserAuthorizationHelperImpl(client);
     return new DataSourceServiceImpl(
@@ -288,5 +299,17 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
+  }
+
+  @Override
+  public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
+    List<SystemIndexDescriptor> systemIndexDescriptors = new ArrayList<>();
+    systemIndexDescriptors.add(
+        new SystemIndexDescriptor(
+            OpenSearchDataSourceMetadataStorage.DATASOURCE_INDEX_NAME, "SQL DataSources index"));
+    systemIndexDescriptors.add(
+        new SystemIndexDescriptor(
+            SPARK_REQUEST_BUFFER_INDEX_NAME + "*", "SQL Spark Request Buffer index pattern"));
+    return systemIndexDescriptors;
   }
 }

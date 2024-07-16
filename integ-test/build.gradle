@@ -44,7 +44,7 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
-String baseVersion = "2.15.0"
+String baseVersion = "2.16.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
@@ -192,6 +192,11 @@ dependencies {
 
     // Needed for BWC tests
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-sql-plugin', version: "${bwcVersion}-SNAPSHOT"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 dependencyLicenses.enabled = false
