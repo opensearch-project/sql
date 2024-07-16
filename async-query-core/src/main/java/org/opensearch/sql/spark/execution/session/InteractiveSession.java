@@ -53,11 +53,8 @@ public class InteractiveSession implements Session {
       AsyncQueryRequestContext asyncQueryRequestContext) {
     // append session id;
     createSessionRequest
-        .getSparkSubmitParameters()
-        .acceptModifier(
-            (parameters) -> {
-              parameters.sessionExecution(sessionId, createSessionRequest.getDatasourceName());
-            });
+        .getSparkSubmitParametersBuilder()
+        .sessionExecution(sessionId, createSessionRequest.getDatasourceName());
     createSessionRequest.getTags().put(SESSION_ID_TAG_KEY, sessionId);
     StartJobRequest startJobRequest = createSessionRequest.getStartJobRequest(sessionId);
     String jobID = serverlessClient.startJobRun(startJobRequest);
