@@ -319,11 +319,26 @@ public class AstBuilderTest {
             exprList(alias("f1", field("f1")), alias("f2", field("f2"))),
             alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
             defaultStatsArgs()));
-  }
 
-  @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
-  public void throwExceptionIfSpanInGroupByList() {
-    plan("source=t | stats avg(price) by f1, f2, span(timestamp, 1h)");
+    assertEqual(
+        "source=t | stats avg(price) by b, span(timestamp, 1h)",
+        agg(
+            relation("t"),
+            exprList(alias("avg(price)", aggregate("avg", field("price")))),
+            emptyList(),
+            exprList(alias("b", field("b"))),
+            alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
+            defaultStatsArgs()));
+
+    assertEqual(
+        "source=t | stats avg(price) by f1, f2, span(timestamp, 1h)",
+        agg(
+            relation("t"),
+            exprList(alias("avg(price)", aggregate("avg", field("price")))),
+            emptyList(),
+            exprList(alias("f1", field("f1")), alias("f2", field("f2"))),
+            alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
+            defaultStatsArgs()));
   }
 
   @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)

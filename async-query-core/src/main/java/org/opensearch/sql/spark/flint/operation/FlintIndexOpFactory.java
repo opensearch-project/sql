@@ -6,16 +6,16 @@
 package org.opensearch.sql.spark.flint.operation;
 
 import lombok.RequiredArgsConstructor;
-import org.opensearch.client.Client;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
+import org.opensearch.sql.spark.flint.FlintIndexClient;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 
 @RequiredArgsConstructor
 public class FlintIndexOpFactory {
   private final FlintIndexStateModelService flintIndexStateModelService;
-  private final Client client;
+  private final FlintIndexClient flintIndexClient;
   private final FlintIndexMetadataService flintIndexMetadataService;
   private final EMRServerlessClientFactory emrServerlessClientFactory;
 
@@ -35,7 +35,7 @@ public class FlintIndexOpFactory {
 
   public FlintIndexOpVacuum getVacuum(String datasource) {
     return new FlintIndexOpVacuum(
-        flintIndexStateModelService, datasource, client, emrServerlessClientFactory);
+        flintIndexStateModelService, datasource, flintIndexClient, emrServerlessClientFactory);
   }
 
   public FlintIndexOpCancel getCancel(String datasource) {

@@ -7,6 +7,9 @@ package org.opensearch.sql.spark.execution.statestore;
 
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
@@ -14,6 +17,7 @@ import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerialize
 
 @RequiredArgsConstructor
 public class OpenSearchSessionStorageService implements SessionStorageService {
+  private static final Logger LOG = LogManager.getLogger();
 
   private final StateStore stateStore;
   private final SessionModelXContentSerializer serializer;
@@ -21,11 +25,17 @@ public class OpenSearchSessionStorageService implements SessionStorageService {
   @Override
   public SessionModel createSession(
       SessionModel sessionModel, AsyncQueryRequestContext asyncQueryRequestContext) {
-    return stateStore.create(
-        sessionModel.getId(),
-        sessionModel,
-        SessionModel::of,
-        OpenSearchStateStoreUtil.getIndexName(sessionModel.getDatasourceName()));
+    try {
+      return stateStore.create(
+          sessionModel.getId(),
+          sessionModel,
+          SessionModel::of,
+          OpenSearchStateStoreUtil.getIndexName(sessionModel.getDatasourceName()));
+    } catch (VersionConflictEngineException e) {
+      String errorMsg = "session already exist. " + sessionModel.getSessionId();
+      LOG.error(errorMsg);
+      throw new IllegalStateException(errorMsg);
+    }
   }
 
   @Override

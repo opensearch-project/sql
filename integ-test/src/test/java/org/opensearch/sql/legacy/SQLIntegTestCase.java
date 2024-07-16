@@ -54,6 +54,7 @@ import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -172,6 +173,15 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
             DEFAULT_QUERY_SIZE_LIMIT.toString()));
   }
 
+  @SneakyThrows
+  protected void setDataSourcesEnabled(String clusterSettingType, boolean value) {
+    updateClusterSettings(
+        new ClusterSetting(
+            clusterSettingType,
+            Settings.Key.DATASOURCES_ENABLED.getKeyValue(),
+            Boolean.toString(value)));
+  }
+
   protected static void wipeAllClusterSettings() throws IOException {
     updateClusterSettings(new ClusterSetting("persistent", "*", null));
     updateClusterSettings(new ClusterSetting("transient", "*", null));
@@ -239,12 +249,17 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected String executeQuery(String query, String requestType) {
+    return executeQuery(query, requestType, Map.of());
+  }
+
+  protected String executeQuery(String query, String requestType, Map<String, String> params) {
     try {
       String endpoint = "/_plugins/_sql?format=" + requestType;
       String requestBody = makeRequest(query);
 
       Request sqlRequest = new Request("POST", endpoint);
       sqlRequest.setJsonEntity(requestBody);
+      sqlRequest.addParameters(params);
 
       Response response = client().performRequest(sqlRequest);
       Assert.assertEquals(200, response.getStatusLine().getStatusCode());
