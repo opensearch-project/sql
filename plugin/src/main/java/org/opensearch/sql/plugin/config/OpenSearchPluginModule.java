@@ -69,8 +69,8 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public ExecutionProtector protector(ResourceMonitor resourceMonitor, OpenSearchClient client) {
-    return new OpenSearchExecutionProtector(resourceMonitor, client);
+  public ExecutionProtector protector(ResourceMonitor resourceMonitor) {
+    return new OpenSearchExecutionProtector(resourceMonitor);
   }
 
   @Provides

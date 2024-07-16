@@ -5,20 +5,8 @@
 
 package org.opensearch.sql.opensearch.executor.protector;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiFunction;
-import javax.annotation.Nullable;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
-import org.opensearch.index.query.BoolQueryBuilder;
-import org.opensearch.index.query.MatchQueryBuilder;
-import org.opensearch.index.query.TermQueryBuilder;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.monitor.ResourceMonitor;
-import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
@@ -42,15 +30,10 @@ import org.opensearch.sql.storage.TableScanOperator;
 
 /** OpenSearch Execution Protector. */
 @RequiredArgsConstructor
-@AllArgsConstructor
 public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   /** OpenSearch resource monitor. */
   private final ResourceMonitor resourceMonitor;
-
-  @Nullable
-  /** OpenSearch client. Maybe null * */
-  private OpenSearchClient openSearchClient;
 
   public PhysicalPlan protect(PhysicalPlan physicalPlan) {
     return physicalPlan.accept(this, null);
@@ -142,60 +125,7 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
         node.getMatchFieldMap(),
         node.getAppendOnly(),
         node.getCopyFieldMap(),
-        lookup());
-  }
-
-  private BiFunction<String, Map<String, Object>, Map<String, Object>> lookup() {
-
-    if (openSearchClient == null) {
-      throw new RuntimeException(
-          "Can not perform lookup because openSearchClient was null. This is likely a bug.");
-    }
-
-    return (indexName, inputMap) -> {
-      Map<String, Object> matchMap = (Map<String, Object>) inputMap.get("_match");
-      Set<String> copySet = (Set<String>) inputMap.get("_copy");
-
-      BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
-
-      for (Map.Entry<String, Object> f : matchMap.entrySet()) {
-        BoolQueryBuilder orQueryBuilder = new BoolQueryBuilder();
-
-        // Todo: Search with term and a match query? Or terms only?
-        orQueryBuilder.should(new TermQueryBuilder(f.getKey(), f.getValue().toString()));
-        orQueryBuilder.should(new MatchQueryBuilder(f.getKey(), f.getValue().toString()));
-        orQueryBuilder.minimumShouldMatch(1);
-
-        // filter is the same as "must" but ignores scoring
-        boolQueryBuilder.filter(orQueryBuilder);
-      }
-
-      SearchResponse result =
-          openSearchClient
-              .getNodeClient()
-              .search(
-                  new SearchRequest(indexName)
-                      .source(
-                          SearchSourceBuilder.searchSource()
-                              .fetchSource(
-                                  copySet == null ? null : copySet.toArray(new String[0]), null)
-                              .query(boolQueryBuilder)
-                              .size(2)))
-              .actionGet();
-
-      int hits = result.getHits().getHits().length;
-
-      if (hits == 0) {
-        // null indicates no hits for the lookup found
-        return null;
-      }
-
-      if (hits != 1) {
-        throw new RuntimeException("too many hits for " + indexName + " (" + hits + ")");
-      }
-
-      return result.getHits().getHits()[0].getSourceAsMap();
-    };
+        node.getLookup());
   }
 
   @Override
