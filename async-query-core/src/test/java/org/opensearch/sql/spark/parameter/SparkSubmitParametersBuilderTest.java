@@ -153,6 +153,11 @@ public class SparkSubmitParametersBuilderTest {
   }
 
   @Test
+  public void testAcceptNullModifier() {
+    sparkSubmitParametersBuilder.acceptModifier(null);
+  }
+
+  @Test
   public void testDataSource() {
     when(sparkParameterComposerCollection.isComposerRegistered(DataSourceType.S3GLUE))
         .thenReturn(true);
