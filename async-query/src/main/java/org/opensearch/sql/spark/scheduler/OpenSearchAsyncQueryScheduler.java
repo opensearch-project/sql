@@ -32,11 +32,11 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.core.xcontent.XContentParserUtils;
+import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
-import org.opensearch.sql.spark.scheduler.exceptions.AsyncQuerySchedulerException;
 import org.opensearch.sql.spark.scheduler.job.OpenSearchRefreshIndexJob;
 import org.opensearch.sql.spark.scheduler.model.OpenSearchRefreshIndexJobRequest;
 import org.opensearch.threadpool.ThreadPool;
@@ -82,13 +82,13 @@ public class OpenSearchAsyncQueryScheduler {
     } catch (VersionConflictEngineException exception) {
       throw new IllegalArgumentException("A job already exists with name: " + request.getName());
     } catch (Exception e) {
-      throw new AsyncQuerySchedulerException(e);
+      throw new RuntimeException(e);
     }
 
     if (indexResponse.getResult().equals(DocWriteResponse.Result.CREATED)) {
       LOG.debug("Job : {}  successfully created", request.getName());
     } else {
-      throw new AsyncQuerySchedulerException(
+      throw new RuntimeException(
           "Schedule job failed with result : " + indexResponse.getResult().getLowercase());
     }
   }
@@ -115,15 +115,21 @@ public class OpenSearchAsyncQueryScheduler {
     UpdateRequest updateRequest = new UpdateRequest(SCHEDULER_INDEX_NAME, request.getName());
     updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     updateRequest.doc(request.toXContent(JsonXContent.contentBuilder(), EMPTY_PARAMS));
-
-    ActionFuture<UpdateResponse> updateResponseActionFuture = client.update(updateRequest);
-    UpdateResponse updateResponse = updateResponseActionFuture.actionGet();
+    UpdateResponse updateResponse;
+    try {
+      ActionFuture<UpdateResponse> updateResponseActionFuture = client.update(updateRequest);
+      updateResponse = updateResponseActionFuture.actionGet();
+    } catch (DocumentMissingException exception) {
+      throw new IllegalArgumentException("Job with name: " + request.getName() + " doesn't exist");
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
 
     if (updateResponse.getResult().equals(DocWriteResponse.Result.UPDATED)
         || updateResponse.getResult().equals(DocWriteResponse.Result.NOOP)) {
       LOG.debug("Job : {} successfully updated", request.getName());
     } else {
-      throw new AsyncQuerySchedulerException(
+      throw new RuntimeException(
           "Update job failed with result : " + updateResponse.getResult().getLowercase());
     }
   }
@@ -141,15 +147,15 @@ public class OpenSearchAsyncQueryScheduler {
     if (deleteResponse.getResult().equals(DocWriteResponse.Result.DELETED)) {
       LOG.debug("Job : {} successfully deleted", jobId);
     } else if (deleteResponse.getResult().equals(DocWriteResponse.Result.NOT_FOUND)) {
-      throw new AsyncQuerySchedulerException("Job : " + jobId + " doesn't exist");
+      throw new IllegalArgumentException("Job : " + jobId + " doesn't exist");
     } else {
-      throw new AsyncQuerySchedulerException(
+      throw new RuntimeException(
           "Remove job failed with result : " + deleteResponse.getResult().getLowercase());
     }
   }
 
   /** Creates the async query scheduler index with specified mappings and settings. */
-  private void createAsyncQuerySchedulerIndex() {
+  void createAsyncQuerySchedulerIndex() {
     try {
       InputStream mappingFileStream =
           OpenSearchAsyncQueryScheduler.class
@@ -171,11 +177,11 @@ public class OpenSearchAsyncQueryScheduler {
       if (createIndexResponse.isAcknowledged()) {
         LOG.debug("Index: {} creation Acknowledged", SCHEDULER_INDEX_NAME);
       } else {
-        throw new AsyncQuerySchedulerException("Index creation is not acknowledged.");
+        throw new RuntimeException("Index creation is not acknowledged.");
       }
     } catch (Throwable e) {
       LOG.error("Error creating index: {}", SCHEDULER_INDEX_NAME, e);
-      throw new AsyncQuerySchedulerException(
+      throw new RuntimeException(
           "Internal server error while creating "
               + SCHEDULER_INDEX_NAME
               + " index: "
