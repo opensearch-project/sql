@@ -7,6 +7,7 @@
 
 package org.opensearch.sql.spark.scheduler.exceptions;
 
+/** Exception class for handling errors related to the asynchronous query scheduler. */
 public class AsyncQuerySchedulerException extends RuntimeException {
   public AsyncQuerySchedulerException(String message) {
     super(message);
