@@ -8,6 +8,8 @@ Resolves #[Issue number to be closed when this PR is merged]
 ### Check List
 - [ ] New functionality includes testing.
 - [ ] New functionality has been documented.
+ - [ ] New functionality has javadoc added.
+ - [ ] New functionality has a user manual doc added.
 - [ ] API changes companion pull request [created](https://github.com/opensearch-project/opensearch-api-specification/blob/main/DEVELOPER_GUIDE.md).
 - [ ] Commits are signed per the DCO using `--signoff`.
 - [ ] Public documentation issue/PR [created](https://github.com/opensearch-project/documentation-website/issues/new/choose).
