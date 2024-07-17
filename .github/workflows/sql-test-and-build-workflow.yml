@@ -105,11 +105,11 @@ jobs:
       matrix:
         entry:
           - { os: windows-latest, java: 11, os_build_args: -x doctest  -PbuildPlatform=windows }
-          - { os: macos-latest, java: 11}
+          - { os: macos-13, java: 11}
           - { os: windows-latest, java: 17, os_build_args: -x doctest -PbuildPlatform=windows }
-          - { os: macos-latest, java: 17 }
+          - { os: macos-13, java: 17 }
           - { os: windows-latest, java: 21, os_build_args: -x doctest -PbuildPlatform=windows }
-          - { os: macos-latest, java: 21 }
+          - { os: macos-13, java: 21 }
     runs-on: ${{ matrix.entry.os }}
 
     steps:
