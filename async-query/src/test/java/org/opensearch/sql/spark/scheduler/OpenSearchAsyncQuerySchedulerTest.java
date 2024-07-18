@@ -45,7 +45,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
   private static final String TEST_SCHEDULER_INDEX_NAME = "testQS";
 
-  private static final String TEST_JOB_ID = "testJobId";
+  private static final String TEST_JOB_ID = "testJob";
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private Client client;
@@ -192,7 +192,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
     verify(client).delete(captor.capture());
 
     DeleteRequest capturedRequest = captor.getValue();
-    assertEquals(jobId, capturedRequest.id());
+    assertEquals(TEST_JOB_ID, capturedRequest.id());
     assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, capturedRequest.getRefreshPolicy());
   }
 
