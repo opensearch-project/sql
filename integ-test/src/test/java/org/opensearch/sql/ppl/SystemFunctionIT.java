@@ -64,7 +64,8 @@ public class SystemFunctionIT extends PPLIntegTestCase {
                     + " `integer`, `byte`, `short`, `float`, `half_float`, `scaled_float`",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(
-        response, rows("DOUBLE", "LONG", "INTEGER", "BYTE", "SHORT", "FLOAT", "FLOAT", "DOUBLE"));
+        response,
+        rows("DOUBLE", "LONG", "INTEGER", "BYTE", "SHORT", "FLOAT", "HALF_FLOAT", "SCALED_FLOAT"));
 
     response =
         executeQuery(
@@ -73,12 +74,9 @@ public class SystemFunctionIT extends PPLIntegTestCase {
                     + " `date_nanos` = typeof(date_nanos_value),`boolean` = typeof(boolean_value),"
                     + " `object` = typeof(object_value),`keyword` = typeof(keyword_value), `ip` ="
                     + " typeof(ip_value),`binary` = typeof(binary_value), `geo_point` ="
-                    + " typeof(geo_point_value)"
-                    // TODO activate this test once `ARRAY` type supported, see
-                    // ExpressionAnalyzer::isTypeNotSupported
-                    // + ", `nested` = typeof(nested_value)"
+                    + " typeof(geo_point_value), `nested` = typeof(nested_value)"
                     + " | fields `text`, `date`, `date_nanos`, `boolean`, `object`, `keyword`,"
-                    + " `ip`, `binary`, `geo_point`",
+                    + " `ip`, `binary`, `geo_point`, `nested`",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(
         response,
@@ -91,6 +89,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
             "KEYWORD",
             "IP",
             "BINARY",
-            "GEO_POINT"));
+            "GEO_POINT",
+            "NESTED"));
   }
 }

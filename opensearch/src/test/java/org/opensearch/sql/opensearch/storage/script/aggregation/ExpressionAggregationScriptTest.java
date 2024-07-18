@@ -69,7 +69,7 @@ class ExpressionAggregationScriptTest {
   @Test
   void can_execute_expression_with_text_keyword_field() {
     assertThat()
-        .docValues("name.keyword", "John")
+        .docValues("name.words", "John")
         .evaluate(
             DSL.equal(
                 ref(
