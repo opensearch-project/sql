@@ -5,6 +5,8 @@
 
 import org.opensearch.gradle.testclusters.RunTask
 
+import java.util.concurrent.Callable
+
 plugins {
     id 'base'
     id 'com.wiredforcode.spawn'
@@ -109,6 +111,10 @@ if (version_tokens.length > 1) {
 String mlCommonsRemoteFile = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-ml-' + opensearch_build + '.zip'
 String mlCommonsPlugin = 'opensearch-ml'
 
+String bwcOpenSearchJSDownload = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/latest/linux/x64/tar/builds/' +
+        'opensearch/plugins/opensearch-job-scheduler-' + opensearch_build + '.zip'
+String jsPlugin = 'opensearch-job-scheduler'
+
 testClusters {
     docTestCluster {
         // Disable loading of `ML-commons` plugin, because it might be unavailable (not released yet).
@@ -133,6 +139,25 @@ testClusters {
             }
         }))
         */
+        plugin(provider(new Callable<RegularFile>(){
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        File dir = new File('./doctest/' + jsPlugin)
+                        if (!dir.exists()) {
+                            dir.mkdirs()
+                        }
+                        File f = new File(dir, jsPlugin + '-' + opensearch_build + '.zip')
+                        if (!f.exists()) {
+                            new URL(bwcOpenSearchJSDownload).withInputStream{ ins -> f.withOutputStream{ it << ins } }
+                        }
+                        return fileTree(jsPlugin).getSingleFile()
+                    }
+                }
+            }
+        }))
         plugin ':opensearch-sql-plugin'
         testDistribution = 'archive'
     }
