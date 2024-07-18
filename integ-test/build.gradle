@@ -78,23 +78,8 @@ ext {
         return repo + "opensearch-security-${securitySnapshotVersion}.zip"
     }
 
-    getJobSchedulerPluginDownloadLink = { ->
-        var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
-                "opensearch-job-scheduler/$opensearch_build_snapshot/"
-        var metadataFile = Paths.get(projectDir.toString(), "build", "job-scheduler-maven-metadata.xml").toAbsolutePath().toFile()
-        download.run {
-            src repo + "maven-metadata.xml"
-            dest metadataFile
-        }
-        def metadata = new XmlParser().parse(metadataFile)
-        def jobSchedulerSnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
-
-        return repo + "opensearch-job-scheduler-${jobSchedulerSnapshotVersion}.zip"
-    }
-
     var projectAbsPath = projectDir.getAbsolutePath()
     File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
-    File downloadedJobSchedulerPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-job-scheduler-snapshot.zip').toFile()
 
     configureSecurityPlugin = { OpenSearchCluster cluster ->
 
@@ -152,21 +137,6 @@ ext {
         }
 
         cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
-    }
-
-    configureJobSchedulerPlugin = { OpenSearchCluster cluster ->
-
-        // add a check to avoid re-downloading multiple times during single test run
-        if (!downloadedJobSchedulerPlugin.exists()) {
-            download.run {
-                src getJobSchedulerPluginDownloadLink()
-                dest downloadedJobSchedulerPlugin
-            }
-        } else {
-            println "Job Scheduler Plugin File Already Exists"
-        }
-
-        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedJobSchedulerPlugin)))
     }
 }
 
@@ -276,6 +246,16 @@ testClusters {
     }
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
+        plugin(provider({
+            new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-job-scheduler*'
+                    }.singleFile
+                }
+            }
+        }))
         plugin ":opensearch-sql-plugin"
     }
 }
@@ -364,7 +344,6 @@ task integTestWithSecurity(type: RestIntegTestTask) {
         getClusters().stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
 
     getClusters().forEach { cluster ->
-        configureJobSchedulerPlugin(cluster)
         configureSecurityPlugin(cluster)
     }
 
