@@ -83,14 +83,6 @@ endLabel
     : multipartIdentifier
     ;
 
-beginLabel
-    : multipartIdentifier COLON
-    ;
-
-endLabel
-    : multipartIdentifier
-    ;
-
 singleExpression
     : namedExpression EOF
     ;

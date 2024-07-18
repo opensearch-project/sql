@@ -145,15 +145,39 @@ testClusters {
                 return new RegularFile() {
                     @Override
                     File getAsFile() {
-                        File dir = new File('./doctest/' + jsPlugin)
+                        // Use absolute paths
+                        String basePath = new File('.').getCanonicalPath()
+                        File dir = new File(basePath + File.separator + 'doctest' + File.separator + jsPlugin)
+
+                        // Log the directory path for debugging
+                        println("Creating directory: " + dir.getAbsolutePath())
+
+                        // Create directory if it doesn't exist
                         if (!dir.exists()) {
-                            dir.mkdirs()
+                            if (!dir.mkdirs()) {
+                                throw new IOException("Failed to create directory: " + dir.getAbsolutePath())
+                            }
                         }
+
+                        // Define the file path
                         File f = new File(dir, jsPlugin + '-' + opensearch_build + '.zip')
+
+                        // Download file if it doesn't exist
                         if (!f.exists()) {
-                            new URL(bwcOpenSearchJSDownload).withInputStream{ ins -> f.withOutputStream{ it << ins } }
+                            println("Downloading file from: " + bwcOpenSearchJSDownload)
+                            println("Saving to file: " + f.getAbsolutePath())
+
+                            new URL(bwcOpenSearchJSDownload).withInputStream { ins ->
+                                f.withOutputStream { it << ins }
+                            }
                         }
-                        return fileTree(jsPlugin).getSingleFile()
+
+                        // Check if the file was created successfully
+                        if (!f.exists()) {
+                            throw new FileNotFoundException("File was not created: " + f.getAbsolutePath())
+                        }
+
+                        return fileTree(f.getParent()).matching { include f.getName() }.singleFile
                     }
                 }
             }

@@ -120,7 +120,7 @@ public class OpenSearchAsyncQueryScheduler {
       ActionFuture<UpdateResponse> updateResponseActionFuture = client.update(updateRequest);
       updateResponse = updateResponseActionFuture.actionGet();
     } catch (DocumentMissingException exception) {
-      throw new IllegalArgumentException("Job with name: " + request.getName() + " doesn't exist");
+      throw new IllegalArgumentException("Job: " + request.getName() + " doesn't exist");
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
