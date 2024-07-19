@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.dispatcher;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -45,25 +46,50 @@ public class SparkQueryDispatcher {
         this.dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
             dispatchQueryRequest.getDatasource(), asyncQueryRequestContext);
 
-    if (LangType.SQL.equals(dispatchQueryRequest.getLangType())
-        && SQLQueryUtils.isFlintExtensionQuery(dispatchQueryRequest.getQuery())) {
-      IndexQueryDetails indexQueryDetails = getIndexQueryDetails(dispatchQueryRequest);
-      DispatchQueryContext context =
-          getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
-              .indexQueryDetails(indexQueryDetails)
-              .asyncQueryRequestContext(asyncQueryRequestContext)
-              .build();
+    if (LangType.SQL.equals(dispatchQueryRequest.getLangType())) {
+      String query = dispatchQueryRequest.getQuery();
 
-      return getQueryHandlerForFlintExtensionQuery(dispatchQueryRequest, indexQueryDetails)
-          .submit(dispatchQueryRequest, context);
-    } else {
-      DispatchQueryContext context =
-          getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
-              .asyncQueryRequestContext(asyncQueryRequestContext)
-              .build();
-      return getDefaultAsyncQueryHandler(dispatchQueryRequest.getAccountId())
-          .submit(dispatchQueryRequest, context);
+      if (SQLQueryUtils.isFlintExtensionQuery(query)) {
+        return handleFlintExtensionQuery(
+            dispatchQueryRequest, asyncQueryRequestContext, dataSourceMetadata);
+      }
+
+      List<String> validationErrors = SQLQueryUtils.validateSparkSqlQuery(query);
+      if (!validationErrors.isEmpty()) {
+        throw new IllegalArgumentException(
+            "Query is not allowed: " + String.join(", ", validationErrors));
+      }
     }
+    return handleDefaultQuery(dispatchQueryRequest, asyncQueryRequestContext, dataSourceMetadata);
+  }
+
+  private DispatchQueryResponse handleFlintExtensionQuery(
+      DispatchQueryRequest dispatchQueryRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext,
+      DataSourceMetadata dataSourceMetadata) {
+    IndexQueryDetails indexQueryDetails = getIndexQueryDetails(dispatchQueryRequest);
+    DispatchQueryContext context =
+        getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
+            .indexQueryDetails(indexQueryDetails)
+            .asyncQueryRequestContext(asyncQueryRequestContext)
+            .build();
+
+    return getQueryHandlerForFlintExtensionQuery(dispatchQueryRequest, indexQueryDetails)
+        .submit(dispatchQueryRequest, context);
+  }
+
+  private DispatchQueryResponse handleDefaultQuery(
+      DispatchQueryRequest dispatchQueryRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext,
+      DataSourceMetadata dataSourceMetadata) {
+
+    DispatchQueryContext context =
+        getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
+            .asyncQueryRequestContext(asyncQueryRequestContext)
+            .build();
+
+    return getDefaultAsyncQueryHandler(dispatchQueryRequest.getAccountId())
+        .submit(dispatchQueryRequest, context);
   }
 
   private DispatchQueryContext.DispatchQueryContextBuilder getDefaultDispatchContextBuilder(
