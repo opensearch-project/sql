@@ -8,7 +8,9 @@ package org.opensearch.sql.spark.scheduler.job;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,13 +48,17 @@ public class OpenSearchRefreshIndexJobTest {
     MockitoAnnotations.openMocks(this);
     jobRunner = OpenSearchRefreshIndexJob.getJobRunnerInstance();
     spyJobRunner = spy(jobRunner);
-    spyJobRunner.setClusterService(clusterService);
-    spyJobRunner.setThreadPool(threadPool);
-    spyJobRunner.setClient(client);
+    spyJobRunner.setClusterService(null);
+    spyJobRunner.setThreadPool(null);
+    spyJobRunner.setClient(null);
   }
 
   @Test
   public void testRunJobWithCorrectParameter() {
+    spyJobRunner.setClusterService(clusterService);
+    spyJobRunner.setThreadPool(threadPool);
+    spyJobRunner.setClient(client);
+
     OpenSearchRefreshIndexJobRequest jobParameter =
         OpenSearchRefreshIndexJobRequest.builder()
             .jobName("testJob")
@@ -73,6 +79,10 @@ public class OpenSearchRefreshIndexJobTest {
 
   @Test
   public void testRunJobWithIncorrectParameter() {
+    spyJobRunner.setClusterService(clusterService);
+    spyJobRunner.setThreadPool(threadPool);
+    spyJobRunner.setClient(client);
+
     ScheduledJobParameter wrongParameter = mock(ScheduledJobParameter.class);
 
     IllegalStateException exception =
@@ -95,31 +105,28 @@ public class OpenSearchRefreshIndexJobTest {
             .lastUpdateTime(Instant.now())
             .build();
 
-    OpenSearchRefreshIndexJob uninitializedJobRunner =
-        OpenSearchRefreshIndexJob.getJobRunnerInstance();
-
     IllegalStateException exception =
         assertThrows(
             IllegalStateException.class,
-            () -> uninitializedJobRunner.runJob(jobParameter, context),
+            () -> jobRunner.runJob(jobParameter, context),
             "Expected IllegalStateException but no exception was thrown");
     assertEquals("ClusterService is not initialized.", exception.getMessage());
 
-    uninitializedJobRunner.setClusterService(clusterService);
+    jobRunner.setClusterService(clusterService);
 
     exception =
         assertThrows(
             IllegalStateException.class,
-            () -> uninitializedJobRunner.runJob(jobParameter, context),
+            () -> jobRunner.runJob(jobParameter, context),
             "Expected IllegalStateException but no exception was thrown");
     assertEquals("ThreadPool is not initialized.", exception.getMessage());
 
-    uninitializedJobRunner.setThreadPool(threadPool);
+    jobRunner.setThreadPool(threadPool);
 
     exception =
         assertThrows(
             IllegalStateException.class,
-            () -> uninitializedJobRunner.runJob(jobParameter, context),
+            () -> jobRunner.runJob(jobParameter, context),
             "Expected IllegalStateException but no exception was thrown");
     assertEquals("Client is not initialized.", exception.getMessage());
   }
