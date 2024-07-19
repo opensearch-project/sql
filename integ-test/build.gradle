@@ -223,11 +223,31 @@ testClusters.all {
 testClusters {
     integTest {
         testDistribution = 'archive'
+        plugin(provider({
+            new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-job-scheduler*'
+                    }.singleFile
+                }
+            }
+        }))
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
     remoteCluster {
         testDistribution = 'archive'
+        plugin(provider({
+            new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-job-scheduler*'
+                    }.singleFile
+                }
+            }
+        }))
         plugin ":opensearch-sql-plugin"
     }
     integTestWithSecurity {
