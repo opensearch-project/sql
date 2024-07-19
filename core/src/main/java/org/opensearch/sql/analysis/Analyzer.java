@@ -554,10 +554,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     for (Map resultMap : inputMap) {
       Expression origin = expressionAnalyzer.analyze(resultMap.getOrigin(), lookupTableContext);
       if (resultMap.getTarget() instanceof Field) {
-        Expression targerExpression =
+        Expression targetExpression =
             expressionAnalyzer.analyze(resultMap.getTarget(), queryContext);
         ReferenceExpression targetReference =
-            DSL.ref(targerExpression.toString(), targerExpression.type());
+            DSL.ref(targetExpression.toString(), targetExpression.type());
         ReferenceExpression originReference = DSL.ref(origin.toString(), origin.type());
         TypeEnvironment curEnv = queryContext.peek();
         curEnv.remove(originReference);
