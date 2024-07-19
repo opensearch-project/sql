@@ -62,19 +62,23 @@ public class OpenSearchDataType implements ExprType, Serializable {
   @EqualsAndHashCode.Exclude @Getter protected MappingType mappingType;
 
   // resolved ExprCoreType
-  protected ExprCoreType exprCoreType;
+  @Getter protected ExprCoreType exprCoreType;
 
   /**
    * Get a simplified type {@link ExprCoreType} if possible. To avoid returning `UNKNOWN` for
-   * `OpenSearch*Type`s, e.g. for IP, returns itself.
+   * `OpenSearch*Type`s, e.g. for IP, returns itself. If the `exprCoreType` is {@link
+   * ExprCoreType#DATE}, {@link ExprCoreType#TIMESTAMP}, {@link ExprCoreType#TIME}, or {@link
+   * ExprCoreType#UNKNOWN}, it returns the current instance; otherwise, it returns `exprCoreType`.
    *
    * @return An {@link ExprType}.
    */
   public ExprType getExprType() {
-    if (exprCoreType != ExprCoreType.UNKNOWN) {
-      return exprCoreType;
-    }
-    return this;
+    return (exprCoreType == ExprCoreType.DATE
+            || exprCoreType == ExprCoreType.TIMESTAMP
+            || exprCoreType == ExprCoreType.TIME
+            || exprCoreType == ExprCoreType.UNKNOWN)
+        ? this
+        : exprCoreType;
   }
 
   /**
@@ -228,6 +232,9 @@ public class OpenSearchDataType implements ExprType, Serializable {
   // Called when serializing SQL response
   public String legacyTypeName() {
     if (mappingType == null) {
+      return exprCoreType.typeName();
+    }
+    if (mappingType.toString().equalsIgnoreCase("DATE")) {
       return exprCoreType.typeName();
     }
     return mappingType.toString().toUpperCase();
