@@ -9,11 +9,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
-import org.opensearch.jobscheduler.spi.utils.LockService;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.sql.spark.scheduler.model.OpenSearchRefreshIndexJobRequest;
 import org.opensearch.threadpool.ThreadPool;
@@ -85,40 +83,20 @@ public class OpenSearchRefreshIndexJob implements ScheduledJobRunner {
       throw new IllegalStateException("ThreadPool is not initialized.");
     }
 
-    final LockService lockService = context.getLockService();
+    if (this.client == null) {
+      throw new IllegalStateException("Client is not initialized.");
+    }
 
     Runnable runnable =
         () -> {
-          if (jobParameter.getLockDurationSeconds() != null) {
-            lockService.acquireLock(
-                jobParameter,
-                context,
-                ActionListener.wrap(
-                    lock -> {
-                      if (lock == null) {
-                        return;
-                      }
-
-                      // TODO: add logic to refresh index
-                      log.info("Running job: " + jobParameter.getName());
-
-                      lockService.release(
-                          lock,
-                          ActionListener.wrap(
-                              released -> {
-                                log.info("Released lock for job {}", jobParameter.getName());
-                              },
-                              exception -> {
-                                throw new IllegalStateException(
-                                    "Failed to release lock.", exception);
-                              }));
-                    },
-                    exception -> {
-                      throw new IllegalStateException("Failed to acquire lock.", exception);
-                    }));
-          }
+          doRefresh(jobParameter.getName());
         };
 
     threadPool.generic().submit(runnable);
+  }
+
+  void doRefresh(String refreshIndex) {
+    // TODO: add logic to refresh index
+    log.info("Scheduled refresh index job on : " + refreshIndex);
   }
 }

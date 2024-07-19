@@ -133,6 +133,25 @@ public class OpenSearchAsyncQuerySchedulerTest {
   }
 
   @Test
+  public void testScheduleJobWithException() {
+    when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME))
+        .thenReturn(Boolean.FALSE);
+    when(client.admin().indices().create(any(CreateIndexRequest.class)))
+        .thenReturn(createIndexResponseActionFuture);
+    when(createIndexResponseActionFuture.actionGet())
+        .thenReturn(new CreateIndexResponse(true, true, TEST_SCHEDULER_INDEX_NAME));
+    when(client.index(any(IndexRequest.class))).thenThrow(new RuntimeException("Test exception"));
+
+    OpenSearchRefreshIndexJobRequest request =
+        OpenSearchRefreshIndexJobRequest.builder()
+            .jobName(TEST_JOB_ID)
+            .lastUpdateTime(Instant.now())
+            .build();
+
+    assertThrows(RuntimeException.class, () -> scheduler.scheduleJob(request));
+  }
+
+  @Test
   public void testUnscheduleJob() throws IOException {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(true);
 
@@ -149,6 +168,13 @@ public class OpenSearchAsyncQuerySchedulerTest {
     UpdateRequest capturedRequest = captor.getValue();
     assertEquals(TEST_JOB_ID, capturedRequest.id());
     assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, capturedRequest.getRefreshPolicy());
+  }
+
+  @Test
+  public void testUnscheduleJobWithIndexNotFound() {
+    when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
+
+    assertThrows(IllegalArgumentException.class, () -> scheduler.unscheduleJob(TEST_JOB_ID));
   }
 
   @Test
@@ -177,6 +203,19 @@ public class OpenSearchAsyncQuerySchedulerTest {
   }
 
   @Test
+  public void testUpdateJobWithIndexNotFound() {
+    OpenSearchRefreshIndexJobRequest request =
+        OpenSearchRefreshIndexJobRequest.builder()
+            .jobName(TEST_JOB_ID)
+            .lastUpdateTime(Instant.now())
+            .build();
+
+    when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
+
+    assertThrows(IllegalArgumentException.class, () -> scheduler.updateJob(request));
+  }
+
+  @Test
   public void testRemoveJob() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(true);
 
@@ -194,6 +233,13 @@ public class OpenSearchAsyncQuerySchedulerTest {
     DeleteRequest capturedRequest = captor.getValue();
     assertEquals(TEST_JOB_ID, capturedRequest.id());
     assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, capturedRequest.getRefreshPolicy());
+  }
+
+  @Test
+  public void testRemoveJobWithIndexNotFound() {
+    when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
+
+    assertThrows(IllegalArgumentException.class, () -> scheduler.removeJob(TEST_JOB_ID));
   }
 
   @Test
@@ -217,7 +263,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   }
 
   @Test
-  public void testCreateAsyncQuerySchedulerIndexFailure() throws IOException {
+  public void testCreateAsyncQuerySchedulerIndexFailure() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
 
     when(client.admin().indices().create(any(CreateIndexRequest.class)))
@@ -236,7 +282,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   }
 
   @Test
-  public void testUpdateJobNotFound() throws IOException {
+  public void testUpdateJobNotFound() {
     OpenSearchRefreshIndexJobRequest request =
         OpenSearchRefreshIndexJobRequest.builder()
             .jobName(TEST_JOB_ID)
@@ -276,5 +322,14 @@ public class OpenSearchAsyncQuerySchedulerTest {
             });
 
     assertEquals("Job : testJob doesn't exist", exception.getMessage());
+  }
+
+  @Test
+  public void testRemoveJobWithException() {
+    when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(true);
+
+    when(client.delete(any(DeleteRequest.class))).thenThrow(new RuntimeException("Test exception"));
+
+    assertThrows(RuntimeException.class, () -> scheduler.removeJob(TEST_JOB_ID));
   }
 }
