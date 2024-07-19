@@ -390,6 +390,25 @@ public class SQLQueryUtilsTest {
             .autoRefresh());
   }
 
+  @Test
+  void testValidateSparkSqlQuery_ValidQuery() {
+    String validQuery = "SELECT * FROM users WHERE age > 18";
+    List<String> errors = SQLQueryUtils.validateSparkSqlQuery(validQuery);
+    assertTrue(errors.isEmpty(), "Valid query should not produce any errors");
+  }
+
+  @Test
+  void testValidateSparkSqlQuery_InvalidQuery() {
+    String invalidQuery = "CREATE FUNCTION myUDF AS 'com.example.UDF'";
+    List<String> errors = SQLQueryUtils.validateSparkSqlQuery(invalidQuery);
+    assertFalse(errors.isEmpty(), "Invalid query should produce errors");
+    assertEquals(1, errors.size(), "Should have one error");
+    assertEquals(
+        "Creating user-defined functions is not allowed",
+        errors.get(0),
+        "Error message should match");
+  }
+
   @Getter
   protected static class IndexQuery {
     private String query;
