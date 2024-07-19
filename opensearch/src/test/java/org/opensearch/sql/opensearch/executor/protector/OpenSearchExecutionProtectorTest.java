@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,6 +82,8 @@ class OpenSearchExecutionProtectorTest {
 
   @Mock private OpenSearchSettings settings;
 
+  @Mock private BiFunction<String, Map<String, Object>, Map<String, Object>> lookupFunction;
+
   private OpenSearchExecutionProtector executionProtector;
 
   @BeforeEach
@@ -120,59 +123,71 @@ class OpenSearchExecutionProtectorTest {
                 settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE));
     assertEquals(
         PhysicalPlanDSL.project(
-            PhysicalPlanDSL.limit(
-                PhysicalPlanDSL.dedupe(
-                    PhysicalPlanDSL.rareTopN(
-                        resourceMonitor(
-                            PhysicalPlanDSL.sort(
-                                PhysicalPlanDSL.eval(
-                                    PhysicalPlanDSL.remove(
-                                        PhysicalPlanDSL.rename(
-                                            PhysicalPlanDSL.agg(
-                                                filter(
-                                                    resourceMonitor(
-                                                        new OpenSearchIndexScan(
-                                                            client, maxResultWindow, request)),
-                                                    filterExpr),
-                                                aggregators,
-                                                groupByExprs),
-                                            mappings),
-                                        exclude),
-                                    newEvalField),
-                                sortField)),
-                        CommandType.TOP,
-                        topExprs,
-                        topField),
-                    dedupeField),
-                limit,
-                offset),
-            include),
-        executionProtector.protect(
-            PhysicalPlanDSL.project(
+            PhysicalPlanDSL.lookup(
                 PhysicalPlanDSL.limit(
                     PhysicalPlanDSL.dedupe(
                         PhysicalPlanDSL.rareTopN(
-                            PhysicalPlanDSL.sort(
-                                PhysicalPlanDSL.eval(
-                                    PhysicalPlanDSL.remove(
-                                        PhysicalPlanDSL.rename(
-                                            PhysicalPlanDSL.agg(
-                                                filter(
-                                                    new OpenSearchIndexScan(
-                                                        client, maxResultWindow, request),
-                                                    filterExpr),
-                                                aggregators,
-                                                groupByExprs),
-                                            mappings),
-                                        exclude),
-                                    newEvalField),
-                                sortField),
+                            resourceMonitor(
+                                PhysicalPlanDSL.sort(
+                                    PhysicalPlanDSL.eval(
+                                        PhysicalPlanDSL.remove(
+                                            PhysicalPlanDSL.rename(
+                                                PhysicalPlanDSL.agg(
+                                                    filter(
+                                                        resourceMonitor(
+                                                            new OpenSearchIndexScan(
+                                                                client, maxResultWindow, request)),
+                                                        filterExpr),
+                                                    aggregators,
+                                                    groupByExprs),
+                                                mappings),
+                                            exclude),
+                                        newEvalField),
+                                    sortField)),
                             CommandType.TOP,
                             topExprs,
                             topField),
                         dedupeField),
                     limit,
                     offset),
+                "lookup_index_name",
+                Map.of(),
+                false,
+                Map.of(),
+                lookupFunction),
+            include),
+        executionProtector.protect(
+            PhysicalPlanDSL.project(
+                PhysicalPlanDSL.lookup(
+                    PhysicalPlanDSL.limit(
+                        PhysicalPlanDSL.dedupe(
+                            PhysicalPlanDSL.rareTopN(
+                                PhysicalPlanDSL.sort(
+                                    PhysicalPlanDSL.eval(
+                                        PhysicalPlanDSL.remove(
+                                            PhysicalPlanDSL.rename(
+                                                PhysicalPlanDSL.agg(
+                                                    filter(
+                                                        new OpenSearchIndexScan(
+                                                            client, maxResultWindow, request),
+                                                        filterExpr),
+                                                    aggregators,
+                                                    groupByExprs),
+                                                mappings),
+                                            exclude),
+                                        newEvalField),
+                                    sortField),
+                                CommandType.TOP,
+                                topExprs,
+                                topField),
+                            dedupeField),
+                        limit,
+                        offset),
+                    "lookup_index_name",
+                    Map.of(),
+                    false,
+                    Map.of(),
+                    lookupFunction),
                 include)));
   }
 

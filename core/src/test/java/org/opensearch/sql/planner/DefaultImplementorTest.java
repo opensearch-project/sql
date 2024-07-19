@@ -21,7 +21,6 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.eval;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
-import static org.opensearch.sql.planner.logical.LogicalPlanDSL.lookup;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.nested;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.rareTopN;
@@ -48,7 +47,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.model.ExprBooleanValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.DSL;
@@ -60,7 +58,6 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
-import org.opensearch.sql.planner.logical.LogicalLookup;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
@@ -125,27 +122,22 @@ class DefaultImplementorTest {
             nested(
                 limit(
                     LogicalPlanDSL.dedupe(
-                        lookup(
-                            rareTopN(
-                                sort(
-                                    eval(
-                                        remove(
-                                            rename(
-                                                aggregation(
-                                                    filter(values(emptyList()), filterExpr),
-                                                    aggregators,
-                                                    groupByExprs),
-                                                mappings),
-                                            exclude),
-                                        newEvalField),
-                                    sortField),
-                                CommandType.TOP,
-                                topByExprs,
-                                rareTopNField),
-                            "lookup_index_name",
-                            Map.of(),
-                            false,
-                            Map.of()),
+                        rareTopN(
+                            sort(
+                                eval(
+                                    remove(
+                                        rename(
+                                            aggregation(
+                                                filter(values(emptyList()), filterExpr),
+                                                aggregators,
+                                                groupByExprs),
+                                            mappings),
+                                        exclude),
+                                    newEvalField),
+                                sortField),
+                            CommandType.TOP,
+                            topByExprs,
+                            rareTopNField),
                         dedupeField),
                     limit,
                     offset),
@@ -160,30 +152,24 @@ class DefaultImplementorTest {
             PhysicalPlanDSL.nested(
                 PhysicalPlanDSL.limit(
                     PhysicalPlanDSL.dedupe(
-                        PhysicalPlanDSL.lookup(
-                            PhysicalPlanDSL.rareTopN(
-                                PhysicalPlanDSL.sort(
-                                    PhysicalPlanDSL.eval(
-                                        PhysicalPlanDSL.remove(
-                                            PhysicalPlanDSL.rename(
-                                                PhysicalPlanDSL.agg(
-                                                    PhysicalPlanDSL.filter(
-                                                        PhysicalPlanDSL.values(emptyList()),
-                                                        filterExpr),
-                                                    aggregators,
-                                                    groupByExprs),
-                                                mappings),
-                                            exclude),
-                                        newEvalField),
-                                    sortField),
-                                CommandType.TOP,
-                                topByExprs,
-                                rareTopNField),
-                            "lookup_index_name",
-                            Map.of(),
-                            false,
-                            Map.of(),
-                            null),
+                        PhysicalPlanDSL.rareTopN(
+                            PhysicalPlanDSL.sort(
+                                PhysicalPlanDSL.eval(
+                                    PhysicalPlanDSL.remove(
+                                        PhysicalPlanDSL.rename(
+                                            PhysicalPlanDSL.agg(
+                                                PhysicalPlanDSL.filter(
+                                                    PhysicalPlanDSL.values(emptyList()),
+                                                    filterExpr),
+                                                aggregators,
+                                                groupByExprs),
+                                            mappings),
+                                        exclude),
+                                    newEvalField),
+                                sortField),
+                            CommandType.TOP,
+                            topByExprs,
+                            rareTopNField),
                         dedupeField),
                     limit,
                     offset),
@@ -291,38 +277,5 @@ class DefaultImplementorTest {
     var physicalPlanTree =
         new ProjectOperator(new ValuesOperator(List.of(List.of())), List.of(), List.of());
     assertEquals(physicalPlanTree, logicalPlanTree.accept(implementor, null));
-  }
-
-  @Test
-  public void visitLookup_should_build_LookupOperator() {
-    LogicalPlan values = values(List.of(DSL.literal("to be or not to be")));
-    var logicalPlan = lookup(values, "lookup_index_name", Map.of(), false, Map.of());
-    var expectedPhysicalPlan =
-        PhysicalPlanDSL.lookup(
-            new ValuesOperator(List.of(List.of(DSL.literal("to be or not to be")))),
-            "lookup_index_name",
-            Map.of(),
-            false,
-            Map.of(),
-            null);
-
-    PhysicalPlan lookupOperator = logicalPlan.accept(implementor, null);
-
-    assertEquals(expectedPhysicalPlan, lookupOperator);
-  }
-
-  @Test
-  public void visitLookup_should_throw_unsupportedOperationException() {
-    LogicalLookup input = mock(LogicalLookup.class);
-    LogicalPlan dataSource = mock(LogicalPlan.class);
-    PhysicalPlan physicalSource = mock(PhysicalPlan.class);
-    when(dataSource.accept(implementor, null)).thenReturn(physicalSource);
-    when(input.getChild()).thenReturn(List.of(dataSource));
-    PhysicalPlan lookupOperator = implementor.visitLookup(input, null);
-    when(physicalSource.next()).thenReturn(ExprValueUtils.tupleValue(Map.of("field", "value")));
-
-    var ex = assertThrows(UnsupportedOperationException.class, () -> lookupOperator.next());
-
-    assertEquals("Lookup not implemented by DefaultImplementor", ex.getMessage());
   }
 }

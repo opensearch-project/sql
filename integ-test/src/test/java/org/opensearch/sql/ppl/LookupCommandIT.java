@@ -11,6 +11,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -32,49 +33,49 @@ public class LookupCommandIT extends PPLIntegTestCase {
     verifyDataRows(
         result,
         rows(
-            28.1,
-            "2015-01-20 15:31:32.406431",
+            new BigDecimal("28.1"),
             255,
+            "2015-01-20 15:31:32.406431",
             "temperature-basement",
             "meter",
             255,
             "VendorOne"),
         rows(
-            27.8,
-            "2016-01-20 15:31:33.509334",
+            new BigDecimal("27.8"),
             256,
+            "2016-01-20 15:31:33.509334",
             "temperature-living-room",
             "temperature meter",
             256,
             "VendorTwo"),
         rows(
-            27.4,
-            "2017-01-20 15:31:35.732436",
+            new BigDecimal("27.4"),
             257,
+            "2017-01-20 15:31:35.732436",
             "temperature-bedroom",
             "camcorder",
             257,
             "VendorThree"),
         rows(
-            28.5,
-            "2018-01-20 15:32:32.406431",
+            new BigDecimal("28.5"),
             255,
+            "2018-01-20 15:32:32.406431",
             "temperature-basement",
             "meter",
             255,
             "VendorOne"),
         rows(
-            27.9,
-            "2019-01-20 15:32:33.509334",
+            new BigDecimal("27.9"),
             256,
+            "2019-01-20 15:32:33.509334",
             "temperature-living-room",
             "temperature meter",
             256,
             "VendorTwo"),
         rows(
-            27.4,
-            "2020-01-20 15:32:35.732436",
+            new BigDecimal("27.4"),
             257,
+            "2020-01-20 15:32:35.732436",
             "temperature-bedroom",
             "camcorder",
             257,
@@ -90,12 +91,23 @@ public class LookupCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_IOT_READINGS, TEST_INDEX_IOT_SENSORS));
     verifyDataRows(
         result,
-        rows(28.1, "2015-01-20 15:31:32.406431", 255, "meter", "VendorOne"),
-        rows(27.8, "2016-01-20 15:31:33.509334", 256, "temperature meter", "VendorTwo"),
-        rows(27.4, "2017-01-20 15:31:35.732436", 257, "camcorder", "VendorThree"),
-        rows(28.5, "2018-01-20 15:32:32.406431", 255, "meter", "VendorOne"),
-        rows(27.9, "2019-01-20 15:32:33.509334", 256, "temperature meter", "VendorTwo"),
-        rows(27.4, "2020-01-20 15:32:35.732436", 257, "camcorder", "VendorThree"));
+        rows(new BigDecimal("28.1"), 255, "2015-01-20 15:31:32.406431", "meter", "VendorOne"),
+        rows(
+            new BigDecimal("27.8"),
+            256,
+            "2016-01-20 15:31:33.509334",
+            "temperature meter",
+            "VendorTwo"),
+        rows(new BigDecimal("27.4"), 257, "2017-01-20 15:31:35.732436", "camcorder", "VendorThree"),
+        rows(new BigDecimal("28.5"), 255, "2018-01-20 15:32:32.406431", "meter", "VendorOne"),
+        rows(
+            new BigDecimal("27.9"),
+            256,
+            "2019-01-20 15:32:33.509334",
+            "temperature meter",
+            "VendorTwo"),
+        rows(
+            new BigDecimal("27.4"), 257, "2020-01-20 15:32:35.732436", "camcorder", "VendorThree"));
   }
 
   @Test
@@ -108,12 +120,36 @@ public class LookupCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_IOT_READINGS, TEST_INDEX_IOT_SENSORS));
     verifyDataRows(
         result,
-        rows(28.1, "2015-01-20 15:31:32.406431", 255, 255, "meter", "VendorOne"),
-        rows(27.8, "2016-01-20 15:31:33.509334", 256, 256, "temperature meter", "VendorTwo"),
-        rows(27.4, "2017-01-20 15:31:35.732436", 257, 257, "camcorder", "VendorThree"),
-        rows(28.5, "2018-01-20 15:32:32.406431", 255, 255, "meter", "VendorOne"),
-        rows(27.9, "2019-01-20 15:32:33.509334", 256, 256, "temperature meter", "VendorTwo"),
-        rows(27.4, "2020-01-20 15:32:35.732436", 257, 257, "camcorder", "VendorThree"));
+        rows(new BigDecimal("28.1"), 255, "2015-01-20 15:31:32.406431", 255, "meter", "VendorOne"),
+        rows(
+            new BigDecimal("27.8"),
+            256,
+            "2016-01-20 15:31:33.509334",
+            256,
+            "temperature meter",
+            "VendorTwo"),
+        rows(
+            new BigDecimal("27.4"),
+            257,
+            "2017-01-20 15:31:35.732436",
+            257,
+            "camcorder",
+            "VendorThree"),
+        rows(new BigDecimal("28.5"), 255, "2018-01-20 15:32:32.406431", 255, "meter", "VendorOne"),
+        rows(
+            new BigDecimal("27.9"),
+            256,
+            "2019-01-20 15:32:33.509334",
+            256,
+            "temperature meter",
+            "VendorTwo"),
+        rows(
+            new BigDecimal("27.4"),
+            257,
+            "2020-01-20 15:32:35.732436",
+            257,
+            "camcorder",
+            "VendorThree"));
   }
 
   @Test
@@ -125,12 +161,12 @@ public class LookupCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_IOT_READINGS, TEST_INDEX_IOT_SENSORS));
     verifyDataRows(
         result,
-        rows(28.1, "2015-01-20 15:31:32.406431", 255, "meter"),
-        rows(27.8, "2016-01-20 15:31:33.509334", 256, "temperature meter"),
-        rows(27.4, "2017-01-20 15:31:35.732436", 257, "camcorder"),
-        rows(28.5, "2018-01-20 15:32:32.406431", 255, "meter"),
-        rows(27.9, "2019-01-20 15:32:33.509334", 256, "temperature meter"),
-        rows(27.4, "2020-01-20 15:32:35.732436", 257, "camcorder"));
+        rows(new BigDecimal("28.1"), 255, "2015-01-20 15:31:32.406431", "meter"),
+        rows(new BigDecimal("27.8"), 256, "2016-01-20 15:31:33.509334", "temperature meter"),
+        rows(new BigDecimal("27.4"), 257, "2017-01-20 15:31:35.732436", "camcorder"),
+        rows(new BigDecimal("28.5"), 255, "2018-01-20 15:32:32.406431", "meter"),
+        rows(new BigDecimal("27.9"), 256, "2019-01-20 15:32:33.509334", "temperature meter"),
+        rows(new BigDecimal("27.4"), 257, "2020-01-20 15:32:35.732436", "camcorder"));
   }
 
   @Test
@@ -143,32 +179,32 @@ public class LookupCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_IOT_READINGS, TEST_INDEX_IOT_SENSORS));
     verifyDataRows(
         result,
-        rows("2015-01-20 15:31:32.406431", 255, "VendorOne", "temperature-basement", "meter", 255),
+        rows(255, "2015-01-20 15:31:32.406431", "VendorOne", "temperature-basement", "meter", 255),
         rows(
-            "2016-01-20 15:31:33.509334",
             256,
+            "2016-01-20 15:31:33.509334",
             "VendorTwo",
             "temperature-living-room",
             "temperature meter",
             256),
         rows(
-            "2017-01-20 15:31:35.732436",
             257,
+            "2017-01-20 15:31:35.732436",
             "VendorThree",
             "temperature-bedroom",
             "camcorder",
             257),
-        rows("2018-01-20 15:32:32.406431", 255, "VendorOne", "temperature-basement", "meter", 255),
+        rows(255, "2018-01-20 15:32:32.406431", "VendorOne", "temperature-basement", "meter", 255),
         rows(
-            "2019-01-20 15:32:33.509334",
             256,
+            "2019-01-20 15:32:33.509334",
             "VendorTwo",
             "temperature-living-room",
             "temperature meter",
             256),
         rows(
-            "2020-01-20 15:32:35.732436",
             257,
+            "2020-01-20 15:32:35.732436",
             "VendorThree",
             "temperature-bedroom",
             "camcorder",
@@ -185,23 +221,47 @@ public class LookupCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_IOT_READINGS, TEST_INDEX_IOT_SENSORS));
     verifyDataRows(
         result,
-        rows("2015-01-20 15:31:32.406431", 255, 28.1, "temperature-basement", "meter", 255),
         rows(
+            255,
+            "2015-01-20 15:31:32.406431",
+            new BigDecimal("28.1"),
+            "temperature-basement",
+            "meter",
+            255),
+        rows(
+            256,
             "2016-01-20 15:31:33.509334",
-            256,
-            27.8,
+            new BigDecimal("27.8"),
             "temperature-living-room",
             "temperature meter",
             256),
-        rows("2017-01-20 15:31:35.732436", 257, 27.4, "temperature-bedroom", "camcorder", 257),
-        rows("2018-01-20 15:32:32.406431", 255, 28.5, "temperature-basement", "meter", 255),
         rows(
-            "2019-01-20 15:32:33.509334",
+            257,
+            "2017-01-20 15:31:35.732436",
+            new BigDecimal("27.4"),
+            "temperature-bedroom",
+            "camcorder",
+            257),
+        rows(
+            255,
+            "2018-01-20 15:32:32.406431",
+            new BigDecimal("28.5"),
+            "temperature-basement",
+            "meter",
+            255),
+        rows(
             256,
-            27.9,
+            "2019-01-20 15:32:33.509334",
+            new BigDecimal("27.9"),
             "temperature-living-room",
             "temperature meter",
             256),
-        rows("2020-01-20 15:32:35.732436", 257, 27.4, "temperature-bedroom", "camcorder", 257));
+        rows(
+            257,
+            "2020-01-20 15:32:35.732436",
+            new BigDecimal("27.4"),
+            "temperature-bedroom",
+            "camcorder",
+            257));
   }
 }

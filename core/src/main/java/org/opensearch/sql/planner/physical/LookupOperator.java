@@ -9,6 +9,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -108,7 +109,7 @@ public class LookupOperator extends PhysicalPlan {
       }
 
       Map<String, ExprValue> tupleInputValue = ExprValueUtils.getTupleValue(inputValue);
-      Map<String, ExprValue> resultTupleBuilder = new HashMap<>();
+      Map<String, ExprValue> resultTupleBuilder = new LinkedHashMap<>();
       resultTupleBuilder.putAll(tupleInputValue);
       for (Map.Entry<String, Object> sourceOfAdditionalField : lookupResult.entrySet()) {
         String lookedUpFieldName = sourceOfAdditionalField.getKey();

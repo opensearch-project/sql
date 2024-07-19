@@ -28,8 +28,11 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.rename;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -37,7 +40,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.setting.Settings;
@@ -53,6 +58,8 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex.OpenSearchDefaultImplementor;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex.SingleRowQuery;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
@@ -65,6 +72,9 @@ class OpenSearchIndexTest {
   public static final TimeValue SCROLL_TIMEOUT = new TimeValue(1);
   public static final OpenSearchRequest.IndexName INDEX_NAME =
       new OpenSearchRequest.IndexName("test");
+  public static final String LOOKUP_INDEX_NAME = "lookup-index-name";
+  public static final String LOOKUP_TABLE_FIELD = "lookup_table_field";
+  public static final String QUERY_FIELD = "query_field";
 
   @Mock private OpenSearchClient client;
 
@@ -73,6 +83,8 @@ class OpenSearchIndexTest {
   @Mock private Settings settings;
 
   @Mock private IndexMapping mapping;
+
+  @Mock private NodeClient nodeClient;
 
   private OpenSearchIndex index;
 
@@ -222,6 +234,7 @@ class OpenSearchIndexTest {
   void implementOtherLogicalOperators() {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+    when(client.getNodeClient()).thenReturn(nodeClient);
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
@@ -234,34 +247,80 @@ class OpenSearchIndexTest {
 
     LogicalPlan plan =
         project(
-            LogicalPlanDSL.dedupe(
-                sort(
-                    eval(
-                        remove(rename(index.createScanBuilder(), mappings), exclude), newEvalField),
-                    sortField),
-                dedupeField),
+            LogicalPlanDSL.lookup(
+                LogicalPlanDSL.dedupe(
+                    sort(
+                        eval(
+                            remove(rename(index.createScanBuilder(), mappings), exclude),
+                            newEvalField),
+                        sortField),
+                    dedupeField),
+                LOOKUP_INDEX_NAME,
+                Map.of(
+                    new ReferenceExpression(LOOKUP_TABLE_FIELD, STRING),
+                    new ReferenceExpression(QUERY_FIELD, STRING)),
+                true,
+                Collections.emptyMap()),
             include);
 
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
+
+    BiFunction<String, Map<String, Object>, Map<String, Object>> anyBifunction =
+        new BiFunction<>() {
+          @Override
+          public Map<String, Object> apply(String s, Map<String, Object> stringObjectMap) {
+            return Map.of();
+          }
+
+          @Override
+          public boolean equals(Object obj) {
+            return obj instanceof BiFunction;
+          }
+        };
     assertEquals(
         PhysicalPlanDSL.project(
-            PhysicalPlanDSL.dedupe(
-                PhysicalPlanDSL.sort(
-                    PhysicalPlanDSL.eval(
-                        PhysicalPlanDSL.remove(
-                            PhysicalPlanDSL.rename(
-                                new OpenSearchIndexScan(
-                                    client,
-                                    QUERY_SIZE_LIMIT,
-                                    requestBuilder.build(
-                                        INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
-                                mappings),
-                            exclude),
-                        newEvalField),
-                    sortField),
-                dedupeField),
+            PhysicalPlanDSL.lookup(
+                PhysicalPlanDSL.dedupe(
+                    PhysicalPlanDSL.sort(
+                        PhysicalPlanDSL.eval(
+                            PhysicalPlanDSL.remove(
+                                PhysicalPlanDSL.rename(
+                                    new OpenSearchIndexScan(
+                                        client,
+                                        QUERY_SIZE_LIMIT,
+                                        requestBuilder.build(
+                                            INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
+                                    mappings),
+                                exclude),
+                            newEvalField),
+                        sortField),
+                    dedupeField),
+                LOOKUP_INDEX_NAME,
+                Map.of(
+                    new ReferenceExpression(LOOKUP_TABLE_FIELD, STRING),
+                    new ReferenceExpression(QUERY_FIELD, STRING)),
+                true,
+                Collections.emptyMap(),
+                anyBifunction),
             include),
         index.implement(plan));
+  }
+
+  @Test
+  public void lookupShouldExecuteQuery() {
+    OpenSearchDefaultImplementor implementor = new OpenSearchDefaultImplementor(client);
+    Map<String, Object> matchMap = Map.of("column name", "required value");
+    Set<String> copySet = Set.of("column_1", "column_2");
+    Map<String, Object> parameters = Map.of("_match", matchMap, "_copy", copySet);
+    SingleRowQuery singleRowQuery = Mockito.mock(SingleRowQuery.class);
+    Map<String, Object> resultRow = Map.of("column_1", 1, "column_2", 2);
+    when(singleRowQuery.executeQuery("lookup_index_name", matchMap, copySet)).thenReturn(resultRow);
+    BiFunction<String, Map<String, Object>, Map<String, Object>> lookup =
+        implementor.lookup(singleRowQuery);
+
+    Map<String, Object> givenResult = lookup.apply("lookup_index_name", parameters);
+
+    assertEquals(resultRow, givenResult);
   }
 }
