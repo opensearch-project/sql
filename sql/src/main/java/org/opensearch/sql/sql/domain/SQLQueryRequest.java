@@ -30,6 +30,7 @@ public class SQLQueryRequest {
       Set.of("query", "fetch_size", "parameters", QUERY_FIELD_CURSOR);
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
+  private static final String QUERY_PARAMS_PRETTY = "pretty";
 
   /** JSON payload in REST request. */
   private final JSONObject jsonContent;
@@ -50,6 +51,10 @@ public class SQLQueryRequest {
   @Accessors(fluent = true)
   private boolean sanitize = true;
 
+  @Getter
+  @Accessors(fluent = true)
+  private boolean pretty = false;
+
   private String cursor;
 
   /** Constructor of SQLQueryRequest that passes request params. */
@@ -65,6 +70,7 @@ public class SQLQueryRequest {
     this.params = params;
     this.format = getFormat(params);
     this.sanitize = shouldSanitize(params);
+    this.pretty = shouldPretty(params);
     this.cursor = cursor;
   }
 
@@ -146,5 +152,12 @@ public class SQLQueryRequest {
       return Boolean.parseBoolean(params.get(QUERY_PARAMS_SANITIZE));
     }
     return true;
+  }
+
+  private boolean shouldPretty(Map<String, String> params) {
+    if (params.containsKey(QUERY_PARAMS_PRETTY)) {
+      return Boolean.parseBoolean(params.get(QUERY_PARAMS_PRETTY));
+    }
+    return false;
   }
 }

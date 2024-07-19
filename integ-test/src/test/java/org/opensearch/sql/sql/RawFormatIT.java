@@ -6,10 +6,11 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_RAW_SANITIZE;
-import static org.opensearch.sql.protocol.response.format.FlatResponseFormatter.CONTENT_TYPE;
+import static org.opensearch.sql.protocol.response.format.RawResponseFormatter.CONTENT_TYPE;
 
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Map;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
@@ -38,6 +39,25 @@ public class RawFormatIT extends SQLIntegTestCase {
                 + "=Nanette|Bates=%n"
                 + "@Dale|Adams@%n"
                 + "@Elinor|\"Ratliff|||\"%n"),
+        result);
+  }
+
+  @Test
+  public void rawFormatPrettyWithPipeFieldTest() {
+    String result =
+        executeQuery(
+            String.format(
+                Locale.ROOT, "SELECT firstname, lastname FROM %s", TEST_INDEX_BANK_RAW_SANITIZE),
+            "raw",
+            Map.of("pretty", "true"));
+    assertEquals(
+        StringUtils.format(
+            "firstname    |lastname         %n"
+                + "+Amber JOHnny|Duke Willmington+%n"
+                + "-Hattie      |Bond-            %n"
+                + "=Nanette     |Bates=           %n"
+                + "@Dale        |Adams@           %n"
+                + "@Elinor      |\"Ratliff|||\"     %n"),
         result);
   }
 
