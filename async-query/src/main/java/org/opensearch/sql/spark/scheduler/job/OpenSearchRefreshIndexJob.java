@@ -33,18 +33,10 @@ public class OpenSearchRefreshIndexJob implements ScheduledJobRunner {
 
   private static final Logger log = LogManager.getLogger(OpenSearchRefreshIndexJob.class);
 
-  private static OpenSearchRefreshIndexJob INSTANCE;
+  public static OpenSearchRefreshIndexJob INSTANCE = new OpenSearchRefreshIndexJob();
 
   public static OpenSearchRefreshIndexJob getJobRunnerInstance() {
-    if (INSTANCE != null) {
-      return INSTANCE;
-    }
-    synchronized (OpenSearchRefreshIndexJob.class) {
-      if (INSTANCE == null) {
-        INSTANCE = new OpenSearchRefreshIndexJob();
-      }
-      return INSTANCE;
-    }
+    return INSTANCE;
   }
 
   private ClusterService clusterService;

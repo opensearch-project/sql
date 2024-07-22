@@ -6,6 +6,8 @@
 package org.opensearch.sql.spark.scheduler.job;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -13,6 +15,10 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
@@ -47,14 +53,36 @@ public class OpenSearchRefreshIndexJobTest {
   public void setup() {
     MockitoAnnotations.openMocks(this);
     jobRunner = OpenSearchRefreshIndexJob.getJobRunnerInstance();
-    spyJobRunner = spy(jobRunner);
-    spyJobRunner.setClusterService(null);
-    spyJobRunner.setThreadPool(null);
-    spyJobRunner.setClient(null);
+    jobRunner.setClient(null);
+    jobRunner.setClusterService(null);
+    jobRunner.setThreadPool(null);
+  }
+
+  @Test
+  public void testGetJobRunnerInstanceCalledConcurrently() throws InterruptedException {
+    int threadCount = 3;
+    ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+    CountDownLatch latch = new CountDownLatch(threadCount);
+
+    for (int i = 0; i < threadCount; i++) {
+      executorService.execute(
+          () -> {
+            try {
+              OpenSearchRefreshIndexJob instance = OpenSearchRefreshIndexJob.getJobRunnerInstance();
+              assertNotNull(instance);
+            } finally {
+              latch.countDown();
+            }
+          });
+    }
+
+    latch.await(5, TimeUnit.SECONDS);
+    executorService.shutdown();
   }
 
   @Test
   public void testRunJobWithCorrectParameter() {
+    spyJobRunner = spy(jobRunner);
     spyJobRunner.setClusterService(clusterService);
     spyJobRunner.setThreadPool(threadPool);
     spyJobRunner.setClient(client);
@@ -79,9 +107,10 @@ public class OpenSearchRefreshIndexJobTest {
 
   @Test
   public void testRunJobWithIncorrectParameter() {
-    spyJobRunner.setClusterService(clusterService);
-    spyJobRunner.setThreadPool(threadPool);
-    spyJobRunner.setClient(client);
+    jobRunner = OpenSearchRefreshIndexJob.getJobRunnerInstance();
+    jobRunner.setClusterService(clusterService);
+    jobRunner.setThreadPool(threadPool);
+    jobRunner.setClient(client);
 
     ScheduledJobParameter wrongParameter = mock(ScheduledJobParameter.class);
 
@@ -129,5 +158,15 @@ public class OpenSearchRefreshIndexJobTest {
             () -> jobRunner.runJob(jobParameter, context),
             "Expected IllegalStateException but no exception was thrown");
     assertEquals("Client is not initialized.", exception.getMessage());
+  }
+
+  @Test
+  public void testGetJobRunnerInstanceMultipleCalls() {
+    OpenSearchRefreshIndexJob instance1 = OpenSearchRefreshIndexJob.getJobRunnerInstance();
+    OpenSearchRefreshIndexJob instance2 = OpenSearchRefreshIndexJob.getJobRunnerInstance();
+    OpenSearchRefreshIndexJob instance3 = OpenSearchRefreshIndexJob.getJobRunnerInstance();
+
+    assertSame(instance1, instance2);
+    assertSame(instance2, instance3);
   }
 }
