@@ -11,11 +11,16 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.TemporalAccessor;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import org.opensearch.common.time.DateFormatter;
+import org.opensearch.common.time.DateFormatters;
 import org.opensearch.common.time.FormatNames;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -137,6 +142,11 @@ public class OpenSearchDateType extends OpenSearchDataType {
 
   private static final String CUSTOM_FORMAT_DATE_SYMBOLS = "FecEWwYqQgdMLDyuG";
 
+  private static final List<DateFormatter> OPENSEARCH_DEFAULT_FORMATTERS =
+      Stream.of("strict_date_time_no_millis", "strict_date_optional_time", "epoch_millis")
+          .map(DateFormatter::forPattern)
+          .collect(Collectors.toList());
+
   @EqualsAndHashCode.Exclude private final List<String> formats;
 
   private OpenSearchDateType() {
@@ -233,6 +243,59 @@ public class OpenSearchDateType extends OpenSearchDataType {
     return getAllCustomFormats().stream()
         .map(DateFormatter::forPattern)
         .collect(Collectors.toList());
+  }
+
+  /**
+   * Retrieves a list of custom formatters and OpenSearch named formatters defined by the user, and
+   * attempts to parse the given date/time string using these formatters.
+   *
+   * @param dateTime The date/time string to parse.
+   * @return A ZonedDateTime representing the parsed date/time in UTC, or null if parsing fails.
+   */
+  public ZonedDateTime getParsedDateTime(String dateTime) {
+    List<DateFormatter> dateFormatters =
+        Stream.concat(this.getAllNamedFormatters().stream(), this.getAllCustomFormatters().stream())
+            .collect(Collectors.toList());
+    ZonedDateTime zonedDateTime = null;
+
+    // check if dateFormatters are empty, then set default ones
+    if (dateFormatters.isEmpty()) {
+      dateFormatters = OPENSEARCH_DEFAULT_FORMATTERS;
+    }
+    // parse using OpenSearch DateFormatters
+    for (DateFormatter formatter : dateFormatters) {
+      try {
+        TemporalAccessor accessor = formatter.parse(dateTime);
+        zonedDateTime = DateFormatters.from(accessor).withZoneSameLocal(ZoneOffset.UTC);
+        break;
+      } catch (IllegalArgumentException ignored) {
+        // nothing to do, try another format
+      }
+    }
+    return zonedDateTime;
+  }
+
+  /**
+   * Returns a formatted date string using the internal formatter, if available.
+   *
+   * @param accessor The TemporalAccessor object containing the date/time information.
+   * @return A formatted date string if a formatter is available, otherwise null.
+   */
+  public String getFormattedDate(TemporalAccessor accessor) {
+    if (hasNoFormatter()) {
+      return OPENSEARCH_DEFAULT_FORMATTERS.get(0).format(accessor);
+    }
+    // Use the first available format string to create the formatter
+    return DateFormatter.forPattern(this.formats.get(0)).format(accessor);
+  }
+
+  /**
+   * Checks if the formatter is not initialized.
+   *
+   * @return True if the formatter is not set, otherwise false.
+   */
+  public boolean hasNoFormatter() {
+    return this.formats.isEmpty();
   }
 
   /**

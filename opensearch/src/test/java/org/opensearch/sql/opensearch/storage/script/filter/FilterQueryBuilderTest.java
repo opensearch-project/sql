@@ -1774,9 +1774,9 @@ class FilterQueryBuilderTest {
             + "    }\n"
             + "  }\n"
             + "}";
-
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("date_value", DATE), DSL.castDate(literal("2021-11-08")))));
+
     assertJsonEquals(
         json,
         buildQuery(
@@ -1849,7 +1849,7 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"term\" : {\n"
             + "    \"timestamp_value\" : {\n"
-            + "      \"value\" : 1636390800000,\n"
+            + "      \"value\" : \"2021-11-08 17:00:00\",\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
@@ -1875,7 +1875,7 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"range\" : {\n"
             + "    \"timestamp_value\" : {\n"
-            + "      \"from\" : 1636390800000,\n"
+            + "      \"from\" : \"2021-11-08 17:00:00\",\n"
             + "      \"to\" : null,"
             + "      \"include_lower\" : false,"
             + "      \"include_upper\" : true,"
