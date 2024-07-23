@@ -80,7 +80,6 @@ ext {
 
     var projectAbsPath = projectDir.getAbsolutePath()
     File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
-
     configureSecurityPlugin = { OpenSearchCluster cluster ->
 
         cluster.getNodes().forEach { node ->
@@ -138,6 +137,10 @@ ext {
 
         cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
     }
+
+    bwcOpenSearchJSDownload = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + baseVersion + '/latest/linux/x64/tar/builds/' +
+            'opensearch/plugins/opensearch-job-scheduler-' + bwcVersion + '.zip'
+    bwcJobSchedulerPath = bwcFilePath + "job-scheduler/"
 }
 
 tasks.withType(licenseHeaders.class) {
@@ -543,6 +546,24 @@ task comparisonTest(type: RestIntegTestTask) {
             testDistribution = "ARCHIVE"
             versions = [baseVersion, opensearch_version]
             numberOfNodes = 3
+            plugin(provider(new Callable<RegularFile>(){
+                @Override
+                RegularFile call() throws Exception {
+                    return new RegularFile() {
+                        @Override
+                        File getAsFile() {
+                            if (new File("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion").exists()) {
+                                project.delete(files("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion"))
+                            }
+                            project.mkdir bwcJobSchedulerPath + bwcVersion
+                            ant.get(src: bwcOpenSearchJSDownload,
+                                    dest: bwcJobSchedulerPath + bwcVersion,
+                                    httpusecaches: false)
+                            return fileTree(bwcJobSchedulerPath + bwcVersion).getSingleFile()
+                        }
+                    }
+                }
+            }))
             plugin(provider(new Callable<RegularFile>(){
                 @Override
                 RegularFile call() throws Exception {
