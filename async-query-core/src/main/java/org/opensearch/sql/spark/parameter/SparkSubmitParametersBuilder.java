@@ -154,7 +154,9 @@ public class SparkSubmitParametersBuilder {
   }
 
   public SparkSubmitParametersBuilder acceptModifier(SparkSubmitParameterModifier modifier) {
-    modifier.modifyParameters(this);
+    if (modifier != null) {
+      modifier.modifyParameters(this);
+    }
     return this;
   }
 
