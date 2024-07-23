@@ -7,7 +7,10 @@ package org.opensearch.sql.opensearch.data.type;
 
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
+import com.google.common.collect.ImmutableMap;
+import java.util.LinkedHashMap;
 import lombok.EqualsAndHashCode;
+import org.opensearch.sql.data.type.ExprCoreType;
 
 /**
  * The type of a geo_point value. See <a
@@ -21,6 +24,11 @@ public class OpenSearchGeoPointType extends OpenSearchDataType {
   private OpenSearchGeoPointType() {
     super(MappingType.GeoPoint);
     exprCoreType = UNKNOWN;
+    this.properties =
+        new LinkedHashMap(
+            ImmutableMap.of(
+                "lat", new OpenSearchDataType(ExprCoreType.DOUBLE),
+                "lon", new OpenSearchDataType(ExprCoreType.DOUBLE)));
   }
 
   public static OpenSearchGeoPointType of() {
