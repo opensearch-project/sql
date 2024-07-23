@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.scheduler;
 
 import static org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -46,6 +47,7 @@ public class OpenSearchAsyncQueryScheduler {
   private static final String SCHEDULER_INDEX_SETTINGS_FILE_NAME =
       "async-query-scheduler-index-settings.yml";
   private static final Logger LOG = LogManager.getLogger();
+
   private Client client;
   private ClusterService clusterService;
 
@@ -69,15 +71,15 @@ public class OpenSearchAsyncQueryScheduler {
     indexRequest.id(request.getName());
     indexRequest.opType(DocWriteRequest.OpType.CREATE);
     indexRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-    ActionFuture<IndexResponse> indexResponseActionFuture;
     IndexResponse indexResponse;
     try {
       indexRequest.source(request.toXContent(JsonXContent.contentBuilder(), EMPTY_PARAMS));
-      indexResponseActionFuture = client.index(indexRequest);
+      ActionFuture<IndexResponse> indexResponseActionFuture = client.index(indexRequest);
       indexResponse = indexResponseActionFuture.actionGet();
     } catch (VersionConflictEngineException exception) {
       throw new IllegalArgumentException("A job already exists with name: " + request.getName());
-    } catch (Exception e) {
+    } catch (Throwable e) {
+      LOG.error("Failed to schedule job : {}", request.getName(), e);
       throw new RuntimeException(e);
     }
 
@@ -91,9 +93,7 @@ public class OpenSearchAsyncQueryScheduler {
 
   /** Unschedules a job by marking it as disabled and updating its last update time. */
   public void unscheduleJob(String jobId) throws IOException {
-    if (!this.clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)) {
-      throw new IllegalArgumentException("Job index does not exist.");
-    }
+    verifyIndexExists();
     OpenSearchRefreshIndexJobRequest request =
         OpenSearchRefreshIndexJobRequest.builder()
             .jobName(jobId)
@@ -105,9 +105,7 @@ public class OpenSearchAsyncQueryScheduler {
 
   /** Updates an existing job with new parameters. */
   public void updateJob(OpenSearchRefreshIndexJobRequest request) throws IOException {
-    if (!this.clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)) {
-      throw new IllegalArgumentException("Job index does not exist.");
-    }
+    verifyIndexExists();
     UpdateRequest updateRequest = new UpdateRequest(SCHEDULER_INDEX_NAME, request.getName());
     updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     updateRequest.doc(request.toXContent(JsonXContent.contentBuilder(), EMPTY_PARAMS));
@@ -117,7 +115,8 @@ public class OpenSearchAsyncQueryScheduler {
       updateResponse = updateResponseActionFuture.actionGet();
     } catch (DocumentMissingException exception) {
       throw new IllegalArgumentException("Job: " + request.getName() + " doesn't exist");
-    } catch (Exception e) {
+    } catch (Throwable e) {
+      LOG.error("Failed to update job : {}", request.getName(), e);
       throw new RuntimeException(e);
     }
 
@@ -132,9 +131,7 @@ public class OpenSearchAsyncQueryScheduler {
 
   /** Removes a job by deleting its document from the index. */
   public void removeJob(String jobId) {
-    if (!this.clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)) {
-      throw new IllegalArgumentException("Job index does not exist.");
-    }
+    verifyIndexExists();
     DeleteRequest deleteRequest = new DeleteRequest(SCHEDULER_INDEX_NAME, jobId);
     deleteRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     ActionFuture<DeleteResponse> deleteResponseActionFuture = client.delete(deleteRequest);
@@ -151,6 +148,7 @@ public class OpenSearchAsyncQueryScheduler {
   }
 
   /** Creates the async query scheduler index with specified mappings and settings. */
+  @VisibleForTesting
   void createAsyncQuerySchedulerIndex() {
     try {
       InputStream mappingFileStream =
@@ -183,6 +181,12 @@ public class OpenSearchAsyncQueryScheduler {
               + " index: "
               + e.getMessage(),
           e);
+    }
+  }
+
+  private void verifyIndexExists() {
+    if (!this.clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)) {
+      throw new IllegalArgumentException("Job index does not exist.");
     }
   }
 
