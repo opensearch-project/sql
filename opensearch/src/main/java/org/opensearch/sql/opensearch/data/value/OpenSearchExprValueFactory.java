@@ -226,7 +226,7 @@ public class OpenSearchExprValueFactory {
   private static ExprValue parseDateTimeString(String value, OpenSearchDateType dataType) {
     List<DateFormatter> formatters = dataType.getAllNamedFormatters();
     formatters.addAll(dataType.getAllCustomFormatters());
-    ExprCoreType returnFormat = (ExprCoreType) dataType.getExprType();
+    ExprCoreType returnFormat = dataType.getExprCoreType();
 
     for (DateFormatter formatter : formatters) {
       try {
@@ -268,8 +268,7 @@ public class OpenSearchExprValueFactory {
 
   private static ExprValue createOpenSearchDateType(Content value, ExprType type) {
     OpenSearchDateType dt = (OpenSearchDateType) type;
-    ExprType returnFormat = dt.getExprType();
-
+    ExprCoreType returnFormat = dt.getExprCoreType();
     if (value.isNumber()) { // isNumber
       var numFormatters = dt.getNumericNamedFormatters();
       if (numFormatters.size() > 0 || !dt.hasFormats()) {
@@ -282,7 +281,7 @@ public class OpenSearchExprValueFactory {
           epochMillis = value.longValue();
         }
         Instant instant = Instant.ofEpochMilli(epochMillis);
-        switch ((ExprCoreType) returnFormat) {
+        switch (returnFormat) {
           case TIME:
             return new ExprTimeValue(LocalTime.from(instant.atZone(UTC_ZONE_ID)));
           case DATE:

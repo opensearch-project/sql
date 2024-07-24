@@ -429,6 +429,48 @@ Querying such index will provide a response with ``schema`` block as shown below
         "status": 200
     }
 
+If the sql query contains an `IndexDateField` and a literal value with an operator (such as a term query or a range query), then the literal value can be in the `IndexDateField` format.
+
+.. code-block:: json
+
+    {
+        "mappings" : {
+            "properties" : {
+                "release_date" : {
+                    "type" : "date",
+                    "format": "dd-MMM-yy"
+                }
+            }
+        }
+    }
+
+Querying such an `IndexDateField` (``release_date``) will provide a response with ``schema`` and ``datarows`` blocks as shown below.
+
+.. code-block:: json
+
+    {
+        "query" : "SELECT release_date FROM test_index WHERE release_date = \"03-Jan-21\""
+    }
+
+.. code-block:: json
+
+    {
+      "schema": [
+        {
+          "name": "release_date",
+          "type": "date"
+        }
+      ],
+      "datarows": [
+        [
+          "2021-01-03"
+        ]
+      ],
+      "total": 1,
+      "size": 1,
+      "status": 200
+    }
+
 String Data Types
 =================
 
