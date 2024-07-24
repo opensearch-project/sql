@@ -9,7 +9,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.inject.Singleton;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
@@ -30,7 +29,6 @@ import org.opensearch.threadpool.ThreadPool;
  * and using singleton job runner to ensure we register a usable job runner instance to JobScheduler
  * plugin.
  */
-@Singleton
 public class OpenSearchRefreshIndexJob implements ScheduledJobRunner {
 
   private static final Logger log = LogManager.getLogger(OpenSearchRefreshIndexJob.class);
@@ -85,7 +83,6 @@ public class OpenSearchRefreshIndexJob implements ScheduledJobRunner {
         () -> {
           doRefresh(jobParameter.getName());
         };
-
     threadPool.generic().submit(runnable);
   }
 

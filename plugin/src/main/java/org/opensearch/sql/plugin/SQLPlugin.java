@@ -96,6 +96,7 @@ import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
 import org.opensearch.sql.spark.scheduler.OpenSearchRefreshIndexJobRequestParser;
+import org.opensearch.sql.spark.scheduler.job.OpenSearchRefreshIndexJob;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
@@ -264,7 +265,7 @@ public class SQLPlugin extends Plugin
 
   @Override
   public ScheduledJobRunner getJobRunner() {
-    return OpenSearchAsyncQueryScheduler.getJobRunner();
+    return OpenSearchRefreshIndexJob.getJobRunnerInstance();
   }
 
   @Override

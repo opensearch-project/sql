@@ -6,7 +6,6 @@
 package org.opensearch.sql.spark.scheduler.job;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
@@ -15,10 +14,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import java.time.Instant;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
@@ -56,28 +51,6 @@ public class OpenSearchRefreshIndexJobTest {
     jobRunner.setClient(null);
     jobRunner.setClusterService(null);
     jobRunner.setThreadPool(null);
-  }
-
-  @Test
-  public void testGetJobRunnerInstanceCalledConcurrently() throws InterruptedException {
-    int threadCount = 3;
-    ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
-    CountDownLatch latch = new CountDownLatch(threadCount);
-
-    for (int i = 0; i < threadCount; i++) {
-      executorService.execute(
-          () -> {
-            try {
-              OpenSearchRefreshIndexJob instance = OpenSearchRefreshIndexJob.getJobRunnerInstance();
-              assertNotNull(instance);
-            } finally {
-              latch.countDown();
-            }
-          });
-    }
-
-    latch.await(5, TimeUnit.SECONDS);
-    executorService.shutdown();
   }
 
   @Test

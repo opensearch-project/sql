@@ -50,6 +50,7 @@ buildscript {
             return "https://github.com/prometheus/prometheus/releases/download/v${prometheus_binary_version}/prometheus-${prometheus_binary_version}."+ getOSFamilyType() + "-" + getArchType() + ".tar.gz"
         }
         aws_java_sdk_version = "1.12.651"
+        guava_version = "32.1.3-jre"
     }
 
     repositories {
@@ -192,7 +193,7 @@ configurations.all {
     exclude group: "commons-logging", module: "commons-logging"
     // enforce 1.1.3, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
-    resolutionStrategy.force 'com.google.guava:guava:32.1.3-jre'
+    resolutionStrategy.force "com.google.guava:guava:${guava_version}"
 }
 
 // updateVersion: Task to auto increment to the next development iteration
