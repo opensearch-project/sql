@@ -199,7 +199,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   public void testUnscheduleJobWithIndexNotFound() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
 
-    assertThrows(IllegalArgumentException.class, () -> scheduler.unscheduleJob(TEST_JOB_ID));
+    assertThrows(IllegalStateException.class, () -> scheduler.unscheduleJob(TEST_JOB_ID));
   }
 
   @Test
@@ -237,7 +237,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
 
-    assertThrows(IllegalArgumentException.class, () -> scheduler.updateJob(request));
+    assertThrows(IllegalStateException.class, () -> scheduler.updateJob(request));
   }
 
   @Test
@@ -305,7 +305,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   public void testRemoveJobWithIndexNotFound() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
 
-    assertThrows(IllegalArgumentException.class, () -> scheduler.removeJob(TEST_JOB_ID));
+    assertThrows(IllegalStateException.class, () -> scheduler.removeJob(TEST_JOB_ID));
   }
 
   @Test
