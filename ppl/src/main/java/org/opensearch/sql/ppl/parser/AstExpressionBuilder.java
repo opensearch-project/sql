@@ -207,7 +207,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** Eval function. */
   @Override
   public UnresolvedExpression visitBooleanFunctionCall(BooleanFunctionCallContext ctx) {
-    final String functionName = ctx.conditionFunctionBase().getText();
+    final String functionName = ctx.conditionFunctionName().getText().toLowerCase();
     return buildFunction(
         FUNCTION_NAME_MAPPING.getOrDefault(functionName, functionName),
         ctx.functionArgs().functionArg());
