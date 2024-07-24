@@ -210,4 +210,67 @@ public class GlueDataSourceFactoryTest {
     Assertions.assertEquals(
         "Invalid flint host in properties.", illegalArgumentException.getMessage());
   }
+
+  @Test
+  @SneakyThrows
+  void testCreateGlueDataSourceWithLakeFormationNoIceberg() {
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
+    GlueDataSourceFactory glueDatasourceFactory = new GlueDataSourceFactory(settings);
+
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("glue.auth.type", "iam_role");
+    properties.put("glue.auth.role_arn", "role_arn");
+    properties.put("glue.indexstore.opensearch.uri", "http://localhost:9200");
+    properties.put("glue.indexstore.opensearch.auth", "noauth");
+    properties.put("glue.indexstore.opensearch.region", "us-west-2");
+    properties.put("glue.lakeformation.enabled", "true");
+    properties.put("glue.iceberg.enabled", "false");
+    properties.put("glue.lakeformation.session_tag", "session_tag");
+
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("my_glue")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(properties)
+            .build();
+
+    IllegalArgumentException illegalArgumentException =
+        Assertions.assertThrows(
+            IllegalArgumentException.class, () -> glueDatasourceFactory.createDataSource(metadata));
+    Assertions.assertEquals(
+        "Lake Formation can only be enabled when Iceberg is enabled.",
+        illegalArgumentException.getMessage());
+  }
+
+  @Test
+  @SneakyThrows
+  void testCreateGlueDataSourceWithLakeFormationNoSessionTags() {
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
+    GlueDataSourceFactory glueDatasourceFactory = new GlueDataSourceFactory(settings);
+
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("glue.auth.type", "iam_role");
+    properties.put("glue.auth.role_arn", "role_arn");
+    properties.put("glue.indexstore.opensearch.uri", "http://localhost:9200");
+    properties.put("glue.indexstore.opensearch.auth", "noauth");
+    properties.put("glue.indexstore.opensearch.region", "us-west-2");
+    properties.put("glue.lakeformation.enabled", "true");
+    properties.put("glue.iceberg.enabled", "true");
+
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("my_glue")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(properties)
+            .build();
+
+    IllegalArgumentException illegalArgumentException =
+        Assertions.assertThrows(
+            IllegalArgumentException.class, () -> glueDatasourceFactory.createDataSource(metadata));
+    Assertions.assertEquals(
+        "Lake Formation session tag must be specified when enabling Lake Formation",
+        illegalArgumentException.getMessage());
+  }
 }
