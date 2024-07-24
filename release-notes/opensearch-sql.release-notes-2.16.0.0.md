@@ -11,6 +11,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.16.0
 * Well format the raw response when query parameter "pretty" enabled ([#2829](https://github.com/opensearch-project/sql/pull/2829))
 * Add support for custom date format and openSearch date format for date fields as part of Lucene query ([#2762](https://github.com/opensearch-project/sql/pull/2762))
 * Fix SparkExecutionEngineConfigClusterSetting deserialize issue ([#2838](https://github.com/opensearch-project/sql/pull/2838))
+* Fix SparkSubmitParameterModifier issue ([#2837](https://github.com/opensearch-project/sql/pull/2837))
 
 ### Infrastructure
 * Increment version to 2.16.0-SNAPSHOT ([#2743](https://github.com/opensearch-project/sql/pull/2743))
