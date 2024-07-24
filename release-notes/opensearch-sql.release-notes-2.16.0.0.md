@@ -1,25 +1,23 @@
-**Compatible with OpenSearch and OpenSearch Dashboards Version 2.16.0**
+Compatible with OpenSearch and OpenSearch Dashboards Version 2.16.0
 
 ### Enhancements
-
 * Added Setting to Toggle Data Source Management Code Paths ([#2811](https://github.com/opensearch-project/sql/pull/2811))
 * Span in PPL statsByClause could be specified after fields ([#2810](https://github.com/opensearch-project/sql/pull/2810))
+* Updating Grammer changes same as main branch ([#2850](https://github.com/opensearch-project/sql/pull/2850))
 
 ### Bug Fixes
-
-* Fix SparkSubmitParameterModifier issue ([#2839](https://github.com/opensearch-project/sql/pull/2839))
 * Temp use of older nodejs version before moving to Almalinux8 ([#2816](https://github.com/opensearch-project/sql/pull/2816))
 * Fix yaml errors causing checks not to be run ([#2823](https://github.com/opensearch-project/sql/pull/2823))
 * Well format the raw response when query parameter "pretty" enabled ([#2829](https://github.com/opensearch-project/sql/pull/2829))
+* Add support for custom date format and openSearch date format for date fields as part of Lucene query ([#2762](https://github.com/opensearch-project/sql/pull/2762))
+* Fix SparkExecutionEngineConfigClusterSetting deserialize issue ([#2838](https://github.com/opensearch-project/sql/pull/2838))
 
 ### Infrastructure
-
 * Increment version to 2.16.0-SNAPSHOT ([#2743](https://github.com/opensearch-project/sql/pull/2743))
 * Fix checkout action failure ([#2819](https://github.com/opensearch-project/sql/pull/2819))
 * Fix MacOS workflow failure ([#2831](https://github.com/opensearch-project/sql/pull/2831))
 
 ### Refactoring
-
 * Change DataSourceType from enum to class ([#2746](https://github.com/opensearch-project/sql/pull/2746))
 * Fix code style issue ([#2745](https://github.com/opensearch-project/sql/pull/2745))
 * Scaffold async-query-core and async-query module ([#2751](https://github.com/opensearch-project/sql/pull/2751))
