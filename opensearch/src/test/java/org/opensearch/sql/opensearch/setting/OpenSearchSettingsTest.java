@@ -34,6 +34,7 @@ import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.core.common.unit.ByteSizeValue;
+import org.opensearch.index.IndexSettings;
 import org.opensearch.monitor.jvm.JvmInfo;
 import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
@@ -132,7 +133,7 @@ class OpenSearchSettingsTest {
             org.opensearch.common.settings.Settings.EMPTY));
     assertEquals(
         settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
-        LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING.get(
+        IndexSettings.MAX_RESULT_WINDOW_SETTING.get(
             org.opensearch.common.settings.Settings.EMPTY));
     assertEquals(
         settings.getSettingValue(Settings.Key.METRICS_ROLLING_WINDOW),
@@ -165,7 +166,7 @@ class OpenSearchSettingsTest {
     assertEquals(
         QUERY_MEMORY_LIMIT_SETTING.get(settings),
         new ByteSizeValue((int) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.2)));
-    assertEquals(QUERY_SIZE_LIMIT_SETTING.get(settings), 100);
+    assertEquals(QUERY_SIZE_LIMIT_SETTING.get(settings), 10000);
     assertEquals(METRICS_ROLLING_WINDOW_SETTING.get(settings), 2000L);
     assertEquals(METRICS_ROLLING_INTERVAL_SETTING.get(settings), 100L);
   }
