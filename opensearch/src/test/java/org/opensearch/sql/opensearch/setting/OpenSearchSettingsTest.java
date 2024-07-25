@@ -133,8 +133,7 @@ class OpenSearchSettingsTest {
             org.opensearch.common.settings.Settings.EMPTY));
     assertEquals(
         settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
-        IndexSettings.MAX_RESULT_WINDOW_SETTING.get(
-            org.opensearch.common.settings.Settings.EMPTY));
+        IndexSettings.MAX_RESULT_WINDOW_SETTING.get(org.opensearch.common.settings.Settings.EMPTY));
     assertEquals(
         settings.getSettingValue(Settings.Key.METRICS_ROLLING_WINDOW),
         LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING.get(
