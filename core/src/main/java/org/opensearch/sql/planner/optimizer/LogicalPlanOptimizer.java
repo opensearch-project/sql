@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.optimizer.rule.EliminateNested;
 import org.opensearch.sql.planner.optimizer.rule.MergeFilterAndFilter;
 import org.opensearch.sql.planner.optimizer.rule.PushFilterUnderSort;
 import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
@@ -58,7 +59,11 @@ public class LogicalPlanOptimizer {
             TableScanPushDown.PUSH_DOWN_HIGHLIGHT,
             TableScanPushDown.PUSH_DOWN_NESTED,
             TableScanPushDown.PUSH_DOWN_PROJECT,
-            new CreateTableWriteBuilder()));
+            new CreateTableWriteBuilder(),
+            /*
+             * Phase 3: Transformations for others
+             */
+            new EliminateNested()));
   }
 
   /** Optimize {@link LogicalPlan}. */

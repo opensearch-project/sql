@@ -15,6 +15,7 @@ import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
@@ -179,7 +180,7 @@ public class MetricAggregationBuilder
       Expression condition,
       String name,
       MetricParser parser) {
-    ValuesSourceAggregationBuilder aggregationBuilder =
+    AggregationBuilder aggregationBuilder =
         helper.build(expression, builder::field, builder::script);
     if (condition != null) {
       return Pair.of(
@@ -196,7 +197,7 @@ public class MetricAggregationBuilder
       Expression condition,
       String name,
       MetricParser parser) {
-    CardinalityAggregationBuilder aggregationBuilder =
+    AggregationBuilder aggregationBuilder =
         helper.build(expression, builder::field, builder::script);
     if (condition != null) {
       return Pair.of(
@@ -234,12 +235,23 @@ public class MetricAggregationBuilder
       Expression condition,
       String name,
       MetricParser parser) {
-    PercentilesAggregationBuilder aggregationBuilder =
+    AggregationBuilder aggregationBuilder =
         helper.build(expression, builder::field, builder::script);
-    if (compression != null) {
-      aggregationBuilder.compression(compression.valueOf().doubleValue());
+    PercentilesAggregationBuilder percentilesBuilder;
+    if (aggregationBuilder instanceof NestedAggregationBuilder) {
+      percentilesBuilder =
+          aggregationBuilder.getSubAggregations().stream()
+              .filter(PercentilesAggregationBuilder.class::isInstance)
+              .map(a -> (PercentilesAggregationBuilder) a)
+              .findFirst()
+              .orElseThrow();
+    } else {
+      percentilesBuilder = (PercentilesAggregationBuilder) aggregationBuilder;
     }
-    aggregationBuilder.percentiles(percent.valueOf().doubleValue());
+    if (compression != null) {
+      percentilesBuilder.compression(compression.valueOf().doubleValue());
+    }
+    percentilesBuilder.percentiles(percent.valueOf().doubleValue());
     if (condition != null) {
       return Pair.of(
           makeFilterAggregation(aggregationBuilder, condition, name),

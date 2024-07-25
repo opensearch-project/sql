@@ -15,6 +15,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
+import static org.opensearch.sql.expression.DSL.nested;
 import static org.opensearch.sql.expression.DSL.ref;
 import static org.opensearch.sql.expression.aggregation.StdDevAggregator.stddevPopulation;
 import static org.opensearch.sql.expression.aggregation.StdDevAggregator.stddevSample;
@@ -143,6 +144,26 @@ class MetricAggregationBuilderTest {
         buildQuery(
             Arrays.asList(
                 named("count(1)", new CountAggregator(Arrays.asList(literal(1)), INTEGER)))));
+  }
+
+  @Test
+  void should_build_max_with_literal_aggregation() {
+    var literal = literal(1);
+    when(serializer.serialize(literal)).thenReturn("mock-serialize");
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"max(1)\" : {%n"
+                + "    \"max\" : {%n"
+                + "      \"script\" : {%n"
+                + "        \"source\" : \"mock-serialize\",%n"
+                + "        \"lang\" : \"opensearch_query_expression\"%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(named("max(1)", new MaxAggregator(Arrays.asList(literal), INTEGER)))));
   }
 
   @Test
@@ -505,6 +526,242 @@ class MetricAggregationBuilderTest {
                             new CountAggregator(
                                 Arrays.asList(named("age", ref("age", INTEGER))), INTEGER)))));
     assertEquals("metric aggregation doesn't support expression age", exception.getMessage());
+  }
+
+  @Test
+  void should_build_nested_aggregation() {
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"message_nested\" : {%n"
+                + "    \"nested\" : {%n"
+                + "      \"path\" : \"message\"%n"
+                + "    },%n"
+                + "    \"aggregations\" : {%n"
+                + "      \"count(nested(message.info, message))\" : {%n"
+                + "        \"value_count\" : {%n"
+                + "          \"field\" : \"message.info\"%n"
+                + "        }%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named(
+                    "count(nested(message.info, message))",
+                    new CountAggregator(
+                        Arrays.asList(nested(ref("message.info", STRING), ref("message", ARRAY))),
+                        INTEGER)))));
+  }
+
+  @Test
+  void should_build_nested_aggregation_without_path() {
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"message_nested\" : {%n"
+                + "    \"nested\" : {%n"
+                + "      \"path\" : \"message\"%n"
+                + "    },%n"
+                + "    \"aggregations\" : {%n"
+                + "      \"count(nested(message.info, message))\" : {%n"
+                + "        \"value_count\" : {%n"
+                + "          \"field\" : \"message.info\"%n"
+                + "        }%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named(
+                    "count(nested(message.info, message))",
+                    new CountAggregator(
+                        Arrays.asList(nested(ref("message.info", STRING))), INTEGER)))));
+  }
+
+  @Test
+  void should_build_nested_aggregation_cardinality() {
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"message_nested\" : {%n"
+                + "    \"nested\" : {%n"
+                + "      \"path\" : \"message\"%n"
+                + "    },%n"
+                + "    \"aggregations\" : {%n"
+                + "      \"count(distinct nested(message.info, message))\" : {%n"
+                + "        \"cardinality\" : {%n"
+                + "          \"field\" : \"message.info\"%n"
+                + "        }%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named(
+                    "count(distinct nested(message.info, message))",
+                    new CountAggregator(
+                            Arrays.asList(
+                                nested(ref("message.info", STRING), ref("message", ARRAY))),
+                            INTEGER)
+                        .distinct(true)))));
+  }
+
+  @Test
+  void should_build_nested_aggregation_filtered_cardinality() {
+    assertEquals(
+        format(
+            "{%n  \"count(distinct nested(message.info, message)) filter(where age > 30)\" : {%n"
+                + "    \"filter\" : {%n"
+                + "      \"range\" : {%n"
+                + "        \"age\" : {%n"
+                + "          \"from\" : 30,%n"
+                + "          \"to\" : null,%n"
+                + "          \"include_lower\" : false,%n"
+                + "          \"include_upper\" : true,%n"
+                + "          \"boost\" : 1.0%n"
+                + "        }%n"
+                + "      }%n"
+                + "    },%n"
+                + "    \"aggregations\" : {%n"
+                + "      \"message_nested\" : {%n"
+                + "        \"nested\" : {%n"
+                + "          \"path\" : \"message\"%n"
+                + "        },%n"
+                + "        \"aggregations\" : {%n"
+                + "          \"count(distinct nested(message.info, message)) filter(where age >"
+                + " 30)\" : {%n"
+                + "            \"cardinality\" : {%n"
+                + "              \"field\" : \"message.info\"%n"
+                + "            }%n"
+                + "          }%n"
+                + "        }%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named(
+                    "count(distinct nested(message.info, message)) filter(where age > 30)",
+                    new CountAggregator(
+                            Arrays.asList(
+                                nested(ref("message.info", STRING), ref("message", ARRAY))),
+                            INTEGER)
+                        .condition(DSL.greater(ref("age", INTEGER), literal(30)))
+                        .distinct(true)))));
+  }
+
+  @Test
+  void should_build_nested_aggregation_nested_filtered_cardinality() {
+    assertEquals(
+        format(
+            "{%n  \"count(distinct nested(message.info, message)) filter(where nested(message.age,"
+                + " message) > 30)\" : {%n"
+                + "    \"filter\" : {%n"
+                + "      \"nested\" : {%n"
+                + "        \"query\" : {%n"
+                + "          \"range\" : {%n"
+                + "            \"message.age\" : {%n"
+                + "              \"from\" : 30,%n"
+                + "              \"to\" : null,%n"
+                + "              \"include_lower\" : false,%n"
+                + "              \"include_upper\" : true,%n"
+                + "              \"boost\" : 1.0%n"
+                + "            }%n"
+                + "          }%n"
+                + "        },%n"
+                + "        \"path\" : \"message\",%n"
+                + "        \"ignore_unmapped\" : false,%n"
+                + "        \"score_mode\" : \"none\",%n"
+                + "        \"boost\" : 1.0%n"
+                + "      }%n"
+                + "    },%n"
+                + "    \"aggregations\" : {%n"
+                + "      \"message_nested\" : {%n"
+                + "        \"nested\" : {%n"
+                + "          \"path\" : \"message\"%n"
+                + "        },%n"
+                + "        \"aggregations\" : {%n"
+                + "          \"count(distinct nested(message.info, message)) filter(where"
+                + " nested(message.age, message) > 30)\" : {%n"
+                + "            \"cardinality\" : {%n"
+                + "              \"field\" : \"message.info\"%n"
+                + "            }%n"
+                + "          }%n"
+                + "        }%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named(
+                    "count(distinct nested(message.info, message)) filter(where nested(message.age,"
+                        + " message) > 30)",
+                    new CountAggregator(
+                            Arrays.asList(
+                                nested(ref("message.info", STRING), ref("message", ARRAY))),
+                            INTEGER)
+                        .condition(
+                            DSL.greater(
+                                nested(ref("message.age", INTEGER), ref("message", ARRAY)),
+                                literal(30)))
+                        .distinct(true)))));
+  }
+
+  @Test
+  void should_build_nested_aggregation_percentile() {
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"message_nested\" : {%n"
+                + "    \"nested\" : {%n"
+                + "      \"path\" : \"message\"%n"
+                + "    },%n"
+                + "    \"aggregations\" : {%n"
+                + "      \"percentile(nested(message.info, message), 50)\" : {%n"
+                + "        \"percentiles\" : {%n"
+                + "          \"field\" : \"message.info\",%n"
+                + "          \"percents\" : [ 50.0 ],%n"
+                + "          \"keyed\" : true,%n"
+                + "          \"tdigest\" : {%n"
+                + "            \"compression\" : 100.0%n"
+                + "          }%n"
+                + "        }%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named(
+                    "percentile(nested(message.info, message), 50)",
+                    new PercentileApproximateAggregator(
+                        Arrays.asList(
+                            nested(ref("message.info", STRING), ref("message", ARRAY)),
+                            literal(50)),
+                        DOUBLE)))));
+  }
+
+  @Test
+  void should_throw_exception_for_nested_aggregation_on_star() {
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                buildQuery(
+                    Arrays.asList(
+                        named(
+                            "count(nested(message.*))",
+                            new CountAggregator(
+                                Arrays.asList(
+                                    nested(ref("message.*", STRING), ref("message", ARRAY))),
+                                INTEGER)))));
+    assertEquals("Nested aggregation doesn't support multiple fields", exception.getMessage());
   }
 
   @SneakyThrows

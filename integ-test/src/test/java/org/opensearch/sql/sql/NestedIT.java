@@ -21,7 +21,6 @@ import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
-import org.junit.jupiter.api.Disabled;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 public class NestedIT extends SQLIntegTestCase {
@@ -75,20 +74,18 @@ public class NestedIT extends SQLIntegTestCase {
         rows("zz", "bb", 6));
   }
 
-  // Has to be tested with JSON format when https://github.com/opensearch-project/sql/issues/1317
-  // gets resolved
-  @Disabled // TODO fix me when aggregation is supported
+  @Test
   public void nested_function_in_an_aggregate_function_in_select_test() {
     String query =
-        "SELECT sum(nested(message.dayOfWeek)) FROM " + TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS;
+        "SELECT sum(nested(message.dayOfWeek, message)) FROM "
+            + TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS;
     JSONObject result = executeJdbcRequest(query);
     verifyDataRows(result, rows(14));
   }
 
-  // TODO Enable me when nested aggregation is supported
-  @Disabled
+  @Test
   public void nested_function_with_arrays_in_an_aggregate_function_in_select_test() {
-    String query = "SELECT sum(nested(message.dayOfWeek)) FROM " + TEST_INDEX_NESTED_TYPE;
+    String query = "SELECT sum(nested(message.dayOfWeek, message)) FROM " + TEST_INDEX_NESTED_TYPE;
     JSONObject result = executeJdbcRequest(query);
     verifyDataRows(result, rows(19));
   }

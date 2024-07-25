@@ -126,7 +126,7 @@ The aggregation could has expression as arguments::
     | M        | 202    |
     +----------+--------+
 
-COUNT Aggregations
+COUNT Aggregation
 ------------------
 
 Besides regular identifiers, ``COUNT`` aggregate function also accepts arguments such as ``*`` or literals like ``1``. The meaning of these different forms are as follows:
@@ -134,6 +134,30 @@ Besides regular identifiers, ``COUNT`` aggregate function also accepts arguments
 1. ``COUNT(field)`` will count only if given field (or expression) is not null or missing in the input rows.
 2. ``COUNT(*)`` will count the number of all its input rows.
 3. ``COUNT(1)`` is same as ``COUNT(*)`` because any non-null literal will count.
+
+NESTED Aggregation
+------------------
+The nested aggregation lets you aggregate on fields inside a nested object. You can use ``nested`` function to return a nested field, ref :ref:`nested function <nested_function_label>`.
+
+To understand why we need nested aggregations, read `Nested Aggregations DSL doc <https://opensearch.org/docs/latest/aggregations/bucket/nested/>`_ to get more details.
+
+The nested aggregation could be expression::
+
+    os> SELECT count(nested(message.info, message)) FROM nested;
+    fetched rows / total rows = 1/1
+    +----------------------------------------+
+    | count(nested(message.info, message))   |
+    |----------------------------------------|
+    | 2                                      |
+    +----------------------------------------+
+
+    os> SELECT count(nested(message.info)) FROM nested;
+    fetched rows / total rows = 1/1
+    +-------------------------------+
+    | count(nested(message.info))   |
+    |-------------------------------|
+    | 2                             |
+    +-------------------------------+
 
 Aggregation Functions
 =====================

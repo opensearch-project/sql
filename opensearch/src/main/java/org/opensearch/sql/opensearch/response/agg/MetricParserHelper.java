@@ -21,6 +21,7 @@ import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.search.aggregations.bucket.nested.InternalNested;
 import org.opensearch.sql.common.utils.StringUtils;
 
 /** Parse multiple metrics in one bucket. */
@@ -44,6 +45,9 @@ public class MetricParserHelper {
   public Map<String, Object> parse(Aggregations aggregations) {
     Map<String, Object> resultMap = new HashMap<>();
     for (Aggregation aggregation : aggregations) {
+      if (aggregation instanceof InternalNested) {
+        aggregation = ((InternalNested) aggregation).getAggregations().asList().getFirst();
+      }
       if (metricParserMap.containsKey(aggregation.getName())) {
         resultMap.putAll(metricParserMap.get(aggregation.getName()).parse(aggregation));
       } else {

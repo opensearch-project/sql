@@ -155,7 +155,8 @@ public class OpenSearchIndex implements Table {
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
     // TODO: Leave it here to avoid impact Prometheus and AD operators. Need to move to Planner.
-    return plan.accept(new OpenSearchDefaultImplementor(client), null);
+    PhysicalPlan pp = plan.accept(new OpenSearchDefaultImplementor(client), null);
+    return pp;
   }
 
   @Override
