@@ -34,8 +34,8 @@ import org.opensearch.sql.planner.physical.TakeOrderedOperator.ExprOrdering.Expr
  * to O(k) due to use guava {@link com.google.common.collect.Ordering}.
  *
  * <p>Overall, it's an optimization to replace `Limit(Sort)` in physical plan level since it's all
- * about execution. Because most execution engine may not support this logical operator, it doesn't
- * have a related logical operator.
+ * about execution. Because most execution engine may not support this operator, it doesn't have a
+ * related logical operator.
  */
 @ToString
 @EqualsAndHashCode(callSuper = false)
@@ -49,7 +49,7 @@ public class TakeOrderedOperator extends PhysicalPlan {
   @EqualsAndHashCode.Exclude private Iterator<ExprValue> iterator;
 
   /**
-   * Sort Operator Constructor.
+   * TakeOrdered Operator Constructor.
    *
    * @param input input {@link PhysicalPlan}
    * @param limit the limit value from LimitOperator
