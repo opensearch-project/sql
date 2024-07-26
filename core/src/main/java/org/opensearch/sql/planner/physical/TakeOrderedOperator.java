@@ -81,7 +81,7 @@ public class TakeOrderedOperator extends PhysicalPlan {
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
-    return visitor.visitNode(this, context);
+    return visitor.visitTakeOrdered(this, context);
   }
 
   @Override

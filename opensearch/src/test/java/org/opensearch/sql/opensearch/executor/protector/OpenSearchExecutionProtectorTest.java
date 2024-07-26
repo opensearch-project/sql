@@ -306,6 +306,15 @@ class OpenSearchExecutionProtectorTest {
     verify(child, never()).accept(executionProtector, null);
   }
 
+  @Test
+  public void test_visitTakeOrdered() {
+    Pair<Sort.SortOption, Expression> sort =
+        ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("a", INTEGER));
+    PhysicalPlan physicalPlanTree =
+        PhysicalPlanDSL.takeOrdered(PhysicalPlanDSL.values(emptyList()), 10, 5, sort);
+    assertEquals(resourceMonitor(physicalPlanTree), executionProtector.doProtect(physicalPlanTree));
+  }
+
   PhysicalPlan resourceMonitor(PhysicalPlan input) {
     return new ResourceMonitorPlan(input, resourceMonitor);
   }
