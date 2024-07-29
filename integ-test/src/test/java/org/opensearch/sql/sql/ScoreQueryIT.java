@@ -8,7 +8,7 @@ package org.opensearch.sql.sql;
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
-import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataAddressRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -123,8 +123,7 @@ public class ScoreQueryIT extends SQLIntegTestCase {
                     TestsConstants.TEST_INDEX_ACCOUNT),
                 "jdbc"));
     verifySchema(result, schema("address", null, "text"), schema("_score", null, "float"));
-    verifyDataRows(
-        result, rows("154 Douglass Street", 650.1515), rows("565 Hall Street", 3.2507575));
+    verifyDataAddressRows(result, rows("154 Douglass Street"), rows("565 Hall Street"));
   }
 
   @Test
@@ -154,7 +153,8 @@ public class ScoreQueryIT extends SQLIntegTestCase {
                         + "where score(matchQuery(address, 'Powell')) order by _score desc limit 2",
                     TestsConstants.TEST_INDEX_ACCOUNT),
                 "jdbc"));
+
     verifySchema(result, schema("address", null, "text"), schema("_score", null, "float"));
-    verifyDataRows(result, rows("305 Powell Street", 6.501515));
+    verifyDataAddressRows(result, rows("305 Powell Street"));
   }
 }

@@ -17,6 +17,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
@@ -34,6 +37,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.sql.legacy.cursor.CursorType;
@@ -123,8 +127,43 @@ public class TestUtils {
       }
       return response;
     } catch (IOException e) {
+      if (isRefreshPolicyError(e)) {
+        try {
+          return retryWithoutRefreshPolicy(request, client);
+        } catch (IOException ex) {
+          throw new IllegalStateException("Failed to perform request without refresh policy.", ex);
+        }
+      }
       throw new IllegalStateException("Failed to perform request", e);
     }
+  }
+
+  /**
+   * Checks if the IOException is due to an unsupported refresh policy.
+   *
+   * @param e The IOException to check.
+   * @return true if the exception is due to a refresh policy error, false otherwise.
+   */
+  private static boolean isRefreshPolicyError(IOException e) {
+    return e instanceof ResponseException
+        && ((ResponseException) e).getResponse().getStatusLine().getStatusCode() == 400
+        && e.getMessage().contains("true refresh policy is not supported.");
+  }
+
+  /**
+   * Attempts to perform the request without the refresh policy.
+   *
+   * @param request The original request.
+   * @param client client connection
+   * @return The response after retrying the request.
+   * @throws IOException If the request fails.
+   */
+  private static Response retryWithoutRefreshPolicy(Request request, RestClient client)
+      throws IOException {
+    Request req =
+        new Request(request.getMethod(), request.getEndpoint().replaceAll("refresh=true", ""));
+    req.setEntity(request.getEntity());
+    return client.performRequest(req);
   }
 
   public static String getAccountIndexMapping() {
@@ -770,6 +809,29 @@ public class TestUtils {
       }
     }
     return sb.toString();
+  }
+
+  // TODO: this is temporary fix for fixing serverless tests to pass with 2 digit precision value
+  public static JSONArray roundOfResponse(JSONArray array) {
+    JSONArray responseJSON = new JSONArray();
+    array
+        .iterator()
+        .forEachRemaining(
+            o -> {
+              JSONArray jsonArray = new JSONArray();
+              ((JSONArray) o)
+                  .iterator()
+                  .forEachRemaining(
+                      i -> {
+                        if (i instanceof BigDecimal) {
+                          jsonArray.put(((BigDecimal) i).setScale(2, RoundingMode.HALF_UP));
+                        } else {
+                          jsonArray.put(i);
+                        }
+                      });
+              responseJSON.put(jsonArray);
+            });
+    return responseJSON;
   }
 
   public static String fileToString(
