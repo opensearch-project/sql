@@ -44,7 +44,7 @@ public class SparkQueryDispatcher {
       AsyncQueryRequestContext asyncQueryRequestContext) {
     DataSourceMetadata dataSourceMetadata =
         this.dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
-            dispatchQueryRequest.getDatasource());
+            dispatchQueryRequest.getDatasource(), asyncQueryRequestContext);
 
     if (LangType.SQL.equals(dispatchQueryRequest.getLangType())) {
       String query = dispatchQueryRequest.getQuery();

@@ -83,5 +83,6 @@ public interface DataSourceService {
    *
    * @param dataSourceName of the {@link DataSource}
    */
-  DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(String dataSourceName);
+  DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(
+      String dataSourceName, RequestContext context);
 }
