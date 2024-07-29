@@ -5,25 +5,17 @@
 
 package org.opensearch.sql.planner.physical;
 
-import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
-import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
-
 import com.google.common.collect.Ordering;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Singular;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.utils.ExprValueOrdering;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.planner.physical.TakeOrderedOperator.ExprOrdering.ExprOrderingBuilder;
 
 /**
  * TakeOrdered Operator. This operator will sort input data as the order of {@link this#sortList}
@@ -45,7 +37,7 @@ public class TakeOrderedOperator extends PhysicalPlan {
   @Getter private final List<Pair<SortOption, Expression>> sortList;
   @Getter private final Integer limit;
   @Getter private final Integer offset;
-  @EqualsAndHashCode.Exclude private final ExprOrdering ordering;
+  @EqualsAndHashCode.Exclude private final Ordering<ExprValue> ordering;
   @EqualsAndHashCode.Exclude private Iterator<ExprValue> iterator;
 
   /**
@@ -65,18 +57,7 @@ public class TakeOrderedOperator extends PhysicalPlan {
     this.sortList = sortList;
     this.limit = limit;
     this.offset = offset;
-    ExprOrderingBuilder orderingBuilder = ExprOrdering.builder();
-    for (Pair<SortOption, Expression> pair : sortList) {
-      SortOption option = pair.getLeft();
-      ExprValueOrdering ordering =
-          ASC.equals(option.getSortOrder())
-              ? ExprValueOrdering.natural()
-              : ExprValueOrdering.natural().reverse();
-      ordering =
-          NULL_FIRST.equals(option.getNullOrder()) ? ordering.nullsFirst() : ordering.nullsLast();
-      orderingBuilder.comparator(Pair.of(pair.getRight(), ordering));
-    }
-    this.ordering = orderingBuilder.build();
+    this.ordering = SortHelper.constructExprOrdering(sortList);
   }
 
   @Override
@@ -103,26 +84,5 @@ public class TakeOrderedOperator extends PhysicalPlan {
   @Override
   public ExprValue next() {
     return iterator.next();
-  }
-
-  @Builder
-  public static class ExprOrdering extends Ordering<ExprValue> {
-    @Singular private final List<Pair<Expression, Comparator<ExprValue>>> comparators;
-
-    @Override
-    public int compare(ExprValue o1, ExprValue o2) {
-      for (Pair<Expression, Comparator<ExprValue>> comparator : comparators) {
-        Expression expression = comparator.getKey();
-        int result =
-            comparator
-                .getValue()
-                .compare(
-                    expression.valueOf(o1.bindingTuples()), expression.valueOf(o2.bindingTuples()));
-        if (result != 0) {
-          return result;
-        }
-      }
-      return 0;
-    }
   }
 }
