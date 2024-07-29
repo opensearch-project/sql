@@ -313,7 +313,8 @@ class OpenSearchExecutionProtectorTest {
         ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("a", INTEGER));
     TakeOrderedOperator takeOrdered =
         PhysicalPlanDSL.takeOrdered(PhysicalPlanDSL.values(emptyList()), 10, 5, sort);
-    assertEquals(resourceMonitor(takeOrdered), executionProtector.visitTakeOrdered(takeOrdered, null));
+    assertEquals(
+        resourceMonitor(takeOrdered), executionProtector.visitTakeOrdered(takeOrdered, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {
