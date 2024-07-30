@@ -40,6 +40,7 @@ import org.opensearch.search.aggregations.bucket.terms.Terms;
 import org.opensearch.search.aggregations.metrics.NumericMetricsAggregation;
 import org.opensearch.search.aggregations.metrics.Percentile;
 import org.opensearch.search.aggregations.metrics.Percentiles;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.cursor.Cursor;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
@@ -49,11 +50,14 @@ import org.opensearch.sql.legacy.domain.MethodField;
 import org.opensearch.sql.legacy.domain.Query;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.TableOnJoinSelect;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.esdomain.mapping.FieldMapping;
 import org.opensearch.sql.legacy.exception.SqlFeatureNotImplementedException;
 import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.legacy.pit.PointInTimeHandler;
+import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.utils.SQLFunctions;
 
 public class SelectResultSet extends ResultSet {
@@ -564,12 +568,22 @@ public class SelectResultSet extends ResultSet {
     long rowsLeft = rowsLeft(cursor.getFetchSize(), cursor.getLimit());
     if (rowsLeft <= 0) {
       // close the cursor
-      String scrollId = cursor.getScrollId();
-      ClearScrollResponse clearScrollResponse =
-          client.prepareClearScroll().addScrollId(scrollId).get();
-      if (!clearScrollResponse.isSucceeded()) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.error("Error closing the cursor context {} ", scrollId);
+      if (LocalClusterState.state().getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)) {
+        String pitId = cursor.getPitId();
+        PointInTimeHandler pit = new PointInTimeHandlerImpl(client, pitId);
+        if (!pit.delete()) {
+          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+          LOG.info("Error deleting point in time {} ", pitId);
+        }
+      } else {
+        // close the cursor
+        String scrollId = cursor.getScrollId();
+        ClearScrollResponse clearScrollResponse =
+            client.prepareClearScroll().addScrollId(scrollId).get();
+        if (!clearScrollResponse.isSucceeded()) {
+          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+          LOG.error("Error closing the cursor context {} ", scrollId);
+        }
       }
       return;
     }

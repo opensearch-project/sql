@@ -24,6 +24,8 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
   private Client client;
   private String[] indices;
   @Getter @Setter private String pitId;
+  private Boolean deleteStatus = null;
+  private Boolean createStatus = null;
   private static final Logger LOG = LogManager.getLogger();
 
   /**
@@ -37,9 +39,24 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     this.indices = indices;
   }
 
-  /** Create PIT for given indices */
+  /**
+   * Constructor for class
+   *
+   * @param client OpenSearch client
+   * @param pitId Point In Time ID
+   */
+  public PointInTimeHandlerImpl(Client client, String pitId) {
+    this.client = client;
+    this.pitId = pitId;
+  }
+
+  /**
+   * Create PIT for given indices
+   *
+   * @return Point In Time creation status
+   */
   @Override
-  public void create() {
+  public boolean create() {
     CreatePitRequest createPitRequest =
         new CreatePitRequest(
             LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE), false, indices);
@@ -49,25 +66,40 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
           @Override
           public void onResponse(CreatePitResponse createPitResponse) {
             pitId = createPitResponse.getId();
+            createStatus = true;
             LOG.info("Created Point In Time {} successfully.", pitId);
           }
 
           @Override
           public void onFailure(Exception e) {
+            createStatus = false;
             LOG.error("Error occurred while creating PIT", e);
           }
         });
+    while (createStatus == null) {
+      try {
+        Thread.sleep(100);
+      } catch (InterruptedException e) {
+        LOG.error("Error occurred while creating PIT", e);
+      }
+    }
+    return createStatus;
   }
 
-  /** Delete PIT */
+  /**
+   * Delete PIT
+   *
+   * @return delete status
+   */
   @Override
-  public void delete() {
+  public boolean delete() {
     DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
     client.deletePits(
         deletePitRequest,
         new ActionListener<>() {
           @Override
           public void onResponse(DeletePitResponse deletePitResponse) {
+            deleteStatus = true;
             LOG.info(
                 "Delete Point In Time {} status: {}",
                 pitId,
@@ -76,8 +108,18 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
 
           @Override
           public void onFailure(Exception e) {
+            deleteStatus = false;
             LOG.error("Error occurred while deleting PIT", e);
           }
         });
+    while (deleteStatus == null) {
+      try {
+        Thread.sleep(100);
+      } catch (InterruptedException e) {
+        LOG.error("Error occurred while deleting PIT", e);
+      }
+    }
+
+    return deleteStatus;
   }
 }
