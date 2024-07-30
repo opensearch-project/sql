@@ -6,7 +6,6 @@
 package org.opensearch.sql.datasource;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
-import static org.opensearch.sql.legacy.TestsConstants.DATASOURCES;
 
 import lombok.SneakyThrows;
 import org.json.JSONObject;
@@ -25,31 +24,25 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testDataSourceIndexIsCreatedByDefault() {
-    assertDataSourceCount(0);
-    assertSelectFromDataSourceReturnsDoesNotExist();
-    assertDataSourceIndexCreated(true);
-  }
-
-  @Test
-  public void testDataSourceIndexIsCreatedIfSettingIsEnabled() {
-    setDataSourcesEnabled("transient", true);
-    assertDataSourceCount(0);
-    assertSelectFromDataSourceReturnsDoesNotExist();
-    assertDataSourceIndexCreated(true);
-  }
-
-  @Test
-  public void testDataSourceIndexIsNotCreatedIfSettingIsDisabled() {
+  public void testAsyncQueryAPIFailureIfSettingIsDisabled() {
     setDataSourcesEnabled("transient", false);
     assertDataSourceCount(0);
     assertSelectFromDataSourceReturnsDoesNotExist();
-    assertDataSourceIndexCreated(false);
     assertAsyncQueryApiDisabled();
   }
 
   @Test
+  public void testDataSourceCreationWithDefaultSettings() {
+    createOpenSearchDataSource();
+    createIndex();
+    assertDataSourceCount(1);
+    assertSelectFromDataSourceReturnsSuccess();
+    assertSelectFromDummyIndexInValidDataSourceDataSourceReturnsDoesNotExist();
+  }
+
+  @Test
   public void testAfterPreviousEnable() {
+    setDataSourcesEnabled("transient", true);
     createOpenSearchDataSource();
     createIndex();
     assertDataSourceCount(1);
@@ -139,18 +132,6 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
     Assert.assertEquals(expected, jsonBody.getNumber("size"));
     Assert.assertEquals(expected, jsonBody.getNumber("total"));
     Assert.assertEquals(expected, jsonBody.getJSONArray("datarows").length());
-  }
-
-  @SneakyThrows
-  private void assertDataSourceIndexCreated(boolean expected) {
-    Request request = new Request("GET", "/" + DATASOURCES);
-    Response response = performRequest(request);
-    String responseBody = getResponseBody(response);
-    boolean indexDoesExist =
-        response.getStatusLine().getStatusCode() == 200
-            && responseBody.contains(DATASOURCES)
-            && responseBody.contains("mappings");
-    Assert.assertEquals(expected, indexDoesExist);
   }
 
   @SneakyThrows
