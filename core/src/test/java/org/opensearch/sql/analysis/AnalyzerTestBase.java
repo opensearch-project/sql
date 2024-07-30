@@ -28,6 +28,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.RequestContext;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -236,7 +237,8 @@ public class AnalyzerTestBase {
     }
 
     @Override
-    public DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(String dataSourceName) {
+    public DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(
+        String dataSourceName, RequestContext requestContext) {
       return null;
     }
   }
