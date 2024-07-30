@@ -13,15 +13,14 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.utils.ExprValueOrdering;
 import org.opensearch.sql.expression.Expression;
 
-public class SortHelper {
+public interface SortHelper {
 
-  public static Comparator<ExprValue> constructExprComparator(
+  static Comparator<ExprValue> constructExprComparator(
       List<Pair<SortOption, Expression>> sortList) {
     return (o1, o2) -> compareWithExpressions(o1, o2, constructComparator(sortList));
   }
 
-  public static Ordering<ExprValue> constructExprOrdering(
-      List<Pair<SortOption, Expression>> sortList) {
+  static Ordering<ExprValue> constructExprOrdering(List<Pair<SortOption, Expression>> sortList) {
     return Ordering.from(constructExprComparator(sortList));
   }
 
