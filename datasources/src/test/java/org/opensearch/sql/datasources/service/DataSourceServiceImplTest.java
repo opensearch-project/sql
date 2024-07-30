@@ -36,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.RequestContext;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceStatus;
@@ -52,6 +53,7 @@ class DataSourceServiceImplTest {
   @Mock private DataSourceFactory dataSourceFactory;
   @Mock private StorageEngine storageEngine;
   @Mock private DataSourceMetadataStorage dataSourceMetadataStorage;
+  @Mock private RequestContext requestContext;
 
   @Mock private DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper;
 
@@ -461,7 +463,9 @@ class DataSourceServiceImplTest {
     DatasourceDisabledException datasourceDisabledException =
         Assertions.assertThrows(
             DatasourceDisabledException.class,
-            () -> dataSourceService.verifyDataSourceAccessAndGetRawMetadata("testDS"));
+            () ->
+                dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+                    "testDS", requestContext));
     Assertions.assertEquals(
         "Datasource testDS is disabled.", datasourceDisabledException.getMessage());
   }
@@ -484,7 +488,7 @@ class DataSourceServiceImplTest {
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
         .thenReturn(Optional.of(dataSourceMetadata));
     DataSourceMetadata dataSourceMetadata1 =
-        dataSourceService.verifyDataSourceAccessAndGetRawMetadata("testDS");
+        dataSourceService.verifyDataSourceAccessAndGetRawMetadata("testDS", requestContext);
     assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.uri"));
     assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.type"));
     assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.username"));

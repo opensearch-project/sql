@@ -512,7 +512,8 @@ public class AsyncQueryCoreIntegTest {
   }
 
   private void givenValidDataSourceMetadataExist() {
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(DATASOURCE_NAME))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            DATASOURCE_NAME, asyncQueryRequestContext))
         .thenReturn(
             new DataSourceMetadata.Builder()
                 .setName(DATASOURCE_NAME)
