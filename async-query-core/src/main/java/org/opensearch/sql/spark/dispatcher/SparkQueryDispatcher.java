@@ -43,7 +43,7 @@ public class SparkQueryDispatcher {
       AsyncQueryRequestContext asyncQueryRequestContext) {
     DataSourceMetadata dataSourceMetadata =
         this.dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
-            dispatchQueryRequest.getDatasource());
+            dispatchQueryRequest.getDatasource(), asyncQueryRequestContext);
 
     if (LangType.SQL.equals(dispatchQueryRequest.getLangType())
         && SQLQueryUtils.isFlintExtensionQuery(dispatchQueryRequest.getQuery())) {
