@@ -12,6 +12,7 @@ import com.facebook.presto.matching.PropertyPattern;
 import java.util.Optional;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
@@ -61,6 +62,10 @@ public class Patterns {
   /** Logical project operator with a given pattern on inner field. */
   public static <T extends LogicalPlan> Pattern<LogicalProject> project(Pattern<T> pattern) {
     return Pattern.typeOf(LogicalProject.class).with(source(pattern));
+  }
+
+  public static <T extends LogicalPlan> Pattern<LogicalEval> eval(Pattern<T> pattern) {
+    return Pattern.typeOf(LogicalEval.class).with(source(pattern));
   }
 
   /** Pattern for {@link TableScanBuilder} and capture it meanwhile. */
