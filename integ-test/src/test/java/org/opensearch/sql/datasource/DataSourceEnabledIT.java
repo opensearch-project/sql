@@ -38,6 +38,7 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
     assertDataSourceCount(1);
     assertSelectFromDataSourceReturnsSuccess();
     assertSelectFromDummyIndexInValidDataSourceDataSourceReturnsDoesNotExist();
+    deleteSelfDataSourceCreated();
   }
 
   @Test
@@ -52,6 +53,8 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
     assertDataSourceCount(0);
     assertSelectFromDataSourceReturnsDoesNotExist();
     assertAsyncQueryApiDisabled();
+    setDataSourcesEnabled("transient", true);
+    deleteSelfDataSourceCreated();
   }
 
   @SneakyThrows
@@ -141,5 +144,12 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
     } catch (ResponseException e) {
       return e.getResponse();
     }
+  }
+
+  @SneakyThrows
+  private void deleteSelfDataSourceCreated() {
+    Request deleteRequest = getDeleteDataSourceRequest("self");
+    Response deleteResponse = client().performRequest(deleteRequest);
+    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
   }
 }
