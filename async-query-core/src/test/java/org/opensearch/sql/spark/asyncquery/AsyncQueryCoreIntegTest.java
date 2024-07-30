@@ -185,7 +185,7 @@ public class AsyncQueryCoreIntegTest {
   public void createDropIndexQuery() {
     givenSparkExecutionEngineConfigIsSupplied();
     givenValidDataSourceMetadataExist();
-    when(queryIdProvider.getQueryId(any())).thenReturn(QUERY_ID);
+    when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
     String indexName = "flint_datasource_name_table_name_index_name_index";
     givenFlintIndexMetadataExists(indexName);
     givenCancelJobRunSucceed();
@@ -209,7 +209,7 @@ public class AsyncQueryCoreIntegTest {
   public void createVacuumIndexQuery() {
     givenSparkExecutionEngineConfigIsSupplied();
     givenValidDataSourceMetadataExist();
-    when(queryIdProvider.getQueryId(any())).thenReturn(QUERY_ID);
+    when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
     String indexName = "flint_datasource_name_table_name_index_name_index";
     givenFlintIndexMetadataExists(indexName);
 
@@ -231,7 +231,7 @@ public class AsyncQueryCoreIntegTest {
   public void createAlterIndexQuery() {
     givenSparkExecutionEngineConfigIsSupplied();
     givenValidDataSourceMetadataExist();
-    when(queryIdProvider.getQueryId(any())).thenReturn(QUERY_ID);
+    when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
     String indexName = "flint_datasource_name_table_name_index_name_index";
     givenFlintIndexMetadataExists(indexName);
     givenCancelJobRunSucceed();
@@ -261,7 +261,7 @@ public class AsyncQueryCoreIntegTest {
   public void createStreamingQuery() {
     givenSparkExecutionEngineConfigIsSupplied();
     givenValidDataSourceMetadataExist();
-    when(queryIdProvider.getQueryId(any())).thenReturn(QUERY_ID);
+    when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
     when(awsemrServerless.startJobRun(any()))
         .thenReturn(new StartJobRunResult().withApplicationId(APPLICATION_ID).withJobRunId(JOB_ID));
 
@@ -297,7 +297,7 @@ public class AsyncQueryCoreIntegTest {
   public void createCreateIndexQuery() {
     givenSparkExecutionEngineConfigIsSupplied();
     givenValidDataSourceMetadataExist();
-    when(queryIdProvider.getQueryId(any())).thenReturn(QUERY_ID);
+    when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
     when(awsemrServerless.startJobRun(any()))
         .thenReturn(new StartJobRunResult().withApplicationId(APPLICATION_ID).withJobRunId(JOB_ID));
 
@@ -321,7 +321,7 @@ public class AsyncQueryCoreIntegTest {
   public void createRefreshQuery() {
     givenSparkExecutionEngineConfigIsSupplied();
     givenValidDataSourceMetadataExist();
-    when(queryIdProvider.getQueryId(any())).thenReturn(QUERY_ID);
+    when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
     when(awsemrServerless.startJobRun(any()))
         .thenReturn(new StartJobRunResult().withApplicationId(APPLICATION_ID).withJobRunId(JOB_ID));
 
@@ -344,7 +344,7 @@ public class AsyncQueryCoreIntegTest {
     givenSparkExecutionEngineConfigIsSupplied();
     givenValidDataSourceMetadataExist();
     givenSessionExists();
-    when(queryIdProvider.getQueryId(any())).thenReturn(QUERY_ID);
+    when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
     when(sessionIdProvider.getSessionId(any())).thenReturn(SESSION_ID);
     givenSessionExists(); // called twice
     when(awsemrServerless.startJobRun(any()))
@@ -537,7 +537,8 @@ public class AsyncQueryCoreIntegTest {
   }
 
   private void verifyGetQueryIdCalled() {
-    verify(queryIdProvider).getQueryId(dispatchQueryRequestArgumentCaptor.capture());
+    verify(queryIdProvider)
+        .getQueryId(dispatchQueryRequestArgumentCaptor.capture(), eq(asyncQueryRequestContext));
     DispatchQueryRequest dispatchQueryRequest = dispatchQueryRequestArgumentCaptor.getValue();
     assertEquals(ACCOUNT_ID, dispatchQueryRequest.getAccountId());
     assertEquals(APPLICATION_ID, dispatchQueryRequest.getApplicationId());

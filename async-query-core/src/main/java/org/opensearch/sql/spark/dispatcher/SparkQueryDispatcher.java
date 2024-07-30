@@ -69,7 +69,8 @@ public class SparkQueryDispatcher {
       DataSourceMetadata dataSourceMetadata) {
     IndexQueryDetails indexQueryDetails = getIndexQueryDetails(dispatchQueryRequest);
     DispatchQueryContext context =
-        getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
+        getDefaultDispatchContextBuilder(
+                dispatchQueryRequest, dataSourceMetadata, asyncQueryRequestContext)
             .indexQueryDetails(indexQueryDetails)
             .asyncQueryRequestContext(asyncQueryRequestContext)
             .build();
@@ -84,7 +85,8 @@ public class SparkQueryDispatcher {
       DataSourceMetadata dataSourceMetadata) {
 
     DispatchQueryContext context =
-        getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
+        getDefaultDispatchContextBuilder(
+                dispatchQueryRequest, dataSourceMetadata, asyncQueryRequestContext)
             .asyncQueryRequestContext(asyncQueryRequestContext)
             .build();
 
@@ -93,11 +95,13 @@ public class SparkQueryDispatcher {
   }
 
   private DispatchQueryContext.DispatchQueryContextBuilder getDefaultDispatchContextBuilder(
-      DispatchQueryRequest dispatchQueryRequest, DataSourceMetadata dataSourceMetadata) {
+      DispatchQueryRequest dispatchQueryRequest,
+      DataSourceMetadata dataSourceMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     return DispatchQueryContext.builder()
         .dataSourceMetadata(dataSourceMetadata)
         .tags(getDefaultTagsForJobSubmission(dispatchQueryRequest))
-        .queryId(queryIdProvider.getQueryId(dispatchQueryRequest));
+        .queryId(queryIdProvider.getQueryId(dispatchQueryRequest, asyncQueryRequestContext));
   }
 
   private AsyncQueryHandler getQueryHandlerForFlintExtensionQuery(
