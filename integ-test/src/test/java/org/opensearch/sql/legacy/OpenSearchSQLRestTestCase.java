@@ -188,7 +188,9 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
       String indexName = jsonObject.getString("index");
       try {
         // System index, mostly named .opensearch-xxx or .opendistro-xxx, are not allowed to delete
-        if (!indexName.startsWith(".opensearch") && !indexName.startsWith(".opendistro")) {
+        if (!indexName.startsWith(".opensearch")
+            && !indexName.startsWith(".opendistro")
+            && !indexName.startsWith(".ql")) {
           client.performRequest(new Request("DELETE", "/" + indexName));
         }
       } catch (Exception e) {
