@@ -28,6 +28,7 @@ import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.MemorySizeValue;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
 
@@ -97,7 +98,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> QUERY_SIZE_LIMIT_SETTING =
       Setting.intSetting(
           Key.QUERY_SIZE_LIMIT.getKeyValue(),
-          LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING,
+          IndexSettings.MAX_RESULT_WINDOW_SETTING,
           0,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);

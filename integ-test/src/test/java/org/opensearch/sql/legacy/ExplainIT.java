@@ -185,7 +185,7 @@ public class ExplainIT extends SQLIntegTestCase {
     Assert.assertThat(
         result.replaceAll("\\s+", ""),
         equalTo(
-            "{\"from\":0,\"size\":200,\"sort\":[{\"message.info\":"
+            "{\"from\":0,\"size\":10000,\"sort\":[{\"message.info\":"
                 + "{\"order\":\"asc\",\"nested\":{\"path\":\"message\"}}}]}"));
   }
 
