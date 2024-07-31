@@ -11,6 +11,7 @@ import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.RequestContext;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceStatus;
@@ -122,7 +123,8 @@ public class DataSourceServiceImpl implements DataSourceService {
   }
 
   @Override
-  public DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(String dataSourceName) {
+  public DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(
+      String dataSourceName, RequestContext requestContext) {
     DataSourceMetadata dataSourceMetadata = getRawDataSourceMetadata(dataSourceName);
     verifyDataSourceAccess(dataSourceMetadata);
     return dataSourceMetadata;
