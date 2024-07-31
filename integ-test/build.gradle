@@ -80,7 +80,6 @@ ext {
 
     var projectAbsPath = projectDir.getAbsolutePath()
     File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
-
     configureSecurityPlugin = { OpenSearchCluster cluster ->
 
         cluster.getNodes().forEach { node ->
@@ -138,6 +137,10 @@ ext {
 
         cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
     }
+
+    bwcOpenSearchJSDownload = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + baseVersion + '/latest/linux/x64/tar/builds/' +
+            'opensearch/plugins/opensearch-job-scheduler-' + bwcVersion + '.zip'
+    bwcJobSchedulerPath = bwcFilePath + "job-scheduler/"
 }
 
 tasks.withType(licenseHeaders.class) {
@@ -153,7 +156,6 @@ configurations.all {
     resolutionStrategy.force "commons-logging:commons-logging:1.2"
     // enforce 1.1.3, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
-    resolutionStrategy.force 'com.google.guava:guava:32.0.1-jre'
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
@@ -166,6 +168,7 @@ configurations.all {
     resolutionStrategy.force "joda-time:joda-time:2.10.12"
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
     resolutionStrategy.force "com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version}"
+    resolutionStrategy.force "com.google.guava:guava:${guava_version}"
 }
 
 configurations {
@@ -191,6 +194,7 @@ dependencies {
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
 
     // Needed for BWC tests
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-sql-plugin', version: "${bwcVersion}-SNAPSHOT"
 }
 
@@ -219,22 +223,42 @@ testClusters.all {
     }
 }
 
+def getJobSchedulerPlugin() {
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-job-scheduler*'
+                    }.singleFile
+                }
+            }
+        }
+    })
+}
+
 testClusters {
     integTest {
         testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
     remoteCluster {
         testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
     }
     integTestWithSecurity {
         testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
     }
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
     }
 }
@@ -508,6 +532,24 @@ task comparisonTest(type: RestIntegTestTask) {
                     return new RegularFile() {
                         @Override
                         File getAsFile() {
+                            if (new File("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion").exists()) {
+                                project.delete(files("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion"))
+                            }
+                            project.mkdir bwcJobSchedulerPath + bwcVersion
+                            ant.get(src: bwcOpenSearchJSDownload,
+                                    dest: bwcJobSchedulerPath + bwcVersion,
+                                    httpusecaches: false)
+                            return fileTree(bwcJobSchedulerPath + bwcVersion).getSingleFile()
+                        }
+                    }
+                }
+            }))
+            plugin(provider(new Callable<RegularFile>(){
+                @Override
+                RegularFile call() throws Exception {
+                    return new RegularFile() {
+                        @Override
+                        File getAsFile() {
                             return configurations.zipArchive.asFileTree.matching {
                                 include '**/opensearch-sql-plugin*'
                             }.singleFile
@@ -522,17 +564,18 @@ task comparisonTest(type: RestIntegTestTask) {
 }
 
 List<Provider<RegularFile>> plugins = [
-    provider(new Callable<RegularFile>() {
-        @Override
-        RegularFile call() throws Exception {
-            return new RegularFile() {
-                @Override
-                File getAsFile() {
-                    return fileTree(bwcFilePath + project.version).getSingleFile()
+        getJobSchedulerPlugin(),
+        provider(new Callable<RegularFile>() {
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        return fileTree(bwcFilePath + project.version).getSingleFile()
+                    }
                 }
             }
-        }
-    })
+        })
 ]
 
 // Creates 2 test clusters with 3 nodes of the old version.
