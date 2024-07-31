@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.flint.operation;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
@@ -48,11 +49,14 @@ public class FlintIndexOpAlter extends FlintIndexOp {
 
   @SneakyThrows
   @Override
-  void runOp(FlintIndexMetadata flintIndexMetadata, FlintIndexStateModel flintIndexStateModel) {
+  void runOp(
+      FlintIndexMetadata flintIndexMetadata,
+      FlintIndexStateModel flintIndexStateModel,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     LOG.debug(
         "Running alter index operation for index: {}", flintIndexMetadata.getOpensearchIndexName());
     this.flintIndexMetadataService.updateIndexToManualRefresh(
-        flintIndexMetadata.getOpensearchIndexName(), flintIndexOptions);
+        flintIndexMetadata.getOpensearchIndexName(), flintIndexOptions, asyncQueryRequestContext);
     cancelStreamingJob(flintIndexStateModel);
   }
 

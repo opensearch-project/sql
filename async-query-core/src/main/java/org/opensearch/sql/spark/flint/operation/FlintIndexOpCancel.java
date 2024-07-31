@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.flint.operation;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
@@ -38,7 +39,10 @@ public class FlintIndexOpCancel extends FlintIndexOp {
   /** cancel EMR-S job, wait cancelled state upto 15s. */
   @SneakyThrows
   @Override
-  void runOp(FlintIndexMetadata flintIndexMetadata, FlintIndexStateModel flintIndexStateModel) {
+  void runOp(
+      FlintIndexMetadata flintIndexMetadata,
+      FlintIndexStateModel flintIndexStateModel,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     LOG.debug(
         "Performing drop index operation for index: {}",
         flintIndexMetadata.getOpensearchIndexName());

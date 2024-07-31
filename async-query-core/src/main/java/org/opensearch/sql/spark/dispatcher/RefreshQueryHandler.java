@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.dispatcher;
 import java.util.Map;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
@@ -51,10 +52,13 @@ public class RefreshQueryHandler extends BatchQueryHandler {
   }
 
   @Override
-  public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  public String cancelJob(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     String datasourceName = asyncQueryJobMetadata.getDatasourceName();
     Map<String, FlintIndexMetadata> indexMetadataMap =
-        flintIndexMetadataService.getFlintIndexMetadata(asyncQueryJobMetadata.getIndexName());
+        flintIndexMetadataService.getFlintIndexMetadata(
+            asyncQueryJobMetadata.getIndexName(), asyncQueryRequestContext);
     if (!indexMetadataMap.containsKey(asyncQueryJobMetadata.getIndexName())) {
       throw new IllegalStateException(
           String.format(
@@ -62,7 +66,7 @@ public class RefreshQueryHandler extends BatchQueryHandler {
     }
     FlintIndexMetadata indexMetadata = indexMetadataMap.get(asyncQueryJobMetadata.getIndexName());
     FlintIndexOp jobCancelOp = flintIndexOpFactory.getCancel(datasourceName);
-    jobCancelOp.apply(indexMetadata);
+    jobCancelOp.apply(indexMetadata, asyncQueryRequestContext);
     return asyncQueryJobMetadata.getQueryId();
   }
 

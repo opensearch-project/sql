@@ -71,7 +71,8 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     emrsClient.getJobRunResultCalled(1);
 
     // 3. cancel async query.
-    String cancelQueryId = asyncQueryExecutorService.cancelQuery(response.getQueryId());
+    String cancelQueryId =
+        asyncQueryExecutorService.cancelQuery(response.getQueryId(), asyncQueryRequestContext);
     assertEquals(response.getQueryId(), cancelQueryId);
     emrsClient.cancelJobRunCalled(1);
   }
@@ -163,7 +164,8 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     assertEquals(StatementState.WAITING.getState(), asyncQueryResults.getStatus());
 
     // 3. cancel async query.
-    String cancelQueryId = asyncQueryExecutorService.cancelQuery(response.getQueryId());
+    String cancelQueryId =
+        asyncQueryExecutorService.cancelQuery(response.getQueryId(), asyncQueryRequestContext);
     assertEquals(response.getQueryId(), cancelQueryId);
   }
 
