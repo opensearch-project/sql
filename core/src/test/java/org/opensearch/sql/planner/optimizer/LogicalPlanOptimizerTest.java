@@ -350,38 +350,22 @@ class LogicalPlanOptimizerTest {
   /** Limit - Eval --> Eval - Limit. */
   @Test
   void push_limit_under_eval() {
-    Pair<ReferenceExpression, Expression> evalExpr = Pair.of(DSL.ref("name1", STRING), DSL.ref("name", STRING));
+    Pair<ReferenceExpression, Expression> evalExpr =
+        Pair.of(DSL.ref("name1", STRING), DSL.ref("name", STRING));
     assertEquals(
-        eval(
-            limit(tableScanBuilder, 10, 5),
-            evalExpr),
-        optimize(
-            limit(
-                eval(
-                    relation("schema", table),
-                    evalExpr),
-                10,
-                5
-                )));
+        eval(limit(tableScanBuilder, 10, 5), evalExpr),
+        optimize(limit(eval(relation("schema", table), evalExpr), 10, 5)));
   }
 
   /** Limit - Eval - Scan --> Eval - Scan. */
   @Test
   void push_limit_through_eval_into_scan() {
     when(tableScanBuilder.pushDownLimit(any())).thenReturn(true);
-    Pair<ReferenceExpression, Expression> evalExpr = Pair.of(DSL.ref("name1", STRING), DSL.ref("name", STRING));
+    Pair<ReferenceExpression, Expression> evalExpr =
+        Pair.of(DSL.ref("name1", STRING), DSL.ref("name", STRING));
     assertEquals(
-        eval(
-            tableScanBuilder,
-            evalExpr),
-        optimize(
-            limit(
-                eval(
-                    relation("schema", table),
-                    evalExpr),
-                10,
-                5
-            )));
+        eval(tableScanBuilder, evalExpr),
+        optimize(limit(eval(relation("schema", table), evalExpr), 10, 5)));
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {

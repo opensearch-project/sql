@@ -23,20 +23,20 @@ import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.Rule;
 
-/**
- */
+/** */
 public class EvalPushDown<T extends LogicalPlan> implements Rule<T> {
-
 
   // TODO: Add more rules to push down sort and project
   /** Push down optimize rule for limit operator. Transform `limit -> eval` to `eval -> limit` */
   public static final Rule<LogicalLimit> PUSH_DOWN_LIMIT =
-          match(limit(typeOf(LogicalEval.class).capturedAs(Capture.newCapture()))).apply((limit, logicalEval) -> {
-            List<LogicalPlan> child = logicalEval.getChild();
-            limit.replaceChildPlans(child);
-            logicalEval.replaceChildPlans(List.of(limit));
-            return logicalEval;
-          });
+      match(limit(typeOf(LogicalEval.class).capturedAs(Capture.newCapture())))
+          .apply(
+              (limit, logicalEval) -> {
+                List<LogicalPlan> child = logicalEval.getChild();
+                limit.replaceChildPlans(child);
+                logicalEval.replaceChildPlans(List.of(limit));
+                return logicalEval;
+              });
 
   private final Capture<LogicalEval> capture;
 
@@ -47,9 +47,10 @@ public class EvalPushDown<T extends LogicalPlan> implements Rule<T> {
   private final BiFunction<T, LogicalEval, LogicalPlan> pushDownFunction;
 
   @SuppressWarnings("unchecked")
-  public EvalPushDown(WithPattern<T> pattern, BiFunction<T, LogicalEval, LogicalPlan> pushDownFunction) {
+  public EvalPushDown(
+      WithPattern<T> pattern, BiFunction<T, LogicalEval, LogicalPlan> pushDownFunction) {
     this.pattern = pattern;
-    this.capture =  ((CapturePattern<LogicalEval>) pattern.getPattern()).capture();
+    this.capture = ((CapturePattern<LogicalEval>) pattern.getPattern()).capture();
     this.pushDownFunction = pushDownFunction;
   }
 
@@ -63,7 +64,8 @@ public class EvalPushDown<T extends LogicalPlan> implements Rule<T> {
 
     private WithPattern<T> pattern;
 
-    public static <T extends LogicalPlan> EvalPushDown.EvalPushDownBuilder<T> match(Pattern<T> pattern) {
+    public static <T extends LogicalPlan> EvalPushDown.EvalPushDownBuilder<T> match(
+        Pattern<T> pattern) {
       EvalPushDown.EvalPushDownBuilder<T> builder = new EvalPushDown.EvalPushDownBuilder<>();
       builder.pattern = (WithPattern<T>) pattern;
       return builder;
