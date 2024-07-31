@@ -7,8 +7,10 @@ package org.opensearch.sql.datasource;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 
+import java.io.IOException;
 import lombok.SneakyThrows;
 import org.json.JSONObject;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.client.Request;
@@ -18,9 +20,9 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class DataSourceEnabledIT extends PPLIntegTestCase {
 
-  @Override
-  protected boolean preserveClusterUponCompletion() {
-    return false;
+  @After
+  public void cleanUp() throws IOException {
+    wipeAllClusterSettings();
   }
 
   @Test
@@ -39,6 +41,7 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
     assertSelectFromDataSourceReturnsSuccess();
     assertSelectFromDummyIndexInValidDataSourceDataSourceReturnsDoesNotExist();
     deleteSelfDataSourceCreated();
+    deleteIndex();
   }
 
   @Test
@@ -55,6 +58,7 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
     assertAsyncQueryApiDisabled();
     setDataSourcesEnabled("transient", true);
     deleteSelfDataSourceCreated();
+    deleteIndex();
   }
 
   @SneakyThrows
@@ -94,6 +98,12 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
 
   private void createIndex() {
     Request request = new Request("PUT", "/myindex");
+    Response response = performRequest(request);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+  }
+
+  private void deleteIndex() {
+    Request request = new Request("DELETE", "/myindex");
     Response response = performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
   }
