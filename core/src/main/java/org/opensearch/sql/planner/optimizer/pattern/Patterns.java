@@ -64,8 +64,8 @@ public class Patterns {
     return Pattern.typeOf(LogicalProject.class).with(source(pattern));
   }
 
-  public static <T extends LogicalPlan> Pattern<LogicalEval> eval(Pattern<T> pattern) {
-    return Pattern.typeOf(LogicalEval.class).with(source(pattern));
+  public static Pattern<LogicalEval> evalCapture() {
+    return Pattern.typeOf(LogicalEval.class).capturedAs(Capture.newCapture());
   }
 
   /** Pattern for {@link TableScanBuilder} and capture it meanwhile. */

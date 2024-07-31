@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.planner.optimizer.rule;
 
-import static com.facebook.presto.matching.Pattern.typeOf;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.evalCapture;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.limit;
 import static org.opensearch.sql.planner.optimizer.rule.EvalPushDown.EvalPushDownBuilder.match;
 
@@ -29,7 +29,7 @@ public class EvalPushDown<T extends LogicalPlan> implements Rule<T> {
   // TODO: Add more rules to push down sort and project
   /** Push down optimize rule for limit operator. Transform `limit -> eval` to `eval -> limit` */
   public static final Rule<LogicalLimit> PUSH_DOWN_LIMIT =
-      match(limit(typeOf(LogicalEval.class).capturedAs(Capture.newCapture())))
+      match(limit(evalCapture()))
           .apply(
               (limit, logicalEval) -> {
                 List<LogicalPlan> child = logicalEval.getChild();
