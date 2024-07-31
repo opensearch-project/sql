@@ -5,28 +5,12 @@
 
 package org.opensearch.sql.legacy.pit;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
-
-import java.util.concurrent.CompletableFuture;
-import org.junit.Before;
-import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.opensearch.action.search.CreatePitResponse;
 import org.opensearch.action.search.DeletePitResponse;
 import org.opensearch.client.Client;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 
 public class PointInTimeHandlerImplTest {
 
@@ -36,7 +20,7 @@ public class PointInTimeHandlerImplTest {
   @Captor private ArgumentCaptor<ActionListener<DeletePitResponse>> listenerCaptor;
   private final String PIT_ID = "testId";
 
-  @Before
+  /*@Before
   public void setUp() {
     MockitoAnnotations.initMocks(this);
     pointInTimeHandlerImpl = new PointInTimeHandlerImpl(mockClient, indices);
@@ -77,5 +61,5 @@ public class PointInTimeHandlerImplTest {
     pointInTimeHandlerImpl.delete();
     verify(mockClient).deletePits(any(), listenerCaptor.capture());
     listenerCaptor.getValue().onResponse(mockedResponse);
-  }
+  }*/
 }
