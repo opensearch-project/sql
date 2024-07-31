@@ -58,7 +58,31 @@ public class MultiQueryIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void unionAllOnlyOneRecordEachWithAlias() throws IOException {
+  public void unionAllOnlyOneRecordWithAliasLeft() throws IOException {
+    String query =
+        String.format(
+            "SELECT firstname as dog_name FROM %s WHERE firstname = 'Amber' "
+                + "UNION ALL "
+                + "SELECT dog_name FROM %s WHERE dog_name = 'rex'",
+            TestsConstants.TEST_INDEX_ACCOUNT, TestsConstants.TEST_INDEX_DOG);
+
+    JSONObject response = executeQuery(query);
+    assertThat(getHits(response).length(), equalTo(2));
+
+    Set<String> names = new HashSet<>();
+    JSONArray hits = getHits(response);
+    for (int i = 0; i < hits.length(); i++) {
+      JSONObject hit = hits.getJSONObject(i);
+      JSONObject source = getSource(hit);
+
+      names.add(source.getString("dog_name"));
+    }
+
+    assertThat(names, hasItems("Amber", "rex"));
+  }
+
+  @Test
+  public void unionAllOnlyOneRecordWithAliasRight() throws IOException {
     String query =
         String.format(
             "SELECT firstname FROM %s WHERE firstname = 'Amber' "
@@ -76,6 +100,30 @@ public class MultiQueryIT extends SQLIntegTestCase {
       JSONObject source = getSource(hit);
 
       names.add(source.getString("firstname"));
+    }
+
+    assertThat(names, hasItems("Amber", "rex"));
+  }
+
+  @Test
+  public void unionAllOnlyOneRecordWithAliasBothSide() throws IOException {
+    String query =
+        String.format(
+            "SELECT firstname AS name FROM %s WHERE firstname = 'Amber' "
+                + "UNION ALL "
+                + "SELECT dog_name AS name FROM %s WHERE dog_name = 'rex'",
+            TestsConstants.TEST_INDEX_ACCOUNT, TestsConstants.TEST_INDEX_DOG);
+
+    JSONObject response = executeQuery(query);
+    assertThat(getHits(response).length(), equalTo(2));
+
+    Set<String> names = new HashSet<>();
+    JSONArray hits = getHits(response);
+    for (int i = 0; i < hits.length(); i++) {
+      JSONObject hit = hits.getJSONObject(i);
+      JSONObject source = getSource(hit);
+
+      names.add(source.getString("name"));
     }
 
     assertThat(names, hasItems("Amber", "rex"));

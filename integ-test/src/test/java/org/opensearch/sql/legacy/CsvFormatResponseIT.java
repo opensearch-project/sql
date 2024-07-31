@@ -706,6 +706,103 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
     Assert.assertEquals(1, headers.size());
   }
 
+  @Test
+  public void unionTest() throws IOException {
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT firstname, lastname FROM %s LIMIT 3 "
+                + "UNION ALL SELECT firstname, lastname FROM %s LIMIT 3",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+    CSVResult result = executeCsvRequest(query, false, false, false);
+    List<String> headers = result.getHeaders();
+    Assert.assertEquals(2, headers.size());
+    Assert.assertTrue(headers.contains("firstname"));
+    Assert.assertTrue(headers.contains("lastname"));
+
+    List<String> lines = result.getLines();
+    Assert.assertEquals(6, lines.size());
+    assertEquals(lines.get(0), "Amber,Duke");
+    assertEquals(lines.get(1), "Hattie,Bond");
+    assertEquals(lines.get(2), "Nanette,Bates");
+    assertEquals(lines.get(0), "Amber,Duke");
+    assertEquals(lines.get(1), "Hattie,Bond");
+    assertEquals(lines.get(2), "Nanette,Bates");
+  }
+
+  @Test
+  public void unionWithAliasLeftTest() throws IOException {
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT lastname AS firstname FROM %s LIMIT 3 "
+                + "UNION ALL SELECT firstname FROM %s LIMIT 3",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+    CSVResult result = executeCsvRequest(query, false, false, false);
+    List<String> headers = result.getHeaders();
+    Assert.assertEquals(1, headers.size());
+    Assert.assertTrue(headers.contains("firstname"));
+
+    List<String> lines = result.getLines();
+    Assert.assertEquals(6, lines.size());
+    assertEquals(lines.get(0), "Duke");
+    assertEquals(lines.get(1), "Bond");
+    assertEquals(lines.get(2), "Bates");
+    assertEquals(lines.get(3), "Amber");
+    assertEquals(lines.get(4), "Hattie");
+    assertEquals(lines.get(5), "Nanette");
+  }
+
+  @Test
+  public void unionWithAliasRightTest() throws IOException {
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT firstname FROM %s LIMIT 3 "
+                + "UNION ALL SELECT lastname AS firstname FROM %s LIMIT 3",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+    CSVResult result = executeCsvRequest(query, false, false, false);
+    List<String> headers = result.getHeaders();
+    Assert.assertEquals(1, headers.size());
+    Assert.assertTrue(headers.contains("firstname"));
+
+    List<String> lines = result.getLines();
+    Assert.assertEquals(6, lines.size());
+    assertEquals(lines.get(0), "Amber");
+    assertEquals(lines.get(1), "Hattie");
+    assertEquals(lines.get(2), "Nanette");
+    assertEquals(lines.get(3), "Duke");
+    assertEquals(lines.get(4), "Bond");
+    assertEquals(lines.get(5), "Bates");
+  }
+
+  @Test
+  public void unionWithAliasBothSideTest() throws IOException {
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT firstname AS name FROM %s LIMIT 3 "
+                + "UNION ALL SELECT lastname AS name FROM %s LIMIT 3",
+            TestsConstants.TEST_INDEX_ACCOUNT,
+            TestsConstants.TEST_INDEX_ACCOUNT);
+    CSVResult result = executeCsvRequest(query, false, false, false);
+    List<String> headers = result.getHeaders();
+    Assert.assertEquals(1, headers.size());
+    Assert.assertTrue(headers.contains("name"));
+
+    List<String> lines = result.getLines();
+    Assert.assertEquals(6, lines.size());
+    assertEquals(lines.get(0), "Amber");
+    assertEquals(lines.get(1), "Hattie");
+    assertEquals(lines.get(2), "Nanette");
+    assertEquals(lines.get(3), "Duke");
+    assertEquals(lines.get(4), "Bond");
+    assertEquals(lines.get(5), "Bates");
+  }
+
   private void verifyFieldOrder(final String[] expectedFields) throws IOException {
 
     final String fields = String.join(", ", expectedFields);
