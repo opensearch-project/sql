@@ -49,4 +49,5 @@ gen
 .worktrees
 http-client.env.json
 /doctest/sql-cli/
+/doctest/opensearch-job-scheduler/
 .factorypath
