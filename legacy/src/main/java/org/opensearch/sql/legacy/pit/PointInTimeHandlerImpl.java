@@ -55,7 +55,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
    *
    * @return Point In Time creation status
    */
-  @Override
+  /*@Override
   public boolean create() {
     CreatePitRequest createPitRequest =
         new CreatePitRequest(
@@ -86,11 +86,11 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     return createStatus;
   }
 
-  /**
+  *//**
    * Delete PIT
    *
    * @return delete status
-   */
+   *//*
   @Override
   public boolean delete() {
     DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
@@ -121,5 +121,5 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     }
 
     return deleteStatus;
-  }
+  }*/
 }
