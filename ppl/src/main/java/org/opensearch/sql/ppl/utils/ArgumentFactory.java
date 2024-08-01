@@ -9,6 +9,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLit
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
@@ -78,6 +79,13 @@ public class ArgumentFactory {
         ctx.consecutive != null
             ? new Argument("consecutive", getArgumentValue(ctx.consecutive))
             : new Argument("consecutive", new Literal(false, DataType.BOOLEAN)));
+  }
+
+  public static List<Argument> getArgumentList(LookupCommandContext ctx) {
+    return Arrays.asList(
+        ctx.appendonly != null
+            ? new Argument("appendonly", getArgumentValue(ctx.appendonly))
+            : new Argument("appendonly", new Literal(false, DataType.BOOLEAN)));
   }
 
   /**

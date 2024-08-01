@@ -17,6 +17,7 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.dedupe;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.eval;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.filter;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.limit;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.lookup;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.project;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.rareTopN;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.remove;
@@ -64,7 +65,16 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
                     agg(
                         rareTopN(
                             filter(
-                                limit(new TestScan(), 1, 1),
+                                limit(
+                                    lookup(
+                                        new TestScan(),
+                                        "lookup_index",
+                                        Map.of(),
+                                        true,
+                                        Map.of(),
+                                        null),
+                                    1,
+                                    1),
                                 DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10))),
                             CommandType.TOP,
                             ImmutableList.of(),
@@ -84,7 +94,8 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
             + "\t\t\tAggregation->\n"
             + "\t\t\t\tRareTopN->\n"
             + "\t\t\t\t\tFilter->\n"
-            + "\t\t\t\t\t\tLimit->",
+            + "\t\t\t\t\t\tLimit->\n"
+            + "\t\t\t\t\t\t\tLookup->",
         printer.print(plan));
   }
 
@@ -131,6 +142,8 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
 
     PhysicalPlan cursorClose = new CursorCloseOperator(plan);
 
+    PhysicalPlan lookup = lookup(plan, "lookup_index", Map.of(), false, Map.of(), null);
+
     return Stream.of(
         Arguments.of(filter, "filter"),
         Arguments.of(aggregation, "aggregation"),
@@ -145,7 +158,8 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
         Arguments.of(rareTopN, "rareTopN"),
         Arguments.of(limit, "limit"),
         Arguments.of(nested, "nested"),
-        Arguments.of(cursorClose, "cursorClose"));
+        Arguments.of(cursorClose, "cursorClose"),
+        Arguments.of(lookup, "Lookup"));
   }
 
   @ParameterizedTest(name = "{1}")
@@ -217,6 +231,11 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
     @Override
     public String visitLimit(LimitOperator node, Integer tabs) {
       return name(node, "Limit->", tabs);
+    }
+
+    @Override
+    public String visitLookup(LookupOperator node, Integer tabs) {
+      return name(node, "Lookup->", tabs);
     }
 
     private String name(PhysicalPlan node, String current, int tabs) {
