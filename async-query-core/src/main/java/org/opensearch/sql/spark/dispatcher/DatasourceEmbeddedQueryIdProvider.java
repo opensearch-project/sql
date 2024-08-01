@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.utils.IDUtils;
 
@@ -12,7 +13,9 @@ import org.opensearch.sql.spark.utils.IDUtils;
 public class DatasourceEmbeddedQueryIdProvider implements QueryIdProvider {
 
   @Override
-  public String getQueryId(DispatchQueryRequest dispatchQueryRequest) {
+  public String getQueryId(
+      DispatchQueryRequest dispatchQueryRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     return IDUtils.encode(dispatchQueryRequest.getDatasource());
   }
 }
