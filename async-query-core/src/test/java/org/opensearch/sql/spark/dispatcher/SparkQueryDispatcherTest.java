@@ -41,9 +41,11 @@ import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
 import com.amazonaws.services.emrserverless.model.JobRunState;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -439,6 +441,79 @@ public class SparkQueryDispatcherTest {
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             getBaseDispatchQueryRequestBuilder(query).langType(LangType.PPL).build(),
+            asyncQueryRequestContext);
+
+    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
+    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
+    verifyNoInteractions(flintIndexMetadataService);
+  }
+
+  @Test
+  void testDispatchWithSparkUDFQuery() {
+    List<String> udfQueries = new ArrayList<>();
+    udfQueries.add(
+        "CREATE FUNCTION celsius_to_fahrenheit AS 'org.apache.spark.sql.functions.expr(\"(celsius *"
+            + " 9/5) + 32\")'");
+    udfQueries.add(
+        "CREATE TEMPORARY FUNCTION square AS 'org.apache.spark.sql.functions.expr(\"num * num\")'");
+    for (String query : udfQueries) {
+      DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+      when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+              MY_GLUE, asyncQueryRequestContext))
+          .thenReturn(dataSourceMetadata);
+
+      IllegalArgumentException illegalArgumentException =
+          Assertions.assertThrows(
+              IllegalArgumentException.class,
+              () ->
+                  sparkQueryDispatcher.dispatch(
+                      getBaseDispatchQueryRequestBuilder(query).langType(LangType.SQL).build(),
+                      asyncQueryRequestContext));
+      Assertions.assertEquals(
+          "Query is not allowed: Creating user-defined functions is not allowed",
+          illegalArgumentException.getMessage());
+      verifyNoInteractions(emrServerlessClient);
+      verifyNoInteractions(flintIndexMetadataService);
+    }
+  }
+
+  @Test
+  void testInvalidSQLQueryDispatchToSpark() {
+    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
+    String query = "myselect 1";
+    String sparkSubmitParameters = constructExpectedSparkSubmitParameterString(query);
+    StartJobRequest expected =
+        new StartJobRequest(
+            "TEST_CLUSTER:batch",
+            null,
+            EMRS_APPLICATION_ID,
+            EMRS_EXECUTION_ROLE,
+            sparkSubmitParameters,
+            tags,
+            false,
+            "query_execution_result_my_glue");
+    when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
+        .thenReturn(dataSourceMetadata);
+
+    DispatchQueryResponse dispatchQueryResponse =
+        sparkQueryDispatcher.dispatch(
+            DispatchQueryRequest.builder()
+                .applicationId(EMRS_APPLICATION_ID)
+                .query(query)
+                .datasource(MY_GLUE)
+                .langType(LangType.SQL)
+                .executionRoleARN(EMRS_EXECUTION_ROLE)
+                .clusterName(TEST_CLUSTER_NAME)
+                .sparkSubmitParameterModifier(sparkSubmitParameterModifier)
+                .build(),
             asyncQueryRequestContext);
 
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
