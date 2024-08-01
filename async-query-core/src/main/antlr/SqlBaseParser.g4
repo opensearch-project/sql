@@ -66,8 +66,8 @@ compoundStatement
     ;
 
 setStatementWithOptionalVarKeyword
-    : SET (VARIABLE | VAR)? assignmentList                      #setVariableWithOptionalKeyword
-    | SET (VARIABLE | VAR)? LEFT_PAREN multipartIdentifierList RIGHT_PAREN EQ
+    : SET variable? assignmentList                              #setVariableWithOptionalKeyword
+    | SET variable? LEFT_PAREN multipartIdentifierList RIGHT_PAREN EQ
         LEFT_PAREN query RIGHT_PAREN                            #setVariableWithOptionalKeyword
     ;
 
@@ -129,7 +129,6 @@ statement
     | SHOW namespaces ((FROM | IN) multipartIdentifier)?
         (LIKE? pattern=stringLit)?                                        #showNamespaces
     | createTableHeader (LEFT_PAREN colDefinitionList RIGHT_PAREN)? tableProvider?
-    | createTableHeader (LEFT_PAREN createOrReplaceTableColTypeList RIGHT_PAREN)? tableProvider?
         createTableClauses
         (AS? query)?                                                   #createTable
     | CREATE TABLE (IF errorCapturingNot EXISTS)? target=tableIdentifier
@@ -211,14 +210,14 @@ statement
         identifierReference AS className=stringLit
         (USING resource (COMMA resource)*)?                            #createFunction
     | CREATE (OR REPLACE)? TEMPORARY? FUNCTION (IF errorCapturingNot EXISTS)?
-            identifierReference LEFT_PAREN parameters=colDefinitionList? RIGHT_PAREN
-            (RETURNS (dataType | TABLE LEFT_PAREN returnParams=colTypeList RIGHT_PAREN))?
-            routineCharacteristics
-            RETURN (query | expression)                                    #createUserDefinedFunction
+        identifierReference LEFT_PAREN parameters=colDefinitionList? RIGHT_PAREN
+        (RETURNS (dataType | TABLE LEFT_PAREN returnParams=colTypeList RIGHT_PAREN))?
+        routineCharacteristics
+        RETURN (query | expression)                                    #createUserDefinedFunction
     | DROP TEMPORARY? FUNCTION (IF EXISTS)? identifierReference        #dropFunction
-    | DECLARE (OR REPLACE)? VARIABLE?
+    | DECLARE (OR REPLACE)? variable?
         identifierReference dataType? variableDefaultExpression?       #createVariable
-    | DROP TEMPORARY VARIABLE (IF EXISTS)? identifierReference         #dropVariable
+    | DROP TEMPORARY variable (IF EXISTS)? identifierReference         #dropVariable
     | EXPLAIN (LOGICAL | FORMATTED | EXTENDED | CODEGEN | COST)?
         (statement|setResetStatement)                                  #explain
     | SHOW TABLES ((FROM | IN) identifierReference)?
@@ -273,8 +272,8 @@ setResetStatement
     | SET TIME ZONE interval                                           #setTimeZone
     | SET TIME ZONE timezone                                           #setTimeZone
     | SET TIME ZONE .*?                                                #setTimeZone
-    | SET (VARIABLE | VAR) assignmentList                              #setVariable
-    | SET (VARIABLE | VAR) LEFT_PAREN multipartIdentifierList RIGHT_PAREN EQ
+    | SET variable assignmentList                                      #setVariable
+    | SET variable LEFT_PAREN multipartIdentifierList RIGHT_PAREN EQ
         LEFT_PAREN query RIGHT_PAREN                                   #setVariable
     | SET configKey EQ configValue                                     #setQuotedConfiguration
     | SET configKey (EQ .*?)?                                          #setConfiguration
@@ -437,6 +436,11 @@ namespaces
     : NAMESPACES
     | DATABASES
     | SCHEMAS
+    ;
+
+variable
+    : VARIABLE
+    | VAR
     ;
 
 describeFuncName
