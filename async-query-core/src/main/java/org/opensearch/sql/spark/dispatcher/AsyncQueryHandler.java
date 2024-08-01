@@ -12,6 +12,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIEL
 import com.amazonaws.services.emrserverless.model.JobRunState;
 import org.json.JSONObject;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
@@ -54,7 +55,9 @@ public abstract class AsyncQueryHandler {
   protected abstract JSONObject getResponseFromExecutor(
       AsyncQueryJobMetadata asyncQueryJobMetadata);
 
-  public abstract String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata);
+  public abstract String cancelJob(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext);
 
   public abstract DispatchQueryResponse submit(
       DispatchQueryRequest request, DispatchQueryContext context);
