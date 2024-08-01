@@ -47,6 +47,8 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.junit.jupiter.api.Test;
+import org.opensearch.OpenSearchParseException;
+import org.opensearch.geometry.utils.Geohash;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
@@ -598,6 +600,18 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
+  public void constructArrayOfGeoPointsReturnsFirstIndex() {
+    assertEquals(
+        new OpenSearchExprGeoPointValue(42.60355556, -97.25263889),
+        tupleValue(
+                "{\"geoV\":["
+                    + "{\"lat\":42.60355556,\"lon\":-97.25263889},"
+                    + "{\"lat\":-33.6123556,\"lon\":66.287449}"
+                    + "]}")
+            .get("geoV"));
+  }
+
+  @Test
   public void constructArrayOfIPsReturnsFirstIndex() {
     assertEquals(
         new OpenSearchExprIpValue("192.168.0.1"),
@@ -671,14 +685,50 @@ class OpenSearchExprValueFactoryTest {
         tupleValue("{\"ipV\":\"192.168.0.1\"}").get("ipV"));
   }
 
+  private static final double TOLERANCE = 1E-5;
+
   @Test
   public void constructGeoPoint() {
+    final double lat = 42.60355556;
+    final double lon = -97.25263889;
+    final var expectedGeoPointValue = new OpenSearchExprGeoPointValue(lat, lon);
+    // An object with a latitude and longitude.
     assertEquals(
-        new OpenSearchExprGeoPointValue(42.60355556, -97.25263889),
-        tupleValue("{\"geoV\":{\"lat\":42.60355556,\"lon\":-97.25263889}}").get("geoV"));
+        expectedGeoPointValue,
+        tupleValue(String.format("{\"geoV\":{\"lat\":%.8f,\"lon\":%.8f}}", lat, lon)).get("geoV"));
+
+    // A string in the “latitude,longitude” format.
     assertEquals(
-        new OpenSearchExprGeoPointValue(42.60355556, -97.25263889),
-        tupleValue("{\"geoV\":{\"lat\":\"42.60355556\",\"lon\":\"-97.25263889\"}}").get("geoV"));
+        expectedGeoPointValue,
+        tupleValue(String.format("{\"geoV\":\"%.8f,%.8f\"}", lat, lon)).get("geoV"));
+
+    // A geohash.
+    var point =
+        (OpenSearchExprGeoPointValue.GeoPoint)
+            tupleValue(String.format("{\"geoV\":\"%s\"}", Geohash.stringEncode(lon, lat)))
+                .get("geoV")
+                .value();
+    assertEquals(lat, point.getLat(), TOLERANCE);
+    assertEquals(lon, point.getLon(), TOLERANCE);
+
+    // An array in the [longitude, latitude] format.
+    assertEquals(
+        expectedGeoPointValue,
+        tupleValue(String.format("{\"geoV\":[%.8f, %.8f]}", lon, lat)).get("geoV"));
+
+    // A Well-Known Text POINT in the “POINT(longitude latitude)” format.
+    assertEquals(
+        expectedGeoPointValue,
+        tupleValue(String.format("{\"geoV\":\"POINT (%.8f %.8f)\"}", lon, lat)).get("geoV"));
+
+    // GeoJSON format, where the coordinates are in the [longitude, latitude] format
+    assertEquals(
+        expectedGeoPointValue,
+        tupleValue(
+                String.format(
+                    "{\"geoV\":{\"type\":\"Point\",\"coordinates\":[%.8f,%.8f]}}", lon, lat))
+            .get("geoV"));
+
     assertEquals(
         new OpenSearchExprGeoPointValue(42.60355556, -97.25263889),
         constructFromObject("geoV", "42.60355556,-97.25263889"));
@@ -686,38 +736,23 @@ class OpenSearchExprValueFactoryTest {
 
   @Test
   public void constructGeoPointFromUnsupportedFormatShouldThrowException() {
-    IllegalStateException exception =
+    OpenSearchParseException exception =
         assertThrows(
-            IllegalStateException.class,
-            () -> tupleValue("{\"geoV\":[42.60355556,-97.25263889]}").get("geoV"));
-    assertEquals(
-        "geo point must in format of {\"lat\": number, \"lon\": number}", exception.getMessage());
+            OpenSearchParseException.class,
+            () -> tupleValue("{\"geoV\": [42.60355556, false]}").get("geoV"));
+    assertEquals("lat must be a number, got false", exception.getMessage());
 
     exception =
         assertThrows(
-            IllegalStateException.class,
+            OpenSearchParseException.class,
             () -> tupleValue("{\"geoV\":{\"lon\":-97.25263889}}").get("geoV"));
-    assertEquals(
-        "geo point must in format of {\"lat\": number, \"lon\": number}", exception.getMessage());
+    assertEquals("field [lat] missing", exception.getMessage());
 
     exception =
         assertThrows(
-            IllegalStateException.class,
-            () -> tupleValue("{\"geoV\":{\"lat\":-97.25263889}}").get("geoV"));
-    assertEquals(
-        "geo point must in format of {\"lat\": number, \"lon\": number}", exception.getMessage());
-
-    exception =
-        assertThrows(
-            IllegalStateException.class,
+            OpenSearchParseException.class,
             () -> tupleValue("{\"geoV\":{\"lat\":true,\"lon\":-97.25263889}}").get("geoV"));
-    assertEquals("latitude must be number value, but got value: true", exception.getMessage());
-
-    exception =
-        assertThrows(
-            IllegalStateException.class,
-            () -> tupleValue("{\"geoV\":{\"lat\":42.60355556,\"lon\":false}}").get("geoV"));
-    assertEquals("longitude must be number value, but got value: false", exception.getMessage());
+    assertEquals("lat must be a number", exception.getMessage());
   }
 
   @Test
