@@ -33,6 +33,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.client.Client;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 
 /** Implementation of {@link FlintIndexMetadataService} */
@@ -49,7 +50,8 @@ public class FlintIndexMetadataServiceImpl implements FlintIndexMetadataService 
           Arrays.asList(AUTO_REFRESH, INCREMENTAL_REFRESH, WATERMARK_DELAY, CHECKPOINT_LOCATION));
 
   @Override
-  public Map<String, FlintIndexMetadata> getFlintIndexMetadata(String indexPattern) {
+  public Map<String, FlintIndexMetadata> getFlintIndexMetadata(
+      String indexPattern, AsyncQueryRequestContext asyncQueryRequestContext) {
     GetMappingsResponse mappingsResponse =
         client.admin().indices().prepareGetMappings().setIndices(indexPattern).get();
     Map<String, FlintIndexMetadata> indexMetadataMap = new HashMap<>();
@@ -73,7 +75,10 @@ public class FlintIndexMetadataServiceImpl implements FlintIndexMetadataService 
   }
 
   @Override
-  public void updateIndexToManualRefresh(String indexName, FlintIndexOptions flintIndexOptions) {
+  public void updateIndexToManualRefresh(
+      String indexName,
+      FlintIndexOptions flintIndexOptions,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     GetMappingsResponse mappingsResponse =
         client.admin().indices().prepareGetMappings().setIndices(indexName).get();
     Map<String, Object> flintMetadataMap =

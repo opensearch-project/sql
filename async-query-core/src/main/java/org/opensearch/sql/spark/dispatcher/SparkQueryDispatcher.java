@@ -162,9 +162,11 @@ public class SparkQueryDispatcher {
         .getQueryResponse(asyncQueryJobMetadata);
   }
 
-  public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  public String cancelJob(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     return getAsyncQueryHandlerForExistingQuery(asyncQueryJobMetadata)
-        .cancelJob(asyncQueryJobMetadata);
+        .cancelJob(asyncQueryJobMetadata, asyncQueryRequestContext);
   }
 
   private AsyncQueryHandler getAsyncQueryHandlerForExistingQuery(

@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.flint;
 
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.xcontent.FlintIndexStateModelXContentSerializer;
@@ -20,7 +21,8 @@ public class OpenSearchFlintIndexStateModelService implements FlintIndexStateMod
   public FlintIndexStateModel updateFlintIndexState(
       FlintIndexStateModel flintIndexStateModel,
       FlintIndexState flintIndexState,
-      String datasourceName) {
+      String datasourceName,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     return stateStore.updateState(
         flintIndexStateModel,
         flintIndexState,
@@ -29,14 +31,16 @@ public class OpenSearchFlintIndexStateModelService implements FlintIndexStateMod
   }
 
   @Override
-  public Optional<FlintIndexStateModel> getFlintIndexStateModel(String id, String datasourceName) {
+  public Optional<FlintIndexStateModel> getFlintIndexStateModel(
+      String id, String datasourceName, AsyncQueryRequestContext asyncQueryRequestContext) {
     return stateStore.get(
         id, serializer::fromXContent, OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 
   @Override
   public FlintIndexStateModel createFlintIndexStateModel(
-      FlintIndexStateModel flintIndexStateModel) {
+      FlintIndexStateModel flintIndexStateModel,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     return stateStore.create(
         flintIndexStateModel.getId(),
         flintIndexStateModel,
@@ -45,7 +49,8 @@ public class OpenSearchFlintIndexStateModelService implements FlintIndexStateMod
   }
 
   @Override
-  public boolean deleteFlintIndexStateModel(String id, String datasourceName) {
+  public boolean deleteFlintIndexStateModel(
+      String id, String datasourceName, AsyncQueryRequestContext asyncQueryRequestContext) {
     return stateStore.delete(id, OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 }

@@ -7,6 +7,8 @@
 
 package org.opensearch.sql.spark.transport;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
@@ -24,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
+import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.tasks.Task;
@@ -36,7 +39,6 @@ public class TransportCancelAsyncQueryRequestActionTest {
   @Mock private TransportCancelAsyncQueryRequestAction action;
   @Mock private Task task;
   @Mock private ActionListener<CancelAsyncQueryActionResponse> actionListener;
-
   @Mock private AsyncQueryExecutorServiceImpl asyncQueryExecutorService;
 
   @Captor
@@ -54,8 +56,12 @@ public class TransportCancelAsyncQueryRequestActionTest {
   @Test
   public void testDoExecute() {
     CancelAsyncQueryActionRequest request = new CancelAsyncQueryActionRequest(EMR_JOB_ID);
-    when(asyncQueryExecutorService.cancelQuery(EMR_JOB_ID)).thenReturn(EMR_JOB_ID);
+    when(asyncQueryExecutorService.cancelQuery(
+            eq(EMR_JOB_ID), any(NullAsyncQueryRequestContext.class)))
+        .thenReturn(EMR_JOB_ID);
+
     action.doExecute(task, request, actionListener);
+
     Mockito.verify(actionListener).onResponse(deleteJobActionResponseArgumentCaptor.capture());
     CancelAsyncQueryActionResponse cancelAsyncQueryActionResponse =
         deleteJobActionResponseArgumentCaptor.getValue();
@@ -66,8 +72,12 @@ public class TransportCancelAsyncQueryRequestActionTest {
   @Test
   public void testDoExecuteWithException() {
     CancelAsyncQueryActionRequest request = new CancelAsyncQueryActionRequest(EMR_JOB_ID);
-    doThrow(new RuntimeException("Error")).when(asyncQueryExecutorService).cancelQuery(EMR_JOB_ID);
+    doThrow(new RuntimeException("Error"))
+        .when(asyncQueryExecutorService)
+        .cancelQuery(eq(EMR_JOB_ID), any(NullAsyncQueryRequestContext.class));
+
     action.doExecute(task, request, actionListener);
+
     Mockito.verify(actionListener).onFailure(exceptionArgumentCaptor.capture());
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof RuntimeException);
