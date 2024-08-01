@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.xcontent.FlintIndexStateModelXContentSerializer;
 
@@ -30,6 +31,7 @@ public class OpenSearchFlintIndexStateModelServiceTest {
   @Mock FlintIndexState flintIndexState;
   @Mock FlintIndexStateModel responseFlintIndexStateModel;
   @Mock FlintIndexStateModelXContentSerializer flintIndexStateModelXContentSerializer;
+  @Mock AsyncQueryRequestContext asyncQueryRequestContext;
 
   @InjectMocks OpenSearchFlintIndexStateModelService openSearchFlintIndexStateModelService;
 
@@ -40,7 +42,7 @@ public class OpenSearchFlintIndexStateModelServiceTest {
 
     FlintIndexStateModel result =
         openSearchFlintIndexStateModelService.updateFlintIndexState(
-            flintIndexStateModel, flintIndexState, DATASOURCE);
+            flintIndexStateModel, flintIndexState, DATASOURCE, asyncQueryRequestContext);
 
     assertEquals(responseFlintIndexStateModel, result);
   }
@@ -51,7 +53,8 @@ public class OpenSearchFlintIndexStateModelServiceTest {
         .thenReturn(Optional.of(responseFlintIndexStateModel));
 
     Optional<FlintIndexStateModel> result =
-        openSearchFlintIndexStateModelService.getFlintIndexStateModel("ID", DATASOURCE);
+        openSearchFlintIndexStateModelService.getFlintIndexStateModel(
+            "ID", DATASOURCE, asyncQueryRequestContext);
 
     assertEquals(responseFlintIndexStateModel, result.get());
   }
@@ -63,7 +66,8 @@ public class OpenSearchFlintIndexStateModelServiceTest {
     when(flintIndexStateModel.getDatasourceName()).thenReturn(DATASOURCE);
 
     FlintIndexStateModel result =
-        openSearchFlintIndexStateModelService.createFlintIndexStateModel(flintIndexStateModel);
+        openSearchFlintIndexStateModelService.createFlintIndexStateModel(
+            flintIndexStateModel, asyncQueryRequestContext);
 
     assertEquals(responseFlintIndexStateModel, result);
   }
@@ -73,7 +77,8 @@ public class OpenSearchFlintIndexStateModelServiceTest {
     when(mockStateStore.delete(any(), any())).thenReturn(true);
 
     boolean result =
-        openSearchFlintIndexStateModelService.deleteFlintIndexStateModel(ID, DATASOURCE);
+        openSearchFlintIndexStateModelService.deleteFlintIndexStateModel(
+            ID, DATASOURCE, asyncQueryRequestContext);
 
     assertTrue(result);
   }

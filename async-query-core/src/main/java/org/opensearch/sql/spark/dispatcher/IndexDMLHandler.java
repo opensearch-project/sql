@@ -62,9 +62,11 @@ public class IndexDMLHandler extends AsyncQueryHandler {
     long startTime = System.currentTimeMillis();
     try {
       IndexQueryDetails indexDetails = context.getIndexQueryDetails();
-      FlintIndexMetadata indexMetadata = getFlintIndexMetadata(indexDetails);
+      FlintIndexMetadata indexMetadata =
+          getFlintIndexMetadata(indexDetails, context.getAsyncQueryRequestContext());
 
-      getIndexOp(dispatchQueryRequest, indexDetails).apply(indexMetadata);
+      getIndexOp(dispatchQueryRequest, indexDetails)
+          .apply(indexMetadata, context.getAsyncQueryRequestContext());
 
       String asyncQueryId =
           storeIndexDMLResult(
@@ -146,9 +148,11 @@ public class IndexDMLHandler extends AsyncQueryHandler {
     }
   }
 
-  private FlintIndexMetadata getFlintIndexMetadata(IndexQueryDetails indexDetails) {
+  private FlintIndexMetadata getFlintIndexMetadata(
+      IndexQueryDetails indexDetails, AsyncQueryRequestContext asyncQueryRequestContext) {
     Map<String, FlintIndexMetadata> indexMetadataMap =
-        flintIndexMetadataService.getFlintIndexMetadata(indexDetails.openSearchIndexName());
+        flintIndexMetadataService.getFlintIndexMetadata(
+            indexDetails.openSearchIndexName(), asyncQueryRequestContext);
     if (!indexMetadataMap.containsKey(indexDetails.openSearchIndexName())) {
       throw new IllegalStateException(
           String.format(
@@ -174,7 +178,9 @@ public class IndexDMLHandler extends AsyncQueryHandler {
   }
 
   @Override
-  public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  public String cancelJob(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     throw new IllegalArgumentException("can't cancel index DML query");
   }
 }

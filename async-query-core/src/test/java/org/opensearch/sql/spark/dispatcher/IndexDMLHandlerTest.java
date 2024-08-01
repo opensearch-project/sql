@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.dispatcher;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.datasource.model.DataSourceStatus.ACTIVE;
@@ -27,6 +28,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.config.SparkSubmitParameterModifier;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
@@ -50,6 +52,7 @@ class IndexDMLHandlerTest {
   @Mock private IndexDMLResultStorageService indexDMLResultStorageService;
   @Mock private FlintIndexOpFactory flintIndexOpFactory;
   @Mock private SparkSubmitParameterModifier sparkSubmitParameterModifier;
+  @Mock private AsyncQueryRequestContext asyncQueryRequestContext;
 
   @InjectMocks IndexDMLHandler indexDMLHandler;
 
@@ -82,8 +85,10 @@ class IndexDMLHandlerTest {
             .queryId(QUERY_ID)
             .dataSourceMetadata(metadata)
             .indexQueryDetails(indexQueryDetails)
+            .asyncQueryRequestContext(asyncQueryRequestContext)
             .build();
-    Mockito.when(flintIndexMetadataService.getFlintIndexMetadata(any()))
+    Mockito.when(
+            flintIndexMetadataService.getFlintIndexMetadata(any(), eq(asyncQueryRequestContext)))
         .thenReturn(new HashMap<>());
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -107,10 +112,12 @@ class IndexDMLHandlerTest {
             .queryId(QUERY_ID)
             .dataSourceMetadata(metadata)
             .indexQueryDetails(indexQueryDetails)
+            .asyncQueryRequestContext(asyncQueryRequestContext)
             .build();
     HashMap<String, FlintIndexMetadata> flintMetadataMap = new HashMap<>();
     flintMetadataMap.put(indexQueryDetails.openSearchIndexName(), flintIndexMetadata);
-    when(flintIndexMetadataService.getFlintIndexMetadata(indexQueryDetails.openSearchIndexName()))
+    when(flintIndexMetadataService.getFlintIndexMetadata(
+            indexQueryDetails.openSearchIndexName(), asyncQueryRequestContext))
         .thenReturn(flintMetadataMap);
 
     indexDMLHandler.submit(dispatchQueryRequest, dispatchQueryContext);

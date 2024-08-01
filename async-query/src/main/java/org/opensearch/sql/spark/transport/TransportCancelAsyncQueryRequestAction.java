@@ -13,6 +13,7 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
+import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.tasks.Task;
@@ -41,7 +42,9 @@ public class TransportCancelAsyncQueryRequestAction
       CancelAsyncQueryActionRequest request,
       ActionListener<CancelAsyncQueryActionResponse> listener) {
     try {
-      String jobId = asyncQueryExecutorService.cancelQuery(request.getQueryId());
+      String jobId =
+          asyncQueryExecutorService.cancelQuery(
+              request.getQueryId(), new NullAsyncQueryRequestContext());
       listener.onResponse(
           new CancelAsyncQueryActionResponse(
               String.format("Deleted async query with id: %s", jobId)));

@@ -796,7 +796,8 @@ public class SparkQueryDispatcherTest {
                 .withJobRunId(EMR_JOB_ID)
                 .withApplicationId(EMRS_APPLICATION_ID));
 
-    String queryId = sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata());
+    String queryId =
+        sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata(), asyncQueryRequestContext);
 
     Assertions.assertEquals(QUERY_ID, queryId);
   }
@@ -809,7 +810,8 @@ public class SparkQueryDispatcherTest {
 
     String queryId =
         sparkQueryDispatcher.cancelJob(
-            asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID));
+            asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID),
+            asyncQueryRequestContext);
 
     verifyNoInteractions(emrServerlessClient);
     verify(statement, times(1)).cancel();
@@ -825,7 +827,8 @@ public class SparkQueryDispatcherTest {
             IllegalArgumentException.class,
             () ->
                 sparkQueryDispatcher.cancelJob(
-                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, "invalid")));
+                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, "invalid"),
+                    asyncQueryRequestContext));
 
     verifyNoInteractions(emrServerlessClient);
     verifyNoInteractions(session);
@@ -841,7 +844,8 @@ public class SparkQueryDispatcherTest {
             IllegalArgumentException.class,
             () ->
                 sparkQueryDispatcher.cancelJob(
-                    asyncQueryJobMetadataWithSessionId("invalid", MOCK_SESSION_ID)));
+                    asyncQueryJobMetadataWithSessionId("invalid", MOCK_SESSION_ID),
+                    asyncQueryRequestContext));
 
     verifyNoInteractions(emrServerlessClient);
     verifyNoInteractions(statement);
@@ -858,7 +862,8 @@ public class SparkQueryDispatcherTest {
                 .withJobRunId(EMR_JOB_ID)
                 .withApplicationId(EMRS_APPLICATION_ID));
 
-    String queryId = sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata());
+    String queryId =
+        sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata(), asyncQueryRequestContext);
 
     Assertions.assertEquals(QUERY_ID, queryId);
   }

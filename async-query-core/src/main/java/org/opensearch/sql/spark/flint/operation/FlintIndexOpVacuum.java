@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.flint.operation;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.flint.FlintIndexClient;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
@@ -42,7 +43,10 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
   }
 
   @Override
-  public void runOp(FlintIndexMetadata flintIndexMetadata, FlintIndexStateModel flintIndex) {
+  public void runOp(
+      FlintIndexMetadata flintIndexMetadata,
+      FlintIndexStateModel flintIndex,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     LOG.info("Vacuuming Flint index {}", flintIndexMetadata.getOpensearchIndexName());
     flintIndexClient.deleteIndex(flintIndexMetadata.getOpensearchIndexName());
   }

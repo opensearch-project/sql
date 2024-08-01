@@ -206,7 +206,8 @@ public class AsyncQueryExecutorServiceImplTest {
 
     AsyncQueryNotFoundException asyncQueryNotFoundException =
         Assertions.assertThrows(
-            AsyncQueryNotFoundException.class, () -> jobExecutorService.cancelQuery(EMR_JOB_ID));
+            AsyncQueryNotFoundException.class,
+            () -> jobExecutorService.cancelQuery(EMR_JOB_ID, asyncQueryRequestContext));
 
     Assertions.assertEquals(
         "QueryId: " + EMR_JOB_ID + " not found", asyncQueryNotFoundException.getMessage());
@@ -218,9 +219,10 @@ public class AsyncQueryExecutorServiceImplTest {
   void testCancelJob() {
     when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
         .thenReturn(Optional.of(getAsyncQueryJobMetadata()));
-    when(sparkQueryDispatcher.cancelJob(getAsyncQueryJobMetadata())).thenReturn(EMR_JOB_ID);
+    when(sparkQueryDispatcher.cancelJob(getAsyncQueryJobMetadata(), asyncQueryRequestContext))
+        .thenReturn(EMR_JOB_ID);
 
-    String jobId = jobExecutorService.cancelQuery(EMR_JOB_ID);
+    String jobId = jobExecutorService.cancelQuery(EMR_JOB_ID, asyncQueryRequestContext);
 
     Assertions.assertEquals(EMR_JOB_ID, jobId);
     verifyNoInteractions(sparkExecutionEngineConfigSupplier);

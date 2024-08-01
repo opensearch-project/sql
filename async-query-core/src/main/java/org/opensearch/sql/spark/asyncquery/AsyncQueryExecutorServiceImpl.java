@@ -106,11 +106,11 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
   }
 
   @Override
-  public String cancelQuery(String queryId) {
+  public String cancelQuery(String queryId, AsyncQueryRequestContext asyncQueryRequestContext) {
     Optional<AsyncQueryJobMetadata> asyncQueryJobMetadata =
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
     if (asyncQueryJobMetadata.isPresent()) {
-      return sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata.get());
+      return sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata.get(), asyncQueryRequestContext);
     }
     throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));
   }
