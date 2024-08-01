@@ -18,6 +18,7 @@ public class MockFlintSparkJob {
   private FlintIndexStateModel stateModel;
   private FlintIndexStateModelService flintIndexStateModelService;
   private String datasource;
+  private AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
 
   public MockFlintSparkJob(
       FlintIndexStateModelService flintIndexStateModelService, String latestId, String datasource) {
@@ -34,12 +35,15 @@ public class MockFlintSparkJob {
             .lastUpdateTime(System.currentTimeMillis())
             .error("")
             .build();
-    stateModel = flintIndexStateModelService.createFlintIndexStateModel(stateModel);
+    stateModel =
+        flintIndexStateModelService.createFlintIndexStateModel(
+            stateModel, asyncQueryRequestContext);
   }
 
   public void transition(FlintIndexState newState) {
     stateModel =
-        flintIndexStateModelService.updateFlintIndexState(stateModel, newState, datasource);
+        flintIndexStateModelService.updateFlintIndexState(
+            stateModel, newState, datasource, asyncQueryRequestContext);
   }
 
   public void refreshing() {
@@ -68,7 +72,8 @@ public class MockFlintSparkJob {
 
   public void assertState(FlintIndexState expected) {
     Optional<FlintIndexStateModel> stateModelOpt =
-        flintIndexStateModelService.getFlintIndexStateModel(stateModel.getId(), datasource);
+        flintIndexStateModelService.getFlintIndexStateModel(
+            stateModel.getId(), datasource, asyncQueryRequestContext);
     assertTrue(stateModelOpt.isPresent());
     assertEquals(expected, stateModelOpt.get().getIndexState());
   }

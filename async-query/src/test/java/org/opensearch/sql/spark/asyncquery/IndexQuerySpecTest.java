@@ -152,7 +152,9 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               IllegalArgumentException exception =
                   assertThrows(
                       IllegalArgumentException.class,
-                      () -> asyncQueryExecutorService.cancelQuery(response.getQueryId()));
+                      () ->
+                          asyncQueryExecutorService.cancelQuery(
+                              response.getQueryId(), asyncQueryRequestContext));
               assertEquals("can't cancel index DML query", exception.getMessage());
             });
   }
@@ -326,7 +328,9 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               IllegalArgumentException exception =
                   assertThrows(
                       IllegalArgumentException.class,
-                      () -> asyncQueryExecutorService.cancelQuery(response.getQueryId()));
+                      () ->
+                          asyncQueryExecutorService.cancelQuery(
+                              response.getQueryId(), asyncQueryRequestContext));
               assertEquals("can't cancel index DML query", exception.getMessage());
             });
   }
@@ -901,7 +905,9 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               IllegalArgumentException exception =
                   assertThrows(
                       IllegalArgumentException.class,
-                      () -> asyncQueryExecutorService.cancelQuery(response.getQueryId()));
+                      () ->
+                          asyncQueryExecutorService.cancelQuery(
+                              response.getQueryId(), asyncQueryRequestContext));
               assertEquals(
                   "can't cancel index DML query, using ALTER auto_refresh=off statement to stop"
                       + " job, using VACUUM statement to stop job and delete data",
@@ -944,7 +950,9 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               flintIndexJob.refreshing();
 
               // 2. Cancel query
-              String cancelResponse = asyncQueryExecutorService.cancelQuery(response.getQueryId());
+              String cancelResponse =
+                  asyncQueryExecutorService.cancelQuery(
+                      response.getQueryId(), asyncQueryRequestContext);
 
               assertNotNull(cancelResponse);
               assertTrue(clusterService.state().routingTable().hasIndex(mockDS.indexName));
@@ -992,7 +1000,9 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               IllegalStateException illegalStateException =
                   Assertions.assertThrows(
                       IllegalStateException.class,
-                      () -> asyncQueryExecutorService.cancelQuery(response.getQueryId()));
+                      () ->
+                          asyncQueryExecutorService.cancelQuery(
+                              response.getQueryId(), asyncQueryRequestContext));
               Assertions.assertEquals(
                   "Transaction failed as flint index is not in a valid state.",
                   illegalStateException.getMessage());
@@ -1038,6 +1048,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
     // 2. Cancel query
     Assertions.assertThrows(
         IllegalStateException.class,
-        () -> asyncQueryExecutorService.cancelQuery(response.getQueryId()));
+        () ->
+            asyncQueryExecutorService.cancelQuery(response.getQueryId(), asyncQueryRequestContext));
   }
 }
