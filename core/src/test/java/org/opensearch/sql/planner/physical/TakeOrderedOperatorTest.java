@@ -34,6 +34,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.Expression;
 
 /**
  * To make sure {@link TakeOrderedOperator} can replace {@link SortOperator} + {@link
@@ -80,44 +81,35 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 3, 0, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
+    List<Pair<SortOption, Expression>> sortList =
+        List.of(Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 2, 0, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404))));
-    compare_takeOrdered_with_sort_limit(inputList, 2, 0);
-
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 2, 1, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 2, 1);
-
-    wrapper.setIterator(inputList.iterator());
-    assertEquals(
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        3,
         0,
-        execute(
-            takeOrdered(
-                inputPlan, 0, 1, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))).size());
-    compare_takeOrdered_with_sort_limit(inputList, 0, 1);
+        sortList,
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
+
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        2,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)));
+
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        2,
+        1,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
+
+    test_takeOrdered_with_sort_limit(inputList, 0, 1, sortList);
   }
 
   @Test
@@ -128,36 +120,35 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 320, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 3, 0, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 320, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
+    List<Pair<SortOption, Expression>> sortList =
+        List.of(Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 2, 0, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 320, "response", 404))));
-    compare_takeOrdered_with_sort_limit(inputList, 2, 0);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        3,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 320, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 2, 1, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 320, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 2, 1);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        2,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 320, "response", 404)));
+
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        2,
+        1,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 320, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
+
+    test_takeOrdered_with_sort_limit(inputList, 0, 1, sortList);
   }
 
   @Test
@@ -169,39 +160,38 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(NULL_MAP));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 4, 0, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
+    List<Pair<SortOption, Expression>> sortList =
+        List.of(Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 3, 0, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404))));
-    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        0,
+        sortList,
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 3, 1, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 3, 1);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        3,
+        0,
+        sortList,
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)));
+
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        3,
+        1,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
+
+    test_takeOrdered_with_sort_limit(inputList, 0, 1, sortList);
   }
 
   @Test
@@ -213,39 +203,37 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(ImmutableMap.of("size", 399)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 4, 0, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 399)),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
+    List<Pair<SortOption, Expression>> sortList =
+        List.of(Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)));
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 399)),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 3, 0, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 399)),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404))));
-    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        3,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 399)),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 3, 1, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 3, 1);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        3,
+        1,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
+
+    test_takeOrdered_with_sort_limit(inputList, 0, 1, sortList);
   }
 
   @Test
@@ -256,36 +244,35 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 3, 0, Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200))));
-    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
+    List<Pair<SortOption, Expression>> sortList =
+        List.of(Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 2, 0, Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404))));
-    compare_takeOrdered_with_sort_limit(inputList, 2, 0);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        3,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 2, 1, Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200))));
-    compare_takeOrdered_with_sort_limit(inputList, 2, 1);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        2,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)));
+
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        2,
+        1,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)));
+
+    test_takeOrdered_with_sort_limit(inputList, 0, 1, sortList);
   }
 
   @Test
@@ -297,39 +284,38 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 4, 0, Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(NULL_MAP)));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
+    List<Pair<SortOption, Expression>> sortList =
+        List.of(Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 3, 0, Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200))));
-    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(NULL_MAP));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 3, 1, Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(NULL_MAP)));
-    compare_takeOrdered_with_sort_limit(inputList, 3, 1);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        3,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)));
+
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        3,
+        1,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(NULL_MAP));
+
+    test_takeOrdered_with_sort_limit(inputList, 0, 1, sortList);
   }
 
   @Test
@@ -341,39 +327,38 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 4, 0, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
+    List<Pair<SortOption, Expression>> sortList =
+        List.of(Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 3, 0, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404))));
-    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan, 3, 1, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 3, 1);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        3,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)));
+
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        3,
+        1,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
+
+    test_takeOrdered_with_sort_limit(inputList, 0, 1, sortList);
   }
 
   @Test
@@ -386,54 +371,43 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(NULL_MAP));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                5,
-                0,
-                Pair.of(SortOption.DEFAULT_ASC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404))));
-    compare_takeOrdered_with_sort_limit(inputList, 5, 0);
+    List<Pair<SortOption, Expression>> sortList =
+        List.of(
+            Pair.of(SortOption.DEFAULT_ASC, ref("size", INTEGER)),
+            Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                4,
-                0,
-                Pair.of(SortOption.DEFAULT_ASC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        5,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                4,
-                1,
-                Pair.of(SortOption.DEFAULT_ASC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404))));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 1);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
+
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        1,
+        sortList,
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)));
+
+    test_takeOrdered_with_sort_limit(inputList, 0, 1, sortList);
   }
 
   @Test
@@ -446,54 +420,43 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(NULL_MAP));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                5,
-                0,
-                Pair.of(SortOption.DEFAULT_DESC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200))));
-    compare_takeOrdered_with_sort_limit(inputList, 5, 0);
+    List<Pair<SortOption, Expression>> sortList =
+        List.of(
+            Pair.of(SortOption.DEFAULT_DESC, ref("size", INTEGER)),
+            Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                4,
-                0,
-                Pair.of(SortOption.DEFAULT_DESC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(NULL_MAP)));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        5,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                4,
-                1,
-                Pair.of(SortOption.DEFAULT_DESC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200))));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 1);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(NULL_MAP));
+
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        1,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)));
+
+    test_takeOrdered_with_sort_limit(inputList, 0, 1, sortList);
   }
 
   @Test
@@ -506,54 +469,43 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(NULL_MAP));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                5,
-                0,
-                Pair.of(SortOption.DEFAULT_ASC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404))));
-    compare_takeOrdered_with_sort_limit(inputList, 5, 0);
+    List<Pair<SortOption, Expression>> sortList =
+        List.of(
+            Pair.of(SortOption.DEFAULT_ASC, ref("size", INTEGER)),
+            Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                4,
-                0,
-                Pair.of(SortOption.DEFAULT_ASC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 320, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(NULL_MAP)));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        5,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                4,
-                1,
-                Pair.of(SortOption.DEFAULT_ASC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_DESC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 499, "response", 404))));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 1);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(NULL_MAP));
+
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        1,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)));
+
+    test_takeOrdered_with_sort_limit(inputList, 0, 1, sortList);
   }
 
   @Test
@@ -566,54 +518,43 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(NULL_MAP));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                5,
-                0,
-                Pair.of(SortOption.DEFAULT_DESC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200))));
-    compare_takeOrdered_with_sort_limit(inputList, 5, 0);
+    List<Pair<SortOption, Expression>> sortList =
+        List.of(
+            Pair.of(SortOption.DEFAULT_DESC, ref("size", INTEGER)),
+            Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                4,
-                0,
-                Pair.of(SortOption.DEFAULT_DESC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(ImmutableMap.of("size", 499, "response", 404)),
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503))));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        5,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)));
 
-    wrapper.setIterator(inputList.iterator());
-    assertThat(
-        execute(
-            takeOrdered(
-                inputPlan,
-                4,
-                1,
-                Pair.of(SortOption.DEFAULT_DESC, ref("size", INTEGER)),
-                Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))),
-        contains(
-            tupleValue(NULL_MAP),
-            tupleValue(ImmutableMap.of("size", 399, "response", 200)),
-            tupleValue(ImmutableMap.of("size", 399, "response", 503)),
-            tupleValue(ImmutableMap.of("size", 320, "response", 200))));
-    compare_takeOrdered_with_sort_limit(inputList, 4, 1);
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        0,
+        sortList,
+        tupleValue(ImmutableMap.of("size", 499, "response", 404)),
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)));
+
+    test_takeOrdered_with_sort_limit(
+        inputList,
+        4,
+        1,
+        sortList,
+        tupleValue(NULL_MAP),
+        tupleValue(ImmutableMap.of("size", 399, "response", 200)),
+        tupleValue(ImmutableMap.of("size", 399, "response", 503)),
+        tupleValue(ImmutableMap.of("size", 320, "response", 200)));
+
+    test_takeOrdered_with_sort_limit(inputList, 0, 1, sortList);
   }
 
   @Test
@@ -644,14 +585,23 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
     assertEquals(0, result.size());
   }
 
-  private void compare_takeOrdered_with_sort_limit(List<ExprValue> inputList, int limit, int offset) {
+  private void test_takeOrdered_with_sort_limit(
+      List<ExprValue> inputList,
+      int limit,
+      int offset,
+      List<Pair<SortOption, Expression>> sortList,
+      ExprValue... expected) {
     wrapper.setIterator(inputList.iterator());
-    List<ExprValue> expectedResult = execute(limit(sort(
-        inputPlan, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER))), limit, offset));
+    List<ExprValue> compareResult =
+        execute(limit(sort(inputPlan, sortList.toArray(Pair[]::new)), limit, offset));
     wrapper.setIterator(inputList.iterator());
-    List<ExprValue> actualResult = execute(
-        takeOrdered(
-            inputPlan, limit, offset, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER))));
-    assertEquals(expectedResult, actualResult);
+    List<ExprValue> testResult =
+        execute(takeOrdered(inputPlan, limit, offset, sortList.toArray(Pair[]::new)));
+    assertEquals(compareResult, testResult);
+    if (expected.length == 0) {
+      assertEquals(0, testResult.size());
+    } else {
+      assertThat(testResult, contains(expected));
+    }
   }
 }
