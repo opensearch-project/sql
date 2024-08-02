@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.expression.DSL.ref;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.limit;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.sort;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.takeOrdered;
 
 import com.google.common.collect.ImmutableMap;
@@ -87,6 +89,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -96,6 +99,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
         contains(
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404))));
+    compare_takeOrdered_with_sort_limit(inputList, 2, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -105,6 +109,15 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
         contains(
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 2, 1);
+
+    wrapper.setIterator(inputList.iterator());
+    assertEquals(
+        0,
+        execute(
+            takeOrdered(
+                inputPlan, 0, 1, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))).size());
+    compare_takeOrdered_with_sort_limit(inputList, 0, 1);
   }
 
   @Test
@@ -124,6 +137,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 320, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -133,6 +147,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
         contains(
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 320, "response", 404))));
+    compare_takeOrdered_with_sort_limit(inputList, 2, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -142,6 +157,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
         contains(
             tupleValue(ImmutableMap.of("size", 320, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 2, 1);
   }
 
   @Test
@@ -163,6 +179,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -173,6 +190,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(NULL_MAP),
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404))));
+    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -183,6 +201,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 3, 1);
   }
 
   @Test
@@ -204,6 +223,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -214,6 +234,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399)),
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404))));
+    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -224,6 +245,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 3, 1);
   }
 
   @Test
@@ -243,6 +265,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 320, "response", 200))));
+    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -252,6 +275,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
         contains(
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404))));
+    compare_takeOrdered_with_sort_limit(inputList, 2, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -261,6 +285,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
         contains(
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 320, "response", 200))));
+    compare_takeOrdered_with_sort_limit(inputList, 2, 1);
   }
 
   @Test
@@ -282,6 +307,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(NULL_MAP)));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -292,6 +318,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 320, "response", 200))));
+    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -302,6 +329,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(NULL_MAP)));
+    compare_takeOrdered_with_sort_limit(inputList, 3, 1);
   }
 
   @Test
@@ -323,6 +351,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -333,6 +362,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 320, "response", 200)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404))));
+    compare_takeOrdered_with_sort_limit(inputList, 3, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -343,6 +373,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 3, 1);
   }
 
   @Test
@@ -370,6 +401,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404))));
+    compare_takeOrdered_with_sort_limit(inputList, 5, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -385,6 +417,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(NULL_MAP),
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -400,6 +433,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(ImmutableMap.of("size", 499, "response", 404))));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 1);
   }
 
   @Test
@@ -427,6 +461,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(NULL_MAP),
             tupleValue(ImmutableMap.of("size", 320, "response", 200))));
+    compare_takeOrdered_with_sort_limit(inputList, 5, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -442,6 +477,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(NULL_MAP)));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -457,6 +493,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(NULL_MAP),
             tupleValue(ImmutableMap.of("size", 320, "response", 200))));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 1);
   }
 
   @Test
@@ -484,6 +521,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(NULL_MAP),
             tupleValue(ImmutableMap.of("size", 499, "response", 404))));
+    compare_takeOrdered_with_sort_limit(inputList, 5, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -499,6 +537,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(NULL_MAP)));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -514,6 +553,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(NULL_MAP),
             tupleValue(ImmutableMap.of("size", 499, "response", 404))));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 1);
   }
 
   @Test
@@ -541,6 +581,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(ImmutableMap.of("size", 320, "response", 200))));
+    compare_takeOrdered_with_sort_limit(inputList, 5, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -556,6 +597,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(NULL_MAP),
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503))));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 0);
 
     wrapper.setIterator(inputList.iterator());
     assertThat(
@@ -571,6 +613,7 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("size", 399, "response", 200)),
             tupleValue(ImmutableMap.of("size", 399, "response", 503)),
             tupleValue(ImmutableMap.of("size", 320, "response", 200))));
+    compare_takeOrdered_with_sort_limit(inputList, 4, 1);
   }
 
   @Test
@@ -599,5 +642,16 @@ class TakeOrderedOperatorTest extends PhysicalPlanTestBase {
         takeOrdered(inputPlan, 1, 6, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)));
     List<ExprValue> result = execute(plan);
     assertEquals(0, result.size());
+  }
+
+  private void compare_takeOrdered_with_sort_limit(List<ExprValue> inputList, int limit, int offset) {
+    wrapper.setIterator(inputList.iterator());
+    List<ExprValue> expectedResult = execute(limit(sort(
+        inputPlan, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER))), limit, offset));
+    wrapper.setIterator(inputList.iterator());
+    List<ExprValue> actualResult = execute(
+        takeOrdered(
+            inputPlan, limit, offset, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER))));
+    assertEquals(expectedResult, actualResult);
   }
 }
