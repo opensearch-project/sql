@@ -22,7 +22,7 @@ import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsLexer;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseLexer;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
-import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.IdentifierReferenceContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.MultipartIdentifierContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParserBaseVisitor;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
@@ -108,15 +108,15 @@ public class SQLQueryUtils {
     public SparkSqlTableNameVisitor() {}
 
     @Override
-    public Void visitIdentifierReference(IdentifierReferenceContext ctx) {
+    public Void visitMultipartIdentifier(MultipartIdentifierContext ctx) {
       fullyQualifiedTableNames.add(new FullyQualifiedTableName(ctx.getText()));
-      return super.visitIdentifierReference(ctx);
+      return super.visitMultipartIdentifier(ctx);
     }
 
     @Override
     public Void visitDropTable(SqlBaseParser.DropTableContext ctx) {
       for (ParseTree parseTree : ctx.children) {
-        if (parseTree instanceof SqlBaseParser.IdentifierReferenceContext) {
+        if (parseTree instanceof SqlBaseParser.MultipartIdentifierContext) {
           fullyQualifiedTableNames.add(new FullyQualifiedTableName(parseTree.getText()));
         }
       }
@@ -126,7 +126,7 @@ public class SQLQueryUtils {
     @Override
     public Void visitDescribeRelation(SqlBaseParser.DescribeRelationContext ctx) {
       for (ParseTree parseTree : ctx.children) {
-        if (parseTree instanceof SqlBaseParser.IdentifierReferenceContext) {
+        if (parseTree instanceof SqlBaseParser.MultipartIdentifierContext) {
           fullyQualifiedTableNames.add(new FullyQualifiedTableName(parseTree.getText()));
         }
       }
@@ -137,7 +137,7 @@ public class SQLQueryUtils {
     @Override
     public Void visitCreateTableHeader(SqlBaseParser.CreateTableHeaderContext ctx) {
       for (ParseTree parseTree : ctx.children) {
-        if (parseTree instanceof SqlBaseParser.IdentifierReferenceContext) {
+        if (parseTree instanceof SqlBaseParser.MultipartIdentifierContext) {
           fullyQualifiedTableNames.add(new FullyQualifiedTableName(parseTree.getText()));
         }
       }
