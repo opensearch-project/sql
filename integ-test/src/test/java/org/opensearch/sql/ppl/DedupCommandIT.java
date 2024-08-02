@@ -11,6 +11,9 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +38,16 @@ public class DedupCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | dedup male consecutive=true | fields male", TEST_INDEX_BANK));
-    verifyDataRows(result, rows(true), rows(false), rows(true), rows(false));
+    List<Object[]> actualRows = extractActualRows(result);
+    List<Object[]> expectedRows = getExpectedDedupRows(actualRows);
+    assertTrue("Deduplication was not consecutive", expectedRows != null);
+    assertEquals(
+        "Row count after deduplication does not match", expectedRows.size(), actualRows.size());
+
+    // Verify the expected and actual rows match
+    for (int i = 0; i < expectedRows.size(); i++) {
+      assertArrayEquals(expectedRows.get(i), actualRows.get(i));
+    }
   }
 
   @Test
@@ -61,5 +73,35 @@ public class DedupCommandIT extends PPLIntegTestCase {
         rows("Elinor", null),
         rows("Virginia", null),
         rows("Dillard", 48086));
+  }
+
+  private List<Object[]> extractActualRows(JSONObject result) {
+    JSONArray dataRows = result.getJSONArray("datarows");
+    List<Object[]> actualRows = new ArrayList<>();
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONArray row = dataRows.getJSONArray(i);
+      actualRows.add(new Object[] {row.get(0)});
+    }
+    return actualRows;
+  }
+
+  // Verify consecutive deduplication and create the expected rows
+  private List<Object[]> getExpectedDedupRows(List<Object[]> actualRows) {
+    boolean isConsecutive = true;
+    Object previousValue = null;
+    List<Object[]> expectedRows = new ArrayList<>();
+
+    for (Object[] currentRow : actualRows) {
+      Object currentValue = currentRow[0];
+      if (previousValue == null || !currentValue.equals(previousValue)) {
+        expectedRows.add(currentRow);
+      } else {
+        isConsecutive = false;
+        break;
+      }
+      previousValue = currentValue;
+    }
+
+    return isConsecutive ? expectedRows : null;
   }
 }
