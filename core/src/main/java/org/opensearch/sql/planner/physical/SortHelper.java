@@ -15,11 +15,21 @@ import org.opensearch.sql.expression.Expression;
 
 public interface SortHelper {
 
+  /**
+   * Construct an expr comparator for sorting on ExprValue.
+   * @param sortList list of sort fields and their related sort options.
+   * @return A comparator for ExprValue
+   */
   static Comparator<ExprValue> constructExprComparator(
       List<Pair<SortOption, Expression>> sortList) {
     return (o1, o2) -> compareWithExpressions(o1, o2, constructComparator(sortList));
   }
 
+  /**
+   * Construct an expr ordering for efficiently taking the top-k elements on ExprValue.
+   * @param sortList list of sort fields and their related sort options.
+   * @return An guava ordering for ExprValue
+   */
   static Ordering<ExprValue> constructExprOrdering(List<Pair<SortOption, Expression>> sortList) {
     return Ordering.from(constructExprComparator(sortList));
   }
