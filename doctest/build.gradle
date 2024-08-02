@@ -5,6 +5,8 @@
 
 import org.opensearch.gradle.testclusters.RunTask
 
+import java.util.concurrent.Callable
+
 plugins {
     id 'base'
     id 'com.wiredforcode.spawn'
@@ -109,6 +111,10 @@ if (version_tokens.length > 1) {
 String mlCommonsRemoteFile = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/latest/linux/x64/tar/builds/opensearch/plugins/opensearch-ml-' + opensearch_build + '.zip'
 String mlCommonsPlugin = 'opensearch-ml'
 
+String bwcOpenSearchJSDownload = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + opensearch_no_snapshot + '/latest/linux/x64/tar/builds/' +
+        'opensearch/plugins/opensearch-job-scheduler-' + opensearch_build + '.zip'
+String jsPlugin = 'opensearch-job-scheduler'
+
 testClusters {
     docTestCluster {
         // Disable loading of `ML-commons` plugin, because it might be unavailable (not released yet).
@@ -133,6 +139,7 @@ testClusters {
             }
         }))
         */
+        plugin(getJobSchedulerPlugin(jsPlugin, bwcOpenSearchJSDownload))
         plugin ':opensearch-sql-plugin'
         testDistribution = 'archive'
     }
@@ -158,4 +165,50 @@ spotless {
         endWithNewline()
         googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
+}
+
+def getJobSchedulerPlugin(String jsPlugin, String bwcOpenSearchJSDownload) {
+    return provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    // Use absolute paths
+                    String basePath = new File('.').getCanonicalPath()
+                    File dir = new File(basePath + File.separator + 'doctest' + File.separator + jsPlugin)
+
+                    // Log the directory path for debugging
+                    println("Creating directory: " + dir.getAbsolutePath())
+
+                    // Create directory if it doesn't exist
+                    if (!dir.exists()) {
+                        if (!dir.mkdirs()) {
+                            throw new IOException("Failed to create directory: " + dir.getAbsolutePath())
+                        }
+                    }
+
+                    // Define the file path
+                    File f = new File(dir, jsPlugin + '-' + opensearch_build + '.zip')
+
+                    // Download file if it doesn't exist
+                    if (!f.exists()) {
+                        println("Downloading file from: " + bwcOpenSearchJSDownload)
+                        println("Saving to file: " + f.getAbsolutePath())
+
+                        new URL(bwcOpenSearchJSDownload).withInputStream { ins ->
+                            f.withOutputStream { it << ins }
+                        }
+                    }
+
+                    // Check if the file was created successfully
+                    if (!f.exists()) {
+                        throw new FileNotFoundException("File was not created: " + f.getAbsolutePath())
+                    }
+
+                    return fileTree(f.getParent()).matching { include f.getName() }.singleFile
+                }
+            }
+        }
+    })
 }

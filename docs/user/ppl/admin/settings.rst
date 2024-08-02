@@ -125,9 +125,9 @@ plugins.query.size_limit
 Description
 -----------
 
-The size configure the maximum amount of documents to be pull from OpenSearch. The default value is: 200
+The size configure the maximum amount of documents to be pull from OpenSearch. The default value is: 10000
 
-Notes: This setting will impact the correctness of the aggregation operation, for example, there are 1000 docs in the index, by default, only 200 docs will be extract from index and do aggregation.
+Notes: This setting will impact the correctness of the aggregation operation, for example, there are 1000 docs in the index, if you change the value to 200, only 200 docs will be extract from index and do aggregation.
 
 Example
 -------

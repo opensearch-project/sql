@@ -17,6 +17,7 @@ import org.opensearch.sql.datasource.model.DataSourceStatus;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
@@ -29,6 +30,8 @@ public class FlintStreamingJobHouseKeeperTask implements Runnable {
   private final DataSourceService dataSourceService;
   private final FlintIndexMetadataService flintIndexMetadataService;
   private final FlintIndexOpFactory flintIndexOpFactory;
+  private final NullAsyncQueryRequestContext nullAsyncQueryRequestContext =
+      new NullAsyncQueryRequestContext();
 
   private static final Logger LOGGER = LogManager.getLogger(FlintStreamingJobHouseKeeperTask.class);
   protected static final AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -91,7 +94,9 @@ public class FlintStreamingJobHouseKeeperTask implements Runnable {
       String autoRefreshIndex, FlintIndexMetadata flintIndexMetadata, String datasourceName) {
     // When the datasource is deleted. Possibly Replace with VACUUM Operation.
     LOGGER.info("Attempting to drop auto refresh index: {}", autoRefreshIndex);
-    flintIndexOpFactory.getDrop(datasourceName).apply(flintIndexMetadata);
+    flintIndexOpFactory
+        .getDrop(datasourceName)
+        .apply(flintIndexMetadata, nullAsyncQueryRequestContext);
     LOGGER.info("Successfully dropped index: {}", autoRefreshIndex);
   }
 
@@ -100,7 +105,9 @@ public class FlintStreamingJobHouseKeeperTask implements Runnable {
     LOGGER.info("Attempting to alter index: {}", autoRefreshIndex);
     FlintIndexOptions flintIndexOptions = new FlintIndexOptions();
     flintIndexOptions.setOption(FlintIndexOptions.AUTO_REFRESH, "false");
-    flintIndexOpFactory.getAlter(flintIndexOptions, datasourceName).apply(flintIndexMetadata);
+    flintIndexOpFactory
+        .getAlter(flintIndexOptions, datasourceName)
+        .apply(flintIndexMetadata, nullAsyncQueryRequestContext);
     LOGGER.info("Successfully altered index: {}", autoRefreshIndex);
   }
 
@@ -119,7 +126,7 @@ public class FlintStreamingJobHouseKeeperTask implements Runnable {
 
   private Map<String, FlintIndexMetadata> getAllAutoRefreshIndices() {
     Map<String, FlintIndexMetadata> flintIndexMetadataHashMap =
-        flintIndexMetadataService.getFlintIndexMetadata("flint_*");
+        flintIndexMetadataService.getFlintIndexMetadata("flint_*", nullAsyncQueryRequestContext);
     return flintIndexMetadataHashMap.entrySet().stream()
         .filter(entry -> entry.getValue().getFlintIndexOptions().autoRefresh())
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

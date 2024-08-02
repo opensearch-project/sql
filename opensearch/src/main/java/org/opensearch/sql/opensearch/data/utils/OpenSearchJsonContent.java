@@ -7,11 +7,19 @@ package org.opensearch.sql.opensearch.data.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Iterators;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.OpenSearchParseException;
+import org.opensearch.common.geo.GeoPoint;
+import org.opensearch.common.geo.GeoUtils;
+import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.core.xcontent.DeprecationHandler;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
 
 /** The Implementation of Content to represent {@link JsonNode}. */
 @RequiredArgsConstructor
@@ -122,42 +130,22 @@ public class OpenSearchJsonContent implements Content {
   @Override
   public Pair<Double, Double> geoValue() {
     final JsonNode value = value();
-    if (value.has("lat") && value.has("lon")) {
-      Double lat = 0d;
-      Double lon = 0d;
-      try {
-        lat = extractDoubleValue(value.get("lat"));
-      } catch (Exception exception) {
-        throw new IllegalStateException(
-            "latitude must be number value, but got value: " + value.get("lat"));
-      }
-      try {
-        lon = extractDoubleValue(value.get("lon"));
-      } catch (Exception exception) {
-        throw new IllegalStateException(
-            "longitude must be number value, but got value: " + value.get("lon"));
-      }
-      return Pair.of(lat, lon);
-    } else {
-      throw new IllegalStateException(
-          "geo point must in format of {\"lat\": number, \"lon\": number}");
+    try (XContentParser parser =
+        new JsonXContentParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.IGNORE_DEPRECATIONS,
+            value.traverse())) {
+      parser.nextToken();
+      GeoPoint point = new GeoPoint();
+      GeoUtils.parseGeoPoint(parser, point, true);
+      return Pair.of(point.getLat(), point.getLon());
+    } catch (IOException ex) {
+      throw new OpenSearchParseException("error parsing geo point", ex);
     }
   }
 
   /** Getter for value. If value is array the whole array is returned. */
   private JsonNode value() {
     return value;
-  }
-
-  /** Get doubleValue from JsonNode if possible. */
-  private Double extractDoubleValue(JsonNode node) {
-    if (node.isTextual()) {
-      return Double.valueOf(node.textValue());
-    }
-    if (node.isNumber()) {
-      return node.doubleValue();
-    } else {
-      throw new IllegalStateException("node must be a number");
-    }
   }
 }

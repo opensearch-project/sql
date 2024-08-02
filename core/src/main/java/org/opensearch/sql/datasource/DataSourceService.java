@@ -82,6 +82,9 @@ public interface DataSourceService {
    * Specifically for addressing use cases in SparkQueryDispatcher.
    *
    * @param dataSourceName of the {@link DataSource}
+   * @param context request context used by the implementation. It is passed by async-query-core.
+   *     refer {@link RequestContext}
    */
-  DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(String dataSourceName);
+  DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(
+      String dataSourceName, RequestContext context);
 }

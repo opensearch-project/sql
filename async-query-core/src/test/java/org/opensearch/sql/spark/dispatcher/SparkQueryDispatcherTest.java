@@ -180,7 +180,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -223,7 +224,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithLakeFormation();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -255,7 +257,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithBasicAuth();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -278,7 +281,8 @@ public class SparkQueryDispatcherTest {
     doReturn(new StatementId(MOCK_STATEMENT_ID)).when(session).submit(any(), any());
     when(session.getSessionModel().getJobId()).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -304,7 +308,8 @@ public class SparkQueryDispatcherTest {
     when(session.getSessionModel().getJobId()).thenReturn(EMR_JOB_ID);
     when(session.isOperationalForDataSource(any())).thenReturn(true);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -324,7 +329,8 @@ public class SparkQueryDispatcherTest {
     doReturn(true).when(sessionManager).isEnabled();
     doThrow(RuntimeException.class).when(sessionManager).createSession(any(), any());
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     Assertions.assertThrows(
@@ -358,7 +364,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -393,7 +400,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            "my_glue", asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -426,7 +434,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -450,7 +459,8 @@ public class SparkQueryDispatcherTest {
         "CREATE TEMPORARY FUNCTION square AS 'org.apache.spark.sql.functions.expr(\"num * num\")'");
     for (String query : udfQueries) {
       DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-      when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+      when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+              MY_GLUE, asyncQueryRequestContext))
           .thenReturn(dataSourceMetadata);
 
       IllegalArgumentException illegalArgumentException =
@@ -489,7 +499,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -532,7 +543,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -568,7 +580,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -589,8 +602,7 @@ public class SparkQueryDispatcherTest {
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
     String query =
-        "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs WITH"
-            + " (auto_refresh = true)";
+        "CREATE MATERIALIZED VIEW mv_1 AS select * from logs WITH" + " (auto_refresh = true)";
     String sparkSubmitParameters = constructExpectedSparkSubmitParameterString(query, "streaming");
     StartJobRequest expected =
         new StartJobRequest(
@@ -604,7 +616,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -637,7 +650,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -670,7 +684,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -703,7 +718,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -739,7 +755,8 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            "my_glue", asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -762,7 +779,8 @@ public class SparkQueryDispatcherTest {
         "ALTER INDEX elb_and_requestUri ON my_glue.default.http_logs WITH"
             + " (auto_refresh = false)";
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            "my_glue", asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
     when(queryHandlerFactory.getIndexDMLHandler())
         .thenReturn(
@@ -785,7 +803,8 @@ public class SparkQueryDispatcherTest {
 
     String query = "DROP INDEX elb_and_requestUri ON my_glue.default.http_logs";
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            "my_glue", asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
     when(queryHandlerFactory.getIndexDMLHandler())
         .thenReturn(
@@ -808,7 +827,8 @@ public class SparkQueryDispatcherTest {
 
     String query = "VACUUM INDEX elb_and_requestUri ON my_glue.default.http_logs";
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            "my_glue", asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
     when(queryHandlerFactory.getIndexDMLHandler())
         .thenReturn(
@@ -824,7 +844,8 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchWithUnSupportedDataSourceType() {
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_prometheus"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            "my_prometheus", asyncQueryRequestContext))
         .thenReturn(constructPrometheusDataSourceType());
     String query = "select * from my_prometheus.default.http_logs";
 
@@ -850,7 +871,8 @@ public class SparkQueryDispatcherTest {
                 .withJobRunId(EMR_JOB_ID)
                 .withApplicationId(EMRS_APPLICATION_ID));
 
-    String queryId = sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata());
+    String queryId =
+        sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata(), asyncQueryRequestContext);
 
     Assertions.assertEquals(QUERY_ID, queryId);
   }
@@ -863,7 +885,8 @@ public class SparkQueryDispatcherTest {
 
     String queryId =
         sparkQueryDispatcher.cancelJob(
-            asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID));
+            asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID),
+            asyncQueryRequestContext);
 
     verifyNoInteractions(emrServerlessClient);
     verify(statement, times(1)).cancel();
@@ -879,7 +902,8 @@ public class SparkQueryDispatcherTest {
             IllegalArgumentException.class,
             () ->
                 sparkQueryDispatcher.cancelJob(
-                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, "invalid")));
+                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, "invalid"),
+                    asyncQueryRequestContext));
 
     verifyNoInteractions(emrServerlessClient);
     verifyNoInteractions(session);
@@ -895,7 +919,8 @@ public class SparkQueryDispatcherTest {
             IllegalArgumentException.class,
             () ->
                 sparkQueryDispatcher.cancelJob(
-                    asyncQueryJobMetadataWithSessionId("invalid", MOCK_SESSION_ID)));
+                    asyncQueryJobMetadataWithSessionId("invalid", MOCK_SESSION_ID),
+                    asyncQueryRequestContext));
 
     verifyNoInteractions(emrServerlessClient);
     verifyNoInteractions(statement);
@@ -912,7 +937,8 @@ public class SparkQueryDispatcherTest {
                 .withJobRunId(EMR_JOB_ID)
                 .withApplicationId(EMRS_APPLICATION_ID));
 
-    String queryId = sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata());
+    String queryId =
+        sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata(), asyncQueryRequestContext);
 
     Assertions.assertEquals(QUERY_ID, queryId);
   }
@@ -1018,7 +1044,8 @@ public class SparkQueryDispatcherTest {
   void testDispatchQueryWithExtraSparkSubmitParameters() {
     when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
         .thenReturn(dataSourceMetadata);
 
     String extraParameters = "--conf spark.dynamicAllocation.enabled=false";
