@@ -17,6 +17,7 @@ public interface SortHelper {
 
   /**
    * Construct an expr comparator for sorting on ExprValue.
+   *
    * @param sortList list of sort fields and their related sort options.
    * @return A comparator for ExprValue
    */
@@ -27,6 +28,7 @@ public interface SortHelper {
 
   /**
    * Construct an expr ordering for efficiently taking the top-k elements on ExprValue.
+   *
    * @param sortList list of sort fields and their related sort options.
    * @return An guava ordering for ExprValue
    */
