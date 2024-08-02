@@ -42,6 +42,9 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
 import org.opensearch.indices.SystemIndexDescriptor;
+import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
+import org.opensearch.jobscheduler.spi.ScheduledJobParser;
+import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ScriptPlugin;
@@ -91,6 +94,9 @@ import org.opensearch.sql.spark.cluster.ClusterManagerEventListener;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
+import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
+import org.opensearch.sql.spark.scheduler.OpenSearchRefreshIndexJobRequestParser;
+import org.opensearch.sql.spark.scheduler.job.OpenSearchRefreshIndexJob;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
@@ -105,7 +111,8 @@ import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, SystemIndexPlugin {
+public class SQLPlugin extends Plugin
+    implements ActionPlugin, ScriptPlugin, SystemIndexPlugin, JobSchedulerExtension {
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
@@ -116,6 +123,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Sys
 
   private NodeClient client;
   private DataSourceServiceImpl dataSourceService;
+  private OpenSearchAsyncQueryScheduler asyncQueryScheduler;
   private Injector injector;
 
   public String name() {
@@ -208,6 +216,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Sys
     this.client = (NodeClient) client;
     this.dataSourceService = createDataSourceService();
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
+    this.asyncQueryScheduler = new OpenSearchAsyncQueryScheduler();
+    this.asyncQueryScheduler.loadJobResource(client, clusterService, threadPool);
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
     LocalClusterState.state().setClient(client);
@@ -241,6 +251,26 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Sys
         injector.getInstance(AsyncQueryExecutorService.class),
         clusterManagerEventListener,
         pluginSettings);
+  }
+
+  @Override
+  public String getJobType() {
+    return OpenSearchAsyncQueryScheduler.SCHEDULER_PLUGIN_JOB_TYPE;
+  }
+
+  @Override
+  public String getJobIndex() {
+    return OpenSearchAsyncQueryScheduler.SCHEDULER_INDEX_NAME;
+  }
+
+  @Override
+  public ScheduledJobRunner getJobRunner() {
+    return OpenSearchRefreshIndexJob.getJobRunnerInstance();
+  }
+
+  @Override
+  public ScheduledJobParser getJobParser() {
+    return OpenSearchRefreshIndexJobRequestParser.getJobParser();
   }
 
   @Override
