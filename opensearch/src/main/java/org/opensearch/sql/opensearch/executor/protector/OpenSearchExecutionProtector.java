@@ -23,6 +23,7 @@ import org.opensearch.sql.planner.physical.RareTopNOperator;
 import org.opensearch.sql.planner.physical.RemoveOperator;
 import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
+import org.opensearch.sql.planner.physical.TakeOrderedOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -128,6 +129,17 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   @Override
   public PhysicalPlan visitSort(SortOperator node, Object context) {
     return doProtect(new SortOperator(visitInput(node.getInput(), context), node.getSortList()));
+  }
+
+  /** Decorate with {@link ResourceMonitorPlan}. */
+  @Override
+  public PhysicalPlan visitTakeOrdered(TakeOrderedOperator node, Object context) {
+    return doProtect(
+        new TakeOrderedOperator(
+            visitInput(node.getInput(), context),
+            node.getLimit(),
+            node.getOffset(),
+            node.getSortList()));
   }
 
   /**

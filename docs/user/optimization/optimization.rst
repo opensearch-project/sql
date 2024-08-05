@@ -237,31 +237,24 @@ If sort that includes expression, which cannot be merged into query DSL, also ex
             },
             "children": [
               {
-                "name": "LimitOperator",
+                "name": "TakeOrderedOperator",
                 "description": {
                   "limit": 10,
-                  "offset": 0
+                  "offset": 0,
+                  "sortList": {
+                    "abs(age)": {
+                      "sortOrder": "ASC",
+                      "nullOrder": "NULL_FIRST"
+                    }
+                  }
                 },
                 "children": [
                   {
-                    "name": "SortOperator",
+                    "name": "OpenSearchIndexScan",
                     "description": {
-                      "sortList": {
-                        "abs(age)": {
-                          "sortOrder": "ASC",
-                          "nullOrder": "NULL_FIRST"
-                        }
-                      }
+                      "request": "OpenSearchQueryRequest(indexName=accounts, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, searchDone=false)"
                     },
-                    "children": [
-                      {
-                        "name": "OpenSearchIndexScan",
-                        "description": {
-                          "request": "OpenSearchQueryRequest(indexName=accounts, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, searchDone=false)"
-                        },
-                        "children": []
-                      }
-                    ]
+                    "children": []
                   }
                 ]
               }

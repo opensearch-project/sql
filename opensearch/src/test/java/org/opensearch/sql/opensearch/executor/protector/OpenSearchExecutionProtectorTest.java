@@ -68,6 +68,7 @@ import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
+import org.opensearch.sql.planner.physical.TakeOrderedOperator;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -304,6 +305,16 @@ class OpenSearchExecutionProtectorTest {
     var plan = new CursorCloseOperator(child);
     assertSame(plan, executionProtector.protect(plan));
     verify(child, never()).accept(executionProtector, null);
+  }
+
+  @Test
+  public void test_visitTakeOrdered() {
+    Pair<Sort.SortOption, Expression> sort =
+        ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("a", INTEGER));
+    TakeOrderedOperator takeOrdered =
+        PhysicalPlanDSL.takeOrdered(PhysicalPlanDSL.values(emptyList()), 10, 5, sort);
+    assertEquals(
+        resourceMonitor(takeOrdered), executionProtector.visitTakeOrdered(takeOrdered, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {
