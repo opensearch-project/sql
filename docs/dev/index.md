@@ -59,6 +59,7 @@
   + [Pagination](opensearch-pagination.md): pagination implementation by OpenSearch scroll API
   + [Pagination in V2](Pagination-v2.md): pagination implementation in V2 engine
   + [Nested Function](sql-nested-function.md): Nested function in sql plugin
+  + [Join Field Type](opensearch-same-table-join-query.md): Same-Table Joins using the OpenSearch join field type
 + [Prometheus](datasource-prometheus.md): Prometheus query federation
 + **File System**
   + [Querying S3](datasource-query-s3.md): S3 query federation proposal
