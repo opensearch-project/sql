@@ -23,7 +23,11 @@ import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.Rule;
 
-/** */
+/**
+ * Rule template for all rules related to push down logical plans under eval, so these plans can
+ * avoid blocking by eval and may have chances to be pushed down into table scan by rules in {@link
+ * org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown}.
+ */
 public class EvalPushDown<T extends LogicalPlan> implements Rule<T> {
 
   // TODO: Add more rules to push down sort and project
