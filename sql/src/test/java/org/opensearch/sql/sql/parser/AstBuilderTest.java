@@ -17,6 +17,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
+import static org.opensearch.sql.ast.dsl.AstDSL.having;
 import static org.opensearch.sql.ast.dsl.AstDSL.highlight;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.limit;
@@ -176,7 +177,8 @@ class AstBuilderTest extends AstBuilderTestBase {
                 ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                 emptyList(),
                 ImmutableList.of(alias("name", qualifiedName("name"))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(qualifiedName("name"), aggregate("AVG", qualifiedName("age")))),
             alias("name", qualifiedName("name")),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         buildAST("SELECT name, AVG(age) FROM test GROUP BY name"));
@@ -191,7 +193,10 @@ class AstBuilderTest extends AstBuilderTestBase {
                 ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                 emptyList(),
                 ImmutableList.of(alias("abs(name)", function("abs", qualifiedName("name")))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(
+                    function("abs", qualifiedName("name")),
+                    aggregate("AVG", qualifiedName("age")))),
             alias("abs(name)", function("abs", qualifiedName("name"))),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         buildAST("SELECT abs(name), AVG(age) FROM test GROUP BY abs(name)"));
@@ -206,7 +211,10 @@ class AstBuilderTest extends AstBuilderTestBase {
                 ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                 emptyList(),
                 ImmutableList.of(alias("ABS(name)", function("ABS", qualifiedName("name")))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(
+                    function("ABS", qualifiedName("name")),
+                    aggregate("AVG", qualifiedName("age")))),
             alias("ABS(name)", function("ABS", qualifiedName("name"))),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         buildAST("SELECT ABS(name), AVG(age) FROM test GROUP BY 1"));
@@ -221,7 +229,10 @@ class AstBuilderTest extends AstBuilderTestBase {
                 ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                 emptyList(),
                 ImmutableList.of(alias("abs(name)", function("abs", qualifiedName("name")))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(
+                    function("abs", qualifiedName("name")),
+                    aggregate("AVG", qualifiedName("age")))),
             alias("abs(name)", function("abs", qualifiedName("name")), "n"),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         buildAST("SELECT abs(name) as n, AVG(age) FROM test GROUP BY n"));
@@ -236,7 +247,10 @@ class AstBuilderTest extends AstBuilderTestBase {
                 ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                 emptyList(),
                 ImmutableList.of(alias("abs(name)", function("abs", qualifiedName("name")))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(
+                    function("abs", qualifiedName("name")),
+                    aggregate("AVG", qualifiedName("age")))),
             alias("abs(name)", function("abs", qualifiedName("name")), "n"),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         buildAST("SELECT abs(name) as n, AVG(age) FROM test GROUP BY 1"));
@@ -261,14 +275,20 @@ class AstBuilderTest extends AstBuilderTestBase {
     assertEquals(
         project(
             filter(
-                agg(
-                    relation("test"),
+                having(
+                    agg(
+                        relation("test"),
+                        ImmutableList.of(
+                            alias("AVG(age)", aggregate("AVG", qualifiedName("age"))),
+                            alias("MIN(balance)", aggregate("MIN", qualifiedName("balance")))),
+                        emptyList(),
+                        ImmutableList.of(alias("name", qualifiedName("name"))),
+                        emptyList(),
+                        ImmutableList.of(
+                            qualifiedName("name"), aggregate("AVG", qualifiedName("age")))),
                     ImmutableList.of(
-                        alias("AVG(age)", aggregate("AVG", qualifiedName("age"))),
                         alias("MIN(balance)", aggregate("MIN", qualifiedName("balance")))),
-                    emptyList(),
-                    ImmutableList.of(alias("name", qualifiedName("name"))),
-                    emptyList()),
+                    function(">", aggregate("MIN", qualifiedName("balance")), intLiteral(1000))),
                 function(">", aggregate("MIN", qualifiedName("balance")), intLiteral(1000))),
             alias("name", qualifiedName("name")),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
@@ -280,16 +300,30 @@ class AstBuilderTest extends AstBuilderTestBase {
     assertEquals(
         project(
             filter(
-                agg(
-                    relation("test"),
-                    ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
-                    emptyList(),
-                    ImmutableList.of(alias("name", qualifiedName("name"))),
-                    emptyList()),
+                having(
+                    agg(
+                        relation("test"),
+                        ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
+                        emptyList(),
+                        ImmutableList.of(alias("name", qualifiedName("name"))),
+                        emptyList(),
+                        ImmutableList.of(
+                            qualifiedName("name"), aggregate("AVG", qualifiedName("age")))),
+                    ImmutableList.of(),
+                    function(">", aggregate("AVG", qualifiedName("age")), intLiteral(1000))),
                 function(">", aggregate("AVG", qualifiedName("age")), intLiteral(1000))),
             alias("name", qualifiedName("name")),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")), "a")),
         buildAST("SELECT name, AVG(age) AS a FROM test GROUP BY name HAVING a > 1000"));
+  }
+
+  @Test
+  public void can_build_having_without_group_by_clause_equals_where_clause() {
+    assertEquals(
+        project(
+            filter(relation("test"), function("=", qualifiedName("name"), stringLiteral("John"))),
+            alias("name", qualifiedName("name"))),
+        buildAST("SELECT name FROM test HAVING name = 'John'"));
   }
 
   @Test
@@ -354,7 +388,8 @@ class AstBuilderTest extends AstBuilderTestBase {
                 emptyList(),
                 ImmutableList.of(
                     alias("name", qualifiedName("name")), alias("age", qualifiedName("age"))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(qualifiedName("name"), qualifiedName("age"))),
             alias("name", qualifiedName("name")),
             alias("age", qualifiedName("age"))),
         buildAST("SELECT DISTINCT name, age FROM test"));
@@ -373,7 +408,9 @@ class AstBuilderTest extends AstBuilderTestBase {
                         "SUBSTRING(name, 1, 2)",
                         function(
                             "SUBSTRING", qualifiedName("name"), intLiteral(1), intLiteral(2)))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(
+                    function("SUBSTRING", qualifiedName("name"), intLiteral(1), intLiteral(2)))),
             alias(
                 "SUBSTRING(name, 1, 2)",
                 function("SUBSTRING", qualifiedName("name"), intLiteral(1), intLiteral(2)))),

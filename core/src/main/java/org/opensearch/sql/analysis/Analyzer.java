@@ -22,13 +22,18 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
+import org.opensearch.sql.QueryCompilationError;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -47,6 +52,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Having;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
@@ -81,6 +87,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.expression.parse.ParseExpression;
+import org.opensearch.sql.expression.window.WindowFunctionExpression;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
@@ -102,6 +109,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.utils.ExpressionUtils;
 import org.opensearch.sql.utils.ParseUtils;
 
 /**
@@ -235,6 +243,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitFilter(Filter node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     Expression condition = expressionAnalyzer.analyze(node.getCondition(), context);
+    verifyCondition(condition);
 
     ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
@@ -242,16 +251,32 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalFilter(child, optimized);
   }
 
+  private void verifyCondition(Expression condition) {
+    // TODO Remove this when adding support for syntax - nested(path, condition)
+    // Current WHERE nested(path, condition) is not a valid boolean condition.
+    boolean isNestedFunction =
+        condition instanceof FunctionExpression
+            && ((FunctionExpression) condition).getFunctionName().equals(FunctionName.of("nested"));
+    // Check if the filter condition is a valid predicate.
+    if (condition.type() != ExprCoreType.BOOLEAN && !isNestedFunction) {
+      throw QueryCompilationError.nonBooleanExpressionInFilterOrHavingError(condition.type());
+    }
+    // Check if any window functions in filter
+    List<Expression> results =
+        ExpressionUtils.findSubExpressions(condition, WindowFunctionExpression.class::isInstance);
+    if (!results.isEmpty()) {
+      throw QueryCompilationError.windowFunctionNotAllowedError();
+    }
+  }
+
   /**
-   * Ensure NESTED function is not used in GROUP BY, and HAVING clauses. Fallback to legacy engine.
-   * Can remove when support is added for NESTED function in WHERE, GROUP BY, ORDER BY, and HAVING
-   * clauses.
-   *
-   * @param condition : Filter condition
+   * Ensure NESTED function is not used in GROUP BY. Fallback to legacy engine. Can remove when
+   * support is added for NESTED function in WHERE, GROUP BY, ORDER BY, and HAVING clauses. Ensure
+   * Aggregate function is not used in GROUP BY.
    */
-  private void verifySupportsCondition(Expression condition) {
-    if (condition instanceof FunctionExpression) {
-      if (((FunctionExpression) condition)
+  private void verifySupportsGroupBy(Expression groupBy) {
+    if (groupBy instanceof FunctionExpression) {
+      if (((FunctionExpression) groupBy)
           .getFunctionName()
           .getFunctionName()
           .equalsIgnoreCase(BuiltinFunctionName.NESTED.name())) {
@@ -259,8 +284,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             "Falling back to legacy engine. Nested function is not supported in WHERE,"
                 + " GROUP BY, and HAVING clauses.");
       }
-      ((FunctionExpression) condition)
-          .getArguments().stream().forEach(e -> verifySupportsCondition(e));
+      ((FunctionExpression) groupBy).getArguments().stream().forEach(e -> verifySupportsGroupBy(e));
+    } else if (groupBy instanceof Aggregator) {
+      throw QueryCompilationError.aggregateFunctionNotAllowedInGroupByError(
+          ((Aggregator<?>) groupBy).getFunctionName().getFunctionName());
     }
   }
 
@@ -295,13 +322,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAggregation(Aggregation node, AnalysisContext context) {
     final LogicalPlan child = node.getChild().get(0).accept(this, context);
-    ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
-    for (UnresolvedExpression expr : node.getAggExprList()) {
-      NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
-      aggregatorBuilder.add(
-          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
-    }
-
+    // resolve group-by list
     ImmutableList.Builder<NamedExpression> groupbyBuilder = new ImmutableList.Builder<>();
     // Span should be first expression if exist.
     if (node.getSpan() != null) {
@@ -310,12 +331,62 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     for (UnresolvedExpression expr : node.getGroupExprList()) {
       NamedExpression resolvedExpr = namedExpressionAnalyzer.analyze(expr, context);
-      verifySupportsCondition(resolvedExpr.getDelegated());
+      verifySupportsGroupBy(resolvedExpr.getDelegated());
       groupbyBuilder.add(resolvedExpr);
     }
     ImmutableList<NamedExpression> groupBys = groupbyBuilder.build();
 
+    // spotless:off
+    // Verify group-by could work with select expressions.
+    // The following table shows the examples to explain the purpose:
+    // +------+------------------------------------------------------------------------------------------+---------+-------------------------+
+    // | Case | Query                                                                                    | IsValid | Field Missed In GroupBy |
+    // +------+------------------------------------------------------------------------------------------+---------+-------------------------+
+    // | 1    | SELECT a FROM table GROUP BY b                                                           | No      | a                       |
+    // | 2    | SELECT a as c FROM table GROUP BY b                                                      | No      | a                       |
+    // | 3    | SELECT a FROM table GROUP BY a * 3                                                       | No      | a                       |
+    // | 4    | SELECT a * 3 FROM table GROUP BY a                                                       | Yes     | N/A                     |
+    // | 5    | SELECT a * 3 FROM table GROUP BY b                                                       | No      | a                       |
+    // | 6    | SELECT a FROM table GROUP BY upper(a)                                                    | No      | a                       |
+    // | 7    | SELECT upper(a) FROM table GROUP BY a                                                    | Yes     | N/A                     |
+    // | 8    | SELECT upper(a) FROM table GROUP BY upper(a)                                             | Yes     | N/A                     |
+    // | 9    | SELECT concat(upper(a), upper(b)) FROM table GROUP BY b                                  | No      | a                       |
+    // | 10   | SELECT concat(upper(a), upper(b)) FROM table GROUP BY upper(b)                           | No      | a                       |
+    // | 11   | SELECT concat(upper(a), upper(b)) FROM table GROUP BY concat(upper(a), upper(b))         | Yes     | N/A                     |
+    // | 12   | SELECT concat(upper(a), upper(b)) FROM table GROUP BY concat_ws(',', upper(a), upper(b)) | No      | a                       |
+    // | 13   | SELECT concat(a, b) FROM table group by upper(a), upper(b)                               | No      | a                       |
+    // | 14   | SELECT concat(a, b) FROM table group by a                                                | No      | b                       |
+    // | 15   | SELECT concat(a, b) FROM table group by a, upper(b)                                      | No      | b                       |
+    // | 16   | SELECT concat(a, b), upper(b) FROM table group by a, upper(b)                            | No      | b                       |
+    // | 17   | SELECT concat(a, b), upper(b) FROM table group by a, b                                   | Yes     | N/A                     |
+    // | 18   | SELECT upper(concat(a, b)) FROM table group by concat(a, b)                              | Yes     | N/A                     |
+    // | 19   | SELECT concat(concat(a, b), c) FROM table group by concat(a, b)                          | No      | c                       |
+    // | 20   | SELECT 1, 2, 3 FROM table group by a                                                     | Yes     | N/A                     |
+    // | 21   | SELECT 1, 2, b FROM table group by a                                                     | No      | b                       |
+    // +------+------------------------------------------------------------------------------------------+---------+-------------------------+
+    // spotless:on
+    for (UnresolvedExpression expr : node.getAliasFreeSelectExprList()) {
+      Expression resolvedSelectItemExpr = expressionAnalyzer.analyze(expr, context);
+      Predicate<Expression> notExists =
+          e ->
+              (e instanceof ReferenceExpression || e instanceof FunctionExpression)
+                  && groupBys.stream().noneMatch(g -> e.equals(g.getDelegated()));
+      Consumer<String> action =
+          name -> {
+            throw QueryCompilationError.fieldNotInGroupByClauseError(name);
+          };
+      ExpressionUtils.actionOnCheck(resolvedSelectItemExpr, notExists, action);
+    }
+
+    // resolve aggregators
+    ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
+    for (UnresolvedExpression expr : node.getAggExprList()) {
+      NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
+      aggregatorBuilder.add(
+          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
+    }
     ImmutableList<NamedAggregator> aggregators = aggregatorBuilder.build();
+
     // new context
     context.push();
     TypeEnvironment newEnv = context.peek();
@@ -327,6 +398,39 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         group ->
             newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
     return new LogicalAggregation(child, aggregators, groupBys);
+  }
+
+  /** Resolve Having clause to merge its aggregators to {@link LogicalAggregation}. */
+  @Override
+  public LogicalPlan visitHaving(Having node, AnalysisContext context) {
+    LogicalAggregation aggregation =
+        (LogicalAggregation) node.getChild().get(0).accept(this, context);
+    Expression condition = expressionAnalyzer.analyze(node.getCondition(), context);
+    verifyCondition(condition);
+
+    // Extract aggregator from Having clause
+    ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
+    for (UnresolvedExpression expr : node.getAggregators()) {
+      NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
+      aggregatorBuilder.add(
+          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
+    }
+    List<NamedAggregator> aggregatorListFromHaving = aggregatorBuilder.build();
+    // new context
+    context.push();
+    TypeEnvironment newEnv = context.peek();
+    aggregatorListFromHaving.forEach(
+        aggregator ->
+            newEnv.define(
+                new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));
+
+    List<NamedAggregator> aggregatorListFromChild = aggregation.getAggregatorList();
+    // merge the aggregators from having to its child's
+    Set<NamedAggregator> dedup = new LinkedHashSet<>(aggregatorListFromChild);
+    dedup.addAll(aggregatorListFromHaving);
+    List<NamedAggregator> mergedAggregators = new ArrayList<>(dedup);
+    return new LogicalAggregation(
+        aggregation.getChild().get(0), mergedAggregators, aggregation.getGroupByList());
   }
 
   /** Build {@link LogicalRareTopN}. */

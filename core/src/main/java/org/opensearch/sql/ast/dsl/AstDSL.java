@@ -47,6 +47,7 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Having;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
@@ -104,15 +105,36 @@ public class AstDSL {
     return new Project(Arrays.asList(projectList), argList).attach(input);
   }
 
+  /**
+   * Creates an aggregation with the specified aggregators, sort expressions, group-by expressions,
+   * and arguments.
+   *
+   * @param input the child unresolved plan
+   * @param aggList the list of aggregator
+   * @param sortList the list of sort expressions
+   * @param groupList the list of group-by expressions
+   * @param argList the list of arguments
+   */
   public static UnresolvedPlan agg(
       UnresolvedPlan input,
       List<UnresolvedExpression> aggList,
       List<UnresolvedExpression> sortList,
       List<UnresolvedExpression> groupList,
       List<Argument> argList) {
-    return new Aggregation(aggList, sortList, groupList, null, argList).attach(input);
+    return new Aggregation(aggList, sortList, groupList, null, argList, List.of()).attach(input);
   }
 
+  /**
+   * Creates an aggregation with the specified aggregators, sort expressions, group-by expressions,
+   * span expression, and arguments.
+   *
+   * @param input the child unresolved plan
+   * @param aggList the list of aggregators
+   * @param sortList the list of sort expressions
+   * @param groupList the list of group-by expressions
+   * @param span the span expression
+   * @param argList the list of arguments
+   */
   public static UnresolvedPlan agg(
       UnresolvedPlan input,
       List<UnresolvedExpression> aggList,
@@ -120,7 +142,53 @@ public class AstDSL {
       List<UnresolvedExpression> groupList,
       UnresolvedExpression span,
       List<Argument> argList) {
-    return new Aggregation(aggList, sortList, groupList, span, argList).attach(input);
+    return new Aggregation(aggList, sortList, groupList, span, argList, List.of()).attach(input);
+  }
+
+  /**
+   * Creates an aggregation with the specified aggregators, sort expressions, group-by expressions,
+   * arguments, and select expressions.
+   *
+   * @param input the child unresolved plan
+   * @param aggList the list of aggregators
+   * @param sortList the list of sort expressions
+   * @param groupList the list of group-by expressions
+   * @param argList the list of arguments
+   * @param aliasFreeSelectExprList the list of alias free select expressions
+   */
+  public static UnresolvedPlan agg(
+      UnresolvedPlan input,
+      List<UnresolvedExpression> aggList,
+      List<UnresolvedExpression> sortList,
+      List<UnresolvedExpression> groupList,
+      List<Argument> argList,
+      List<UnresolvedExpression> aliasFreeSelectExprList) {
+    return new Aggregation(aggList, sortList, groupList, null, argList, aliasFreeSelectExprList)
+        .attach(input);
+  }
+
+  /**
+   * Creates an aggregation with the specified aggregators, sort expressions, group-by expressions,
+   * span expression, arguments, and select expressions.
+   *
+   * @param input the child unresolved plan
+   * @param aggList the list of aggregators
+   * @param sortList the list of sort expressions
+   * @param groupList the list of group-by expressions
+   * @param span the span expression
+   * @param argList the list of arguments
+   * @param aliasFreeSelectExprList the list of alias free select expressions
+   */
+  public static UnresolvedPlan agg(
+      UnresolvedPlan input,
+      List<UnresolvedExpression> aggList,
+      List<UnresolvedExpression> sortList,
+      List<UnresolvedExpression> groupList,
+      UnresolvedExpression span,
+      List<Argument> argList,
+      List<UnresolvedExpression> aliasFreeSelectExprList) {
+    return new Aggregation(aggList, sortList, groupList, span, argList, aliasFreeSelectExprList)
+        .attach(input);
   }
 
   public static UnresolvedPlan rename(UnresolvedPlan input, Map... maps) {
@@ -470,5 +538,12 @@ public class AstDSL {
       Literal pattern,
       java.util.Map<String, Literal> arguments) {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
+  }
+
+  public static UnresolvedPlan having(
+      UnresolvedPlan input,
+      List<UnresolvedExpression> aggregators,
+      UnresolvedExpression condition) {
+    return new Having(aggregators, condition).attach(input);
   }
 }

@@ -74,6 +74,18 @@ The group by expression could be expression::
     +-----------------------+------------+
 
 
+Limitations
+-----------
+
+1. Aggregate functions are not allowed in GROUP BY expression. For example, follow queries will fail in query compilation because ``sum(age)`` is not allowed in GROUP BY::
+
+    SELECT gender FROM accounts GROUP BY sum(age);
+    SELECT gender, sum(age) FROM accounts GROUP BY 1, 2;
+
+2. Fields in SELECT list must appear in the GROUP BY expression or be used in an aggregate function. For example, follow query will fail in query compilation because ``gender`` must appear in the GROUP BY::
+
+    SELECT gender, sum(age) FROM accounts GROUP BY state;
+
 Aggregation
 ===========
 
@@ -500,4 +512,16 @@ The ``FILTER`` clause is also used in distinct count to do the filtering before 
     |------------------|
     | 3                |
     +------------------+
+
+Limitations
+-----------
+
+1. FILTER or HAVING expression must be type boolean. For example, follow queries will fail in query compilation because neither ``WHERE age`` nor ``MAX(age)`` is boolean type::
+
+    SELECT AVG(balance) FILTER(WHERE age) FROM accounts;
+    SELECT state, AVG(balance) FROM accounts GROUP BY state HAVING MAX(age);
+
+2. Aggregate functions are not allowed in FILTER expression. For example, follow query will fail in query compilation::
+
+    SELECT AVG(balance) FILTER(WHERE MAX(age) > 30 ) FROM accounts;
 

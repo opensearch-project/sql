@@ -5,12 +5,15 @@
 
 package org.opensearch.sql.ast.expression;
 
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 
 /**
  * Alias abstraction that associate an unnamed expression with a name and an optional alias. The
@@ -37,5 +40,10 @@ public class Alias extends UnresolvedExpression {
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
     return nodeVisitor.visitAlias(this, context);
+  }
+
+  @Override
+  public List<? extends Node> getChild() {
+    return ImmutableList.of(this.delegated);
   }
 }

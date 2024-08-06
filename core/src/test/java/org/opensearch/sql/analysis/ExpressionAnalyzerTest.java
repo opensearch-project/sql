@@ -16,6 +16,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -31,6 +32,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
@@ -174,7 +176,12 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   @Test
   public void scalar_window_function() {
     assertAnalyzeEqual(
-        DSL.rank(), AstDSL.window(AstDSL.function("rank"), emptyList(), emptyList()));
+        DSL.rank(),
+        AstDSL.window(
+            AstDSL.function("rank"),
+            emptyList(),
+            Collections.singletonList(
+                ImmutablePair.of(DEFAULT_ASC, AstDSL.qualifiedName("integer_value")))));
   }
 
   @SuppressWarnings("unchecked")
