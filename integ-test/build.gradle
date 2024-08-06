@@ -137,17 +137,7 @@ ext {
     }
 
     bwcFilePath = "src/test/resources/bwc/"
-    bwcMinVersion = "1.1.0.0"
-    bwcBundleVersion = "1.3.2.0"
-    bwcBundleTest = (project.findProperty('customDistributionDownloadType') != null &&
-            project.properties['customDistributionDownloadType'] == "bundle");
-    bwcVersion = bwcBundleTest ? bwcBundleVersion : bwcMinVersion
-    // Create bwcVersionShort without the last digit
-    bwcVersionShort = bwcVersion.substring(0, bwcVersion.lastIndexOf('.'))
-
-    bwcOpenSearchJSDownload = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + bwcVersionShort + '/latest/linux/x64/tar/builds/' +
-            'opensearch/plugins/opensearch-job-scheduler-' + bwcVersion + '.zip'
-    bwcJobSchedulerPath = bwcFilePath + "job-scheduler/"
+    bwcJSPluginPath = bwcFilePath + "job-scheduler/"
 }
 
 tasks.withType(licenseHeaders.class) {
@@ -198,7 +188,6 @@ dependencies {
     testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
 
-    // Needed for BWC tests
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
 }
 
@@ -212,13 +201,6 @@ compileTestJava {
     doFirst { // Necessary because of many warnings in legacy SQL IT
         options.compilerArgs.remove('-Werror')
         options.compilerArgs.remove('-Xdoclint:all')
-    }
-}
-
-testClusters.all {
-    // debug with command, ./gradlew opensearch-sql:run -DdebugJVM. --debug-jvm does not work with keystore.
-    if (System.getProperty("debugJVM") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'
     }
 }
 
@@ -236,6 +218,13 @@ def getJobSchedulerPlugin() {
             }
         }
     })
+}
+
+testClusters.all {
+    // debug with command, ./gradlew opensearch-sql:run -DdebugJVM. --debug-jvm does not work with keystore.
+    if (System.getProperty("debugJVM") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'
+    }
 }
 
 testClusters {
@@ -519,10 +508,18 @@ task comparisonTest(type: RestIntegTestTask) {
     systemProperty "queries", System.getProperty("queries")
 }
 
+String bwcMinVersion = "1.1.0.0"
+String bwcBundleVersion = "1.3.2.0"
+Boolean bwcBundleTest = (project.findProperty('customDistributionDownloadType') != null &&
+        project.properties['customDistributionDownloadType'] == "bundle");
+String bwcVersion = bwcBundleTest ? bwcBundleVersion : bwcMinVersion
 String currentVersion = opensearch_version.replace("-SNAPSHOT","")
 String baseName = "sqlBwcCluster"
 String bwcSqlPlugin = "opensearch-sql-" + bwcVersion + ".zip"
-String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/20210930/linux/x64/builds/opensearch/plugins/" + bwcSqlPlugin
+String bwcJSPlugin = "opensearch-job-scheduler-" + bwcVersion + ".zip"
+String bwcRemoteFileRoot = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/20210930/linux/x64/builds/opensearch/plugins/"
+String bwcRemoteFileSqlPlugin = bwcRemoteFileRoot + bwcSqlPlugin
+String bwcRemoteFileJSPlugin = bwcRemoteFileRoot + bwcJSPlugin
 
 2.times { i ->
     testClusters {
@@ -557,20 +554,21 @@ String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/2021
                 }
             } else {
                 versions = ["1.1.0", opensearch_version]
-                plugin(provider(new Callable<RegularFile>(){
+                plugin(provider(new Callable<RegularFile>() {
                     @Override
                     RegularFile call() throws Exception {
                         return new RegularFile() {
                             @Override
                             File getAsFile() {
-                                if (new File("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion").exists()) {
-                                    project.delete(files("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion"))
+                                File dir = new File('./integ-test/' + bwcJSPluginPath + bwcVersion)
+                                if (!dir.exists()) {
+                                    dir.mkdirs()
                                 }
-                                project.mkdir bwcJobSchedulerPath + bwcVersion
-                                ant.get(src: bwcOpenSearchJSDownload,
-                                        dest: bwcJobSchedulerPath + bwcVersion,
-                                        httpusecaches: false)
-                                return fileTree(bwcJobSchedulerPath + bwcVersion).getSingleFile()
+                                File f = new File(dir, bwcJSPlugin)
+                                if (!f.exists()) {
+                                    new URL(bwcRemoteFileJSPlugin).withInputStream{ ins -> f.withOutputStream{ it << ins }}
+                                }
+                                return fileTree(bwcJSPluginPath + bwcVersion).getSingleFile()
                             }
                         }
                     }
@@ -587,7 +585,7 @@ String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/2021
                                 }
                                 File f = new File(dir, bwcSqlPlugin)
                                 if (!f.exists()) {
-                                    new URL(bwcRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
+                                    new URL(bwcRemoteFileSqlPlugin).withInputStream{ ins -> f.withOutputStream{ it << ins }}
                                 }
                                 return fileTree(bwcFilePath + bwcVersion).getSingleFile()
                             }
@@ -602,7 +600,17 @@ String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/bundle-build/1.1.0/2021
 }
 
 List<Provider<RegularFile>> plugins = [
-        getJobSchedulerPlugin(),
+        provider(new Callable<RegularFile>() {
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        return fileTree(bwcJSPluginPath + project.version).getSingleFile()
+                    }
+                }
+            }
+        }),
         provider(new Callable<RegularFile>() {
             @Override
             RegularFile call() throws Exception {
