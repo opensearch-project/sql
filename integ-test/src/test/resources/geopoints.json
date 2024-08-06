@@ -1,0 +1,12 @@
+{"index": {"_id": "1"}}
+{"point": {"lat": 40.71, "lon": 74.00}}
+{"index": {"_id": "2"}}
+{"point": "40.71,74.00"}
+{"index": {"_id": "3"}}
+{"point": [74.00, 40.71]}
+{"index": {"_id": "4"}}
+{"point": "POINT (74.00 40.71)"}
+{"index": {"_id": "5"}}
+{"point": {"type": "Point", "coordinates": [74.00, 40.71]}}
+{"index": {"_id": "6"}}
+{"point": "txhxegj0uyp3"}
