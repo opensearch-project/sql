@@ -1,0 +1,17 @@
+{
+    "root": {
+        "name": "ProjectOperator",
+        "description": {
+            "fields": "[(age+1) AS agePlusOne]"
+        },
+        "children": [
+            {
+                "name": "OpenSearchIndexScan",
+                "description": {
+                    "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,sourceBuilder={\"from\":0,\"size\":10,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\"],\"excludes\":[]}},searchDone=false)"
+                },
+                "children": []
+            }
+        ]
+    }
+}
