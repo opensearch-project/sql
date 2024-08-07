@@ -276,6 +276,10 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         DataSourceType.S3GLUE,
         new S3GlueDataSourceSparkParameterComposer(
             getSparkExecutionEngineConfigClusterSettingLoader()));
+    sparkParameterComposerCollection.register(
+        DataSourceType.SECURITY_LAKE,
+        new S3GlueDataSourceSparkParameterComposer(
+            getSparkExecutionEngineConfigClusterSettingLoader()));
     SparkSubmitParametersBuilderProvider sparkSubmitParametersBuilderProvider =
         new SparkSubmitParametersBuilderProvider(sparkParameterComposerCollection);
     QueryHandlerFactory queryHandlerFactory =
