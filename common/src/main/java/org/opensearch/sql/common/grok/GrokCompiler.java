@@ -29,7 +29,7 @@ import org.opensearch.sql.common.grok.exception.GrokException;
 public class GrokCompiler implements Serializable {
 
   // We don't want \n and commented line
-  private static final Pattern patternLinePattern = Pattern.compile("^([A-z0-9_]+)\\s+(.*)$");
+  private static final Pattern patternLinePattern = Pattern.compile("^([a-zA-Z0-9_]+)\\s+(.*)$");
 
   /** {@code Grok} patterns definitions. */
   private final Map<String, String> grokPatternDefinitions = new HashMap<>();
