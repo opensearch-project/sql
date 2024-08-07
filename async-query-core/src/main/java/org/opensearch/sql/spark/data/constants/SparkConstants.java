@@ -111,13 +111,13 @@ public class SparkConstants {
       "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions";
   public static final String ICEBERG_SPARK_JARS =
       "org.apache.iceberg:iceberg-spark-runtime-3.3_2.12:1.5.0,software.amazon.awssdk:bundle:2.26.30";
-  public static final String ICEBERG_SPARK_RUNTIME_PACKAGE =
-      "/usr/share/aws/iceberg/lib/iceberg-spark3-runtime.jar";
   public static final String ICEBERG_GLUE_CATALOG = "org.apache.iceberg.aws.glue.GlueCatalog";
   public static final String ICEBERG_ASSUME_ROLE_CLIENT_FACTORY =
       "org.apache.iceberg.aws.AssumeRoleAwsClientFactory";
   public static final String ICEBERG_LF_CLIENT_FACTORY =
       "org.apache.iceberg.aws.lakeformation.LakeFormationAwsClientFactory";
+  // The following option is needed in Iceberg 1.5 when reading timestamp types that do not
+  // contain timezone in parquet files. The timezone is assumed to be GMT.
   public static final String ICEBERG_TS_WO_TZ =
       "spark.sql.iceberg.handle-timestamp-without-timezone";
 

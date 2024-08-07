@@ -161,6 +161,9 @@ public class AsyncExecutorServiceModule extends AbstractModule {
     SparkParameterComposerCollection collection = new SparkParameterComposerCollection();
     collection.register(
         DataSourceType.S3GLUE, new S3GlueDataSourceSparkParameterComposer(clusterSettingLoader));
+    collection.register(
+        DataSourceType.SECURITY_LAKE,
+        new S3GlueDataSourceSparkParameterComposer(clusterSettingLoader));
     collection.register(new OpenSearchExtraParameterComposer(clusterSettingLoader));
     return new SparkSubmitParametersBuilderProvider(collection);
   }
