@@ -27,6 +27,7 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.rareTopN;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.remove;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.rename;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.sort;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.takeOrdered;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.values;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.window;
 
@@ -216,6 +217,26 @@ class ExplainTest extends ExpressionTestBase {
             new ExplainResponseNode(
                 "LimitOperator",
                 Map.of("limit", 10, "offset", 5),
+                singletonList(tableScan.explainNode()))),
+        explain.apply(plan));
+  }
+
+  @Test
+  void can_explain_takeOrdered() {
+    Pair<Sort.SortOption, Expression> sort =
+        ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("a", INTEGER));
+    PhysicalPlan plan = takeOrdered(tableScan, 10, 5, sort);
+    assertEquals(
+        new ExplainResponse(
+            new ExplainResponseNode(
+                "TakeOrderedOperator",
+                Map.of(
+                    "limit",
+                    10,
+                    "offset",
+                    5,
+                    "sortList",
+                    Map.of("a", Map.of("sortOrder", "ASC", "nullOrder", "NULL_FIRST"))),
                 singletonList(tableScan.explainNode()))),
         explain.apply(plan));
   }
