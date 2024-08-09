@@ -76,6 +76,19 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| fields age"));
   }
 
+  @Test
+  public void testLimitPushDownExplain() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_limit_push.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval ageMinus = age - 30 "
+                + "| head 5 "
+                + "| fields ageMinus"));
+  }
+
   String loadFromFile(String filename) throws Exception {
     URI uri = Resources.getResource(filename).toURI();
     return new String(Files.readAllBytes(Paths.get(uri)));
