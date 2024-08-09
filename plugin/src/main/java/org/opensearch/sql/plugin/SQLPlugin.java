@@ -60,6 +60,7 @@ import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.datasources.encryptor.EncryptorImpl;
 import org.opensearch.sql.datasources.glue.GlueDataSourceFactory;
+import org.opensearch.sql.datasources.glue.SecurityLakeDataSourceFactory;
 import org.opensearch.sql.datasources.model.transport.*;
 import org.opensearch.sql.datasources.rest.RestDataSourceQueryAction;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
@@ -326,6 +327,7 @@ public class SQLPlugin extends Plugin
             .add(new PrometheusStorageFactory(pluginSettings))
             .add(new SparkStorageFactory(this.client, pluginSettings))
             .add(new GlueDataSourceFactory(pluginSettings))
+            .add(new SecurityLakeDataSourceFactory(pluginSettings))
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);

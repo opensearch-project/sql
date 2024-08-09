@@ -204,39 +204,6 @@ public class SparkQueryDispatcherTest {
   }
 
   @Test
-  void testDispatchSelectQueryWithLakeFormation() {
-    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
-    HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
-    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
-    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
-    String query = "select * from my_glue.default.http_logs";
-    String sparkSubmitParameters = constructExpectedSparkSubmitParameterString(query);
-    StartJobRequest expected =
-        new StartJobRequest(
-            "TEST_CLUSTER:batch",
-            null,
-            EMRS_APPLICATION_ID,
-            EMRS_EXECUTION_ROLE,
-            sparkSubmitParameters,
-            tags,
-            false,
-            "query_execution_result_my_glue");
-    when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
-    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithLakeFormation();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
-            MY_GLUE, asyncQueryRequestContext))
-        .thenReturn(dataSourceMetadata);
-
-    DispatchQueryResponse dispatchQueryResponse =
-        sparkQueryDispatcher.dispatch(getBaseDispatchQueryRequest(query), asyncQueryRequestContext);
-    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
-    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
-    Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataService);
-  }
-
-  @Test
   void testDispatchSelectQueryWithBasicAuthIndexStoreDatasource() {
     when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
@@ -1085,7 +1052,6 @@ public class SparkQueryDispatcherTest {
         + getConfParam(
             "spark.hadoop.fs.s3.customAWSCredentialsProvider=com.amazonaws.emr.AssumeRoleAWSCredentialsProvider",
             "spark.hadoop.aws.catalog.credentials.provider.factory.class=com.amazonaws.glue.catalog.metastore.STSAssumeRoleSessionCredentialsProviderFactory",
-            "spark.jars=/usr/share/aws/iceberg/lib/iceberg-spark3-runtime.jar",
             "spark.jars.packages=org.opensearch:opensearch-spark-standalone_2.12:0.3.0-SNAPSHOT,org.opensearch:opensearch-spark-sql-application_2.12:0.3.0-SNAPSHOT,org.opensearch:opensearch-spark-ppl_2.12:0.3.0-SNAPSHOT",
             "spark.jars.repositories=https://aws.oss.sonatype.org/content/repositories/snapshots",
             "spark.emr-serverless.driverEnv.JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64/",
@@ -1097,10 +1063,8 @@ public class SparkQueryDispatcherTest {
             "spark.datasource.flint.scheme=SCHEMA",
             "spark.datasource.flint.auth=basic",
             "spark.datasource.flint.customAWSCredentialsProvider=com.amazonaws.emr.AssumeRoleAWSCredentialsProvider",
-            "spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,org.opensearch.flint.spark.FlintSparkExtensions,org.opensearch.flint.spark.FlintPPLSparkExtensions",
-            "spark.hadoop.hive.metastore.client.factory.class=com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory",
-            "spark.sql.catalog.spark_catalog=org.apache.iceberg.spark.SparkSessionCatalog",
-            "spark.sql.catalog.spark_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog")
+            "spark.sql.extensions=org.opensearch.flint.spark.FlintSparkExtensions,org.opensearch.flint.spark.FlintPPLSparkExtensions",
+            "spark.hadoop.hive.metastore.client.factory.class=com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory")
         + getConfParam("spark.flint.job.query=" + query)
         + (jobType != null ? getConfParam("spark.flint.job.type=" + jobType) : "")
         + getConfParam(
@@ -1142,25 +1106,6 @@ public class SparkQueryDispatcherTest {
     properties.put("glue.indexstore.opensearch.auth", "basicauth");
     properties.put("glue.indexstore.opensearch.auth.username", "username");
     properties.put("glue.indexstore.opensearch.auth.password", "password");
-    return new DataSourceMetadata.Builder()
-        .setName(MY_GLUE)
-        .setConnector(DataSourceType.S3GLUE)
-        .setProperties(properties)
-        .build();
-  }
-
-  private DataSourceMetadata constructMyGlueDataSourceMetadataWithLakeFormation() {
-
-    Map<String, String> properties = new HashMap<>();
-    properties.put("glue.auth.type", "iam_role");
-    properties.put(
-        "glue.auth.role_arn", "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole");
-    properties.put(
-        "glue.indexstore.opensearch.uri",
-        "https://search-flint-dp-benchmark-cf5crj5mj2kfzvgwdeynkxnefy.eu-west-1.es.amazonaws.com");
-    properties.put("glue.indexstore.opensearch.auth", "awssigv4");
-    properties.put("glue.indexstore.opensearch.region", "eu-west-1");
-    properties.put("glue.lakeformation.enabled", "true");
     return new DataSourceMetadata.Builder()
         .setName(MY_GLUE)
         .setConnector(DataSourceType.S3GLUE)

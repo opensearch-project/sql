@@ -92,18 +92,35 @@ public class SparkConstants {
   public static final String FLINT_SESSION_CLASS_NAME = "org.apache.spark.sql.FlintREPL";
 
   public static final String SPARK_CATALOG = "spark.sql.catalog.spark_catalog";
+  public static final String SPARK_CATALOG_CATALOG_IMPL = SPARK_CATALOG + ".catalog-impl";
+  public static final String SPARK_CATALOG_CLIENT_REGION = SPARK_CATALOG + ".client.region";
+  public static final String SPARK_CATALOG_CLIENT_FACTORY = SPARK_CATALOG + ".client.factory";
+  public static final String SPARK_CATALOG_CLIENT_ASSUME_ROLE_ARN =
+      SPARK_CATALOG + ".client.assume-role.arn";
+  public static final String SPARK_CATALOG_CLIENT_ASSUME_ROLE_REGION =
+      SPARK_CATALOG + ".client.assume-role.region";
+  public static final String SPARK_CATALOG_LF_SESSION_TAG_KEY =
+      SPARK_CATALOG + ".client.assume-role.tags.LakeFormationAuthorizedCaller";
+  public static final String SPARK_CATALOG_GLUE_ACCOUNT_ID = SPARK_CATALOG + ".glue.account-id";
+  public static final String SPARK_CATALOG_GLUE_LF_ENABLED =
+      SPARK_CATALOG + ".glue.lakeformation-enabled";
+
   public static final String ICEBERG_SESSION_CATALOG =
       "org.apache.iceberg.spark.SparkSessionCatalog";
   public static final String ICEBERG_SPARK_EXTENSION =
       "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions";
-  public static final String ICEBERG_SPARK_RUNTIME_PACKAGE =
-      "/usr/share/aws/iceberg/lib/iceberg-spark3-runtime.jar";
-  public static final String SPARK_CATALOG_CATALOG_IMPL =
-      "spark.sql.catalog.spark_catalog.catalog-impl";
+  public static final String ICEBERG_SPARK_JARS =
+      "org.apache.iceberg:iceberg-spark-runtime-3.3_2.12:1.5.0,software.amazon.awssdk:bundle:2.26.30";
   public static final String ICEBERG_GLUE_CATALOG = "org.apache.iceberg.aws.glue.GlueCatalog";
+  public static final String ICEBERG_ASSUME_ROLE_CLIENT_FACTORY =
+      "org.apache.iceberg.aws.AssumeRoleAwsClientFactory";
+  public static final String ICEBERG_LF_CLIENT_FACTORY =
+      "org.apache.iceberg.aws.lakeformation.LakeFormationAwsClientFactory";
+  // The following option is needed in Iceberg 1.5 when reading timestamp types that do not
+  // contain timezone in parquet files. The timezone is assumed to be GMT.
+  public static final String ICEBERG_TS_WO_TZ =
+      "spark.sql.iceberg.handle-timestamp-without-timezone";
 
-  public static final String EMR_LAKEFORMATION_OPTION =
-      "spark.emr-serverless.lakeformation.enabled";
   public static final String FLINT_ACCELERATE_USING_COVERING_INDEX =
       "spark.flint.optimizer.covering.enabled";
 }
