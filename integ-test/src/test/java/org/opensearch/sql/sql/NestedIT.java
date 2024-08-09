@@ -16,6 +16,10 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.json.JSONArray;
@@ -448,14 +452,19 @@ public class NestedIT extends SQLIntegTestCase {
         schema("nested(message.author)", null, "keyword"),
         schema("nested(message.dayOfWeek)", null, "long"),
         schema("nested(message.info)", null, "keyword"));
-    verifyDataRows(
-        result,
-        rows("e", 1, "a"),
-        rows("f", 2, "b"),
-        rows("g", 1, "c"),
-        rows("h", 4, "c"),
-        rows("i", 5, "a"),
-        rows("zz", 6, "zz"));
+
+    // Define expected rows as a list (author, dayOfWeek, info)
+    List<List<Object>> expectedList =
+        Arrays.asList(
+            Arrays.asList("e", 1, "a"),
+            Arrays.asList("f", 2, "b"),
+            Arrays.asList("g", 1, "c"),
+            Arrays.asList("h", 4, "c"),
+            Arrays.asList("i", 5, "a"),
+            Arrays.asList("zz", 6, "zz"));
+
+    List<List<Object>> actualList = extractActualRowsBasedOnSchemaOrder(result);
+    sortAndAssertEquals(expectedList, actualList);
   }
 
   @Test
@@ -470,14 +479,19 @@ public class NestedIT extends SQLIntegTestCase {
         schema("nested(message.dayOfWeek)", null, "long"),
         schema("nested(message.info)", null, "keyword"),
         schema("nested(comment.data)", null, "keyword"));
-    verifyDataRows(
-        result,
-        rows("e", 1, "a", "ab"),
-        rows("f", 2, "b", "aa"),
-        rows("g", 1, "c", "aa"),
-        rows("h", 4, "c", "ab"),
-        rows("i", 5, "a", "ab"),
-        rows("zz", 6, "zz", new JSONArray(List.of("aa", "bb"))));
+
+    // Convert the expected rows to a List<List<Object>> for comparison
+    List<List<Object>> expectedList =
+        Arrays.asList(
+            Arrays.asList("e", 1, "a", "ab"),
+            Arrays.asList("f", 2, "b", "aa"),
+            Arrays.asList("g", 1, "c", "aa"),
+            Arrays.asList("h", 4, "c", "ab"),
+            Arrays.asList("i", 5, "a", "ab"),
+            Arrays.asList("zz", 6, "zz", Arrays.asList("aa", "bb")));
+
+    List<List<Object>> actualList = extractActualRowsBasedOnSchemaOrder(result);
+    sortAndAssertEquals(expectedList, actualList);
   }
 
   @Test
@@ -513,14 +527,19 @@ public class NestedIT extends SQLIntegTestCase {
         schema("nested(message.info)", null, "keyword"),
         schema("nested(comment.data)", null, "keyword"),
         schema("nested(comment.likes)", null, "long"));
-    verifyDataRows(
-        result,
-        rows("e", 1, "a", "ab", 3),
-        rows("f", 2, "b", "aa", 2),
-        rows("g", 1, "c", "aa", 3),
-        rows("h", 4, "c", "ab", 1),
-        rows("i", 5, "a", "ab", 1),
-        rows("zz", 6, "zz", new JSONArray(List.of("aa", "bb")), 10));
+
+    // Define expected rows
+    List<List<Object>> expectedList =
+        Arrays.asList(
+            Arrays.asList("e", 1, "a", "ab", 3),
+            Arrays.asList("f", 2, "b", "aa", 2),
+            Arrays.asList("g", 1, "c", "aa", 3),
+            Arrays.asList("h", 4, "c", "ab", 1),
+            Arrays.asList("i", 5, "a", "ab", 1),
+            Arrays.asList("zz", 6, "zz", Arrays.asList("aa", "bb"), 10));
+
+    List<List<Object>> actualList = extractActualRowsBasedOnSchemaOrder(result);
+    sortAndAssertEquals(expectedList, actualList);
   }
 
   @Test
@@ -535,14 +554,18 @@ public class NestedIT extends SQLIntegTestCase {
         schema("nested(message.dayOfWeek)", null, "long"),
         schema("nested(message.info)", null, "keyword"),
         schema("myNum", null, "long"));
-    verifyDataRows(
-        result,
-        rows("e", 1, "a", 1),
-        rows("f", 2, "b", 2),
-        rows("g", 1, "c", 3),
-        rows("h", 4, "c", 4),
-        rows("i", 5, "a", 4),
-        rows("zz", 6, "zz", new JSONArray(List.of(3, 4))));
+
+    List<List<Object>> expectedList =
+        Arrays.asList(
+            Arrays.asList("e", 1, "a", 1),
+            Arrays.asList("f", 2, "b", 2),
+            Arrays.asList("g", 1, "c", 3),
+            Arrays.asList("h", 4, "c", 4),
+            Arrays.asList("i", 5, "a", 4),
+            Arrays.asList("zz", 6, "zz", Arrays.asList(3, 4)));
+
+    List<List<Object>> actualList = extractActualRowsBasedOnSchemaOrder(result);
+    sortAndAssertEquals(expectedList, actualList);
   }
 
   @Test
@@ -590,5 +613,84 @@ public class NestedIT extends SQLIntegTestCase {
                     + "  },\n"
                     + "  \"status\": 500\n"
                     + "}"));
+  }
+
+  // Extract rows based on schema
+  private List<List<Object>> extractActualRowsBasedOnSchemaOrder(JSONObject result) {
+    JSONArray dataRows = result.getJSONArray("datarows");
+    JSONArray schema = result.getJSONArray("schema");
+
+    Map<String, Integer> schemaIndexMap = createSchemaIndexMap(schema);
+    return extractRows(dataRows, schema, schemaIndexMap);
+  }
+
+  // Create a map of schema names to their indices
+  private Map<String, Integer> createSchemaIndexMap(JSONArray schema) {
+    Map<String, Integer> schemaIndexMap = new HashMap<>();
+    for (int i = 0; i < schema.length(); i++) {
+      schemaIndexMap.put(schema.getJSONObject(i).getString("name"), i);
+    }
+    return schemaIndexMap;
+  }
+
+  // Extract rows based on the schema order and expected order
+  private List<List<Object>> extractRows(
+      JSONArray dataRows, JSONArray schema, Map<String, Integer> schemaIndexMap) {
+    // Define the expected order for the first three fields
+    List<String> expectedOrder =
+        Arrays.asList(
+            "nested(message.author)", "nested(message.dayOfWeek)", "nested(message.info)");
+    List<List<Object>> actualList = new ArrayList<>();
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONArray row = dataRows.getJSONArray(i);
+      List<Object> extractedRow = new ArrayList<>();
+
+      // Extract fields in the expected order
+      extractExpectedFields(extractedRow, row, expectedOrder, schemaIndexMap);
+
+      // Add remaining fields in the schema order
+      addRemainingFields(extractedRow, row, schema, expectedOrder);
+
+      actualList.add(extractedRow);
+    }
+    return actualList;
+  }
+
+  // Extract fields in the expected order
+  private void extractExpectedFields(
+      List<Object> extractedRow,
+      JSONArray row,
+      List<String> expectedOrder,
+      Map<String, Integer> schemaIndexMap) {
+    for (String fieldName : expectedOrder) {
+      int fieldIndex = schemaIndexMap.get(fieldName);
+      Object fieldValue = row.get(fieldIndex);
+      extractedRow.add(fieldValue);
+    }
+  }
+
+  // Add remaining fields in the schema order, skipping those in the expected order
+  private void addRemainingFields(
+      List<Object> extractedRow, JSONArray row, JSONArray schema, List<String> expectedOrder) {
+    for (int j = 0; j < schema.length(); j++) {
+      String fieldName = schema.getJSONObject(j).getString("name");
+      if (!expectedOrder.contains(fieldName)) {
+        Object fieldValue = row.get(j);
+        // Convert JSONArrays to lists if necessary
+        if (fieldValue instanceof JSONArray) {
+          extractedRow.add(((JSONArray) fieldValue).toList());
+        } else {
+          extractedRow.add(fieldValue);
+        }
+      }
+    }
+  }
+
+  // Sort lists and assert equality
+  private void sortAndAssertEquals(List<List<Object>> expectedList, List<List<Object>> actualList) {
+    Comparator<List<Object>> comparator = Comparator.comparing(Object::toString);
+    expectedList.sort(comparator);
+    actualList.sort(comparator);
+    assertEquals(expectedList, actualList);
   }
 }

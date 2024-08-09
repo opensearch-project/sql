@@ -7,6 +7,7 @@ package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_RAW_SANITIZE;
 import static org.opensearch.sql.protocol.response.format.RawResponseFormatter.CONTENT_TYPE;
+import static org.opensearch.sql.util.TestUtils.assertRowsEqual;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -31,7 +32,8 @@ public class RawFormatIT extends SQLIntegTestCase {
             String.format(
                 Locale.ROOT, "SELECT firstname, lastname FROM %s", TEST_INDEX_BANK_RAW_SANITIZE),
             "raw");
-    assertEquals(
+
+    assertRowsEqual(
         StringUtils.format(
             "firstname|lastname%n"
                 + "+Amber JOHnny|Duke Willmington+%n"

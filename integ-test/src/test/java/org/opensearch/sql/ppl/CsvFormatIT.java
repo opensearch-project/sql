@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_CSV_SANITIZE;
+import static org.opensearch.sql.util.TestUtils.assertRowsEqual;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -27,7 +28,7 @@ public class CsvFormatIT extends PPLIntegTestCase {
                 Locale.ROOT,
                 "source=%s | fields firstname, lastname",
                 TEST_INDEX_BANK_CSV_SANITIZE));
-    assertEquals(
+    assertRowsEqual(
         StringUtils.format(
             "firstname,lastname%n"
                 + "'+Amber JOHnny,Duke Willmington+%n"
@@ -47,7 +48,7 @@ public class CsvFormatIT extends PPLIntegTestCase {
                 "source=%s | fields firstname, lastname",
                 TEST_INDEX_BANK_CSV_SANITIZE),
             false);
-    assertEquals(
+    assertRowsEqual(
         StringUtils.format(
             "firstname,lastname%n"
                 + "+Amber JOHnny,Duke Willmington+%n"
