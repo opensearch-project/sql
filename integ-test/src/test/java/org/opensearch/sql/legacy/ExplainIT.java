@@ -283,7 +283,10 @@ public class ExplainIT extends SQLIntegTestCase {
 
     String result =
         explainQuery(
-            String.format("SELECT (age + 1) AS agePlusOne FROM %s LIMIT 10", TEST_INDEX_ACCOUNT));
+            String.format(
+                "SELECT city, (age + 1) AS agePlusOne, (balance + 1000) as newBalance FROM %s LIMIT"
+                    + " 10",
+                TEST_INDEX_ACCOUNT));
     Assert.assertThat(
         result.replaceAll("\\s+", ""), equalTo(expectedOutput.replaceAll("\\s+", "")));
   }
