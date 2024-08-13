@@ -6,8 +6,7 @@
 package org.opensearch.sql.util;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.opensearch.sql.executor.pagination.PlanSerializer.CURSOR_PREFIX;
 
 import java.io.BufferedReader;
@@ -25,12 +24,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Assert;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -164,6 +166,36 @@ public class TestUtils {
         new Request(request.getMethod(), request.getEndpoint().replaceAll("refresh=true", ""));
     req.setEntity(request.getEntity());
     return client.performRequest(req);
+  }
+
+  /**
+   * Compares two multiline strings representing rows of addresses to ensure they are equivalent.
+   * This method checks if the entire content of the expected and actual strings are the same. If
+   * they differ, it breaks down the strings into lines and performs a step-by-step comparison:
+   *
+   * @param expected The expected string representing rows of data.
+   * @param actual The actual string to compare against the expected.
+   */
+  public static void assertRowsEqual(String expected, String actual) {
+    if (expected.equals(actual)) {
+      return;
+    }
+
+    List<String> expectedLines = List.of(expected.split("\n"));
+    List<String> actualLines = List.of(actual.split("\n"));
+
+    if (expectedLines.size() != actualLines.size()) {
+      Assert.fail("Line count is different. expected=" + expected + ", actual=" + actual);
+    }
+
+    if (!expectedLines.get(0).equals(actualLines.get(0))) {
+      Assert.fail("Header is different. expected=" + expected + ", actual=" + actual);
+    }
+
+    Set<String> expectedItems = new HashSet<>(expectedLines.subList(1, expectedLines.size()));
+    Set<String> actualItems = new HashSet<>(actualLines.subList(1, actualLines.size()));
+
+    assertEquals(expectedItems, actualItems);
   }
 
   public static String getAccountIndexMapping() {

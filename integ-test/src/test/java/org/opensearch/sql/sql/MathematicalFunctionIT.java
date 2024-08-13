@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.TestUtils.getResponseBody;
 
 import java.io.IOException;
 import java.util.Locale;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -96,9 +97,24 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   @Test
   public void testExpm1() throws IOException {
     JSONObject result =
-        executeQuery("select expm1(account_number) FROM " + TEST_INDEX_BANK + " LIMIT 2");
-    verifySchema(result, schema("expm1(account_number)", null, "double"));
-    verifyDataRows(result, rows(Math.expm1(1)), rows(Math.expm1(6)));
+        executeQuery(
+            "select account_number, expm1(account_number) FROM " + TEST_INDEX_BANK + " LIMIT 2");
+    verifySchema(
+        result,
+        schema("account_number", null, "long"),
+        schema("expm1(account_number)", null, "double"));
+    JSONArray dataRows = result.getJSONArray("datarows");
+
+    // Extract and calculate expected values dynamically
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONArray row = dataRows.getJSONArray(i);
+      long accountNumber = row.getLong(0); // Extract the account_number
+      double actualExpm1Value = row.getDouble(1); // Extract the expm1 value
+      double expectedExpm1Value = Math.expm1(accountNumber); // Calculate the expected expm1 value
+
+      assertEquals(
+          expectedExpm1Value, actualExpm1Value, 0.000001); // Delta for floating-point comparison
+    }
   }
 
   @Test
