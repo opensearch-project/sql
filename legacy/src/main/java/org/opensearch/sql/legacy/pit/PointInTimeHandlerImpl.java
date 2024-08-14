@@ -63,6 +63,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     client.createPit(
         createPitRequest,
         new ActionListener<>() {
+
           @Override
           public void onResponse(CreatePitResponse createPitResponse) {
             pitId = createPitResponse.getId();
@@ -112,6 +113,7 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
             LOG.error("Error occurred while deleting PIT", e);
           }
         });
+
     while (deleteStatus == null) {
       try {
         Thread.sleep(100);
@@ -119,7 +121,6 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
         LOG.error("Error occurred while deleting PIT", e);
       }
     }
-
     return deleteStatus;
   }
 }
