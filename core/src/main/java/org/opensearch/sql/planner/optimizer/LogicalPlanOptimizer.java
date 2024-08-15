@@ -48,6 +48,7 @@ public class LogicalPlanOptimizer {
             new MergeFilterAndFilter(),
             new PushFilterUnderSort(),
             EvalPushDown.PUSH_DOWN_LIMIT,
+            EvalPushDown.PUSH_DOWN_SORT,
             /*
              * Phase 2: Transformations that rely on data source push down capability
              */

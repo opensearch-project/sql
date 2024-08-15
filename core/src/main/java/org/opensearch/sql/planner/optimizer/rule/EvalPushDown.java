@@ -7,6 +7,7 @@ package org.opensearch.sql.planner.optimizer.rule;
 
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.evalCapture;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.limit;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.sort;
 import static org.opensearch.sql.planner.optimizer.rule.EvalPushDown.EvalPushDownBuilder.match;
 
 import com.facebook.presto.matching.Capture;
@@ -14,13 +15,21 @@ import com.facebook.presto.matching.Captures;
 import com.facebook.presto.matching.Pattern;
 import com.facebook.presto.matching.pattern.CapturePattern;
 import com.facebook.presto.matching.pattern.WithPattern;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.optimizer.Rule;
 
 /**
@@ -39,6 +48,38 @@ public class EvalPushDown<T extends LogicalPlan> implements Rule<T> {
                 List<LogicalPlan> child = logicalEval.getChild();
                 limit.replaceChildPlans(child);
                 logicalEval.replaceChildPlans(List.of(limit));
+                return logicalEval;
+              });
+
+  public static final Rule<LogicalSort> PUSH_DOWN_SORT =
+      match(sort(evalCapture()))
+          .apply(
+              (sort, logicalEval) -> {
+                List<LogicalPlan> child = logicalEval.getChild();
+                Map<ReferenceExpression, Expression> evalExpressionMap =
+                    logicalEval.getExpressions().stream()
+                        .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+                List<Pair<SortOption, Expression>> sortList = sort.getSortList();
+                List<Pair<SortOption, Expression>> newSortList = new ArrayList<>();
+                for (Pair<SortOption, Expression> pair : sortList) {
+                  /*
+                   Narrow down the optimization to only support:
+                   1. The expression in sort and replaced expression are both ReferenceExpression.
+                   2. No internal reference in eval.
+                  */
+                  if (pair.getRight() instanceof ReferenceExpression) {
+                    ReferenceExpression ref = (ReferenceExpression) pair.getRight();
+                    Expression replacedExpr = evalExpressionMap.getOrDefault(ref, ref);
+                    if (replacedExpr instanceof ReferenceExpression) {
+                      ReferenceExpression newRef = (ReferenceExpression) replacedExpr;
+                      if (!evalExpressionMap.containsKey(newRef)) {
+                        newSortList.add(Pair.of(pair.getLeft(), newRef));
+                      } else return sort;
+                    } else return sort;
+                  } else return sort;
+                }
+                sort = new LogicalSort(child.getFirst(), newSortList);
+                logicalEval.replaceChildPlans(List.of(sort));
                 return logicalEval;
               });
 

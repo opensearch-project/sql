@@ -42,6 +42,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -366,6 +367,31 @@ class LogicalPlanOptimizerTest {
     assertEquals(
         eval(tableScanBuilder, evalExpr),
         optimize(limit(eval(relation("schema", table), evalExpr), 10, 5)));
+  }
+
+  /** Sort - Eval --> Eval - Sort. */
+  @Test
+  void push_sort_under_eval() {
+    Pair<ReferenceExpression, Expression> evalExpr =
+        Pair.of(DSL.ref("name1", STRING), DSL.ref("name", STRING));
+    Pair<SortOption, Expression> sortExpr =
+        Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER));
+    assertEquals(
+        eval(sort(tableScanBuilder, sortExpr), evalExpr),
+        optimize(sort(eval(relation("schema", table), evalExpr), sortExpr)));
+  }
+
+  /** Sort - Eval - Scan --> Eval - Scan. */
+  @Test
+  void push_sort_through_eval_into_scan() {
+    when(tableScanBuilder.pushDownSort(any())).thenReturn(true);
+    Pair<ReferenceExpression, Expression> evalExpr =
+        Pair.of(DSL.ref("name1", STRING), DSL.ref("name", STRING));
+    Pair<SortOption, Expression> sortExpr =
+        Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER));
+    assertEquals(
+        eval(tableScanBuilder, evalExpr),
+        optimize(sort(eval(relation("schema", table), evalExpr), sortExpr)));
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {
