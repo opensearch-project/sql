@@ -91,7 +91,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortPushDownThroughEvalExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_limit_push.json");
+    String expected = loadFromFile("expectedOutput/ppl/explain_sort_push_through_eval.json");
 
     assertJsonEquals(
         expected,
