@@ -372,13 +372,30 @@ class LogicalPlanOptimizerTest {
   /** Sort - Eval --> Eval - Sort. */
   @Test
   void push_sort_under_eval() {
-    Pair<ReferenceExpression, Expression> evalExpr =
-        Pair.of(DSL.ref("name1", STRING), DSL.ref("name", STRING));
-    Pair<SortOption, Expression> sortExpr =
-        Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER));
+    ReferenceExpression sortRef = DSL.ref("intV", INTEGER);
+    ReferenceExpression evalRef = DSL.ref("name1", INTEGER);
+    Pair<ReferenceExpression, Expression> evalExpr = Pair.of(evalRef, DSL.ref("name", STRING));
+    Pair<SortOption, Expression> sortExpr = Pair.of(Sort.SortOption.DEFAULT_ASC, sortRef);
     assertEquals(
         eval(sort(tableScanBuilder, sortExpr), evalExpr),
         optimize(sort(eval(relation("schema", table), evalExpr), sortExpr)));
+
+    // don't push sort if sort field is not ReferenceExpression
+    Expression nonRefExpr = DSL.add(DSL.ref("intV", INTEGER), DSL.literal(1));
+    Pair<SortOption, Expression> sortExprWithNonRef =
+        Pair.of(Sort.SortOption.DEFAULT_ASC, nonRefExpr);
+    LogicalPlan originPlan = sort(eval(relation("schema", table), evalExpr), sortExprWithNonRef);
+    assertEquals(originPlan, optimize(originPlan));
+
+    // don't push sort if replaced expr in eval is not ReferenceExpression
+    Pair<ReferenceExpression, Expression> evalExprWithNonRef = Pair.of(sortRef, nonRefExpr);
+    originPlan = sort(eval(relation("schema", table), evalExprWithNonRef), sortExpr);
+    assertEquals(originPlan, optimize(originPlan));
+
+    // don't push sort if there are internal reference in eval
+    Pair<ReferenceExpression, Expression> evalExpr2 = Pair.of(sortRef, evalRef);
+    originPlan = sort(eval(relation("schema", table), evalExpr, evalExpr2), sortExpr);
+    assertEquals(originPlan, optimize(originPlan));
   }
 
   /** Sort - Eval - Scan --> Eval - Scan. */
