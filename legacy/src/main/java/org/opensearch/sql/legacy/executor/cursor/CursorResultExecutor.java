@@ -153,7 +153,9 @@ public class CursorResultExecutor implements CursorRestExecutor {
       }
       if (newPitId != null) {
         PointInTimeHandler pit = new PointInTimeHandlerImpl(client, newPitId);
-        if (!pit.delete()) {
+        try {
+          pit.delete();
+        } catch (RuntimeException e) {
           Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
           LOG.info("Error deleting point in time {} ", newPitId);
         }

@@ -571,7 +571,9 @@ public class SelectResultSet extends ResultSet {
       if (LocalClusterState.state().getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)) {
         String pitId = cursor.getPitId();
         PointInTimeHandler pit = new PointInTimeHandlerImpl(client, pitId);
-        if (!pit.delete()) {
+        try {
+          pit.delete();
+        } catch (RuntimeException e) {
           Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
           LOG.info("Error deleting point in time {} ", pitId);
         }

@@ -7,19 +7,11 @@ package org.opensearch.sql.legacy.pit;
 
 /** Point In Time */
 public interface PointInTimeHandler {
-  /**
-   * Create Point In Time
-   *
-   * @return Point In Time creation status
-   */
-  boolean create();
+  /** Create Point In Time */
+  void create();
 
-  /**
-   * Delete Point In Time
-   *
-   * @return Point In Time deletion status
-   */
-  boolean delete();
+  /** Delete Point In Time */
+  void delete();
 
   /** Get Point In Time Identifier */
   String getPitId();

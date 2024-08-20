@@ -4,24 +4,32 @@
  */
 package org.opensearch.sql.legacy.pit;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import lombok.SneakyThrows;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.opensearch.action.search.CreatePitAction;
+import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.CreatePitResponse;
+import org.opensearch.action.search.DeletePitAction;
+import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.action.search.DeletePitResponse;
 import org.opensearch.client.Client;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
@@ -32,14 +40,11 @@ public class PointInTimeHandlerImplTest {
   @Mock private Client mockClient;
   private String[] indices = {"index1", "index2"};
   private PointInTimeHandlerImpl pointInTimeHandlerImpl;
-  @Captor private ArgumentCaptor<ActionListener<DeletePitResponse>> listenerCaptorForDelete;
-  @Captor private ArgumentCaptor<ActionListener<CreatePitResponse>> listenerCaptorForCreate;
   private final String PIT_ID = "testId";
   private CreatePitResponse mockCreatePitResponse;
-  private CompletableFuture<CreatePitResponse> completableFuture;
-  private CompletableFuture<DeletePitResponse> completableFutureForDelete;
-  private Exception exception;
   private DeletePitResponse mockDeletePitResponse;
+  private ActionFuture<CreatePitResponse> mockActionFuture;
+  private ActionFuture<DeletePitResponse> mockActionFutureDelete;
 
   @Mock private OpenSearchSettings settings;
 
@@ -55,82 +60,74 @@ public class PointInTimeHandlerImplTest {
 
     mockCreatePitResponse = mock(CreatePitResponse.class);
     mockDeletePitResponse = mock(DeletePitResponse.class);
+    mockActionFuture = mock(ActionFuture.class);
+    mockActionFutureDelete = mock(ActionFuture.class);
+    when(mockClient.execute(any(CreatePitAction.class), any(CreatePitRequest.class)))
+        .thenReturn(mockActionFuture);
+    when(mockClient.execute(any(DeletePitAction.class), any(DeletePitRequest.class)))
+        .thenReturn(mockActionFutureDelete);
     RestStatus mockRestStatus = mock(RestStatus.class);
     when(mockDeletePitResponse.status()).thenReturn(mockRestStatus);
     when(mockDeletePitResponse.status().getStatus()).thenReturn(200);
     when(mockCreatePitResponse.getId()).thenReturn(PIT_ID);
-
-    completableFuture = CompletableFuture.completedFuture(mockCreatePitResponse);
-    completableFutureForDelete = CompletableFuture.completedFuture(mockDeletePitResponse);
-    exception = mock(Exception.class);
   }
 
+  @SneakyThrows
   @Test
   public void testCreate() {
-    doAnswer(
-            invocation -> {
-              ActionListener<CreatePitResponse> actionListener = invocation.getArgument(1);
-              actionListener.onResponse(mockCreatePitResponse);
-              return completableFuture;
-            })
-        .when(mockClient)
-        .createPit(any(), listenerCaptorForCreate.capture());
-
-    boolean status = pointInTimeHandlerImpl.create();
-    verify(mockClient).createPit(any(), listenerCaptorForCreate.capture());
-    listenerCaptorForCreate.getValue().onResponse(mockCreatePitResponse);
-    verify(mockCreatePitResponse, times(2)).getId();
-    assertTrue(status);
+    when(mockActionFuture.get()).thenReturn(mockCreatePitResponse);
+    try {
+      pointInTimeHandlerImpl.create();
+    } catch (RuntimeException e) {
+      fail("Expected no exception while creating PIT, but got: " + e.getMessage());
+    }
+    verify(mockClient).execute(any(CreatePitAction.class), any(CreatePitRequest.class));
+    verify(mockActionFuture).get();
+    verify(mockCreatePitResponse).getId();
   }
 
+  @SneakyThrows
   @Test
   public void testCreateForFailure() {
-    doAnswer(
-            invocation -> {
-              ActionListener<CreatePitResponse> actionListener = invocation.getArgument(1);
-              actionListener.onFailure(exception);
-              return completableFuture;
-            })
-        .when(mockClient)
-        .createPit(any(), listenerCaptorForCreate.capture());
+    ExecutionException executionException =
+        new ExecutionException("Error occurred while creating PIT.", new Throwable());
+    when(mockActionFuture.get()).thenThrow(executionException);
 
-    boolean status = pointInTimeHandlerImpl.create();
-    verify(mockClient).createPit(any(), listenerCaptorForCreate.capture());
-    listenerCaptorForCreate.getValue().onResponse(mockCreatePitResponse);
-    assertFalse(status);
+    RuntimeException thrownException =
+        assertThrows(RuntimeException.class, () -> pointInTimeHandlerImpl.create());
+
+    verify(mockClient).execute(any(CreatePitAction.class), any(CreatePitRequest.class));
+    assertNotNull(thrownException.getCause());
+    assertEquals("Error occurred while creating PIT.", thrownException.getMessage());
+    verify(mockActionFuture).get();
   }
 
+  @SneakyThrows
   @Test
   public void testDelete() {
-    doAnswer(
-            invocation -> {
-              ActionListener<DeletePitResponse> actionListener = invocation.getArgument(1);
-              actionListener.onResponse(mockDeletePitResponse);
-              return completableFutureForDelete;
-            })
-        .when(mockClient)
-        .deletePits(any(), listenerCaptorForDelete.capture());
-
-    boolean status = pointInTimeHandlerImpl.delete();
-    assertTrue(status);
-    verify(mockClient).deletePits(any(), listenerCaptorForDelete.capture());
-    listenerCaptorForDelete.getValue().onResponse(mockDeletePitResponse);
+    when(mockActionFutureDelete.get()).thenReturn(mockDeletePitResponse);
+    try {
+      pointInTimeHandlerImpl.delete();
+    } catch (RuntimeException e) {
+      fail("Expected no exception while deleting PIT, but got: " + e.getMessage());
+    }
+    verify(mockClient).execute(any(DeletePitAction.class), any(DeletePitRequest.class));
+    verify(mockActionFutureDelete).get();
   }
 
+  @SneakyThrows
   @Test
   public void testDeleteForFailure() {
-    doAnswer(
-            invocation -> {
-              ActionListener<DeletePitResponse> actionListener = invocation.getArgument(1);
-              actionListener.onFailure(exception);
-              return completableFutureForDelete;
-            })
-        .when(mockClient)
-        .deletePits(any(), listenerCaptorForDelete.capture());
+    ExecutionException executionException =
+        new ExecutionException("Error occurred while deleting PIT.", new Throwable());
+    when(mockActionFutureDelete.get()).thenThrow(executionException);
 
-    boolean status = pointInTimeHandlerImpl.delete();
-    assertFalse(status);
-    verify(mockClient).deletePits(any(), listenerCaptorForDelete.capture());
-    listenerCaptorForDelete.getValue().onResponse(mockDeletePitResponse);
+    RuntimeException thrownException =
+        assertThrows(RuntimeException.class, () -> pointInTimeHandlerImpl.delete());
+
+    verify(mockClient).execute(any(DeletePitAction.class), any(DeletePitRequest.class));
+    assertNotNull(thrownException.getCause());
+    assertEquals("Error occurred while deleting PIT.", thrownException.getMessage());
+    verify(mockActionFutureDelete).get();
   }
 }

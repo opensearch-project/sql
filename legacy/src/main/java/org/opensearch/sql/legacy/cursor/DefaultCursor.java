@@ -13,10 +13,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Setter;
-import lombok.SneakyThrows;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.common.settings.Settings;
@@ -99,7 +99,7 @@ public class DefaultCursor implements Cursor {
   private String pitId;
 
   /** To get next batch of result with search after api */
-  public SearchSourceBuilder searchSourceBuilder;
+  private SearchSourceBuilder searchSourceBuilder;
 
   /** To get last sort values * */
   private Object[] sortFields;
@@ -115,7 +115,7 @@ public class DefaultCursor implements Cursor {
    */
   private static final NamedXContentRegistry xContentRegistry =
       new NamedXContentRegistry(
-          new SearchModule(Settings.builder().build(), new ArrayList<>()).getNamedXContents());
+          new SearchModule(Settings.EMPTY, Collections.emptyList()).getNamedXContents());
 
   @Override
   public CursorType getType() {
@@ -124,11 +124,7 @@ public class DefaultCursor implements Cursor {
 
   @Override
   public String generateCursorId() {
-    boolean isCursorValid =
-        LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)
-            ? Strings.isNullOrEmpty(pitId)
-            : Strings.isNullOrEmpty(scrollId);
-    if (rowsLeft <= 0 || isCursorValid) {
+    if (rowsLeft <= 0 || isCursorIdNullOrEmpty()) {
       return null;
     }
     JSONObject json = new JSONObject();
@@ -146,51 +142,50 @@ public class DefaultCursor implements Cursor {
                     try {
                       return objectMapper.writeValueAsString(sortFields);
                     } catch (JsonProcessingException e) {
-                      throw new RuntimeException(e);
+                      throw new RuntimeException(
+                          "Failed to parse sort fields from JSON string.", e);
                     }
                   });
       json.put(SORT_FIELDS, sortFieldValue);
+      setSearchRequestString(json, searchSourceBuilder);
     } else {
       json.put(SCROLL_ID, scrollId);
     }
-    return String.format("%s:%s", type.getId(), encodeCursor(json, searchSourceBuilder));
+    return String.format("%s:%s", type.getId(), encodeCursor(json));
   }
 
-  @SneakyThrows
+  private void setSearchRequestString(JSONObject cursorJson, SearchSourceBuilder sourceBuilder) {
+    try {
+      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+      XContentBuilder builder = XContentFactory.jsonBuilder(outputStream);
+      sourceBuilder.toXContent(builder, null);
+      builder.close();
+
+      String searchRequestBase64 = Base64.getEncoder().encodeToString(outputStream.toByteArray());
+      cursorJson.put("searchSourceBuilder", searchRequestBase64);
+    } catch (IOException ex) {
+      throw new RuntimeException("Failed to set search request string on cursor json.", ex);
+    }
+  }
+
+  private boolean isCursorIdNullOrEmpty() {
+    return LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)
+        ? Strings.isNullOrEmpty(pitId)
+        : Strings.isNullOrEmpty(scrollId);
+  }
+
   public static DefaultCursor from(String cursorId) {
     /**
      * It is assumed that cursorId here is the second part of the original cursor passed by the
      * client after removing first part which identifies cursor type
      */
-    String[] parts = cursorId.split(":::");
-    JSONObject json = decodeCursor(parts[0]);
+    JSONObject json = decodeCursor(cursorId);
     DefaultCursor cursor = new DefaultCursor();
     cursor.setFetchSize(json.getInt(FETCH_SIZE));
     cursor.setRowsLeft(json.getLong(ROWS_LEFT));
     cursor.setIndexPattern(json.getString(INDEX_PATTERN));
     if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-      cursor.setPitId(json.getString(PIT_ID));
-
-      Object[] sortFieldValue =
-          AccessController.doPrivileged(
-              (PrivilegedAction<Object[]>)
-                  () -> {
-                    try {
-                      return objectMapper.readValue(json.getString(SORT_FIELDS), Object[].class);
-                    } catch (JsonProcessingException e) {
-                      throw new RuntimeException(e);
-                    }
-                  });
-      cursor.setSortFields(sortFieldValue);
-
-      byte[] bytes = Base64.getDecoder().decode(parts[1]);
-      ByteArrayInputStream streamInput = new ByteArrayInputStream(bytes);
-      XContentParser parser =
-          XContentType.JSON
-              .xContent()
-              .createParser(xContentRegistry, IGNORE_DEPRECATIONS, streamInput);
-      SearchSourceBuilder sourceBuilder = SearchSourceBuilder.fromXContent(parser);
-      cursor.searchSourceBuilder = sourceBuilder;
+      populateCursorForPit(json, cursor);
     } else {
       cursor.setScrollId(json.getString(SCROLL_ID));
     }
@@ -198,6 +193,39 @@ public class DefaultCursor implements Cursor {
     cursor.setFieldAliasMap(fieldAliasMap(json.getJSONObject(FIELD_ALIAS_MAP)));
 
     return cursor;
+  }
+
+  private static void populateCursorForPit(JSONObject json, DefaultCursor cursor) {
+    cursor.setPitId(json.getString(PIT_ID));
+
+    cursor.setSortFields(getSortFieldsFromJson(json));
+
+    // Retrieve and set the SearchSourceBuilder from the JSON field
+    String searchSourceBuilderBase64 = json.getString("searchSourceBuilder");
+    byte[] bytes = Base64.getDecoder().decode(searchSourceBuilderBase64);
+    ByteArrayInputStream streamInput = new ByteArrayInputStream(bytes);
+    try {
+      XContentParser parser =
+          XContentType.JSON
+              .xContent()
+              .createParser(xContentRegistry, IGNORE_DEPRECATIONS, streamInput);
+      SearchSourceBuilder sourceBuilder = SearchSourceBuilder.fromXContent(parser);
+      cursor.setSearchSourceBuilder(sourceBuilder);
+    } catch (IOException ex) {
+      throw new RuntimeException("Failed to get searchSourceBuilder from cursor Id", ex);
+    }
+  }
+
+  private static Object[] getSortFieldsFromJson(JSONObject json) {
+    return AccessController.doPrivileged(
+        (PrivilegedAction<Object[]>)
+            () -> {
+              try {
+                return objectMapper.readValue(json.getString(SORT_FIELDS), Object[].class);
+              } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to parse sort fields from JSON string.", e);
+              }
+            });
   }
 
   private JSONArray getSchemaAsJson() {
@@ -220,18 +248,8 @@ public class DefaultCursor implements Cursor {
     return entry;
   }
 
-  @SneakyThrows
-  private static String encodeCursor(JSONObject cursorJson, SearchSourceBuilder sourceBuilder) {
-    String jsonBase64 = Base64.getEncoder().encodeToString(cursorJson.toString().getBytes());
-
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    XContentBuilder builder = XContentFactory.jsonBuilder(outputStream);
-    sourceBuilder.toXContent(builder, null);
-    builder.close();
-
-    String searchRequestBase64 = Base64.getEncoder().encodeToString(outputStream.toByteArray());
-
-    return jsonBase64 + ":::" + searchRequestBase64;
+  private static String encodeCursor(JSONObject cursorJson) {
+    return Base64.getEncoder().encodeToString(cursorJson.toString().getBytes());
   }
 
   private static JSONObject decodeCursor(String cursorId) {

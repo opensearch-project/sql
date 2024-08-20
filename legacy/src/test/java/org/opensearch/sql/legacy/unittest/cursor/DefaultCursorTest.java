@@ -68,7 +68,7 @@ public class DefaultCursorTest {
     cursor.setColumns(new ArrayList<>());
 
     // Set the mocked SearchSourceBuilder to the cursor
-    cursor.searchSourceBuilder = sourceBuilder;
+    cursor.setSearchSourceBuilder(sourceBuilder);
 
     assertThat(cursor.generateCursorId(), startsWith(cursor.getType().getId() + ":"));
   }
@@ -87,7 +87,7 @@ public class DefaultCursorTest {
     cursor.setColumns(new ArrayList<>());
 
     // Set the mocked SearchSourceBuilder to the cursor
-    cursor.searchSourceBuilder = sourceBuilder;
+    cursor.setSearchSourceBuilder(sourceBuilder);
 
     assertThat(cursor.generateCursorId(), startsWith(cursor.getType().getId() + ":"));
   }
