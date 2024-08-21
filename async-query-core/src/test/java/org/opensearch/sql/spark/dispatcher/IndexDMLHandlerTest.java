@@ -66,7 +66,9 @@ class IndexDMLHandlerTest {
 
   @Test
   public void getResponseFromExecutor() {
-    JSONObject result = new IndexDMLHandler(null, null, null, null).getResponseFromExecutor(null);
+    JSONObject result =
+        new IndexDMLHandler(null, null, null, null)
+            .getResponseFromExecutor(null, asyncQueryRequestContext);
 
     assertEquals("running", result.getString(STATUS_FIELD));
     assertEquals("", result.getString(ERROR_FIELD));

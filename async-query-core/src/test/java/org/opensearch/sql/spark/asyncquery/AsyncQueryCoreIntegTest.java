@@ -377,7 +377,8 @@ public class AsyncQueryCoreIntegTest {
     when(jobExecutionResponseReader.getResultWithQueryId(QUERY_ID, RESULT_INDEX))
         .thenReturn(result);
 
-    AsyncQueryExecutionResponse response = asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID);
+    AsyncQueryExecutionResponse response =
+        asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID, asyncQueryRequestContext);
 
     assertEquals("SUCCESS", response.getStatus());
     assertEquals(SESSION_ID, response.getSessionId());
@@ -395,7 +396,8 @@ public class AsyncQueryCoreIntegTest {
     when(jobExecutionResponseReader.getResultWithQueryId(QUERY_ID, RESULT_INDEX))
         .thenReturn(result);
 
-    AsyncQueryExecutionResponse response = asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID);
+    AsyncQueryExecutionResponse response =
+        asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID, asyncQueryRequestContext);
 
     assertEquals("SUCCESS", response.getStatus());
     assertNull(response.getSessionId());
@@ -413,7 +415,8 @@ public class AsyncQueryCoreIntegTest {
     JSONObject result = getValidExecutionResponse();
     when(jobExecutionResponseReader.getResultWithJobId(JOB_ID, RESULT_INDEX)).thenReturn(result);
 
-    AsyncQueryExecutionResponse response = asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID);
+    AsyncQueryExecutionResponse response =
+        asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID, asyncQueryRequestContext);
 
     assertEquals("SUCCESS", response.getStatus());
     assertNull(response.getSessionId());
@@ -428,13 +431,15 @@ public class AsyncQueryCoreIntegTest {
     final StatementModel statementModel = givenStatementExists();
     StatementModel canceledStatementModel =
         StatementModel.copyWithState(statementModel, StatementState.CANCELLED, ImmutableMap.of());
-    when(statementStorageService.updateStatementState(statementModel, StatementState.CANCELLED))
+    when(statementStorageService.updateStatementState(
+            statementModel, StatementState.CANCELLED, asyncQueryRequestContext))
         .thenReturn(canceledStatementModel);
 
     String result = asyncQueryExecutorService.cancelQuery(QUERY_ID, asyncQueryRequestContext);
 
     assertEquals(QUERY_ID, result);
-    verify(statementStorageService).updateStatementState(statementModel, StatementState.CANCELLED);
+    verify(statementStorageService)
+        .updateStatementState(statementModel, StatementState.CANCELLED, asyncQueryRequestContext);
   }
 
   @Test
@@ -596,7 +601,7 @@ public class AsyncQueryCoreIntegTest {
             .statementId(new StatementId(QUERY_ID))
             .statementState(StatementState.RUNNING)
             .build();
-    when(statementStorageService.getStatement(QUERY_ID, DATASOURCE_NAME))
+    when(statementStorageService.getStatement(QUERY_ID, DATASOURCE_NAME, asyncQueryRequestContext))
         .thenReturn(Optional.of(statementModel));
     return statementModel;
   }
