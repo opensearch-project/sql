@@ -90,12 +90,26 @@ public class StringUtils {
    * @return A string whose each dot-separated field has been unquoted from back-ticks (if any)
    */
   public static String unquoteFullColumn(String text, String quote) {
+    boolean startsWithPeriod = false;
+    if (text.startsWith(quote + ".")) {
+      startsWithPeriod = true;
+      text = quote + text.substring(2);
+    }
     String[] strs = text.split("\\.");
     for (int i = 0; i < strs.length; i++) {
       String unquotedSubstr = unquoteSingleField(strs[i], quote);
       strs[i] = unquotedSubstr;
     }
-    return String.join(".", strs);
+    if (startsWithPeriod) {
+      String s = String.join(".", strs);
+      if (s.startsWith(quote)) {
+        return new StringBuilder(s).insert(1, ".").toString();
+      } else {
+        return "." + s;
+      }
+    } else {
+      return String.join(".", strs);
+    }
   }
 
   public static String unquoteFullColumn(String text) {
