@@ -29,17 +29,17 @@ public class PhysicalPlanTestBase {
 
   protected static final List<ExprValue> countTestInputs =
       new ImmutableList.Builder<ExprValue>()
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 1, "testString", "asdf")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 2, "testString", "asdf")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 3, "testString", "asdf")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 4, "testString", "asdf")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 5, "testString", "asdf")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 6, "testString", "asdf")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 7, "testString", "asdf")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 8, "testString", "asdf")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 9, "testString", "asdf")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 10, "testString", "asdf")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 11, "testString", "asdf")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 1, "name", "a")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 2, "name", "b")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 3, "name", "c")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 4, "name", "d")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 5, "name", "e")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 6, "name", "f")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 7, "name", "g")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 8, "name", "h")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 9, "name", "i")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 10, "name", "j")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 11, "name", "k")))
           .build();
 
   protected static final List<ExprValue> inputs =

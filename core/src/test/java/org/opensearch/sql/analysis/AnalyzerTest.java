@@ -81,6 +81,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
@@ -1766,5 +1767,210 @@ class AnalyzerTest extends AnalyzerTestBase {
         () -> assertTrue(analyzed.getChild().get(0) instanceof LogicalFetchCursor),
         () ->
             assertEquals("pewpew", ((LogicalFetchCursor) analyzed.getChild().get(0)).getCursor()));
+  }
+
+  @Test
+  public void inner_join() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.innerJoin(
+            LogicalPlanDSL.relation("schema1", table),
+            LogicalPlanDSL.relation("schema2", table),
+            DSL.and(
+                DSL.equal(
+                    DSL.ref("schema1.integer_value", INTEGER),
+                    DSL.ref("schema2.integer_value", INTEGER)),
+                DSL.equal(
+                    DSL.ref("schema1.double_value", DOUBLE),
+                    DSL.ref("schema2.double_value", DOUBLE)))),
+        AstDSL.join(
+            AstDSL.relation("schema1"),
+            AstDSL.relation("schema2"),
+            Join.JoinType.INNER,
+            AstDSL.and(
+                AstDSL.equalTo(
+                    AstDSL.field("schema1.integer_value"), AstDSL.field("schema2.integer_value")),
+                AstDSL.equalTo(
+                    AstDSL.field("schema1.double_value"), AstDSL.field("schema2.double_value")))));
+  }
+
+  @Test
+  public void left_outer_join() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.join(
+            LogicalPlanDSL.relation("schema1", table),
+            LogicalPlanDSL.relation("schema2", table),
+            Join.JoinType.LEFT,
+            DSL.and(
+                DSL.equal(
+                    DSL.ref("schema1.integer_value", INTEGER),
+                    DSL.ref("schema2.integer_value", INTEGER)),
+                DSL.equal(
+                    DSL.ref("schema1.double_value", DOUBLE),
+                    DSL.ref("schema2.double_value", DOUBLE)))),
+        AstDSL.join(
+            AstDSL.relation("schema1"),
+            AstDSL.relation("schema2"),
+            Join.JoinType.LEFT,
+            AstDSL.and(
+                AstDSL.equalTo(
+                    AstDSL.field("schema1.integer_value"), AstDSL.field("schema2.integer_value")),
+                AstDSL.equalTo(
+                    AstDSL.field("schema1.double_value"), AstDSL.field("schema2.double_value")))));
+  }
+
+  @Test
+  public void right_outer_join() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.join(
+            LogicalPlanDSL.relation("schema1", table),
+            LogicalPlanDSL.relation("schema2", table),
+            Join.JoinType.RIGHT,
+            DSL.and(
+                DSL.equal(
+                    DSL.ref("schema1.integer_value", INTEGER),
+                    DSL.ref("schema2.integer_value", INTEGER)),
+                DSL.equal(
+                    DSL.ref("schema1.double_value", DOUBLE),
+                    DSL.ref("schema2.double_value", DOUBLE)))),
+        AstDSL.join(
+            AstDSL.relation("schema1"),
+            AstDSL.relation("schema2"),
+            Join.JoinType.RIGHT,
+            AstDSL.and(
+                AstDSL.equalTo(
+                    AstDSL.field("schema1.integer_value"), AstDSL.field("schema2.integer_value")),
+                AstDSL.equalTo(
+                    AstDSL.field("schema1.double_value"), AstDSL.field("schema2.double_value")))));
+  }
+
+  @Test
+  public void anti_join() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.join(
+            LogicalPlanDSL.relation("schema1", table),
+            LogicalPlanDSL.relation("schema2", table),
+            Join.JoinType.ANTI,
+            DSL.and(
+                DSL.equal(
+                    DSL.ref("schema1.integer_value", INTEGER),
+                    DSL.ref("schema2.integer_value", INTEGER)),
+                DSL.equal(
+                    DSL.ref("schema1.double_value", DOUBLE),
+                    DSL.ref("schema2.double_value", DOUBLE)))),
+        AstDSL.join(
+            AstDSL.relation("schema1"),
+            AstDSL.relation("schema2"),
+            Join.JoinType.ANTI,
+            AstDSL.and(
+                AstDSL.equalTo(
+                    AstDSL.field("schema1.integer_value"), AstDSL.field("schema2.integer_value")),
+                AstDSL.equalTo(
+                    AstDSL.field("schema1.double_value"), AstDSL.field("schema2.double_value")))));
+  }
+
+  @Test
+  public void semi_join() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.join(
+            LogicalPlanDSL.relation("schema1", table),
+            LogicalPlanDSL.relation("schema2", table),
+            Join.JoinType.SEMI,
+            DSL.and(
+                DSL.equal(
+                    DSL.ref("schema1.integer_value", INTEGER),
+                    DSL.ref("schema2.integer_value", INTEGER)),
+                DSL.equal(
+                    DSL.ref("schema1.double_value", DOUBLE),
+                    DSL.ref("schema2.double_value", DOUBLE)))),
+        AstDSL.join(
+            AstDSL.relation("schema1"),
+            AstDSL.relation("schema2"),
+            Join.JoinType.SEMI,
+            AstDSL.and(
+                AstDSL.equalTo(
+                    AstDSL.field("schema1.integer_value"), AstDSL.field("schema2.integer_value")),
+                AstDSL.equalTo(
+                    AstDSL.field("schema1.double_value"), AstDSL.field("schema2.double_value")))));
+  }
+
+  @Test
+  public void basic_SPJG() {
+    // Select(Filter)-Project-Join-GroupBy
+    // SELECT
+    //   schema1.string_value,
+    //   schema2.string_value,
+    //   AVG(schema1.integer_value),
+    //   MIN(schema2.long_value),
+    // FROM
+    //   schema1
+    // INNER JOIN
+    //   schema2
+    // ON
+    //   schema1.integer_value = schema2.integer_value
+    // AND
+    //   schema1.double_value = schema2.double_value
+    // WHERE
+    //   schema1.integer_value > 10
+    // GROUP BY
+    //   schema1.string_value, schema2.string_value
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.filter(
+                LogicalPlanDSL.aggregation(
+                    LogicalPlanDSL.innerJoin(
+                        LogicalPlanDSL.relation("schema1", table),
+                        LogicalPlanDSL.relation("schema2", table),
+                        DSL.and(
+                            DSL.equal(
+                                DSL.ref("schema1.integer_value", INTEGER),
+                                DSL.ref("schema2.integer_value", INTEGER)),
+                            DSL.equal(
+                                DSL.ref("schema1.double_value", DOUBLE),
+                                DSL.ref("schema2.double_value", DOUBLE)))),
+                    ImmutableList.of(
+                        DSL.named(
+                            "AVG(schema1.integer_value)",
+                            DSL.avg(DSL.ref("schema1.integer_value", INTEGER))),
+                        DSL.named(
+                            "MIN(schema2.long_value)",
+                            DSL.min(DSL.ref("schema2.long_value", LONG)))),
+                    ImmutableList.of(
+                        DSL.named("schema1.string_value", DSL.ref("schema1.string_value", STRING)),
+                        DSL.named(
+                            "schema2.string_value", DSL.ref("schema2.string_value", STRING)))),
+                DSL.greater(
+                    DSL.ref("schema1.integer_value", INTEGER), DSL.literal(integerValue(10)))),
+            DSL.named("schema1.string_value", DSL.ref("schema1.string_value", STRING)),
+            DSL.named("schema2.string_value", DSL.ref("schema2.string_value", STRING))),
+        AstDSL.projectWithArg(
+            AstDSL.filter(
+                AstDSL.agg(
+                    AstDSL.join(
+                        AstDSL.relation("schema1"),
+                        AstDSL.relation("schema2"),
+                        Join.JoinType.INNER,
+                        AstDSL.and(
+                            AstDSL.equalTo(
+                                AstDSL.field("schema1.integer_value"),
+                                AstDSL.field("schema2.integer_value")),
+                            AstDSL.equalTo(
+                                AstDSL.field("schema1.double_value"),
+                                AstDSL.field("schema2.double_value")))),
+                    ImmutableList.of(
+                        alias(
+                            "AVG(schema1.integer_value)",
+                            aggregate("AVG", qualifiedName("schema1.integer_value"))),
+                        alias(
+                            "MIN(schema2.long_value)",
+                            aggregate("MIN", qualifiedName("schema2.long_value")))),
+                    emptyList(),
+                    ImmutableList.of(
+                        alias("schema1.string_value", qualifiedName("schema1.string_value")),
+                        alias("schema2.string_value", qualifiedName("schema2.string_value"))),
+                    emptyList()),
+                compare(">", AstDSL.field("schema1.integer_value"), intLiteral(10))),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("schema1.string_value", AstDSL.field("schema1.string_value")),
+            AstDSL.alias("schema2.string_value", AstDSL.field("schema2.string_value"))));
   }
 }

@@ -72,6 +72,21 @@ public class SymbolTable {
     Map<String, ExprType> table = tableByNamespace.get(symbol.getNamespace());
     ExprType type = null;
     if (table != null) {
+      // To handle the field named start with [index.], for example index1.field1,
+      // this is used by Join query.
+      if (symbol.getNamespace() == Namespace.FIELD_NAME) {
+        String[] parts = symbol.getName().split("\\.");
+        if (parts.length == 2) {
+          // extract the indexName
+          if (tableByNamespace.get(Namespace.INDEX_NAME) != null) {
+            String indexName = tableByNamespace.get(Namespace.INDEX_NAME).firstKey();
+            if (indexName != null && indexName.equals(parts[0])) {
+              type = table.get(parts[1]);
+              return Optional.ofNullable(type);
+            }
+          }
+        }
+      }
       type = table.get(symbol.getName());
     }
     return Optional.ofNullable(type);

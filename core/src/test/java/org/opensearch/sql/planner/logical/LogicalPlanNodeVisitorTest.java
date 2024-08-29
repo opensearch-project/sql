@@ -78,6 +78,56 @@ class LogicalPlanNodeVisitorTest {
     assertEquals(5, result);
   }
 
+  @Test
+  public void table_join_plan_should_be_traversable() {
+    LogicalPlan leftRelation = LogicalPlanDSL.relation("schema1", table);
+    LogicalPlan rightRelation = LogicalPlanDSL.relation("schema2", table);
+    LogicalPlan join = LogicalPlanDSL.innerJoin(leftRelation, rightRelation, expression);
+    LogicalPlan logicalPlan =
+        LogicalPlanDSL.rename(
+            LogicalPlanDSL.aggregation(
+                LogicalPlanDSL.rareTopN(
+                    LogicalPlanDSL.filter(join, expression),
+                    CommandType.TOP,
+                    ImmutableList.of(expression),
+                    expression),
+                ImmutableList.of(DSL.named("avg", aggregator)),
+                ImmutableList.of(DSL.named("group", expression))),
+            ImmutableMap.of(ref, ref));
+    Integer result = logicalPlan.accept(new NodesCount(), null);
+    assertEquals(7, result);
+  }
+
+  @Test
+  public void complex_join_plan_should_be_traversable() {
+    LogicalPlan leftPlan =
+        LogicalPlanDSL.rename(
+            LogicalPlanDSL.aggregation(
+                LogicalPlanDSL.rareTopN(
+                    LogicalPlanDSL.filter(LogicalPlanDSL.relation("schema", table), expression),
+                    CommandType.TOP,
+                    ImmutableList.of(expression),
+                    expression),
+                ImmutableList.of(DSL.named("avg", aggregator)),
+                ImmutableList.of(DSL.named("group", expression))),
+            ImmutableMap.of(ref, ref));
+
+    LogicalPlan rightPlan =
+        LogicalPlanDSL.rename(
+            LogicalPlanDSL.aggregation(
+                LogicalPlanDSL.rareTopN(
+                    LogicalPlanDSL.filter(LogicalPlanDSL.relation("schema", table), expression),
+                    CommandType.TOP,
+                    ImmutableList.of(expression),
+                    expression),
+                ImmutableList.of(DSL.named("avg", aggregator)),
+                ImmutableList.of(DSL.named("group", expression))),
+            ImmutableMap.of(ref, ref));
+    LogicalPlan join = LogicalPlanDSL.innerJoin(leftPlan, rightPlan, expression);
+    Integer result = join.accept(new NodesCount(), null);
+    assertEquals(11, result);
+  }
+
   @SuppressWarnings("unchecked")
   private static Stream<Arguments> getLogicalPlansForVisitorTest() {
     LogicalPlan relation = LogicalPlanDSL.relation("schema", table);
@@ -141,6 +191,12 @@ class LogicalPlanNodeVisitorTest {
 
     LogicalCloseCursor closeCursor = new LogicalCloseCursor(cursor);
 
+    LogicalPlan relation2 = LogicalPlanDSL.relation("schema2", table);
+
+    LogicalPlan join =
+        LogicalPlanDSL.innerJoin(
+            (LogicalRelation) relation, (LogicalRelation) relation2, expression);
+
     return Stream.of(
             relation,
             tableScanBuilder,
@@ -163,7 +219,8 @@ class LogicalPlanNodeVisitorTest {
             paginate,
             nested,
             cursor,
-            closeCursor)
+            closeCursor,
+            join)
         .map(Arguments::of);
   }
 
@@ -208,6 +265,15 @@ class LogicalPlanNodeVisitorTest {
 
     @Override
     public Integer visitRareTopN(LogicalRareTopN plan, Object context) {
+      return 1
+          + plan.getChild().stream()
+              .map(child -> child.accept(this, context))
+              .mapToInt(Integer::intValue)
+              .sum();
+    }
+
+    @Override
+    public Integer visitJoin(LogicalJoin plan, Object context) {
       return 1
           + plan.getChild().stream()
               .map(child -> child.accept(this, context))

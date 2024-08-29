@@ -177,7 +177,8 @@ public class AnalyzerTestBase {
   }
 
   protected void assertAnalyzeEqual(LogicalPlan expected, UnresolvedPlan unresolvedPlan) {
-    assertEquals(expected, analyze(unresolvedPlan));
+    LogicalPlan actual = analyze(unresolvedPlan);
+    assertEquals(expected, actual);
   }
 
   protected LogicalPlan analyze(UnresolvedPlan unresolvedPlan) {

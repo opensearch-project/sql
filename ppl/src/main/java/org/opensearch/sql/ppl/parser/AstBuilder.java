@@ -53,6 +53,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
@@ -312,6 +313,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
     if (ctx.tableFunction() != null) {
       return visitTableFunction(ctx.tableFunction());
+    } else if (ctx.relation() != null) {
+      return visitRelation(ctx.relation());
     } else {
       return visitTableSourceClause(ctx.tableSourceClause());
     }
@@ -335,6 +338,47 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                   new UnresolvedArgument(argName, this.internalVisitExpression(arg.expression())));
             });
     return new TableFunction(this.internalVisitExpression(ctx.qualifiedName()), builder.build());
+  }
+
+  @Override
+  public UnresolvedPlan visitTablePrimary(OpenSearchPPLParser.TablePrimaryContext ctx) {
+    if (ctx.alias != null) {
+      return new Relation(this.internalVisitExpression(ctx.tableSource()), ctx.alias.getText());
+    } else {
+      return new Relation(this.internalVisitExpression(ctx.tableSource()));
+    }
+  }
+
+  @Override
+  public UnresolvedPlan visitRelation(OpenSearchPPLParser.RelationContext ctx) {
+    return withRelationExtensions(ctx, visitTablePrimary(ctx.tablePrimary()));
+  }
+
+  private UnresolvedPlan withRelationExtensions(
+      OpenSearchPPLParser.RelationContext ctx, UnresolvedPlan tablePrimary) {
+    OpenSearchPPLParser.JoinSourceContext joinCtx = ctx.relationExtension().joinSource();
+    Join.JoinType joinType;
+    if (joinCtx.joinType() == null) {
+      joinType = Join.JoinType.INNER;
+    } else if (joinCtx.joinType().INNER() != null) {
+      joinType = Join.JoinType.INNER;
+    } else if (joinCtx.joinType().CROSS() != null) {
+      joinType = Join.JoinType.CROSS;
+    } else if (joinCtx.joinType().FULL() != null) {
+      joinType = Join.JoinType.FULL;
+    } else if (joinCtx.joinType().SEMI() != null) {
+      joinType = Join.JoinType.SEMI;
+    } else if (joinCtx.joinType().ANTI() != null) {
+      joinType = Join.JoinType.ANTI;
+    } else if (joinCtx.joinType().LEFT() != null) {
+      joinType = Join.JoinType.LEFT;
+    } else if (joinCtx.joinType().RIGHT() != null) {
+      joinType = Join.JoinType.RIGHT;
+    } else {
+      joinType = Join.JoinType.INNER;
+    }
+    UnresolvedExpression joinCondition = this.internalVisitExpression(joinCtx.joinCriteria());
+    return new Join(tablePrimary, visitTablePrimary(joinCtx.right), joinType, joinCondition);
   }
 
   /** Navigate to & build AST expression. */

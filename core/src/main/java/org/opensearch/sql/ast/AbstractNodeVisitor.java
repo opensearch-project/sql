@@ -47,6 +47,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.ML;
@@ -106,6 +107,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitFilter(Filter node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitJoin(Join node, C context) {
     return visitChildren(node, context);
   }
 

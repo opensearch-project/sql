@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.analysis;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,12 @@ public class ExpressionReferenceOptimizer
       BuiltinFunctionRepository repository, LogicalPlan logicalPlan) {
     this.repository = repository;
     logicalPlan.accept(new ExpressionMapBuilder(), null);
+  }
+
+  public ExpressionReferenceOptimizer(
+      BuiltinFunctionRepository repository, LogicalPlan... logicalPlans) {
+    this.repository = repository;
+    Arrays.stream(logicalPlans).forEach(p -> p.accept(new ExpressionMapBuilder(), null));
   }
 
   public Expression optimize(Expression analyzed, AnalysisContext context) {
