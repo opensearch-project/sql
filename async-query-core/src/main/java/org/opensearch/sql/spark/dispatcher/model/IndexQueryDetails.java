@@ -31,6 +31,7 @@ public class IndexQueryDetails {
   // materialized view special case where
   // table name and mv name are combined.
   private String mvName;
+  private String mvQuery;
   private FlintIndexType indexType;
 
   private IndexQueryDetails() {}
@@ -70,6 +71,11 @@ public class IndexQueryDetails {
 
     public IndexQueryDetailsBuilder mvName(String mvName) {
       indexQueryDetails.mvName = mvName;
+      return this;
+    }
+
+    public IndexQueryDetailsBuilder mvQuery(String mvQuery) {
+      indexQueryDetails.mvQuery = mvQuery;
       return this;
     }
 
