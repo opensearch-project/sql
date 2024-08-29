@@ -40,14 +40,17 @@ public class OpenSearchStatementStorageService implements StatementStorageServic
   }
 
   @Override
-  public Optional<StatementModel> getStatement(String id, String datasourceName) {
+  public Optional<StatementModel> getStatement(
+      String id, String datasourceName, AsyncQueryRequestContext asyncQueryRequestContext) {
     return stateStore.get(
         id, serializer::fromXContent, OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 
   @Override
   public StatementModel updateStatementState(
-      StatementModel oldStatementModel, StatementState statementState) {
+      StatementModel oldStatementModel,
+      StatementState statementState,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     try {
       return stateStore.updateState(
           oldStatementModel,
@@ -63,7 +66,10 @@ public class OpenSearchStatementStorageService implements StatementStorageServic
       throw new IllegalStateException(errorMsg);
     } catch (VersionConflictEngineException e) {
       StatementModel statementModel =
-          getStatement(oldStatementModel.getId(), oldStatementModel.getDatasourceName())
+          getStatement(
+                  oldStatementModel.getId(),
+                  oldStatementModel.getDatasourceName(),
+                  asyncQueryRequestContext)
               .orElse(oldStatementModel);
       String errorMsg =
           String.format(

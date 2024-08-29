@@ -144,7 +144,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
     st.open();
 
     StatementModel running =
-        statementStorageService.updateStatementState(st.getStatementModel(), CANCELLED);
+        statementStorageService.updateStatementState(
+            st.getStatementModel(), CANCELLED, asyncQueryRequestContext);
 
     assertEquals(StatementState.CANCELLED, running.getStatementState());
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
@@ -265,7 +266,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     Session session =
         sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
     StatementId statementId = session.submit(queryRequest(), asyncQueryRequestContext);
-    Optional<Statement> statement = session.get(statementId);
+    Optional<Statement> statement = session.get(statementId, asyncQueryRequestContext);
 
     assertTrue(statement.isPresent());
     assertEquals(session.getSessionId(), statement.get().getSessionId());
@@ -301,7 +302,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.RUNNING);
     StatementId statementId = session.submit(queryRequest(), asyncQueryRequestContext);
 
-    Optional<Statement> statement = session.get(statementId);
+    Optional<Statement> statement = session.get(statementId, asyncQueryRequestContext);
     assertTrue(statement.isPresent());
     assertEquals(WAITING, statement.get().getStatementState());
     assertEquals(statementId, statement.get().getStatementId());
@@ -314,7 +315,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
     // App change state to running
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.RUNNING);
 
-    Optional<Statement> statement = session.get(StatementId.newStatementId("not-exist-id"));
+    Optional<Statement> statement =
+        session.get(StatementId.newStatementId("not-exist-id"), asyncQueryRequestContext);
     assertFalse(statement.isPresent());
   }
 
@@ -332,7 +334,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
       assertEquals(expected, st.getStatementModel().getStatementState());
 
       Optional<StatementModel> model =
-          statementStorageService.getStatement(st.getStatementId().getId(), TEST_DATASOURCE_NAME);
+          statementStorageService.getStatement(
+              st.getStatementId().getId(), TEST_DATASOURCE_NAME, st.getAsyncQueryRequestContext());
       assertTrue(model.isPresent());
       assertEquals(expected, model.get().getStatementState());
 
@@ -343,7 +346,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
       assertEquals(expected, st.getStatementModel().getStatementId());
 
       Optional<StatementModel> model =
-          statementStorageService.getStatement(st.getStatementId().getId(), TEST_DATASOURCE_NAME);
+          statementStorageService.getStatement(
+              st.getStatementId().getId(), TEST_DATASOURCE_NAME, st.getAsyncQueryRequestContext());
       assertTrue(model.isPresent());
       assertEquals(expected, model.get().getStatementId());
       return this;
@@ -361,7 +365,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
     public TestStatement run() {
       StatementModel model =
-          statementStorageService.updateStatementState(st.getStatementModel(), RUNNING);
+          statementStorageService.updateStatementState(
+              st.getStatementModel(), RUNNING, st.getAsyncQueryRequestContext());
       st.setStatementModel(model);
       return this;
     }
