@@ -847,7 +847,7 @@ public class SparkQueryDispatcherTest {
   @Test
   void testCancelQueryWithSession() {
     doReturn(Optional.of(session)).when(sessionManager).getSession(MOCK_SESSION_ID, MY_GLUE);
-    doReturn(Optional.of(statement)).when(session).get(any());
+    doReturn(Optional.of(statement)).when(session).get(any(), eq(asyncQueryRequestContext));
     doNothing().when(statement).cancel();
 
     String queryId =
@@ -919,7 +919,8 @@ public class SparkQueryDispatcherTest {
     when(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, null))
         .thenReturn(new JSONObject());
 
-    JSONObject result = sparkQueryDispatcher.getQueryResponse(asyncQueryJobMetadata());
+    JSONObject result =
+        sparkQueryDispatcher.getQueryResponse(asyncQueryJobMetadata(), asyncQueryRequestContext);
 
     Assertions.assertEquals("PENDING", result.get("status"));
   }
@@ -927,7 +928,7 @@ public class SparkQueryDispatcherTest {
   @Test
   void testGetQueryResponseWithSession() {
     doReturn(Optional.of(session)).when(sessionManager).getSession(MOCK_SESSION_ID, MY_GLUE);
-    doReturn(Optional.of(statement)).when(session).get(any());
+    doReturn(Optional.of(statement)).when(session).get(any(), eq(asyncQueryRequestContext));
     when(statement.getStatementModel().getError()).thenReturn("mock error");
     doReturn(StatementState.WAITING).when(statement).getStatementState();
     doReturn(new JSONObject())
@@ -936,7 +937,8 @@ public class SparkQueryDispatcherTest {
 
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(
-            asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID));
+            asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID),
+            asyncQueryRequestContext);
 
     verifyNoInteractions(emrServerlessClient);
     Assertions.assertEquals("waiting", result.get("status"));
@@ -954,7 +956,8 @@ public class SparkQueryDispatcherTest {
             IllegalArgumentException.class,
             () ->
                 sparkQueryDispatcher.getQueryResponse(
-                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID)));
+                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID),
+                    asyncQueryRequestContext));
 
     verifyNoInteractions(emrServerlessClient);
     Assertions.assertEquals("no session found. " + MOCK_SESSION_ID, exception.getMessage());
@@ -963,7 +966,7 @@ public class SparkQueryDispatcherTest {
   @Test
   void testGetQueryResponseWithStatementNotExist() {
     doReturn(Optional.of(session)).when(sessionManager).getSession(MOCK_SESSION_ID, MY_GLUE);
-    doReturn(Optional.empty()).when(session).get(any());
+    doReturn(Optional.empty()).when(session).get(any(), eq(asyncQueryRequestContext));
     doReturn(new JSONObject())
         .when(jobExecutionResponseReader)
         .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
@@ -973,7 +976,8 @@ public class SparkQueryDispatcherTest {
             IllegalArgumentException.class,
             () ->
                 sparkQueryDispatcher.getQueryResponse(
-                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID)));
+                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID),
+                    asyncQueryRequestContext));
 
     verifyNoInteractions(emrServerlessClient);
     Assertions.assertEquals(
@@ -989,7 +993,8 @@ public class SparkQueryDispatcherTest {
     queryResult.put(DATA_FIELD, resultMap);
     when(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, null)).thenReturn(queryResult);
 
-    JSONObject result = sparkQueryDispatcher.getQueryResponse(asyncQueryJobMetadata());
+    JSONObject result =
+        sparkQueryDispatcher.getQueryResponse(asyncQueryJobMetadata(), asyncQueryRequestContext);
 
     verify(jobExecutionResponseReader, times(1)).getResultWithJobId(EMR_JOB_ID, null);
     Assertions.assertEquals(
