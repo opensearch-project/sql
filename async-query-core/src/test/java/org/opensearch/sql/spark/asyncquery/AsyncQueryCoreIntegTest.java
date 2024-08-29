@@ -202,7 +202,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verifyCancelJobRunCalled();
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, JobType.BATCH);
   }
 
   @Test
@@ -224,7 +224,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(flintIndexClient).deleteIndex(indexName);
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, JobType.BATCH);
   }
 
   @Test
@@ -255,7 +255,7 @@ public class AsyncQueryCoreIntegTest {
     assertFalse(flintIndexOptions.autoRefresh());
     verifyCancelJobRunCalled();
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, JobType.BATCH);
   }
 
   @Test
@@ -280,7 +280,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.STREAMING);
   }
 
   private void verifyStartJobRunCalled() {
@@ -315,7 +315,7 @@ public class AsyncQueryCoreIntegTest {
     assertNull(response.getSessionId());
     verifyGetQueryIdCalled();
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.BATCH);
   }
 
   @Test
@@ -337,7 +337,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.BATCH);
   }
 
   @Test
@@ -363,7 +363,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetSessionIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.INTERACTIVE);
   }
 
   @Test
@@ -555,7 +555,7 @@ public class AsyncQueryCoreIntegTest {
     assertEquals(APPLICATION_ID, createSessionRequest.getApplicationId());
   }
 
-  private void verifyStoreJobMetadataCalled(String jobId) {
+  private void verifyStoreJobMetadataCalled(String jobId, JobType jobType) {
     verify(asyncQueryJobMetadataStorageService)
         .storeJobMetadata(
             asyncQueryJobMetadataArgumentCaptor.capture(), eq(asyncQueryRequestContext));
@@ -563,6 +563,7 @@ public class AsyncQueryCoreIntegTest {
     assertEquals(QUERY_ID, asyncQueryJobMetadata.getQueryId());
     assertEquals(jobId, asyncQueryJobMetadata.getJobId());
     assertEquals(DATASOURCE_NAME, asyncQueryJobMetadata.getDatasourceName());
+    assertEquals(jobType, asyncQueryJobMetadata.getJobType());
   }
 
   private void verifyCreateIndexDMLResultCalled() {
