@@ -182,10 +182,21 @@ public class SQLQueryUtilsTest {
   }
 
   @Test
+  void testExtractionFromCreateMVQuery() {
+    String mvQuery = "select * from my_glue.default.logs";
+    String query = "CREATE MATERIALIZED VIEW mv_1 AS " + mvQuery + " WITH (auto_refresh = true)";
+
+    assertTrue(SQLQueryUtils.isFlintExtensionQuery(query));
+    IndexQueryDetails indexQueryDetails = SQLQueryUtils.extractIndexDetails(query);
+    assertNull(indexQueryDetails.getIndexName());
+    assertNull(indexQueryDetails.getFullyQualifiedTableName());
+    assertEquals(mvQuery, indexQueryDetails.getMvQuery());
+    assertEquals("mv_1", indexQueryDetails.getMvName());
+  }
+
+  @Test
   void testExtractionFromFlintMVQuery() {
     String[] mvQueries = {
-      "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs WITH"
-          + " (auto_refresh = true)",
       "DROP MATERIALIZED VIEW mv_1",
       "VACUUM MATERIALIZED VIEW mv_1",
       "ALTER MATERIALIZED VIEW mv_1 WITH (auto_refresh = false)",
@@ -200,6 +211,7 @@ public class SQLQueryUtilsTest {
 
       assertNull(indexQueryDetails.getIndexName());
       assertNull(fullyQualifiedTableName);
+      assertNull(indexQueryDetails.getMvQuery());
       assertEquals("mv_1", indexQueryDetails.getMvName());
     }
   }
@@ -428,8 +440,7 @@ public class SQLQueryUtilsTest {
     }
 
     public static IndexQuery mv() {
-      return new IndexQuery(
-          "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs");
+      return new IndexQuery("CREATE MATERIALIZED VIEW mv_1 AS select * from my_glue.default.logs");
     }
 
     public IndexQuery withProperty(String key, String value) {
