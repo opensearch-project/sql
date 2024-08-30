@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
+import static org.opensearch.sql.plugin.request.PPLQueryRequestFactory.PPL_URL_PARAM_KEY;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 
@@ -17,10 +18,12 @@ import org.junit.Assert;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
+  protected RestRequest.Method method = RestRequest.Method.POST;
 
   protected JSONObject executeQuery(String query) throws IOException {
     return jsonify(executeQueryToString(query));
@@ -53,8 +56,28 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected Request buildRequest(String query, String endpoint) {
+    switch (method) {
+      case GET:
+        return buildGETRequest(query, endpoint);
+      case POST:
+      default:
+        return buildPOSTRequest(query, endpoint);
+    }
+  }
+
+  private Request buildPOSTRequest(String query, String endpoint) {
     Request request = new Request("POST", endpoint);
     request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
+
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
+  private Request buildGETRequest(String query, String endpoint) {
+    Request request = new Request("GET", endpoint);
+    request.addParameter(PPL_URL_PARAM_KEY, query);
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
