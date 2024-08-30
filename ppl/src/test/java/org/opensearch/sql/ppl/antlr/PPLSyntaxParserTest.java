@@ -417,4 +417,43 @@ public class PPLSyntaxParserTest {
         new PPLSyntaxParser()
             .parse("SOURCE=test | eval k = TIMESTAMPDIFF(WEEK,'2003-01-02','2003-01-02')"));
   }
+
+  @Test
+  public void testLineCommentShouldPass() {
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 //this is a comment"));
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 // this is a comment "));
+    assertNotNull(
+        new PPLSyntaxParser()
+            .parse(
+                """
+                    // test is a new line comment \
+                    search source=t a=1 b=2 // test is a line comment at the end of ppl command \
+                    | fields a,b // this is line comment inner ppl command\
+                    ////this is a new line comment
+                    """));
+  }
+
+  @Test
+  public void testBlockCommentShouldPass() {
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 /*block comment*/"));
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 /* block comment */"));
+    assertNotNull(
+        new PPLSyntaxParser()
+            .parse(
+                """
+                    /*
+                    This is a\
+                        multiple\
+                    line\
+                    block\
+                        comment */\
+                    search /* block comment */ source=t /* block comment */ a=1 b=2
+                    |/*
+                        This is a\
+                            multiple\
+                        line\
+                        block\
+                            comment */ fields a,b /* block comment */ \
+                    """));
+  }
 }
