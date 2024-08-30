@@ -157,9 +157,11 @@ public class SparkQueryDispatcher {
                 && !indexQueryDetails.getFlintIndexOptions().autoRefresh()));
   }
 
-  public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  public JSONObject getQueryResponse(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     return getAsyncQueryHandlerForExistingQuery(asyncQueryJobMetadata)
-        .getQueryResponse(asyncQueryJobMetadata);
+        .getQueryResponse(asyncQueryJobMetadata, asyncQueryRequestContext);
   }
 
   public String cancelJob(

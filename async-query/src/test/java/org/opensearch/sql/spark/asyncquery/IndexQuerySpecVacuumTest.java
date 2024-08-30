@@ -174,7 +174,8 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
             new CreateAsyncQueryRequest(mockDS.query, MYS3_DATASOURCE, LangType.SQL, null),
             asyncQueryRequestContext);
 
-    return asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+    return asyncQueryExecutorService.getAsyncQueryResults(
+        response.getQueryId(), asyncQueryRequestContext);
   }
 
   private boolean flintIndexExists(String flintIndexName) {

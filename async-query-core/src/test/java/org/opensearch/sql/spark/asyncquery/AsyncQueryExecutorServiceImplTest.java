@@ -152,7 +152,7 @@ public class AsyncQueryExecutorServiceImplTest {
     AsyncQueryNotFoundException asyncQueryNotFoundException =
         Assertions.assertThrows(
             AsyncQueryNotFoundException.class,
-            () -> jobExecutorService.getAsyncQueryResults(EMR_JOB_ID));
+            () -> jobExecutorService.getAsyncQueryResults(EMR_JOB_ID, asyncQueryRequestContext));
 
     Assertions.assertEquals(
         "QueryId: " + EMR_JOB_ID + " not found", asyncQueryNotFoundException.getMessage());
@@ -166,10 +166,12 @@ public class AsyncQueryExecutorServiceImplTest {
         .thenReturn(Optional.of(getAsyncQueryJobMetadata()));
     JSONObject jobResult = new JSONObject();
     jobResult.put("status", JobRunState.PENDING.toString());
-    when(sparkQueryDispatcher.getQueryResponse(getAsyncQueryJobMetadata())).thenReturn(jobResult);
+    when(sparkQueryDispatcher.getQueryResponse(
+            getAsyncQueryJobMetadata(), asyncQueryRequestContext))
+        .thenReturn(jobResult);
 
     AsyncQueryExecutionResponse asyncQueryExecutionResponse =
-        jobExecutorService.getAsyncQueryResults(EMR_JOB_ID);
+        jobExecutorService.getAsyncQueryResults(EMR_JOB_ID, asyncQueryRequestContext);
 
     Assertions.assertNull(asyncQueryExecutionResponse.getResults());
     Assertions.assertNull(asyncQueryExecutionResponse.getSchema());
@@ -183,10 +185,12 @@ public class AsyncQueryExecutorServiceImplTest {
         .thenReturn(Optional.of(getAsyncQueryJobMetadata()));
     JSONObject jobResult = new JSONObject(getJson("select_query_response.json"));
     jobResult.put("status", JobRunState.SUCCESS.toString());
-    when(sparkQueryDispatcher.getQueryResponse(getAsyncQueryJobMetadata())).thenReturn(jobResult);
+    when(sparkQueryDispatcher.getQueryResponse(
+            getAsyncQueryJobMetadata(), asyncQueryRequestContext))
+        .thenReturn(jobResult);
 
     AsyncQueryExecutionResponse asyncQueryExecutionResponse =
-        jobExecutorService.getAsyncQueryResults(EMR_JOB_ID);
+        jobExecutorService.getAsyncQueryResults(EMR_JOB_ID, asyncQueryRequestContext);
 
     Assertions.assertEquals("SUCCESS", asyncQueryExecutionResponse.getStatus());
     Assertions.assertEquals(1, asyncQueryExecutionResponse.getSchema().getColumns().size());
