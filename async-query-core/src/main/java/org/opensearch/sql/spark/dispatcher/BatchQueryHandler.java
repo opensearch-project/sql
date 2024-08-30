@@ -17,6 +17,7 @@ import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
@@ -106,6 +107,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
         .resultIndex(dataSourceMetadata.getResultIndex())
         .datasourceName(dataSourceMetadata.getName())
         .jobType(JobType.INTERACTIVE)
+        .status(QueryState.WAITING)
         .build();
   }
 }

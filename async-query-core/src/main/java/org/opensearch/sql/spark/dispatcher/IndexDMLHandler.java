@@ -18,6 +18,7 @@ import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
@@ -83,6 +84,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
           .resultIndex(dataSourceMetadata.getResultIndex())
           .datasourceName(dataSourceMetadata.getName())
           .jobType(JobType.INTERACTIVE)
+          .status(QueryState.SUCCESS)
           .build();
     } catch (Exception e) {
       LOG.error(e.getMessage());
@@ -101,6 +103,8 @@ public class IndexDMLHandler extends AsyncQueryHandler {
           .resultIndex(dataSourceMetadata.getResultIndex())
           .datasourceName(dataSourceMetadata.getName())
           .jobType(JobType.INTERACTIVE)
+          .status(QueryState.FAILED)
+          .error(e.getMessage())
           .build();
     }
   }

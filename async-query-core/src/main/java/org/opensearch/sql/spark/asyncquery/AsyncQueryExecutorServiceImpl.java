@@ -67,6 +67,10 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
             .datasourceName(dispatchQueryResponse.getDatasourceName())
             .jobType(dispatchQueryResponse.getJobType())
             .indexName(dispatchQueryResponse.getIndexName())
+            .query(createAsyncQueryRequest.getQuery())
+            .langType(createAsyncQueryRequest.getLang())
+            .state(dispatchQueryResponse.getStatus())
+            .error(dispatchQueryResponse.getError())
             .build(),
         asyncQueryRequestContext);
     return new CreateAsyncQueryResponse(

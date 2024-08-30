@@ -46,6 +46,7 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata.AsyncQueryJobMetadataBuilder;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.EmrServerlessClientImpl;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
@@ -202,7 +203,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verifyCancelJobRunCalled();
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS);
   }
 
   @Test
@@ -224,7 +225,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(flintIndexClient).deleteIndex(indexName);
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS);
   }
 
   @Test
@@ -255,7 +256,7 @@ public class AsyncQueryCoreIntegTest {
     assertFalse(flintIndexOptions.autoRefresh());
     verifyCancelJobRunCalled();
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS);
   }
 
   @Test
@@ -280,7 +281,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
   }
 
   private void verifyStartJobRunCalled() {
@@ -315,7 +316,7 @@ public class AsyncQueryCoreIntegTest {
     assertNull(response.getSessionId());
     verifyGetQueryIdCalled();
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
   }
 
   @Test
@@ -337,7 +338,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
   }
 
   @Test
@@ -363,7 +364,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetSessionIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
   }
 
   @Test
@@ -555,7 +556,7 @@ public class AsyncQueryCoreIntegTest {
     assertEquals(APPLICATION_ID, createSessionRequest.getApplicationId());
   }
 
-  private void verifyStoreJobMetadataCalled(String jobId) {
+  private void verifyStoreJobMetadataCalled(String jobId, QueryState state) {
     verify(asyncQueryJobMetadataStorageService)
         .storeJobMetadata(
             asyncQueryJobMetadataArgumentCaptor.capture(), eq(asyncQueryRequestContext));
@@ -563,6 +564,10 @@ public class AsyncQueryCoreIntegTest {
     assertEquals(QUERY_ID, asyncQueryJobMetadata.getQueryId());
     assertEquals(jobId, asyncQueryJobMetadata.getJobId());
     assertEquals(DATASOURCE_NAME, asyncQueryJobMetadata.getDatasourceName());
+    assertNull(asyncQueryJobMetadata.getError());
+    assertEquals(LangType.SQL, asyncQueryJobMetadata.getLangType());
+    assertEquals(state, asyncQueryJobMetadata.getState());
+    assertNull(asyncQueryJobMetadata.getError());
   }
 
   private void verifyCreateIndexDMLResultCalled() {
