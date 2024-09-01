@@ -187,7 +187,6 @@ public class SelectResultSet extends ResultSet {
       throw new IllegalArgumentException(
           String.format("Index type %s does not exist", query.getFrom()));
     }
-    LOG.info("Response Mapping: {}", response.mappings());
     Map<String, FieldMappingMetadata> typeMappings = mappings.get(indexName);
 
     this.indexName = this.indexName == null ? indexName : (this.indexName + "|" + indexName);
