@@ -100,6 +100,8 @@ import org.opensearch.sql.spark.parameter.SparkParameterComposerCollection;
 import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilderProvider;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
+import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
+import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
@@ -124,6 +126,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected StateStore stateStore;
   protected SessionStorageService sessionStorageService;
   protected StatementStorageService statementStorageService;
+  protected AsyncQueryScheduler asyncQueryScheduler;
   protected AsyncQueryRequestContext asyncQueryRequestContext;
   protected SessionIdProvider sessionIdProvider = new DatasourceEmbeddedSessionIdProvider();
 
@@ -204,6 +207,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         new OpenSearchSessionStorageService(stateStore, new SessionModelXContentSerializer());
     statementStorageService =
         new OpenSearchStatementStorageService(stateStore, new StatementModelXContentSerializer());
+    asyncQueryScheduler = new OpenSearchAsyncQueryScheduler(client, clusterService);
   }
 
   protected FlintIndexOpFactory getFlintIndexOpFactory(
@@ -212,7 +216,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         flintIndexStateModelService,
         flintIndexClient,
         flintIndexMetadataService,
-        emrServerlessClientFactory);
+        emrServerlessClientFactory,
+        asyncQueryScheduler);
   }
 
   @After
@@ -298,7 +303,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 flintIndexStateModelService,
                 flintIndexClient,
                 new FlintIndexMetadataServiceImpl(client),
-                emrServerlessClientFactory),
+                emrServerlessClientFactory,
+                asyncQueryScheduler),
             emrServerlessClientFactory,
             new OpenSearchMetricsService(),
             sparkSubmitParametersBuilderProvider);

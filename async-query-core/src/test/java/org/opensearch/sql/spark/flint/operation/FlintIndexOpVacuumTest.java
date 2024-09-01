@@ -18,11 +18,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
+import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 import org.opensearch.sql.spark.flint.FlintIndexClient;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
+import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 
 @ExtendWith(MockitoExtension.class)
 class FlintIndexOpVacuumTest {
@@ -31,15 +33,23 @@ class FlintIndexOpVacuumTest {
   public static final String LATEST_ID = "LATEST_ID";
   public static final String INDEX_NAME = "INDEX_NAME";
   public static final FlintIndexMetadata FLINT_INDEX_METADATA_WITH_LATEST_ID =
-      FlintIndexMetadata.builder().latestId(LATEST_ID).opensearchIndexName(INDEX_NAME).build();
+      FlintIndexMetadata.builder()
+          .latestId(LATEST_ID)
+          .opensearchIndexName(INDEX_NAME)
+          .flintIndexOptions(new FlintIndexOptions())
+          .build();
   public static final FlintIndexMetadata FLINT_INDEX_METADATA_WITHOUT_LATEST_ID =
-      FlintIndexMetadata.builder().opensearchIndexName(INDEX_NAME).build();
+      FlintIndexMetadata.builder()
+          .opensearchIndexName(INDEX_NAME)
+          .flintIndexOptions(new FlintIndexOptions())
+          .build();
   @Mock FlintIndexClient flintIndexClient;
   @Mock FlintIndexStateModelService flintIndexStateModelService;
   @Mock EMRServerlessClientFactory emrServerlessClientFactory;
   @Mock FlintIndexStateModel flintIndexStateModel;
   @Mock FlintIndexStateModel transitionedFlintIndexStateModel;
   @Mock AsyncQueryRequestContext asyncQueryRequestContext;
+  @Mock AsyncQueryScheduler asyncQueryScheduler;
 
   RuntimeException testException = new RuntimeException("Test Exception");
 
@@ -52,7 +62,8 @@ class FlintIndexOpVacuumTest {
             flintIndexStateModelService,
             DATASOURCE_NAME,
             flintIndexClient,
-            emrServerlessClientFactory);
+            emrServerlessClientFactory,
+            asyncQueryScheduler);
   }
 
   @Test

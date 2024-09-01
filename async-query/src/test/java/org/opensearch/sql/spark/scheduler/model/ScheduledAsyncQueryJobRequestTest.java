@@ -16,18 +16,22 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
+import org.opensearch.sql.spark.rest.model.LangType;
 
-public class OpenSearchRefreshIndexJobRequestTest {
+public class ScheduledAsyncQueryJobRequestTest {
 
   @Test
   public void testBuilderAndGetterMethods() {
     Instant now = Instant.now();
     IntervalSchedule schedule = new IntervalSchedule(now, 1, ChronoUnit.MINUTES);
 
-    OpenSearchRefreshIndexJobRequest jobRequest =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName("testJob")
-            .jobType("testType")
+    ScheduledAsyncQueryJobRequest jobRequest =
+        ScheduledAsyncQueryJobRequest.builder()
+            .accountId("testAccount")
+            .jobId("testJob")
+            .dataSource("testDataSource")
+            .scheduledQuery("SELECT * FROM test")
+            .queryLang(LangType.SQL)
             .schedule(schedule)
             .enabled(true)
             .lastUpdateTime(now)
@@ -36,8 +40,12 @@ public class OpenSearchRefreshIndexJobRequestTest {
             .jitter(0.1)
             .build();
 
+    assertEquals("testAccount", jobRequest.getAccountId());
+    assertEquals("testJob", jobRequest.getJobId());
     assertEquals("testJob", jobRequest.getName());
-    assertEquals("testType", jobRequest.getJobType());
+    assertEquals("testDataSource", jobRequest.getDataSource());
+    assertEquals("SELECT * FROM test", jobRequest.getScheduledQuery());
+    assertEquals(LangType.SQL, jobRequest.getQueryLang());
     assertEquals(schedule, jobRequest.getSchedule());
     assertTrue(jobRequest.isEnabled());
     assertEquals(now, jobRequest.getLastUpdateTime());
@@ -51,24 +59,30 @@ public class OpenSearchRefreshIndexJobRequestTest {
     Instant now = Instant.now();
     IntervalSchedule schedule = new IntervalSchedule(now, 1, ChronoUnit.MINUTES);
 
-    OpenSearchRefreshIndexJobRequest jobRequest =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName("testJob")
-            .jobType("testType")
+    ScheduledAsyncQueryJobRequest request =
+        ScheduledAsyncQueryJobRequest.builder()
+            .accountId("testAccount")
+            .jobId("testJob")
+            .dataSource("testDataSource")
+            .scheduledQuery("SELECT * FROM test")
+            .queryLang(LangType.SQL)
             .schedule(schedule)
             .enabled(true)
-            .lastUpdateTime(now)
             .enabledTime(now)
+            .lastUpdateTime(now)
             .lockDurationSeconds(60L)
             .jitter(0.1)
             .build();
 
     XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
-    jobRequest.toXContent(builder, EMPTY_PARAMS);
+    request.toXContent(builder, EMPTY_PARAMS);
     String jsonString = builder.toString();
 
-    assertTrue(jsonString.contains("\"jobName\" : \"testJob\""));
-    assertTrue(jsonString.contains("\"jobType\" : \"testType\""));
+    assertTrue(jsonString.contains("\"accountId\" : \"testAccount\""));
+    assertTrue(jsonString.contains("\"jobId\" : \"testJob\""));
+    assertTrue(jsonString.contains("\"dataSource\" : \"testDataSource\""));
+    assertTrue(jsonString.contains("\"scheduledQuery\" : \"SELECT * FROM test\""));
+    assertTrue(jsonString.contains("\"queryLang\" : \"SQL\""));
     assertTrue(jsonString.contains("\"start_time\" : " + now.toEpochMilli()));
     assertTrue(jsonString.contains("\"period\" : 1"));
     assertTrue(jsonString.contains("\"unit\" : \"Minutes\""));

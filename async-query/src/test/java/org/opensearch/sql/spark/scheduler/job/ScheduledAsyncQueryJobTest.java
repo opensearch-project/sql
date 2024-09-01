@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.scheduler.job;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -24,10 +25,14 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
-import org.opensearch.sql.spark.scheduler.model.OpenSearchRefreshIndexJobRequest;
+import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
+import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
+import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
+import org.opensearch.sql.spark.rest.model.LangType;
+import org.opensearch.sql.spark.scheduler.model.ScheduledAsyncQueryJobRequest;
 import org.opensearch.threadpool.ThreadPool;
 
-public class OpenSearchRefreshIndexJobTest {
+public class ScheduledAsyncQueryJobTest {
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private ClusterService clusterService;
@@ -38,19 +43,23 @@ public class OpenSearchRefreshIndexJobTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private Client client;
 
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  private AsyncQueryExecutorService asyncQueryExecutorService;
+
   @Mock private JobExecutionContext context;
 
-  private OpenSearchRefreshIndexJob jobRunner;
+  private ScheduledAsyncQueryJob jobRunner;
 
-  private OpenSearchRefreshIndexJob spyJobRunner;
+  private ScheduledAsyncQueryJob spyJobRunner;
 
   @BeforeEach
   public void setup() {
     MockitoAnnotations.openMocks(this);
-    jobRunner = OpenSearchRefreshIndexJob.getJobRunnerInstance();
+    jobRunner = ScheduledAsyncQueryJob.getJobRunnerInstance();
     jobRunner.setClient(null);
     jobRunner.setClusterService(null);
     jobRunner.setThreadPool(null);
+    jobRunner.setAsyncQueryExecutorService(null);
   }
 
   @Test
@@ -59,15 +68,22 @@ public class OpenSearchRefreshIndexJobTest {
     spyJobRunner.setClusterService(clusterService);
     spyJobRunner.setThreadPool(threadPool);
     spyJobRunner.setClient(client);
+    spyJobRunner.setAsyncQueryExecutorService(asyncQueryExecutorService);
 
-    OpenSearchRefreshIndexJobRequest jobParameter =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName("testJob")
+    ScheduledAsyncQueryJobRequest request =
+        ScheduledAsyncQueryJobRequest.builder()
+            .jobId("testJob")
             .lastUpdateTime(Instant.now())
             .lockDurationSeconds(10L)
+            .scheduledQuery("REFRESH INDEX testIndex")
+            .dataSource("testDataSource")
+            .queryLang(LangType.SQL)
             .build();
 
-    spyJobRunner.runJob(jobParameter, context);
+    CreateAsyncQueryRequest createAsyncQueryRequest =
+        new CreateAsyncQueryRequest(
+            request.getScheduledQuery(), request.getDataSource(), request.getQueryLang());
+    spyJobRunner.runJob(request, context);
 
     ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
     verify(threadPool.generic()).submit(captor.capture());
@@ -75,15 +91,18 @@ public class OpenSearchRefreshIndexJobTest {
     Runnable runnable = captor.getValue();
     runnable.run();
 
-    verify(spyJobRunner).doRefresh(eq(jobParameter.getName()));
+    verify(spyJobRunner).doRefresh(eq(request));
+    verify(asyncQueryExecutorService)
+        .createAsyncQuery(eq(createAsyncQueryRequest), any(NullAsyncQueryRequestContext.class));
   }
 
   @Test
   public void testRunJobWithIncorrectParameter() {
-    jobRunner = OpenSearchRefreshIndexJob.getJobRunnerInstance();
+    jobRunner = ScheduledAsyncQueryJob.getJobRunnerInstance();
     jobRunner.setClusterService(clusterService);
     jobRunner.setThreadPool(threadPool);
     jobRunner.setClient(client);
+    jobRunner.setAsyncQueryExecutorService(asyncQueryExecutorService);
 
     ScheduledJobParameter wrongParameter = mock(ScheduledJobParameter.class);
 
@@ -101,9 +120,9 @@ public class OpenSearchRefreshIndexJobTest {
 
   @Test
   public void testRunJobWithUninitializedServices() {
-    OpenSearchRefreshIndexJobRequest jobParameter =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName("testJob")
+    ScheduledAsyncQueryJobRequest jobParameter =
+        ScheduledAsyncQueryJobRequest.builder()
+            .jobId("testJob")
             .lastUpdateTime(Instant.now())
             .build();
 
@@ -131,13 +150,22 @@ public class OpenSearchRefreshIndexJobTest {
             () -> jobRunner.runJob(jobParameter, context),
             "Expected IllegalStateException but no exception was thrown");
     assertEquals("Client is not initialized.", exception.getMessage());
+
+    jobRunner.setClient(client);
+
+    exception =
+        assertThrows(
+            IllegalStateException.class,
+            () -> jobRunner.runJob(jobParameter, context),
+            "Expected IllegalStateException but no exception was thrown");
+    assertEquals("AsyncQueryExecutorService is not initialized.", exception.getMessage());
   }
 
   @Test
   public void testGetJobRunnerInstanceMultipleCalls() {
-    OpenSearchRefreshIndexJob instance1 = OpenSearchRefreshIndexJob.getJobRunnerInstance();
-    OpenSearchRefreshIndexJob instance2 = OpenSearchRefreshIndexJob.getJobRunnerInstance();
-    OpenSearchRefreshIndexJob instance3 = OpenSearchRefreshIndexJob.getJobRunnerInstance();
+    ScheduledAsyncQueryJob instance1 = ScheduledAsyncQueryJob.getJobRunnerInstance();
+    ScheduledAsyncQueryJob instance2 = ScheduledAsyncQueryJob.getJobRunnerInstance();
+    ScheduledAsyncQueryJob instance3 = ScheduledAsyncQueryJob.getJobRunnerInstance();
 
     assertSame(instance1, instance2);
     assertSame(instance2, instance3);

@@ -83,6 +83,7 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
+import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 
 /**
  * This tests async-query-core library end-to-end using mocked implementation of extension points.
@@ -112,6 +113,7 @@ public class AsyncQueryCoreIntegTest {
   @Mock FlintIndexClient flintIndexClient;
   @Mock AsyncQueryRequestContext asyncQueryRequestContext;
   @Mock MetricsService metricsService;
+  @Mock AsyncQueryScheduler asyncQueryScheduler;
   @Mock SparkSubmitParametersBuilderProvider sparkSubmitParametersBuilderProvider;
 
   // storage services
@@ -159,7 +161,8 @@ public class AsyncQueryCoreIntegTest {
             flintIndexStateModelService,
             flintIndexClient,
             flintIndexMetadataService,
-            emrServerlessClientFactory);
+            emrServerlessClientFactory,
+            asyncQueryScheduler);
     QueryHandlerFactory queryHandlerFactory =
         new QueryHandlerFactory(
             jobExecutionResponseReader,
@@ -516,6 +519,7 @@ public class AsyncQueryCoreIntegTest {
                     .appId(APPLICATION_ID)
                     .jobId(JOB_ID)
                     .opensearchIndexName(indexName)
+                    .flintIndexOptions(new FlintIndexOptions())
                     .build()));
   }
 
