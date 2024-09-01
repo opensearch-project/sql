@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
+import org.opensearch.action.admin.indices.alias.get.GetAliasesResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
 import org.opensearch.action.search.ClearScrollResponse;
@@ -164,7 +166,11 @@ public class SelectResultSet extends ResultSet {
   private void loadFromEsState(Query query) {
     String indexName = fetchIndexName(query);
     String[] fieldNames = fetchFieldsAsArray(query);
-
+    GetAliasesResponse getAliasesResponse =
+            client.admin().indices().getAliases(new GetAliasesRequest(indexName)).actionGet();
+    if (getAliasesResponse != null && !getAliasesResponse.getAliases().isEmpty()) {
+      indexName = getAliasesResponse.getAliases().keySet().iterator().next();
+    }
     // Reset boolean in the case of JOIN query where multiple calls to loadFromEsState() are made
     selectAll = isSimpleQuerySelectAll(query) || isJoinQuerySelectAll(query, fieldNames);
 
@@ -181,6 +187,7 @@ public class SelectResultSet extends ResultSet {
       throw new IllegalArgumentException(
           String.format("Index type %s does not exist", query.getFrom()));
     }
+    LOG.info("Response Mapping: {}", response.mappings());
     Map<String, FieldMappingMetadata> typeMappings = mappings.get(indexName);
 
     this.indexName = this.indexName == null ? indexName : (this.indexName + "|" + indexName);
