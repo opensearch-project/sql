@@ -52,36 +52,36 @@ public class EvalPushDown<T extends LogicalPlan> implements Rule<T> {
               });
 
   public static final Rule<LogicalSort> PUSH_DOWN_SORT =
-      match(sort(evalCapture()))
-          .apply(
-              (sort, logicalEval) -> {
-                List<LogicalPlan> child = logicalEval.getChild();
-                Map<ReferenceExpression, Expression> evalExpressionMap =
-                    logicalEval.getExpressions().stream()
-                        .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
-                List<Pair<SortOption, Expression>> sortList = sort.getSortList();
-                List<Pair<SortOption, Expression>> newSortList = new ArrayList<>();
-                for (Pair<SortOption, Expression> pair : sortList) {
-                  /*
-                   Narrow down the optimization to only support:
-                   1. The expression in sort and replaced expression are both ReferenceExpression.
-                   2. No internal reference in eval.
-                  */
-                  if (pair.getRight() instanceof ReferenceExpression) {
-                    ReferenceExpression ref = (ReferenceExpression) pair.getRight();
-                    Expression replacedExpr = evalExpressionMap.getOrDefault(ref, ref);
-                    if (replacedExpr instanceof ReferenceExpression) {
-                      ReferenceExpression newRef = (ReferenceExpression) replacedExpr;
-                      if (!evalExpressionMap.containsKey(newRef)) {
-                        newSortList.add(Pair.of(pair.getLeft(), newRef));
-                      } else return sort;
-                    } else return sort;
-                  } else return sort;
-                }
-                sort = new LogicalSort(child.getFirst(), newSortList);
-                logicalEval.replaceChildPlans(List.of(sort));
-                return logicalEval;
-              });
+      match(sort(evalCapture())).apply(EvalPushDown::processSortAndEval);
+
+  private static LogicalPlan processSortAndEval(LogicalSort sort, LogicalEval logicalEval) {
+    List<LogicalPlan> child = logicalEval.getChild();
+    Map<ReferenceExpression, Expression> evalExpressionMap =
+        logicalEval.getExpressions().stream()
+            .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+    List<Pair<SortOption, Expression>> sortList = sort.getSortList();
+    List<Pair<SortOption, Expression>> newSortList = new ArrayList<>();
+    for (Pair<SortOption, Expression> pair : sortList) {
+      /*
+       Narrow down the optimization to only support:
+       1. The expression in sort and replaced expression are both ReferenceExpression.
+       2. No internal reference in eval.
+      */
+      if (pair.getRight() instanceof ReferenceExpression) {
+        ReferenceExpression ref = (ReferenceExpression) pair.getRight();
+        Expression newExpr = evalExpressionMap.getOrDefault(ref, ref);
+        if (newExpr instanceof ReferenceExpression) {
+          ReferenceExpression newRef = (ReferenceExpression) newExpr;
+          if (!evalExpressionMap.containsKey(newRef)) {
+            newSortList.add(Pair.of(pair.getLeft(), newRef));
+          } else return sort;
+        } else return sort;
+      } else return sort;
+    }
+    sort = new LogicalSort(child.getFirst(), newSortList);
+    logicalEval.replaceChildPlans(List.of(sort));
+    return logicalEval;
+  }
 
   private final Capture<LogicalEval> capture;
 
