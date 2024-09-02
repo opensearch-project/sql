@@ -5,9 +5,12 @@
 
 package org.opensearch.sql.planner.physical.join;
 
+import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
+
 import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,33 +43,34 @@ public class NestedLoopJoinOperator extends JoinOperator {
     buildSide = left;
 
     if (joinType == Join.JoinType.INNER) {
-      List<ExprValue> cached = cacheStreamedSide(right);
-      innerJoin(cached);
+      List<ExprValue> cachedBuildSide = cacheIterator(right);
+      innerJoin(cachedBuildSide, left);
     } else if (joinType == Join.JoinType.LEFT) {
       // build side is right plan and streamed side is left plan in left outer join.
-      buildSide = right;
-      List<ExprValue> cached = cacheStreamedSide(left);
-      outerJoin(cached);
+      List<ExprValue> cachedBuildSide = cacheIterator(right);
+      outerJoin(cachedBuildSide, left);
     } else if (joinType == Join.JoinType.RIGHT) {
-      List<ExprValue> cached = cacheStreamedSide(right);
-      outerJoin(cached);
+      // build side is left plan and streamed side is right plan in right outer join.
+      List<ExprValue> cachedBuildSide = cacheIterator(left);
+      outerJoin(cachedBuildSide, right);
     } else if (joinType == Join.JoinType.SEMI) {
-      List<ExprValue> cached = cacheStreamedSide(right);
-      semiJoin(cached);
+      // build right plan in left semi
+      // TODO support buildLeft in LEFT SEMI
+      List<ExprValue> cachedBuildSide = cacheIterator(right);
+      semiJoin(cachedBuildSide, left);
     } else if (joinType == Join.JoinType.ANTI) {
-      List<ExprValue> cached = cacheStreamedSide(right);
-      antiJoin(cached);
+      // build right plan in left semi
+      // TODO support buildLeft in LEFT ANTI
+      List<ExprValue> cachedBuildSide = cacheIterator(right);
+      antiJoin(cachedBuildSide, left);
     } else {
-      // LeftOuter with BuildLeft
-      // RightOuter with BuildRight
       // FullOuter
-      List<ExprValue> cached = cacheStreamedSide(right);
-      defaultJoin(cached);
+      throw new UnsupportedOperationException("Unsupported Join Type " + joinType);
     }
   }
 
   /** Convert iterator to a list to allow multiple iterations */
-  private List<ExprValue> cacheStreamedSide(PhysicalPlan plan) {
+  private List<ExprValue> cacheIterator(PhysicalPlan plan) {
     ImmutableList.Builder<ExprValue> streamedBuilder = ImmutableList.builder();
     plan.forEachRemaining(streamedBuilder::add);
     return streamedBuilder.build();
@@ -79,13 +83,12 @@ public class NestedLoopJoinOperator extends JoinOperator {
     right.close();
   }
 
-  private void innerJoin(List<ExprValue> cacheStreamedSide) {
-    Iterator<ExprValue> streamed = cacheStreamedSide.iterator();
-    while (streamed.hasNext()) {
-      ExprValue leftRow = buildSide.next();
+  private void innerJoin(List<ExprValue> cachedBuildSide, Iterator<ExprValue> streamedSide) {
+    while (streamedSide.hasNext()) {
+      ExprValue streamedRow = streamedSide.next();
 
-      for (ExprValue rightRow : cacheStreamedSide) {
-        ExprTupleValue joinedRow = combineExprTupleValue(leftRow, rightRow);
+      for (ExprValue buildRow : cachedBuildSide) {
+        ExprTupleValue joinedRow = combineExprTupleValue(streamedRow, buildRow);
         ExprValue conditionValue = condition.valueOf(joinedRow.bindingTuples());
         if (!(conditionValue.isNull() || conditionValue.isMissing())
             && (conditionValue.booleanValue())) {
@@ -97,64 +100,34 @@ public class NestedLoopJoinOperator extends JoinOperator {
   }
 
   /** The implementation for LeftOuter with BuildRight, RightOuter with BuildLeft */
-  private void outerJoin(List<ExprValue> cacheStreamedSide) {
-    Set<ExprValue> matchedRows = new HashSet<>();
-
-    // Probe phase
-    for (ExprValue streamedRow : cacheStreamedSide) {
+  private void outerJoin(List<ExprValue> cachedBuildSide, Iterator<ExprValue> streamedSide) {
+    while (streamedSide.hasNext()) {
+      ExprValue streamedRow = streamedSide.next();
       boolean matched = false;
-      while (buildSide.hasNext()) {
-        ExprValue buildRow = buildSide.next();
-        ExprTupleValue joinedRow =
-            combineExprTupleValue(
-                joinType == Join.JoinType.LEFT ? streamedRow : buildRow,
-                joinType == Join.JoinType.LEFT ? buildRow : streamedRow);
+      for (ExprValue buildRow : cachedBuildSide) {
+        ExprTupleValue joinedRow = combineExprTupleValue(streamedRow, buildRow);
         ExprValue conditionValue = condition.valueOf(joinedRow.bindingTuples());
         if (!(conditionValue.isNull() || conditionValue.isMissing())
             && conditionValue.booleanValue()) {
           joinedBuilder.add(joinedRow);
-          matchedRows.add(streamedRow);
           matched = true;
-          break;
         }
       }
       if (!matched) {
-        ExprTupleValue joinedRow =
-            combineExprTupleValue(
-                joinType == Join.JoinType.LEFT ? streamedRow : ExprValueUtils.nullValue(),
-                joinType == Join.JoinType.LEFT ? ExprValueUtils.nullValue() : streamedRow);
+        ExprTupleValue joinedRow = combineExprTupleValue(streamedRow, ExprValueUtils.nullValue());
         joinedBuilder.add(joinedRow);
-      }
-    }
-
-    // Add unmatched rows
-    if (joinType == Join.JoinType.LEFT) {
-      while (buildSide.hasNext()) {
-        ExprValue buildRow = buildSide.next();
-        if (!matchedRows.contains(buildRow)) {
-          ExprTupleValue joinedRow = combineExprTupleValue(ExprValueUtils.nullValue(), buildRow);
-          joinedBuilder.add(joinedRow);
-        }
-      }
-    } else if (joinType == Join.JoinType.RIGHT) {
-      for (ExprValue streamedRow : cacheStreamedSide) {
-        if (!matchedRows.contains(streamedRow)) {
-          ExprTupleValue joinedRow = combineExprTupleValue(streamedRow, ExprValueUtils.nullValue());
-          joinedBuilder.add(joinedRow);
-        }
       }
     }
 
     joinedIterator = joinedBuilder.build().iterator();
   }
 
-  private void semiJoin(List<ExprValue> cacheStreamedSide) {
+  private void semiJoin(List<ExprValue> cachedBuildSide, Iterator<ExprValue> streamedSide) {
     Set<ExprValue> matchedRows = new HashSet<>();
 
-    // Probe phase
-    for (ExprValue streamedRow : cacheStreamedSide) {
-      while (buildSide.hasNext()) {
-        ExprValue buildRow = buildSide.next();
+    while (streamedSide.hasNext()) {
+      ExprValue streamedRow = streamedSide.next();
+      for (ExprValue buildRow : cachedBuildSide) {
         ExprTupleValue joinedRow = combineExprTupleValue(streamedRow, buildRow);
         ExprValue conditionValue = condition.valueOf(joinedRow.bindingTuples());
         if (!(conditionValue.isNull() || conditionValue.isMissing())
@@ -165,7 +138,6 @@ public class NestedLoopJoinOperator extends JoinOperator {
       }
     }
 
-    // Add matched rows
     for (ExprValue row : matchedRows) {
       joinedBuilder.add(row);
     }
@@ -173,40 +145,26 @@ public class NestedLoopJoinOperator extends JoinOperator {
     joinedIterator = joinedBuilder.build().iterator();
   }
 
-  // Java
-  private void antiJoin(List<ExprValue> cacheStreamedSide) {
-    Set<ExprValue> matchedRows = new HashSet<>();
-
-    // Probe phase
-    for (ExprValue streamedRow : cacheStreamedSide) {
+  private void antiJoin(List<ExprValue> cachedBuildSide, Iterator<ExprValue> streamedSide) {
+    while (streamedSide.hasNext()) {
+      ExprValue streamedRow = streamedSide.next();
       boolean matched = false;
-      while (buildSide.hasNext()) {
-        ExprValue buildRow = buildSide.next();
+      for (ExprValue buildRow : cachedBuildSide) {
         ExprTupleValue joinedRow = combineExprTupleValue(streamedRow, buildRow);
         ExprValue conditionValue = condition.valueOf(joinedRow.bindingTuples());
         if (!(conditionValue.isNull() || conditionValue.isMissing())
             && conditionValue.booleanValue()) {
-          matchedRows.add(streamedRow);
           matched = true;
           break;
         }
       }
       if (!matched) {
-        matchedRows.add(streamedRow);
-      }
-    }
-
-    // Add unmatched rows
-    for (ExprValue row : cacheStreamedSide) {
-      if (!matchedRows.contains(row)) {
-        joinedBuilder.add(row);
+        joinedBuilder.add(streamedRow);
       }
     }
 
     joinedIterator = joinedBuilder.build().iterator();
   }
-
-  private void defaultJoin(List<ExprValue> cacheStreamedSide) {}
 
   @Override
   public boolean hasNext() {
@@ -218,9 +176,14 @@ public class NestedLoopJoinOperator extends JoinOperator {
     return joinedIterator.next();
   }
 
-  private ExprTupleValue combineExprTupleValue(ExprValue left, ExprValue right) {
-    Map<String, ExprValue> combinedMap = left.tupleValue();
-    combinedMap.putAll(right.tupleValue());
+  private ExprTupleValue combineExprTupleValue(ExprValue streamedRow, ExprValue buildRow) {
+    ExprValue left = joinType == Join.JoinType.RIGHT ? buildRow : streamedRow;
+    ExprValue right = joinType == Join.JoinType.RIGHT ? streamedRow : buildRow;
+    Map<String, ExprValue> leftTuple = left.type().equals(UNDEFINED) ? Map.of() : left.tupleValue();
+    Map<String, ExprValue> rightTuple =
+        right.type().equals(UNDEFINED) ? Map.of() : right.tupleValue();
+    Map<String, ExprValue> combinedMap = new LinkedHashMap<>(leftTuple);
+    combinedMap.putAll(rightTuple);
     return ExprTupleValue.fromExprValueMap(combinedMap);
   }
 

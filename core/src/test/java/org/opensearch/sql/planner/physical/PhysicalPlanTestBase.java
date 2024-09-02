@@ -31,15 +31,55 @@ public class PhysicalPlanTestBase {
       new ImmutableList.Builder<ExprValue>()
           .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 1, "name", "a")))
           .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 2, "name", "b")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 3, "name", "c")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 3)))
           .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 4, "name", "d")))
           .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 5, "name", "e")))
           .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 6, "name", "f")))
           .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 7, "name", "g")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 8, "name", "h")))
+          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 8)))
           .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 9, "name", "i")))
           .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 10, "name", "j")))
           .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 11, "name", "k")))
+          .build();
+
+  protected static final List<ExprValue> joinTestInputs =
+      new ImmutableList.Builder<ExprValue>()
+          .add(
+              ExprValueUtils.tupleValue(
+                  ImmutableMap.of(
+                      "day", new ExprDateValue("2021-01-03"), "host", "h1", "errors", 2)))
+          .add(
+              ExprValueUtils.tupleValue(
+                  ImmutableMap.of(
+                      "day", new ExprDateValue("2021-01-03"), "host", "h2", "errors", 3)))
+          .add(
+              ExprValueUtils.tupleValue(
+                  ImmutableMap.of(
+                      "day", new ExprDateValue("2021-01-04"), "host", "h1", "errors", 1)))
+          .add(
+              ExprValueUtils.tupleValue(
+                  ImmutableMap.of(
+                      "day", new ExprDateValue("2021-01-04"), "host", "h2", "errors", 10)))
+          .add(
+              ExprValueUtils.tupleValue(
+                  ImmutableMap.of(
+                      "day", new ExprDateValue("2021-01-06"), "host", "h1", "errors", 1)))
+          .add(
+              ExprValueUtils.tupleValue(
+                  ImmutableMap.of(
+                      "day", new ExprDateValue("2021-01-07"), "host", "h1", "errors", 6)))
+          .add(
+              ExprValueUtils.tupleValue(
+                  ImmutableMap.of(
+                      "day", new ExprDateValue("2021-01-07"), "host", "h2", "errors", 8)))
+          .add(
+              ExprValueUtils.tupleValue(
+                  ImmutableMap.of(
+                      "day", new ExprDateValue("2021-01-07"), "host", "h2", "errors", 12)))
+          .add(
+              ExprValueUtils.tupleValue(
+                  ImmutableMap.of(
+                      "day", new ExprDateValue("2021-01-08"), "host", "h1", "errors", 13)))
           .build();
 
   protected static final List<ExprValue> inputs =

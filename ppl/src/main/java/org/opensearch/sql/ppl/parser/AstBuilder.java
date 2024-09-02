@@ -362,18 +362,18 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       joinType = Join.JoinType.INNER;
     } else if (joinCtx.joinType().INNER() != null) {
       joinType = Join.JoinType.INNER;
-    } else if (joinCtx.joinType().CROSS() != null) {
-      joinType = Join.JoinType.CROSS;
-    } else if (joinCtx.joinType().FULL() != null) {
-      joinType = Join.JoinType.FULL;
-    } else if (joinCtx.joinType().SEMI() != null) {
-      joinType = Join.JoinType.SEMI;
-    } else if (joinCtx.joinType().ANTI() != null) {
-      joinType = Join.JoinType.ANTI;
     } else if (joinCtx.joinType().LEFT() != null) {
       joinType = Join.JoinType.LEFT;
     } else if (joinCtx.joinType().RIGHT() != null) {
       joinType = Join.JoinType.RIGHT;
+    } else if (joinCtx.joinType().SEMI() != null) {
+      joinType = Join.JoinType.SEMI;
+    } else if (joinCtx.joinType().ANTI() != null) {
+      joinType = Join.JoinType.ANTI;
+    } else if (joinCtx.joinType().CROSS() != null) {
+      joinType = Join.JoinType.CROSS;
+    } else if (joinCtx.joinType().FULL() != null) {
+      joinType = Join.JoinType.FULL;
     } else {
       joinType = Join.JoinType.INNER;
     }

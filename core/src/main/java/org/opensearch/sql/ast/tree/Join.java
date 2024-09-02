@@ -40,12 +40,12 @@ public class Join extends UnresolvedPlan {
   }
 
   public enum JoinType {
-    CROSS,
     INNER,
-    SEMI,
-    ANTI,
     LEFT,
     RIGHT,
+    SEMI,
+    ANTI,
+    CROSS,
     FULL
   }
 }

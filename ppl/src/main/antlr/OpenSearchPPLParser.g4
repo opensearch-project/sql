@@ -166,9 +166,12 @@ mlArg
 
 // clauses
 fromClause
-   : (SOURCE | INDEX) EQUAL tableSourceClause
-   | (SOURCE | INDEX) EQUAL tableFunction
-   | (SOURCE | INDEX) EQUAL relation
+   : SOURCE EQUAL tableSourceClause
+   | INDEX EQUAL tableSourceClause
+   | SOURCE EQUAL tableFunction
+   | INDEX EQUAL tableFunction
+   | SOURCE EQUAL relation
+   | INDEX EQUAL relation
    ;
 
 tableSourceClause
