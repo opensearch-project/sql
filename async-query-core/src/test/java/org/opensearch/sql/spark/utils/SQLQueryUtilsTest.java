@@ -411,7 +411,7 @@ public class SQLQueryUtilsTest {
   void testValidateSparkSqlQuery_ValidQuery() {
     DataSource  dataSource = Mockito.mock(DataSource.class);
     Mockito.when(dataSource.getConnectorType()).thenReturn(DataSourceType.PROMETHEUS);
-    String validQuery = "SELECT * FROM users WHERE age > 18";
+    String validQuery = "DELETE FROM Customers WHERE CustomerName='Alfreds Futterkiste'";
     List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
     assertTrue(errors.isEmpty(), "Valid query should not produce any errors");
   }
