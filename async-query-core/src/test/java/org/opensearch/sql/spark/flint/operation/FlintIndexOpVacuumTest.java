@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.flint.operation;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,17 +33,13 @@ class FlintIndexOpVacuumTest {
   public static final String DATASOURCE_NAME = "DATASOURCE_NAME";
   public static final String LATEST_ID = "LATEST_ID";
   public static final String INDEX_NAME = "INDEX_NAME";
+
   public static final FlintIndexMetadata FLINT_INDEX_METADATA_WITH_LATEST_ID =
-      FlintIndexMetadata.builder()
-          .latestId(LATEST_ID)
-          .opensearchIndexName(INDEX_NAME)
-          .flintIndexOptions(new FlintIndexOptions())
-          .build();
+      createFlintIndexMetadataWithLatestId();
+
   public static final FlintIndexMetadata FLINT_INDEX_METADATA_WITHOUT_LATEST_ID =
-      FlintIndexMetadata.builder()
-          .opensearchIndexName(INDEX_NAME)
-          .flintIndexOptions(new FlintIndexOptions())
-          .build();
+      createFlintIndexMetadataWithoutLatestId();
+
   @Mock FlintIndexClient flintIndexClient;
   @Mock FlintIndexStateModelService flintIndexStateModelService;
   @Mock EMRServerlessClientFactory emrServerlessClientFactory;
@@ -64,6 +61,34 @@ class FlintIndexOpVacuumTest {
             flintIndexClient,
             emrServerlessClientFactory,
             asyncQueryScheduler);
+  }
+
+  // Helper method to create FlintIndexMetadata with latest ID
+  private static FlintIndexMetadata createFlintIndexMetadataWithLatestId() {
+    return FlintIndexMetadata.builder()
+        .latestId(LATEST_ID)
+        .opensearchIndexName(INDEX_NAME)
+        .flintIndexOptions(new FlintIndexOptions())
+        .build();
+  }
+
+  // Helper method to create FlintIndexMetadata without latest ID
+  private static FlintIndexMetadata createFlintIndexMetadataWithoutLatestId() {
+    return FlintIndexMetadata.builder()
+        .opensearchIndexName(INDEX_NAME)
+        .flintIndexOptions(new FlintIndexOptions())
+        .build();
+  }
+
+  // Helper method to create FlintIndexMetadata with external scheduler
+  private FlintIndexMetadata createFlintIndexMetadataWithExternalScheduler() {
+    FlintIndexOptions flintIndexOptions = new FlintIndexOptions();
+    flintIndexOptions.setOption(FlintIndexOptions.SCHEDULER_MODE, "external");
+
+    return FlintIndexMetadata.builder()
+        .opensearchIndexName(INDEX_NAME)
+        .flintIndexOptions(flintIndexOptions)
+        .build();
   }
 
   @Test
@@ -216,6 +241,24 @@ class FlintIndexOpVacuumTest {
 
     verify(flintIndexStateModelService)
         .deleteFlintIndexStateModel(LATEST_ID, DATASOURCE_NAME, asyncQueryRequestContext);
+    verify(flintIndexClient).deleteIndex(INDEX_NAME);
+  }
+
+  @Test
+  public void testRunOpWithExternalScheduler() {
+    FlintIndexMetadata flintIndexMetadata = createFlintIndexMetadataWithExternalScheduler();
+    flintIndexOpVacuum.runOp(flintIndexMetadata, flintIndexStateModel, asyncQueryRequestContext);
+
+    verify(asyncQueryScheduler).removeJob(INDEX_NAME);
+    verify(flintIndexClient).deleteIndex(INDEX_NAME);
+  }
+
+  @Test
+  public void testRunOpWithoutExternalScheduler() {
+    FlintIndexMetadata flintIndexMetadata = FLINT_INDEX_METADATA_WITHOUT_LATEST_ID;
+    flintIndexOpVacuum.runOp(flintIndexMetadata, flintIndexStateModel, asyncQueryRequestContext);
+
+    verify(asyncQueryScheduler, never()).removeJob(INDEX_NAME);
     verify(flintIndexClient).deleteIndex(INDEX_NAME);
   }
 }
