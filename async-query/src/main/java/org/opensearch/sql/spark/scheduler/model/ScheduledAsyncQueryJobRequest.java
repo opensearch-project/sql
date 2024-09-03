@@ -107,9 +107,7 @@ public class ScheduledAsyncQueryJobRequest extends AsyncQuerySchedulerRequest
     if (getAccountId() != null) {
       builder.field(ACCOUNT_ID_FIELD, getAccountId());
     }
-    builder
-        .field(JOB_ID_FIELD, getJobId())
-        .field(ENABLED_FIELD, isEnabled());
+    builder.field(JOB_ID_FIELD, getJobId()).field(ENABLED_FIELD, isEnabled());
     if (getDataSource() != null) {
       builder.field(DATA_SOURCE_NAME_FIELD, getDataSource());
     }
@@ -150,14 +148,13 @@ public class ScheduledAsyncQueryJobRequest extends AsyncQuerySchedulerRequest
         .enabledTime(request.getEnabledTime())
         .lockDurationSeconds(request.getLockDurationSeconds())
         .jitter(request.getJitter())
-        .schedule(parseSchedule(request.getSchedule())) // This is specific to ScheduledAsyncQueryJobRequest
+        .schedule(
+            parseSchedule(
+                request.getSchedule())) // This is specific to ScheduledAsyncQueryJobRequest
         .build();
   }
 
   public static Schedule parseSchedule(Object rawSchedule) {
-    return new IntervalSchedule(
-            Instant.now(),
-            1,
-            ChronoUnit.MINUTES);
+    return new IntervalSchedule(Instant.now(), 1, ChronoUnit.MINUTES);
   }
 }

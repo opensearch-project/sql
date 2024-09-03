@@ -57,8 +57,7 @@ public class OpenSearchAsyncQueryScheduler implements AsyncQueryScheduler {
   /** Schedules a new job by indexing it into the job index. */
   public void scheduleJob(AsyncQuerySchedulerRequest asyncQuerySchedulerRequest) {
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.fromAsyncQuerySchedulerRequest(
-            asyncQuerySchedulerRequest);
+        ScheduledAsyncQueryJobRequest.fromAsyncQuerySchedulerRequest(asyncQuerySchedulerRequest);
     if (!this.clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)) {
       createAsyncQuerySchedulerIndex();
     }
@@ -108,8 +107,7 @@ public class OpenSearchAsyncQueryScheduler implements AsyncQueryScheduler {
   @SneakyThrows
   public void updateJob(AsyncQuerySchedulerRequest asyncQuerySchedulerRequest) {
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.fromAsyncQuerySchedulerRequest(
-            asyncQuerySchedulerRequest);
+        ScheduledAsyncQueryJobRequest.fromAsyncQuerySchedulerRequest(asyncQuerySchedulerRequest);
     assertIndexExists();
     UpdateRequest updateRequest = new UpdateRequest(SCHEDULER_INDEX_NAME, request.getName());
     updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);

@@ -342,6 +342,9 @@ public class SQLPlugin extends Plugin
     systemIndexDescriptors.add(
         new SystemIndexDescriptor(
             SPARK_REQUEST_BUFFER_INDEX_NAME + "*", "SQL Spark Request Buffer index pattern"));
+    systemIndexDescriptors.add(
+        new SystemIndexDescriptor(
+            OpenSearchAsyncQueryScheduler.SCHEDULER_INDEX_NAME, "SQL Scheduler job index"));
     return systemIndexDescriptors;
   }
 }
