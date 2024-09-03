@@ -8,7 +8,6 @@ package org.opensearch.sql.datasource.model;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.utils;
 
-import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -19,7 +18,6 @@ import java.util.List;
 import lombok.Getter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.datasource.model.DataSource;
@@ -409,7 +407,7 @@ public class SQLQueryUtilsTest {
 
   @Test
   void testValidateSparkSqlQuery_ValidQuery() {
-    DataSource  dataSource = Mockito.mock(DataSource.class);
+    DataSource dataSource = Mockito.mock(DataSource.class);
     Mockito.when(dataSource.getConnectorType()).thenReturn(DataSourceType.PROMETHEUS);
     String validQuery = "DELETE FROM Customers WHERE CustomerName='Alfreds Futterkiste'";
     List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
@@ -418,7 +416,7 @@ public class SQLQueryUtilsTest {
 
   @Test
   void testValidateSparkSqlQuery_SelectQuery_DataSourceSecurityLake() {
-    DataSource  dataSource = Mockito.mock(DataSource.class);
+    DataSource dataSource = Mockito.mock(DataSource.class);
     Mockito.when(dataSource.getConnectorType()).thenReturn(DataSourceType.SECURITY_LAKE);
     String validQuery = "SELECT * FROM users WHERE age > 18";
     List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
@@ -431,14 +429,15 @@ public class SQLQueryUtilsTest {
     Mockito.when(dataSource.getConnectorType()).thenReturn(DataSourceType.SECURITY_LAKE);
     String validQuery = "REFRESH INDEX cv1 ON mys3.default.http_logs";
     List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
-    assertFalse(errors.isEmpty(),
-            "Invalid query as Security Lake datasource supports only flint queries and SELECT sql queries. " +
-                    "Given query was REFRESH sql query");
+    assertFalse(
+        errors.isEmpty(),
+        "Invalid query as Security Lake datasource supports only flint queries and SELECT sql"
+            + " queries. Given query was REFRESH sql query");
   }
 
   @Test
   void testValidateSparkSqlQuery_InvalidQuery() {
-    DataSource  dataSource = Mockito.mock(DataSource.class);
+    DataSource dataSource = Mockito.mock(DataSource.class);
     Mockito.when(dataSource.getConnectorType()).thenReturn(DataSourceType.PROMETHEUS);
     String invalidQuery = "CREATE FUNCTION myUDF AS 'com.example.UDF'";
     List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, invalidQuery);
