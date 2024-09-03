@@ -96,7 +96,7 @@ import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
-import org.opensearch.sql.spark.scheduler.job.ScheduledAsyncQueryJob;
+import org.opensearch.sql.spark.scheduler.job.ScheduledAsyncQueryJobRunner;
 import org.opensearch.sql.spark.scheduler.parser.OpenSearchScheduleQueryJobRequestParser;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
@@ -247,7 +247,7 @@ public class SQLPlugin extends Plugin
             injector.getInstance(FlintIndexOpFactory.class));
     AsyncQueryExecutorService asyncQueryExecutorService =
         injector.getInstance(AsyncQueryExecutorService.class);
-    ScheduledAsyncQueryJob.getJobRunnerInstance()
+    ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
     return ImmutableList.of(
@@ -266,7 +266,7 @@ public class SQLPlugin extends Plugin
 
   @Override
   public ScheduledJobRunner getJobRunner() {
-    return ScheduledAsyncQueryJob.getJobRunnerInstance();
+    return ScheduledAsyncQueryJobRunner.getJobRunnerInstance();
   }
 
   @Override

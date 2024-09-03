@@ -137,11 +137,6 @@ public class ScheduledAsyncQueryJobRequest extends AsyncQuerySchedulerRequest
 
   public static ScheduledAsyncQueryJobRequest fromAsyncQuerySchedulerRequest(
       AsyncQuerySchedulerRequest request) {
-    // Validate that request.getSchedule() is a String
-    if (!(request.getSchedule() instanceof String)) {
-      throw new IllegalArgumentException("Schedule must be a String object.");
-    }
-
     Instant updateTime =
         request.getLastUpdateTime() != null ? request.getLastUpdateTime() : Instant.now();
     return ScheduledAsyncQueryJobRequest.builder()
@@ -155,10 +150,7 @@ public class ScheduledAsyncQueryJobRequest extends AsyncQuerySchedulerRequest
         .enabledTime(request.getEnabledTime())
         .lockDurationSeconds(request.getLockDurationSeconds())
         .jitter(request.getJitter())
-        .schedule(
-            IntervalScheduleParser.parse(
-                (String) request.getSchedule(),
-                updateTime)) // This is specific to ScheduledAsyncQueryJobRequest
+        .schedule(IntervalScheduleParser.parse(request.getSchedule(), updateTime))
         .build();
   }
 }

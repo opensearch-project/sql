@@ -100,7 +100,6 @@ jacocoTestCoverageVerification {
                     'org.opensearch.sql.spark.execution.statestore.StateStore',
                     'org.opensearch.sql.spark.rest.*',
                     'org.opensearch.sql.spark.scheduler.parser.OpenSearchScheduleQueryJobRequestParser',
-                    'org.opensearch.sql.spark.scheduler.parser.IntervalScheduleParser',
                     'org.opensearch.sql.spark.transport.model.*'
             ]
             limit {

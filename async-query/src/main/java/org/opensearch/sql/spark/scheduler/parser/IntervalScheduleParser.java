@@ -5,29 +5,43 @@
 
 package org.opensearch.sql.spark.scheduler.parser;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
+import org.opensearch.jobscheduler.spi.schedule.Schedule;
 
 /** Parse string raw schedule into job scheduler IntervalSchedule */
 public class IntervalScheduleParser {
 
   private static final Pattern DURATION_PATTERN =
       Pattern.compile(
-          "^(\\d+)\\s*(years?|months?|weeks?|days?|hours?|minutes?|minute|mins?|seconds?|secs?|milliseconds?|millis?|micros?|nanoseconds?|nanos?)$",
+          "^(\\d+)\\s*(years?|months?|weeks?|days?|hours?|minutes?|minute|mins?|seconds?|secs?|milliseconds?|millis?|microseconds?|microsecond|micros?|micros|nanoseconds?|nanos?)$",
           Pattern.CASE_INSENSITIVE);
 
-  public static IntervalSchedule parse(String intervalStr, Instant startTime) {
-    intervalStr = intervalStr.trim().toLowerCase();
+  public static Schedule parse(Object schedule, Instant startTime) {
+    if (schedule == null) {
+      return null;
+    }
+
+    if (schedule instanceof Schedule) {
+      return (Schedule) schedule;
+    }
+
+    if (!(schedule instanceof String)) {
+      throw new IllegalArgumentException("Schedule must be a String object for parsing.");
+    }
+
+    String intervalStr = ((String) schedule).trim().toLowerCase();
 
     Matcher matcher = DURATION_PATTERN.matcher(intervalStr);
     if (!matcher.matches()) {
       throw new IllegalArgumentException("Invalid interval format: " + intervalStr);
     }
 
-    int value = Integer.parseInt(matcher.group(1));
+    long value = Long.parseLong(matcher.group(1));
     String unitStr = matcher.group(2).toLowerCase();
 
     // Convert to a supported unit or directly return an IntervalSchedule
@@ -36,7 +50,8 @@ public class IntervalScheduleParser {
     return new IntervalSchedule(startTime, (int) intervalInMinutes, ChronoUnit.MINUTES);
   }
 
-  private static long convertToSupportedUnit(int value, String unitStr) {
+  @VisibleForTesting
+  protected static long convertToSupportedUnit(long value, String unitStr) {
     switch (unitStr) {
       case "years":
       case "year":

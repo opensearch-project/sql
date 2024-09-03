@@ -35,7 +35,7 @@ import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
-import org.opensearch.sql.spark.scheduler.job.ScheduledAsyncQueryJob;
+import org.opensearch.sql.spark.scheduler.job.ScheduledAsyncQueryJobRunner;
 import org.opensearch.sql.spark.scheduler.model.AsyncQuerySchedulerRequest;
 import org.opensearch.sql.spark.scheduler.model.ScheduledAsyncQueryJobRequest;
 
@@ -196,6 +196,6 @@ public class OpenSearchAsyncQueryScheduler implements AsyncQueryScheduler {
 
   /** Returns the job runner instance for the scheduler. */
   public static ScheduledJobRunner getJobRunner() {
-    return ScheduledAsyncQueryJob.getJobRunnerInstance();
+    return ScheduledAsyncQueryJobRunner.getJobRunnerInstance();
   }
 }

@@ -33,12 +33,12 @@ import org.opensearch.threadpool.ThreadPool;
  * and using singleton job runner to ensure we register a usable job runner instance to JobScheduler
  * plugin.
  */
-public class ScheduledAsyncQueryJob implements ScheduledJobRunner {
-  private static final Logger LOGGER = LogManager.getLogger(ScheduledAsyncQueryJob.class);
+public class ScheduledAsyncQueryJobRunner implements ScheduledJobRunner {
+  private static final Logger LOGGER = LogManager.getLogger(ScheduledAsyncQueryJobRunner.class);
 
-  public static ScheduledAsyncQueryJob INSTANCE = new ScheduledAsyncQueryJob();
+  private static ScheduledAsyncQueryJobRunner INSTANCE = new ScheduledAsyncQueryJobRunner();
 
-  public static ScheduledAsyncQueryJob getJobRunnerInstance() {
+  public static ScheduledAsyncQueryJobRunner getJobRunnerInstance() {
     return INSTANCE;
   }
 
@@ -47,7 +47,7 @@ public class ScheduledAsyncQueryJob implements ScheduledJobRunner {
   private Client client;
   private AsyncQueryExecutorService asyncQueryExecutorService;
 
-  private ScheduledAsyncQueryJob() {
+  private ScheduledAsyncQueryJobRunner() {
     // Singleton class, use getJobRunnerInstance method instead of constructor
   }
 
@@ -63,28 +63,12 @@ public class ScheduledAsyncQueryJob implements ScheduledJobRunner {
     this.asyncQueryExecutorService = asyncQueryExecutorService;
   }
 
-  public void setClusterService(ClusterService clusterService) {
-    this.clusterService = clusterService;
-  }
-
-  public void setThreadPool(ThreadPool threadPool) {
-    this.threadPool = threadPool;
-  }
-
-  public void setClient(Client client) {
-    this.client = client;
-  }
-
-  public void setAsyncQueryExecutorService(AsyncQueryExecutorService asyncQueryExecutorService) {
-    this.asyncQueryExecutorService = asyncQueryExecutorService;
-  }
-
   @Override
   public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
     // Parser will convert jobParameter to ScheduledAsyncQueryJobRequest
     if (!(jobParameter instanceof ScheduledAsyncQueryJobRequest)) {
       throw new IllegalStateException(
-          "Job parameter is not instance of OpenSearchRefreshIndexJobRequest, type: "
+          "Job parameter is not instance of ScheduledAsyncQueryJobRequest, type: "
               + jobParameter.getClass().getCanonicalName());
     }
 
@@ -116,13 +100,10 @@ public class ScheduledAsyncQueryJob implements ScheduledJobRunner {
   }
 
   void doRefresh(ScheduledAsyncQueryJobRequest request) {
-    // TODO: use internal logic to create refresh index query?
     LOGGER.info("Scheduled refresh index job on job: " + request.getName());
-    LOGGER.info("Scheduled refresh index job on query: " + request.getScheduledQuery());
     CreateAsyncQueryRequest createAsyncQueryRequest =
         new CreateAsyncQueryRequest(
             request.getScheduledQuery(), request.getDataSource(), request.getQueryLang());
-    LOGGER.info(asyncQueryExecutorService.getClass().getCanonicalName());
     CreateAsyncQueryResponse createAsyncQueryResponse =
         asyncQueryExecutorService.createAsyncQuery(
             createAsyncQueryRequest, new NullAsyncQueryRequestContext());

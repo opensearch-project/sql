@@ -10,11 +10,17 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
@@ -32,7 +38,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.scheduler.model.ScheduledAsyncQueryJobRequest;
 import org.opensearch.threadpool.ThreadPool;
 
-public class ScheduledAsyncQueryJobTest {
+public class ScheduledAsyncQueryJobRunnerTest {
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private ClusterService clusterService;
@@ -48,27 +54,21 @@ public class ScheduledAsyncQueryJobTest {
 
   @Mock private JobExecutionContext context;
 
-  private ScheduledAsyncQueryJob jobRunner;
+  private ScheduledAsyncQueryJobRunner jobRunner;
 
-  private ScheduledAsyncQueryJob spyJobRunner;
+  private ScheduledAsyncQueryJobRunner spyJobRunner;
 
   @BeforeEach
   public void setup() {
     MockitoAnnotations.openMocks(this);
-    jobRunner = ScheduledAsyncQueryJob.getJobRunnerInstance();
-    jobRunner.setClient(null);
-    jobRunner.setClusterService(null);
-    jobRunner.setThreadPool(null);
-    jobRunner.setAsyncQueryExecutorService(null);
+    jobRunner = ScheduledAsyncQueryJobRunner.getJobRunnerInstance();
+    jobRunner.loadJobResource(null, null, null, null);
   }
 
   @Test
   public void testRunJobWithCorrectParameter() {
     spyJobRunner = spy(jobRunner);
-    spyJobRunner.setClusterService(clusterService);
-    spyJobRunner.setThreadPool(threadPool);
-    spyJobRunner.setClient(client);
-    spyJobRunner.setAsyncQueryExecutorService(asyncQueryExecutorService);
+    spyJobRunner.loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
     ScheduledAsyncQueryJobRequest request =
         ScheduledAsyncQueryJobRequest.builder()
@@ -98,11 +98,8 @@ public class ScheduledAsyncQueryJobTest {
 
   @Test
   public void testRunJobWithIncorrectParameter() {
-    jobRunner = ScheduledAsyncQueryJob.getJobRunnerInstance();
-    jobRunner.setClusterService(clusterService);
-    jobRunner.setThreadPool(threadPool);
-    jobRunner.setClient(client);
-    jobRunner.setAsyncQueryExecutorService(asyncQueryExecutorService);
+    jobRunner = ScheduledAsyncQueryJobRunner.getJobRunnerInstance();
+    jobRunner.loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
     ScheduledJobParameter wrongParameter = mock(ScheduledJobParameter.class);
 
@@ -113,9 +110,50 @@ public class ScheduledAsyncQueryJobTest {
             "Expected IllegalStateException but no exception was thrown");
 
     assertEquals(
-        "Job parameter is not instance of OpenSearchRefreshIndexJobRequest, type: "
+        "Job parameter is not instance of ScheduledAsyncQueryJobRequest, type: "
             + wrongParameter.getClass().getCanonicalName(),
         exception.getMessage());
+  }
+
+  @Test
+  public void testDoRefreshThrowsException() {
+    spyJobRunner = spy(jobRunner);
+    spyJobRunner.loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
+
+    // Create a ScheduledAsyncQueryJobRequest with valid parameters
+    ScheduledAsyncQueryJobRequest request =
+        ScheduledAsyncQueryJobRequest.builder()
+            .jobId("testJob")
+            .lastUpdateTime(Instant.now())
+            .lockDurationSeconds(10L)
+            .scheduledQuery("REFRESH INDEX testIndex")
+            .dataSource("testDataSource")
+            .queryLang(LangType.SQL)
+            .build();
+
+    // Mock the doRefresh method to throw an exception
+    doThrow(new RuntimeException("Test exception")).when(spyJobRunner).doRefresh(request);
+
+    // Capture the log output
+    Logger logger = LogManager.getLogger(ScheduledAsyncQueryJobRunner.class);
+    Appender mockAppender = mock(Appender.class);
+    when(mockAppender.getName()).thenReturn("MockAppender");
+    when(mockAppender.isStarted()).thenReturn(true);
+    when(mockAppender.isStopped()).thenReturn(false);
+    ((org.apache.logging.log4j.core.Logger) logger)
+        .addAppender((org.apache.logging.log4j.core.Appender) mockAppender);
+
+    spyJobRunner.runJob(request, context);
+
+    ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
+    verify(threadPool.generic()).submit(captor.capture());
+
+    Runnable runnable = captor.getValue();
+    runnable.run();
+
+    // Verify that the doRefresh method was called and the exception was logged
+    verify(spyJobRunner).doRefresh(eq(request));
+    verify(mockAppender).append(any(LogEvent.class));
   }
 
   @Test
@@ -133,7 +171,7 @@ public class ScheduledAsyncQueryJobTest {
             "Expected IllegalStateException but no exception was thrown");
     assertEquals("ClusterService is not initialized.", exception.getMessage());
 
-    jobRunner.setClusterService(clusterService);
+    jobRunner.loadJobResource(null, clusterService, null, null);
 
     exception =
         assertThrows(
@@ -142,7 +180,7 @@ public class ScheduledAsyncQueryJobTest {
             "Expected IllegalStateException but no exception was thrown");
     assertEquals("ThreadPool is not initialized.", exception.getMessage());
 
-    jobRunner.setThreadPool(threadPool);
+    jobRunner.loadJobResource(null, clusterService, threadPool, null);
 
     exception =
         assertThrows(
@@ -151,7 +189,7 @@ public class ScheduledAsyncQueryJobTest {
             "Expected IllegalStateException but no exception was thrown");
     assertEquals("Client is not initialized.", exception.getMessage());
 
-    jobRunner.setClient(client);
+    jobRunner.loadJobResource(client, clusterService, threadPool, null);
 
     exception =
         assertThrows(
@@ -163,9 +201,9 @@ public class ScheduledAsyncQueryJobTest {
 
   @Test
   public void testGetJobRunnerInstanceMultipleCalls() {
-    ScheduledAsyncQueryJob instance1 = ScheduledAsyncQueryJob.getJobRunnerInstance();
-    ScheduledAsyncQueryJob instance2 = ScheduledAsyncQueryJob.getJobRunnerInstance();
-    ScheduledAsyncQueryJob instance3 = ScheduledAsyncQueryJob.getJobRunnerInstance();
+    ScheduledAsyncQueryJobRunner instance1 = ScheduledAsyncQueryJobRunner.getJobRunnerInstance();
+    ScheduledAsyncQueryJobRunner instance2 = ScheduledAsyncQueryJobRunner.getJobRunnerInstance();
+    ScheduledAsyncQueryJobRunner instance3 = ScheduledAsyncQueryJobRunner.getJobRunnerInstance();
 
     assertSame(instance1, instance2);
     assertSame(instance2, instance3);

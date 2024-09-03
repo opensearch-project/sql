@@ -137,7 +137,7 @@ public class ScheduledAsyncQueryJobRequestTest {
               ScheduledAsyncQueryJobRequest.fromAsyncQuerySchedulerRequest(request);
             });
 
-    assertEquals("Schedule must be a String object.", exception.getMessage());
+    assertEquals("Schedule must be a String object for parsing.", exception.getMessage());
   }
 
   @Test
@@ -162,7 +162,6 @@ public class ScheduledAsyncQueryJobRequestTest {
 
     // Test toString
     String toString = request1.toString();
-    System.out.println(toString);
     assertTrue(toString.contains("accountId=testAccount"));
     assertTrue(toString.contains("jobId=testJob"));
     assertTrue(toString.contains("dataSource=testDataSource"));
