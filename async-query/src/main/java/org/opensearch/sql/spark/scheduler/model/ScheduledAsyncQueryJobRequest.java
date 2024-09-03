@@ -7,20 +7,21 @@ package org.opensearch.sql.spark.scheduler.model;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
-import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
 import org.opensearch.jobscheduler.spi.schedule.Schedule;
 import org.opensearch.sql.spark.rest.model.LangType;
+import org.opensearch.sql.spark.scheduler.parser.IntervalScheduleParser;
 
 /** Represents a job request to refresh index. */
 @Data
 @EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 public class ScheduledAsyncQueryJobRequest extends AsyncQuerySchedulerRequest
     implements ScheduledJobParameter {
   // Constant fields for JSON serialization
@@ -136,6 +137,13 @@ public class ScheduledAsyncQueryJobRequest extends AsyncQuerySchedulerRequest
 
   public static ScheduledAsyncQueryJobRequest fromAsyncQuerySchedulerRequest(
       AsyncQuerySchedulerRequest request) {
+    // Validate that request.getSchedule() is a String
+    if (!(request.getSchedule() instanceof String)) {
+      throw new IllegalArgumentException("Schedule must be a String object.");
+    }
+
+    Instant updateTime =
+        request.getLastUpdateTime() != null ? request.getLastUpdateTime() : Instant.now();
     return ScheduledAsyncQueryJobRequest.builder()
         .accountId(request.getAccountId())
         .jobId(request.getJobId())
@@ -143,18 +151,14 @@ public class ScheduledAsyncQueryJobRequest extends AsyncQuerySchedulerRequest
         .scheduledQuery(request.getScheduledQuery())
         .queryLang(request.getQueryLang())
         .enabled(request.isEnabled())
-        .lastUpdateTime(
-            request.getLastUpdateTime() != null ? request.getLastUpdateTime() : Instant.now())
+        .lastUpdateTime(updateTime)
         .enabledTime(request.getEnabledTime())
         .lockDurationSeconds(request.getLockDurationSeconds())
         .jitter(request.getJitter())
         .schedule(
-            parseSchedule(
-                request.getSchedule())) // This is specific to ScheduledAsyncQueryJobRequest
+            IntervalScheduleParser.parse(
+                (String) request.getSchedule(),
+                updateTime)) // This is specific to ScheduledAsyncQueryJobRequest
         .build();
-  }
-
-  public static Schedule parseSchedule(Object rawSchedule) {
-    return new IntervalSchedule(Instant.now(), 1, ChronoUnit.MINUTES);
   }
 }
