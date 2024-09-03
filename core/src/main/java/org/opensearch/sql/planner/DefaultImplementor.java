@@ -5,12 +5,16 @@
 
 package org.opensearch.sql.planner;
 
+import static org.opensearch.sql.planner.physical.join.JoinOperator.BuildSide.BuildLeft;
+import static org.opensearch.sql.planner.physical.join.JoinOperator.BuildSide.BuildRight;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
@@ -54,6 +58,7 @@ import org.opensearch.sql.planner.physical.TakeOrderedOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
 import org.opensearch.sql.planner.physical.join.HashJoinOperator;
+import org.opensearch.sql.planner.physical.join.JoinOperator;
 import org.opensearch.sql.planner.physical.join.JoinPredicatesHelper;
 import org.opensearch.sql.planner.physical.join.NestedLoopJoinOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
@@ -205,7 +210,8 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
       }
     }
 
-    // 1. Determining Join with Hint. TODO
+    // 1. Determining Join with Hint and build side.
+    JoinOperator.BuildSide buildSide = determineBuildSide(join.getType());
     // 2. Pick hash join if it is an equi-join and hash join supported
     if (!equiJoinKeys.isEmpty()) {
       Pair<List<Expression>, List<Expression>> unzipped = JoinPredicatesHelper.unzip(equiJoinKeys);
@@ -217,6 +223,7 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
           leftKeys,
           rightKeys,
           join.getType(),
+          buildSide,
           visitRelation((LogicalRelation) join.getLeft(), ctx),
           visitRelation((LogicalRelation) join.getRight(), ctx),
           Optional.empty());
@@ -227,8 +234,20 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
           visitRelation((LogicalRelation) join.getLeft(), ctx),
           visitRelation((LogicalRelation) join.getRight(), ctx),
           join.getType(),
+          buildSide,
           join.getCondition());
     }
+  }
+
+  /**
+   * Build side is right by default (except RightOuter). TODO set the smaller side as the build side
+   * TODO set build side from hint if provided
+   *
+   * @param joinType Join type
+   * @return Build side
+   */
+  private JoinOperator.BuildSide determineBuildSide(Join.JoinType joinType) {
+    return joinType == Join.JoinType.RIGHT ? BuildLeft : BuildRight;
   }
 
   /** Return true if the reference can be evaluated in relation */

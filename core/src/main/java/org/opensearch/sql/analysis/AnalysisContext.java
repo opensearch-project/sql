@@ -41,10 +41,6 @@ public class AnalysisContext {
     environment = new TypeEnvironment(environment);
   }
 
-  public void cleanFields() {
-    environment.clearAllFields();
-  }
-
   /**
    * Return current environment.
    *

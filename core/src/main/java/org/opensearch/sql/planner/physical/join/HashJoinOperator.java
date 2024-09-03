@@ -5,14 +5,15 @@
 
 package org.opensearch.sql.planner.physical.join;
 
+import static org.opensearch.sql.planner.physical.join.JoinOperator.BuildSide.BuildRight;
+
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -21,11 +22,22 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
+/**
+ * Hash Join Operator. For best performance, the build side should be set a smaller table, without
+ * hint and CBO, we treat right side as a smaller table by default and the build side set to right.
+ * TODO add join hint support. Best practice in PPL: source=bigger | INNER JOIN smaller ON
+ * bigger.field1 = smaller.field2 AND bigger.field3 = smaller.field4 The build side is right
+ * (smaller), and the streamed side is left (bigger). For RIGHT OUTER join, the build side is always
+ * left. If the smaller table is left, it will get the best performance: source=smaller | RIGHT JOIN
+ * bigger ON bigger.field1 = smaller.field2 AND bigger.field3 = smaller.field4 The build side is
+ * left (smaller), and the streamed side is right (bigger).
+ */
 @RequiredArgsConstructor
 public class HashJoinOperator extends JoinOperator {
   private final List<Expression> leftKeys;
   private final List<Expression> rightKeys;
   private final Join.JoinType joinType;
+  private final BuildSide buildSide;
   private final PhysicalPlan left;
   private final PhysicalPlan right;
   private final Optional<Expression> nonEquiCond;
@@ -33,51 +45,74 @@ public class HashJoinOperator extends JoinOperator {
   private final ImmutableList.Builder<ExprValue> joinedBuilder = ImmutableList.builder();
   private Iterator<ExprValue> joinedIterator;
 
+  private HashedRelation hashed;
+  private List<Expression> buildKeys;
+  private List<Expression> streamedKeys;
+
   @Override
   public void open() {
-    // Build hash table from left
-    left.open();
-    Map<ExprValue, ExprValue> hashed = buildHashed();
-    // Set streamed side to right
-    right.open();
-    Iterator<ExprValue> streamed = right;
+    if (!(leftKeys.size() == rightKeys.size()
+        && IntStream.range(0, leftKeys.size())
+            .allMatch(i -> sameType(leftKeys.get(i), rightKeys.get(i))))) {
+      throw new IllegalArgumentException(
+          "Join keys from two sides should have same length and types");
+    }
 
-    if (joinType == Join.JoinType.INNER) {
-      innerJoin(streamed, hashed);
-    } else if (joinType == Join.JoinType.LEFT) {
-      leftOuterJoin(streamed, hashed);
-    } else if (joinType == Join.JoinType.SEMI) {
-      semiJoin(streamed, hashed);
-    } else if (joinType == Join.JoinType.ANTI) {
-      antiJoin(streamed, hashed);
+    left.open();
+    right.open();
+    Iterator<ExprValue> streamed;
+    if (buildSide == BuildRight) {
+      hashed = buildHashed(right, rightKeys);
+      streamed = left;
+      buildKeys = rightKeys;
+      streamedKeys = leftKeys;
     } else {
-      throw new IllegalArgumentException("Unsupported join type: " + joinType);
+      hashed = buildHashed(left, leftKeys);
+      streamed = right;
+      buildKeys = leftKeys;
+      streamedKeys = rightKeys;
+    }
+
+    switch (joinType) {
+      case INNER -> innerJoin(streamed);
+      case LEFT, RIGHT -> outerJoin(streamed);
+      case SEMI -> semiJoin(streamed);
+      case ANTI -> antiJoin(streamed);
+      default -> throw new UnsupportedOperationException("Unsupported Join Type " + joinType);
     }
   }
 
   @Override
   public void close() {
     joinedIterator = null;
+    if (hashed != null) {
+      hashed.close();
+      hashed = null;
+    }
     left.close();
     right.close();
   }
 
-  private void innerJoin(Iterator<ExprValue> streamed, Map<ExprValue, ExprValue> hashed) {
+  @Override
+  public void innerJoin(Iterator<ExprValue> streamed) {
     while (streamed.hasNext()) {
-      ExprValue rightRow = streamed.next();
-      for (Expression rightKey : rightKeys) {
-        ExprValue rightRowKey = rightKey.valueOf(rightRow.bindingTuples());
-        if (rightRowKey != null && hashed.containsKey(rightRowKey)) {
-          ExprValue leftRow = hashed.get(rightRowKey);
-          ExprValue joinedRow = combineExprTupleValue(leftRow, rightRow);
-          if (nonEquiCond.isPresent()) {
-            ExprValue conditionValue = nonEquiCond.get().valueOf(joinedRow.bindingTuples());
-            if (!(conditionValue.isNull() || conditionValue.isMissing())
-                && conditionValue.booleanValue()) {
+      ExprValue streamedRow = streamed.next();
+
+      for (Expression streamedKey : streamedKeys) {
+        ExprValue streamedRowKey = streamedKey.valueOf(streamedRow.bindingTuples());
+        if (streamedRowKey != null && hashed.containsKey(streamedRowKey)) {
+          List<ExprValue> matchedBuildRows = hashed.get(streamedRowKey);
+          for (ExprValue matchedBuildRow : matchedBuildRows) {
+            ExprValue joinedRow = combineExprTupleValue(buildSide, streamedRow, matchedBuildRow);
+            if (nonEquiCond.isPresent()) {
+              ExprValue conditionValue = nonEquiCond.get().valueOf(joinedRow.bindingTuples());
+              if (!(conditionValue.isNull() || conditionValue.isMissing())
+                  && conditionValue.booleanValue()) {
+                joinedBuilder.add(joinedRow);
+              }
+            } else {
               joinedBuilder.add(joinedRow);
             }
-          } else {
-            joinedBuilder.add(joinedRow);
           }
         }
       }
@@ -85,37 +120,40 @@ public class HashJoinOperator extends JoinOperator {
     joinedIterator = joinedBuilder.build().iterator();
   }
 
-  private void leftOuterJoin(Iterator<ExprValue> streamed, Map<ExprValue, ExprValue> hashed) {
-    // Track matched keys to identify unmatched left rows later
-    Set<ExprValue> matchedKeys = new HashSet<>();
-
+  /** The implementation for outer join: LeftOuter with BuildRight RightOuter with BuildLeft */
+  @Override
+  public void outerJoin(Iterator<ExprValue> streamed) {
     while (streamed.hasNext()) {
-      ExprValue rightRow = streamed.next();
-      for (Expression rightKey : rightKeys) {
-        ExprValue rightRowKey = rightKey.valueOf(rightRow.bindingTuples());
-        if (rightRowKey != null && hashed.containsKey(rightRowKey)) {
-          ExprValue leftRow = hashed.get(rightRowKey);
-          ExprValue joinedRow = combineExprTupleValue(leftRow, rightRow);
-          if (nonEquiCond.isPresent()) {
-            ExprValue conditionValue = nonEquiCond.get().valueOf(joinedRow.bindingTuples());
-            if (!(conditionValue.isNull() || conditionValue.isMissing())
-                && conditionValue.booleanValue()) {
+      ExprValue streamedRow = streamed.next();
+      boolean matched = false;
+      for (Expression streamedKey : streamedKeys) {
+        ExprValue streamedRowKey = streamedKey.valueOf(streamedRow.bindingTuples());
+        if (streamedRowKey != null && hashed.containsKey(streamedRowKey)) {
+          List<ExprValue> matchedBuildRows = hashed.get(streamedRowKey);
+          for (ExprValue matchedBuildRow : matchedBuildRows) {
+            ExprValue joinedRow = combineExprTupleValue(buildSide, streamedRow, matchedBuildRow);
+            if (nonEquiCond.isPresent()) {
+              ExprValue conditionValue = nonEquiCond.get().valueOf(joinedRow.bindingTuples());
+              if (!(conditionValue.isNull() || conditionValue.isMissing())
+                  && conditionValue.booleanValue()) {
+                joinedBuilder.add(joinedRow);
+                matched = true;
+              }
+            } else {
               joinedBuilder.add(joinedRow);
-              matchedKeys.add(rightRowKey);
+              matched = true;
             }
-          } else {
-            joinedBuilder.add(joinedRow);
-            matchedKeys.add(rightRowKey);
           }
+        } else {
+          // if any streamedRowKey does not match, the remaining keys are not checked.
+          matched = false;
+          break;
         }
       }
-    }
 
-    // Add unmatched left rows with nulls for the right side
-    for (Map.Entry<ExprValue, ExprValue> entry : hashed.entrySet()) {
-      if (!matchedKeys.contains(entry.getKey())) {
-        ExprValue leftRow = entry.getValue();
-        ExprValue joinedRow = combineExprTupleValue(leftRow, ExprValueUtils.nullValue());
+      if (!matched) {
+        ExprTupleValue joinedRow =
+            combineExprTupleValue(buildSide, streamedRow, ExprValueUtils.nullValue());
         joinedBuilder.add(joinedRow);
       }
     }
@@ -123,83 +161,90 @@ public class HashJoinOperator extends JoinOperator {
     joinedIterator = joinedBuilder.build().iterator();
   }
 
-  private void semiJoin(Iterator<ExprValue> streamed, Map<ExprValue, ExprValue> hashed) {
-    Set<ExprValue> matchedKeys = new HashSet<>();
+  @Override
+  public void semiJoin(Iterator<ExprValue> streamed) {
+    Set<ExprValue> matchedRows = new HashSet<>();
 
     while (streamed.hasNext()) {
-      ExprValue rightRow = streamed.next();
-      for (Expression rightKey : rightKeys) {
-        ExprValue rightRowKey = rightKey.valueOf(rightRow.bindingTuples());
-        if (rightRowKey != null && hashed.containsKey(rightRowKey)) {
-          ExprValue leftRow = hashed.get(rightRowKey);
-          if (nonEquiCond.isPresent()) {
-            ExprValue joinedRow = combineExprTupleValue(leftRow, rightRow);
-            ExprValue conditionValue = nonEquiCond.get().valueOf(joinedRow.bindingTuples());
-            if (!(conditionValue.isNull() || conditionValue.isMissing())
-                && conditionValue.booleanValue()) {
-              matchedKeys.add(rightRowKey);
+      ExprValue streamedRow = streamed.next();
+      for (Expression streamedKey : streamedKeys) {
+        ExprValue streamedRowKey = streamedKey.valueOf(streamedRow.bindingTuples());
+        if (streamedRowKey != null && hashed.containsKey(streamedRowKey)) {
+          List<ExprValue> matchedBuildRows = hashed.get(streamedRowKey);
+          for (ExprValue matchedBuildRow : matchedBuildRows) {
+            ExprValue joinedRow = combineExprTupleValue(buildSide, streamedRow, matchedBuildRow);
+            if (nonEquiCond.isPresent()) {
+              ExprValue conditionValue = nonEquiCond.get().valueOf(joinedRow.bindingTuples());
+              if (!(conditionValue.isNull() || conditionValue.isMissing())
+                  && conditionValue.booleanValue()) {
+                matchedRows.add(streamedRow);
+              }
+            } else {
+              matchedRows.add(streamedRow);
             }
-          } else {
-            matchedKeys.add(rightRowKey);
           }
-        }
-      }
-    }
-
-    // Add matched left rows to the result
-    for (ExprValue key : matchedKeys) {
-      joinedBuilder.add(hashed.get(key));
-    }
-
-    joinedIterator = joinedBuilder.build().iterator();
-  }
-
-  private void antiJoin(Iterator<ExprValue> streamed, Map<ExprValue, ExprValue> hashed) {
-    Set<ExprValue> matchedKeys = new HashSet<>();
-
-    while (streamed.hasNext()) {
-      ExprValue rightRow = streamed.next();
-      for (Expression rightKey : rightKeys) {
-        ExprValue rightRowKey = rightKey.valueOf(rightRow.bindingTuples());
-        if (rightRowKey != null && hashed.containsKey(rightRowKey)) {
-          ExprValue leftRow = hashed.get(rightRowKey);
-          if (nonEquiCond.isPresent()) {
-            ExprValue joinedRow = combineExprTupleValue(leftRow, rightRow);
-            ExprValue conditionValue = nonEquiCond.get().valueOf(joinedRow.bindingTuples());
-            if (!(conditionValue.isNull() || conditionValue.isMissing())
-                && conditionValue.booleanValue()) {
-              matchedKeys.add(rightRowKey);
-            }
-          } else {
-            matchedKeys.add(rightRowKey);
-          }
-        }
-      }
-    }
-
-    // Add unmatched left rows to the result
-    for (Map.Entry<ExprValue, ExprValue> entry : hashed.entrySet()) {
-      if (!matchedKeys.contains(entry.getKey())) {
-        joinedBuilder.add(entry.getValue());
-      }
-    }
-
-    joinedIterator = joinedBuilder.build().iterator();
-  }
-
-  private Map<ExprValue, ExprValue> buildHashed() {
-    ImmutableMap.Builder<ExprValue, ExprValue> leftTableBuilder = ImmutableMap.builder();
-    while (left.hasNext()) {
-      ExprValue row = left.next();
-      for (Expression leftKey : leftKeys) {
-        ExprValue rowKey = leftKey.valueOf(row.bindingTuples());
-        if (rowKey != null) {
-          leftTableBuilder.put(rowKey, row);
+        } else {
+          // if any streamedRowKey does not match, the remaining keys are not checked.
           break;
         }
       }
     }
-    return leftTableBuilder.build();
+
+    for (ExprValue row : matchedRows) {
+      joinedBuilder.add(row);
+    }
+
+    joinedIterator = joinedBuilder.build().iterator();
+  }
+
+  @Override
+  public void antiJoin(Iterator<ExprValue> streamed) {
+    while (streamed.hasNext()) {
+      ExprValue streamedRow = streamed.next();
+      boolean matched = false;
+      for (Expression streamedKey : streamedKeys) {
+        ExprValue streamedRowKey = streamedKey.valueOf(streamedRow.bindingTuples());
+        if (streamedRowKey != null && hashed.containsKey(streamedRowKey)) {
+          List<ExprValue> matchedBuildRows = hashed.get(streamedRowKey);
+          for (ExprValue matchedBuildRow : matchedBuildRows) {
+            if (nonEquiCond.isPresent()) {
+              ExprValue joinedRow = combineExprTupleValue(buildSide, matchedBuildRow, streamedRow);
+              ExprValue conditionValue = nonEquiCond.get().valueOf(joinedRow.bindingTuples());
+              if (!(conditionValue.isNull() || conditionValue.isMissing())
+                  && conditionValue.booleanValue()) {
+                matched = true;
+              }
+            } else {
+              matched = true;
+            }
+          }
+        } else {
+          // if any streamedRowKey does not match, the remaining keys are not checked.
+          matched = false;
+          break;
+        }
+      }
+      if (!matched) {
+        joinedBuilder.add(streamedRow);
+      }
+    }
+
+    joinedIterator = joinedBuilder.build().iterator();
+  }
+
+  private HashedRelation buildHashed(PhysicalPlan buildSide, List<Expression> buildKeys) {
+    HashedRelation hashedRelation = new DefaultHashedRelation();
+    while (buildSide.hasNext()) {
+      ExprValue row = buildSide.next();
+      for (Expression buildKey : buildKeys) {
+        ExprValue rowKey = buildKey.valueOf(row.bindingTuples());
+        if (rowKey != null) {
+          hashedRelation.put(rowKey, row);
+          break;
+        }
+      }
+    }
+    return hashedRelation;
   }
 
   @Override
@@ -215,11 +260,5 @@ public class HashJoinOperator extends JoinOperator {
   @Override
   public List<PhysicalPlan> getChild() {
     return ImmutableList.of(left, right);
-  }
-
-  private ExprTupleValue combineExprTupleValue(ExprValue left, ExprValue right) {
-    Map<String, ExprValue> combinedMap = left.tupleValue();
-    combinedMap.putAll(right.tupleValue());
-    return ExprTupleValue.fromExprValueMap(combinedMap);
   }
 }
