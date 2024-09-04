@@ -31,6 +31,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
+import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
@@ -86,7 +87,8 @@ public class ScheduledAsyncQueryJobRunnerTest {
     spyJobRunner.runJob(request, context);
 
     ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
-    verify(threadPool.generic()).submit(captor.capture());
+    verify(threadPool.executor(AsyncRestExecutor.SQL_WORKER_THREAD_POOL_NAME))
+        .submit(captor.capture());
 
     Runnable runnable = captor.getValue();
     runnable.run();
@@ -143,7 +145,8 @@ public class ScheduledAsyncQueryJobRunnerTest {
     spyJobRunner.runJob(request, context);
 
     ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
-    verify(threadPool.generic()).submit(captor.capture());
+    verify(threadPool.executor(AsyncRestExecutor.SQL_WORKER_THREAD_POOL_NAME))
+        .submit(captor.capture());
 
     Runnable runnable = captor.getValue();
     runnable.run();

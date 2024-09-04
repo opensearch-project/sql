@@ -13,6 +13,7 @@ import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
@@ -34,6 +35,9 @@ import org.opensearch.threadpool.ThreadPool;
  * plugin.
  */
 public class ScheduledAsyncQueryJobRunner implements ScheduledJobRunner {
+  // Share SQL plugin thread pool
+  private static final String ASYNC_QUERY_THREAD_POOL_NAME =
+      AsyncRestExecutor.SQL_WORKER_THREAD_POOL_NAME;
   private static final Logger LOGGER = LogManager.getLogger(ScheduledAsyncQueryJobRunner.class);
 
   private static ScheduledAsyncQueryJobRunner INSTANCE = new ScheduledAsyncQueryJobRunner();
@@ -96,7 +100,7 @@ public class ScheduledAsyncQueryJobRunner implements ScheduledJobRunner {
             LOGGER.error(throwable);
           }
         };
-    threadPool.generic().submit(runnable);
+    threadPool.executor(ASYNC_QUERY_THREAD_POOL_NAME).submit(runnable);
   }
 
   void doRefresh(ScheduledAsyncQueryJobRequest request) {
