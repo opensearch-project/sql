@@ -84,11 +84,11 @@ public class SQLQueryUtils {
   }
 
   public static List<String> validateSparkSqlQuery(DataSource datasource, String sqlQuery) {
+    SqlBaseParser sqlBaseParser =
+        new SqlBaseParser(
+            new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(sqlQuery))));
+    sqlBaseParser.addErrorListener(new SyntaxAnalysisErrorListener());
     try {
-      SqlBaseParser sqlBaseParser =
-          new SqlBaseParser(
-              new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(sqlQuery))));
-      sqlBaseParser.addErrorListener(new SyntaxAnalysisErrorListener());
       SqlBaseValidatorVisitor sqlParserBaseVisitor = getSparkSqlValidatorVisitor(datasource);
       StatementContext statement = sqlBaseParser.statement();
       sqlParserBaseVisitor.visit(statement);
@@ -113,7 +113,7 @@ public class SQLQueryUtils {
   }
 
   /**
-   * A generic validator impl for Spark Sql Queries that supports accumulating validation errors on
+   * A base class extending SqlBaseParserBaseVisitor for validating Spark Sql Queries. The class supports accumulating validation errors on
    * visiting sql statement
    */
   @Getter
@@ -435,9 +435,5 @@ public class SQLQueryUtils {
     public String removeUnwantedQuotes(String input) {
       return input.replaceAll("^\"|\"$", "");
     }
-  }
-
-  private boolean isSelectQuery(String query) {
-    return query.trim().toUpperCase().startsWith("SELECT");
   }
 }

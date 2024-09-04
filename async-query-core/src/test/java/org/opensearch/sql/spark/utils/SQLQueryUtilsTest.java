@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.index;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.mv;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.skippingIndex;
@@ -407,40 +408,66 @@ public class SQLQueryUtilsTest {
 
   @Test
   void testValidateSparkSqlQuery_ValidQuery() {
-    DataSource dataSource = Mockito.mock(DataSource.class);
-    Mockito.when(dataSource.getConnectorType()).thenReturn(DataSourceType.PROMETHEUS);
+    DataSource dataSource = mock(DataSource.class);
+    when(dataSource.getConnectorType()).thenReturn(DataSourceType.PROMETHEUS);
     String validQuery = "DELETE FROM Customers WHERE CustomerName='Alfreds Futterkiste'";
+
     List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
+
     assertTrue(errors.isEmpty(), "Valid query should not produce any errors");
   }
 
   @Test
   void testValidateSparkSqlQuery_SelectQuery_DataSourceSecurityLake() {
-    DataSource dataSource = Mockito.mock(DataSource.class);
-    Mockito.when(dataSource.getConnectorType()).thenReturn(DataSourceType.SECURITY_LAKE);
+    DataSource dataSource = mock(DataSource.class);
+    when(dataSource.getConnectorType()).thenReturn(DataSourceType.SECURITY_LAKE);
     String validQuery = "SELECT * FROM users WHERE age > 18";
+
     List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
+
     assertTrue(errors.isEmpty(), "Valid query should not produce any errors ");
   }
 
   @Test
   void testValidateSparkSqlQuery_SelectQuery_DataSourceSecurityLake_ValidationFails() {
-    DataSource dataSource = Mockito.mock(DataSource.class);
-    Mockito.when(dataSource.getConnectorType()).thenReturn(DataSourceType.SECURITY_LAKE);
+    DataSource dataSource = mock(DataSource.class);
+    when(dataSource.getConnectorType()).thenReturn(DataSourceType.SECURITY_LAKE);
     String validQuery = "REFRESH INDEX cv1 ON mys3.default.http_logs";
+
     List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
+
     assertFalse(
         errors.isEmpty(),
         "Invalid query as Security Lake datasource supports only flint queries and SELECT sql"
             + " queries. Given query was REFRESH sql query");
+    assertEquals(errors.get(0), "Unsupported sql statement for security lake data source. Only select queries are allowed");
+  }
+
+  @Test
+  void testValidateSparkSqlQuery_NonSelectStatementContainingSelectClause_DataSourceSecurityLake_ValidationFails() {
+    DataSource dataSource = mock(DataSource.class);
+    when(dataSource.getConnectorType()).thenReturn(DataSourceType.SECURITY_LAKE);
+    String validQuery = "CREATE TABLE AccountSummaryOrWhatever AS " +
+            "select taxid, address1, count(address1) from dbo.t " +
+            "group by taxid, address1;";
+
+    List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
+
+    assertFalse(
+        errors.isEmpty(),
+        "Invalid query as Security Lake datasource supports only flint queries and SELECT sql"
+            + " queries. Given query was REFRESH sql query");
+    assertEquals(errors.get(0), "Unsupported sql statement for security lake data source. Only select queries are allowed");
   }
 
   @Test
   void testValidateSparkSqlQuery_InvalidQuery() {
-    DataSource dataSource = Mockito.mock(DataSource.class);
-    Mockito.when(dataSource.getConnectorType()).thenReturn(DataSourceType.PROMETHEUS);
+    DataSource dataSource = mock(DataSource.class);
+    when(dataSource.getConnectorType()).thenReturn(DataSourceType.PROMETHEUS);
     String invalidQuery = "CREATE FUNCTION myUDF AS 'com.example.UDF'";
+
     List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, invalidQuery);
+
     assertFalse(errors.isEmpty(), "Invalid query should produce errors");
     assertEquals(1, errors.size(), "Should have one error");
     assertEquals(

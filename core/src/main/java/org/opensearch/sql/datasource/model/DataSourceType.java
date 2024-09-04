@@ -8,9 +8,12 @@ package org.opensearch.sql.datasource.model;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
+@EqualsAndHashCode
 public class DataSourceType {
   public static DataSourceType PROMETHEUS = new DataSourceType("PROMETHEUS");
   public static DataSourceType OPENSEARCH = new DataSourceType("OPENSEARCH");
@@ -56,18 +59,5 @@ public class DataSourceType {
     } else {
       throw new IllegalArgumentException("No DataSourceType with name " + name + " found");
     }
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    DataSourceType that = (DataSourceType) o;
-    return Objects.equals(name, that.name);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(name);
   }
 }
