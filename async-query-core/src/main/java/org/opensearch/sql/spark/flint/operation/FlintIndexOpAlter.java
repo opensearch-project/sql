@@ -16,6 +16,7 @@ import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
+import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 
 /**
  * Index Operation for Altering the flint index. Only handles alter operation when
@@ -25,16 +26,19 @@ public class FlintIndexOpAlter extends FlintIndexOp {
   private static final Logger LOG = LogManager.getLogger(FlintIndexOpAlter.class);
   private final FlintIndexMetadataService flintIndexMetadataService;
   private final FlintIndexOptions flintIndexOptions;
+  private final AsyncQueryScheduler asyncQueryScheduler;
 
   public FlintIndexOpAlter(
       FlintIndexOptions flintIndexOptions,
       FlintIndexStateModelService flintIndexStateModelService,
       String datasourceName,
       EMRServerlessClientFactory emrServerlessClientFactory,
-      FlintIndexMetadataService flintIndexMetadataService) {
+      FlintIndexMetadataService flintIndexMetadataService,
+      AsyncQueryScheduler asyncQueryScheduler) {
     super(flintIndexStateModelService, datasourceName, emrServerlessClientFactory);
     this.flintIndexMetadataService = flintIndexMetadataService;
     this.flintIndexOptions = flintIndexOptions;
+    this.asyncQueryScheduler = asyncQueryScheduler;
   }
 
   @Override
@@ -57,7 +61,11 @@ public class FlintIndexOpAlter extends FlintIndexOp {
         "Running alter index operation for index: {}", flintIndexMetadata.getOpensearchIndexName());
     this.flintIndexMetadataService.updateIndexToManualRefresh(
         flintIndexMetadata.getOpensearchIndexName(), flintIndexOptions, asyncQueryRequestContext);
-    cancelStreamingJob(flintIndexStateModel);
+    if (flintIndexMetadata.getFlintIndexOptions().isExternalScheduler()) {
+      asyncQueryScheduler.unscheduleJob(flintIndexMetadata.getOpensearchIndexName());
+    } else {
+      cancelStreamingJob(flintIndexStateModel);
+    }
   }
 
   @Override
