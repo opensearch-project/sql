@@ -14,10 +14,12 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.core.common.io.stream.BytesStreamInput;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NoCursorException;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -45,9 +47,11 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
+  private Settings pluginSettings;
+
   /** Creates index scan based on a provided OpenSearchRequestBuilder. */
   public OpenSearchIndexScan(
-      OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
+          OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
     this.client = client;
     this.maxResponseSize = maxResponseSize;
     this.request = request;
@@ -121,12 +125,18 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
         (OpenSearchStorageEngine)
             ((PlanSerializer.CursorDeserializationStream) in).resolveObject("engine");
 
+    client = engine.getClient();
+
+    boolean paginationAPISetting = Boolean.parseBoolean(client.getNodeClient().settings().get(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER.getKeyValue(), String.valueOf(true)));
+    System.out.println("**********OPENSEARCHINDEXSCAN flag: " + paginationAPISetting);
     try (BytesStreamInput bsi = new BytesStreamInput(requestStream)) {
-      request = new OpenSearchScrollRequest(bsi, engine);
+      if (paginationAPISetting) {
+        request = new OpenSearchQueryRequest(bsi, engine);
+      } else {
+        request = new OpenSearchScrollRequest(bsi, engine);
+      }
     }
     maxResponseSize = in.readInt();
-
-    client = engine.getClient();
   }
 
   @Override

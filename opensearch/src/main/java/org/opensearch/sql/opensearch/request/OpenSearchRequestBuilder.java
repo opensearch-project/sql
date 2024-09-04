@@ -11,6 +11,8 @@ import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
 import static org.opensearch.index.query.QueryBuilders.nestedQuery;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -26,6 +29,8 @@ import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
+import org.opensearch.action.search.*;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.InnerHitBuilder;
@@ -33,15 +38,19 @@ import org.opensearch.index.query.NestedQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.builder.PointInTimeBuilder;
+import org.opensearch.client.Client;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -67,10 +76,15 @@ public class OpenSearchRequestBuilder {
 
   private int startFrom = 0;
 
+  private final Settings settings;
+
+  private String[] indices;
+
   /** Constructor. */
   public OpenSearchRequestBuilder(
-      int requestedTotalSize, OpenSearchExprValueFactory exprValueFactory) {
+      int requestedTotalSize, OpenSearchExprValueFactory exprValueFactory, Settings settings) {
     this.requestedTotalSize = requestedTotalSize;
+    this.settings = settings;
     this.sourceBuilder =
         new SearchSourceBuilder()
             .from(startFrom)
@@ -85,27 +99,49 @@ public class OpenSearchRequestBuilder {
    * @return query request or scroll request
    */
   public OpenSearchRequest build(
-      OpenSearchRequest.IndexName indexName, int maxResultWindow, TimeValue scrollTimeout) {
-    int size = requestedTotalSize;
-    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
-    List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
-    if (pageSize == null) {
-      if (startFrom + size > maxResultWindow) {
-        sourceBuilder.size(maxResultWindow - startFrom);
-        return new OpenSearchScrollRequest(
-            indexName, scrollTimeout, sourceBuilder, exprValueFactory, includes);
+          OpenSearchRequest.IndexName indexName, int maxResultWindow, TimeValue cursorKeepAlive, OpenSearchClient client) {
+    if (this.settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)) {
+      int size = requestedTotalSize;
+      FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
+      List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
+      if (pageSize == null) {
+        if (startFrom + size > maxResultWindow) {
+          sourceBuilder.size(maxResultWindow - startFrom);
+        } else {
+          sourceBuilder.size(requestedTotalSize);
+        }
       } else {
-        sourceBuilder.from(startFrom);
-        sourceBuilder.size(requestedTotalSize);
-        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
+        if (startFrom != 0) {
+          throw new UnsupportedOperationException("Non-zero offset is not supported with pagination");
+        }
+        sourceBuilder.size(pageSize);
       }
+      // Set sort field for search_after
+      sourceBuilder.sort(DOC_FIELD_NAME, ASC);
+      return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, client);
+
     } else {
-      if (startFrom != 0) {
-        throw new UnsupportedOperationException("Non-zero offset is not supported with pagination");
+      int size = requestedTotalSize;
+      FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
+      List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
+      if (pageSize == null) {
+        if (startFrom + size > maxResultWindow) {
+          sourceBuilder.size(maxResultWindow - startFrom);
+          return new OpenSearchScrollRequest(
+                  indexName, cursorKeepAlive, sourceBuilder, exprValueFactory, includes);
+        } else {
+          sourceBuilder.from(startFrom);
+          sourceBuilder.size(requestedTotalSize);
+          return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
+        }
+      } else {
+        if (startFrom != 0) {
+          throw new UnsupportedOperationException("Non-zero offset is not supported with pagination");
+        }
+        sourceBuilder.size(pageSize);
+        return new OpenSearchScrollRequest(
+                indexName, cursorKeepAlive, sourceBuilder, exprValueFactory, includes);
       }
-      sourceBuilder.size(pageSize);
-      return new OpenSearchScrollRequest(
-          indexName, scrollTimeout, sourceBuilder, exprValueFactory, includes);
     }
   }
 

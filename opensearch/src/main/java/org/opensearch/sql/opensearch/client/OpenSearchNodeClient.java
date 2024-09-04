@@ -11,23 +11,33 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.ActionType;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.search.*;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 /** OpenSearch connection by node client. */
@@ -160,16 +170,20 @@ public class OpenSearchNodeClient implements OpenSearchClient {
 
   @Override
   public void cleanup(OpenSearchRequest request) {
-    request.clean(
-        scrollId -> {
-          try {
-            client.prepareClearScroll().addScrollId(scrollId).get();
-          } catch (Exception e) {
-            throw new IllegalStateException(
-                "Failed to clean up resources for search request " + request, e);
-          }
-        });
-  }
+    if (request instanceof OpenSearchScrollRequest) {
+      request.clean(
+              scrollId -> {
+                try {
+                  client.prepareClearScroll().addScrollId(scrollId).get();
+                } catch (Exception e) {
+                  throw new IllegalStateException(
+                          "Failed to clean up resources for search request " + request, e);
+                }
+              });
+    } else if (request instanceof OpenSearchQueryRequest) {
+      request.clean(pitId -> {});
+    }
+   }
 
   @Override
   public void schedule(Runnable task) {
