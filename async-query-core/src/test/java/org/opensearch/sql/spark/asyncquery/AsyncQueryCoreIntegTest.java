@@ -337,7 +337,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, JobType.BATCH);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.REFRESH);
   }
 
   @Test
@@ -454,7 +454,7 @@ public class AsyncQueryCoreIntegTest {
   @Test
   public void cancelRefreshQuery() {
     givenJobMetadataExists(
-        getBaseAsyncQueryJobMetadataBuilder().jobType(JobType.BATCH).indexName(INDEX_NAME));
+        getBaseAsyncQueryJobMetadataBuilder().jobType(JobType.REFRESH).indexName(INDEX_NAME));
     when(flintIndexMetadataService.getFlintIndexMetadata(INDEX_NAME, asyncQueryRequestContext))
         .thenReturn(
             ImmutableMap.of(
