@@ -30,6 +30,10 @@ public class SparkSubmitParameters {
     config.remove(key);
   }
 
+  public String getConfigItem(String key) {
+    return config.get(key);
+  }
+
   @Override
   public String toString() {
     StringBuilder stringBuilder = new StringBuilder();
