@@ -188,6 +188,7 @@ statsByClause
    : BY fieldList
    | BY bySpanClause
    | BY bySpanClause COMMA fieldList
+   | BY fieldList COMMA bySpanClause
    ;
 
 bySpanClause
@@ -216,8 +217,8 @@ statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
    | COUNT LT_PRTHS RT_PRTHS                                    # countAllFunctionCall
    | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
-   | percentileAggFunction                                      # percentileAggFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
+   | percentileApproxFunction                                   # percentileApproxFunctionCall
    ;
 
 statsFunctionName
@@ -230,15 +231,22 @@ statsFunctionName
    | VAR_POP
    | STDDEV_SAMP
    | STDDEV_POP
+   | PERCENTILE
    ;
 
 takeAggFunction
    : TAKE LT_PRTHS fieldExpression (COMMA size = integerLiteral)? RT_PRTHS
    ;
 
-percentileAggFunction
-   : PERCENTILE LESS value = integerLiteral GREATER LT_PRTHS aggField = fieldExpression RT_PRTHS
+percentileApproxFunction
+   : (PERCENTILE | PERCENTILE_APPROX) LT_PRTHS aggField = valueExpression
+       COMMA percent = numericLiteral (COMMA compression = numericLiteral)? RT_PRTHS
    ;
+
+numericLiteral
+    : integerLiteral
+    | decimalLiteral
+    ;
 
 // expressions
 expression

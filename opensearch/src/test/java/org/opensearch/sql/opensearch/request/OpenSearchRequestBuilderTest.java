@@ -58,6 +58,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.opensearch.response.agg.SinglePercentileParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.planner.logical.LogicalNested;
 
@@ -153,6 +154,25 @@ class OpenSearchRequestBuilderTest {
             "composite_buckets", Collections.singletonList(new TermsValuesSourceBuilder("longA")));
     OpenSearchAggregationResponseParser responseParser =
         new CompositeAggregationParser(new SingleValueParser("AVG(intA)"));
+    requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser));
+
+    assertEquals(
+        new SearchSourceBuilder()
+            .from(DEFAULT_OFFSET)
+            .size(0)
+            .timeout(DEFAULT_QUERY_TIMEOUT)
+            .aggregation(aggBuilder),
+        requestBuilder.getSourceBuilder());
+    verify(exprValueFactory).setParser(responseParser);
+  }
+
+  @Test
+  void test_push_down_percentile_aggregation() {
+    AggregationBuilder aggBuilder =
+        AggregationBuilders.composite(
+            "composite_buckets", Collections.singletonList(new TermsValuesSourceBuilder("longA")));
+    OpenSearchAggregationResponseParser responseParser =
+        new CompositeAggregationParser(new SinglePercentileParser("PERCENTILE(intA, 50)"));
     requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser));
 
     assertEquals(

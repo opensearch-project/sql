@@ -43,7 +43,7 @@ stats <aggregation>... [by-clause]
  * Description: The by clause could be the fields and expressions like scalar functions and aggregation functions. Besides, the span clause can be used to split specific field into buckets in the same interval, the stats then does the aggregation by these span buckets.
  * Default: If no <by-clause> is specified, the stats command returns only one row, which is the aggregation over the entire result set.
 
-* span-expression: optional.
+* span-expression: optional, at most one.
 
  * Syntax: span(field_expr, interval_expr)
  * Description: The unit of the interval expression is the natural unit by default. If the field is a date and time type field, and the interval is in date/time units, you will need to specify the unit in the interval expression. For example, to split the field ``age`` into buckets by 10 years, it looks like ``span(age, 10)``. And here is another example of time span, the span to split a ``timestamp`` field into hourly intervals, it looks like ``span(timestamp, 1h)``.
@@ -259,6 +259,27 @@ Example::
     | [Amber,Hattie,Nanette,Dale] |
     +-----------------------------+
 
+PERCENTILE or PERCENTILE_APPROX
+-------------------------------
+
+Description
+>>>>>>>>>>>
+
+Usage: PERCENTILE(expr, percent) or PERCENTILE_APPROX(expr, percent). Return the approximate percentile value of expr at the specified percentage.
+
+* percent: The number must be a constant between 0 and 100.
+
+Example::
+
+    os> source=accounts | stats percentile(age, 90) by gender;
+    fetched rows / total rows = 2/2
+    +-----------------------+----------+
+    | percentile(age, 90)   | gender   |
+    |-----------------------+----------|
+    | 28                    | F        |
+    | 36                    | M        |
+    +-----------------------+----------+
+
 Example 1: Calculate the count of events
 ========================================
 
@@ -403,6 +424,20 @@ PPL query::
     | 1     | 35         | M        |
     +-------+------------+----------+
 
+Span will always be the first grouping key whatever order you specify.
+
+PPL query::
+
+    os> source=accounts | stats count() as cnt by gender, span(age, 5) as age_span
+    fetched rows / total rows = 3/3
+    +-------+------------+----------+
+    | cnt   | age_span   | gender   |
+    |-------+------------+----------|
+    | 1     | 25         | F        |
+    | 2     | 30         | M        |
+    | 1     | 35         | M        |
+    +-------+------------+----------+
+
 Example 10: Calculate the count and get email list by a gender and span
 =======================================================================
 
@@ -419,3 +454,52 @@ PPL query::
     | 2     | [amberduke@pyrami.com,daleadams@boink.com] | 30         | M        |
     | 1     | [hattiebond@netagy.com]                    | 35         | M        |
     +-------+--------------------------------------------+------------+----------+
+
+Example 11: Calculate the percentile of a field
+===============================================
+
+The example show calculate the percentile 90th age of all the accounts.
+
+PPL query::
+
+    os> source=accounts | stats percentile(age, 90);
+    fetched rows / total rows = 1/1
+    +-----------------------+
+    | percentile(age, 90)   |
+    |-----------------------|
+    | 36                    |
+    +-----------------------+
+
+
+Example 12: Calculate the percentile of a field by group
+========================================================
+
+The example show calculate the percentile 90th age of all the accounts group by gender.
+
+PPL query::
+
+    os> source=accounts | stats percentile(age, 90) by gender;
+    fetched rows / total rows = 2/2
+    +-----------------------+----------+
+    | percentile(age, 90)   | gender   |
+    |-----------------------+----------|
+    | 28                    | F        |
+    | 36                    | M        |
+    +-----------------------+----------+
+
+Example 13: Calculate the percentile by a gender and span
+=========================================================
+
+The example gets the percentile 90th age by the interval of 10 years and group by gender.
+
+PPL query::
+
+    os> source=accounts | stats percentile(age, 90) as p90 by span(age, 10) as age_span, gender
+    fetched rows / total rows = 2/2
+    +-------+------------+----------+
+    | p90   | age_span   | gender   |
+    |-------+------------+----------|
+    | 28    | 20         | F        |
+    | 36    | 30         | M        |
+    +-------+------------+----------+
+

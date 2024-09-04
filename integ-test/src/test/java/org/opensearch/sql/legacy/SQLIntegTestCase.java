@@ -20,6 +20,7 @@ import static org.opensearch.sql.legacy.TestUtils.getDogs2IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
@@ -40,7 +41,6 @@ import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOIN
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 
 import com.google.common.base.Strings;
-import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -55,6 +55,7 @@ import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -67,6 +68,7 @@ import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.utils.SerializeUtils;
 
 /** OpenSearch Rest integration test base for SQL testing */
 public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
@@ -167,6 +169,15 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
             DEFAULT_QUERY_SIZE_LIMIT.toString()));
   }
 
+  @SneakyThrows
+  protected void setDataSourcesEnabled(String clusterSettingType, boolean value) {
+    updateClusterSettings(
+        new ClusterSetting(
+            clusterSettingType,
+            Settings.Key.DATASOURCES_ENABLED.getKeyValue(),
+            Boolean.toString(value)));
+  }
+
   protected static void wipeAllClusterSettings() throws IOException {
     updateClusterSettings(new ClusterSetting("persistent", "*", null));
     updateClusterSettings(new ClusterSetting("transient", "*", null));
@@ -234,12 +245,17 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected String executeQuery(String query, String requestType) {
+    return executeQuery(query, requestType, Map.of());
+  }
+
+  protected String executeQuery(String query, String requestType, Map<String, String> params) {
     try {
       String endpoint = "/_plugins/_sql?format=" + requestType;
       String requestBody = makeRequest(query);
 
       Request sqlRequest = new Request("POST", endpoint);
       sqlRequest.setJsonEntity(requestBody);
+      sqlRequest.addParameters(params);
 
       Response response = client().performRequest(sqlRequest);
       Assert.assertEquals(200, response.getStatusLine().getStatusCode());
@@ -479,7 +495,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected static Request getCreateDataSourceRequest(DataSourceMetadata dataSourceMetadata) {
     Request request = new Request("POST", "/_plugins/_query/_datasources");
-    request.setJsonEntity(new Gson().toJson(dataSourceMetadata));
+    request.setJsonEntity(SerializeUtils.buildGson().toJson(dataSourceMetadata));
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
@@ -488,7 +504,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected static Request getUpdateDataSourceRequest(DataSourceMetadata dataSourceMetadata) {
     Request request = new Request("PUT", "/_plugins/_query/_datasources");
-    request.setJsonEntity(new Gson().toJson(dataSourceMetadata));
+    request.setJsonEntity(SerializeUtils.buildGson().toJson(dataSourceMetadata));
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
@@ -497,7 +513,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected static Request getPatchDataSourceRequest(Map<String, Object> dataSourceData) {
     Request request = new Request("PATCH", "/_plugins/_query/_datasources");
-    request.setJsonEntity(new Gson().toJson(dataSourceData));
+    request.setJsonEntity(SerializeUtils.buildGson().toJson(dataSourceData));
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
@@ -715,7 +731,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_NESTED_WITH_NULLS,
         "multi_nested",
         getNestedTypeIndexMapping(),
-        "src/test/resources/nested_with_nulls.json");
+        "src/test/resources/nested_with_nulls.json"),
+    GEOPOINTS(
+        TestsConstants.TEST_INDEX_GEOPOINT,
+        "dates",
+        getGeopointIndexMapping(),
+        "src/test/resources/geopoints.json");
 
     private final String name;
     private final String type;

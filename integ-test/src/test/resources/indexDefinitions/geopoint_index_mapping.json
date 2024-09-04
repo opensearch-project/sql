@@ -1,0 +1,9 @@
+{
+  "mappings": {
+    "properties": {
+      "point": {
+        "type": "geo_point"
+      }
+    }
+  }
+}

@@ -35,7 +35,7 @@ repositories {
 }
 
 dependencies {
-    api group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
+    api group: 'com.google.guava', name: 'guava', version: "${guava_version}"
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
     api group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
     api group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'
@@ -44,6 +44,7 @@ dependencies {
     api "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     api "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
     api group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
+    api group: 'com.tdunning', name: 't-digest', version: '3.2'
     api project(':common')
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')

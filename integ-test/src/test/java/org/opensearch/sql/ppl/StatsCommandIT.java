@@ -11,7 +11,9 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -188,5 +190,120 @@ public class StatsCommandIT extends PPLIntegTestCase {
     verifySchema(
         response, schema("count()", null, "integer"), schema("age_bucket", null, "integer"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
+  }
+
+  @Test
+  public void testStatsBySpanAndMultipleFields() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by span(age,10), gender, state", TEST_INDEX_BANK));
+    verifySchemaInOrder(
+        response,
+        schema("count()", null, "integer"),
+        schema("span(age,10)", null, "integer"),
+        schema("gender", null, "string"),
+        schema("state", null, "string"));
+    verifyDataRowsInOrder(
+        response,
+        rows(1, 20, "f", "VA"),
+        rows(1, 30, "f", "IN"),
+        rows(1, 30, "f", "PA"),
+        rows(1, 30, "m", "IL"),
+        rows(1, 30, "m", "MD"),
+        rows(1, 30, "m", "TN"),
+        rows(1, 30, "m", "WA"));
+  }
+
+  @Test
+  public void testStatsByMultipleFieldsAndSpan() throws IOException {
+    // Use verifySchemaInOrder() and verifyDataRowsInOrder() to check that the span column is always
+    // the first column in result whatever the order of span in query is first or last one
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by gender, state, span(age,10)", TEST_INDEX_BANK));
+    verifySchemaInOrder(
+        response,
+        schema("count()", null, "integer"),
+        schema("span(age,10)", null, "integer"),
+        schema("gender", null, "string"),
+        schema("state", null, "string"));
+    verifyDataRowsInOrder(
+        response,
+        rows(1, 20, "f", "VA"),
+        rows(1, 30, "f", "IN"),
+        rows(1, 30, "f", "PA"),
+        rows(1, 30, "m", "IL"),
+        rows(1, 30, "m", "MD"),
+        rows(1, 30, "m", "TN"),
+        rows(1, 30, "m", "WA"));
+  }
+
+  @Test
+  public void testStatsPercentile() throws IOException {
+    JSONObject response =
+        executeQuery(String.format("source=%s | stats percentile(balance, 50)", TEST_INDEX_BANK));
+    verifySchema(response, schema("percentile(balance, 50)", null, "long"));
+    verifyDataRows(response, rows(32838));
+  }
+
+  @Test
+  public void testStatsPercentileWithNull() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats percentile(balance, 50)", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("percentile(balance, 50)", null, "long"));
+    verifyDataRows(response, rows(36031));
+  }
+
+  @Test
+  public void testStatsPercentileWithCompression() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format("source=%s | stats percentile(balance, 50, 1)", TEST_INDEX_BANK));
+    verifySchema(response, schema("percentile(balance, 50, 1)", null, "long"));
+    verifyDataRows(response, rows(32838));
+  }
+
+  @Test
+  public void testStatsPercentileWhere() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats percentile(balance, 50) as p50 by state | where p50 > 40000",
+                TEST_INDEX_BANK));
+    verifySchema(response, schema("p50", null, "long"), schema("state", null, "string"));
+    verifyDataRows(response, rows(48086, "IN"), rows(40540, "PA"));
+  }
+
+  @Test
+  public void testStatsPercentileByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats percentile(balance, 50) as p50 by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("p50", null, "long"), schema("age", null, "integer"));
+    verifyDataRows(
+        response,
+        rows(0, null),
+        rows(32838, 28),
+        rows(39225, 32),
+        rows(4180, 33),
+        rows(48086, 34),
+        rows(0, 36));
+  }
+
+  @Test
+  public void testStatsPercentileBySpan() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats percentile(balance, 50) as p50 by span(age, 10) as age_bucket",
+                TEST_INDEX_BANK));
+    verifySchema(response, schema("p50", null, "long"), schema("age_bucket", null, "integer"));
+    verifyDataRows(response, rows(32838, 20), rows(27821, 30));
   }
 }

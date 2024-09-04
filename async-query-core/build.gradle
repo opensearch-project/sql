@@ -1,0 +1,152 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+plugins {
+    id 'java-library'
+    id "io.freefair.lombok"
+    id 'jacoco'
+    id 'antlr'
+    id 'com.diffplug.spotless' version '6.22.0'
+    id 'com.github.johnrengelman.shadow'
+}
+
+repositories {
+    mavenCentral()
+}
+
+tasks.register('downloadG4Files', Exec) {
+    description = 'Download remote .g4 files from GitHub'
+
+    executable 'curl'
+
+    args '-o', 'src/main/antlr/FlintSparkSqlExtensions.g4', 'https://raw.githubusercontent.com/opensearch-project/opensearch-spark/main/flint-spark-integration/src/main/antlr4/FlintSparkSqlExtensions.g4'
+    args '-o', 'src/main/antlr/SparkSqlBase.g4', 'https://raw.githubusercontent.com/opensearch-project/opensearch-spark/main/flint-spark-integration/src/main/antlr4/SparkSqlBase.g4'
+    args '-o', 'src/main/antlr/SqlBaseParser.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseParser.g4'
+    args '-o', 'src/main/antlr/SqlBaseLexer.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseLexer.g4'
+}
+
+generateGrammarSource {
+    arguments += ['-visitor', '-package', 'org.opensearch.sql.spark.antlr.parser']
+    source = sourceSets.main.antlr
+    outputDirectory = file("build/generated-src/antlr/main/org/opensearch/sql/asyncquery/antlr/parser")
+}
+configurations {
+    compile {
+        extendsFrom = extendsFrom.findAll { it != configurations.antlr }
+    }
+}
+
+// skip download in case of offline build
+if (!gradle.startParameter.offline) {
+    // Make sure the downloadG4File task runs before the generateGrammarSource task
+    generateGrammarSource.dependsOn downloadG4Files
+}
+
+dependencies {
+    antlr "org.antlr:antlr4:4.7.1"
+
+    implementation project(':core')
+    implementation project(':spark') // TODO: dependency to spark should be eliminated
+    implementation project(':datasources') // TODO: dependency to datasources should be eliminated
+    implementation 'org.json:json:20231013'
+    implementation 'com.google.code.gson:gson:2.8.9'
+
+    testImplementation(platform("org.junit:junit-bom:5.9.3"))
+
+    testCompileOnly('org.junit.jupiter:junit-jupiter')
+    testImplementation 'org.mockito:mockito-core:5.7.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.7.0'
+
+    testCompileOnly('junit:junit:4.13.1') {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine") {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher") {
+        because 'allows tests to run from IDEs that bundle older version of launcher'
+    }
+}
+
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        importOrder()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+    }
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
+
+jacocoTestReport {
+    reports {
+        html.required = true
+        xml.required = true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/antlr/parser/**'])
+        }))
+    }
+}
+test.finalizedBy(project.tasks.jacocoTestReport)
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            element = 'CLASS'
+            //　TODO: Add unit tests in async-query-core and remove exclusions
+            excludes = [
+                    'org.opensearch.sql.spark.asyncquery.model.*',
+                    'org.opensearch.sql.spark.data.constants.*',
+                    'org.opensearch.sql.spark.dispatcher.model.*',
+                    'org.opensearch.sql.spark.dispatcher.*',
+                    'org.opensearch.sql.spark.execution.session.*',
+                    'org.opensearch.sql.spark.execution.statement.*',
+                    'org.opensearch.sql.spark.flint.*',
+                    'org.opensearch.sql.spark.flint.operation.*',
+                    'org.opensearch.sql.spark.rest.*',
+                    'org.opensearch.sql.spark.utils.SQLQueryUtils.*'
+            ]
+            limit {
+                counter = 'LINE'
+                minimum = 1.0
+            }
+            limit {
+                counter = 'BRANCH'
+                minimum = 1.0
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/antlr/parser/**'])
+        }))
+    }
+}
+check.dependsOn jacocoTestCoverageVerification
+
+shadowJar {
+    archiveBaseName.set('async-query-core')
+    archiveVersion.set('1.0.0')  // Set the desired version
+    archiveClassifier.set('all')
+
+    from sourceSets.main.output
+    configurations = [project.configurations.runtimeClasspath]
+}

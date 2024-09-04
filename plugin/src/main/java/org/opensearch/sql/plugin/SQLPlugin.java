@@ -7,10 +7,12 @@ package org.opensearch.sql.plugin;
 
 import static java.util.Collections.singletonList;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -39,9 +41,14 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+import org.opensearch.indices.SystemIndexDescriptor;
+import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
+import org.opensearch.jobscheduler.spi.ScheduledJobParser;
+import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ScriptPlugin;
+import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
@@ -58,7 +65,11 @@ import org.opensearch.sql.datasources.rest.RestDataSourceQueryAction;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage;
-import org.opensearch.sql.datasources.transport.*;
+import org.opensearch.sql.datasources.transport.TransportCreateDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportDeleteDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportPatchDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -83,6 +94,10 @@ import org.opensearch.sql.spark.cluster.ClusterManagerEventListener;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
+import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
+import org.opensearch.sql.spark.scheduler.OpenSearchRefreshIndexJobRequestParser;
+import org.opensearch.sql.spark.scheduler.job.OpenSearchRefreshIndexJob;
+import org.opensearch.sql.spark.storage.SparkStorageFactory;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportGetAsyncQueryResultAction;
@@ -96,7 +111,8 @@ import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
+public class SQLPlugin extends Plugin
+    implements ActionPlugin, ScriptPlugin, SystemIndexPlugin, JobSchedulerExtension {
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
@@ -107,6 +123,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
 
   private NodeClient client;
   private DataSourceServiceImpl dataSourceService;
+  private OpenSearchAsyncQueryScheduler asyncQueryScheduler;
   private Injector injector;
 
   public String name() {
@@ -129,7 +146,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     Objects.requireNonNull(clusterService, "Cluster service is required");
     Objects.requireNonNull(pluginSettings, "Cluster settings is required");
 
-    LocalClusterState.state().setResolver(indexNameExpressionResolver);
     Metrics.getInstance().registerDefaultMetrics();
 
     return Arrays.asList(
@@ -138,8 +154,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController),
-        new RestDataSourceQueryAction(),
-        new RestAsyncQueryManagementAction());
+        new RestDataSourceQueryAction((OpenSearchSettings) pluginSettings),
+        new RestAsyncQueryManagementAction((OpenSearchSettings) pluginSettings));
   }
 
   /** Register action and handler so that transportClient can find proxy for action. */
@@ -200,8 +216,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     this.client = (NodeClient) client;
     this.dataSourceService = createDataSourceService();
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
+    this.asyncQueryScheduler = new OpenSearchAsyncQueryScheduler();
+    this.asyncQueryScheduler.loadJobResource(client, clusterService, threadPool);
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
+    LocalClusterState.state().setClient(client);
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule());
     modules.add(
@@ -232,6 +251,26 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         injector.getInstance(AsyncQueryExecutorService.class),
         clusterManagerEventListener,
         pluginSettings);
+  }
+
+  @Override
+  public String getJobType() {
+    return OpenSearchAsyncQueryScheduler.SCHEDULER_PLUGIN_JOB_TYPE;
+  }
+
+  @Override
+  public String getJobIndex() {
+    return OpenSearchAsyncQueryScheduler.SCHEDULER_INDEX_NAME;
+  }
+
+  @Override
+  public ScheduledJobRunner getJobRunner() {
+    return OpenSearchRefreshIndexJob.getJobRunnerInstance();
+  }
+
+  @Override
+  public ScheduledJobParser getJobParser() {
+    return OpenSearchRefreshIndexJobRequestParser.getJobParser();
   }
 
   @Override
@@ -273,7 +312,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     }
     DataSourceMetadataStorage dataSourceMetadataStorage =
         new OpenSearchDataSourceMetadataStorage(
-            client, clusterService, new EncryptorImpl(masterKey));
+            client,
+            clusterService,
+            new EncryptorImpl(masterKey),
+            (OpenSearchSettings) pluginSettings);
     DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper =
         new DataSourceUserAuthorizationHelperImpl(client);
     return new DataSourceServiceImpl(
@@ -282,9 +324,22 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
                 new OpenSearchDataSourceFactory(
                     new OpenSearchNodeClient(this.client), pluginSettings))
             .add(new PrometheusStorageFactory(pluginSettings))
+            .add(new SparkStorageFactory(this.client, pluginSettings))
             .add(new GlueDataSourceFactory(pluginSettings))
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
+  }
+
+  @Override
+  public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
+    List<SystemIndexDescriptor> systemIndexDescriptors = new ArrayList<>();
+    systemIndexDescriptors.add(
+        new SystemIndexDescriptor(
+            OpenSearchDataSourceMetadataStorage.DATASOURCE_INDEX_NAME, "SQL DataSources index"));
+    systemIndexDescriptors.add(
+        new SystemIndexDescriptor(
+            SPARK_REQUEST_BUFFER_INDEX_NAME + "*", "SQL Spark Request Buffer index pattern"));
+    return systemIndexDescriptors;
   }
 }

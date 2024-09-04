@@ -14,16 +14,18 @@ import static org.opensearch.sql.datasources.utils.XContentParserUtils.STATUS_FI
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
+import lombok.Value;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -31,9 +33,11 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.utils.SerializeUtils;
 
 public class DataSourceAPIsIT extends PPLIntegTestCase {
 
@@ -103,7 +107,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(200, getResponse.getStatusLine().getStatusCode());
     String getResponseString = getResponseBody(getResponse);
     DataSourceMetadata dataSourceMetadata =
-        new Gson().fromJson(getResponseString, DataSourceMetadata.class);
+        SerializeUtils.buildGson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://localhost:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
     Assert.assertEquals(
@@ -152,7 +156,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(200, getResponse.getStatusLine().getStatusCode());
     String getResponseString = getResponseBody(getResponse);
     DataSourceMetadata dataSourceMetadata =
-        new Gson().fromJson(getResponseString, DataSourceMetadata.class);
+        SerializeUtils.buildGson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://randomtest.com:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
     Assert.assertEquals("", dataSourceMetadata.getDescription());
@@ -176,7 +180,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(200, getResponseAfterPatch.getStatusLine().getStatusCode());
     String getResponseStringAfterPatch = getResponseBody(getResponseAfterPatch);
     DataSourceMetadata dataSourceMetadataAfterPatch =
-        new Gson().fromJson(getResponseStringAfterPatch, DataSourceMetadata.class);
+        SerializeUtils.buildGson().fromJson(getResponseStringAfterPatch, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://randomtest.com:9090",
         dataSourceMetadataAfterPatch.getProperties().get("prometheus.uri"));
@@ -216,7 +220,8 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
         404, prometheusGetResponseException.getResponse().getStatusLine().getStatusCode());
     String prometheusGetResponseString =
         getResponseBody(prometheusGetResponseException.getResponse());
-    JsonObject errorMessage = new Gson().fromJson(prometheusGetResponseString, JsonObject.class);
+    JsonObject errorMessage =
+        SerializeUtils.buildGson().fromJson(prometheusGetResponseString, JsonObject.class);
     Assert.assertEquals(
         "DataSource with name delete_prometheus doesn't exist.",
         errorMessage.get("error").getAsJsonObject().get("details").getAsString());
@@ -243,7 +248,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     String getResponseString = getResponseBody(getResponse);
     Type listType = new TypeToken<ArrayList<DataSourceMetadata>>() {}.getType();
     List<DataSourceMetadata> dataSourceMetadataList =
-        new Gson().fromJson(getResponseString, listType);
+        SerializeUtils.buildGson().fromJson(getResponseString, listType);
     Assert.assertTrue(
         dataSourceMetadataList.stream().anyMatch(ds -> ds.getName().equals("get_all_prometheus")));
   }
@@ -283,7 +288,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(200, getResponse.getStatusLine().getStatusCode());
     String getResponseString = getResponseBody(getResponse);
     DataSourceMetadata dataSourceMetadata =
-        new Gson().fromJson(getResponseString, DataSourceMetadata.class);
+        SerializeUtils.buildGson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://localhost:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
     Assert.assertEquals(
@@ -310,7 +315,8 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
             ResponseException.class, () -> client().performRequest(getCreateDataSourceRequest(d2)));
     Assert.assertEquals(400, exception.getResponse().getStatusLine().getStatusCode());
     String prometheusGetResponseString = getResponseBody(exception.getResponse());
-    JsonObject errorMessage = new Gson().fromJson(prometheusGetResponseString, JsonObject.class);
+    JsonObject errorMessage =
+        SerializeUtils.buildGson().fromJson(prometheusGetResponseString, JsonObject.class);
     Assert.assertEquals(
         "domain concurrent datasources can not exceed 1",
         errorMessage.get("error").getAsJsonObject().get("details").getAsString());
@@ -373,7 +379,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(200, getResponse.getStatusLine().getStatusCode());
     String getResponseString = getResponseBody(getResponse);
     DataSourceMetadata dataSourceMetadata =
-        new Gson().fromJson(getResponseString, DataSourceMetadata.class);
+        SerializeUtils.buildGson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://localhost:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
     Assert.assertEquals(
@@ -383,6 +389,136 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(DISABLED, dataSourceMetadata.getStatus());
     Assert.assertEquals(List.of("role3", "role4"), dataSourceMetadata.getAllowedRoles());
     Assert.assertEquals("test", dataSourceMetadata.getDescription());
+  }
+
+  @Test
+  public void testDataSourcesEnabledSettingIsTrueByDefault() {
+    Assert.assertTrue(getDataSourceEnabledSetting("defaults"));
+  }
+
+  @Test
+  public void testDataSourcesEnabledSettingCanBeSetToTransientFalse() {
+    setDataSourcesEnabled("transient", false);
+    Assert.assertFalse(getDataSourceEnabledSetting("transient"));
+  }
+
+  @Test
+  public void testDataSourcesEnabledSettingCanBeSetToTransientTrue() {
+    setDataSourcesEnabled("transient", true);
+    Assert.assertTrue(getDataSourceEnabledSetting("transient"));
+  }
+
+  @Test
+  public void testDataSourcesEnabledSettingCanBeSetToPersistentFalse() {
+    setDataSourcesEnabled("persistent", false);
+    Assert.assertFalse(getDataSourceEnabledSetting("persistent"));
+  }
+
+  @Test
+  public void testDataSourcesEnabledSettingCanBeSetToPersistentTrue() {
+    setDataSourcesEnabled("persistent", true);
+    Assert.assertTrue(getDataSourceEnabledSetting("persistent"));
+  }
+
+  @Test
+  public void testDataSourcesEnabledSetToFalseRejectsApiOperations() {
+    setDataSourcesEnabled("transient", false);
+    validateAllDataSourceApisWithEnabledSetting(false);
+  }
+
+  @Test
+  public void testDataSourcesEnabledSetToTrueAllowsApiOperations() {
+    setDataSourcesEnabled("transient", true);
+    validateAllDataSourceApisWithEnabledSetting(true);
+  }
+
+  @SneakyThrows
+  private void validateAllDataSourceApisWithEnabledSetting(boolean dataSourcesEnabled) {
+
+    @Value
+    class TestCase {
+      Request request;
+      int expectedResponseCodeOnSuccess;
+      String expectResponseToContainOnSuccess;
+    }
+
+    TestCase[] testCases =
+        new TestCase[] {
+          // create
+          new TestCase(
+              getCreateDataSourceRequest(mockDataSourceMetadata("dummy")),
+              201,
+              "Created DataSource"),
+          // read
+          new TestCase(getFetchDataSourceRequest("dummy"), 200, "dummy"),
+          // update
+          new TestCase(
+              getUpdateDataSourceRequest(mockDataSourceMetadata("dummy")),
+              200,
+              "Updated DataSource"),
+          // list
+          new TestCase(getFetchDataSourceRequest(null), 200, "dummy"),
+          // delete
+          new TestCase(getDeleteDataSourceRequest("dummy"), 204, null)
+        };
+
+    for (TestCase testCase : testCases) {
+
+      // data source APIs are eventually consistent. sleep delay is added for consistency
+      // see createDataSourceAPITest above.
+      Thread.sleep(2_000);
+
+      final int expectedResponseCode =
+          dataSourcesEnabled ? testCase.getExpectedResponseCodeOnSuccess() : 400;
+
+      final String expectedResponseBodyToContain =
+          dataSourcesEnabled
+              ? testCase.getExpectResponseToContainOnSuccess()
+              : "plugins.query.datasources.enabled setting is false";
+
+      Response response;
+
+      try {
+        response = client().performRequest(testCase.getRequest());
+      } catch (ResponseException e) {
+        response = e.getResponse();
+      }
+
+      Assert.assertEquals(
+          String.format(
+              "Test for " + testCase + " failed. Expected response code of %s, but got %s",
+              expectedResponseCode,
+              response.getStatusLine().getStatusCode()),
+          expectedResponseCode,
+          response.getStatusLine().getStatusCode());
+
+      if (expectedResponseBodyToContain != null) {
+
+        String responseBody = getResponseBody(response);
+
+        Assert.assertTrue(
+            String.format(
+                "Test for " + testCase + " failed. '%s' failed to contain '%s'",
+                responseBody,
+                expectedResponseBodyToContain),
+            responseBody.contains(expectedResponseBodyToContain));
+      }
+    }
+  }
+
+  @SneakyThrows
+  private boolean getDataSourceEnabledSetting(String... clusterSettingsTypeKeys) {
+
+    final String settingKey = Settings.Key.DATASOURCES_ENABLED.getKeyValue();
+
+    JSONObject settings = getAllClusterSettings();
+
+    return Arrays.stream(clusterSettingsTypeKeys)
+        .map(settings::getJSONObject)
+        .filter(obj -> obj.has(settingKey))
+        .map(obj -> obj.getBoolean(settingKey))
+        .findFirst()
+        .orElseThrow();
   }
 
   public DataSourceMetadata mockDataSourceMetadata(String name) {

@@ -30,7 +30,7 @@ plugins {
 }
 
 dependencies {
-    implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
+    implementation group: 'com.google.guava', name: 'guava', version: "${guava_version}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"

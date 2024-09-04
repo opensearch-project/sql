@@ -145,6 +145,16 @@ public class MatcherUtils {
   }
 
   @SafeVarargs
+  public static void verifySchemaInOrder(JSONObject response, Matcher<JSONObject>... matchers) {
+    try {
+      verifyInOrder(response.getJSONArray("schema"), matchers);
+    } catch (Exception e) {
+      LOG.error(String.format("verify schema failed, response: %s", response.toString()), e);
+      throw e;
+    }
+  }
+
+  @SafeVarargs
   public static void verifyDataRows(JSONObject response, Matcher<JSONArray>... matchers) {
     verify(response.getJSONArray("datarows"), matchers);
   }
