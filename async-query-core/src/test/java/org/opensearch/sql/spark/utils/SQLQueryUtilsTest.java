@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.index;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.mv;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.skippingIndex;
@@ -19,7 +19,7 @@ import java.util.List;
 import lombok.Getter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -30,6 +30,8 @@ import org.opensearch.sql.spark.flint.FlintIndexType;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLQueryUtilsTest {
+
+  @Mock private DataSource dataSource;
 
   @Test
   void testExtractionOfTableNameFromSQLQueries() {
@@ -408,61 +410,67 @@ public class SQLQueryUtilsTest {
 
   @Test
   void testValidateSparkSqlQuery_ValidQuery() {
-    DataSource dataSource = mock(DataSource.class);
-    when(dataSource.getConnectorType()).thenReturn(DataSourceType.PROMETHEUS);
-    String validQuery = "DELETE FROM Customers WHERE CustomerName='Alfreds Futterkiste'";
-
-    List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType(
+            "DELETE FROM Customers WHERE CustomerName='Alfreds Futterkiste'",
+            DataSourceType.PROMETHEUS);
 
     assertTrue(errors.isEmpty(), "Valid query should not produce any errors");
   }
 
   @Test
   void testValidateSparkSqlQuery_SelectQuery_DataSourceSecurityLake() {
-    DataSource dataSource = mock(DataSource.class);
-    when(dataSource.getConnectorType()).thenReturn(DataSourceType.SECURITY_LAKE);
-    String validQuery = "SELECT * FROM users WHERE age > 18";
-
-    List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType(
+            "SELECT * FROM users WHERE age > 18", DataSourceType.SECURITY_LAKE);
 
     assertTrue(errors.isEmpty(), "Valid query should not produce any errors ");
   }
 
-  @Test
-  void testValidateSparkSqlQuery_SelectQuery_DataSourceSecurityLake_ValidationFails() {
-    DataSource dataSource = mock(DataSource.class);
-    when(dataSource.getConnectorType()).thenReturn(DataSourceType.SECURITY_LAKE);
-    String validQuery = "REFRESH INDEX cv1 ON mys3.default.http_logs";
+  private List<String> validateSparkSqlQueryForDataSourceType(
+      String query, DataSourceType dataSourceType) {
+    when(this.dataSource.getConnectorType()).thenReturn(dataSourceType);
 
-    List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
-
-    assertFalse(
-        errors.isEmpty(),
-        "Invalid query as Security Lake datasource supports only flint queries and SELECT sql"
-            + " queries. Given query was REFRESH sql query");
-    assertEquals(errors.get(0), "Unsupported sql statement for security lake data source. Only select queries are allowed");
+    return SQLQueryUtils.validateSparkSqlQuery(this.dataSource, query);
   }
 
   @Test
-  void testValidateSparkSqlQuery_NonSelectStatementContainingSelectClause_DataSourceSecurityLake_ValidationFails() {
-    DataSource dataSource = mock(DataSource.class);
-    when(dataSource.getConnectorType()).thenReturn(DataSourceType.SECURITY_LAKE);
-    String validQuery = "CREATE TABLE AccountSummaryOrWhatever AS " +
-            "select taxid, address1, count(address1) from dbo.t " +
-            "group by taxid, address1;";
-
-    List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, validQuery);
+  void testValidateSparkSqlQuery_SelectQuery_DataSourceSecurityLake_ValidationFails() {
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType(
+            "REFRESH INDEX cv1 ON mys3.default.http_logs", DataSourceType.SECURITY_LAKE);
 
     assertFalse(
         errors.isEmpty(),
         "Invalid query as Security Lake datasource supports only flint queries and SELECT sql"
             + " queries. Given query was REFRESH sql query");
-    assertEquals(errors.get(0), "Unsupported sql statement for security lake data source. Only select queries are allowed");
+    assertEquals(
+        errors.get(0),
+        "Unsupported sql statement for security lake data source. Only select queries are allowed");
+  }
+
+  @Test
+  void
+      testValidateSparkSqlQuery_NonSelectStatementContainingSelectClause_DataSourceSecurityLake_ValidationFails() {
+    String query =
+        "CREATE TABLE AccountSummaryOrWhatever AS "
+            + "select taxid, address1, count(address1) from dbo.t "
+            + "group by taxid, address1;";
+
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType(query, DataSourceType.SECURITY_LAKE);
+
+    assertFalse(
+        errors.isEmpty(),
+        "Invalid query as Security Lake datasource supports only flint queries and SELECT sql"
+            + " queries. Given query was REFRESH sql query");
+    assertEquals(
+        errors.get(0),
+        "Unsupported sql statement for security lake data source. Only select queries are allowed");
   }
 
   @Test
   void testValidateSparkSqlQuery_InvalidQuery() {
-    DataSource dataSource = mock(DataSource.class);
     when(dataSource.getConnectorType()).thenReturn(DataSourceType.PROMETHEUS);
     String invalidQuery = "CREATE FUNCTION myUDF AS 'com.example.UDF'";
 

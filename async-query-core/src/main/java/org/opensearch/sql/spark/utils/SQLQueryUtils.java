@@ -113,8 +113,8 @@ public class SQLQueryUtils {
   }
 
   /**
-   * A base class extending SqlBaseParserBaseVisitor for validating Spark Sql Queries. The class supports accumulating validation errors on
-   * visiting sql statement
+   * A base class extending SqlBaseParserBaseVisitor for validating Spark Sql Queries. The class
+   * supports accumulating validation errors on visiting sql statement
    */
   @Getter
   private static class SqlBaseValidatorVisitor<T> extends SqlBaseParserBaseVisitor<T> {
