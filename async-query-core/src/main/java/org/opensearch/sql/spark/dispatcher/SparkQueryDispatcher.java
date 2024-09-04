@@ -177,7 +177,7 @@ public class SparkQueryDispatcher {
       return queryHandlerFactory.getInteractiveQueryHandler();
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       return queryHandlerFactory.getIndexDMLHandler();
-    } else if (asyncQueryJobMetadata.getJobType() == JobType.BATCH) {
+    } else if (asyncQueryJobMetadata.getJobType() == JobType.REFRESH) {
       return queryHandlerFactory.getRefreshQueryHandler(asyncQueryJobMetadata.getAccountId());
     } else if (asyncQueryJobMetadata.getJobType() == JobType.STREAMING) {
       return queryHandlerFactory.getStreamingQueryHandler(asyncQueryJobMetadata.getAccountId());
