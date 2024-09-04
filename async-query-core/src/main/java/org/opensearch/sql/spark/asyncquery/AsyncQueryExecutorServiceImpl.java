@@ -78,12 +78,14 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
   }
 
   @Override
-  public AsyncQueryExecutionResponse getAsyncQueryResults(String queryId) {
+  public AsyncQueryExecutionResponse getAsyncQueryResults(
+      String queryId, AsyncQueryRequestContext asyncQueryRequestContext) {
     Optional<AsyncQueryJobMetadata> jobMetadata =
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
     if (jobMetadata.isPresent()) {
       String sessionId = jobMetadata.get().getSessionId();
-      JSONObject jsonObject = sparkQueryDispatcher.getQueryResponse(jobMetadata.get());
+      JSONObject jsonObject =
+          sparkQueryDispatcher.getQueryResponse(jobMetadata.get(), asyncQueryRequestContext);
       if (JobRunState.SUCCESS.toString().equals(jsonObject.getString(STATUS_FIELD))) {
         DefaultSparkSqlFunctionResponseHandle sparkSqlFunctionResponseHandle =
             new DefaultSparkSqlFunctionResponseHandle(jsonObject);

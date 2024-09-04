@@ -16,6 +16,7 @@ import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
+import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.transport.format.AsyncQueryResultResponseFormatter;
 import org.opensearch.sql.spark.transport.model.AsyncQueryResult;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRequest;
@@ -50,7 +51,7 @@ public class TransportGetAsyncQueryResultAction
     try {
       String jobId = request.getQueryId();
       AsyncQueryExecutionResponse asyncQueryExecutionResponse =
-          asyncQueryExecutorService.getAsyncQueryResults(jobId);
+          asyncQueryExecutorService.getAsyncQueryResults(jobId, new NullAsyncQueryRequestContext());
       ResponseFormatter<AsyncQueryResult> formatter =
           new AsyncQueryResultResponseFormatter(JsonResponseFormatter.Style.PRETTY);
       String responseContent =

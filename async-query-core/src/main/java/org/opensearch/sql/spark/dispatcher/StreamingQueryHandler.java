@@ -83,6 +83,7 @@ public class StreamingQueryHandler extends BatchQueryHandler {
             sparkSubmitParametersBuilderProvider
                 .getSparkSubmitParametersBuilder()
                 .clusterName(clusterName)
+                .queryId(context.getQueryId())
                 .query(dispatchQueryRequest.getQuery())
                 .structuredStreaming(true)
                 .dataSource(

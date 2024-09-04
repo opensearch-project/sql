@@ -83,7 +83,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
           .jobId(DML_QUERY_JOB_ID)
           .resultIndex(dataSourceMetadata.getResultIndex())
           .datasourceName(dataSourceMetadata.getName())
-          .jobType(JobType.INTERACTIVE)
+          .jobType(JobType.BATCH)
           .status(QueryState.SUCCESS)
           .build();
     } catch (Exception e) {
@@ -102,7 +102,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
           .jobId(DML_QUERY_JOB_ID)
           .resultIndex(dataSourceMetadata.getResultIndex())
           .datasourceName(dataSourceMetadata.getName())
-          .jobType(JobType.INTERACTIVE)
+          .jobType(JobType.BATCH)
           .status(QueryState.FAILED)
           .error(e.getMessage())
           .build();
@@ -166,14 +166,18 @@ public class IndexDMLHandler extends AsyncQueryHandler {
   }
 
   @Override
-  protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  protected JSONObject getResponseFromResultIndex(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     String queryId = asyncQueryJobMetadata.getQueryId();
     return jobExecutionResponseReader.getResultWithQueryId(
         queryId, asyncQueryJobMetadata.getResultIndex());
   }
 
   @Override
-  protected JSONObject getResponseFromExecutor(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  protected JSONObject getResponseFromExecutor(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     // Consider statement still running if result doc created in submit() is not available yet
     JSONObject result = new JSONObject();
     result.put(STATUS_FIELD, StatementState.RUNNING.getState());

@@ -51,21 +51,26 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
   protected final SparkSubmitParametersBuilderProvider sparkSubmitParametersBuilderProvider;
 
   @Override
-  protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  protected JSONObject getResponseFromResultIndex(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     String queryId = asyncQueryJobMetadata.getQueryId();
     return jobExecutionResponseReader.getResultWithQueryId(
         queryId, asyncQueryJobMetadata.getResultIndex());
   }
 
   @Override
-  protected JSONObject getResponseFromExecutor(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  protected JSONObject getResponseFromExecutor(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     JSONObject result = new JSONObject();
     String queryId = asyncQueryJobMetadata.getQueryId();
     Statement statement =
         getStatementByQueryId(
             asyncQueryJobMetadata.getSessionId(),
             queryId,
-            asyncQueryJobMetadata.getDatasourceName());
+            asyncQueryJobMetadata.getDatasourceName(),
+            asyncQueryRequestContext);
     StatementState statementState = statement.getStatementState();
     result.put(STATUS_FIELD, statementState.getState());
     result.put(ERROR_FIELD, Optional.of(statement.getStatementModel().getError()).orElse(""));
@@ -80,7 +85,8 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
     getStatementByQueryId(
             asyncQueryJobMetadata.getSessionId(),
             queryId,
-            asyncQueryJobMetadata.getDatasourceName())
+            asyncQueryJobMetadata.getDatasourceName(),
+            asyncQueryRequestContext)
         .cancel();
     return queryId;
   }
@@ -150,12 +156,16 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
         .build();
   }
 
-  private Statement getStatementByQueryId(String sessionId, String queryId, String datasourceName) {
+  private Statement getStatementByQueryId(
+      String sessionId,
+      String queryId,
+      String datasourceName,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     Optional<Session> session = sessionManager.getSession(sessionId, datasourceName);
     if (session.isPresent()) {
       // todo, statementId == jobId if statement running in session.
       StatementId statementId = new StatementId(queryId);
-      Optional<Statement> statement = session.get().get(statementId);
+      Optional<Statement> statement = session.get().get(statementId, asyncQueryRequestContext);
       if (statement.isPresent()) {
         return statement.get();
       } else {

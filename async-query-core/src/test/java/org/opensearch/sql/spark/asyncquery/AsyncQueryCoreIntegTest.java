@@ -203,7 +203,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verifyCancelJobRunCalled();
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
   }
 
   @Test
@@ -225,7 +225,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(flintIndexClient).deleteIndex(indexName);
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
   }
 
   @Test
@@ -256,7 +256,7 @@ public class AsyncQueryCoreIntegTest {
     assertFalse(flintIndexOptions.autoRefresh());
     verifyCancelJobRunCalled();
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
   }
 
   @Test
@@ -281,7 +281,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING, JobType.STREAMING);
   }
 
   private void verifyStartJobRunCalled() {
@@ -316,7 +316,7 @@ public class AsyncQueryCoreIntegTest {
     assertNull(response.getSessionId());
     verifyGetQueryIdCalled();
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING, JobType.BATCH);
   }
 
   @Test
@@ -338,7 +338,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING, JobType.BATCH);
   }
 
   @Test
@@ -364,7 +364,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetSessionIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING, JobType.INTERACTIVE);
   }
 
   @Test
@@ -378,7 +378,8 @@ public class AsyncQueryCoreIntegTest {
     when(jobExecutionResponseReader.getResultWithQueryId(QUERY_ID, RESULT_INDEX))
         .thenReturn(result);
 
-    AsyncQueryExecutionResponse response = asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID);
+    AsyncQueryExecutionResponse response =
+        asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID, asyncQueryRequestContext);
 
     assertEquals("SUCCESS", response.getStatus());
     assertEquals(SESSION_ID, response.getSessionId());
@@ -396,7 +397,8 @@ public class AsyncQueryCoreIntegTest {
     when(jobExecutionResponseReader.getResultWithQueryId(QUERY_ID, RESULT_INDEX))
         .thenReturn(result);
 
-    AsyncQueryExecutionResponse response = asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID);
+    AsyncQueryExecutionResponse response =
+        asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID, asyncQueryRequestContext);
 
     assertEquals("SUCCESS", response.getStatus());
     assertNull(response.getSessionId());
@@ -414,7 +416,8 @@ public class AsyncQueryCoreIntegTest {
     JSONObject result = getValidExecutionResponse();
     when(jobExecutionResponseReader.getResultWithJobId(JOB_ID, RESULT_INDEX)).thenReturn(result);
 
-    AsyncQueryExecutionResponse response = asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID);
+    AsyncQueryExecutionResponse response =
+        asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID, asyncQueryRequestContext);
 
     assertEquals("SUCCESS", response.getStatus());
     assertNull(response.getSessionId());
@@ -429,13 +432,15 @@ public class AsyncQueryCoreIntegTest {
     final StatementModel statementModel = givenStatementExists();
     StatementModel canceledStatementModel =
         StatementModel.copyWithState(statementModel, StatementState.CANCELLED, ImmutableMap.of());
-    when(statementStorageService.updateStatementState(statementModel, StatementState.CANCELLED))
+    when(statementStorageService.updateStatementState(
+            statementModel, StatementState.CANCELLED, asyncQueryRequestContext))
         .thenReturn(canceledStatementModel);
 
     String result = asyncQueryExecutorService.cancelQuery(QUERY_ID, asyncQueryRequestContext);
 
     assertEquals(QUERY_ID, result);
-    verify(statementStorageService).updateStatementState(statementModel, StatementState.CANCELLED);
+    verify(statementStorageService)
+        .updateStatementState(statementModel, StatementState.CANCELLED, asyncQueryRequestContext);
   }
 
   @Test
@@ -556,7 +561,7 @@ public class AsyncQueryCoreIntegTest {
     assertEquals(APPLICATION_ID, createSessionRequest.getApplicationId());
   }
 
-  private void verifyStoreJobMetadataCalled(String jobId, QueryState state) {
+  private void verifyStoreJobMetadataCalled(String jobId, QueryState state, JobType jobType) {
     verify(asyncQueryJobMetadataStorageService)
         .storeJobMetadata(
             asyncQueryJobMetadataArgumentCaptor.capture(), eq(asyncQueryRequestContext));
@@ -567,7 +572,7 @@ public class AsyncQueryCoreIntegTest {
     assertNull(asyncQueryJobMetadata.getError());
     assertEquals(LangType.SQL, asyncQueryJobMetadata.getLangType());
     assertEquals(state, asyncQueryJobMetadata.getState());
-    assertNull(asyncQueryJobMetadata.getError());
+    assertEquals(jobType, asyncQueryJobMetadata.getJobType());
   }
 
   private void verifyCreateIndexDMLResultCalled() {
@@ -601,7 +606,7 @@ public class AsyncQueryCoreIntegTest {
             .statementId(new StatementId(QUERY_ID))
             .statementState(StatementState.RUNNING)
             .build();
-    when(statementStorageService.getStatement(QUERY_ID, DATASOURCE_NAME))
+    when(statementStorageService.getStatement(QUERY_ID, DATASOURCE_NAME, asyncQueryRequestContext))
         .thenReturn(Optional.of(statementModel));
     return statementModel;
   }
