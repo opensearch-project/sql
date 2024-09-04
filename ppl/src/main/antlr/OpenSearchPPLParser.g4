@@ -255,6 +255,7 @@ expression
    | valueExpression
    ;
 
+// predicates
 logicalExpression
    : comparisonExpression                                       # comparsion
    | NOT logicalExpression                                      # logicalNot
@@ -362,7 +363,7 @@ dataTypeFunctionCall
 
 // boolean functions
 booleanFunctionCall
-   : conditionFunctionBase LT_PRTHS functionArgs RT_PRTHS
+   : conditionFunctionName LT_PRTHS functionArgs RT_PRTHS
    ;
 
 convertedDataType
@@ -382,7 +383,8 @@ evalFunctionName
    : mathematicalFunctionName
    | dateTimeFunctionName
    | textFunctionName
-   | conditionFunctionBase
+   | conditionFunctionName
+   | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
    ;
@@ -392,7 +394,7 @@ functionArgs
    ;
 
 functionArg
-   : (ident EQUAL)? valueExpression
+   : (ident EQUAL)? expression
    ;
 
 relevanceArg
@@ -623,11 +625,15 @@ timestampFunctionName
    ;
 
 // condition function return boolean value
-conditionFunctionBase
+conditionFunctionName
    : LIKE
-   | IF
    | ISNULL
    | ISNOTNULL
+   ;
+
+// flow control function return non-boolean value
+flowControlFunctionName
+   : IF
    | IFNULL
    | NULLIF
    ;
