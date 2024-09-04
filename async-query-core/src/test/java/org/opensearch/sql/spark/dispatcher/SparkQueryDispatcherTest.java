@@ -377,6 +377,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
+    Assertions.assertEquals(JobType.BATCH, dispatchQueryResponse.getJobType());
     verifyNoInteractions(flintIndexMetadataService);
   }
 
@@ -661,6 +662,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
+    Assertions.assertEquals(JobType.REFRESH, dispatchQueryResponse.getJobType());
     verifyNoInteractions(flintIndexMetadataService);
   }
 
@@ -831,12 +833,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelJob() {
-    when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
-    when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, false))
-        .thenReturn(
-            new CancelJobRunResult()
-                .withJobRunId(EMR_JOB_ID)
-                .withApplicationId(EMRS_APPLICATION_ID));
+    givenCancelJobRunSucceed();
 
     String queryId =
         sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata(), asyncQueryRequestContext);
@@ -897,17 +894,32 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelQueryWithNoSessionId() {
+    givenCancelJobRunSucceed();
+
+    String queryId =
+        sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata(), asyncQueryRequestContext);
+
+    Assertions.assertEquals(QUERY_ID, queryId);
+  }
+
+  @Test
+  void testCancelBatchJob() {
+    givenCancelJobRunSucceed();
+
+    String queryId =
+        sparkQueryDispatcher.cancelJob(
+            asyncQueryJobMetadata(JobType.BATCH), asyncQueryRequestContext);
+
+    Assertions.assertEquals(QUERY_ID, queryId);
+  }
+
+  private void givenCancelJobRunSucceed() {
     when(emrServerlessClientFactory.getClient(any())).thenReturn(emrServerlessClient);
     when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, false))
         .thenReturn(
             new CancelJobRunResult()
                 .withJobRunId(EMR_JOB_ID)
                 .withApplicationId(EMRS_APPLICATION_ID));
-
-    String queryId =
-        sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata(), asyncQueryRequestContext);
-
-    Assertions.assertEquals(QUERY_ID, queryId);
   }
 
   @Test
@@ -1154,11 +1166,16 @@ public class SparkQueryDispatcherTest {
   }
 
   private AsyncQueryJobMetadata asyncQueryJobMetadata() {
+    return asyncQueryJobMetadata(JobType.INTERACTIVE);
+  }
+
+  private AsyncQueryJobMetadata asyncQueryJobMetadata(JobType jobType) {
     return AsyncQueryJobMetadata.builder()
         .queryId(QUERY_ID)
         .applicationId(EMRS_APPLICATION_ID)
         .jobId(EMR_JOB_ID)
         .datasourceName(MY_GLUE)
+        .jobType(jobType)
         .build();
   }
 

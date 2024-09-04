@@ -255,7 +255,7 @@ public class AsyncQueryCoreIntegTest {
     assertFalse(flintIndexOptions.autoRefresh());
     verifyCancelJobRunCalled();
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, JobType.BATCH);
   }
 
   @Test
@@ -280,7 +280,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.STREAMING);
   }
 
   private void verifyStartJobRunCalled() {
@@ -315,7 +315,7 @@ public class AsyncQueryCoreIntegTest {
     assertNull(response.getSessionId());
     verifyGetQueryIdCalled();
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.BATCH);
   }
 
   @Test
@@ -337,7 +337,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.REFRESH);
   }
 
   @Test
@@ -363,7 +363,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetSessionIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID);
+    verifyStoreJobMetadataCalled(JOB_ID, JobType.INTERACTIVE);
   }
 
   @Test
@@ -454,7 +454,7 @@ public class AsyncQueryCoreIntegTest {
   @Test
   public void cancelRefreshQuery() {
     givenJobMetadataExists(
-        getBaseAsyncQueryJobMetadataBuilder().jobType(JobType.BATCH).indexName(INDEX_NAME));
+        getBaseAsyncQueryJobMetadataBuilder().jobType(JobType.REFRESH).indexName(INDEX_NAME));
     when(flintIndexMetadataService.getFlintIndexMetadata(INDEX_NAME, asyncQueryRequestContext))
         .thenReturn(
             ImmutableMap.of(
@@ -507,7 +507,8 @@ public class AsyncQueryCoreIntegTest {
                 .build());
   }
 
-  private void givenFlintIndexMetadataExists(String indexName) {
+  private void givenFlintIndexMetadataExists(
+      String indexName, FlintIndexOptions flintIndexOptions) {
     when(flintIndexMetadataService.getFlintIndexMetadata(indexName, asyncQueryRequestContext))
         .thenReturn(
             ImmutableMap.of(
@@ -516,7 +517,25 @@ public class AsyncQueryCoreIntegTest {
                     .appId(APPLICATION_ID)
                     .jobId(JOB_ID)
                     .opensearchIndexName(indexName)
+                    .flintIndexOptions(flintIndexOptions)
                     .build()));
+  }
+
+  // Overload method for default FlintIndexOptions usage
+  private void givenFlintIndexMetadataExists(String indexName) {
+    givenFlintIndexMetadataExists(indexName, new FlintIndexOptions());
+  }
+
+  // Method to set up FlintIndexMetadata with external scheduler
+  private void givenFlintIndexMetadataExistsWithExternalScheduler(String indexName) {
+    givenFlintIndexMetadataExists(indexName, createExternalSchedulerFlintIndexOptions());
+  }
+
+  // Helper method for creating FlintIndexOptions with external scheduler
+  private FlintIndexOptions createExternalSchedulerFlintIndexOptions() {
+    FlintIndexOptions options = new FlintIndexOptions();
+    options.setOption(FlintIndexOptions.SCHEDULER_MODE, "external");
+    return options;
   }
 
   private void givenValidDataSourceMetadataExist() {
@@ -560,7 +579,7 @@ public class AsyncQueryCoreIntegTest {
     assertEquals(APPLICATION_ID, createSessionRequest.getApplicationId());
   }
 
-  private void verifyStoreJobMetadataCalled(String jobId) {
+  private void verifyStoreJobMetadataCalled(String jobId, JobType jobType) {
     verify(asyncQueryJobMetadataStorageService)
         .storeJobMetadata(
             asyncQueryJobMetadataArgumentCaptor.capture(), eq(asyncQueryRequestContext));
@@ -568,6 +587,7 @@ public class AsyncQueryCoreIntegTest {
     assertEquals(QUERY_ID, asyncQueryJobMetadata.getQueryId());
     assertEquals(jobId, asyncQueryJobMetadata.getJobId());
     assertEquals(DATASOURCE_NAME, asyncQueryJobMetadata.getDatasourceName());
+    assertEquals(jobType, asyncQueryJobMetadata.getJobType());
   }
 
   private void verifyCreateIndexDMLResultCalled() {
