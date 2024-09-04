@@ -14,11 +14,14 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
@@ -29,11 +32,19 @@ import org.opensearch.sql.storage.TableScanOperator;
 public class DataSourceTableScan extends TableScanOperator {
 
   private final DataSourceService dataSourceService;
+  private final LogicalRelation relation;
+  private final String relationName;
 
   private Iterator<ExprValue> iterator;
 
   public DataSourceTableScan(DataSourceService dataSourceService) {
+    this(dataSourceService, null);
+  }
+
+  public DataSourceTableScan(DataSourceService dataSourceService, LogicalRelation relation) {
     this.dataSourceService = dataSourceService;
+    this.relation = relation;
+    this.relationName = relation.getRelationName();
     this.iterator = Collections.emptyIterator();
   }
 
@@ -67,5 +78,17 @@ public class DataSourceTableScan extends TableScanOperator {
   @Override
   public ExprValue next() {
     return iterator.next();
+  }
+
+  @Override
+  public ExecutionEngine.Schema schema() {
+    List<ExecutionEngine.Schema.Column> columns =
+        relation.getTable().getFieldTypes().entrySet().stream()
+            .map(
+                (entry) ->
+                    new ExecutionEngine.Schema.Column(
+                        entry.getKey(), relationName + "." + entry.getKey(), entry.getValue()))
+            .collect(Collectors.toList());
+    return new ExecutionEngine.Schema(columns);
   }
 }

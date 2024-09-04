@@ -253,6 +253,7 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   /** Return true if the reference can be evaluated in relation */
   private boolean canEvaluate(ReferenceExpression expr, LogicalPlan plan) {
     if (plan instanceof LogicalRelation relation) {
+      // TODO need fix, the attr() contains relation prefix: Index.Field
       return relation.getTable().getFieldTypes().containsKey(expr.getAttr());
     } else {
       throw new UnsupportedOperationException("Only relation can be used in join");

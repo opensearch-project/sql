@@ -20,67 +20,13 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.planner.SerializablePlan;
 
 public class PhysicalPlanTestBase {
-
-  protected static final List<ExprValue> countTestInputs =
-      new ImmutableList.Builder<ExprValue>()
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 1, "name", "a")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 2, "name", "b")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 3)))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 4, "name", "d")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 5, "name", "e")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 6, "name", "f")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 7, "name", "g")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 8)))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 9, "name", "i")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 10, "name", "j")))
-          .add(ExprValueUtils.tupleValue(ImmutableMap.of("id", 11, "name", "k")))
-          .build();
-
-  protected static final List<ExprValue> joinTestInputs =
-      new ImmutableList.Builder<ExprValue>()
-          .add(
-              ExprValueUtils.tupleValue(
-                  ImmutableMap.of(
-                      "day", new ExprDateValue("2021-01-03"), "host", "h1", "errors", 2)))
-          .add(
-              ExprValueUtils.tupleValue(
-                  ImmutableMap.of(
-                      "day", new ExprDateValue("2021-01-03"), "host", "h2", "errors", 3)))
-          .add(
-              ExprValueUtils.tupleValue(
-                  ImmutableMap.of(
-                      "day", new ExprDateValue("2021-01-04"), "host", "h1", "errors", 1)))
-          .add(
-              ExprValueUtils.tupleValue(
-                  ImmutableMap.of(
-                      "day", new ExprDateValue("2021-01-04"), "host", "h2", "errors", 10)))
-          .add(
-              ExprValueUtils.tupleValue(
-                  ImmutableMap.of(
-                      "day", new ExprDateValue("2021-01-06"), "host", "h1", "errors", 1)))
-          .add(
-              ExprValueUtils.tupleValue(
-                  ImmutableMap.of(
-                      "day", new ExprDateValue("2021-01-07"), "host", "h1", "errors", 6)))
-          .add(
-              ExprValueUtils.tupleValue(
-                  ImmutableMap.of(
-                      "day", new ExprDateValue("2021-01-07"), "host", "h2", "errors", 8)))
-          .add(
-              ExprValueUtils.tupleValue(
-                  ImmutableMap.of(
-                      "day", new ExprDateValue("2021-01-07"), "host", "h2", "errors", 12)))
-          .add(
-              ExprValueUtils.tupleValue(
-                  ImmutableMap.of(
-                      "day", new ExprDateValue("2021-01-08"), "host", "h1", "errors", 13)))
-          .build();
 
   protected static final List<ExprValue> inputs =
       new ImmutableList.Builder<ExprValue>()
@@ -334,8 +280,15 @@ public class PhysicalPlanTestBase {
     return new TestScan(inputs);
   }
 
+  protected static PhysicalPlan testTableScan(
+      String relationName, ExecutionEngine.Schema schema, List<ExprValue> inputs) {
+    return new TestScan(inputs, relationName, schema);
+  }
+
   protected static class TestScan extends PhysicalPlan implements SerializablePlan {
     private final Iterator<ExprValue> iterator;
+    private ExecutionEngine.Schema schema;
+    private String relationName;
 
     public TestScan() {
       iterator = inputs.iterator();
@@ -343,6 +296,12 @@ public class PhysicalPlanTestBase {
 
     public TestScan(List<ExprValue> inputs) {
       iterator = inputs.iterator();
+    }
+
+    public TestScan(List<ExprValue> inputs, String relationName, ExecutionEngine.Schema schema) {
+      iterator = inputs.iterator();
+      this.relationName = relationName;
+      this.schema = schema;
     }
 
     @Override
@@ -363,6 +322,11 @@ public class PhysicalPlanTestBase {
     @Override
     public ExprValue next() {
       return iterator.next();
+    }
+
+    @Override
+    public ExecutionEngine.Schema schema() {
+      return this.schema;
     }
 
     @Override

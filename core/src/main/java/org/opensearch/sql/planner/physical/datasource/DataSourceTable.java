@@ -47,7 +47,7 @@ public class DataSourceTable implements Table {
 
     @Override
     public PhysicalPlan visitRelation(LogicalRelation node, Object context) {
-      return new DataSourceTableScan(dataSourceService);
+      return new DataSourceTableScan(dataSourceService, node);
     }
   }
 }

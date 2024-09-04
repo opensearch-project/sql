@@ -5,11 +5,15 @@
 
 package org.opensearch.sql.analysis;
 
+import static org.opensearch.sql.common.utils.StringUtils.format;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -23,6 +27,7 @@ import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
+import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalWindow;
 
 /**
@@ -48,6 +53,11 @@ public class ExpressionReferenceOptimizer
    */
   private final Map<Expression, Expression> expressionMap = new HashMap<>();
 
+  private String leftRelationName;
+  private String rightRelationName;
+  private Set<String> leftSideAttributes;
+  private Set<String> rightSideAttributes;
+
   public ExpressionReferenceOptimizer(
       BuiltinFunctionRepository repository, LogicalPlan logicalPlan) {
     this.repository = repository;
@@ -57,6 +67,17 @@ public class ExpressionReferenceOptimizer
   public ExpressionReferenceOptimizer(
       BuiltinFunctionRepository repository, LogicalPlan... logicalPlans) {
     this.repository = repository;
+    // To resolve join condition, we store left side and left side of join.
+    if (logicalPlans.length == 2) {
+      // TODO current implementation only support two-tables join, so we can directly convert them
+      // to LogicalRelation. To support two-plans join, we can get the LogicalRelation by searching.
+      this.leftRelationName = ((LogicalRelation) logicalPlans[0]).getRelationName();
+      this.rightRelationName = ((LogicalRelation) logicalPlans[1]).getRelationName();
+      this.leftSideAttributes =
+          ((LogicalRelation) logicalPlans[0]).getTable().getFieldTypes().keySet();
+      this.rightSideAttributes =
+          ((LogicalRelation) logicalPlans[1]).getTable().getFieldTypes().keySet();
+    }
     Arrays.stream(logicalPlans).forEach(p -> p.accept(new ExpressionMapBuilder(), null));
   }
 
@@ -67,6 +88,45 @@ public class ExpressionReferenceOptimizer
   @Override
   public Expression visitNode(Expression node, AnalysisContext context) {
     return node;
+  }
+
+  /**
+   * Add index prefix to reference attribute of join condition. The attribute could be: case 1:
+   * Field -> Index.Field case 2: Field.Field -> Index.Field.Field case 3: .Index.Field,
+   * .Index.Field.Field -> do nothing case 4: Index.Field, Index.Field.Field -> do nothing
+   */
+  @Override
+  public Expression visitReference(ReferenceExpression node, AnalysisContext context) {
+    if (leftRelationName == null || rightRelationName == null) {
+      return node;
+    }
+
+    String attr = node.getAttr();
+    // case 1 or case 2
+    if (!attr.contains(".") || (!attr.startsWith(".") && !isIndexPrefix(attr))) {
+      return replaceReferenceExpressionWithIndexPrefix(node, attr);
+    }
+    return node;
+  }
+
+  private ReferenceExpression replaceReferenceExpressionWithIndexPrefix(
+      ReferenceExpression node, String attr) {
+    if (leftSideAttributes.contains(attr) && rightSideAttributes.contains(attr)) {
+      throw new SemanticCheckException(format("Reference `%s` is ambiguous", attr));
+    } else if (leftSideAttributes.contains(attr)) {
+      return new ReferenceExpression(format("%s.%s", leftRelationName, attr), node.type());
+    } else if (rightSideAttributes.contains(attr)) {
+      return new ReferenceExpression(format("%s.%s", rightRelationName, attr), node.type());
+    } else {
+      return node;
+    }
+  }
+
+  private boolean isIndexPrefix(String attr) {
+    int separator = attr.indexOf('.');
+    String possibleIndexPrefix = attr.substring(0, separator);
+    return leftRelationName.contains(possibleIndexPrefix)
+        || rightRelationName.contains(possibleIndexPrefix);
   }
 
   @Override

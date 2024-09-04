@@ -1973,4 +1973,24 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.alias("schema1.string_value", AstDSL.field("schema1.string_value")),
             AstDSL.alias("schema2.string_value", AstDSL.field("schema2.string_value"))));
   }
+
+  @Test
+  public void join_condition_is_ambiguous() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    AstDSL.join(
+                        AstDSL.relation("schema1"),
+                        AstDSL.relation("schema2"),
+                        Join.JoinType.INNER,
+                        AstDSL.and(
+                            AstDSL.equalTo(
+                                AstDSL.field("schema1.integer_value"),
+                                AstDSL.field("schema2.integer_value")),
+                            AstDSL.equalTo(
+                                AstDSL.field("double_value"), AstDSL.field("double_value"))))));
+    assertEquals("Reference `double_value` is ambiguous", exception.getMessage());
+  }
 }

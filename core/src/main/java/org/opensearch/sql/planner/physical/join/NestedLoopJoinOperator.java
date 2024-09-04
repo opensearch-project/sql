@@ -12,7 +12,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -30,13 +29,20 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
  * bigger ON bigger.field1 = smaller.field2 AND bigger.field3 = smaller.field4 The build side is
  * left (smaller), and the streamed side is right (bigger).
  */
-@RequiredArgsConstructor
 public class NestedLoopJoinOperator extends JoinOperator {
-  private final PhysicalPlan left;
-  private final PhysicalPlan right;
-  private final Join.JoinType joinType;
   private final BuildSide buildSide;
   private final Expression condition;
+
+  public NestedLoopJoinOperator(
+      PhysicalPlan left,
+      PhysicalPlan right,
+      Join.JoinType joinType,
+      BuildSide buildSide,
+      Expression condition) {
+    super(left, right, joinType);
+    this.buildSide = buildSide;
+    this.condition = condition;
+  }
 
   private final ImmutableList.Builder<ExprValue> joinedBuilder = ImmutableList.builder();
   private Iterator<ExprValue> joinedIterator;
@@ -67,10 +73,10 @@ public class NestedLoopJoinOperator extends JoinOperator {
 
   @Override
   public void close() {
-    joinedIterator = null;
-    cachedBuildSide = null;
     left.close();
     right.close();
+    joinedIterator = null;
+    cachedBuildSide = null;
   }
 
   /** The implementation for inner join: Inner with BuildRight */

@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
-import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -32,15 +31,27 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
  * bigger ON bigger.field1 = smaller.field2 AND bigger.field3 = smaller.field4 The build side is
  * left (smaller), and the streamed side is right (bigger).
  */
-@RequiredArgsConstructor
 public class HashJoinOperator extends JoinOperator {
   private final List<Expression> leftKeys;
   private final List<Expression> rightKeys;
-  private final Join.JoinType joinType;
   private final BuildSide buildSide;
-  private final PhysicalPlan left;
-  private final PhysicalPlan right;
   private final Optional<Expression> nonEquiCond;
+
+  // write the construct method
+  public HashJoinOperator(
+      List<Expression> leftKeys,
+      List<Expression> rightKeys,
+      Join.JoinType joinType,
+      BuildSide buildSide,
+      PhysicalPlan left,
+      PhysicalPlan right,
+      Optional<Expression> nonEquiCond) {
+    super(left, right, joinType);
+    this.leftKeys = leftKeys;
+    this.rightKeys = rightKeys;
+    this.buildSide = buildSide;
+    this.nonEquiCond = nonEquiCond;
+  }
 
   private final ImmutableList.Builder<ExprValue> joinedBuilder = ImmutableList.builder();
   private Iterator<ExprValue> joinedIterator;
@@ -51,6 +62,8 @@ public class HashJoinOperator extends JoinOperator {
 
   @Override
   public void open() {
+    left.open();
+    right.open();
     if (!(leftKeys.size() == rightKeys.size()
         && IntStream.range(0, leftKeys.size())
             .allMatch(i -> sameType(leftKeys.get(i), rightKeys.get(i))))) {
@@ -58,8 +71,6 @@ public class HashJoinOperator extends JoinOperator {
           "Join keys from two sides should have same length and types");
     }
 
-    left.open();
-    right.open();
     Iterator<ExprValue> streamed;
     if (buildSide == BuildRight) {
       hashed = buildHashed(right, rightKeys);
@@ -84,13 +95,13 @@ public class HashJoinOperator extends JoinOperator {
 
   @Override
   public void close() {
+    left.close();
+    right.close();
     joinedIterator = null;
     if (hashed != null) {
       hashed.close();
       hashed = null;
     }
-    left.close();
-    right.close();
   }
 
   @Override
@@ -208,7 +219,7 @@ public class HashJoinOperator extends JoinOperator {
           List<ExprValue> matchedBuildRows = hashed.get(streamedRowKey);
           for (ExprValue matchedBuildRow : matchedBuildRows) {
             if (nonEquiCond.isPresent()) {
-              ExprValue joinedRow = combineExprTupleValue(buildSide, matchedBuildRow, streamedRow);
+              ExprValue joinedRow = combineExprTupleValue(buildSide, streamedRow, matchedBuildRow);
               ExprValue conditionValue = nonEquiCond.get().valueOf(joinedRow.bindingTuples());
               if (!(conditionValue.isNull() || conditionValue.isMissing())
                   && conditionValue.booleanValue()) {

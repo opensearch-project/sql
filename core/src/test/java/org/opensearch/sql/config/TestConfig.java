@@ -61,6 +61,17 @@ public class TestConfig {
           .put("comment.data", ExprCoreType.STRING)
           .build();
 
+  public static Map<String, ExprType> typeMapping2 =
+      new ImmutableMap.Builder<String, ExprType>()
+          .put("i_value", ExprCoreType.INTEGER)
+          .put("l_value", ExprCoreType.LONG)
+          .put("f_value", ExprCoreType.FLOAT)
+          .put("d_value", ExprCoreType.DOUBLE)
+          .put("msg", ExprCoreType.STRING)
+          .put("msg.info", ExprCoreType.STRING)
+          .put("msg.info.id", ExprCoreType.STRING)
+          .build();
+
   protected StorageEngine storageEngine() {
     return new StorageEngine() {
       @Override
