@@ -427,6 +427,30 @@ public class SQLQueryUtilsTest {
     assertTrue(errors.isEmpty(), "Valid query should not produce any errors ");
   }
 
+  @Test
+  void testValidateSparkSqlQuery_SelectQuery_DataSourceTypeNull() {
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType("SELECT * FROM users WHERE age > 18", null);
+
+    assertTrue(errors.isEmpty(), "Valid query should not produce any errors ");
+  }
+
+  @Test
+  void testValidateSparkSqlQuery_InvalidQuery_SyntaxCheckFailureSkippedWithoutValidationError() {
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType(
+            "SEECT * FROM users WHERE age > 18", DataSourceType.SECURITY_LAKE);
+
+    assertTrue(errors.isEmpty(), "Valid query should not produce any errors ");
+  }
+
+  @Test
+  void testValidateSparkSqlQuery_nullDatasource() {
+    List<String> errors =
+        SQLQueryUtils.validateSparkSqlQuery(null, "SELECT * FROM users WHERE age > 18");
+    assertTrue(errors.isEmpty(), "Valid query should not produce any errors ");
+  }
+
   private List<String> validateSparkSqlQueryForDataSourceType(
       String query, DataSourceType dataSourceType) {
     when(this.dataSource.getConnectorType()).thenReturn(dataSourceType);
