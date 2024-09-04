@@ -63,7 +63,6 @@ class FlintIndexOpVacuumTest {
             asyncQueryScheduler);
   }
 
-  // Helper method to create FlintIndexMetadata with latest ID
   private static FlintIndexMetadata createFlintIndexMetadataWithLatestId() {
     return FlintIndexMetadata.builder()
         .latestId(LATEST_ID)
@@ -72,7 +71,6 @@ class FlintIndexOpVacuumTest {
         .build();
   }
 
-  // Helper method to create FlintIndexMetadata without latest ID
   private static FlintIndexMetadata createFlintIndexMetadataWithoutLatestId() {
     return FlintIndexMetadata.builder()
         .opensearchIndexName(INDEX_NAME)
@@ -80,7 +78,6 @@ class FlintIndexOpVacuumTest {
         .build();
   }
 
-  // Helper method to create FlintIndexMetadata with external scheduler
   private FlintIndexMetadata createFlintIndexMetadataWithExternalScheduler() {
     FlintIndexOptions flintIndexOptions = new FlintIndexOptions();
     flintIndexOptions.setOption(FlintIndexOptions.SCHEDULER_MODE, "external");

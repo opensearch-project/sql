@@ -120,7 +120,6 @@ public class ScheduledAsyncQueryJobRunnerTest {
     spyJobRunner = spy(jobRunner);
     spyJobRunner.loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
-    // Create a ScheduledAsyncQueryJobRequest with valid parameters
     ScheduledAsyncQueryJobRequest request =
         ScheduledAsyncQueryJobRequest.builder()
             .jobId("testJob")
@@ -131,10 +130,8 @@ public class ScheduledAsyncQueryJobRunnerTest {
             .queryLang(LangType.SQL)
             .build();
 
-    // Mock the doRefresh method to throw an exception
     doThrow(new RuntimeException("Test exception")).when(spyJobRunner).doRefresh(request);
 
-    // Capture the log output
     Logger logger = LogManager.getLogger(ScheduledAsyncQueryJobRunner.class);
     Appender mockAppender = mock(Appender.class);
     when(mockAppender.getName()).thenReturn("MockAppender");
@@ -151,7 +148,6 @@ public class ScheduledAsyncQueryJobRunnerTest {
     Runnable runnable = captor.getValue();
     runnable.run();
 
-    // Verify that the doRefresh method was called and the exception was logged
     verify(spyJobRunner).doRefresh(eq(request));
     verify(mockAppender).append(any(LogEvent.class));
   }

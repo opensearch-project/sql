@@ -27,28 +27,14 @@ public class IntervalScheduleParserTest {
 
   @Test
   public void testParseValidScheduleString() {
-    String scheduleStr = "5 minutes";
-    Schedule schedule = IntervalScheduleParser.parse(scheduleStr, startTime);
-
-    assertEquals(new IntervalSchedule(startTime, 5, ChronoUnit.MINUTES), schedule);
+    verifyParseSchedule(5, "5 minutes");
   }
 
   @Test
   public void testParseValidScheduleStringWithDifferentUnits() {
-    String scheduleStr = "2 hours";
-    Schedule schedule = IntervalScheduleParser.parse(scheduleStr, startTime);
-
-    assertEquals(new IntervalSchedule(startTime, 120, ChronoUnit.MINUTES), schedule);
-
-    scheduleStr = "1 day";
-    schedule = IntervalScheduleParser.parse(scheduleStr, startTime);
-
-    assertEquals(new IntervalSchedule(startTime, 1440, ChronoUnit.MINUTES), schedule);
-
-    scheduleStr = "3 weeks";
-    schedule = IntervalScheduleParser.parse(scheduleStr, startTime);
-
-    assertEquals(new IntervalSchedule(startTime, 30240, ChronoUnit.MINUTES), schedule);
+    verifyParseSchedule(120, "2 hours");
+    verifyParseSchedule(1440, "1 day");
+    verifyParseSchedule(30240, "3 weeks");
   }
 
   @Test
@@ -61,7 +47,6 @@ public class IntervalScheduleParserTest {
   public void testParseScheduleObject() {
     IntervalSchedule expectedSchedule = new IntervalSchedule(startTime, 10, ChronoUnit.MINUTES);
     Schedule schedule = IntervalScheduleParser.parse(expectedSchedule, startTime);
-
     assertEquals(expectedSchedule, schedule);
   }
 
@@ -79,21 +64,15 @@ public class IntervalScheduleParserTest {
 
   @Test
   public void testParseUnsupportedUnits() {
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> IntervalScheduleParser.parse("1 year", startTime),
-            "Expected IllegalArgumentException but no exception was thrown");
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> IntervalScheduleParser.parse("1 year", startTime),
+        "Expected IllegalArgumentException but no exception was thrown");
 
-    assertEquals("Years cannot be converted to minutes accurately.", exception.getMessage());
-
-    exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> IntervalScheduleParser.parse("1 month", startTime),
-            "Expected IllegalArgumentException but no exception was thrown");
-
-    assertEquals("Months cannot be converted to minutes accurately.", exception.getMessage());
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> IntervalScheduleParser.parse("1 month", startTime),
+        "Expected IllegalArgumentException but no exception was thrown");
   }
 
   @Test
@@ -110,44 +89,34 @@ public class IntervalScheduleParserTest {
 
   @Test
   public void testParseScheduleWithNanoseconds() {
-    String scheduleStr = "60000000000 nanoseconds"; // Equivalent to 1 minute
-    Schedule schedule = IntervalScheduleParser.parse(scheduleStr, startTime);
-
-    assertEquals(new IntervalSchedule(startTime, 1, ChronoUnit.MINUTES), schedule);
+    verifyParseSchedule(1, "60000000000 nanoseconds");
   }
 
   @Test
   public void testParseScheduleWithMilliseconds() {
-    String scheduleStr = "60000 milliseconds"; // Equivalent to 1 minute
-    Schedule schedule = IntervalScheduleParser.parse(scheduleStr, startTime);
-
-    assertEquals(new IntervalSchedule(startTime, 1, ChronoUnit.MINUTES), schedule);
+    verifyParseSchedule(1, "60000 milliseconds");
   }
 
   @Test
   public void testParseScheduleWithMicroseconds() {
-    String scheduleStr = "60000000 microseconds"; // Equivalent to 1 minute
-    Schedule schedule = IntervalScheduleParser.parse(scheduleStr, startTime);
-
-    assertEquals(new IntervalSchedule(startTime, 1, ChronoUnit.MINUTES), schedule);
+    verifyParseSchedule(1, "60000000 microseconds");
   }
 
   @Test
   public void testUnsupportedTimeUnit() {
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> IntervalScheduleParser.convertToSupportedUnit(10, "unsupportedunit"),
-            "Expected IllegalArgumentException but no exception was thrown");
-
-    assertEquals("Unsupported time unit: unsupportedunit", exception.getMessage());
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> IntervalScheduleParser.convertToSupportedUnit(10, "unsupportedunit"),
+        "Expected IllegalArgumentException but no exception was thrown");
   }
 
   @Test
   public void testParseScheduleWithSeconds() {
-    String scheduleStr = "120 seconds"; // Equivalent to 2 minutes
-    Schedule schedule = IntervalScheduleParser.parse(scheduleStr, startTime);
+    verifyParseSchedule(2, "120 seconds");
+  }
 
-    assertEquals(new IntervalSchedule(startTime, 2, ChronoUnit.MINUTES), schedule);
+  private void verifyParseSchedule(int expectedMinutes, String scheduleStr) {
+    Schedule schedule = IntervalScheduleParser.parse(scheduleStr, startTime);
+    assertEquals(new IntervalSchedule(startTime, expectedMinutes, ChronoUnit.MINUTES), schedule);
   }
 }

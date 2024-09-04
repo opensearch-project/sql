@@ -229,7 +229,6 @@ public class AsyncQueryCoreIntegTest {
     verifyCreateIndexDMLResultCalled();
     verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID);
 
-    // Verifying that unscheduleJob is called on asyncQueryScheduler for external scheduler
     verify(asyncQueryScheduler).unscheduleJob(indexName);
   }
 
@@ -274,12 +273,10 @@ public class AsyncQueryCoreIntegTest {
     assertNull(response.getSessionId());
     verifyGetQueryIdCalled();
 
-    // Verifying that the index is deleted
     verify(flintIndexClient).deleteIndex(indexName);
     verifyCreateIndexDMLResultCalled();
     verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID);
 
-    // Verifying that unscheduleJob is called on asyncQueryScheduler for external scheduler
     verify(asyncQueryScheduler).removeJob(indexName);
   }
 
@@ -342,7 +339,6 @@ public class AsyncQueryCoreIntegTest {
     FlintIndexOptions flintIndexOptions = flintIndexOptionsArgumentCaptor.getValue();
     assertFalse(flintIndexOptions.autoRefresh());
 
-    // Verifying that unscheduleJob is called on asyncQueryScheduler for external scheduler
     verify(asyncQueryScheduler).unscheduleJob(indexName);
 
     verifyCreateIndexDMLResultCalled();
