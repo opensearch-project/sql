@@ -61,6 +61,8 @@ import org.opensearch.sql.spark.parameter.SparkParameterComposerCollection;
 import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilderProvider;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
+import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
+import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
 
 @RequiredArgsConstructor
 public class AsyncExecutorServiceModule extends AbstractModule {
@@ -136,12 +138,14 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       FlintIndexStateModelService flintIndexStateModelService,
       FlintIndexClient flintIndexClient,
       FlintIndexMetadataServiceImpl flintIndexMetadataService,
-      EMRServerlessClientFactory emrServerlessClientFactory) {
+      EMRServerlessClientFactory emrServerlessClientFactory,
+      AsyncQueryScheduler asyncQueryScheduler) {
     return new FlintIndexOpFactory(
         flintIndexStateModelService,
         flintIndexClient,
         flintIndexMetadataService,
-        emrServerlessClientFactory);
+        emrServerlessClientFactory,
+        asyncQueryScheduler);
   }
 
   @Provides
@@ -239,6 +243,14 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   @Provides
   public SessionConfigSupplier sessionConfigSupplier(Settings settings) {
     return new OpenSearchSessionConfigSupplier(settings);
+  }
+
+  @Provides
+  @Singleton
+  public AsyncQueryScheduler asyncQueryScheduler(NodeClient client, ClusterService clusterService) {
+    OpenSearchAsyncQueryScheduler scheduler =
+        new OpenSearchAsyncQueryScheduler(client, clusterService);
+    return scheduler;
   }
 
   private void registerStateStoreMetrics(StateStore stateStore) {
