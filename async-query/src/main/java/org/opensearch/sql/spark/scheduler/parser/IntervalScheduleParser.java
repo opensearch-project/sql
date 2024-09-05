@@ -15,7 +15,6 @@ import org.opensearch.jobscheduler.spi.schedule.Schedule;
 
 /** Parse string raw schedule into job scheduler IntervalSchedule */
 public class IntervalScheduleParser {
-
   private static final Pattern DURATION_PATTERN =
       Pattern.compile(
           "^(\\d+)\\s*(years?|months?|weeks?|days?|hours?|minutes?|minute|mins?|seconds?|secs?|milliseconds?|millis?|microseconds?|microsecond|micros?|micros|nanoseconds?|nanos?)$",
