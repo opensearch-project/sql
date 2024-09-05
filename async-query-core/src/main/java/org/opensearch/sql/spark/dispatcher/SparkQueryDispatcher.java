@@ -54,7 +54,9 @@ public class SparkQueryDispatcher {
             dispatchQueryRequest, asyncQueryRequestContext, dataSourceMetadata);
       }
 
-      List<String> validationErrors = SQLQueryUtils.validateSparkSqlQuery(query);
+      List<String> validationErrors =
+          SQLQueryUtils.validateSparkSqlQuery(
+              dataSourceService.getDataSource(dispatchQueryRequest.getDatasource()), query);
       if (!validationErrors.isEmpty()) {
         throw new IllegalArgumentException(
             "Query is not allowed: " + String.join(", ", validationErrors));
