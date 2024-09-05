@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.scheduler.parser;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,6 +24,13 @@ public class IntervalScheduleParserTest {
   @BeforeEach
   public void setup() {
     startTime = Instant.now();
+  }
+
+  @Test
+  public void testConstructor() {
+    // Test that the constructor of IntervalScheduleParser can be invoked
+    IntervalScheduleParser parser = new IntervalScheduleParser();
+    assertNotNull(parser);
   }
 
   @Test
