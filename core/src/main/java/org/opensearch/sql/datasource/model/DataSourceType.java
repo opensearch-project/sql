@@ -7,9 +7,11 @@ package org.opensearch.sql.datasource.model;
 
 import java.util.HashMap;
 import java.util.Map;
+import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
+@EqualsAndHashCode
 public class DataSourceType {
   public static DataSourceType PROMETHEUS = new DataSourceType("PROMETHEUS");
   public static DataSourceType OPENSEARCH = new DataSourceType("OPENSEARCH");
