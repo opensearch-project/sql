@@ -24,12 +24,12 @@ public class OpenSearchAsyncQuerySchedulerConfigComposer implements GeneralSpark
       SparkSubmitParameters sparkSubmitParameters,
       DispatchQueryRequest dispatchQueryRequest,
       AsyncQueryRequestContext context) {
-    String externalSchedulerEnabled =
+    Boolean externalSchedulerEnabled =
         settings.getSettingValue(Settings.Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED);
     String externalSchedulerInterval =
         settings.getSettingValue(Settings.Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL);
     sparkSubmitParameters.setConfigItem(
-        FLINT_JOB_EXTERNAL_SCHEDULER_ENABLED, externalSchedulerEnabled);
+        FLINT_JOB_EXTERNAL_SCHEDULER_ENABLED, String.valueOf(externalSchedulerEnabled));
     sparkSubmitParameters.setConfigItem(
         FLINT_JOB_EXTERNAL_SCHEDULER_INTERVAL, externalSchedulerInterval);
   }
