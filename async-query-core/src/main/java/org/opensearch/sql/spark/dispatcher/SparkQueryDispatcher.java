@@ -119,6 +119,9 @@ public class SparkQueryDispatcher {
     } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
       // Manual refresh should be handled by batch handler
       return queryHandlerFactory.getRefreshQueryHandler(dispatchQueryRequest.getAccountId());
+    } else if (IndexQueryActionType.RECOVER.equals(indexQueryDetails.getIndexQueryActionType())) {
+      // RECOVER INDEX JOB should not be executed from async-query-core
+      throw new IllegalArgumentException("RECOVER INDEX JOB is not allowed.");
     } else {
       return getDefaultAsyncQueryHandler(dispatchQueryRequest.getAccountId());
     }

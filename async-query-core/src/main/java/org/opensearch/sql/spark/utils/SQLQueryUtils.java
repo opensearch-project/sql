@@ -26,6 +26,7 @@ import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsBaseVisitor;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsLexer;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser.MaterializedViewQueryContext;
+import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser.RecoverIndexJobStatementContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseLexer;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.IdentifierReferenceContext;
@@ -409,6 +410,12 @@ public class SQLQueryUtils {
       String query = ctx.start.getInputStream().getText(new Interval(a, b));
       indexQueryDetailsBuilder.mvQuery(query);
       return super.visitMaterializedViewQuery(ctx);
+    }
+
+    @Override
+    public Void visitRecoverIndexJobStatement(RecoverIndexJobStatementContext ctx) {
+      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.RECOVER);
+      return super.visitRecoverIndexJobStatement(ctx);
     }
 
     private String propertyKey(FlintSparkSqlExtensionsParser.PropertyKeyContext key) {
