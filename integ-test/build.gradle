@@ -204,6 +204,13 @@ compileTestJava {
     }
 }
 
+testClusters.all {
+    // debug with command, ./gradlew opensearch-sql:run -DdebugJVM. --debug-jvm does not work with keystore.
+    if (System.getProperty("debugJVM") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'
+    }
+}
+
 def getJobSchedulerPlugin() {
     provider(new Callable<RegularFile>() {
         @Override
@@ -218,13 +225,6 @@ def getJobSchedulerPlugin() {
             }
         }
     })
-}
-
-testClusters.all {
-    // debug with command, ./gradlew opensearch-sql:run -DdebugJVM. --debug-jvm does not work with keystore.
-    if (System.getProperty("debugJVM") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'
-    }
 }
 
 testClusters {
@@ -554,20 +554,19 @@ String bwcRemoteFileJSPlugin = bwcRemoteFileRoot + bwcJSPlugin
                 }
             } else {
                 versions = ["1.1.0", opensearch_version]
-                plugin(provider(new Callable<RegularFile>() {
+                plugin(provider(new Callable<RegularFile>(){
                     @Override
                     RegularFile call() throws Exception {
                         return new RegularFile() {
                             @Override
                             File getAsFile() {
-                                File dir = new File('./integ-test/' + bwcJSPluginPath + bwcVersion)
-                                if (!dir.exists()) {
-                                    dir.mkdirs()
+                                if (new File("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion").exists()) {
+                                    project.delete(files("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion"))
                                 }
-                                File f = new File(dir, bwcJSPlugin)
-                                if (!f.exists()) {
-                                    new URL(bwcRemoteFileJSPlugin).withInputStream{ ins -> f.withOutputStream{ it << ins }}
-                                }
+                                project.mkdir bwcJSPluginPath + bwcVersion
+                                ant.get(src: bwcRemoteFileJSPlugin,
+                                        dest: bwcJSPluginPath + bwcVersion,
+                                        httpusecaches: false)
                                 return fileTree(bwcJSPluginPath + bwcVersion).getSingleFile()
                             }
                         }
@@ -600,13 +599,13 @@ String bwcRemoteFileJSPlugin = bwcRemoteFileRoot + bwcJSPlugin
 }
 
 List<Provider<RegularFile>> plugins = [
-        provider(new Callable<RegularFile>() {
+        provider(new Callable<RegularFile>(){
             @Override
             RegularFile call() throws Exception {
                 return new RegularFile() {
                     @Override
                     File getAsFile() {
-                        return fileTree(bwcJSPluginPath + project.version).getSingleFile()
+                        return configurations.zipArchive.asFileTree.getSingleFile()
                     }
                 }
             }
