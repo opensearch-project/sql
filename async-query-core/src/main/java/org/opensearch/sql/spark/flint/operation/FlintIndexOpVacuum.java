@@ -14,11 +14,13 @@ import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
+import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 
 /** Flint index vacuum operation. */
 public class FlintIndexOpVacuum extends FlintIndexOp {
-
   private static final Logger LOG = LogManager.getLogger();
+
+  private final AsyncQueryScheduler asyncQueryScheduler;
 
   /** OpenSearch client. */
   private final FlintIndexClient flintIndexClient;
@@ -27,9 +29,11 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
       FlintIndexStateModelService flintIndexStateModelService,
       String datasourceName,
       FlintIndexClient flintIndexClient,
-      EMRServerlessClientFactory emrServerlessClientFactory) {
+      EMRServerlessClientFactory emrServerlessClientFactory,
+      AsyncQueryScheduler asyncQueryScheduler) {
     super(flintIndexStateModelService, datasourceName, emrServerlessClientFactory);
     this.flintIndexClient = flintIndexClient;
+    this.asyncQueryScheduler = asyncQueryScheduler;
   }
 
   @Override
@@ -48,6 +52,9 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
       FlintIndexStateModel flintIndex,
       AsyncQueryRequestContext asyncQueryRequestContext) {
     LOG.info("Vacuuming Flint index {}", flintIndexMetadata.getOpensearchIndexName());
+    if (flintIndexMetadata.getFlintIndexOptions().isExternalScheduler()) {
+      asyncQueryScheduler.removeJob(flintIndexMetadata.getOpensearchIndexName());
+    }
     flintIndexClient.deleteIndex(flintIndexMetadata.getOpensearchIndexName());
   }
 

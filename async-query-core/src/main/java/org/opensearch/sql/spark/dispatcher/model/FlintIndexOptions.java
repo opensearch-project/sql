@@ -19,6 +19,7 @@ public class FlintIndexOptions {
   public static final String INCREMENTAL_REFRESH = "incremental_refresh";
   public static final String CHECKPOINT_LOCATION = "checkpoint_location";
   public static final String WATERMARK_DELAY = "watermark_delay";
+  public static final String SCHEDULER_MODE = "scheduler_mode";
   private final Map<String, String> options = new HashMap<>();
 
   public void setOption(String key, String value) {
@@ -31,6 +32,11 @@ public class FlintIndexOptions {
 
   public boolean autoRefresh() {
     return Boolean.parseBoolean(getOption(AUTO_REFRESH).orElse("false"));
+  }
+
+  public boolean isExternalScheduler() {
+    // Default is false, which means using internal scheduler to refresh the index.
+    return getOption(SCHEDULER_MODE).map(mode -> "external".equals(mode)).orElse(false);
   }
 
   public Map<String, String> getProvidedOptions() {

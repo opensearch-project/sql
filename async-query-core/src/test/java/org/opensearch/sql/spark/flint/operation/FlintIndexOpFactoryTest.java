@@ -17,6 +17,7 @@ import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 import org.opensearch.sql.spark.flint.FlintIndexClient;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
+import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 
 @ExtendWith(MockitoExtension.class)
 class FlintIndexOpFactoryTest {
@@ -26,6 +27,7 @@ class FlintIndexOpFactoryTest {
   @Mock private FlintIndexClient flintIndexClient;
   @Mock private FlintIndexMetadataService flintIndexMetadataService;
   @Mock private EMRServerlessClientFactory emrServerlessClientFactory;
+  @Mock private AsyncQueryScheduler asyncQueryScheduler;
 
   @InjectMocks FlintIndexOpFactory flintIndexOpFactory;
 
