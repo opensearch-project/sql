@@ -51,6 +51,10 @@ public abstract class Settings {
 
     /** Async query Settings * */
     ASYNC_QUERY_ENABLED("plugins.query.executionengine.async_query.enabled"),
+    ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED(
+        "plugins.query.executionengine.async_query.external_scheduler.enabled"),
+    ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL(
+        "plugins.query.executionengine.async_query.external_scheduler.interval"),
     STREAMING_JOB_HOUSEKEEPER_INTERVAL(
         "plugins.query.executionengine.spark.streamingjobs.housekeeper.interval");
 
