@@ -87,6 +87,10 @@ public class SparkConstants {
   public static final String JAVA_HOME_LOCATION = "/usr/lib/jvm/java-17-amazon-corretto.x86_64/";
   public static final String FLINT_JOB_QUERY = "spark.flint.job.query";
   public static final String FLINT_JOB_QUERY_ID = "spark.flint.job.queryId";
+  public static final String FLINT_JOB_EXTERNAL_SCHEDULER_ENABLED =
+      "spark.flint.job.externalScheduler.enabled";
+  public static final String FLINT_JOB_EXTERNAL_SCHEDULER_INTERVAL =
+      "spark.flint.job.externalScheduler.interval";
   public static final String FLINT_JOB_REQUEST_INDEX = "spark.flint.job.requestIndex";
   public static final String FLINT_JOB_SESSION_ID = "spark.flint.job.sessionId";
 
