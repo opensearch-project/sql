@@ -24,6 +24,7 @@ import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.asyncquery.OpenSearchAsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactoryImpl;
+import org.opensearch.sql.spark.config.OpenSearchAsyncQuerySchedulerConfigComposer;
 import org.opensearch.sql.spark.config.OpenSearchExtraParameterComposer;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigClusterSettingLoader;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
@@ -168,6 +169,7 @@ public class AsyncExecutorServiceModule extends AbstractModule {
     collection.register(
         DataSourceType.SECURITY_LAKE,
         new S3GlueDataSourceSparkParameterComposer(clusterSettingLoader));
+    collection.register(new OpenSearchAsyncQuerySchedulerConfigComposer(settings));
     collection.register(new OpenSearchExtraParameterComposer(clusterSettingLoader));
     return new SparkSubmitParametersBuilderProvider(collection);
   }
