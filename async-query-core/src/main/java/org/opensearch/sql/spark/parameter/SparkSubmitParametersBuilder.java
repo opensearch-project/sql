@@ -20,6 +20,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_PORT_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_SCHEME_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_QUERY;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_QUERY_ID;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_REQUEST_INDEX;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_SESSION_ID;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_PPL_EXTENSION;
@@ -105,6 +106,11 @@ public class SparkSubmitParametersBuilder {
     String escapedQuery = StringEscapeUtils.escapeJava(query);
     String wrappedQuery = "\"" + escapedQuery + "\"";
     setConfigItem(FLINT_JOB_QUERY, wrappedQuery);
+    return this;
+  }
+
+  public SparkSubmitParametersBuilder queryId(String queryId) {
+    setConfigItem(FLINT_JOB_QUERY_ID, queryId);
     return this;
   }
 
