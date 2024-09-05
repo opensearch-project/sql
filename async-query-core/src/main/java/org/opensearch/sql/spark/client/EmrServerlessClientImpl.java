@@ -118,7 +118,7 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                       throw t;
                     }
 
-                    logger.error("Error while making cancel job request to emr:", t);
+                    logger.error("Error while making cancel job request to emr: jobId=" + jobId, t);
                     metricsService.incrementNumericalMetric(EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
                     if (t instanceof ValidationException) {
                       throw new IllegalArgumentException(
