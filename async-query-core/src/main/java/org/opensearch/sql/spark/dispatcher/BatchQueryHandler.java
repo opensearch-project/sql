@@ -91,6 +91,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
             sparkSubmitParametersBuilderProvider
                 .getSparkSubmitParametersBuilder()
                 .clusterName(clusterName)
+                .queryId(context.getQueryId())
                 .query(dispatchQueryRequest.getQuery())
                 .dataSource(
                     context.getDataSourceMetadata(),
