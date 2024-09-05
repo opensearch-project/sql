@@ -116,11 +116,16 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                   } catch (Throwable t) {
                     if (allowExceptionPropagation) {
                       throw t;
-                    } else {
-                      logger.error("Error while making cancel job request to emr:", t);
-                      metricsService.incrementNumericalMetric(EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
-                      throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
                     }
+
+                    logger.error("Error while making cancel job request to emr:", t);
+                    metricsService.incrementNumericalMetric(EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
+                    if (t instanceof ValidationException) {
+                      throw new IllegalArgumentException(
+                          "The input fails to satisfy the constraints specified by AWS EMR"
+                              + " Serverless.");
+                    }
+                    throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
                   }
                 });
     logger.info(String.format("Job : %s cancelled", cancelJobRunResult.getJobRunId()));
