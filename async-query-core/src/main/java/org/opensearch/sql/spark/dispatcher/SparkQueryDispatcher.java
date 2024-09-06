@@ -150,7 +150,6 @@ public class SparkQueryDispatcher {
 
   private boolean isEligibleForIndexDMLHandling(IndexQueryDetails indexQueryDetails) {
     return IndexQueryActionType.DROP.equals(indexQueryDetails.getIndexQueryActionType())
-        || IndexQueryActionType.VACUUM.equals(indexQueryDetails.getIndexQueryActionType())
         || (IndexQueryActionType.ALTER.equals(indexQueryDetails.getIndexQueryActionType())
             && (indexQueryDetails
                     .getFlintIndexOptions()

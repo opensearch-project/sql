@@ -42,11 +42,6 @@ class FlintIndexOpFactoryTest {
   }
 
   @Test
-  void getVacuum() {
-    assertNotNull(flintIndexOpFactory.getDrop(DATASOURCE_NAME));
-  }
-
-  @Test
   void getCancel() {
     assertNotNull(flintIndexOpFactory.getDrop(DATASOURCE_NAME));
   }
