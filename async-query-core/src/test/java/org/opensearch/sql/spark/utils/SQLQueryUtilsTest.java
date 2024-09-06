@@ -154,6 +154,8 @@ public class SQLQueryUtilsTest {
 
       assertNull(indexQueryDetails.getIndexName());
       assertFullyQualifiedTableName("myS3", "default", "alb_logs", fullyQualifiedTableName);
+      assertEquals(
+          "flint_mys3_default_alb_logs_skipping_index", indexQueryDetails.openSearchIndexName());
     }
   }
 
@@ -182,6 +184,9 @@ public class SQLQueryUtilsTest {
 
       assertEquals("elb_and_requestUri", indexQueryDetails.getIndexName());
       assertFullyQualifiedTableName("myS3", "default", "alb_logs", fullyQualifiedTableName);
+      assertEquals(
+          "flint_mys3_default_alb_logs_elb_and_requesturi_index",
+          indexQueryDetails.openSearchIndexName());
     }
   }
 
@@ -196,6 +201,7 @@ public class SQLQueryUtilsTest {
     assertNull(indexQueryDetails.getFullyQualifiedTableName());
     assertEquals(mvQuery, indexQueryDetails.getMvQuery());
     assertEquals("mv_1", indexQueryDetails.getMvName());
+    assertEquals("flint_mv_1", indexQueryDetails.openSearchIndexName());
   }
 
   @Test
@@ -215,61 +221,86 @@ public class SQLQueryUtilsTest {
       assertNull(fullyQualifiedTableName);
       assertNull(indexQueryDetails.getMvQuery());
       assertEquals("mv_1", indexQueryDetails.getMvName());
+      assertEquals("flint_mv_1", indexQueryDetails.openSearchIndexName());
     }
   }
 
   @Test
   void testDescSkippingIndex() {
     String descSkippingIndex = "DESC SKIPPING INDEX ON mys3.default.http_logs";
+
     assertTrue(SQLQueryUtils.isFlintExtensionQuery(descSkippingIndex));
     IndexQueryDetails indexDetails = SQLQueryUtils.extractIndexDetails(descSkippingIndex);
     FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
+
     assertNull(indexDetails.getIndexName());
     assertNotNull(fullyQualifiedTableName);
     assertEquals(FlintIndexType.SKIPPING, indexDetails.getIndexType());
     assertEquals(IndexQueryActionType.DESCRIBE, indexDetails.getIndexQueryActionType());
+    assertEquals("flint_mys3_default_http_logs_skipping_index", indexDetails.openSearchIndexName());
+  }
 
+  @Test
+  void testDescCoveringIndex() {
     String descCoveringIndex = "DESC INDEX cv1 ON mys3.default.http_logs";
+
     assertTrue(SQLQueryUtils.isFlintExtensionQuery(descCoveringIndex));
-    indexDetails = SQLQueryUtils.extractIndexDetails(descCoveringIndex);
-    fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
+    IndexQueryDetails indexDetails = SQLQueryUtils.extractIndexDetails(descCoveringIndex);
+    FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
+
     assertEquals("cv1", indexDetails.getIndexName());
     assertNotNull(fullyQualifiedTableName);
     assertEquals(FlintIndexType.COVERING, indexDetails.getIndexType());
     assertEquals(IndexQueryActionType.DESCRIBE, indexDetails.getIndexQueryActionType());
+    assertEquals("flint_mys3_default_http_logs_cv1_index", indexDetails.openSearchIndexName());
+  }
 
+  @Test
+  void testDescMaterializedView() {
     String descMv = "DESC MATERIALIZED VIEW mv1";
+
     assertTrue(SQLQueryUtils.isFlintExtensionQuery(descMv));
-    indexDetails = SQLQueryUtils.extractIndexDetails(descMv);
-    fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
+    IndexQueryDetails indexDetails = SQLQueryUtils.extractIndexDetails(descMv);
+    FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
+
     assertNull(indexDetails.getIndexName());
     assertEquals("mv1", indexDetails.getMvName());
     assertNull(fullyQualifiedTableName);
     assertEquals(FlintIndexType.MATERIALIZED_VIEW, indexDetails.getIndexType());
     assertEquals(IndexQueryActionType.DESCRIBE, indexDetails.getIndexQueryActionType());
+    assertEquals("flint_mv1", indexDetails.openSearchIndexName());
   }
 
   @Test
   void testShowIndex() {
-    String showCoveringIndex = " SHOW INDEX ON myS3.default.http_logs";
+    String showCoveringIndex = "SHOW INDEX ON myS3.default.http_logs";
+
     assertTrue(SQLQueryUtils.isFlintExtensionQuery(showCoveringIndex));
     IndexQueryDetails indexDetails = SQLQueryUtils.extractIndexDetails(showCoveringIndex);
     FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
+
     assertNull(indexDetails.getIndexName());
     assertNull(indexDetails.getMvName());
     assertNotNull(fullyQualifiedTableName);
     assertEquals(FlintIndexType.COVERING, indexDetails.getIndexType());
     assertEquals(IndexQueryActionType.SHOW, indexDetails.getIndexQueryActionType());
+    assertNull(indexDetails.openSearchIndexName());
+  }
 
+  @Test
+  void testShowMaterializedView() {
     String showMV = "SHOW MATERIALIZED VIEW IN my_glue.default";
+
     assertTrue(SQLQueryUtils.isFlintExtensionQuery(showMV));
-    indexDetails = SQLQueryUtils.extractIndexDetails(showMV);
-    fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
+    IndexQueryDetails indexDetails = SQLQueryUtils.extractIndexDetails(showMV);
+    FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
+
     assertNull(indexDetails.getIndexName());
     assertNull(indexDetails.getMvName());
     assertNull(fullyQualifiedTableName);
     assertEquals(FlintIndexType.MATERIALIZED_VIEW, indexDetails.getIndexType());
     assertEquals(IndexQueryActionType.SHOW, indexDetails.getIndexQueryActionType());
+    assertNull(indexDetails.openSearchIndexName());
   }
 
   @Test
