@@ -46,7 +46,7 @@ public class SystemFunctionIT extends SQLIntegTestCase {
             String.format(
                 "SELECT typeof(double_number),typeof(long_number), typeof(integer_number),"
                     + " typeof(byte_number), typeof(short_number),typeof(float_number),"
-                    + " typeof(half_float_number), typeof(scaled_float_number) from %s;",
+                    + " typeof(half_float_number), typeof(scaled_float_number) from %s limit 1;",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(
         response, rows("DOUBLE", "LONG", "INTEGER", "BYTE", "SHORT", "FLOAT", "FLOAT", "DOUBLE"));
@@ -61,7 +61,7 @@ public class SystemFunctionIT extends SQLIntegTestCase {
                     // TODO activate this test once `ARRAY` type supported, see
                     // ExpressionAnalyzer::isTypeNotSupported
                     // + ", typeof(nested_value)"
-                    + " from %s;",
+                    + " from %s limit 1;",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(
         response,
