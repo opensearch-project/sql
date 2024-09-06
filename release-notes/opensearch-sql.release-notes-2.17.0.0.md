@@ -12,6 +12,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.17.0
 * IF function should support complex predicates in PPL ([#2970](https://github.com/opensearch-project/sql/pull/2970))
 * Add flags for Iceberg and Lake Formation and Security Lake as a data source type ([#2978](https://github.com/opensearch-project/sql/pull/2978))
 * Adds validation to allow only flint queries and sql SELECT queries to security lake type datasource ([#2977](https://github.com/opensearch-project/sql/pull/2977))
+* Delegate Flint index vacuum operation to Spark ([#2995](https://github.com/opensearch-project/sql/pull/2995))
 
 ### Bug Fixes
 * Restrict UDF functions ([#2884](https://github.com/opensearch-project/sql/pull/2884))
@@ -23,6 +24,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.17.0
 
 ### Infrastructure
 * Increment version to 2.17.0-SNAPSHOT ([#2892](https://github.com/opensearch-project/sql/pull/2892))
+* Fix :integ-test:sqlBwcCluster#fullRestartClusterTask ([#2996](https://github.com/opensearch-project/sql/pull/2996))
 
 ### Refactoring
 * Add RequestContext parameter to verifyDataSourceAccessAndGetRawMetada method ([#2872](https://github.com/opensearch-project/sql/pull/2872))
