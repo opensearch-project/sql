@@ -31,7 +31,7 @@ public class OpenSearchAsyncQuerySchedulerConfigComposerTest {
   @Test
   public void testCompose() {
     when(settings.getSettingValue(Settings.Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED))
-        .thenReturn("true");
+        .thenReturn(true);
     when(settings.getSettingValue(Settings.Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL))
         .thenReturn("10 minutes");
 
@@ -46,7 +46,7 @@ public class OpenSearchAsyncQuerySchedulerConfigComposerTest {
   @Test
   public void testComposeWithDisabledScheduler() {
     when(settings.getSettingValue(Settings.Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED))
-        .thenReturn("false");
+        .thenReturn(false);
 
     composer.compose(sparkSubmitParameters, dispatchQueryRequest, context);
 
@@ -57,7 +57,7 @@ public class OpenSearchAsyncQuerySchedulerConfigComposerTest {
   @Test
   public void testComposeWithMissingInterval() {
     when(settings.getSettingValue(Settings.Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED))
-        .thenReturn("true");
+        .thenReturn(true);
     when(settings.getSettingValue(Settings.Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL))
         .thenReturn("");
 
