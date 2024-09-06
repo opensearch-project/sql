@@ -142,7 +142,6 @@ public class SQLQueryUtilsTest {
           + " WHERE elb_status_code = 500 "
           + " WITH (auto_refresh = true)",
       "DROP SKIPPING INDEX ON myS3.default.alb_logs",
-      "VACUUM SKIPPING INDEX ON myS3.default.alb_logs",
       "ALTER SKIPPING INDEX ON myS3.default.alb_logs WITH (auto_refresh = false)",
     };
 
@@ -171,7 +170,6 @@ public class SQLQueryUtilsTest {
           + " WHERE elb_status_code = 500 "
           + " WITH (auto_refresh = true)",
       "DROP INDEX elb_and_requestUri ON myS3.default.alb_logs",
-      "VACUUM INDEX elb_and_requestUri ON myS3.default.alb_logs",
       "ALTER INDEX elb_and_requestUri ON myS3.default.alb_logs WITH (auto_refresh = false)"
     };
 
@@ -203,9 +201,7 @@ public class SQLQueryUtilsTest {
   @Test
   void testExtractionFromFlintMVQuery() {
     String[] mvQueries = {
-      "DROP MATERIALIZED VIEW mv_1",
-      "VACUUM MATERIALIZED VIEW mv_1",
-      "ALTER MATERIALIZED VIEW mv_1 WITH (auto_refresh = false)",
+      "DROP MATERIALIZED VIEW mv_1", "ALTER MATERIALIZED VIEW mv_1 WITH (auto_refresh = false)",
     };
 
     for (String query : mvQueries) {
