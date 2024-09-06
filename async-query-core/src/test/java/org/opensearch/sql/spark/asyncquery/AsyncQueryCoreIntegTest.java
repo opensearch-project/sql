@@ -237,9 +237,12 @@ public class AsyncQueryCoreIntegTest {
   public void createVacuumIndexQuery() {
     givenSparkExecutionEngineConfigIsSupplied();
     givenValidDataSourceMetadataExist();
+    givenSessionExists();
     when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
-    String indexName = "flint_datasource_name_table_name_index_name_index";
-    givenFlintIndexMetadataExists(indexName);
+    when(sessionIdProvider.getSessionId(any())).thenReturn(SESSION_ID);
+    givenSessionExists(); // called twice
+    when(awsemrServerless.startJobRun(any()))
+        .thenReturn(new StartJobRunResult().withApplicationId(APPLICATION_ID).withJobRunId(JOB_ID));
 
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
@@ -248,37 +251,12 @@ public class AsyncQueryCoreIntegTest {
             asyncQueryRequestContext);
 
     assertEquals(QUERY_ID, response.getQueryId());
-    assertNull(response.getSessionId());
+    assertEquals(SESSION_ID, response.getSessionId());
     verifyGetQueryIdCalled();
-    verify(flintIndexClient).deleteIndex(indexName);
-    verifyCreateIndexDMLResultCalled();
+    verifyGetSessionIdCalled();
+    verify(leaseManager).borrow(any());
+    verifyStartJobRunCalled();
     verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
-  }
-
-  @Test
-  public void createVacuumIndexQueryWithScheduler() {
-    givenSparkExecutionEngineConfigIsSupplied();
-    givenValidDataSourceMetadataExist();
-    when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
-
-    String indexName = "flint_datasource_name_table_name_index_name_index";
-    givenFlintIndexMetadataExistsWithExternalScheduler(indexName);
-
-    CreateAsyncQueryResponse response =
-        asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest(
-                "VACUUM INDEX index_name ON table_name", DATASOURCE_NAME, LangType.SQL),
-            asyncQueryRequestContext);
-
-    assertEquals(QUERY_ID, response.getQueryId());
-    assertNull(response.getSessionId());
-    verifyGetQueryIdCalled();
-
-    verify(flintIndexClient).deleteIndex(indexName);
-    verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
-
-    verify(asyncQueryScheduler).removeJob(indexName);
   }
 
   @Test

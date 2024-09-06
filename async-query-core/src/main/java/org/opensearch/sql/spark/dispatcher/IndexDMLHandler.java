@@ -142,8 +142,6 @@ public class IndexDMLHandler extends AsyncQueryHandler {
       case ALTER:
         return flintIndexOpFactory.getAlter(
             indexQueryDetails.getFlintIndexOptions(), dispatchQueryRequest.getDatasource());
-      case VACUUM:
-        return flintIndexOpFactory.getVacuum(dispatchQueryRequest.getDatasource());
       default:
         throw new IllegalStateException(
             String.format(
