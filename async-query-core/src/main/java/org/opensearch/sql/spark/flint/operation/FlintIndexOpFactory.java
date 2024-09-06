@@ -36,15 +36,6 @@ public class FlintIndexOpFactory {
         asyncQueryScheduler);
   }
 
-  public FlintIndexOpVacuum getVacuum(String datasource) {
-    return new FlintIndexOpVacuum(
-        flintIndexStateModelService,
-        datasource,
-        flintIndexClient,
-        emrServerlessClientFactory,
-        asyncQueryScheduler);
-  }
-
   public FlintIndexOpCancel getCancel(String datasource) {
     return new FlintIndexOpCancel(
         flintIndexStateModelService, datasource, emrServerlessClientFactory);
