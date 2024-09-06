@@ -7,6 +7,8 @@
 
 package org.opensearch.sql.spark.transport;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -33,6 +35,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
+import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRequest;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
 import org.opensearch.tasks.Task;
@@ -64,8 +67,11 @@ public class TransportGetAsyncQueryResultActionTest {
     GetAsyncQueryResultActionRequest request = new GetAsyncQueryResultActionRequest("jobId");
     AsyncQueryExecutionResponse asyncQueryExecutionResponse =
         new AsyncQueryExecutionResponse("IN_PROGRESS", null, null, null, null);
-    when(jobExecutorService.getAsyncQueryResults("jobId")).thenReturn(asyncQueryExecutionResponse);
+    when(jobExecutorService.getAsyncQueryResults(eq("jobId"), any()))
+        .thenReturn(asyncQueryExecutionResponse);
+
     action.doExecute(task, request, actionListener);
+
     verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
     GetAsyncQueryResultActionResponse getAsyncQueryResultActionResponse =
         createJobActionResponseArgumentCaptor.getValue();
@@ -91,8 +97,11 @@ public class TransportGetAsyncQueryResultActionTest {
                 tupleValue(ImmutableMap.of("name", "Smith", "age", 30))),
             null,
             null);
-    when(jobExecutorService.getAsyncQueryResults("jobId")).thenReturn(asyncQueryExecutionResponse);
+    when(jobExecutorService.getAsyncQueryResults(eq("jobId"), any()))
+        .thenReturn(asyncQueryExecutionResponse);
+
     action.doExecute(task, request, actionListener);
+
     verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
     GetAsyncQueryResultActionResponse getAsyncQueryResultActionResponse =
         createJobActionResponseArgumentCaptor.getValue();
@@ -130,9 +139,12 @@ public class TransportGetAsyncQueryResultActionTest {
     GetAsyncQueryResultActionRequest request = new GetAsyncQueryResultActionRequest("123");
     doThrow(new AsyncQueryNotFoundException("JobId 123 not found"))
         .when(jobExecutorService)
-        .getAsyncQueryResults("123");
+        .getAsyncQueryResults(eq("123"), any());
+
     action.doExecute(task, request, actionListener);
-    verify(jobExecutorService, times(1)).getAsyncQueryResults("123");
+
+    verify(jobExecutorService, times(1))
+        .getAsyncQueryResults(eq("123"), any(NullAsyncQueryRequestContext.class));
     verify(actionListener).onFailure(exceptionArgumentCaptor.capture());
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof RuntimeException);

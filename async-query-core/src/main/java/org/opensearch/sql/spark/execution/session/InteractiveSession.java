@@ -121,9 +121,10 @@ public class InteractiveSession implements Session {
   }
 
   @Override
-  public Optional<Statement> get(StatementId stID) {
+  public Optional<Statement> get(
+      StatementId stID, AsyncQueryRequestContext asyncQueryRequestContext) {
     return statementStorageService
-        .getStatement(stID.getId(), sessionModel.getDatasourceName())
+        .getStatement(stID.getId(), sessionModel.getDatasourceName(), asyncQueryRequestContext)
         .map(
             model ->
                 Statement.builder()
@@ -137,6 +138,7 @@ public class InteractiveSession implements Session {
                     .queryId(model.getQueryId())
                     .statementStorageService(statementStorageService)
                     .statementModel(model)
+                    .asyncQueryRequestContext(asyncQueryRequestContext)
                     .build());
   }
 

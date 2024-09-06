@@ -41,7 +41,9 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   protected final SparkSubmitParametersBuilderProvider sparkSubmitParametersBuilderProvider;
 
   @Override
-  protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  protected JSONObject getResponseFromResultIndex(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     // either empty json when the result is not available or data with status
     // Fetch from Result Index
     return jobExecutionResponseReader.getResultWithJobId(
@@ -49,7 +51,9 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   }
 
   @Override
-  protected JSONObject getResponseFromExecutor(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  protected JSONObject getResponseFromExecutor(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     JSONObject result = new JSONObject();
     // make call to EMR Serverless when related result index documents are not available
     GetJobRunResult getJobRunResult =
@@ -87,6 +91,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
             sparkSubmitParametersBuilderProvider
                 .getSparkSubmitParametersBuilder()
                 .clusterName(clusterName)
+                .queryId(context.getQueryId())
                 .query(dispatchQueryRequest.getQuery())
                 .dataSource(
                     context.getDataSourceMetadata(),
@@ -105,7 +110,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
         .jobId(jobId)
         .resultIndex(dataSourceMetadata.getResultIndex())
         .datasourceName(dataSourceMetadata.getName())
-        .jobType(JobType.INTERACTIVE)
+        .jobType(JobType.BATCH)
         .indexName(getIndexName(context))
         .build();
   }

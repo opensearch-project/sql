@@ -450,7 +450,8 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     AssertionHelper assertQueryResults(String status, List<ExprValue> data) {
       AsyncQueryExecutionResponse results =
-          queryService.getAsyncQueryResults(createQueryResponse.getQueryId());
+          queryService.getAsyncQueryResults(
+              createQueryResponse.getQueryId(), asyncQueryRequestContext);
       assertEquals(status, results.getStatus());
       assertEquals(data, results.getResults());
       return this;
@@ -458,7 +459,8 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     AssertionHelper assertFormattedQueryResults(String expected) {
       AsyncQueryExecutionResponse results =
-          queryService.getAsyncQueryResults(createQueryResponse.getQueryId());
+          queryService.getAsyncQueryResults(
+              createQueryResponse.getQueryId(), asyncQueryRequestContext);
 
       ResponseFormatter<AsyncQueryResult> formatter =
           new AsyncQueryResultResponseFormatter(JsonResponseFormatter.Style.COMPACT);
@@ -515,8 +517,11 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     /** Simulate EMR-S updates query_execution_request with state */
     void emrJobUpdateStatementState(StatementState newState) {
-      StatementModel stmt = statementStorageService.getStatement(queryId, MYS3_DATASOURCE).get();
-      statementStorageService.updateStatementState(stmt, newState);
+      StatementModel stmt =
+          statementStorageService
+              .getStatement(queryId, MYS3_DATASOURCE, asyncQueryRequestContext)
+              .get();
+      statementStorageService.updateStatementState(stmt, newState, asyncQueryRequestContext);
     }
 
     void emrJobUpdateJobState(JobRunState jobState) {
