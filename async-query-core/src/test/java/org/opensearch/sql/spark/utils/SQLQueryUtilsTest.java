@@ -284,7 +284,7 @@ public class SQLQueryUtilsTest {
     assertNotNull(fullyQualifiedTableName);
     assertEquals(FlintIndexType.COVERING, indexDetails.getIndexType());
     assertEquals(IndexQueryActionType.SHOW, indexDetails.getIndexQueryActionType());
-    assertEquals("", indexDetails.openSearchIndexName());
+    assertNull(indexDetails.openSearchIndexName());
   }
 
   @Test
@@ -300,7 +300,7 @@ public class SQLQueryUtilsTest {
     assertNull(fullyQualifiedTableName);
     assertEquals(FlintIndexType.MATERIALIZED_VIEW, indexDetails.getIndexType());
     assertEquals(IndexQueryActionType.SHOW, indexDetails.getIndexQueryActionType());
-    assertEquals("", indexDetails.openSearchIndexName());
+    assertNull(indexDetails.openSearchIndexName());
   }
 
   @Test

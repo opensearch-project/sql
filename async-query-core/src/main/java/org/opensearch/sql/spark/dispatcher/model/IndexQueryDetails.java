@@ -93,6 +93,9 @@ public class IndexQueryDetails {
   }
 
   public String openSearchIndexName() {
+    if (getIndexType() == null) {
+      return null;
+    }
     FullyQualifiedTableName fullyQualifiedTableName = getFullyQualifiedTableName();
     String indexName = StringUtils.EMPTY;
     switch (getIndexType()) {
@@ -105,6 +108,8 @@ public class IndexQueryDetails {
                   + strip(getIndexName(), STRIP_CHARS)
                   + "_"
                   + getIndexType().getSuffix();
+        } else {
+          return null;
         }
         break;
       case SKIPPING:
@@ -114,6 +119,8 @@ public class IndexQueryDetails {
       case MATERIALIZED_VIEW:
         if (mvName != null) { // mvName is not available for SHOW MATERIALIZED VIEW query
           indexName = "flint_" + new FullyQualifiedTableName(mvName).toFlintName();
+        } else {
+          return null;
         }
         break;
     }

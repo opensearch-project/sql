@@ -452,7 +452,8 @@ public class SparkQueryDispatcherTest {
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query =
         "CREATE MATERIALIZED VIEW mv_1 AS select * from logs WITH" + " (auto_refresh = false)";
-    String sparkSubmitParameters = constructExpectedSparkSubmitParameterString(query);
+    String sparkSubmitParameters =
+        constructExpectedSparkSubmitParameterString(query, null, QUERY_ID);
     StartJobRequest expected =
         new StartJobRequest(
             "TEST_CLUSTER:batch",
