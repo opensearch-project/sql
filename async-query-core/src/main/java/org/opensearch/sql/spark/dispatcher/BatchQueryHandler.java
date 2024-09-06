@@ -113,6 +113,13 @@ public class BatchQueryHandler extends AsyncQueryHandler {
         .datasourceName(dataSourceMetadata.getName())
         .jobType(JobType.BATCH)
         .status(QueryState.WAITING)
+        .indexName(getIndexName(context))
         .build();
+  }
+
+  private static String getIndexName(DispatchQueryContext context) {
+    return context.getIndexQueryDetails() != null
+        ? context.getIndexQueryDetails().openSearchIndexName()
+        : null;
   }
 }
