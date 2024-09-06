@@ -54,7 +54,9 @@ public class SparkQueryDispatcher {
             dispatchQueryRequest, asyncQueryRequestContext, dataSourceMetadata);
       }
 
-      List<String> validationErrors = SQLQueryUtils.validateSparkSqlQuery(query);
+      List<String> validationErrors =
+          SQLQueryUtils.validateSparkSqlQuery(
+              dataSourceService.getDataSource(dispatchQueryRequest.getDatasource()), query);
       if (!validationErrors.isEmpty()) {
         throw new IllegalArgumentException(
             "Query is not allowed: " + String.join(", ", validationErrors));
@@ -148,7 +150,6 @@ public class SparkQueryDispatcher {
 
   private boolean isEligibleForIndexDMLHandling(IndexQueryDetails indexQueryDetails) {
     return IndexQueryActionType.DROP.equals(indexQueryDetails.getIndexQueryActionType())
-        || IndexQueryActionType.VACUUM.equals(indexQueryDetails.getIndexQueryActionType())
         || (IndexQueryActionType.ALTER.equals(indexQueryDetails.getIndexQueryActionType())
             && (indexQueryDetails
                     .getFlintIndexOptions()
@@ -157,9 +158,11 @@ public class SparkQueryDispatcher {
                 && !indexQueryDetails.getFlintIndexOptions().autoRefresh()));
   }
 
-  public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  public JSONObject getQueryResponse(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     return getAsyncQueryHandlerForExistingQuery(asyncQueryJobMetadata)
-        .getQueryResponse(asyncQueryJobMetadata);
+        .getQueryResponse(asyncQueryJobMetadata, asyncQueryRequestContext);
   }
 
   public String cancelJob(
@@ -175,7 +178,7 @@ public class SparkQueryDispatcher {
       return queryHandlerFactory.getInteractiveQueryHandler();
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       return queryHandlerFactory.getIndexDMLHandler();
-    } else if (asyncQueryJobMetadata.getJobType() == JobType.BATCH) {
+    } else if (asyncQueryJobMetadata.getJobType() == JobType.REFRESH) {
       return queryHandlerFactory.getRefreshQueryHandler(asyncQueryJobMetadata.getAccountId());
     } else if (asyncQueryJobMetadata.getJobType() == JobType.STREAMING) {
       return queryHandlerFactory.getStreamingQueryHandler(asyncQueryJobMetadata.getAccountId());

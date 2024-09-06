@@ -82,7 +82,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
           .jobId(DML_QUERY_JOB_ID)
           .resultIndex(dataSourceMetadata.getResultIndex())
           .datasourceName(dataSourceMetadata.getName())
-          .jobType(JobType.INTERACTIVE)
+          .jobType(JobType.BATCH)
           .build();
     } catch (Exception e) {
       LOG.error(e.getMessage());
@@ -100,7 +100,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
           .jobId(DML_QUERY_JOB_ID)
           .resultIndex(dataSourceMetadata.getResultIndex())
           .datasourceName(dataSourceMetadata.getName())
-          .jobType(JobType.INTERACTIVE)
+          .jobType(JobType.BATCH)
           .build();
     }
   }
@@ -138,8 +138,6 @@ public class IndexDMLHandler extends AsyncQueryHandler {
       case ALTER:
         return flintIndexOpFactory.getAlter(
             indexQueryDetails.getFlintIndexOptions(), dispatchQueryRequest.getDatasource());
-      case VACUUM:
-        return flintIndexOpFactory.getVacuum(dispatchQueryRequest.getDatasource());
       default:
         throw new IllegalStateException(
             String.format(
@@ -162,14 +160,18 @@ public class IndexDMLHandler extends AsyncQueryHandler {
   }
 
   @Override
-  protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  protected JSONObject getResponseFromResultIndex(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     String queryId = asyncQueryJobMetadata.getQueryId();
     return jobExecutionResponseReader.getResultWithQueryId(
         queryId, asyncQueryJobMetadata.getResultIndex());
   }
 
   @Override
-  protected JSONObject getResponseFromExecutor(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  protected JSONObject getResponseFromExecutor(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     // Consider statement still running if result doc created in submit() is not available yet
     JSONObject result = new JSONObject();
     result.put(STATUS_FIELD, StatementState.RUNNING.getState());

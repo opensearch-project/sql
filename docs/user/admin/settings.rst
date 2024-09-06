@@ -196,6 +196,50 @@ Result set::
 
 Note: the legacy settings of ``opendistro.sql.cursor.keep_alive`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
+plugins.sql.pagination.api
+================================
+
+Description
+-----------
+
+This setting controls whether the SQL search queries in OpenSearch use Point-In-Time (PIT) with search_after or the traditional scroll mechanism for fetching paginated results.
+
+1. Default Value: true
+2. Possible Values: true or false
+3. When set to true, the search query in the background uses PIT with search_after instead of scroll to retrieve paginated results. The Cursor Id returned to the user will encode relevant pagination query-related information, which will be used to fetch the subsequent pages of results.
+4. This setting is node-level.
+5. This setting can be updated dynamically.
+
+
+Example
+-------
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.sql.pagination.api" : "true"
+	  }
+	}'
+
+Result set::
+
+	{
+	  "acknowledged" : true,
+	  "persistent" : { },
+	  "transient" : {
+	    "plugins" : {
+	      "sql" : {
+	        "pagination" : {
+	          "api" : "true"
+	        }
+	      }
+	    }
+	  }
+	}
+
 plugins.query.size_limit
 ===========================
 
@@ -588,6 +632,75 @@ Request::
                     "executionengine": {
                         "async_query": {
                             "enabled": "false"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+plugins.query.executionengine.async_query.external_scheduler.enabled
+=====================================================================
+
+Description
+-----------
+This setting controls whether the external scheduler is enabled for async queries.
+
+* Default Value: true
+* Scope: Node-level
+* Dynamic Update: Yes, this setting can be updated dynamically. 
+
+To disable the external scheduler, use the following command:
+
+Request ::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.async_query.external_scheduler.enabled":"false"}}'
+    {
+        "acknowledged": true,
+        "persistent": {},
+        "transient": {
+            "plugins": {
+                "query": {
+                    "executionengine": {
+                        "async_query": {
+                            "external_scheduler": {
+                                "enabled": "false"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+plugins.query.executionengine.async_query.external_scheduler.interval
+=====================================================================
+
+Description
+-----------
+This setting defines the interval at which the external scheduler applies for auto refresh queries. It optimizes Spark applications by allowing them to automatically decide whether to use the Spark scheduler or the external scheduler.
+
+* Default Value: None (must be explicitly set)
+* Format: A string representing a time duration follows Spark `CalendarInterval <https://spark.apache.org/docs/latest/api/java/org/apache/spark/unsafe/types/CalendarInterval.html>`__ format (e.g., ``10 minutes`` for 10 minutes, ``1 hour`` for 1 hour).
+
+To modify the interval to 10 minutes for example, use this command:
+
+Request ::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.async_query.external_scheduler.interval":"10 minutes"}}'
+    {
+        "acknowledged": true,
+        "persistent": {},
+        "transient": {
+            "plugins": {
+                "query": {
+                    "executionengine": {
+                        "async_query": {
+                            "external_scheduler": {
+                                "interval": "10 minutes"
+                            }
                         }
                     }
                 }

@@ -60,6 +60,7 @@ import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.datasources.encryptor.EncryptorImpl;
 import org.opensearch.sql.datasources.glue.GlueDataSourceFactory;
+import org.opensearch.sql.datasources.glue.SecurityLakeDataSourceFactory;
 import org.opensearch.sql.datasources.model.transport.*;
 import org.opensearch.sql.datasources.rest.RestDataSourceQueryAction;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
@@ -95,8 +96,8 @@ import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
-import org.opensearch.sql.spark.scheduler.OpenSearchRefreshIndexJobRequestParser;
-import org.opensearch.sql.spark.scheduler.job.OpenSearchRefreshIndexJob;
+import org.opensearch.sql.spark.scheduler.job.ScheduledAsyncQueryJobRunner;
+import org.opensearch.sql.spark.scheduler.parser.OpenSearchScheduleQueryJobRequestParser;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
@@ -216,8 +217,6 @@ public class SQLPlugin extends Plugin
     this.client = (NodeClient) client;
     this.dataSourceService = createDataSourceService();
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
-    this.asyncQueryScheduler = new OpenSearchAsyncQueryScheduler();
-    this.asyncQueryScheduler.loadJobResource(client, clusterService, threadPool);
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
     LocalClusterState.state().setClient(client);
@@ -246,11 +245,13 @@ public class SQLPlugin extends Plugin
             dataSourceService,
             injector.getInstance(FlintIndexMetadataServiceImpl.class),
             injector.getInstance(FlintIndexOpFactory.class));
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        injector.getInstance(AsyncQueryExecutorService.class);
+    ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
+        .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
+
     return ImmutableList.of(
-        dataSourceService,
-        injector.getInstance(AsyncQueryExecutorService.class),
-        clusterManagerEventListener,
-        pluginSettings);
+        dataSourceService, asyncQueryExecutorService, clusterManagerEventListener, pluginSettings);
   }
 
   @Override
@@ -265,12 +266,12 @@ public class SQLPlugin extends Plugin
 
   @Override
   public ScheduledJobRunner getJobRunner() {
-    return OpenSearchRefreshIndexJob.getJobRunnerInstance();
+    return ScheduledAsyncQueryJobRunner.getJobRunnerInstance();
   }
 
   @Override
   public ScheduledJobParser getJobParser() {
-    return OpenSearchRefreshIndexJobRequestParser.getJobParser();
+    return OpenSearchScheduleQueryJobRequestParser.getJobParser();
   }
 
   @Override
@@ -326,6 +327,7 @@ public class SQLPlugin extends Plugin
             .add(new PrometheusStorageFactory(pluginSettings))
             .add(new SparkStorageFactory(this.client, pluginSettings))
             .add(new GlueDataSourceFactory(pluginSettings))
+            .add(new SecurityLakeDataSourceFactory(pluginSettings))
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
@@ -340,6 +342,9 @@ public class SQLPlugin extends Plugin
     systemIndexDescriptors.add(
         new SystemIndexDescriptor(
             SPARK_REQUEST_BUFFER_INDEX_NAME + "*", "SQL Spark Request Buffer index pattern"));
+    systemIndexDescriptors.add(
+        new SystemIndexDescriptor(
+            OpenSearchAsyncQueryScheduler.SCHEDULER_INDEX_NAME, "SQL Scheduler job index"));
     return systemIndexDescriptors;
   }
 }

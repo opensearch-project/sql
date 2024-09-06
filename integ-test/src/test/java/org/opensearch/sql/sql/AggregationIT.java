@@ -9,14 +9,17 @@ import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verify;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySome;
 import static org.opensearch.sql.util.TestUtils.getResponseBody;
+import static org.opensearch.sql.util.TestUtils.roundOfResponse;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -396,8 +399,9 @@ public class AggregationIT extends SQLIntegTestCase {
   @Test
   public void testAvgDoublePushedDown() throws IOException {
     var response = executeQuery(String.format("SELECT avg(num3)" + " from %s", TEST_INDEX_CALCS));
+    JSONArray responseJSON = roundOfResponse(response.getJSONArray("datarows"));
     verifySchema(response, schema("avg(num3)", null, "double"));
-    verifyDataRows(response, rows(-6.12D));
+    verify(responseJSON, rows(-6.12D));
   }
 
   @Test
@@ -456,8 +460,9 @@ public class AggregationIT extends SQLIntegTestCase {
         executeQuery(
             String.format(
                 "SELECT avg(num3)" + " OVER(PARTITION BY datetime1) from %s", TEST_INDEX_CALCS));
+    JSONArray roundOfResponse = roundOfResponse(response.getJSONArray("datarows"));
     verifySchema(response, schema("avg(num3) OVER(PARTITION BY datetime1)", null, "double"));
-    verifySome(response.getJSONArray("datarows"), rows(-6.12D));
+    verifySome(roundOfResponse, rows(-6.12D));
   }
 
   @Test

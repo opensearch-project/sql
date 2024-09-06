@@ -23,6 +23,7 @@ public abstract class Settings {
     SQL_SLOWLOG("plugins.sql.slowlog"),
     SQL_CURSOR_KEEP_ALIVE("plugins.sql.cursor.keep_alive"),
     SQL_DELETE_ENABLED("plugins.sql.delete.enabled"),
+    SQL_PAGINATION_API_SEARCH_AFTER("plugins.sql.pagination.api"),
 
     /** PPL Settings. */
     PPL_ENABLED("plugins.ppl.enabled"),
@@ -50,6 +51,10 @@ public abstract class Settings {
 
     /** Async query Settings * */
     ASYNC_QUERY_ENABLED("plugins.query.executionengine.async_query.enabled"),
+    ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED(
+        "plugins.query.executionengine.async_query.external_scheduler.enabled"),
+    ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL(
+        "plugins.query.executionengine.async_query.external_scheduler.interval"),
     STREAMING_JOB_HOUSEKEEPER_INTERVAL(
         "plugins.query.executionengine.spark.streamingjobs.housekeeper.interval");
 

@@ -71,6 +71,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> SQL_PAGINATION_API_SEARCH_AFTER_SETTING =
+      Setting.boolSetting(
+          Key.SQL_PAGINATION_API_SEARCH_AFTER.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> PPL_ENABLED_SETTING =
       Setting.boolSetting(
           Key.PPL_ENABLED.getKeyValue(),
@@ -144,6 +151,19 @@ public class OpenSearchSettings extends Settings {
       Setting.boolSetting(
           Key.ASYNC_QUERY_ENABLED.getKeyValue(),
           true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<Boolean> ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<String> ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL_SETTING =
+      Setting.simpleString(
+          Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL.getKeyValue(),
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -240,6 +260,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.SQL_PAGINATION_API_SEARCH_AFTER,
+        SQL_PAGINATION_API_SEARCH_AFTER_SETTING,
+        new Updater(Key.SQL_PAGINATION_API_SEARCH_AFTER));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.PPL_ENABLED,
         PPL_ENABLED_SETTING,
         new Updater(Key.PPL_ENABLED));
@@ -285,6 +311,18 @@ public class OpenSearchSettings extends Settings {
         Key.ASYNC_QUERY_ENABLED,
         ASYNC_QUERY_ENABLED_SETTING,
         new Updater(Key.ASYNC_QUERY_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED,
+        ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED_SETTING,
+        new Updater(Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL,
+        ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL_SETTING,
+        new Updater(Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL));
     register(
         settingBuilder,
         clusterSettings,
@@ -397,6 +435,7 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
         .add(SQL_DELETE_ENABLED_SETTING)
+        .add(SQL_PAGINATION_API_SEARCH_AFTER_SETTING)
         .add(PPL_ENABLED_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
@@ -405,6 +444,8 @@ public class OpenSearchSettings extends Settings {
         .add(DATASOURCE_URI_HOSTS_DENY_LIST)
         .add(DATASOURCE_ENABLED_SETTING)
         .add(ASYNC_QUERY_ENABLED_SETTING)
+        .add(ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED_SETTING)
+        .add(ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL_SETTING)
         .add(SPARK_EXECUTION_ENGINE_CONFIG)
         .add(SPARK_EXECUTION_SESSION_LIMIT_SETTING)
         .add(SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING)

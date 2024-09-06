@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.index;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.mv;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.skippingIndex;
@@ -18,7 +19,10 @@ import java.util.List;
 import lombok.Getter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
@@ -26,6 +30,8 @@ import org.opensearch.sql.spark.flint.FlintIndexType;
 
 @ExtendWith(MockitoExtension.class)
 public class SQLQueryUtilsTest {
+
+  @Mock private DataSource dataSource;
 
   @Test
   void testExtractionOfTableNameFromSQLQueries() {
@@ -136,7 +142,6 @@ public class SQLQueryUtilsTest {
           + " WHERE elb_status_code = 500 "
           + " WITH (auto_refresh = true)",
       "DROP SKIPPING INDEX ON myS3.default.alb_logs",
-      "VACUUM SKIPPING INDEX ON myS3.default.alb_logs",
       "ALTER SKIPPING INDEX ON myS3.default.alb_logs WITH (auto_refresh = false)",
     };
 
@@ -165,7 +170,6 @@ public class SQLQueryUtilsTest {
           + " WHERE elb_status_code = 500 "
           + " WITH (auto_refresh = true)",
       "DROP INDEX elb_and_requestUri ON myS3.default.alb_logs",
-      "VACUUM INDEX elb_and_requestUri ON myS3.default.alb_logs",
       "ALTER INDEX elb_and_requestUri ON myS3.default.alb_logs WITH (auto_refresh = false)"
     };
 
@@ -182,13 +186,22 @@ public class SQLQueryUtilsTest {
   }
 
   @Test
+  void testExtractionFromCreateMVQuery() {
+    String mvQuery = "select * from my_glue.default.logs";
+    String query = "CREATE MATERIALIZED VIEW mv_1 AS " + mvQuery + " WITH (auto_refresh = true)";
+
+    assertTrue(SQLQueryUtils.isFlintExtensionQuery(query));
+    IndexQueryDetails indexQueryDetails = SQLQueryUtils.extractIndexDetails(query);
+    assertNull(indexQueryDetails.getIndexName());
+    assertNull(indexQueryDetails.getFullyQualifiedTableName());
+    assertEquals(mvQuery, indexQueryDetails.getMvQuery());
+    assertEquals("mv_1", indexQueryDetails.getMvName());
+  }
+
+  @Test
   void testExtractionFromFlintMVQuery() {
     String[] mvQueries = {
-      "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs WITH"
-          + " (auto_refresh = true)",
-      "DROP MATERIALIZED VIEW mv_1",
-      "VACUUM MATERIALIZED VIEW mv_1",
-      "ALTER MATERIALIZED VIEW mv_1 WITH (auto_refresh = false)",
+      "DROP MATERIALIZED VIEW mv_1", "ALTER MATERIALIZED VIEW mv_1 WITH (auto_refresh = false)",
     };
 
     for (String query : mvQueries) {
@@ -200,6 +213,7 @@ public class SQLQueryUtilsTest {
 
       assertNull(indexQueryDetails.getIndexName());
       assertNull(fullyQualifiedTableName);
+      assertNull(indexQueryDetails.getMvQuery());
       assertEquals("mv_1", indexQueryDetails.getMvName());
     }
   }
@@ -392,15 +406,96 @@ public class SQLQueryUtilsTest {
 
   @Test
   void testValidateSparkSqlQuery_ValidQuery() {
-    String validQuery = "SELECT * FROM users WHERE age > 18";
-    List<String> errors = SQLQueryUtils.validateSparkSqlQuery(validQuery);
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType(
+            "DELETE FROM Customers WHERE CustomerName='Alfreds Futterkiste'",
+            DataSourceType.PROMETHEUS);
+
     assertTrue(errors.isEmpty(), "Valid query should not produce any errors");
   }
 
   @Test
+  void testValidateSparkSqlQuery_SelectQuery_DataSourceSecurityLake() {
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType(
+            "SELECT * FROM users WHERE age > 18", DataSourceType.SECURITY_LAKE);
+
+    assertTrue(errors.isEmpty(), "Valid query should not produce any errors ");
+  }
+
+  @Test
+  void testValidateSparkSqlQuery_SelectQuery_DataSourceTypeNull() {
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType("SELECT * FROM users WHERE age > 18", null);
+
+    assertTrue(errors.isEmpty(), "Valid query should not produce any errors ");
+  }
+
+  @Test
+  void testValidateSparkSqlQuery_InvalidQuery_SyntaxCheckFailureSkippedWithoutValidationError() {
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType(
+            "SEECT * FROM users WHERE age > 18", DataSourceType.SECURITY_LAKE);
+
+    assertTrue(errors.isEmpty(), "Valid query should not produce any errors ");
+  }
+
+  @Test
+  void testValidateSparkSqlQuery_nullDatasource() {
+    List<String> errors =
+        SQLQueryUtils.validateSparkSqlQuery(null, "SELECT * FROM users WHERE age > 18");
+    assertTrue(errors.isEmpty(), "Valid query should not produce any errors ");
+  }
+
+  private List<String> validateSparkSqlQueryForDataSourceType(
+      String query, DataSourceType dataSourceType) {
+    when(this.dataSource.getConnectorType()).thenReturn(dataSourceType);
+
+    return SQLQueryUtils.validateSparkSqlQuery(this.dataSource, query);
+  }
+
+  @Test
+  void testValidateSparkSqlQuery_SelectQuery_DataSourceSecurityLake_ValidationFails() {
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType(
+            "REFRESH INDEX cv1 ON mys3.default.http_logs", DataSourceType.SECURITY_LAKE);
+
+    assertFalse(
+        errors.isEmpty(),
+        "Invalid query as Security Lake datasource supports only flint queries and SELECT sql"
+            + " queries. Given query was REFRESH sql query");
+    assertEquals(
+        errors.get(0),
+        "Unsupported sql statement for security lake data source. Only select queries are allowed");
+  }
+
+  @Test
+  void
+      testValidateSparkSqlQuery_NonSelectStatementContainingSelectClause_DataSourceSecurityLake_ValidationFails() {
+    String query =
+        "CREATE TABLE AccountSummaryOrWhatever AS "
+            + "select taxid, address1, count(address1) from dbo.t "
+            + "group by taxid, address1;";
+
+    List<String> errors =
+        validateSparkSqlQueryForDataSourceType(query, DataSourceType.SECURITY_LAKE);
+
+    assertFalse(
+        errors.isEmpty(),
+        "Invalid query as Security Lake datasource supports only flint queries and SELECT sql"
+            + " queries. Given query was REFRESH sql query");
+    assertEquals(
+        errors.get(0),
+        "Unsupported sql statement for security lake data source. Only select queries are allowed");
+  }
+
+  @Test
   void testValidateSparkSqlQuery_InvalidQuery() {
+    when(dataSource.getConnectorType()).thenReturn(DataSourceType.PROMETHEUS);
     String invalidQuery = "CREATE FUNCTION myUDF AS 'com.example.UDF'";
-    List<String> errors = SQLQueryUtils.validateSparkSqlQuery(invalidQuery);
+
+    List<String> errors = SQLQueryUtils.validateSparkSqlQuery(dataSource, invalidQuery);
+
     assertFalse(errors.isEmpty(), "Invalid query should produce errors");
     assertEquals(1, errors.size(), "Should have one error");
     assertEquals(
@@ -428,8 +523,7 @@ public class SQLQueryUtilsTest {
     }
 
     public static IndexQuery mv() {
-      return new IndexQuery(
-          "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs");
+      return new IndexQuery("CREATE MATERIALIZED VIEW mv_1 AS select * from my_glue.default.logs");
     }
 
     public IndexQuery withProperty(String key, String value) {
