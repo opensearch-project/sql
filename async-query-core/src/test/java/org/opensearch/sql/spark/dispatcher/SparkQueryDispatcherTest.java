@@ -623,6 +623,16 @@ public class SparkQueryDispatcherTest {
   }
 
   @Test
+  void testDispatchRecoverIndexQuery() {
+    String query = "RECOVER INDEX JOB `flint_spark_catalog_default_test_skipping_index`";
+    Assertions.assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            sparkQueryDispatcher.dispatch(
+                getBaseDispatchQueryRequest(query), asyncQueryRequestContext));
+  }
+
+  @Test
   void testDispatchWithUnSupportedDataSourceType() {
     when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
             "my_prometheus", asyncQueryRequestContext))
