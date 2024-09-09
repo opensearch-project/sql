@@ -47,6 +47,9 @@ import org.opensearch.sql.spark.rest.model.LangType;
 @ExtendWith(MockitoExtension.class)
 public class AsyncQueryExecutorServiceImplTest {
 
+  private static final String QUERY = "select * from my_glue.default.http_logs";
+  private static final String QUERY_ID = "QUERY_ID";
+
   @Mock private SparkQueryDispatcher sparkQueryDispatcher;
   @Mock private AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService;
   private AsyncQueryExecutorService jobExecutorService;
@@ -54,7 +57,6 @@ public class AsyncQueryExecutorServiceImplTest {
   @Mock private SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier;
   @Mock private SparkSubmitParameterModifier sparkSubmitParameterModifier;
   @Mock private AsyncQueryRequestContext asyncQueryRequestContext;
-  private final String QUERY_ID = "QUERY_ID";
 
   @BeforeEach
   void setUp() {
@@ -68,8 +70,7 @@ public class AsyncQueryExecutorServiceImplTest {
   @Test
   void testCreateAsyncQuery() {
     CreateAsyncQueryRequest createAsyncQueryRequest =
-        new CreateAsyncQueryRequest(
-            "select * from my_glue.default.http_logs", "my_glue", LangType.SQL);
+        new CreateAsyncQueryRequest(QUERY, "my_glue", LangType.SQL);
     when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(
             SparkExecutionEngineConfig.builder()
@@ -82,7 +83,7 @@ public class AsyncQueryExecutorServiceImplTest {
     DispatchQueryRequest expectedDispatchQueryRequest =
         DispatchQueryRequest.builder()
             .applicationId(EMRS_APPLICATION_ID)
-            .query("select * from my_glue.default.http_logs")
+            .query(QUERY)
             .datasource("my_glue")
             .langType(LangType.SQL)
             .executionRoleARN(EMRS_EXECUTION_ROLE)
@@ -134,9 +135,7 @@ public class AsyncQueryExecutorServiceImplTest {
                 .build());
 
     jobExecutorService.createAsyncQuery(
-        new CreateAsyncQueryRequest(
-            "select * from my_glue.default.http_logs", "my_glue", LangType.SQL),
-        asyncQueryRequestContext);
+        new CreateAsyncQueryRequest(QUERY, "my_glue", LangType.SQL), asyncQueryRequestContext);
 
     verify(sparkQueryDispatcher, times(1))
         .dispatch(
@@ -237,6 +236,8 @@ public class AsyncQueryExecutorServiceImplTest {
         .queryId(QUERY_ID)
         .applicationId(EMRS_APPLICATION_ID)
         .jobId(EMR_JOB_ID)
+        .query(QUERY)
+        .langType(LangType.SQL)
         .build();
   }
 }
