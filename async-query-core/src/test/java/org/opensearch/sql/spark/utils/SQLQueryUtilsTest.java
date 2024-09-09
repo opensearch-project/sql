@@ -436,6 +436,15 @@ public class SQLQueryUtilsTest {
   }
 
   @Test
+  void testRecoverIndex() {
+    String refreshSkippingIndex =
+        "RECOVER INDEX JOB `flint_spark_catalog_default_test_skipping_index`";
+    assertTrue(SQLQueryUtils.isFlintExtensionQuery(refreshSkippingIndex));
+    IndexQueryDetails indexDetails = SQLQueryUtils.extractIndexDetails(refreshSkippingIndex);
+    assertEquals(IndexQueryActionType.RECOVER, indexDetails.getIndexQueryActionType());
+  }
+
+  @Test
   void testValidateSparkSqlQuery_ValidQuery() {
     List<String> errors =
         validateSparkSqlQueryForDataSourceType(
