@@ -17,6 +17,7 @@ import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
@@ -151,6 +152,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
         .sessionId(session.getSessionId())
         .datasourceName(dataSourceMetadata.getName())
         .jobType(JobType.INTERACTIVE)
+        .status(QueryState.WAITING)
         .build();
   }
 
