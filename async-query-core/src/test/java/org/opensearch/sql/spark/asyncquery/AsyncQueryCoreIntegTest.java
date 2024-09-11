@@ -46,6 +46,7 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata.AsyncQueryJobMetadataBuilder;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.EmrServerlessClientImpl;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
@@ -83,6 +84,7 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
+import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 
 /**
  * This tests async-query-core library end-to-end using mocked implementation of extension points.
@@ -112,6 +114,7 @@ public class AsyncQueryCoreIntegTest {
   @Mock FlintIndexClient flintIndexClient;
   @Mock AsyncQueryRequestContext asyncQueryRequestContext;
   @Mock MetricsService metricsService;
+  @Mock AsyncQueryScheduler asyncQueryScheduler;
   @Mock SparkSubmitParametersBuilderProvider sparkSubmitParametersBuilderProvider;
 
   // storage services
@@ -159,7 +162,8 @@ public class AsyncQueryCoreIntegTest {
             flintIndexStateModelService,
             flintIndexClient,
             flintIndexMetadataService,
-            emrServerlessClientFactory);
+            emrServerlessClientFactory,
+            asyncQueryScheduler);
     QueryHandlerFactory queryHandlerFactory =
         new QueryHandlerFactory(
             jobExecutionResponseReader,
@@ -202,16 +206,43 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verifyCancelJobRunCalled();
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, JobType.BATCH);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
+  }
+
+  @Test
+  public void createDropIndexQueryWithScheduler() {
+    givenSparkExecutionEngineConfigIsSupplied();
+    givenValidDataSourceMetadataExist();
+    when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
+
+    String indexName = "flint_datasource_name_table_name_index_name_index";
+    givenFlintIndexMetadataExistsWithExternalScheduler(indexName);
+
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "DROP INDEX index_name ON table_name", DATASOURCE_NAME, LangType.SQL),
+            asyncQueryRequestContext);
+
+    assertEquals(QUERY_ID, response.getQueryId());
+    assertNull(response.getSessionId());
+    verifyGetQueryIdCalled();
+    verifyCreateIndexDMLResultCalled();
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
+
+    verify(asyncQueryScheduler).unscheduleJob(indexName);
   }
 
   @Test
   public void createVacuumIndexQuery() {
     givenSparkExecutionEngineConfigIsSupplied();
     givenValidDataSourceMetadataExist();
+    givenSessionExists();
     when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
-    String indexName = "flint_datasource_name_table_name_index_name_index";
-    givenFlintIndexMetadataExists(indexName);
+    when(sessionIdProvider.getSessionId(any())).thenReturn(SESSION_ID);
+    givenSessionExists(); // called twice
+    when(awsemrServerless.startJobRun(any()))
+        .thenReturn(new StartJobRunResult().withApplicationId(APPLICATION_ID).withJobRunId(JOB_ID));
 
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
@@ -220,11 +251,12 @@ public class AsyncQueryCoreIntegTest {
             asyncQueryRequestContext);
 
     assertEquals(QUERY_ID, response.getQueryId());
-    assertNull(response.getSessionId());
+    assertEquals(SESSION_ID, response.getSessionId());
     verifyGetQueryIdCalled();
-    verify(flintIndexClient).deleteIndex(indexName);
-    verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, JobType.BATCH);
+    verifyGetSessionIdCalled();
+    verify(leaseManager).borrow(any());
+    verifyStartJobRunCalled();
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING, JobType.INTERACTIVE);
   }
 
   @Test
@@ -255,7 +287,41 @@ public class AsyncQueryCoreIntegTest {
     assertFalse(flintIndexOptions.autoRefresh());
     verifyCancelJobRunCalled();
     verifyCreateIndexDMLResultCalled();
-    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, JobType.BATCH);
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
+  }
+
+  @Test
+  public void createAlterIndexQueryWithScheduler() {
+    givenSparkExecutionEngineConfigIsSupplied();
+    givenValidDataSourceMetadataExist();
+    when(queryIdProvider.getQueryId(any(), eq(asyncQueryRequestContext))).thenReturn(QUERY_ID);
+
+    String indexName = "flint_datasource_name_table_name_index_name_index";
+    givenFlintIndexMetadataExistsWithExternalScheduler(indexName);
+
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "ALTER INDEX index_name ON table_name WITH (auto_refresh = false)",
+                DATASOURCE_NAME,
+                LangType.SQL),
+            asyncQueryRequestContext);
+
+    assertEquals(QUERY_ID, response.getQueryId());
+    assertNull(response.getSessionId());
+    verifyGetQueryIdCalled();
+
+    verify(flintIndexMetadataService)
+        .updateIndexToManualRefresh(
+            eq(indexName), flintIndexOptionsArgumentCaptor.capture(), eq(asyncQueryRequestContext));
+
+    FlintIndexOptions flintIndexOptions = flintIndexOptionsArgumentCaptor.getValue();
+    assertFalse(flintIndexOptions.autoRefresh());
+
+    verify(asyncQueryScheduler).unscheduleJob(indexName);
+
+    verifyCreateIndexDMLResultCalled();
+    verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
   }
 
   @Test
@@ -280,7 +346,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, JobType.STREAMING);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING, JobType.STREAMING);
   }
 
   private void verifyStartJobRunCalled() {
@@ -315,7 +381,7 @@ public class AsyncQueryCoreIntegTest {
     assertNull(response.getSessionId());
     verifyGetQueryIdCalled();
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, JobType.BATCH);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING, JobType.BATCH);
   }
 
   @Test
@@ -337,7 +403,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetQueryIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, JobType.BATCH);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING, JobType.REFRESH);
   }
 
   @Test
@@ -363,7 +429,7 @@ public class AsyncQueryCoreIntegTest {
     verifyGetSessionIdCalled();
     verify(leaseManager).borrow(any());
     verifyStartJobRunCalled();
-    verifyStoreJobMetadataCalled(JOB_ID, JobType.INTERACTIVE);
+    verifyStoreJobMetadataCalled(JOB_ID, QueryState.WAITING, JobType.INTERACTIVE);
   }
 
   @Test
@@ -454,7 +520,7 @@ public class AsyncQueryCoreIntegTest {
   @Test
   public void cancelRefreshQuery() {
     givenJobMetadataExists(
-        getBaseAsyncQueryJobMetadataBuilder().jobType(JobType.BATCH).indexName(INDEX_NAME));
+        getBaseAsyncQueryJobMetadataBuilder().jobType(JobType.REFRESH).indexName(INDEX_NAME));
     when(flintIndexMetadataService.getFlintIndexMetadata(INDEX_NAME, asyncQueryRequestContext))
         .thenReturn(
             ImmutableMap.of(
@@ -507,7 +573,8 @@ public class AsyncQueryCoreIntegTest {
                 .build());
   }
 
-  private void givenFlintIndexMetadataExists(String indexName) {
+  private void givenFlintIndexMetadataExists(
+      String indexName, FlintIndexOptions flintIndexOptions) {
     when(flintIndexMetadataService.getFlintIndexMetadata(indexName, asyncQueryRequestContext))
         .thenReturn(
             ImmutableMap.of(
@@ -516,7 +583,25 @@ public class AsyncQueryCoreIntegTest {
                     .appId(APPLICATION_ID)
                     .jobId(JOB_ID)
                     .opensearchIndexName(indexName)
+                    .flintIndexOptions(flintIndexOptions)
                     .build()));
+  }
+
+  // Overload method for default FlintIndexOptions usage
+  private void givenFlintIndexMetadataExists(String indexName) {
+    givenFlintIndexMetadataExists(indexName, new FlintIndexOptions());
+  }
+
+  // Method to set up FlintIndexMetadata with external scheduler
+  private void givenFlintIndexMetadataExistsWithExternalScheduler(String indexName) {
+    givenFlintIndexMetadataExists(indexName, createExternalSchedulerFlintIndexOptions());
+  }
+
+  // Helper method for creating FlintIndexOptions with external scheduler
+  private FlintIndexOptions createExternalSchedulerFlintIndexOptions() {
+    FlintIndexOptions options = new FlintIndexOptions();
+    options.setOption(FlintIndexOptions.SCHEDULER_MODE, "external");
+    return options;
   }
 
   private void givenValidDataSourceMetadataExist() {
@@ -560,7 +645,7 @@ public class AsyncQueryCoreIntegTest {
     assertEquals(APPLICATION_ID, createSessionRequest.getApplicationId());
   }
 
-  private void verifyStoreJobMetadataCalled(String jobId, JobType jobType) {
+  private void verifyStoreJobMetadataCalled(String jobId, QueryState state, JobType jobType) {
     verify(asyncQueryJobMetadataStorageService)
         .storeJobMetadata(
             asyncQueryJobMetadataArgumentCaptor.capture(), eq(asyncQueryRequestContext));
@@ -568,6 +653,9 @@ public class AsyncQueryCoreIntegTest {
     assertEquals(QUERY_ID, asyncQueryJobMetadata.getQueryId());
     assertEquals(jobId, asyncQueryJobMetadata.getJobId());
     assertEquals(DATASOURCE_NAME, asyncQueryJobMetadata.getDatasourceName());
+    assertNull(asyncQueryJobMetadata.getError());
+    assertEquals(LangType.SQL, asyncQueryJobMetadata.getLangType());
+    assertEquals(state, asyncQueryJobMetadata.getState());
     assertEquals(jobType, asyncQueryJobMetadata.getJobType());
   }
 

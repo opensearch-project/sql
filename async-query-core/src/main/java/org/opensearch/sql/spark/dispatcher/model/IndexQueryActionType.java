@@ -13,5 +13,6 @@ public enum IndexQueryActionType {
   SHOW,
   DROP,
   VACUUM,
-  ALTER
+  ALTER,
+  RECOVER
 }

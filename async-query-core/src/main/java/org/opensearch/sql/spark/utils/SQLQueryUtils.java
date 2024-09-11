@@ -15,16 +15,22 @@ import lombok.experimental.UtilityClass;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsBaseVisitor;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsLexer;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser.MaterializedViewQueryContext;
+import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser.RecoverIndexJobStatementContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseLexer;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.IdentifierReferenceContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.StatementContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParserBaseVisitor;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
@@ -38,13 +44,14 @@ import org.opensearch.sql.spark.flint.FlintIndexType;
  */
 @UtilityClass
 public class SQLQueryUtils {
+  private static final Logger logger = LogManager.getLogger(SQLQueryUtils.class);
 
   public static List<FullyQualifiedTableName> extractFullyQualifiedTableNames(String sqlQuery) {
     SqlBaseParser sqlBaseParser =
         new SqlBaseParser(
             new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(sqlQuery))));
     sqlBaseParser.addErrorListener(new SyntaxAnalysisErrorListener());
-    SqlBaseParser.StatementContext statement = sqlBaseParser.statement();
+    StatementContext statement = sqlBaseParser.statement();
     SparkSqlTableNameVisitor sparkSqlTableNameVisitor = new SparkSqlTableNameVisitor();
     statement.accept(sparkSqlTableNameVisitor);
     return sparkSqlTableNameVisitor.getFullyQualifiedTableNames();
@@ -77,29 +84,70 @@ public class SQLQueryUtils {
     }
   }
 
-  public static List<String> validateSparkSqlQuery(String sqlQuery) {
-    SparkSqlValidatorVisitor sparkSqlValidatorVisitor = new SparkSqlValidatorVisitor();
+  public static List<String> validateSparkSqlQuery(DataSource datasource, String sqlQuery) {
     SqlBaseParser sqlBaseParser =
         new SqlBaseParser(
             new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(sqlQuery))));
     sqlBaseParser.addErrorListener(new SyntaxAnalysisErrorListener());
     try {
-      SqlBaseParser.StatementContext statement = sqlBaseParser.statement();
-      sparkSqlValidatorVisitor.visit(statement);
-      return sparkSqlValidatorVisitor.getValidationErrors();
-    } catch (SyntaxCheckException syntaxCheckException) {
+      SqlBaseValidatorVisitor sqlParserBaseVisitor = getSparkSqlValidatorVisitor(datasource);
+      StatementContext statement = sqlBaseParser.statement();
+      sqlParserBaseVisitor.visit(statement);
+      return sqlParserBaseVisitor.getValidationErrors();
+    } catch (SyntaxCheckException e) {
+      logger.error(
+          String.format(
+              "Failed to parse sql statement context while validating sql query %s", sqlQuery),
+          e);
       return Collections.emptyList();
     }
   }
 
-  private static class SparkSqlValidatorVisitor extends SqlBaseParserBaseVisitor<Void> {
+  private SqlBaseValidatorVisitor getSparkSqlValidatorVisitor(DataSource datasource) {
+    if (datasource != null
+        && datasource.getConnectorType() != null
+        && datasource.getConnectorType().equals(DataSourceType.SECURITY_LAKE)) {
+      return new SparkSqlSecurityLakeValidatorVisitor();
+    } else {
+      return new SparkSqlValidatorVisitor();
+    }
+  }
 
-    @Getter private final List<String> validationErrors = new ArrayList<>();
+  /**
+   * A base class extending SqlBaseParserBaseVisitor for validating Spark Sql Queries. The class
+   * supports accumulating validation errors on visiting sql statement
+   */
+  @Getter
+  private static class SqlBaseValidatorVisitor<T> extends SqlBaseParserBaseVisitor<T> {
+    private final List<String> validationErrors = new ArrayList<>();
+  }
 
+  /** A generic validator impl for Spark Sql Queries */
+  private static class SparkSqlValidatorVisitor extends SqlBaseValidatorVisitor<Void> {
     @Override
     public Void visitCreateFunction(SqlBaseParser.CreateFunctionContext ctx) {
-      validationErrors.add("Creating user-defined functions is not allowed");
+      getValidationErrors().add("Creating user-defined functions is not allowed");
       return super.visitCreateFunction(ctx);
+    }
+  }
+
+  /** A validator impl specific to Security Lake for Spark Sql Queries */
+  private static class SparkSqlSecurityLakeValidatorVisitor extends SqlBaseValidatorVisitor<Void> {
+
+    public SparkSqlSecurityLakeValidatorVisitor() {
+      // only select statement allowed. hence we add the validation error to all types of statements
+      // by default
+      // and remove the validation error only for select statement.
+      getValidationErrors()
+          .add(
+              "Unsupported sql statement for security lake data source. Only select queries are"
+                  + " allowed");
+    }
+
+    @Override
+    public Void visitStatementDefault(SqlBaseParser.StatementDefaultContext ctx) {
+      getValidationErrors().clear();
+      return super.visitStatementDefault(ctx);
     }
   }
 
@@ -221,31 +269,6 @@ public class SQLQueryUtils {
     }
 
     @Override
-    public Void visitVacuumSkippingIndexStatement(
-        FlintSparkSqlExtensionsParser.VacuumSkippingIndexStatementContext ctx) {
-      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.VACUUM);
-      indexQueryDetailsBuilder.indexType(FlintIndexType.SKIPPING);
-      return super.visitVacuumSkippingIndexStatement(ctx);
-    }
-
-    @Override
-    public Void visitVacuumCoveringIndexStatement(
-        FlintSparkSqlExtensionsParser.VacuumCoveringIndexStatementContext ctx) {
-      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.VACUUM);
-      indexQueryDetailsBuilder.indexType(FlintIndexType.COVERING);
-      return super.visitVacuumCoveringIndexStatement(ctx);
-    }
-
-    @Override
-    public Void visitVacuumMaterializedViewStatement(
-        FlintSparkSqlExtensionsParser.VacuumMaterializedViewStatementContext ctx) {
-      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.VACUUM);
-      indexQueryDetailsBuilder.indexType(FlintIndexType.MATERIALIZED_VIEW);
-      indexQueryDetailsBuilder.mvName(ctx.mvName.getText());
-      return super.visitVacuumMaterializedViewStatement(ctx);
-    }
-
-    @Override
     public Void visitDescribeCoveringIndexStatement(
         FlintSparkSqlExtensionsParser.DescribeCoveringIndexStatementContext ctx) {
       indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.DESCRIBE);
@@ -362,6 +385,12 @@ public class SQLQueryUtils {
       String query = ctx.start.getInputStream().getText(new Interval(a, b));
       indexQueryDetailsBuilder.mvQuery(query);
       return super.visitMaterializedViewQuery(ctx);
+    }
+
+    @Override
+    public Void visitRecoverIndexJobStatement(RecoverIndexJobStatementContext ctx) {
+      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.RECOVER);
+      return super.visitRecoverIndexJobStatement(ctx);
     }
 
     private String propertyKey(FlintSparkSqlExtensionsParser.PropertyKeyContext key) {

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,8 +43,7 @@ import org.opensearch.common.action.ActionFuture;
 import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
-import org.opensearch.sql.spark.scheduler.model.OpenSearchRefreshIndexJobRequest;
-import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.sql.spark.scheduler.model.ScheduledAsyncQueryJobRequest;
 
 public class OpenSearchAsyncQuerySchedulerTest {
 
@@ -56,9 +56,6 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private ClusterService clusterService;
-
-  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private ThreadPool threadPool;
 
   @Mock private ActionFuture<IndexResponse> indexResponseActionFuture;
 
@@ -77,8 +74,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   @BeforeEach
   public void setup() {
     MockitoAnnotations.openMocks(this);
-    scheduler = new OpenSearchAsyncQueryScheduler();
-    scheduler.loadJobResource(client, clusterService, threadPool);
+    scheduler = new OpenSearchAsyncQueryScheduler(client, clusterService);
   }
 
   @Test
@@ -95,9 +91,9 @@ public class OpenSearchAsyncQuerySchedulerTest {
     when(indexResponseActionFuture.actionGet()).thenReturn(indexResponse);
     when(indexResponse.getResult()).thenReturn(DocWriteResponse.Result.CREATED);
 
-    OpenSearchRefreshIndexJobRequest request =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName(TEST_JOB_ID)
+    ScheduledAsyncQueryJobRequest request =
+        ScheduledAsyncQueryJobRequest.builder()
+            .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
 
@@ -119,9 +115,9 @@ public class OpenSearchAsyncQuerySchedulerTest {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME))
         .thenReturn(Boolean.TRUE);
 
-    OpenSearchRefreshIndexJobRequest request =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName(TEST_JOB_ID)
+    ScheduledAsyncQueryJobRequest request =
+        ScheduledAsyncQueryJobRequest.builder()
+            .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
 
@@ -148,9 +144,9 @@ public class OpenSearchAsyncQuerySchedulerTest {
         .thenReturn(new CreateIndexResponse(true, true, TEST_SCHEDULER_INDEX_NAME));
     when(client.index(any(IndexRequest.class))).thenThrow(new RuntimeException("Test exception"));
 
-    OpenSearchRefreshIndexJobRequest request =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName(TEST_JOB_ID)
+    ScheduledAsyncQueryJobRequest request =
+        ScheduledAsyncQueryJobRequest.builder()
+            .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
 
@@ -199,14 +195,17 @@ public class OpenSearchAsyncQuerySchedulerTest {
   public void testUnscheduleJobWithIndexNotFound() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
 
-    assertThrows(IllegalStateException.class, () -> scheduler.unscheduleJob(TEST_JOB_ID));
+    scheduler.unscheduleJob(TEST_JOB_ID);
+
+    // Verify that no update operation was performed
+    verify(client, never()).update(any(UpdateRequest.class));
   }
 
   @Test
   public void testUpdateJob() throws IOException {
-    OpenSearchRefreshIndexJobRequest request =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName(TEST_JOB_ID)
+    ScheduledAsyncQueryJobRequest request =
+        ScheduledAsyncQueryJobRequest.builder()
+            .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
 
@@ -229,9 +228,9 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
   @Test
   public void testUpdateJobWithIndexNotFound() {
-    OpenSearchRefreshIndexJobRequest request =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName(TEST_JOB_ID)
+    ScheduledAsyncQueryJobRequest request =
+        ScheduledAsyncQueryJobRequest.builder()
+            .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
 
@@ -242,9 +241,9 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
   @Test
   public void testUpdateJobWithExceptions() {
-    OpenSearchRefreshIndexJobRequest request =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName(TEST_JOB_ID)
+    ScheduledAsyncQueryJobRequest request =
+        ScheduledAsyncQueryJobRequest.builder()
+            .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
 
@@ -351,9 +350,9 @@ public class OpenSearchAsyncQuerySchedulerTest {
     Mockito.when(createIndexResponseActionFuture.actionGet())
         .thenReturn(new CreateIndexResponse(false, false, SCHEDULER_INDEX_NAME));
 
-    OpenSearchRefreshIndexJobRequest request =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName(TEST_JOB_ID)
+    ScheduledAsyncQueryJobRequest request =
+        ScheduledAsyncQueryJobRequest.builder()
+            .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
 
@@ -367,9 +366,9 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
   @Test
   public void testUpdateJobNotFound() {
-    OpenSearchRefreshIndexJobRequest request =
-        OpenSearchRefreshIndexJobRequest.builder()
-            .jobName(TEST_JOB_ID)
+    ScheduledAsyncQueryJobRequest request =
+        ScheduledAsyncQueryJobRequest.builder()
+            .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
 
