@@ -55,10 +55,12 @@ public class FlintIndexOpDrop extends FlintIndexOp {
         "Performing drop index operation for index: {}",
         flintIndexMetadata.getOpensearchIndexName());
     if (flintIndexMetadata.getFlintIndexOptions().isExternalScheduler()) {
-      AsyncQuerySchedulerRequest request = new AsyncQuerySchedulerRequest();
-      request.setAccountId(flintIndexStateModel.getAccountId());
-      request.setDataSource(flintIndexStateModel.getDatasourceName());
-      request.setJobId(flintIndexMetadata.getOpensearchIndexName());
+      AsyncQuerySchedulerRequest request =
+          AsyncQuerySchedulerRequest.builder()
+              .accountId(flintIndexStateModel.getAccountId())
+              .dataSource(flintIndexStateModel.getDatasourceName())
+              .jobId(flintIndexMetadata.getOpensearchIndexName())
+              .build();
       asyncQueryScheduler.unscheduleJob(request);
     } else {
       cancelStreamingJob(flintIndexStateModel);

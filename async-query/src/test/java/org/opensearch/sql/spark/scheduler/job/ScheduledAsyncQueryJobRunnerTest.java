@@ -72,7 +72,7 @@ public class ScheduledAsyncQueryJobRunnerTest {
     spyJobRunner.loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .jobId("testJob")
             .lastUpdateTime(Instant.now())
             .lockDurationSeconds(10L)
@@ -123,7 +123,7 @@ public class ScheduledAsyncQueryJobRunnerTest {
     spyJobRunner.loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .jobId("testJob")
             .lastUpdateTime(Instant.now())
             .lockDurationSeconds(10L)
@@ -158,7 +158,7 @@ public class ScheduledAsyncQueryJobRunnerTest {
   @Test
   public void testRunJobWithUninitializedServices() {
     ScheduledAsyncQueryJobRequest jobParameter =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .jobId("testJob")
             .lastUpdateTime(Instant.now())
             .build();

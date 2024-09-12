@@ -92,7 +92,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
     when(indexResponse.getResult()).thenReturn(DocWriteResponse.Result.CREATED);
 
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
@@ -116,7 +116,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
         .thenReturn(Boolean.TRUE);
 
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
@@ -145,7 +145,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
     when(client.index(any(IndexRequest.class))).thenThrow(new RuntimeException("Test exception"));
 
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
@@ -170,8 +170,8 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     when(client.update(any(UpdateRequest.class))).thenReturn(updateResponseActionFuture);
 
-    AsyncQuerySchedulerRequest request = new AsyncQuerySchedulerRequest();
-    request.setJobId(TEST_JOB_ID);
+    AsyncQuerySchedulerRequest request =
+        AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
     scheduler.unscheduleJob(request);
 
     ArgumentCaptor<UpdateRequest> captor = ArgumentCaptor.forClass(UpdateRequest.class);
@@ -197,8 +197,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   public void testUnscheduleJobInvalidJobId() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(true);
 
-    AsyncQuerySchedulerRequest request = new AsyncQuerySchedulerRequest();
-    request.setJobId(null);
+    AsyncQuerySchedulerRequest request = AsyncQuerySchedulerRequest.builder().build();
 
     IllegalArgumentException exception =
         assertThrows(IllegalArgumentException.class, () -> scheduler.unscheduleJob(request));
@@ -209,8 +208,8 @@ public class OpenSearchAsyncQuerySchedulerTest {
   public void testUnscheduleJobWithIndexNotFound() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
 
-    AsyncQuerySchedulerRequest request = new AsyncQuerySchedulerRequest();
-    request.setJobId(TEST_JOB_ID);
+    AsyncQuerySchedulerRequest request =
+        AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
     scheduler.unscheduleJob(request);
 
     // Verify that no update operation was performed
@@ -220,7 +219,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   @Test
   public void testUpdateJob() {
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
@@ -245,7 +244,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   @Test
   public void testUpdateJobWithIndexNotFound() {
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
@@ -258,7 +257,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   @Test
   public void testUpdateJobWithExceptions() {
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
@@ -306,8 +305,8 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     when(client.delete(any(DeleteRequest.class))).thenReturn(deleteResponseActionFuture);
 
-    AsyncQuerySchedulerRequest request = new AsyncQuerySchedulerRequest();
-    request.setJobId(TEST_JOB_ID);
+    AsyncQuerySchedulerRequest request =
+        AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
     scheduler.removeJob(request);
 
     ArgumentCaptor<DeleteRequest> captor = ArgumentCaptor.forClass(DeleteRequest.class);
@@ -322,8 +321,8 @@ public class OpenSearchAsyncQuerySchedulerTest {
   public void testRemoveJobWithIndexNotFound() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
 
-    AsyncQuerySchedulerRequest request = new AsyncQuerySchedulerRequest();
-    request.setJobId(TEST_JOB_ID);
+    AsyncQuerySchedulerRequest request =
+        AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
     assertThrows(IllegalStateException.class, () -> scheduler.removeJob(request));
   }
 
@@ -331,8 +330,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   public void testRemoveJobInvalidJobId() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(true);
 
-    AsyncQuerySchedulerRequest request = new AsyncQuerySchedulerRequest();
-    request.setJobId("");
+    AsyncQuerySchedulerRequest request = AsyncQuerySchedulerRequest.builder().jobId("").build();
 
     IllegalArgumentException exception =
         assertThrows(IllegalArgumentException.class, () -> scheduler.removeJob(request));
@@ -383,7 +381,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
         .thenReturn(new CreateIndexResponse(false, false, SCHEDULER_INDEX_NAME));
 
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
@@ -399,7 +397,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   @Test
   public void testUpdateJobNotFound() {
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .jobId(TEST_JOB_ID)
             .lastUpdateTime(Instant.now())
             .build();
@@ -429,8 +427,8 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     when(client.delete(any(DeleteRequest.class))).thenReturn(deleteResponseActionFuture);
 
-    AsyncQuerySchedulerRequest request = new AsyncQuerySchedulerRequest();
-    request.setJobId(TEST_JOB_ID);
+    AsyncQuerySchedulerRequest request =
+        AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
     IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
@@ -447,8 +445,8 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     when(client.delete(any(DeleteRequest.class))).thenThrow(new RuntimeException("Test exception"));
 
-    AsyncQuerySchedulerRequest request = new AsyncQuerySchedulerRequest();
-    request.setJobId(TEST_JOB_ID);
+    AsyncQuerySchedulerRequest request =
+        AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
     assertThrows(RuntimeException.class, () -> scheduler.removeJob(request));
 
     DeleteResponse deleteResponse = mock(DeleteResponse.class);

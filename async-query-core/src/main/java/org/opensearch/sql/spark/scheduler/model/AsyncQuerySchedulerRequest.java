@@ -7,12 +7,14 @@ package org.opensearch.sql.spark.scheduler.model;
 
 import java.time.Instant;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 /** Represents a job request for a scheduled task. */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AsyncQuerySchedulerRequest {
