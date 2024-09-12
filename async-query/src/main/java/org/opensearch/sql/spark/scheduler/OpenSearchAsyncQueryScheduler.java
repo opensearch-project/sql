@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.scheduler;
 import static org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -87,18 +88,18 @@ public class OpenSearchAsyncQueryScheduler implements AsyncQueryScheduler {
 
   /** Unschedules a job by marking it as disabled and updating its last update time. */
   @Override
-  public void unscheduleJob(String jobId) {
-    ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
-            .jobId(jobId)
-            .enabled(false)
-            .lastUpdateTime(Instant.now())
-            .build();
+  public void unscheduleJob(AsyncQuerySchedulerRequest asyncQuerySchedulerRequest) {
+    String jobId = asyncQuerySchedulerRequest.getJobId();
+    if (Strings.isNullOrEmpty(jobId)) {
+      throw new IllegalArgumentException("JobId cannot be null or empty");
+    }
     try {
-      updateJob(request);
-      LOG.info("Unscheduled job for jobId: {}", jobId);
+      asyncQuerySchedulerRequest.setEnabled(false);
+      asyncQuerySchedulerRequest.setLastUpdateTime(Instant.now());
+      updateJob(asyncQuerySchedulerRequest);
+      LOG.info("Unscheduled job for jobId: {}", asyncQuerySchedulerRequest);
     } catch (IllegalStateException | DocumentMissingException e) {
-      LOG.error("Failed to unschedule job: {}", jobId, e);
+      LOG.error("Failed to unschedule job: {}", asyncQuerySchedulerRequest, e);
     }
   }
 
@@ -134,8 +135,12 @@ public class OpenSearchAsyncQueryScheduler implements AsyncQueryScheduler {
 
   /** Removes a job by deleting its document from the index. */
   @Override
-  public void removeJob(String jobId) {
+  public void removeJob(AsyncQuerySchedulerRequest asyncQuerySchedulerRequest) {
     assertIndexExists();
+    String jobId = asyncQuerySchedulerRequest.getJobId();
+    if (Strings.isNullOrEmpty(jobId)) {
+      throw new IllegalArgumentException("JobId cannot be null or empty");
+    }
     DeleteRequest deleteRequest = new DeleteRequest(SCHEDULER_INDEX_NAME, jobId);
     deleteRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     ActionFuture<DeleteResponse> deleteResponseActionFuture = client.delete(deleteRequest);

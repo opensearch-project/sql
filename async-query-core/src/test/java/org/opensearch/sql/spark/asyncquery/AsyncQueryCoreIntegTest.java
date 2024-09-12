@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -230,7 +231,9 @@ public class AsyncQueryCoreIntegTest {
     verifyCreateIndexDMLResultCalled();
     verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
 
-    verify(asyncQueryScheduler).unscheduleJob(indexName);
+    verify(asyncQueryScheduler)
+        .unscheduleJob(
+            argThat(request -> indexName.equals(request.getJobId()) && !request.isEnabled()));
   }
 
   @Test
@@ -318,8 +321,9 @@ public class AsyncQueryCoreIntegTest {
     FlintIndexOptions flintIndexOptions = flintIndexOptionsArgumentCaptor.getValue();
     assertFalse(flintIndexOptions.autoRefresh());
 
-    verify(asyncQueryScheduler).unscheduleJob(indexName);
-
+    verify(asyncQueryScheduler)
+        .unscheduleJob(
+            argThat(request -> indexName.equals(request.getJobId()) && !request.isEnabled()));
     verifyCreateIndexDMLResultCalled();
     verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
   }

@@ -40,9 +40,11 @@ public interface AsyncQueryScheduler {
    * Temporarily disabling a job during maintenance or high-load periods - Allowing for easy
    * re-enabling of the job in the future
    *
-   * @param jobId The unique identifier of the job to unschedule
+   * @param asyncQuerySchedulerRequest The request containing updated job configuration
+   * @throws IllegalArgumentException if the job to be unscheduled doesn't exist
+   * @throws RuntimeException if there's an error during the unschedule process
    */
-  void unscheduleJob(String jobId);
+  void unscheduleJob(AsyncQuerySchedulerRequest asyncQuerySchedulerRequest);
 
   /**
    * Removes a job completely from the scheduler. This method permanently deletes the job and all
@@ -51,7 +53,9 @@ public interface AsyncQueryScheduler {
    * <p>Use cases: - Cleaning up jobs that are no longer needed - Removing obsolete or erroneously
    * created jobs - Freeing up resources by deleting unused job configurations
    *
-   * @param jobId The unique identifier of the job to remove
+   * @param asyncQuerySchedulerRequest The request to delete the job configuration
+   * @throws IllegalArgumentException if the job to be removed doesn't exist
+   * @throws RuntimeException if there's an error during the remove process
    */
-  void removeJob(String jobId);
+  void removeJob(AsyncQuerySchedulerRequest asyncQuerySchedulerRequest);
 }
