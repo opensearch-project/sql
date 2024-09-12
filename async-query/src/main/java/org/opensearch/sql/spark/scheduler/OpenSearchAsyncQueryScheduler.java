@@ -97,9 +97,9 @@ public class OpenSearchAsyncQueryScheduler implements AsyncQueryScheduler {
       asyncQuerySchedulerRequest.setEnabled(false);
       asyncQuerySchedulerRequest.setLastUpdateTime(Instant.now());
       updateJob(asyncQuerySchedulerRequest);
-      LOG.info("Unscheduled job for jobId: {}", asyncQuerySchedulerRequest);
+      LOG.info("Unscheduled job for jobId: {}", jobId);
     } catch (IllegalStateException | DocumentMissingException e) {
-      LOG.error("Failed to unschedule job: {}", asyncQuerySchedulerRequest, e);
+      LOG.error("Failed to unschedule job: {}", jobId, e);
     }
   }
 

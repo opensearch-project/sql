@@ -73,7 +73,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       continue-on-error: true
       with:
         name: opensearch-sql-ubuntu-latest-${{ matrix.java }}
@@ -81,7 +81,7 @@ jobs:
 
     - name: Upload test reports
       if: ${{ always() }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       continue-on-error: true
       with:
         name: test-reports-ubuntu-latest-${{ matrix.java }}
@@ -135,7 +135,7 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       continue-on-error: true
       with:
         name: opensearch-sql-${{ matrix.entry.os }}-${{ matrix.entry.java }}
@@ -143,7 +143,7 @@ jobs:
 
     - name: Upload test reports
       if: ${{ always() && matrix.entry.os == 'ubuntu-latest' }}
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       continue-on-error: true
       with:
         name: test-reports-${{ matrix.entry.os }}-${{ matrix.entry.java }}
