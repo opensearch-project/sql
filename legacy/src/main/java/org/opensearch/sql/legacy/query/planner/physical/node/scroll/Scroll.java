@@ -28,6 +28,7 @@ import org.opensearch.sql.legacy.query.planner.core.PlanNode;
 import org.opensearch.sql.legacy.query.planner.physical.Row;
 import org.opensearch.sql.legacy.query.planner.physical.estimation.Cost;
 import org.opensearch.sql.legacy.query.planner.physical.node.BatchPhysicalOperator;
+import org.opensearch.sql.legacy.query.planner.physical.node.SearchHitRow;
 import org.opensearch.sql.legacy.query.planner.resource.ResourceManager;
 
 /** OpenSearch Scroll API as physical implementation of TableScan */

@@ -1,5 +1,3 @@
-import java.util.concurrent.Callable
-
 /*
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
@@ -116,11 +114,6 @@ configurations.all {
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.10"
 }
-
-configurations {
-    zipArchive
-}
-
 compileJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
 }
@@ -169,8 +162,6 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${versions.mockito}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${versions.mockito}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
-
-    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
 }
 
 test {
@@ -285,24 +276,7 @@ afterEvaluate {
     }
 }
 
-def getJobSchedulerPlugin() {
-    provider(new Callable<RegularFile>() {
-        @Override
-        RegularFile call() throws Exception {
-            return new RegularFile() {
-                @Override
-                File getAsFile() {
-                    return configurations.zipArchive.asFileTree.matching {
-                        include '**/opensearch-job-scheduler*'
-                    }.singleFile
-                }
-            }
-        }
-    })
-}
-
 testClusters.integTest {
-    plugin(getJobSchedulerPlugin())
     plugin(project.tasks.bundlePlugin.archiveFile)
     testDistribution = "ARCHIVE"
 
@@ -318,3 +292,4 @@ testClusters.integTest {
 run {
     useCluster testClusters.integTest
 }
+

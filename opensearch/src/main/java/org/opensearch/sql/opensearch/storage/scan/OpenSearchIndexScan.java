@@ -51,7 +51,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
 
   /** Creates index scan based on a provided OpenSearchRequestBuilder. */
   public OpenSearchIndexScan(
-          OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
+      OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
     this.client = client;
     this.maxResponseSize = maxResponseSize;
     this.request = request;
@@ -126,11 +126,11 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
             ((PlanSerializer.CursorDeserializationStream) in).resolveObject("engine");
 
     client = engine.getClient();
-
-    boolean paginationAPISetting = Boolean.parseBoolean(client.getNodeClient().settings().get(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER.getKeyValue(), String.valueOf(true)));
-    System.out.println("**********OPENSEARCHINDEXSCAN flag: " + paginationAPISetting);
+    boolean pointInTimeEnabled =
+        Boolean.parseBoolean(
+            client.meta().get(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER.getKeyValue()));
     try (BytesStreamInput bsi = new BytesStreamInput(requestStream)) {
-      if (paginationAPISetting) {
+      if (pointInTimeEnabled) {
         request = new OpenSearchQueryRequest(bsi, engine);
       } else {
         request = new OpenSearchScrollRequest(bsi, engine);

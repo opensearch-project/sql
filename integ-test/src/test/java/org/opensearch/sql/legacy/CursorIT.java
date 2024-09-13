@@ -182,7 +182,7 @@ public class CursorIT extends SQLIntegTestCase {
     String selectQuery =
         StringUtils.format(
             "SELECT firstname, state FROM %s ORDER BY balance DESC ", TEST_INDEX_ACCOUNT);
-    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 26, false);
+    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 25, false);
   }
 
   @Test

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.legacy.query.planner.physical.node.scroll;
+package org.opensearch.sql.legacy.query.planner.physical.node;
 
 import com.google.common.base.Strings;
 import java.util.HashMap;
@@ -36,7 +36,7 @@ import org.opensearch.sql.legacy.query.planner.physical.Row;
  * ----------------------------------------------------------------------------------------------------------------------
  * </pre>
  */
-class SearchHitRow implements Row<SearchHit> {
+public class SearchHitRow implements Row<SearchHit> {
 
   /** Native OpenSearch data object for each row */
   private final SearchHit hit;
@@ -47,7 +47,7 @@ class SearchHitRow implements Row<SearchHit> {
   /** Table alias owned the row. Empty if this row comes from combination of two other rows */
   private final String tableAlias;
 
-  SearchHitRow(SearchHit hit, String tableAlias) {
+  public SearchHitRow(SearchHit hit, String tableAlias) {
     this.hit = hit;
     this.source = hit.getSourceAsMap();
     this.tableAlias = tableAlias;
