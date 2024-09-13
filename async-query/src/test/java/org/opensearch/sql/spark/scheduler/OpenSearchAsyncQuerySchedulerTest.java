@@ -42,6 +42,7 @@ import org.opensearch.common.action.ActionFuture;
 import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.scheduler.model.AsyncQuerySchedulerRequest;
 import org.opensearch.sql.spark.scheduler.model.ScheduledAsyncQueryJobRequest;
 
@@ -56,6 +57,8 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private ClusterService clusterService;
+
+  @Mock private AsyncQueryRequestContext context;
 
   @Mock private ActionFuture<IndexResponse> indexResponseActionFuture;
 
@@ -97,7 +100,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
             .lastUpdateTime(Instant.now())
             .build();
 
-    scheduler.scheduleJob(request);
+    scheduler.scheduleJob(request, context);
 
     // Verify index created
     verify(client.admin().indices(), times(1)).create(ArgumentMatchers.any());
@@ -127,7 +130,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
         assertThrows(
             IllegalArgumentException.class,
             () -> {
-              scheduler.scheduleJob(request);
+              scheduler.scheduleJob(request, context);
             });
 
     verify(client, times(1)).index(ArgumentCaptor.forClass(IndexRequest.class).capture());
@@ -150,14 +153,14 @@ public class OpenSearchAsyncQuerySchedulerTest {
             .lastUpdateTime(Instant.now())
             .build();
 
-    assertThrows(RuntimeException.class, () -> scheduler.scheduleJob(request));
+    assertThrows(RuntimeException.class, () -> scheduler.scheduleJob(request, context));
 
     when(client.index(any(IndexRequest.class))).thenReturn(indexResponseActionFuture);
     when(indexResponseActionFuture.actionGet()).thenReturn(indexResponse);
     when(indexResponse.getResult()).thenReturn(DocWriteResponse.Result.NOT_FOUND);
 
     RuntimeException exception =
-        assertThrows(RuntimeException.class, () -> scheduler.scheduleJob(request));
+        assertThrows(RuntimeException.class, () -> scheduler.scheduleJob(request, context));
     assertEquals("Schedule job failed with result : not_found", exception.getMessage());
   }
 
@@ -170,9 +173,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     when(client.update(any(UpdateRequest.class))).thenReturn(updateResponseActionFuture);
 
-    AsyncQuerySchedulerRequest request =
-        AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
-    scheduler.unscheduleJob(request);
+    scheduler.unscheduleJob(TEST_JOB_ID, context);
 
     ArgumentCaptor<UpdateRequest> captor = ArgumentCaptor.forClass(UpdateRequest.class);
     verify(client).update(captor.capture());
@@ -185,7 +186,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
     captor = ArgumentCaptor.forClass(UpdateRequest.class);
 
     when(updateResponse.getResult()).thenReturn(DocWriteResponse.Result.NOOP);
-    scheduler.unscheduleJob(request);
+    scheduler.unscheduleJob(TEST_JOB_ID, context);
 
     verify(client, times(2)).update(captor.capture());
     capturedRequest = captor.getValue();
@@ -197,10 +198,8 @@ public class OpenSearchAsyncQuerySchedulerTest {
   public void testUnscheduleJobInvalidJobId() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(true);
 
-    AsyncQuerySchedulerRequest request = AsyncQuerySchedulerRequest.builder().build();
-
     IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> scheduler.unscheduleJob(request));
+        assertThrows(IllegalArgumentException.class, () -> scheduler.unscheduleJob("", context));
     assertEquals("JobId cannot be null or empty", exception.getMessage());
   }
 
@@ -208,9 +207,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
   public void testUnscheduleJobWithIndexNotFound() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
 
-    AsyncQuerySchedulerRequest request =
-        AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
-    scheduler.unscheduleJob(request);
+    scheduler.unscheduleJob(TEST_JOB_ID, context);
 
     // Verify that no update operation was performed
     verify(client, never()).update(any(UpdateRequest.class));
@@ -231,7 +228,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     when(client.update(any(UpdateRequest.class))).thenReturn(updateResponseActionFuture);
 
-    scheduler.updateJob(request);
+    scheduler.updateJob(request, context);
 
     ArgumentCaptor<UpdateRequest> captor = ArgumentCaptor.forClass(UpdateRequest.class);
     verify(client).update(captor.capture());
@@ -251,7 +248,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(false);
 
-    assertThrows(IllegalStateException.class, () -> scheduler.updateJob(request));
+    assertThrows(IllegalStateException.class, () -> scheduler.updateJob(request, context));
   }
 
   @Test
@@ -270,7 +267,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
         assertThrows(
             IllegalArgumentException.class,
             () -> {
-              scheduler.updateJob(request);
+              scheduler.updateJob(request, context);
             });
 
     assertEquals("Job: testJob doesn't exist", exception1.getMessage());
@@ -281,7 +278,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
         assertThrows(
             RuntimeException.class,
             () -> {
-              scheduler.updateJob(request);
+              scheduler.updateJob(request, context);
             });
 
     assertEquals("java.lang.RuntimeException: Test exception", exception2.getMessage());
@@ -291,7 +288,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
     when(updateResponse.getResult()).thenReturn(DocWriteResponse.Result.NOT_FOUND);
 
     RuntimeException exception =
-        assertThrows(RuntimeException.class, () -> scheduler.updateJob(request));
+        assertThrows(RuntimeException.class, () -> scheduler.updateJob(request, context));
     assertEquals("Update job failed with result : not_found", exception.getMessage());
   }
 
@@ -305,9 +302,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     when(client.delete(any(DeleteRequest.class))).thenReturn(deleteResponseActionFuture);
 
-    AsyncQuerySchedulerRequest request =
-        AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
-    scheduler.removeJob(request);
+    scheduler.removeJob(TEST_JOB_ID, context);
 
     ArgumentCaptor<DeleteRequest> captor = ArgumentCaptor.forClass(DeleteRequest.class);
     verify(client).delete(captor.capture());
@@ -323,17 +318,15 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     AsyncQuerySchedulerRequest request =
         AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
-    assertThrows(IllegalStateException.class, () -> scheduler.removeJob(request));
+    assertThrows(IllegalStateException.class, () -> scheduler.removeJob(TEST_JOB_ID, context));
   }
 
   @Test
   public void testRemoveJobInvalidJobId() {
     when(clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)).thenReturn(true);
 
-    AsyncQuerySchedulerRequest request = AsyncQuerySchedulerRequest.builder().jobId("").build();
-
     IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> scheduler.removeJob(request));
+        assertThrows(IllegalArgumentException.class, () -> scheduler.removeJob("", context));
     assertEquals("JobId cannot be null or empty", exception.getMessage());
   }
 
@@ -387,7 +380,8 @@ public class OpenSearchAsyncQuerySchedulerTest {
             .build();
 
     RuntimeException runtimeException =
-        Assertions.assertThrows(RuntimeException.class, () -> scheduler.scheduleJob(request));
+        Assertions.assertThrows(
+            RuntimeException.class, () -> scheduler.scheduleJob(request, context));
     Assertions.assertEquals(
         "Internal server error while creating .async-query-scheduler index: Index creation is not"
             + " acknowledged.",
@@ -411,7 +405,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
         assertThrows(
             IllegalArgumentException.class,
             () -> {
-              scheduler.updateJob(request);
+              scheduler.updateJob(request, context);
             });
 
     assertEquals("Job: testJob doesn't exist", exception.getMessage());
@@ -427,13 +421,11 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     when(client.delete(any(DeleteRequest.class))).thenReturn(deleteResponseActionFuture);
 
-    AsyncQuerySchedulerRequest request =
-        AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
     IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
             () -> {
-              scheduler.removeJob(request);
+              scheduler.removeJob(TEST_JOB_ID, context);
             });
 
     assertEquals("Job : testJob doesn't exist", exception.getMessage());
@@ -445,9 +437,7 @@ public class OpenSearchAsyncQuerySchedulerTest {
 
     when(client.delete(any(DeleteRequest.class))).thenThrow(new RuntimeException("Test exception"));
 
-    AsyncQuerySchedulerRequest request =
-        AsyncQuerySchedulerRequest.builder().jobId(TEST_JOB_ID).build();
-    assertThrows(RuntimeException.class, () -> scheduler.removeJob(request));
+    assertThrows(RuntimeException.class, () -> scheduler.removeJob(TEST_JOB_ID, context));
 
     DeleteResponse deleteResponse = mock(DeleteResponse.class);
     when(client.delete(any(DeleteRequest.class))).thenReturn(deleteResponseActionFuture);
@@ -455,7 +445,8 @@ public class OpenSearchAsyncQuerySchedulerTest {
     when(deleteResponse.getResult()).thenReturn(DocWriteResponse.Result.NOOP);
 
     RuntimeException runtimeException =
-        Assertions.assertThrows(RuntimeException.class, () -> scheduler.removeJob(request));
+        Assertions.assertThrows(
+            RuntimeException.class, () -> scheduler.removeJob(TEST_JOB_ID, context));
     Assertions.assertEquals("Remove job failed with result : noop", runtimeException.getMessage());
   }
 

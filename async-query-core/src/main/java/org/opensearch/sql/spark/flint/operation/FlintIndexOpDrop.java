@@ -15,7 +15,6 @@ import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
-import org.opensearch.sql.spark.scheduler.model.AsyncQuerySchedulerRequest;
 
 /** Operation to drop Flint index */
 public class FlintIndexOpDrop extends FlintIndexOp {
@@ -55,13 +54,8 @@ public class FlintIndexOpDrop extends FlintIndexOp {
         "Performing drop index operation for index: {}",
         flintIndexMetadata.getOpensearchIndexName());
     if (flintIndexMetadata.getFlintIndexOptions().isExternalScheduler()) {
-      AsyncQuerySchedulerRequest request =
-          AsyncQuerySchedulerRequest.builder()
-              .accountId(flintIndexStateModel.getAccountId())
-              .dataSource(flintIndexStateModel.getDatasourceName())
-              .jobId(flintIndexMetadata.getOpensearchIndexName())
-              .build();
-      asyncQueryScheduler.unscheduleJob(request);
+      asyncQueryScheduler.unscheduleJob(
+          flintIndexMetadata.getOpensearchIndexName(), asyncQueryRequestContext);
     } else {
       cancelStreamingJob(flintIndexStateModel);
     }
