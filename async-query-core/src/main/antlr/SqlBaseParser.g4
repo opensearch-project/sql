@@ -64,11 +64,7 @@ compoundStatement
     | setStatementWithOptionalVarKeyword
     | beginEndCompoundBlock
     | ifElseStatement
-    | caseStatement
     | whileStatement
-    | repeatStatement
-    | leaveStatement
-    | iterateStatement
     ;
 
 setStatementWithOptionalVarKeyword
@@ -85,25 +81,6 @@ ifElseStatement
     : IF booleanExpression THEN conditionalBodies+=compoundBody
         (ELSE IF booleanExpression THEN conditionalBodies+=compoundBody)*
         (ELSE elseBody=compoundBody)? END IF
-    ;
-
-repeatStatement
-    : beginLabel? REPEAT compoundBody UNTIL booleanExpression END REPEAT endLabel?
-    ;
-
-leaveStatement
-    : LEAVE multipartIdentifier
-    ;
-
-iterateStatement
-    : ITERATE multipartIdentifier
-    ;
-
-caseStatement
-    : CASE (WHEN conditions+=booleanExpression THEN conditionalBodies+=compoundBody)+
-        (ELSE elseBody=compoundBody)? END CASE                #searchedCaseStatement
-    | CASE caseVariable=expression (WHEN conditionExpressions+=expression THEN conditionalBodies+=compoundBody)+
-        (ELSE elseBody=compoundBody)? END CASE                #simpleCaseStatement
     ;
 
 singleStatement
@@ -268,7 +245,6 @@ statement
     | SHOW PARTITIONS identifierReference partitionSpec?               #showPartitions
     | SHOW identifier? FUNCTIONS ((FROM | IN) ns=identifierReference)?
         (LIKE? (legacy=multipartIdentifier | pattern=stringLit))?      #showFunctions
-    | SHOW COLLATIONS (LIKE? pattern=stringLit)?                       #showCollations
     | SHOW CREATE TABLE identifierReference (AS SERDE)?                #showCreateTable
     | SHOW CURRENT namespace                                           #showCurrentNamespace
     | SHOW CATALOGS (LIKE? pattern=stringLit)?                            #showCatalogs
@@ -1602,12 +1578,10 @@ ansiNonReserved
     | INTERVAL
     | INVOKER
     | ITEMS
-    | ITERATE
     | KEYS
     | LANGUAGE
     | LAST
     | LAZY
-    | LEAVE
     | LIKE
     | ILIKE
     | LIMIT
@@ -1674,7 +1648,6 @@ ansiNonReserved
     | REFRESH
     | RENAME
     | REPAIR
-    | REPEAT
     | REPEATABLE
     | REPLACE
     | RESET
@@ -1750,7 +1723,6 @@ ansiNonReserved
     | UNLOCK
     | UNPIVOT
     | UNSET
-    | UNTIL
     | UPDATE
     | USE
     | VALUES
@@ -1846,7 +1818,6 @@ nonReserved
     | CODEGEN
     | COLLATE
     | COLLATION
-    | COLLATIONS
     | COLLECTION
     | COLUMN
     | COLUMNS
@@ -1956,13 +1927,11 @@ nonReserved
     | INVOKER
     | IS
     | ITEMS
-    | ITERATE
     | KEYS
     | LANGUAGE
     | LAST
     | LAZY
     | LEADING
-    | LEAVE
     | LIKE
     | LONG
     | ILIKE
@@ -2040,7 +2009,6 @@ nonReserved
     | REFRESH
     | RENAME
     | REPAIR
-    | REPEAT
     | REPEATABLE
     | REPLACE
     | RESET
@@ -2125,7 +2093,6 @@ nonReserved
     | UNLOCK
     | UNPIVOT
     | UNSET
-    | UNTIL
     | UPDATE
     | USE
     | USER
