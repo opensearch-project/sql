@@ -22,6 +22,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.Nullable;
 import lombok.SneakyThrows;
 import org.json.JSONObject;
@@ -116,6 +117,8 @@ public class CursorIT extends SQLIntegTestCase {
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
+      var restPrettyResponse = executeRestQuery(query, null, Map.of("pretty", "true"));
+      assertEquals(rows, restPrettyResponse.getInt("total"));
     }
   }
 
@@ -134,6 +137,8 @@ public class CursorIT extends SQLIntegTestCase {
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
+      var restPrettyResponse = executeRestQuery(query, null, Map.of("pretty", "true"));
+      assertEquals(rows, restPrettyResponse.getInt("total"));
     }
   }
 
@@ -152,6 +157,8 @@ public class CursorIT extends SQLIntegTestCase {
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
+      var restPrettyResponse = executeRestQuery(query, null, Map.of("pretty", "true"));
+      assertEquals(rows, restPrettyResponse.getInt("total"));
     }
   }
 
@@ -170,6 +177,8 @@ public class CursorIT extends SQLIntegTestCase {
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
+      var restPrettyResponse = executeRestQuery(query, null, Map.of("pretty", "true"));
+      assertEquals(rows, restPrettyResponse.getInt("total"));
     }
   }
 
@@ -188,6 +197,8 @@ public class CursorIT extends SQLIntegTestCase {
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
+      var restPrettyResponse = executeRestQuery(query, null, Map.of("pretty", "true"));
+      assertEquals(rows, restPrettyResponse.getInt("total"));
     }
   }
 
@@ -206,6 +217,8 @@ public class CursorIT extends SQLIntegTestCase {
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
+      var restPrettyResponse = executeRestQuery(query, null, Map.of("pretty", "true"));
+      assertEquals(rows, restPrettyResponse.getInt("total"));
     }
   }
 
@@ -218,6 +231,12 @@ public class CursorIT extends SQLIntegTestCase {
 
   @SneakyThrows
   protected JSONObject executeRestQuery(String query, @Nullable Integer fetch_size) {
+    return executeRestQuery(query, fetch_size, Map.of());
+  }
+
+  @SneakyThrows
+  protected JSONObject executeRestQuery(
+      String query, @Nullable Integer fetch_size, Map<String, String> params) {
     Request request = new Request("POST", QUERY_API_ENDPOINT);
     if (fetch_size != null) {
       request.setJsonEntity(
@@ -225,6 +244,7 @@ public class CursorIT extends SQLIntegTestCase {
     } else {
       request.setJsonEntity(String.format("{ \"query\": \"%s\" }", query));
     }
+    request.addParameters(params);
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
