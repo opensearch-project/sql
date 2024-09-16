@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.scheduler;
 import static org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -35,6 +36,7 @@ import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.scheduler.job.ScheduledAsyncQueryJobRunner;
 import org.opensearch.sql.spark.scheduler.model.AsyncQuerySchedulerRequest;
 import org.opensearch.sql.spark.scheduler.model.ScheduledAsyncQueryJobRequest;
@@ -55,7 +57,9 @@ public class OpenSearchAsyncQueryScheduler implements AsyncQueryScheduler {
 
   @Override
   /** Schedules a new job by indexing it into the job index. */
-  public void scheduleJob(AsyncQuerySchedulerRequest asyncQuerySchedulerRequest) {
+  public void scheduleJob(
+      AsyncQuerySchedulerRequest asyncQuerySchedulerRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     ScheduledAsyncQueryJobRequest request =
         ScheduledAsyncQueryJobRequest.fromAsyncQuerySchedulerRequest(asyncQuerySchedulerRequest);
     if (!this.clusterService.state().routingTable().hasIndex(SCHEDULER_INDEX_NAME)) {
@@ -87,15 +91,18 @@ public class OpenSearchAsyncQueryScheduler implements AsyncQueryScheduler {
 
   /** Unschedules a job by marking it as disabled and updating its last update time. */
   @Override
-  public void unscheduleJob(String jobId) {
-    ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
-            .jobId(jobId)
-            .enabled(false)
-            .lastUpdateTime(Instant.now())
-            .build();
+  public void unscheduleJob(String jobId, AsyncQueryRequestContext asyncQueryRequestContext) {
+    if (Strings.isNullOrEmpty(jobId)) {
+      throw new IllegalArgumentException("JobId cannot be null or empty");
+    }
     try {
-      updateJob(request);
+      AsyncQuerySchedulerRequest request =
+          ScheduledAsyncQueryJobRequest.builder()
+              .jobId(jobId)
+              .enabled(false)
+              .lastUpdateTime(Instant.now())
+              .build();
+      updateJob(request, asyncQueryRequestContext);
       LOG.info("Unscheduled job for jobId: {}", jobId);
     } catch (IllegalStateException | DocumentMissingException e) {
       LOG.error("Failed to unschedule job: {}", jobId, e);
@@ -105,7 +112,9 @@ public class OpenSearchAsyncQueryScheduler implements AsyncQueryScheduler {
   /** Updates an existing job with new parameters. */
   @Override
   @SneakyThrows
-  public void updateJob(AsyncQuerySchedulerRequest asyncQuerySchedulerRequest) {
+  public void updateJob(
+      AsyncQuerySchedulerRequest asyncQuerySchedulerRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     ScheduledAsyncQueryJobRequest request =
         ScheduledAsyncQueryJobRequest.fromAsyncQuerySchedulerRequest(asyncQuerySchedulerRequest);
     assertIndexExists();
@@ -134,8 +143,11 @@ public class OpenSearchAsyncQueryScheduler implements AsyncQueryScheduler {
 
   /** Removes a job by deleting its document from the index. */
   @Override
-  public void removeJob(String jobId) {
+  public void removeJob(String jobId, AsyncQueryRequestContext asyncQueryRequestContext) {
     assertIndexExists();
+    if (Strings.isNullOrEmpty(jobId)) {
+      throw new IllegalArgumentException("JobId cannot be null or empty");
+    }
     DeleteRequest deleteRequest = new DeleteRequest(SCHEDULER_INDEX_NAME, jobId);
     deleteRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     ActionFuture<DeleteResponse> deleteResponseActionFuture = client.delete(deleteRequest);
