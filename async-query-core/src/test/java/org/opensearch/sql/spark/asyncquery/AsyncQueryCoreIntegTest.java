@@ -230,7 +230,7 @@ public class AsyncQueryCoreIntegTest {
     verifyCreateIndexDMLResultCalled();
     verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
 
-    verify(asyncQueryScheduler).unscheduleJob(indexName);
+    verify(asyncQueryScheduler).unscheduleJob(indexName, asyncQueryRequestContext);
   }
 
   @Test
@@ -318,8 +318,7 @@ public class AsyncQueryCoreIntegTest {
     FlintIndexOptions flintIndexOptions = flintIndexOptionsArgumentCaptor.getValue();
     assertFalse(flintIndexOptions.autoRefresh());
 
-    verify(asyncQueryScheduler).unscheduleJob(indexName);
-
+    verify(asyncQueryScheduler).unscheduleJob(indexName, asyncQueryRequestContext);
     verifyCreateIndexDMLResultCalled();
     verifyStoreJobMetadataCalled(DML_QUERY_JOB_ID, QueryState.SUCCESS, JobType.BATCH);
   }

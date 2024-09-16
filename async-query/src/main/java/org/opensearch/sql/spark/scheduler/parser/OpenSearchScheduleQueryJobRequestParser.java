@@ -30,7 +30,7 @@ public class OpenSearchScheduleQueryJobRequestParser {
   public static ScheduledJobParser getJobParser() {
     return (parser, id, jobDocVersion) -> {
       ScheduledAsyncQueryJobRequest.ScheduledAsyncQueryJobRequestBuilder builder =
-          ScheduledAsyncQueryJobRequest.builder();
+          ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder();
       XContentParserUtils.ensureExpectedToken(
           XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
 

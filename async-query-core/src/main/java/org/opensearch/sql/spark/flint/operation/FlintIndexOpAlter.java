@@ -62,7 +62,8 @@ public class FlintIndexOpAlter extends FlintIndexOp {
     this.flintIndexMetadataService.updateIndexToManualRefresh(
         flintIndexMetadata.getOpensearchIndexName(), flintIndexOptions, asyncQueryRequestContext);
     if (flintIndexMetadata.getFlintIndexOptions().isExternalScheduler()) {
-      asyncQueryScheduler.unscheduleJob(flintIndexMetadata.getOpensearchIndexName());
+      asyncQueryScheduler.unscheduleJob(
+          flintIndexMetadata.getOpensearchIndexName(), asyncQueryRequestContext);
     } else {
       cancelStreamingJob(flintIndexStateModel);
     }
