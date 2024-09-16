@@ -76,14 +76,14 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: opensearch-sql-ubuntu-latest
         path: opensearch-sql-builds
 
     - name: Upload test reports
       if: always()
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       continue-on-error: true
       with:
         name: test-reports
@@ -130,7 +130,7 @@ jobs:
         cp -r ./plugin/build/distributions/*.zip opensearch-sql-builds/
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: opensearch-sql-${{ matrix.entry.os }}
         path: opensearch-sql-builds
