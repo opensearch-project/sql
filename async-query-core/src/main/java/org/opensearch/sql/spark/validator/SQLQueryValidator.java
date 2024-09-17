@@ -27,6 +27,7 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropNamespaceContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropViewContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ExplainContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.FunctionIdentifierContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.FunctionNameContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.HintContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.InlineTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.InsertIntoReplaceWhereContext;
@@ -80,12 +81,6 @@ public class SQLQueryValidator extends SqlBaseParserBaseVisitor<Void> {
   public Void visitCreateFunction(SqlBaseParser.CreateFunctionContext ctx) {
     validateAllowed(GrammarElement.CREATE_FUNCTION);
     return super.visitCreateFunction(ctx);
-  }
-
-  @Override
-  public Void visitSelectClause(SelectClauseContext ctx) {
-    validateAllowed(GrammarElement.SELECT);
-    return super.visitSelectClause(ctx);
   }
 
   @Override
@@ -457,30 +452,32 @@ public class SQLQueryValidator extends SqlBaseParserBaseVisitor<Void> {
 
   @Override
   public Void visitFunctionIdentifier(FunctionIdentifierContext ctx) {
-    String function = ctx.function.getText().toLowerCase();
-    if (isMapFunctions(function)) {
-      validateAllowed(GrammarElement.MAP_FUNCTIONS);
-    } else if (isCsvFunctions(function)) {
-      validateAllowed(GrammarElement.CSV_FUNCTIONS);
-    } else if (isMiscFunctions(function)) {
-      validateAllowed(GrammarElement.MISC_FUNCTIONS);
-    }
+    validateFunctionAllowed(ctx.function.getText());
     return super.visitFunctionIdentifier(ctx);
   }
 
-  private boolean isMapFunctions(String function) {
-    // TODO: to be implemented
-    return false;
+  @Override
+  public Void visitFunctionName(FunctionNameContext ctx) {
+    validateFunctionAllowed(ctx.qualifiedName().getText());
+    return super.visitFunctionName(ctx);
   }
 
-  private boolean isCsvFunctions(String function) {
-    // TODO: to be implemented
-    return false;
-  }
-
-  private boolean isMiscFunctions(String function) {
-    // TODO: to be implemented
-    return false;
+  private void validateFunctionAllowed(String function) {
+    FunctionType type = FunctionType.fromFunctionName(function.toLowerCase());
+    switch(type) {
+      case MAP:
+        validateAllowed(GrammarElement.MAP_FUNCTIONS);
+        break;
+      case CSV:
+        validateAllowed(GrammarElement.CSV_FUNCTIONS);
+        break;
+      case MISC:
+        validateAllowed(GrammarElement.MISC_FUNCTIONS);
+        break;
+      case UDF:
+        validateAllowed(GrammarElement.UDF);
+        break;
+    }
   }
 
   private void validateAllowed(GrammarElement element) {

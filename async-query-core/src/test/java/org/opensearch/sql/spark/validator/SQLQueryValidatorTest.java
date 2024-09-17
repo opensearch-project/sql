@@ -134,13 +134,13 @@ class SQLQueryValidatorTest {
     DATE_AND_TIMESTAMP_FUNCTIONS("SELECT date_format(current_date(), 'yyyy-MM-dd');"),
     JSON_FUNCTIONS("SELECT json_tuple('{\"a\":1, \"b\":2}', 'a', 'b');"),
     MATHEMATICAL_FUNCTIONS("SELECT round(3.1415, 2);"),
-    STRING_FUNCTIONS("SELECT concat('Hello', ' ', 'World');"),
-    BITWISE_FUNCTIONS("SELECT bitwiseNOT(42);"),
+    STRING_FUNCTIONS("SELECT map_concat('Hello', ' ', 'World');"),
+    BITWISE_FUNCTIONS("SELECT bit_count(42);"),
     CONVERSION_FUNCTIONS("SELECT cast('2023-04-01' as date);"),
     CONDITIONAL_FUNCTIONS("SELECT if(1 > 0, 'true', 'false');"),
-    PREDICATE_FUNCTIONS("SELECT array_exists(array(1, 2, 3), x -> x > 2);"),
-    CSV_FUNCTIONS("SELECT csv_from_array(array('a', 'b', 'c'), ',');"),
-    MISC_FUNCTIONS("SELECT hash('Hello World');"),
+    PREDICATE_FUNCTIONS("SELECT isnotnull(1);"),
+    CSV_FUNCTIONS("SELECT from_csv(array('a', 'b', 'c'), ',');"),
+    MISC_FUNCTIONS("SELECT current_user();"),
 
     // Aggregate-like Functions
     AGGREGATE_FUNCTIONS("SELECT count(*), max(age), min(age) FROM my_table;"),
@@ -251,30 +251,30 @@ class SQLQueryValidatorTest {
     verifyValid(v, TestQuery.UNCACHE_TABLE);
 
     // Functions
-    //    verifyValid(v, TestQuery.ARRAY_FUNCTIONS);
-    //    verifyValid(v, TestQuery.MAP_FUNCTIONS);
-    //    verifyValid(v, TestQuery.DATE_AND_TIMESTAMP_FUNCTIONS);
-    //    verifyValid(v, TestQuery.JSON_FUNCTIONS);
-    //    verifyValid(v, TestQuery.MATHEMATICAL_FUNCTIONS);
-    //    verifyValid(v, TestQuery.STRING_FUNCTIONS);
-    //    verifyValid(v, TestQuery.BITWISE_FUNCTIONS);
-    //    verifyValid(v, TestQuery.CONVERSION_FUNCTIONS);
-    //    verifyValid(v, TestQuery.CONDITIONAL_FUNCTIONS);
-    //    verifyValid(v, TestQuery.PREDICATE_FUNCTIONS);
-    //    verifyValid(v, TestQuery.CSV_FUNCTIONS);
-    //    verifyValid(v, TestQuery.MISC_FUNCTIONS);
+    verifyValid(v, TestQuery.ARRAY_FUNCTIONS);
+    verifyValid(v, TestQuery.MAP_FUNCTIONS);
+    verifyValid(v, TestQuery.DATE_AND_TIMESTAMP_FUNCTIONS);
+    verifyValid(v, TestQuery.JSON_FUNCTIONS);
+    verifyValid(v, TestQuery.MATHEMATICAL_FUNCTIONS);
+    verifyValid(v, TestQuery.STRING_FUNCTIONS);
+    verifyValid(v, TestQuery.BITWISE_FUNCTIONS);
+    verifyValid(v, TestQuery.CONVERSION_FUNCTIONS);
+    verifyValid(v, TestQuery.CONDITIONAL_FUNCTIONS);
+    verifyValid(v, TestQuery.PREDICATE_FUNCTIONS);
+    verifyValid(v, TestQuery.CSV_FUNCTIONS);
+    verifyInvalid(v, TestQuery.MISC_FUNCTIONS);
 
     // Aggregate-like Functions
-    //    verifyValid(v, TestQuery.AGGREGATE_FUNCTIONS);
-    //    verifyValid(v, TestQuery.WINDOW_FUNCTIONS);
+    verifyValid(v, TestQuery.AGGREGATE_FUNCTIONS);
+    verifyValid(v, TestQuery.WINDOW_FUNCTIONS);
 
     // Generator Functions
-    //    verifyValid(v, TestQuery.GENERATOR_FUNCTIONS);
+    verifyValid(v, TestQuery.GENERATOR_FUNCTIONS);
 
     // UDFs
-    //    verifyInvalid(v, TestQuery.SCALAR_USER_DEFINED_FUNCTIONS);
-    //    verifyInvalid(v, TestQuery.USER_DEFINED_AGGREGATE_FUNCTIONS);
-    //    verifyInvalid(v, TestQuery.INTEGRATION_WITH_HIVE_UDFS_UDAFS_UDTFS);
+    verifyInvalid(v, TestQuery.SCALAR_USER_DEFINED_FUNCTIONS);
+    verifyInvalid(v, TestQuery.USER_DEFINED_AGGREGATE_FUNCTIONS);
+    verifyInvalid(v, TestQuery.INTEGRATION_WITH_HIVE_UDFS_UDAFS_UDTFS);
   }
 
   void verifyValid(SQLQueryValidator validator, TestQuery query) {

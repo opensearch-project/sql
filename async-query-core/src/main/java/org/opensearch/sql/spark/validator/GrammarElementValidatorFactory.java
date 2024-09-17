@@ -27,7 +27,49 @@ public class GrammarElementValidatorFactory {
               DROP_NAMESPACE,
               DROP_VIEW,
               REPAIR_TABLE,
-              TRUNCATE_TABLE)
+              TRUNCATE_TABLE,
+              EXPLAIN,
+              WITH,
+              CLUSTER_BY,
+              DISTRIBUTE_BY,
+              HINTS,
+              INLINE_TABLE,
+              CROSS_JOIN,
+              LEFT_SEMI_JOIN,
+              RIGHT_OUTER_JOIN,
+              FULL_OUTER_JOIN,
+              LEFT_ANTI_JOIN,
+              TABLESAMPLE,
+              TABLE_VALUED_FUNCTION,
+              LATERAL_VIEW,
+              LATERAL_SUBQUERY,
+              TRANSFORM,
+              MANAGE_RESOURCE,
+              ANALYZE_TABLE,
+              CACHE_TABLE,
+              DESCRIBE_NAMESPACE,
+              DESCRIBE_FUNCTION,
+              DESCRIBE_QUERY,
+              DESCRIBE_TABLE,
+              REFRESH_RESOURCE,
+              REFRESH_TABLE,
+              REFRESH_FUNCTION,
+              RESET,
+              SET,
+              SHOW_COLUMNS,
+              SHOW_CREATE_TABLE,
+              SHOW_NAMESPACES,
+              SHOW_FUNCTIONS,
+              SHOW_PARTITIONS,
+              SHOW_TABLE_EXTENDED,
+              SHOW_TABLES,
+              SHOW_TBLPROPERTIES,
+              SHOW_VIEWS,
+              UNCACHE_TABLE,
+              CSV_FUNCTIONS,
+              MISC_FUNCTIONS,
+              UDF
+              )
           .build();
 
   private static final Set<GrammarElement> S3GLUE_DENY_LIST =
@@ -58,7 +100,8 @@ public class GrammarElementValidatorFactory {
               SET,
               SHOW_FUNCTIONS,
               SHOW_VIEWS,
-              MISC_FUNCTIONS)
+              MISC_FUNCTIONS,
+              UDF)
           .build();
 
   private static Map<DataSourceType, GrammarElementValidator> validatorMap =

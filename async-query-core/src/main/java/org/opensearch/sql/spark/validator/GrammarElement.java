@@ -76,7 +76,8 @@ enum GrammarElement {
   CSV_FUNCTIONS("CSV functions"),
   MISC_FUNCTIONS("Misc functions"),
 
-  SELECT("SELECT");
+  // UDF
+  UDF("User Defined functions");
 
   String description;
 
