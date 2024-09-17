@@ -28,7 +28,7 @@ public class ScheduledAsyncQueryJobRequestTest {
     IntervalSchedule schedule = new IntervalSchedule(now, 1, ChronoUnit.MINUTES);
 
     ScheduledAsyncQueryJobRequest jobRequest =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .accountId("testAccount")
             .jobId("testJob")
             .dataSource("testDataSource")
@@ -62,7 +62,7 @@ public class ScheduledAsyncQueryJobRequestTest {
     IntervalSchedule schedule = new IntervalSchedule(now, 1, ChronoUnit.MINUTES);
 
     ScheduledAsyncQueryJobRequest request =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .accountId("testAccount")
             .jobId("testJob")
             .dataSource("testDataSource")
@@ -146,7 +146,7 @@ public class ScheduledAsyncQueryJobRequestTest {
     IntervalSchedule schedule = new IntervalSchedule(now, 1, ChronoUnit.MINUTES);
 
     ScheduledAsyncQueryJobRequest request1 =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .accountId("testAccount")
             .jobId("testJob")
             .dataSource("testDataSource")
@@ -172,7 +172,7 @@ public class ScheduledAsyncQueryJobRequestTest {
     assertTrue(toString.contains("jitter=0.1"));
 
     ScheduledAsyncQueryJobRequest request2 =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .accountId("testAccount")
             .jobId("testJob")
             .dataSource("testDataSource")
@@ -190,7 +190,7 @@ public class ScheduledAsyncQueryJobRequestTest {
     assertEquals(request1.hashCode(), request2.hashCode());
 
     ScheduledAsyncQueryJobRequest request3 =
-        ScheduledAsyncQueryJobRequest.builder()
+        ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
             .accountId("differentAccount")
             .jobId("testJob")
             .dataSource("testDataSource")

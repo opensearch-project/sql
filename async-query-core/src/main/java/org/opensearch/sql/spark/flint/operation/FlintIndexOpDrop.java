@@ -54,7 +54,8 @@ public class FlintIndexOpDrop extends FlintIndexOp {
         "Performing drop index operation for index: {}",
         flintIndexMetadata.getOpensearchIndexName());
     if (flintIndexMetadata.getFlintIndexOptions().isExternalScheduler()) {
-      asyncQueryScheduler.unscheduleJob(flintIndexMetadata.getOpensearchIndexName());
+      asyncQueryScheduler.unscheduleJob(
+          flintIndexMetadata.getOpensearchIndexName(), asyncQueryRequestContext);
     } else {
       cancelStreamingJob(flintIndexStateModel);
     }

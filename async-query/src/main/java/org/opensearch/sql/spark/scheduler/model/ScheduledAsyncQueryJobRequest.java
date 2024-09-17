@@ -38,7 +38,7 @@ public class ScheduledAsyncQueryJobRequest extends AsyncQuerySchedulerRequest
   public static final String ENABLED_FIELD = "enabled";
   private final Schedule schedule;
 
-  @Builder
+  @Builder(builderMethodName = "scheduledAsyncQueryJobRequestBuilder")
   public ScheduledAsyncQueryJobRequest(
       String accountId,
       String jobId,
@@ -139,7 +139,7 @@ public class ScheduledAsyncQueryJobRequest extends AsyncQuerySchedulerRequest
       AsyncQuerySchedulerRequest request) {
     Instant updateTime =
         request.getLastUpdateTime() != null ? request.getLastUpdateTime() : Instant.now();
-    return ScheduledAsyncQueryJobRequest.builder()
+    return ScheduledAsyncQueryJobRequest.scheduledAsyncQueryJobRequestBuilder()
         .accountId(request.getAccountId())
         .jobId(request.getJobId())
         .dataSource(request.getDataSource())
