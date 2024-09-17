@@ -379,7 +379,7 @@ public enum FunctionType {
                   "timestamp",
                   "tinyint"))
           .put(PREDICATE, Set.of("isnan", "isnotnull", "isnull", "regexp", "regexp_like", "rlike"))
-          .put(CSV, Set.of("from_csv","schema_of_csv","to_csv"))
+          .put(CSV, Set.of("from_csv", "schema_of_csv", "to_csv"))
           .put(
               MISC,
               Set.of(

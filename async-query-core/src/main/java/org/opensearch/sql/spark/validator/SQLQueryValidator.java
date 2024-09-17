@@ -49,7 +49,6 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.RenameTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ResetConfigurationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ResetQuotedConfigurationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SampleContext;
-import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SelectClauseContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetConfigurationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetNamespaceLocationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetNamespacePropertiesContext;
@@ -464,7 +463,7 @@ public class SQLQueryValidator extends SqlBaseParserBaseVisitor<Void> {
 
   private void validateFunctionAllowed(String function) {
     FunctionType type = FunctionType.fromFunctionName(function.toLowerCase());
-    switch(type) {
+    switch (type) {
       case MAP:
         validateAllowed(GrammarElement.MAP_FUNCTIONS);
         break;

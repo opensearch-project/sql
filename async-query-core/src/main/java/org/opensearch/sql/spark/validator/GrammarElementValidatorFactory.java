@@ -68,8 +68,7 @@ public class GrammarElementValidatorFactory {
               UNCACHE_TABLE,
               CSV_FUNCTIONS,
               MISC_FUNCTIONS,
-              UDF
-              )
+              UDF)
           .build();
 
   private static final Set<GrammarElement> S3GLUE_DENY_LIST =
