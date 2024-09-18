@@ -12,8 +12,8 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 
 public class GrammarElementValidatorFactory {
 
-  private static GrammarElementValidator defaultValidator = new DenyListGrammarElementValidator(
-      ImmutableSet.of());
+  private static GrammarElementValidator defaultValidator =
+      new DenyListGrammarElementValidator(ImmutableSet.of());
   private static Map<DataSourceType, GrammarElementValidator> validatorMap =
       ImmutableMap.of(
           DataSourceType.S3GLUE, new S3GlueGrammarElementValidator(),

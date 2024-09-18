@@ -23,8 +23,7 @@ class SQLQueryValidatorTest {
   @AllArgsConstructor
   private enum TestQuery {
     // DDL Statements
-    ALTER_DATABASE(
-        "ALTER DATABASE inventory SET DBPROPERTIES ('Edit-date' = '01/01/2001');"),
+    ALTER_DATABASE("ALTER DATABASE inventory SET DBPROPERTIES ('Edit-date' = '01/01/2001');"),
     ALTER_TABLE(
         "ALTER TABLE default.StudentInfo PARTITION (age='10') RENAME TO PARTITION (age='15');"),
     ALTER_VIEW("ALTER VIEW tempdb1.v1 RENAME TO tempdb1.v2;"),
