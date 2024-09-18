@@ -64,6 +64,7 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
+import org.opensearch.sql.spark.validator.SQLQueryValidator;
 
 @RequiredArgsConstructor
 public class AsyncExecutorServiceModule extends AbstractModule {
@@ -101,9 +102,10 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       DataSourceService dataSourceService,
       SessionManager sessionManager,
       QueryHandlerFactory queryHandlerFactory,
-      QueryIdProvider queryIdProvider) {
+      QueryIdProvider queryIdProvider,
+      SQLQueryValidator sqlQueryValidator) {
     return new SparkQueryDispatcher(
-        dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
+        dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider, sqlQueryValidator);
   }
 
   @Provides

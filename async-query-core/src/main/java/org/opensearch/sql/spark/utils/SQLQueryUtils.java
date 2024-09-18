@@ -103,6 +103,14 @@ public class SQLQueryUtils {
     }
   }
 
+  public static SqlBaseParser getBaseParser(String sqlQuery) {
+    SqlBaseParser sqlBaseParser =
+        new SqlBaseParser(
+            new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(sqlQuery))));
+    sqlBaseParser.addErrorListener(new SyntaxAnalysisErrorListener());
+    return sqlBaseParser;
+  }
+
   private SqlBaseValidatorVisitor getSparkSqlValidatorVisitor(DataSource datasource) {
     if (datasource != null
         && datasource.getConnectorType() != null

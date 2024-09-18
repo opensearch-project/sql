@@ -18,13 +18,13 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SingleStatementContex
 
 class SQLQueryValidatorTest {
   GrammarElementValidatorFactory factory = new GrammarElementValidatorFactory();
+  SQLQueryValidator sqlQueryValidator = new SQLQueryValidator(factory);
 
   @AllArgsConstructor
   private enum TestQuery {
     // DDL Statements
     ALTER_DATABASE(
-        "ALTER DATABASE inventory SET DBPROPERTIES ('Edited-by' = 'John', 'Edit-date' ="
-            + " '01/01/2001');"),
+        "ALTER DATABASE inventory SET DBPROPERTIES ('Edit-date' = '01/01/2001');"),
     ALTER_TABLE(
         "ALTER TABLE default.StudentInfo PARTITION (age='10') RENAME TO PARTITION (age='15');"),
     ALTER_VIEW("ALTER VIEW tempdb1.v1 RENAME TO tempdb1.v2;"),
@@ -74,7 +74,7 @@ class SQLQueryValidatorTest {
     LEFT_ANTI_JOIN("SELECT t1.name FROM table1 t1 LEFT ANTI JOIN table2 t2 ON t1.id = t2.id;"),
     LIKE_PREDICATE("SELECT * FROM my_table WHERE name LIKE 'A%';"),
     LIMIT_CLAUSE("SELECT * FROM my_table LIMIT 10;"),
-    OFFSET_CLAUSE("SELECT * FROM my_table OFFSET 5 ROWS;"),
+    OFFSET_CLAUSE("SELECT * FROM my_table OFFSET 5;"),
     ORDER_BY_CLAUSE("SELECT * FROM my_table ORDER BY age DESC;"),
     SET_OPERATORS("SELECT * FROM table1 UNION SELECT * FROM table2;"),
     SORT_BY_CLAUSE("SELECT * FROM my_table SORT BY age DESC;"),
@@ -164,9 +164,7 @@ class SQLQueryValidatorTest {
 
   @Test
   void s3glueQueries() {
-    VerifyValidator v =
-        new VerifyValidator(
-            new SQLQueryValidator(factory.getValidatorForDatasource(DataSourceType.S3GLUE)));
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
     // DDL Statements
     v.ok(TestQuery.ALTER_DATABASE);
     v.ok(TestQuery.ALTER_TABLE);
@@ -236,8 +234,7 @@ class SQLQueryValidatorTest {
     v.ng(TestQuery.LIST_FILE);
     v.ng(TestQuery.LIST_JAR);
     v.ng(TestQuery.REFRESH);
-    //    v.ok(TestQuery.REFRESH_TABLE); TODO: refreshTable rule won't match (matches to
-    // refreshResource)
+    v.ok(TestQuery.REFRESH_TABLE);
     v.ng(TestQuery.REFRESH_FUNCTION);
     v.ng(TestQuery.RESET);
     v.ng(TestQuery.SET);
@@ -281,9 +278,7 @@ class SQLQueryValidatorTest {
 
   @Test
   void securityLakeQueries() {
-    VerifyValidator v =
-        new VerifyValidator(
-            new SQLQueryValidator(factory.getValidatorForDatasource(DataSourceType.SECURITY_LAKE)));
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SECURITY_LAKE);
     // DDL Statements
     v.ng(TestQuery.ALTER_DATABASE);
     v.ng(TestQuery.ALTER_TABLE);
@@ -353,8 +348,7 @@ class SQLQueryValidatorTest {
     v.ng(TestQuery.LIST_FILE);
     v.ng(TestQuery.LIST_JAR);
     v.ng(TestQuery.REFRESH);
-    //    v.ng(TestQuery.REFRESH_TABLE); TODO: refreshTable rule won't match (matches to
-    // refreshResource)
+    v.ng(TestQuery.REFRESH_TABLE);
     v.ng(TestQuery.REFRESH_FUNCTION);
     v.ng(TestQuery.RESET);
     v.ng(TestQuery.SET);
@@ -399,20 +393,21 @@ class SQLQueryValidatorTest {
   @AllArgsConstructor
   private static class VerifyValidator {
     private final SQLQueryValidator validator;
+    private final DataSourceType dataSourceType;
 
     public void ok(TestQuery query) {
-      runValidate(validator, query.toString());
+      runValidate(query.toString());
     }
 
     public void ng(TestQuery query) {
       assertThrows(
           IllegalArgumentException.class,
-          () -> runValidate(validator, query.toString()),
+          () -> runValidate(query.toString()),
           "The query should throw: query=`" + query.toString() + "`");
     }
 
-    void runValidate(SQLQueryValidator validator, String query) {
-      validator.validate(getParser(query));
+    void runValidate(String query) {
+      validator.validate(query, dataSourceType);
     }
 
     SingleStatementContext getParser(String query) {

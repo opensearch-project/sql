@@ -88,6 +88,8 @@ import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilderProvider;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
+import org.opensearch.sql.spark.validator.GrammarElementValidatorFactory;
+import org.opensearch.sql.spark.validator.SQLQueryValidator;
 
 @ExtendWith(MockitoExtension.class)
 public class SparkQueryDispatcherTest {
@@ -111,6 +113,10 @@ public class SparkQueryDispatcherTest {
   @Mock private AsyncQueryRequestContext asyncQueryRequestContext;
   @Mock private MetricsService metricsService;
   @Mock private AsyncQueryScheduler asyncQueryScheduler;
+
+  private final SQLQueryValidator sqlQueryValidator =
+      new SQLQueryValidator(new GrammarElementValidatorFactory());
+
   private DataSourceSparkParameterComposer dataSourceSparkParameterComposer =
       (datasourceMetadata, sparkSubmitParameters, dispatchQueryRequest, context) -> {
         sparkSubmitParameters.setConfigItem(FLINT_INDEX_STORE_AUTH_KEY, "basic");
@@ -159,7 +165,11 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParametersBuilderProvider);
     sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
+            dataSourceService,
+            sessionManager,
+            queryHandlerFactory,
+            queryIdProvider,
+            sqlQueryValidator);
   }
 
   @Test
@@ -571,7 +581,11 @@ public class SparkQueryDispatcherTest {
     QueryHandlerFactory queryHandlerFactory = mock(QueryHandlerFactory.class);
     sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
+            dataSourceService,
+            sessionManager,
+            queryHandlerFactory,
+            queryIdProvider,
+            sqlQueryValidator);
     String query =
         "ALTER INDEX elb_and_requestUri ON my_glue.default.http_logs WITH"
             + " (auto_refresh = false)";
@@ -597,7 +611,11 @@ public class SparkQueryDispatcherTest {
     QueryHandlerFactory queryHandlerFactory = mock(QueryHandlerFactory.class);
     sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
+            dataSourceService,
+            sessionManager,
+            queryHandlerFactory,
+            queryIdProvider,
+            sqlQueryValidator);
     String query = "DROP INDEX elb_and_requestUri ON my_glue.default.http_logs";
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(

@@ -85,6 +85,8 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
+import org.opensearch.sql.spark.validator.GrammarElementValidatorFactory;
+import org.opensearch.sql.spark.validator.SQLQueryValidator;
 
 /**
  * This tests async-query-core library end-to-end using mocked implementation of extension points.
@@ -175,9 +177,15 @@ public class AsyncQueryCoreIntegTest {
             emrServerlessClientFactory,
             metricsService,
             new SparkSubmitParametersBuilderProvider(collection));
+    SQLQueryValidator sqlQueryValidator =
+        new SQLQueryValidator(new GrammarElementValidatorFactory());
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
+            dataSourceService,
+            sessionManager,
+            queryHandlerFactory,
+            queryIdProvider,
+            sqlQueryValidator);
     asyncQueryExecutorService =
         new AsyncQueryExecutorServiceImpl(
             asyncQueryJobMetadataStorageService,
