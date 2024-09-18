@@ -29,7 +29,6 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
@@ -65,8 +64,6 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   private boolean searchDone = false;
 
   private String pitId;
-
-  private OpenSearchClient client;
 
   private TimeValue cursorKeepAlive;
 
@@ -111,14 +108,13 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       OpenSearchExprValueFactory factory,
       List<String> includes,
       TimeValue cursorKeepAlive,
-      OpenSearchClient client) {
+      String pitId) {
     this.indexName = indexName;
     this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = factory;
     this.includes = includes;
     this.cursorKeepAlive = cursorKeepAlive;
-    this.client = client;
-    this.pitId = createPIT();
+    this.pitId = pitId;
   }
 
   @Override
@@ -179,23 +175,17 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     return openSearchResponse;
   }
 
-  public String createPIT() {
-    CreatePitRequest createPitRequest =
-        new CreatePitRequest(this.cursorKeepAlive, false, indexName.getIndexNames());
-    return this.client.createPit(createPitRequest);
-  }
-
-  public void deletePit() {
-    DeletePitRequest deletePitRequest = new DeletePitRequest(this.pitId);
-    this.client.deletePit(deletePitRequest);
-    searchDone = true;
-    this.pitId = null;
-  }
-
   @Override
   public void clean(Consumer<String> cleanAction) {
-    if (needClean && this.pitId != null) {
-      deletePit();
+    try {
+      // clean on the last page only, to prevent deleting the PitId in the middle of paging.
+      if (needClean && this.pitId != null) {
+        cleanAction.accept(this.pitId);
+        searchDone = true;
+        this.pitId = null;
+      }
+    } finally {
+      this.pitId = null;
     }
   }
 
@@ -254,8 +244,6 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     pitId = in.readString();
     includes = in.readStringList();
     indexName = new IndexName(in);
-
-    this.client = engine.getClient();
 
     int length = in.readVInt();
     this.searchAfter = new Object[length];

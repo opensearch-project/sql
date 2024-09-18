@@ -191,7 +191,11 @@ public class OpenSearchRestClient implements OpenSearchClient {
             }
           });
     } else if (request instanceof OpenSearchQueryRequest) {
-      request.clean(pitId -> {});
+      request.clean(
+          pitId -> {
+            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
+            deletePit(deletePitRequest);
+          });
     }
   }
 

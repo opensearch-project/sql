@@ -26,6 +26,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
+import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.InnerHitBuilder;
@@ -114,8 +115,9 @@ public class OpenSearchRequestBuilder {
       if (startFrom + size > maxResultWindow) {
         sourceBuilder.size(maxResultWindow - startFrom);
         // Search with PIT request
+        String pitId = createPit(indexName, cursorKeepAlive, client);
         return new OpenSearchQueryRequest(
-            indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, client);
+            indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(requestedTotalSize);
@@ -128,8 +130,9 @@ public class OpenSearchRequestBuilder {
       }
       sourceBuilder.size(pageSize);
       // Search with PIT request
+      String pitId = createPit(indexName, cursorKeepAlive, client);
       return new OpenSearchQueryRequest(
-          indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, client);
+          indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
     }
   }
 
@@ -157,6 +160,14 @@ public class OpenSearchRequestBuilder {
       return new OpenSearchScrollRequest(
           indexName, cursorKeepAlive, sourceBuilder, exprValueFactory, includes);
     }
+  }
+
+  private String createPit(
+      OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
+    // Create PIT ID for request
+    CreatePitRequest createPitRequest =
+        new CreatePitRequest(cursorKeepAlive, false, indexName.getIndexNames());
+    return client.createPit(createPitRequest);
   }
 
   boolean isBoolFilterQuery(QueryBuilder current) {
