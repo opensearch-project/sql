@@ -164,7 +164,9 @@ class SQLQueryValidatorTest {
 
   @Test
   void s3glueQueries() {
-    VerifyValidator v = new VerifyValidator(new SQLQueryValidator(factory.getValidatorForDatasource(DataSourceType.S3GLUE)));
+    VerifyValidator v =
+        new VerifyValidator(
+            new SQLQueryValidator(factory.getValidatorForDatasource(DataSourceType.S3GLUE)));
     // DDL Statements
     v.ok(TestQuery.ALTER_DATABASE);
     v.ok(TestQuery.ALTER_TABLE);
@@ -195,7 +197,7 @@ class SQLQueryValidatorTest {
     v.ok(TestQuery.HAVING_CLAUSE);
     v.ng(TestQuery.HINTS);
     v.ng(TestQuery.INLINE_TABLE);
-    //    v.ng(TestQuery.FILE); TODO: need dive deep
+    v.ng(TestQuery.FILE);
     v.ok(TestQuery.INNER_JOIN);
     v.ng(TestQuery.CROSS_JOIN);
     v.ok(TestQuery.LEFT_OUTER_JOIN);
@@ -279,7 +281,9 @@ class SQLQueryValidatorTest {
 
   @Test
   void securityLakeQueries() {
-    VerifyValidator v = new VerifyValidator(new SQLQueryValidator(factory.getValidatorForDatasource(DataSourceType.SECURITY_LAKE)));
+    VerifyValidator v =
+        new VerifyValidator(
+            new SQLQueryValidator(factory.getValidatorForDatasource(DataSourceType.SECURITY_LAKE)));
     // DDL Statements
     v.ng(TestQuery.ALTER_DATABASE);
     v.ng(TestQuery.ALTER_TABLE);
@@ -310,7 +314,7 @@ class SQLQueryValidatorTest {
     v.ok(TestQuery.HAVING_CLAUSE);
     v.ng(TestQuery.HINTS);
     v.ng(TestQuery.INLINE_TABLE);
-    //    v.ng(TestQuery.FILE); TODO: need dive deep
+    v.ng(TestQuery.FILE);
     v.ok(TestQuery.INNER_JOIN);
     v.ng(TestQuery.CROSS_JOIN);
     v.ok(TestQuery.LEFT_OUTER_JOIN);
@@ -398,7 +402,6 @@ class SQLQueryValidatorTest {
 
     public void ok(TestQuery query) {
       runValidate(validator, query.toString());
-
     }
 
     public void ng(TestQuery query) {
@@ -419,12 +422,4 @@ class SQLQueryValidatorTest {
       return sqlBaseParser.singleStatement();
     }
   }
-
-  void ok(SQLQueryValidator validator, TestQuery query) {
-  }
-
-  void ng(SQLQueryValidator validator, TestQuery query) {
-  }
-
-
 }

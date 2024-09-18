@@ -79,6 +79,7 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ShowTableExtendedCont
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ShowTablesContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ShowTblPropertiesContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ShowViewsContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TableNameContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TableValuedFunctionContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TransformClauseContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TruncateTableContext;
@@ -183,8 +184,6 @@ public class SQLQueryValidator extends SqlBaseParserBaseVisitor<Void> {
     validateAllowed(GrammarElement.ALTER_NAMESPACE);
     return super.visitAlterClusterBy(ctx);
   }
-
-
 
   @Override
   public Void visitSetNamespaceLocation(SetNamespaceLocationContext ctx) {
@@ -323,6 +322,22 @@ public class SQLQueryValidator extends SqlBaseParserBaseVisitor<Void> {
   public Void visitExplain(ExplainContext ctx) {
     validateAllowed(GrammarElement.EXPLAIN);
     return super.visitExplain(ctx);
+  }
+
+  @Override
+  public Void visitTableName(TableNameContext ctx) {
+    String reference = ctx.identifierReference().getText();
+    System.out.println(reference);
+    if (isFileReference(reference)) {
+      validateAllowed(GrammarElement.FILE);
+    }
+    return super.visitTableName(ctx);
+  }
+
+  private static final String FILE_REFERENCE_PATTERN = "^[a-zA-Z]+\\.`[^`]+`$";
+
+  private boolean isFileReference(String reference) {
+    return reference.matches(FILE_REFERENCE_PATTERN);
   }
 
   @Override

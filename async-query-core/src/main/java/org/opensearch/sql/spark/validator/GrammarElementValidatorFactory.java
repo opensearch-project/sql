@@ -14,27 +14,29 @@ import java.util.Set;
 import org.opensearch.sql.datasource.model.DataSourceType;
 
 public class GrammarElementValidatorFactory {
-  private static final Set<GrammarElement> DEFAULT_DENY_LIST =
-      ImmutableSet.of(CREATE_FUNCTION, DROP_FUNCTION, INSERT, LOAD, HINTS, TABLESAMPLE);
-
   // Deny List for CloudWatch Logs datasource
   private static final Set<GrammarElement> CWL_DENY_LIST =
-      copyBuilder(DEFAULT_DENY_LIST)
+      ImmutableSet.<GrammarElement>builder()
           .add(
               ALTER_NAMESPACE,
               ALTER_VIEW,
               CREATE_NAMESPACE,
+              CREATE_FUNCTION,
               CREATE_VIEW,
+              DROP_FUNCTION,
               DROP_NAMESPACE,
               DROP_VIEW,
               REPAIR_TABLE,
               TRUNCATE_TABLE,
+              INSERT,
+              LOAD,
               EXPLAIN,
               WITH,
               CLUSTER_BY,
               DISTRIBUTE_BY,
               HINTS,
               INLINE_TABLE,
+              FILE,
               CROSS_JOIN,
               LEFT_SEMI_JOIN,
               RIGHT_OUTER_JOIN,
@@ -74,15 +76,20 @@ public class GrammarElementValidatorFactory {
 
   // Deny list for S3 Glue datasource
   private static final Set<GrammarElement> S3GLUE_DENY_LIST =
-      copyBuilder(DEFAULT_DENY_LIST)
+      ImmutableSet.<GrammarElement>builder()
           .add(
               ALTER_VIEW,
+              CREATE_FUNCTION,
               CREATE_VIEW,
+              DROP_FUNCTION,
               DROP_VIEW,
-              DISTRIBUTE_BY,
-              INLINE_TABLE,
+              INSERT,
+              LOAD,
               CLUSTER_BY,
               DISTRIBUTE_BY,
+              HINTS,
+              INLINE_TABLE,
+              FILE,
               CROSS_JOIN,
               LEFT_SEMI_JOIN,
               RIGHT_OUTER_JOIN,
@@ -105,20 +112,25 @@ public class GrammarElementValidatorFactory {
 
   // Deny list for Security Lake datasource
   private static final Set<GrammarElement> SL_DENY_LIST =
-      copyBuilder(DEFAULT_DENY_LIST)
+      ImmutableSet.<GrammarElement>builder()
           .add(
               ALTER_NAMESPACE,
               ALTER_VIEW,
               CREATE_NAMESPACE,
+              CREATE_FUNCTION,
               CREATE_VIEW,
+              DROP_FUNCTION,
               DROP_NAMESPACE,
               DROP_VIEW,
               REPAIR_TABLE,
               TRUNCATE_TABLE,
+              INSERT,
+              LOAD,
               CLUSTER_BY,
               DISTRIBUTE_BY,
               HINTS,
               INLINE_TABLE,
+              FILE,
               CROSS_JOIN,
               LEFT_SEMI_JOIN,
               RIGHT_OUTER_JOIN,
@@ -155,12 +167,10 @@ public class GrammarElementValidatorFactory {
               UDF)
           .build();
 
-
   private static Map<DataSourceType, GrammarElementValidator> validatorMap =
       ImmutableMap.of(
           DataSourceType.S3GLUE, new DenyListGrammarElementValidator(S3GLUE_DENY_LIST),
-          DataSourceType.SECURITY_LAKE, new DenyListGrammarElementValidator(SL_DENY_LIST)
-      );
+          DataSourceType.SECURITY_LAKE, new DenyListGrammarElementValidator(SL_DENY_LIST));
 
   public GrammarElementValidator getValidatorForDatasource(DataSourceType dataSourceType) {
     return validatorMap.get(dataSourceType);
