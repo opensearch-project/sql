@@ -30,7 +30,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
-import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -179,7 +178,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
                   "Failed to clean up resources for search request " + request, e);
             }
           });
-    } else if (request instanceof OpenSearchQueryRequest) {
+    } else {
       request.clean(
           pitId -> {
             DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);

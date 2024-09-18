@@ -22,22 +22,17 @@ import org.opensearch.sql.legacy.query.planner.resource.ResourceManager;
 
 public abstract class Paginate extends BatchPhysicalOperator<SearchHit> {
 
-  /** Request to submit to OpenSearch to scroll over */
+  /** Request to submit to OpenSearch to scan over */
   protected final TableInJoinRequestBuilder request;
 
-  /** Page size to scroll over index */
   protected final int pageSize;
 
-  /** Client connection to ElasticSearch */
   protected Client client;
 
-  /** Currently undergoing scan */
   protected SearchResponse searchResponse;
 
-  /** Time out */
   protected Integer timeout;
 
-  /** Resource monitor manager */
   protected ResourceManager resourceMgr;
 
   public Paginate(TableInJoinRequestBuilder request, int pageSize) {

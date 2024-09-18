@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -16,11 +17,7 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -145,6 +142,49 @@ class OpenSearchIndexScanTest {
       var cursor = planSerializer.convertToCursor(indexScan);
       var newPlan = planSerializer.convertToPlan(cursor.toString());
       assertEquals(indexScan, newPlan);
+    }
+  }
+
+  @SneakyThrows
+  @ParameterizedTest
+  @ValueSource(ints = {0, 150})
+  void serialize_PIT(Integer numberOfIncludes) {
+    var searchSourceBuilder = new SearchSourceBuilder().size(4);
+
+    var factory = mock(OpenSearchExprValueFactory.class);
+    var engine = mock(OpenSearchStorageEngine.class);
+    var index = mock(OpenSearchIndex.class);
+    when(engine.getClient()).thenReturn(client);
+    when(engine.getTable(any(), any())).thenReturn(index);
+    Map map = mock(Map.class);
+    when(map.get(any(String.class))).thenReturn("true");
+    when(client.meta()).thenReturn(map);
+    var includes =
+        Stream.iterate(1, i -> i + 1)
+            .limit(numberOfIncludes)
+            .map(i -> "column" + i)
+            .collect(Collectors.toList());
+    var request =
+        new OpenSearchQueryRequest(
+            INDEX_NAME, searchSourceBuilder, factory, includes, CURSOR_KEEP_ALIVE, "samplePitId");
+    // make a response, so OpenSearchResponse::isEmpty would return true and unset needClean
+    var response = mock(SearchResponse.class);
+    when(response.getAggregations()).thenReturn(mock());
+    var hits = mock(SearchHits.class);
+    when(response.getHits()).thenReturn(hits);
+    SearchHit hit = mock(SearchHit.class);
+    when(hit.getSortValues()).thenReturn(new String[] {"sample1"});
+    when(hits.getHits()).thenReturn(new SearchHit[] {hit});
+    request.search((req) -> response, null);
+
+    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
+      var planSerializer = new PlanSerializer(engine);
+      var cursor = planSerializer.convertToCursor(indexScan);
+      var newPlan = planSerializer.convertToPlan(cursor.toString());
+      assertNotNull(newPlan);
+
+      verify(client).meta();
+      verify(map).get(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER.getKeyValue());
     }
   }
 

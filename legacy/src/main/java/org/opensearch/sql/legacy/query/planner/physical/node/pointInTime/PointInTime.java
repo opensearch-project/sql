@@ -36,6 +36,8 @@ public class PointInTime extends Paginate {
     pit = new PointInTimeHandlerImpl(client, request.getOriginalSelect().getIndexArr());
     pit.create();
     pitId = pit.getPitId();
+
+    LOG.info("Loading first batch of response using Point In Time");
     searchResponse =
         request
             .getRequestBuilder()
@@ -44,7 +46,6 @@ public class PointInTime extends Paginate {
             .setTimeout(TimeValue.timeValueSeconds(timeout))
             .setPointInTime(new PointInTimeBuilder(pitId))
             .get();
-    LOG.info("Loading first batch of response using Point In Time");
   }
 
   @Override
@@ -57,6 +58,7 @@ public class PointInTime extends Paginate {
               .getHits()
               .getHits()[searchResponse.getHits().getHits().length - 1]
               .getSortValues();
+
       LOG.info("Loading next batch of response using Point In Time. - " + pitId);
       searchResponse =
           request

@@ -25,6 +25,7 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
 import org.opensearch.search.builder.PointInTimeBuilder;
@@ -117,6 +118,41 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.pitId = pitId;
   }
 
+  /**
+   * Constructs OpenSearchQueryRequest from serialized representation.
+   *
+   * @param in stream to read data from.
+   * @param engine OpenSearchSqlEngine to get node-specific context.
+   * @throws IOException thrown if reading from input {@code in} fails.
+   */
+  public OpenSearchQueryRequest(StreamInput in, OpenSearchStorageEngine engine) throws IOException {
+    // Deserialize the SearchSourceBuilder from the string representation
+    String sourceBuilderString = in.readString();
+
+    NamedXContentRegistry xContentRegistry =
+        new NamedXContentRegistry(
+            new SearchModule(Settings.EMPTY, Collections.emptyList()).getNamedXContents());
+    XContentParser parser =
+        XContentType.JSON
+            .xContent()
+            .createParser(xContentRegistry, IGNORE_DEPRECATIONS, sourceBuilderString);
+    this.sourceBuilder = SearchSourceBuilder.fromXContent(parser);
+
+    cursorKeepAlive = in.readTimeValue();
+    pitId = in.readString();
+    includes = in.readStringList();
+    indexName = new IndexName(in);
+
+    int length = in.readVInt();
+    this.searchAfter = new Object[length];
+    for (int i = 0; i < length; i++) {
+      this.searchAfter[i] = in.readGenericValue();
+    }
+
+    OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());
+    exprValueFactory = new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes());
+  }
+
   @Override
   public OpenSearchResponse search(
       Function<SearchRequest, SearchResponse> searchAction,
@@ -161,14 +197,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
       needClean = openSearchResponse.isEmpty();
       searchDone = openSearchResponse.isEmpty();
-      if (!needClean
-          && this.searchResponse.getHits().getHits() != null
-          && this.searchResponse.getHits().getHits().length > 0) {
-        searchAfter =
-            this.searchResponse
-                .getHits()
-                .getHits()[this.searchResponse.getHits().getHits().length - 1]
-                .getSortValues();
+      SearchHit[] searchHits = this.searchResponse.getHits().getHits();
+      if (searchHits != null && searchHits.length > 0) {
+        searchAfter = searchHits[searchHits.length - 1].getSortValues();
         this.sourceBuilder.searchAfter(searchAfter);
       }
     }
@@ -179,10 +210,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   public void clean(Consumer<String> cleanAction) {
     try {
       // clean on the last page only, to prevent deleting the PitId in the middle of paging.
-      if (needClean && this.pitId != null) {
+      if (this.pitId != null && needClean) {
         cleanAction.accept(this.pitId);
         searchDone = true;
-        this.pitId = null;
       }
     } finally {
       this.pitId = null;
@@ -209,49 +239,16 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       indexName.writeTo(out);
 
       // Serialize the searchAfter array
-      out.writeVInt(searchAfter.length);
-      for (Object obj : searchAfter) {
-        out.writeGenericValue(obj);
+      if (searchAfter != null) {
+        out.writeVInt(searchAfter.length);
+        for (Object obj : searchAfter) {
+          out.writeGenericValue(obj);
+        }
       }
     } else {
       // OpenSearch Query request without PIT for single page requests
       throw new UnsupportedOperationException(
           "OpenSearchQueryRequest serialization is not implemented.");
     }
-  }
-
-  /**
-   * Constructs OpenSearchQueryRequest from serialized representation.
-   *
-   * @param in stream to read data from.
-   * @param engine OpenSearchSqlEngine to get node-specific context.
-   * @throws IOException thrown if reading from input {@code in} fails.
-   */
-  public OpenSearchQueryRequest(StreamInput in, OpenSearchStorageEngine engine) throws IOException {
-    // Deserialize the SearchSourceBuilder from the string representation
-    String sourceBuilderString = in.readString();
-
-    NamedXContentRegistry xContentRegistry =
-        new NamedXContentRegistry(
-            new SearchModule(Settings.EMPTY, Collections.emptyList()).getNamedXContents());
-    XContentParser parser =
-        XContentType.JSON
-            .xContent()
-            .createParser(xContentRegistry, IGNORE_DEPRECATIONS, sourceBuilderString);
-    this.sourceBuilder = SearchSourceBuilder.fromXContent(parser);
-
-    cursorKeepAlive = in.readTimeValue();
-    pitId = in.readString();
-    includes = in.readStringList();
-    indexName = new IndexName(in);
-
-    int length = in.readVInt();
-    this.searchAfter = new Object[length];
-    for (int i = 0; i < length; i++) {
-      this.searchAfter[i] = in.readGenericValue();
-    }
-
-    OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());
-    exprValueFactory = new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes());
   }
 }
