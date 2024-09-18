@@ -6,7 +6,6 @@
 package org.opensearch.sql.spark.validator;
 
 import lombok.AllArgsConstructor;
-import org.antlr.v4.runtime.tree.TerminalNode;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AddTableColumnsContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AddTablePartitionContext;
@@ -35,7 +34,6 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropTablePartitionsContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropViewContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ExplainContext;
-import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.FunctionIdentifierContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.FunctionNameContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.HintContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.HiveReplaceColumnsContext;
@@ -67,7 +65,6 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SampleContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetConfigurationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetNamespaceLocationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetNamespacePropertiesContext;
-import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetQuantifierContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetTableLocationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetTableSerDeContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ShowColumnsContext;
@@ -201,8 +198,6 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
 
   @Override
   public Void visitRenameTable(RenameTableContext ctx) {
-    TerminalNode view = ctx.VIEW();
-    TerminalNode table = ctx.TABLE();
     if (ctx.VIEW() != null) {
       validateAllowed(GrammarElement.ALTER_VIEW);
     } else if (ctx.TABLE() != null) {
@@ -522,12 +517,6 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   }
 
   @Override
-  public Void visitSetQuantifier(SetQuantifierContext ctx) {
-    validateAllowed(GrammarElement.SET);
-    return super.visitSetQuantifier(ctx);
-  }
-
-  @Override
   public Void visitShowColumns(ShowColumnsContext ctx) {
     validateAllowed(GrammarElement.SHOW_COLUMNS);
     return super.visitShowColumns(ctx);
@@ -585,12 +574,6 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   public Void visitUncacheTable(UncacheTableContext ctx) {
     validateAllowed(GrammarElement.UNCACHE_TABLE);
     return super.visitUncacheTable(ctx);
-  }
-
-  @Override
-  public Void visitFunctionIdentifier(FunctionIdentifierContext ctx) {
-    validateFunctionAllowed(ctx.function.getText());
-    return super.visitFunctionIdentifier(ctx);
   }
 
   @Override

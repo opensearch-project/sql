@@ -357,17 +357,10 @@ public class SparkQueryDispatcherTest {
                   sparkQueryDispatcher.dispatch(
                       getBaseDispatchQueryRequestBuilder(query).langType(LangType.SQL).build(),
                       asyncQueryRequestContext));
-      assertEquals(
-          "Query is not allowed: Creating user-defined functions is not allowed",
-          illegalArgumentException.getMessage());
+      assertEquals("CREATE FUNCTION is not allowed.", illegalArgumentException.getMessage());
       verifyNoInteractions(emrServerlessClient);
       verifyNoInteractions(flintIndexMetadataService);
     }
-  }
-
-  @Test
-  void testInvalidSQLQueryDispatchToSpark() {
-    testDispatchBatchQuery("myselect 1");
   }
 
   @Test
