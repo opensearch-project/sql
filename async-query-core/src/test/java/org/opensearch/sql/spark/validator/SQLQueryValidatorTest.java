@@ -164,138 +164,267 @@ class SQLQueryValidatorTest {
 
   @Test
   void s3glueQueries() {
-    SQLQueryValidator v =
-        new SQLQueryValidator(factory.getValidatorForDatasource(DataSourceType.S3GLUE));
-    verifyValid(v, TestQuery.ALTER_DATABASE);
-    verifyValid(v, TestQuery.ALTER_TABLE);
-    verifyInvalid(v, TestQuery.ALTER_VIEW);
-    verifyValid(v, TestQuery.CREATE_DATABASE);
-    verifyInvalid(v, TestQuery.CREATE_FUNCTION);
-    verifyValid(v, TestQuery.CREATE_TABLE);
-    verifyInvalid(v, TestQuery.CREATE_VIEW);
-    verifyValid(v, TestQuery.DROP_DATABASE);
-    verifyInvalid(v, TestQuery.DROP_FUNCTION);
-    verifyValid(v, TestQuery.DROP_TABLE);
-    verifyInvalid(v, TestQuery.DROP_VIEW);
-    verifyValid(v, TestQuery.REPAIR_TABLE);
-    verifyValid(v, TestQuery.TRUNCATE_TABLE);
+    VerifyValidator v = new VerifyValidator(new SQLQueryValidator(factory.getValidatorForDatasource(DataSourceType.S3GLUE)));
+    // DDL Statements
+    v.ok(TestQuery.ALTER_DATABASE);
+    v.ok(TestQuery.ALTER_TABLE);
+    v.ng(TestQuery.ALTER_VIEW);
+    v.ok(TestQuery.CREATE_DATABASE);
+    v.ng(TestQuery.CREATE_FUNCTION);
+    v.ok(TestQuery.CREATE_TABLE);
+    v.ng(TestQuery.CREATE_VIEW);
+    v.ok(TestQuery.DROP_DATABASE);
+    v.ng(TestQuery.DROP_FUNCTION);
+    v.ok(TestQuery.DROP_TABLE);
+    v.ng(TestQuery.DROP_VIEW);
+    v.ok(TestQuery.REPAIR_TABLE);
+    v.ok(TestQuery.TRUNCATE_TABLE);
 
     // DML Statements
-    verifyInvalid(v, TestQuery.INSERT_TABLE);
-    verifyInvalid(v, TestQuery.INSERT_OVERWRITE_DIRECTORY);
-    verifyInvalid(v, TestQuery.LOAD);
+    v.ng(TestQuery.INSERT_TABLE);
+    v.ng(TestQuery.INSERT_OVERWRITE_DIRECTORY);
+    v.ng(TestQuery.LOAD);
 
     // Data Retrieval
-    verifyValid(v, TestQuery.SELECT);
-    verifyValid(v, TestQuery.EXPLAIN);
-    verifyValid(v, TestQuery.COMMON_TABLE_EXPRESSION);
-    verifyInvalid(v, TestQuery.CLUSTER_BY_CLAUSE);
-    verifyInvalid(v, TestQuery.DISTRIBUTE_BY_CLAUSE);
-    verifyValid(v, TestQuery.GROUP_BY_CLAUSE);
-    verifyValid(v, TestQuery.HAVING_CLAUSE);
-    verifyInvalid(v, TestQuery.HINTS);
-    verifyInvalid(v, TestQuery.INLINE_TABLE);
-    //    verifyInvalid(v, TestQuery.FILE); TODO: need dive deep
-    verifyValid(v, TestQuery.INNER_JOIN);
-    verifyInvalid(v, TestQuery.CROSS_JOIN);
-    verifyValid(v, TestQuery.LEFT_OUTER_JOIN);
-    verifyInvalid(v, TestQuery.LEFT_SEMI_JOIN);
-    verifyInvalid(v, TestQuery.RIGHT_OUTER_JOIN);
-    verifyInvalid(v, TestQuery.FULL_OUTER_JOIN);
-    verifyInvalid(v, TestQuery.LEFT_ANTI_JOIN);
-    verifyValid(v, TestQuery.LIKE_PREDICATE);
-    verifyValid(v, TestQuery.LIMIT_CLAUSE);
-    verifyValid(v, TestQuery.OFFSET_CLAUSE);
-    verifyValid(v, TestQuery.ORDER_BY_CLAUSE);
-    verifyValid(v, TestQuery.SET_OPERATORS);
-    verifyValid(v, TestQuery.SORT_BY_CLAUSE);
-    verifyInvalid(v, TestQuery.TABLESAMPLE);
-    verifyInvalid(v, TestQuery.TABLE_VALUED_FUNCTION);
-    verifyValid(v, TestQuery.WHERE_CLAUSE);
-    verifyValid(v, TestQuery.AGGREGATE_FUNCTION);
-    verifyValid(v, TestQuery.WINDOW_FUNCTION);
-    verifyValid(v, TestQuery.CASE_CLAUSE);
-    verifyValid(v, TestQuery.PIVOT_CLAUSE);
-    verifyValid(v, TestQuery.UNPIVOT_CLAUSE);
-    verifyValid(v, TestQuery.LATERAL_VIEW_CLAUSE);
-    verifyValid(v, TestQuery.LATERAL_SUBQUERY);
-    verifyInvalid(v, TestQuery.TRANSFORM_CLAUSE);
+    v.ok(TestQuery.SELECT);
+    v.ok(TestQuery.EXPLAIN);
+    v.ok(TestQuery.COMMON_TABLE_EXPRESSION);
+    v.ng(TestQuery.CLUSTER_BY_CLAUSE);
+    v.ng(TestQuery.DISTRIBUTE_BY_CLAUSE);
+    v.ok(TestQuery.GROUP_BY_CLAUSE);
+    v.ok(TestQuery.HAVING_CLAUSE);
+    v.ng(TestQuery.HINTS);
+    v.ng(TestQuery.INLINE_TABLE);
+    //    v.ng(TestQuery.FILE); TODO: need dive deep
+    v.ok(TestQuery.INNER_JOIN);
+    v.ng(TestQuery.CROSS_JOIN);
+    v.ok(TestQuery.LEFT_OUTER_JOIN);
+    v.ng(TestQuery.LEFT_SEMI_JOIN);
+    v.ng(TestQuery.RIGHT_OUTER_JOIN);
+    v.ng(TestQuery.FULL_OUTER_JOIN);
+    v.ng(TestQuery.LEFT_ANTI_JOIN);
+    v.ok(TestQuery.LIKE_PREDICATE);
+    v.ok(TestQuery.LIMIT_CLAUSE);
+    v.ok(TestQuery.OFFSET_CLAUSE);
+    v.ok(TestQuery.ORDER_BY_CLAUSE);
+    v.ok(TestQuery.SET_OPERATORS);
+    v.ok(TestQuery.SORT_BY_CLAUSE);
+    v.ng(TestQuery.TABLESAMPLE);
+    v.ng(TestQuery.TABLE_VALUED_FUNCTION);
+    v.ok(TestQuery.WHERE_CLAUSE);
+    v.ok(TestQuery.AGGREGATE_FUNCTION);
+    v.ok(TestQuery.WINDOW_FUNCTION);
+    v.ok(TestQuery.CASE_CLAUSE);
+    v.ok(TestQuery.PIVOT_CLAUSE);
+    v.ok(TestQuery.UNPIVOT_CLAUSE);
+    v.ok(TestQuery.LATERAL_VIEW_CLAUSE);
+    v.ok(TestQuery.LATERAL_SUBQUERY);
+    v.ng(TestQuery.TRANSFORM_CLAUSE);
 
     // Auxiliary Statements
-    verifyInvalid(v, TestQuery.ADD_FILE);
-    verifyInvalid(v, TestQuery.ADD_JAR);
-    verifyValid(v, TestQuery.ANALYZE_TABLE);
-    verifyValid(v, TestQuery.CACHE_TABLE);
-    verifyValid(v, TestQuery.CLEAR_CACHE);
-    verifyValid(v, TestQuery.DESCRIBE_DATABASE);
-    verifyInvalid(v, TestQuery.DESCRIBE_FUNCTION);
-    verifyValid(v, TestQuery.DESCRIBE_QUERY);
-    verifyValid(v, TestQuery.DESCRIBE_TABLE);
-    verifyInvalid(v, TestQuery.LIST_FILE);
-    verifyInvalid(v, TestQuery.LIST_JAR);
-    verifyInvalid(v, TestQuery.REFRESH);
-    //    verifyValid(v, TestQuery.REFRESH_TABLE); TODO: refreshTable rule won't match (matches to
+    v.ng(TestQuery.ADD_FILE);
+    v.ng(TestQuery.ADD_JAR);
+    v.ok(TestQuery.ANALYZE_TABLE);
+    v.ok(TestQuery.CACHE_TABLE);
+    v.ok(TestQuery.CLEAR_CACHE);
+    v.ok(TestQuery.DESCRIBE_DATABASE);
+    v.ng(TestQuery.DESCRIBE_FUNCTION);
+    v.ok(TestQuery.DESCRIBE_QUERY);
+    v.ok(TestQuery.DESCRIBE_TABLE);
+    v.ng(TestQuery.LIST_FILE);
+    v.ng(TestQuery.LIST_JAR);
+    v.ng(TestQuery.REFRESH);
+    //    v.ok(TestQuery.REFRESH_TABLE); TODO: refreshTable rule won't match (matches to
     // refreshResource)
-    verifyInvalid(v, TestQuery.REFRESH_FUNCTION);
-    verifyInvalid(v, TestQuery.RESET);
-    verifyInvalid(v, TestQuery.SET);
-    verifyValid(v, TestQuery.SHOW_COLUMNS);
-    verifyValid(v, TestQuery.SHOW_CREATE_TABLE);
-    verifyValid(v, TestQuery.SHOW_DATABASES);
-    verifyInvalid(v, TestQuery.SHOW_FUNCTIONS);
-    verifyValid(v, TestQuery.SHOW_PARTITIONS);
-    verifyValid(v, TestQuery.SHOW_TABLE_EXTENDED);
-    verifyValid(v, TestQuery.SHOW_TABLES);
-    verifyValid(v, TestQuery.SHOW_TBLPROPERTIES);
-    verifyInvalid(v, TestQuery.SHOW_VIEWS);
-    verifyValid(v, TestQuery.UNCACHE_TABLE);
+    v.ng(TestQuery.REFRESH_FUNCTION);
+    v.ng(TestQuery.RESET);
+    v.ng(TestQuery.SET);
+    v.ok(TestQuery.SHOW_COLUMNS);
+    v.ok(TestQuery.SHOW_CREATE_TABLE);
+    v.ok(TestQuery.SHOW_DATABASES);
+    v.ng(TestQuery.SHOW_FUNCTIONS);
+    v.ok(TestQuery.SHOW_PARTITIONS);
+    v.ok(TestQuery.SHOW_TABLE_EXTENDED);
+    v.ok(TestQuery.SHOW_TABLES);
+    v.ok(TestQuery.SHOW_TBLPROPERTIES);
+    v.ng(TestQuery.SHOW_VIEWS);
+    v.ok(TestQuery.UNCACHE_TABLE);
 
     // Functions
-    verifyValid(v, TestQuery.ARRAY_FUNCTIONS);
-    verifyValid(v, TestQuery.MAP_FUNCTIONS);
-    verifyValid(v, TestQuery.DATE_AND_TIMESTAMP_FUNCTIONS);
-    verifyValid(v, TestQuery.JSON_FUNCTIONS);
-    verifyValid(v, TestQuery.MATHEMATICAL_FUNCTIONS);
-    verifyValid(v, TestQuery.STRING_FUNCTIONS);
-    verifyValid(v, TestQuery.BITWISE_FUNCTIONS);
-    verifyValid(v, TestQuery.CONVERSION_FUNCTIONS);
-    verifyValid(v, TestQuery.CONDITIONAL_FUNCTIONS);
-    verifyValid(v, TestQuery.PREDICATE_FUNCTIONS);
-    verifyValid(v, TestQuery.CSV_FUNCTIONS);
-    verifyInvalid(v, TestQuery.MISC_FUNCTIONS);
+    v.ok(TestQuery.ARRAY_FUNCTIONS);
+    v.ok(TestQuery.MAP_FUNCTIONS);
+    v.ok(TestQuery.DATE_AND_TIMESTAMP_FUNCTIONS);
+    v.ok(TestQuery.JSON_FUNCTIONS);
+    v.ok(TestQuery.MATHEMATICAL_FUNCTIONS);
+    v.ok(TestQuery.STRING_FUNCTIONS);
+    v.ok(TestQuery.BITWISE_FUNCTIONS);
+    v.ok(TestQuery.CONVERSION_FUNCTIONS);
+    v.ok(TestQuery.CONDITIONAL_FUNCTIONS);
+    v.ok(TestQuery.PREDICATE_FUNCTIONS);
+    v.ok(TestQuery.CSV_FUNCTIONS);
+    v.ng(TestQuery.MISC_FUNCTIONS);
 
     // Aggregate-like Functions
-    verifyValid(v, TestQuery.AGGREGATE_FUNCTIONS);
-    verifyValid(v, TestQuery.WINDOW_FUNCTIONS);
+    v.ok(TestQuery.AGGREGATE_FUNCTIONS);
+    v.ok(TestQuery.WINDOW_FUNCTIONS);
 
     // Generator Functions
-    verifyValid(v, TestQuery.GENERATOR_FUNCTIONS);
+    v.ok(TestQuery.GENERATOR_FUNCTIONS);
 
     // UDFs
-    verifyInvalid(v, TestQuery.SCALAR_USER_DEFINED_FUNCTIONS);
-    verifyInvalid(v, TestQuery.USER_DEFINED_AGGREGATE_FUNCTIONS);
-    verifyInvalid(v, TestQuery.INTEGRATION_WITH_HIVE_UDFS_UDAFS_UDTFS);
+    v.ng(TestQuery.SCALAR_USER_DEFINED_FUNCTIONS);
+    v.ng(TestQuery.USER_DEFINED_AGGREGATE_FUNCTIONS);
+    v.ng(TestQuery.INTEGRATION_WITH_HIVE_UDFS_UDAFS_UDTFS);
   }
 
-  void verifyValid(SQLQueryValidator validator, TestQuery query) {
-    runValidate(validator, query.toString());
+  @Test
+  void securityLakeQueries() {
+    VerifyValidator v = new VerifyValidator(new SQLQueryValidator(factory.getValidatorForDatasource(DataSourceType.SECURITY_LAKE)));
+    // DDL Statements
+    v.ng(TestQuery.ALTER_DATABASE);
+    v.ng(TestQuery.ALTER_TABLE);
+    v.ng(TestQuery.ALTER_VIEW);
+    v.ng(TestQuery.CREATE_DATABASE);
+    v.ng(TestQuery.CREATE_FUNCTION);
+    v.ng(TestQuery.CREATE_TABLE);
+    v.ng(TestQuery.CREATE_VIEW);
+    v.ng(TestQuery.DROP_DATABASE);
+    v.ng(TestQuery.DROP_FUNCTION);
+    v.ng(TestQuery.DROP_TABLE);
+    v.ng(TestQuery.DROP_VIEW);
+    v.ng(TestQuery.REPAIR_TABLE);
+    v.ng(TestQuery.TRUNCATE_TABLE);
+
+    // DML Statements
+    v.ng(TestQuery.INSERT_TABLE);
+    v.ng(TestQuery.INSERT_OVERWRITE_DIRECTORY);
+    v.ng(TestQuery.LOAD);
+
+    // Data Retrieval
+    v.ok(TestQuery.SELECT);
+    v.ok(TestQuery.EXPLAIN);
+    v.ok(TestQuery.COMMON_TABLE_EXPRESSION);
+    v.ng(TestQuery.CLUSTER_BY_CLAUSE);
+    v.ng(TestQuery.DISTRIBUTE_BY_CLAUSE);
+    v.ok(TestQuery.GROUP_BY_CLAUSE);
+    v.ok(TestQuery.HAVING_CLAUSE);
+    v.ng(TestQuery.HINTS);
+    v.ng(TestQuery.INLINE_TABLE);
+    //    v.ng(TestQuery.FILE); TODO: need dive deep
+    v.ok(TestQuery.INNER_JOIN);
+    v.ng(TestQuery.CROSS_JOIN);
+    v.ok(TestQuery.LEFT_OUTER_JOIN);
+    v.ng(TestQuery.LEFT_SEMI_JOIN);
+    v.ng(TestQuery.RIGHT_OUTER_JOIN);
+    v.ng(TestQuery.FULL_OUTER_JOIN);
+    v.ng(TestQuery.LEFT_ANTI_JOIN);
+    v.ok(TestQuery.LIKE_PREDICATE);
+    v.ok(TestQuery.LIMIT_CLAUSE);
+    v.ok(TestQuery.OFFSET_CLAUSE);
+    v.ok(TestQuery.ORDER_BY_CLAUSE);
+    v.ok(TestQuery.SET_OPERATORS);
+    v.ok(TestQuery.SORT_BY_CLAUSE);
+    v.ng(TestQuery.TABLESAMPLE);
+    v.ng(TestQuery.TABLE_VALUED_FUNCTION);
+    v.ok(TestQuery.WHERE_CLAUSE);
+    v.ok(TestQuery.AGGREGATE_FUNCTION);
+    v.ok(TestQuery.WINDOW_FUNCTION);
+    v.ok(TestQuery.CASE_CLAUSE);
+    v.ok(TestQuery.PIVOT_CLAUSE);
+    v.ok(TestQuery.UNPIVOT_CLAUSE);
+    v.ok(TestQuery.LATERAL_VIEW_CLAUSE);
+    v.ok(TestQuery.LATERAL_SUBQUERY);
+    v.ng(TestQuery.TRANSFORM_CLAUSE);
+
+    // Auxiliary Statements
+    v.ng(TestQuery.ADD_FILE);
+    v.ng(TestQuery.ADD_JAR);
+    v.ng(TestQuery.ANALYZE_TABLE);
+    v.ng(TestQuery.CACHE_TABLE);
+    v.ng(TestQuery.CLEAR_CACHE);
+    v.ng(TestQuery.DESCRIBE_DATABASE);
+    v.ng(TestQuery.DESCRIBE_FUNCTION);
+    v.ng(TestQuery.DESCRIBE_QUERY);
+    v.ng(TestQuery.DESCRIBE_TABLE);
+    v.ng(TestQuery.LIST_FILE);
+    v.ng(TestQuery.LIST_JAR);
+    v.ng(TestQuery.REFRESH);
+    //    v.ng(TestQuery.REFRESH_TABLE); TODO: refreshTable rule won't match (matches to
+    // refreshResource)
+    v.ng(TestQuery.REFRESH_FUNCTION);
+    v.ng(TestQuery.RESET);
+    v.ng(TestQuery.SET);
+    v.ng(TestQuery.SHOW_COLUMNS);
+    v.ng(TestQuery.SHOW_CREATE_TABLE);
+    v.ng(TestQuery.SHOW_DATABASES);
+    v.ng(TestQuery.SHOW_FUNCTIONS);
+    v.ng(TestQuery.SHOW_PARTITIONS);
+    v.ng(TestQuery.SHOW_TABLE_EXTENDED);
+    v.ng(TestQuery.SHOW_TABLES);
+    v.ng(TestQuery.SHOW_TBLPROPERTIES);
+    v.ng(TestQuery.SHOW_VIEWS);
+    v.ng(TestQuery.UNCACHE_TABLE);
+
+    // Functions
+    v.ok(TestQuery.ARRAY_FUNCTIONS);
+    v.ok(TestQuery.MAP_FUNCTIONS);
+    v.ok(TestQuery.DATE_AND_TIMESTAMP_FUNCTIONS);
+    v.ok(TestQuery.JSON_FUNCTIONS);
+    v.ok(TestQuery.MATHEMATICAL_FUNCTIONS);
+    v.ok(TestQuery.STRING_FUNCTIONS);
+    v.ok(TestQuery.BITWISE_FUNCTIONS);
+    v.ok(TestQuery.CONVERSION_FUNCTIONS);
+    v.ok(TestQuery.CONDITIONAL_FUNCTIONS);
+    v.ok(TestQuery.PREDICATE_FUNCTIONS);
+    v.ng(TestQuery.CSV_FUNCTIONS);
+    v.ng(TestQuery.MISC_FUNCTIONS);
+
+    // Aggregate-like Functions
+    v.ok(TestQuery.AGGREGATE_FUNCTIONS);
+    v.ok(TestQuery.WINDOW_FUNCTIONS);
+
+    // Generator Functions
+    v.ok(TestQuery.GENERATOR_FUNCTIONS);
+
+    // UDFs
+    v.ng(TestQuery.SCALAR_USER_DEFINED_FUNCTIONS);
+    v.ng(TestQuery.USER_DEFINED_AGGREGATE_FUNCTIONS);
+    v.ng(TestQuery.INTEGRATION_WITH_HIVE_UDFS_UDAFS_UDTFS);
   }
 
-  void verifyInvalid(SQLQueryValidator validator, TestQuery query) {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> runValidate(validator, query.toString()),
-        "The query should throw: query=`" + query.toString() + "`");
+  @AllArgsConstructor
+  private static class VerifyValidator {
+    private final SQLQueryValidator validator;
+
+    public void ok(TestQuery query) {
+      runValidate(validator, query.toString());
+
+    }
+
+    public void ng(TestQuery query) {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> runValidate(validator, query.toString()),
+          "The query should throw: query=`" + query.toString() + "`");
+    }
+
+    void runValidate(SQLQueryValidator validator, String query) {
+      validator.validate(getParser(query));
+    }
+
+    SingleStatementContext getParser(String query) {
+      SqlBaseParser sqlBaseParser =
+          new SqlBaseParser(
+              new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(query))));
+      return sqlBaseParser.singleStatement();
+    }
   }
 
-  void runValidate(SQLQueryValidator validator, String query) {
-    validator.validate(getParser(query));
+  void ok(SQLQueryValidator validator, TestQuery query) {
   }
 
-  SingleStatementContext getParser(String query) {
-    SqlBaseParser sqlBaseParser =
-        new SqlBaseParser(
-            new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(query))));
-    return sqlBaseParser.singleStatement();
+  void ng(SQLQueryValidator validator, TestQuery query) {
   }
+
+
 }

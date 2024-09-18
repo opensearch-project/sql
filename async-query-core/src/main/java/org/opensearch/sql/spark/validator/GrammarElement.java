@@ -33,6 +33,7 @@ enum GrammarElement {
   HAVING("HAVING"),
   HINTS("HINTS"),
   INLINE_TABLE("Inline Table(VALUES)"),
+  FILE("File"),
   INNER_JOIN("INNER JOIN"),
   CROSS_JOIN("CROSS JOIN"),
   LEFT_OUTER_JOIN("LEFT OUTER JOIN"),

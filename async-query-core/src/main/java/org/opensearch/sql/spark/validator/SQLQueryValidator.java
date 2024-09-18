@@ -8,6 +8,10 @@ package org.opensearch.sql.spark.validator;
 import lombok.AllArgsConstructor;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AddTableColumnsContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AddTablePartitionContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AlterClusterByContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AlterTableAlterColumnContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AlterViewQueryContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AlterViewSchemaBindingContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AnalyzeContext;
@@ -16,6 +20,8 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.CacheTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ClearCacheContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ClusterBySpecContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.CreateNamespaceContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.CreateTableContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.CreateTableLikeContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.CreateViewContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.CtesContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DescribeFunctionContext;
@@ -24,11 +30,15 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DescribeQueryContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DescribeRelationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropFunctionContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropNamespaceContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropTableColumnsContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropTableContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropTablePartitionsContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropViewContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ExplainContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.FunctionIdentifierContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.FunctionNameContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.HintContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.HiveReplaceColumnsContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.InlineTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.InsertIntoReplaceWhereContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.InsertIntoTableContext;
@@ -41,11 +51,16 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.LateralViewContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.LoadDataContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ManageResourceContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.QueryOrganizationContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.RecoverPartitionsContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.RefreshFunctionContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.RefreshResourceContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.RefreshTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.RelationContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.RenameTableColumnContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.RenameTableContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.RenameTablePartitionContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.RepairTableContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ReplaceTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ResetConfigurationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ResetQuotedConfigurationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SampleContext;
@@ -53,6 +68,8 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetConfigurationConte
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetNamespaceLocationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetNamespacePropertiesContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetQuantifierContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetTableLocationContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.SetTableSerDeContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ShowColumnsContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ShowCreateTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ShowFunctionsContext;
@@ -64,6 +81,7 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ShowTblPropertiesCont
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ShowViewsContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TableValuedFunctionContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TransformClauseContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TruncateTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.UncacheTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.UnsetNamespacePropertiesContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParserBaseVisitor;
@@ -93,6 +111,80 @@ public class SQLQueryValidator extends SqlBaseParserBaseVisitor<Void> {
     validateAllowed(GrammarElement.ALTER_NAMESPACE);
     return super.visitUnsetNamespaceProperties(ctx);
   }
+
+  @Override
+  public Void visitAddTableColumns(AddTableColumnsContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitAddTableColumns(ctx);
+  }
+
+  @Override
+  public Void visitAddTablePartition(AddTablePartitionContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitAddTablePartition(ctx);
+  }
+
+  @Override
+  public Void visitRenameTableColumn(RenameTableColumnContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitRenameTableColumn(ctx);
+  }
+
+  @Override
+  public Void visitDropTableColumns(DropTableColumnsContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitDropTableColumns(ctx);
+  }
+
+  @Override
+  public Void visitAlterTableAlterColumn(AlterTableAlterColumnContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitAlterTableAlterColumn(ctx);
+  }
+
+  @Override
+  public Void visitHiveReplaceColumns(HiveReplaceColumnsContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitHiveReplaceColumns(ctx);
+  }
+
+  @Override
+  public Void visitSetTableSerDe(SetTableSerDeContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitSetTableSerDe(ctx);
+  }
+
+  @Override
+  public Void visitRenameTablePartition(RenameTablePartitionContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitRenameTablePartition(ctx);
+  }
+
+  @Override
+  public Void visitDropTablePartitions(DropTablePartitionsContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitDropTablePartitions(ctx);
+  }
+
+  @Override
+  public Void visitSetTableLocation(SetTableLocationContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitSetTableLocation(ctx);
+  }
+
+  @Override
+  public Void visitRecoverPartitions(RecoverPartitionsContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitRecoverPartitions(ctx);
+  }
+
+  @Override
+  public Void visitAlterClusterBy(AlterClusterByContext ctx) {
+    validateAllowed(GrammarElement.ALTER_NAMESPACE);
+    return super.visitAlterClusterBy(ctx);
+  }
+
+
 
   @Override
   public Void visitSetNamespaceLocation(SetNamespaceLocationContext ctx) {
@@ -132,9 +224,33 @@ public class SQLQueryValidator extends SqlBaseParserBaseVisitor<Void> {
   }
 
   @Override
+  public Void visitCreateTable(CreateTableContext ctx) {
+    validateAllowed(GrammarElement.CREATE_NAMESPACE);
+    return super.visitCreateTable(ctx);
+  }
+
+  @Override
+  public Void visitCreateTableLike(CreateTableLikeContext ctx) {
+    validateAllowed(GrammarElement.CREATE_NAMESPACE);
+    return super.visitCreateTableLike(ctx);
+  }
+
+  @Override
+  public Void visitReplaceTable(ReplaceTableContext ctx) {
+    validateAllowed(GrammarElement.CREATE_NAMESPACE);
+    return super.visitReplaceTable(ctx);
+  }
+
+  @Override
   public Void visitDropNamespace(DropNamespaceContext ctx) {
     validateAllowed(GrammarElement.DROP_NAMESPACE);
     return super.visitDropNamespace(ctx);
+  }
+
+  @Override
+  public Void visitDropTable(DropTableContext ctx) {
+    validateAllowed(GrammarElement.DROP_NAMESPACE);
+    return super.visitDropTable(ctx);
   }
 
   @Override
@@ -153,6 +269,18 @@ public class SQLQueryValidator extends SqlBaseParserBaseVisitor<Void> {
   public Void visitDropFunction(DropFunctionContext ctx) {
     validateAllowed(GrammarElement.DROP_FUNCTION);
     return super.visitDropFunction(ctx);
+  }
+
+  @Override
+  public Void visitRepairTable(RepairTableContext ctx) {
+    validateAllowed(GrammarElement.REPAIR_TABLE);
+    return super.visitRepairTable(ctx);
+  }
+
+  @Override
+  public Void visitTruncateTable(TruncateTableContext ctx) {
+    validateAllowed(GrammarElement.TRUNCATE_TABLE);
+    return super.visitTruncateTable(ctx);
   }
 
   @Override
