@@ -21,7 +21,7 @@ tasks.register('downloadG4Files', Exec) {
 
     executable 'curl'
 
-    def opensearchSparkBranch = "0.6"
+    def opensearchSparkBranch = "0.5"
     def apacheSparkVersionTag = "v3.5.1"
     args '-o', 'src/main/antlr/FlintSparkSqlExtensions.g4', "https://raw.githubusercontent.com/opensearch-project/opensearch-spark/${opensearchSparkBranch}/flint-spark-integration/src/main/antlr4/FlintSparkSqlExtensions.g4"
     args '-o', 'src/main/antlr/SparkSqlBase.g4', "https://raw.githubusercontent.com/opensearch-project/opensearch-spark/${opensearchSparkBranch}/flint-spark-integration/src/main/antlr4/SparkSqlBase.g4"

@@ -39,3 +39,4 @@ To update the grammar files, update `build.gradle` file (in `downloadG4Files` ta
 ```
 ./gradlew async-query-core:downloadG4Files
 ```
+This will overwrite the files under `src/main/antlr`.
