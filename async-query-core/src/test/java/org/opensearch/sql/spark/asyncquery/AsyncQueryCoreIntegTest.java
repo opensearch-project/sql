@@ -85,7 +85,9 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
-import org.opensearch.sql.spark.validator.GrammarElementValidatorFactory;
+import org.opensearch.sql.spark.validator.DefaultGrammarElementValidator;
+import org.opensearch.sql.spark.validator.GrammarElementValidatorProvider;
+import org.opensearch.sql.spark.validator.S3GlueGrammarElementValidator;
 import org.opensearch.sql.spark.validator.SQLQueryValidator;
 
 /**
@@ -178,7 +180,10 @@ public class AsyncQueryCoreIntegTest {
             metricsService,
             new SparkSubmitParametersBuilderProvider(collection));
     SQLQueryValidator sqlQueryValidator =
-        new SQLQueryValidator(new GrammarElementValidatorFactory());
+        new SQLQueryValidator(
+            new GrammarElementValidatorProvider(
+                ImmutableMap.of(DataSourceType.S3GLUE, new S3GlueGrammarElementValidator()),
+                new DefaultGrammarElementValidator()));
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
             dataSourceService,

@@ -42,6 +42,7 @@ import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
 import com.amazonaws.services.emrserverless.model.JobRunState;
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -88,7 +89,9 @@ import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilderProvider;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
-import org.opensearch.sql.spark.validator.GrammarElementValidatorFactory;
+import org.opensearch.sql.spark.validator.DefaultGrammarElementValidator;
+import org.opensearch.sql.spark.validator.GrammarElementValidatorProvider;
+import org.opensearch.sql.spark.validator.S3GlueGrammarElementValidator;
 import org.opensearch.sql.spark.validator.SQLQueryValidator;
 
 @ExtendWith(MockitoExtension.class)
@@ -115,7 +118,10 @@ public class SparkQueryDispatcherTest {
   @Mock private AsyncQueryScheduler asyncQueryScheduler;
 
   private final SQLQueryValidator sqlQueryValidator =
-      new SQLQueryValidator(new GrammarElementValidatorFactory());
+      new SQLQueryValidator(
+          new GrammarElementValidatorProvider(
+              ImmutableMap.of(DataSourceType.S3GLUE, new S3GlueGrammarElementValidator()),
+              new DefaultGrammarElementValidator()));
 
   private DataSourceSparkParameterComposer dataSourceSparkParameterComposer =
       (datasourceMetadata, sparkSubmitParameters, dispatchQueryRequest, context) -> {

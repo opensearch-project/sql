@@ -200,7 +200,7 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   public Void visitRenameTable(RenameTableContext ctx) {
     if (ctx.VIEW() != null) {
       validateAllowed(GrammarElement.ALTER_VIEW);
-    } else if (ctx.TABLE() != null) {
+    } else {
       validateAllowed(GrammarElement.ALTER_NAMESPACE);
     }
 

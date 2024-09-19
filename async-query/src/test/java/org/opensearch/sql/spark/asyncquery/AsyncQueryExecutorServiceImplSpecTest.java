@@ -312,7 +312,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("myselect 1", MYS3_DATASOURCE, LangType.SQL, null),
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null),
             asyncQueryRequestContext);
     assertNotNull(response.getSessionId());
     Optional<StatementModel> statementModel =

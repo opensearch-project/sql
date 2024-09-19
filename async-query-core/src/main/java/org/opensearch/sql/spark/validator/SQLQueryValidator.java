@@ -11,11 +11,11 @@ import org.opensearch.sql.spark.utils.SQLQueryUtils;
 
 @AllArgsConstructor
 public class SQLQueryValidator {
-  private final GrammarElementValidatorFactory grammarElementValidatorFactory;
+  private final GrammarElementValidatorProvider grammarElementValidatorProvider;
 
   public void validate(String sqlQuery, DataSourceType datasourceType) {
     GrammarElementValidator grammarElementValidator =
-        grammarElementValidatorFactory.getValidatorForDatasource(datasourceType);
+        grammarElementValidatorProvider.getValidatorForDatasource(datasourceType);
     SQLQueryValidationVisitor visitor = new SQLQueryValidationVisitor(grammarElementValidator);
     visitor.visit(SQLQueryUtils.getBaseParser(sqlQuery).singleStatement());
   }

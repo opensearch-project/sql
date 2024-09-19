@@ -46,6 +46,7 @@ public class CloudWatchLogsGrammarElementValidator extends DenyListGrammarElemen
               MANAGE_RESOURCE,
               ANALYZE_TABLE,
               CACHE_TABLE,
+              CLEAR_CACHE,
               DESCRIBE_NAMESPACE,
               DESCRIBE_FUNCTION,
               DESCRIBE_QUERY,
