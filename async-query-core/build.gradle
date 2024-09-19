@@ -21,7 +21,7 @@ tasks.register('downloadG4Files', Exec) {
 
     executable 'curl'
 
-    def opensearchSparkBranch = "0.5"
+    def opensearchSparkBranch = "0.6"
     def apacheSparkVersionTag = "v3.5.1"
     args '-o', 'src/main/antlr/FlintSparkSqlExtensions.g4', "https://raw.githubusercontent.com/opensearch-project/opensearch-spark/${opensearchSparkBranch}/flint-spark-integration/src/main/antlr4/FlintSparkSqlExtensions.g4"
     args '-o', 'src/main/antlr/SparkSqlBase.g4', "https://raw.githubusercontent.com/opensearch-project/opensearch-spark/${opensearchSparkBranch}/flint-spark-integration/src/main/antlr4/SparkSqlBase.g4"
@@ -38,12 +38,6 @@ configurations {
     compile {
         extendsFrom = extendsFrom.findAll { it != configurations.antlr }
     }
-}
-
-// skip download in case of offline build
-if (!gradle.startParameter.offline) {
-    // Make sure the downloadG4File task runs before the generateGrammarSource task
-    generateGrammarSource.dependsOn downloadG4Files
 }
 
 dependencies {
