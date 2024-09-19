@@ -9,6 +9,7 @@ import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.opensearch.sql.datasource.model.DataSourceType;
 
+/** Provides GrammarElementValidator based on DataSourceType. */
 @AllArgsConstructor
 public class GrammarElementValidatorProvider {
 

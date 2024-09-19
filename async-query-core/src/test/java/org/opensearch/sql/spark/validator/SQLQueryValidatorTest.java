@@ -211,16 +211,14 @@ class SQLQueryValidatorTest {
   void testAllowAllByDefault() {
     when(mockedProvider.getValidatorForDatasource(any()))
         .thenReturn(new DefaultGrammarElementValidator());
-    VerifyValidator v =
-        new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
     Arrays.stream(TestElement.values()).forEach(v::ok);
   }
 
   @Test
   void testDenyAllValidator() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> false);
-    VerifyValidator v =
-        new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
     // The elements which doesn't have validation will be accepted.
     // That's why there are some ok case
 

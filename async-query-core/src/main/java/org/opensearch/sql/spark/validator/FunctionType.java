@@ -11,6 +11,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 
+/**
+ * Enum for defining and looking up SQL function type based on its name. Unknown one will be
+ * considered as UDF (User Defined Function)
+ */
 @AllArgsConstructor
 public enum FunctionType {
   AGGREGATE("Aggregate"),

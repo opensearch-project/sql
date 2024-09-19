@@ -84,6 +84,7 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.UncacheTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.UnsetNamespacePropertiesContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParserBaseVisitor;
 
+/** This visitor validate grammar using GrammarElementValidator */
 @AllArgsConstructor
 public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   private final GrammarElementValidator grammarElementValidator;
