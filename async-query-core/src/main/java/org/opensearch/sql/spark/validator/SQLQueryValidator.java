@@ -6,12 +6,16 @@
 package org.opensearch.sql.spark.validator;
 
 import lombok.AllArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.spark.utils.SQLQueryUtils;
 
 /** Validate input SQL query based on the DataSourceType. */
 @AllArgsConstructor
 public class SQLQueryValidator {
+  private static final Logger log = LogManager.getLogger(SQLQueryValidator.class);
+
   private final GrammarElementValidatorProvider grammarElementValidatorProvider;
 
   /**
@@ -25,6 +29,11 @@ public class SQLQueryValidator {
     GrammarElementValidator grammarElementValidator =
         grammarElementValidatorProvider.getValidatorForDatasource(datasourceType);
     SQLQueryValidationVisitor visitor = new SQLQueryValidationVisitor(grammarElementValidator);
-    visitor.visit(SQLQueryUtils.getBaseParser(sqlQuery).singleStatement());
+    try {
+      visitor.visit(SQLQueryUtils.getBaseParser(sqlQuery).singleStatement());
+    } catch (IllegalArgumentException e) {
+      log.error("Query validation failed. DataSourceType=" + datasourceType, e);
+      throw e;
+    }
   }
 }
