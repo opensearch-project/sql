@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.spark.utils;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -20,8 +18,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.datasource.model.DataSource;
-import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsBaseVisitor;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsLexer;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser;
@@ -84,71 +80,12 @@ public class SQLQueryUtils {
     }
   }
 
-  public static List<String> validateSparkSqlQuery(DataSource datasource, String sqlQuery) {
+  public static SqlBaseParser getBaseParser(String sqlQuery) {
     SqlBaseParser sqlBaseParser =
         new SqlBaseParser(
             new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(sqlQuery))));
     sqlBaseParser.addErrorListener(new SyntaxAnalysisErrorListener());
-    try {
-      SqlBaseValidatorVisitor sqlParserBaseVisitor = getSparkSqlValidatorVisitor(datasource);
-      StatementContext statement = sqlBaseParser.statement();
-      sqlParserBaseVisitor.visit(statement);
-      return sqlParserBaseVisitor.getValidationErrors();
-    } catch (SyntaxCheckException e) {
-      logger.error(
-          String.format(
-              "Failed to parse sql statement context while validating sql query %s", sqlQuery),
-          e);
-      return Collections.emptyList();
-    }
-  }
-
-  private SqlBaseValidatorVisitor getSparkSqlValidatorVisitor(DataSource datasource) {
-    if (datasource != null
-        && datasource.getConnectorType() != null
-        && datasource.getConnectorType().equals(DataSourceType.SECURITY_LAKE)) {
-      return new SparkSqlSecurityLakeValidatorVisitor();
-    } else {
-      return new SparkSqlValidatorVisitor();
-    }
-  }
-
-  /**
-   * A base class extending SqlBaseParserBaseVisitor for validating Spark Sql Queries. The class
-   * supports accumulating validation errors on visiting sql statement
-   */
-  @Getter
-  private static class SqlBaseValidatorVisitor<T> extends SqlBaseParserBaseVisitor<T> {
-    private final List<String> validationErrors = new ArrayList<>();
-  }
-
-  /** A generic validator impl for Spark Sql Queries */
-  private static class SparkSqlValidatorVisitor extends SqlBaseValidatorVisitor<Void> {
-    @Override
-    public Void visitCreateFunction(SqlBaseParser.CreateFunctionContext ctx) {
-      getValidationErrors().add("Creating user-defined functions is not allowed");
-      return super.visitCreateFunction(ctx);
-    }
-  }
-
-  /** A validator impl specific to Security Lake for Spark Sql Queries */
-  private static class SparkSqlSecurityLakeValidatorVisitor extends SqlBaseValidatorVisitor<Void> {
-
-    public SparkSqlSecurityLakeValidatorVisitor() {
-      // only select statement allowed. hence we add the validation error to all types of statements
-      // by default
-      // and remove the validation error only for select statement.
-      getValidationErrors()
-          .add(
-              "Unsupported sql statement for security lake data source. Only select queries are"
-                  + " allowed");
-    }
-
-    @Override
-    public Void visitStatementDefault(SqlBaseParser.StatementDefaultContext ctx) {
-      getValidationErrors().clear();
-      return super.visitStatementDefault(ctx);
-    }
+    return sqlBaseParser;
   }
 
   public static class SparkSqlTableNameVisitor extends SqlBaseParserBaseVisitor<Void> {
