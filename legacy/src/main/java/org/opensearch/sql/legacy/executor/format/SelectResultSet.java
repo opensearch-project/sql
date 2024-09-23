@@ -567,7 +567,7 @@ public class SelectResultSet extends ResultSet {
     Integer limit = cursor.getLimit();
     long rowsLeft = rowsLeft(cursor.getFetchSize(), cursor.getLimit());
     if (rowsLeft <= 0) {
-      // close the cursor
+      // Delete Point In Time ID
       if (LocalClusterState.state().getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)) {
         String pitId = cursor.getPitId();
         PointInTimeHandler pit = new PointInTimeHandlerImpl(client, pitId);
