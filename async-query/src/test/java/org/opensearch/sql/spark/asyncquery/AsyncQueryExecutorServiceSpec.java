@@ -102,6 +102,10 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
+import org.opensearch.sql.spark.validator.DefaultGrammarElementValidator;
+import org.opensearch.sql.spark.validator.GrammarElementValidatorProvider;
+import org.opensearch.sql.spark.validator.S3GlueGrammarElementValidator;
+import org.opensearch.sql.spark.validator.SQLQueryValidator;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
@@ -308,6 +312,11 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
             emrServerlessClientFactory,
             new OpenSearchMetricsService(),
             sparkSubmitParametersBuilderProvider);
+    SQLQueryValidator sqlQueryValidator =
+        new SQLQueryValidator(
+            new GrammarElementValidatorProvider(
+                ImmutableMap.of(DataSourceType.S3GLUE, new S3GlueGrammarElementValidator()),
+                new DefaultGrammarElementValidator()));
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
             this.dataSourceService,
@@ -318,7 +327,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 sessionConfigSupplier,
                 sessionIdProvider),
             queryHandlerFactory,
-            new DatasourceEmbeddedQueryIdProvider());
+            new DatasourceEmbeddedQueryIdProvider(),
+            sqlQueryValidator);
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,

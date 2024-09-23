@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.transport.config;
 
 import static org.opensearch.sql.spark.execution.statestore.StateStore.ALL_DATASOURCE;
 
+import com.google.common.collect.ImmutableMap;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
@@ -64,6 +65,11 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
+import org.opensearch.sql.spark.validator.DefaultGrammarElementValidator;
+import org.opensearch.sql.spark.validator.GrammarElementValidatorProvider;
+import org.opensearch.sql.spark.validator.S3GlueGrammarElementValidator;
+import org.opensearch.sql.spark.validator.SQLQueryValidator;
+import org.opensearch.sql.spark.validator.SecurityLakeGrammarElementValidator;
 
 @RequiredArgsConstructor
 public class AsyncExecutorServiceModule extends AbstractModule {
@@ -101,9 +107,10 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       DataSourceService dataSourceService,
       SessionManager sessionManager,
       QueryHandlerFactory queryHandlerFactory,
-      QueryIdProvider queryIdProvider) {
+      QueryIdProvider queryIdProvider,
+      SQLQueryValidator sqlQueryValidator) {
     return new SparkQueryDispatcher(
-        dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
+        dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider, sqlQueryValidator);
   }
 
   @Provides
@@ -172,6 +179,19 @@ public class AsyncExecutorServiceModule extends AbstractModule {
     collection.register(new OpenSearchAsyncQuerySchedulerConfigComposer(settings));
     collection.register(new OpenSearchExtraParameterComposer(clusterSettingLoader));
     return new SparkSubmitParametersBuilderProvider(collection);
+  }
+
+  @Provides
+  public SQLQueryValidator sqlQueryValidator() {
+    GrammarElementValidatorProvider validatorProvider =
+        new GrammarElementValidatorProvider(
+            ImmutableMap.of(
+                DataSourceType.S3GLUE,
+                new S3GlueGrammarElementValidator(),
+                DataSourceType.SECURITY_LAKE,
+                new SecurityLakeGrammarElementValidator()),
+            new DefaultGrammarElementValidator());
+    return new SQLQueryValidator(validatorProvider);
   }
 
   @Provides
