@@ -149,6 +149,18 @@ public class SQLQueryUtils {
       getValidationErrors().clear();
       return super.visitStatementDefault(ctx);
     }
+
+    @Override
+    public Void visitShowTables(SqlBaseParser.StatementDefaultContext ctx) {
+      getValidationErrors().clear();
+      return super.visitStatementDefault(ctx);
+    }
+
+    @Override
+    public Void visitShowTableExtended(SqlBaseParser.StatementDefaultContext ctx) {
+      getValidationErrors().clear();
+      return super.visitStatementDefault(ctx);
+    }
   }
 
   public static class SparkSqlTableNameVisitor extends SqlBaseParserBaseVisitor<Void> {
