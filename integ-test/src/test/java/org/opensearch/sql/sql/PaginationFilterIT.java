@@ -34,25 +34,30 @@ public class PaginationFilterIT extends SQLIntegTestCase {
    */
   private static final Map<String, Integer> STATEMENT_TO_NUM_OF_PAGES =
       Map.of(
-          "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT, 1000,
+          "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT,
+          1000,
           "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street')",
-              385,
+          385,
           "SELECT * FROM "
-                  + TestsConstants.TEST_INDEX_ACCOUNT
-                  + " WHERE match(address, 'street') AND match(city, 'Ola')",
-              1,
+              + TestsConstants.TEST_INDEX_ACCOUNT
+              + " WHERE match(address, 'street') AND match(city, 'Ola')",
+          1,
           "SELECT firstname, lastname, highlight(address) FROM "
-                  + TestsConstants.TEST_INDEX_ACCOUNT
-                  + " WHERE match(address, 'street') AND match(state, 'OH')",
-              5,
+              + TestsConstants.TEST_INDEX_ACCOUNT
+              + " WHERE match(address, 'street') AND match(state, 'OH')",
+          5,
           "SELECT firstname, lastname, highlight('*') FROM "
-                  + TestsConstants.TEST_INDEX_ACCOUNT
-                  + " WHERE match(address, 'street') AND match(state, 'OH')",
-              5,
-          "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE true", 60,
-          "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE Id=10", 1,
-          "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE Id + 5=15", 1,
-          "SELECT * FROM " + TestsConstants.TEST_INDEX_BANK, 7);
+              + TestsConstants.TEST_INDEX_ACCOUNT
+              + " WHERE match(address, 'street') AND match(state, 'OH')",
+          5,
+          "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE true",
+          60,
+          "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE Id=10",
+          1,
+          "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE Id + 5=15",
+          1,
+          "SELECT * FROM " + TestsConstants.TEST_INDEX_BANK,
+          7);
 
   private final String sqlStatement;
 
