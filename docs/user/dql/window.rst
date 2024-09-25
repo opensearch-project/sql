@@ -309,3 +309,14 @@ Similarly as ``RANK``, ``DENSE_RANK`` function also assigns a rank to each row. 
     | F        | 2     |
     +----------+-------+
 
+Limitations
+-----------
+
+1. Window functions are not allowed in WHERE expression. For example, follow query will fail in query compilation::
+
+    SELECT * FROM accounts WHERE RANK() OVER(ORDER BY gender DESC) > 0;
+
+2. Aggregation functions are not allowed in ``ORDER BY`` clause. For example, follow query will fail in query compilation::
+
+    SELECT RANK() OVER(ORDER BY AVG(age)) FROM accounts GROUP BY age;
+

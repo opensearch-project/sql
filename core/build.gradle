@@ -78,6 +78,7 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
+        toggleOffOn()
         googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
@@ -112,7 +113,8 @@ jacocoTestCoverageVerification {
                     'org.opensearch.sql.utils.Constants',
                     'org.opensearch.sql.datasource.model.DataSource',
                     'org.opensearch.sql.datasource.model.DataSourceStatus',
-                    'org.opensearch.sql.datasource.model.DataSourceType'
+                    'org.opensearch.sql.datasource.model.DataSourceType',
+                    'org.opensearch.sql.QueryCompilationError'
             ]
             limit {
                 counter = 'LINE'

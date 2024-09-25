@@ -27,28 +27,53 @@ public class Aggregation extends UnresolvedPlan {
   private List<UnresolvedExpression> groupExprList;
   private UnresolvedExpression span;
   private List<Argument> argExprList;
+  private List<UnresolvedExpression> aliasFreeSelectExprList;
   private UnresolvedPlan child;
 
   /** Aggregation Constructor without span and argument. */
   public Aggregation(
       List<UnresolvedExpression> aggExprList,
       List<UnresolvedExpression> sortExprList,
-      List<UnresolvedExpression> groupExprList) {
-    this(aggExprList, sortExprList, groupExprList, null, Collections.emptyList());
+      List<UnresolvedExpression> groupExprList,
+      List<UnresolvedExpression> aliasFreeSelectExprList) {
+    this(
+        aggExprList,
+        sortExprList,
+        groupExprList,
+        null,
+        Collections.emptyList(),
+        aliasFreeSelectExprList);
   }
 
-  /** Aggregation Constructor. */
+  /** Aggregation Constructor without select expressions, used in PPL. */
   public Aggregation(
       List<UnresolvedExpression> aggExprList,
       List<UnresolvedExpression> sortExprList,
       List<UnresolvedExpression> groupExprList,
       UnresolvedExpression span,
       List<Argument> argExprList) {
+    this(aggExprList, sortExprList, groupExprList, span, argExprList, Collections.emptyList());
+  }
+
+  /**
+   * Aggregation Constructor.
+   *
+   * @param aliasFreeSelectExprList is used to verify that all fields in Select must appear in the
+   *     GROUP BY clause or be used in an aggregate function.
+   */
+  public Aggregation(
+      List<UnresolvedExpression> aggExprList,
+      List<UnresolvedExpression> sortExprList,
+      List<UnresolvedExpression> groupExprList,
+      UnresolvedExpression span,
+      List<Argument> argExprList,
+      List<UnresolvedExpression> aliasFreeSelectExprList) {
     this.aggExprList = aggExprList;
     this.sortExprList = sortExprList;
     this.groupExprList = groupExprList;
     this.span = span;
     this.argExprList = argExprList;
+    this.aliasFreeSelectExprList = aliasFreeSelectExprList;
   }
 
   public boolean hasArgument() {
