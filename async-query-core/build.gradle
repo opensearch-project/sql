@@ -122,7 +122,8 @@ jacocoTestCoverageVerification {
                     'org.opensearch.sql.spark.flint.*',
                     'org.opensearch.sql.spark.flint.operation.*',
                     'org.opensearch.sql.spark.rest.*',
-                    'org.opensearch.sql.spark.utils.SQLQueryUtils.*'
+                    'org.opensearch.sql.spark.utils.SQLQueryUtils.*',
+                    'org.opensearch.sql.spark.validator.SQLQueryValidationVisitor'
             ]
             limit {
                 counter = 'LINE'
