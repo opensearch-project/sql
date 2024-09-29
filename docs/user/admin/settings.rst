@@ -196,6 +196,50 @@ Result set::
 
 Note: the legacy settings of ``opendistro.sql.cursor.keep_alive`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
+plugins.sql.pagination.api
+================================
+
+Description
+-----------
+
+This setting controls whether the SQL search queries in OpenSearch use Point-In-Time (PIT) with search_after or the traditional scroll mechanism for fetching paginated results.
+
+1. Default Value: true
+2. Possible Values: true or false
+3. When set to true, the search query in the background uses PIT with search_after instead of scroll to retrieve paginated results. The Cursor Id returned to the user will encode relevant pagination query-related information, which will be used to fetch the subsequent pages of results.
+4. This setting is node-level.
+5. This setting can be updated dynamically.
+
+
+Example
+-------
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.sql.pagination.api" : "true"
+	  }
+	}'
+
+Result set::
+
+	{
+	  "acknowledged" : true,
+	  "persistent" : { },
+	  "transient" : {
+	    "plugins" : {
+	      "sql" : {
+	        "pagination" : {
+	          "api" : "true"
+	        }
+	      }
+	    }
+	  }
+	}
+
 plugins.query.size_limit
 ===========================
 

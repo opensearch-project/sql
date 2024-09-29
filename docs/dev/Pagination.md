@@ -478,3 +478,43 @@ Response:
 
 
 ```
+
+####  plugins.sql.pagination.api
+
+This setting controls whether the SQL search queries in OpenSearch use Point-In-Time (PIT) with search_after or the traditional scroll mechanism for fetching paginated results.
+
+- Default Value: true
+- Possible Values: true or false
+- When set to true, the search query in the background uses PIT with search_after instead of scroll to retrieve paginated results. The Cursor Id returned to the user will encode relevant pagination query-related information, which will be used to fetch the subsequent pages of results.
+- This setting is node-level.
+- This setting can be updated dynamically.
+
+Example:
+
+```
+>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings -d '{
+  "transient" : {
+    "plugins.sql.pagination.api" : "true"
+  }
+}'
+```
+
+Response:
+
+```
+{
+  "acknowledged" : true,
+  "persistent" : { },
+  "transient" : {
+    "plugins" : {
+      "sql" : {
+        "pagination" : {
+          "api" : "true"
+        }
+      }
+    }
+  }
+}
+
+
+```

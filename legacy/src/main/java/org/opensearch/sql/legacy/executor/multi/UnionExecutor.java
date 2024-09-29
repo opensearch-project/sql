@@ -23,11 +23,10 @@ import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
 import org.opensearch.sql.legacy.utils.Util;
 
 /** Created by Eliran on 21/8/2016. */
-public class UnionExecutor implements ElasticHitsExecutor {
+public class UnionExecutor extends ElasticHitsExecutor {
 
   private MultiQueryRequestBuilder multiQueryBuilder;
   private SearchHits results;
-  private Client client;
   private int currentId;
 
   public UnionExecutor(Client client, MultiQueryRequestBuilder builder) {
