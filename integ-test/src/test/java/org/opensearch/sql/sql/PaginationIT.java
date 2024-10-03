@@ -248,7 +248,7 @@ public class PaginationIT extends SQLIntegTestCase {
 
     //Query using the alias with filter
     JSONObject aliasFilteredResponse = new JSONObject(executeFetchQuery(aliasSelectQuery, 4, "jdbc", filterQuery));
-    assertEquals(initialResponse.getInt("size"), 4);
+    assertEquals(aliasFilteredResponse.getInt("size"), 4);
   }
 
 
