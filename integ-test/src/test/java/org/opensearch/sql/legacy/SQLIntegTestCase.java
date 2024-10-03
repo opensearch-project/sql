@@ -5,42 +5,10 @@
 
 package org.opensearch.sql.legacy;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
-import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getBankWithNullValuesIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDataTypeNonnumericIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDataTypeNumericIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDateIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDateTimeIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDeepNestedIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDogIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDogs2IndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
-import static org.opensearch.sql.legacy.TestUtils.getNestedSimpleIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getNestedTypeIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getOdbcIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getOrderIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getPeople2IndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getPhraseIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
-import static org.opensearch.sql.legacy.TestUtils.getStringIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getUnexpandedObjectIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getWeblogsIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
-import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
-import static org.opensearch.sql.legacy.plugin.RestSqlAction.CURSOR_CLOSE_ENDPOINT;
-import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
-import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static com.google.common.base.Strings.*;
+import static org.opensearch.sql.legacy.TestUtils.*;
+import static org.opensearch.sql.legacy.plugin.RestSqlAction.*;
 
-import com.google.common.base.Strings;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -50,25 +18,28 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Map;
+
 import javax.management.MBeanServerInvocationHandler;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
-import lombok.SneakyThrows;
+
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
-import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
-import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.utils.SerializeUtils;
+
+import com.google.common.base.Strings;
+
+import lombok.SneakyThrows;
 
 /** OpenSearch Rest integration test base for SQL testing */
 public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
@@ -462,6 +433,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return String.format("{ \"fetch_size\": \"%s\", \"query\": \"%s\" }", fetch_size, query);
   }
 
+    protected String makeRequest(String query, int fetch_size, String filterQuery) {
+    return String.format("{ \"fetch_size\": \"%s\", \"query\": \"%s\", \"filter\" :  %s }", fetch_size, query, filterQuery);
+  }
   protected String makeFetchLessRequest(String query) {
     return String.format("{\n" + "  \"query\": \"%s\"\n" + "}", query);
   }
