@@ -18,8 +18,8 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
-import org.opensearch.client.Response;
 import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
@@ -217,23 +217,24 @@ public class PaginationIT extends SQLIntegTestCase {
     assertEquals(1, response.getInt("total"));
     assertEquals(1, response.getJSONArray("datarows").getJSONArray(0).getInt(0));
   }
+
   @Test
   public void testAlias() throws Exception {
     String indexName = Index.ONLINE.getName();
     String aliasName = "alias_ONLINE";
-    String filterQuery = "{\n" +
-            "  \"term\": {\n" +
-            "    \"107\": 72 \n" +
-            "  }\n" +
-            "}";
+    String filterQuery = "{\n" + "  \"term\": {\n" + "    \"107\": 72 \n" + "  }\n" + "}";
 
-    //Execute the SQL query with filter
+    // Execute the SQL query with filter
     String selectQuery = "SELECT * FROM " + TEST_INDEX_ONLINE;
-    JSONObject initialResponse = new JSONObject(executeFetchQuery(selectQuery, 10, "jdbc", filterQuery));
+    JSONObject initialResponse =
+        new JSONObject(executeFetchQuery(selectQuery, 10, "jdbc", filterQuery));
     assertEquals(initialResponse.getInt("size"), 10);
 
-    //Create an alias
-    String createAliasQuery = String.format("{ \"actions\": [ { \"add\": { \"index\": \"%s\", \"alias\": \"%s\" } } ] }", indexName, aliasName);
+    // Create an alias
+    String createAliasQuery =
+        String.format(
+            "{ \"actions\": [ { \"add\": { \"index\": \"%s\", \"alias\": \"%s\" } } ] }",
+            indexName, aliasName);
     Request createAliasRequest = new Request("POST", "/_aliases");
     createAliasRequest.setJsonEntity(createAliasQuery);
     JSONObject aliasResponse = new JSONObject(executeRequest(createAliasRequest));
@@ -241,18 +242,19 @@ public class PaginationIT extends SQLIntegTestCase {
     // Assert that alias creation was acknowledged
     assertTrue(aliasResponse.getBoolean("acknowledged"));
 
-    //Query using the alias
+    // Query using the alias
     String aliasSelectQuery = String.format("SELECT * FROM %s", aliasName);
     JSONObject aliasQueryResponse = new JSONObject(executeFetchQuery(aliasSelectQuery, 4, "jdbc"));
     assertEquals(4, aliasQueryResponse.getInt("size"));
 
-    //Query using the alias with filter
-    JSONObject aliasFilteredResponse = new JSONObject(executeFetchQuery(aliasSelectQuery, 4, "jdbc", filterQuery));
+    // Query using the alias with filter
+    JSONObject aliasFilteredResponse =
+        new JSONObject(executeFetchQuery(aliasSelectQuery, 4, "jdbc", filterQuery));
     assertEquals(aliasFilteredResponse.getInt("size"), 4);
   }
 
-
-  private String executeFetchQuery(String query, int fetchSize, String requestType, String  filter) throws IOException{
+  private String executeFetchQuery(String query, int fetchSize, String requestType, String filter)
+      throws IOException {
     String endpoint = "/_plugins/_sql?format=" + requestType;
     String requestBody = makeRequest(query, fetchSize, filter);
 

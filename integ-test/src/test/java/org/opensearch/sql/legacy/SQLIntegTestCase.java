@@ -463,7 +463,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected String makeRequest(String query, int fetch_size, String filterQuery) {
-    return String.format("{ \"fetch_size\": \"%s\", \"query\": \"%s\", \"filter\" :  %s }", fetch_size, query, filterQuery);
+    return String.format(
+        "{ \"fetch_size\": \"%s\", \"query\": \"%s\", \"filter\" :  %s }",
+        fetch_size, query, filterQuery);
   }
 
   protected String makeFetchLessRequest(String query) {

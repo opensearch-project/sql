@@ -167,7 +167,7 @@ public class SelectResultSet extends ResultSet {
     String indexName = fetchIndexName(query);
     String[] fieldNames = fetchFieldsAsArray(query);
     GetAliasesResponse getAliasesResponse =
-            client.admin().indices().getAliases(new GetAliasesRequest(indexName)).actionGet();
+        client.admin().indices().getAliases(new GetAliasesRequest(indexName)).actionGet();
     if (getAliasesResponse != null && !getAliasesResponse.getAliases().isEmpty()) {
       indexName = getAliasesResponse.getAliases().keySet().iterator().next();
     }
