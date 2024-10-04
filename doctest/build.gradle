@@ -22,8 +22,16 @@ def path = project(':').projectDir
 def plugin_path = project(':doctest').projectDir
 
 task cloneSqlCli(type: Exec) {
-    // clone the sql-cli repo locally
-    commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git'
+    def repoDir = new File("${project.projectDir}/sql-cli")
+    
+    if (repoDir.exists()) {
+        // Repository already exists, fetch and checkout latest
+        commandLine 'git', '-C', repoDir.absolutePath, 'fetch', 'origin', 'main'
+        commandLine 'git', '-C', repoDir.absolutePath, 'checkout', 'origin/main'
+    } else {
+        // Repository doesn't exist, clone it
+        commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git', repoDir.absolutePath
+    }
 }
 
 task bootstrap(type: Exec, dependsOn: ['cloneSqlCli', 'spotlessJava']) {
