@@ -9,20 +9,25 @@ import static org.opensearch.sql.spark.validator.GrammarElement.ALTER_VIEW;
 import static org.opensearch.sql.spark.validator.GrammarElement.CLUSTER_BY;
 import static org.opensearch.sql.spark.validator.GrammarElement.CREATE_FUNCTION;
 import static org.opensearch.sql.spark.validator.GrammarElement.CREATE_VIEW;
+import static org.opensearch.sql.spark.validator.GrammarElement.CROSS_JOIN;
 import static org.opensearch.sql.spark.validator.GrammarElement.DESCRIBE_FUNCTION;
 import static org.opensearch.sql.spark.validator.GrammarElement.DISTRIBUTE_BY;
 import static org.opensearch.sql.spark.validator.GrammarElement.DROP_FUNCTION;
 import static org.opensearch.sql.spark.validator.GrammarElement.DROP_VIEW;
 import static org.opensearch.sql.spark.validator.GrammarElement.FILE;
+import static org.opensearch.sql.spark.validator.GrammarElement.FULL_OUTER_JOIN;
 import static org.opensearch.sql.spark.validator.GrammarElement.HINTS;
 import static org.opensearch.sql.spark.validator.GrammarElement.INLINE_TABLE;
 import static org.opensearch.sql.spark.validator.GrammarElement.INSERT;
+import static org.opensearch.sql.spark.validator.GrammarElement.LEFT_ANTI_JOIN;
+import static org.opensearch.sql.spark.validator.GrammarElement.LEFT_SEMI_JOIN;
 import static org.opensearch.sql.spark.validator.GrammarElement.LOAD;
 import static org.opensearch.sql.spark.validator.GrammarElement.MANAGE_RESOURCE;
 import static org.opensearch.sql.spark.validator.GrammarElement.MISC_FUNCTIONS;
 import static org.opensearch.sql.spark.validator.GrammarElement.REFRESH_FUNCTION;
 import static org.opensearch.sql.spark.validator.GrammarElement.REFRESH_RESOURCE;
 import static org.opensearch.sql.spark.validator.GrammarElement.RESET;
+import static org.opensearch.sql.spark.validator.GrammarElement.RIGHT_OUTER_JOIN;
 import static org.opensearch.sql.spark.validator.GrammarElement.SET;
 import static org.opensearch.sql.spark.validator.GrammarElement.SHOW_FUNCTIONS;
 import static org.opensearch.sql.spark.validator.GrammarElement.SHOW_VIEWS;
@@ -50,6 +55,11 @@ public class S3GlueGrammarElementValidator extends DenyListGrammarElementValidat
               HINTS,
               INLINE_TABLE,
               FILE,
+              CROSS_JOIN,
+              LEFT_SEMI_JOIN,
+              RIGHT_OUTER_JOIN,
+              FULL_OUTER_JOIN,
+              LEFT_ANTI_JOIN,
               TABLESAMPLE,
               TABLE_VALUED_FUNCTION,
               TRANSFORM,
