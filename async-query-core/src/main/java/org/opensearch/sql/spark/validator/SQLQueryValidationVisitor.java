@@ -9,15 +9,12 @@ import lombok.AllArgsConstructor;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AddTableColumnsContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AddTablePartitionContext;
-import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AlterClusterByContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AlterTableAlterColumnContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AlterViewQueryContext;
-import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AlterViewSchemaBindingContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AnalyzeContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.AnalyzeTablesContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.CacheTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ClearCacheContext;
-import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ClusterBySpecContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.CreateNamespaceContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.CreateTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.CreateTableLikeContext;
@@ -81,7 +78,6 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TableValuedFunctionCo
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TransformClauseContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TruncateTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.UncacheTableContext;
-import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.UnsetNamespacePropertiesContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParserBaseVisitor;
 
 /** This visitor validate grammar using GrammarElementValidator */
@@ -99,12 +95,6 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   public Void visitSetNamespaceProperties(SetNamespacePropertiesContext ctx) {
     validateAllowed(GrammarElement.ALTER_NAMESPACE);
     return super.visitSetNamespaceProperties(ctx);
-  }
-
-  @Override
-  public Void visitUnsetNamespaceProperties(UnsetNamespacePropertiesContext ctx) {
-    validateAllowed(GrammarElement.ALTER_NAMESPACE);
-    return super.visitUnsetNamespaceProperties(ctx);
   }
 
   @Override
@@ -174,12 +164,6 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   }
 
   @Override
-  public Void visitAlterClusterBy(AlterClusterByContext ctx) {
-    validateAllowed(GrammarElement.ALTER_NAMESPACE);
-    return super.visitAlterClusterBy(ctx);
-  }
-
-  @Override
   public Void visitSetNamespaceLocation(SetNamespaceLocationContext ctx) {
     validateAllowed(GrammarElement.ALTER_NAMESPACE);
     return super.visitSetNamespaceLocation(ctx);
@@ -189,12 +173,6 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   public Void visitAlterViewQuery(AlterViewQueryContext ctx) {
     validateAllowed(GrammarElement.ALTER_VIEW);
     return super.visitAlterViewQuery(ctx);
-  }
-
-  @Override
-  public Void visitAlterViewSchemaBinding(AlterViewSchemaBindingContext ctx) {
-    validateAllowed(GrammarElement.ALTER_VIEW);
-    return super.visitAlterViewSchemaBinding(ctx);
   }
 
   @Override
@@ -335,12 +313,6 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   public Void visitCtes(CtesContext ctx) {
     validateAllowed(GrammarElement.WITH);
     return super.visitCtes(ctx);
-  }
-
-  @Override
-  public Void visitClusterBySpec(ClusterBySpecContext ctx) {
-    validateAllowed(GrammarElement.CLUSTER_BY);
-    return super.visitClusterBySpec(ctx);
   }
 
   @Override

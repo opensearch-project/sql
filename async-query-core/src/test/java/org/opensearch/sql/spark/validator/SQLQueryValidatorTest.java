@@ -34,11 +34,9 @@ class SQLQueryValidatorTest {
     // DDL Statements
     ALTER_DATABASE(
         "ALTER DATABASE inventory SET DBPROPERTIES ('Edit-date' = '01/01/2001');",
-        "ALTER DATABASE dbx.tab1 UNSET PROPERTIES ('winner');",
         "ALTER DATABASE dbx.tab1 SET LOCATION '/path/to/part/ways';"),
     ALTER_TABLE(
         "ALTER TABLE default.StudentInfo PARTITION (age='10') RENAME TO PARTITION (age='15');",
-        "ALTER TABLE dbx.tab1 UNSET TBLPROPERTIES ('winner');",
         "ALTER TABLE StudentInfo ADD columns (LastName string, DOB timestamp);",
         "ALTER TABLE StudentInfo ADD IF NOT EXISTS PARTITION (age=18);",
         "ALTER TABLE StudentInfo RENAME COLUMN name TO FirstName;",
@@ -50,12 +48,10 @@ class SQLQueryValidatorTest {
         "ALTER TABLE StudentInfo DROP IF EXISTS PARTITION (age=18);",
         "ALTER TABLE dbx.tab1 PARTITION (a='1', b='2') SET LOCATION '/path/to/part/ways';",
         "ALTER TABLE dbx.tab1 RECOVER PARTITIONS;",
-        "ALTER TABLE dbx.tab1 CLUSTER BY NONE;",
         "ALTER TABLE dbx.tab1 SET LOCATION '/path/to/part/ways';"),
     ALTER_VIEW(
         "ALTER VIEW tempdb1.v1 RENAME TO tempdb1.v2;",
-        "ALTER VIEW tempdb1.v2 AS SELECT * FROM tempdb1.v1;",
-        "ALTER VIEW tempdb1.v2 WITH SCHEMA BINDING"),
+        "ALTER VIEW tempdb1.v2 AS SELECT * FROM tempdb1.v1;"),
     CREATE_DATABASE("CREATE DATABASE IF NOT EXISTS customer_db;\n"),
     CREATE_FUNCTION("CREATE FUNCTION simple_udf AS 'SimpleUdf' USING JAR '/tmp/SimpleUdf.jar';"),
     CREATE_TABLE(
@@ -94,8 +90,7 @@ class SQLQueryValidatorTest {
     EXPLAIN("EXPLAIN SELECT * FROM my_table;"),
     COMMON_TABLE_EXPRESSION(
         "WITH cte AS (SELECT * FROM my_table WHERE age > 30) SELECT * FROM cte;"),
-    CLUSTER_BY_CLAUSE(
-        "SELECT * FROM my_table CLUSTER BY age;", "ALTER TABLE testTable CLUSTER BY (age);"),
+    CLUSTER_BY_CLAUSE("SELECT * FROM my_table CLUSTER BY age;"),
     DISTRIBUTE_BY_CLAUSE("SELECT * FROM my_table DISTRIBUTE BY name;"),
     GROUP_BY_CLAUSE("SELECT name, count(*) FROM my_table GROUP BY name;"),
     HAVING_CLAUSE("SELECT name, count(*) FROM my_table GROUP BY name HAVING count(*) > 1;"),
