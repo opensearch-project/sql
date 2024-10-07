@@ -37,12 +37,12 @@ Example with only ``field`` and ``query`` expressions, and all other parameters 
 
     os> source=accounts | where match(address, 'Street') | fields lastname, address;
     fetched rows / total rows = 2/2
-    +------------+--------------------+
-    | lastname   | address            |
-    |------------+--------------------|
-    | Bond       | 671 Bristol Street |
-    | Bates      | 789 Madison Street |
-    +------------+--------------------+
+    +----------+--------------------+
+    | lastname | address            |
+    |----------+--------------------|
+    | Bond     | 671 Bristol Street |
+    | Bates    | 789 Madison Street |
+    +----------+--------------------+
 
 
 
@@ -50,11 +50,11 @@ Another example to show how to set custom values for the optional parameters::
 
     os> source=accounts | where match(firstname, 'Hattie', operator='AND', boost=2.0) | fields lastname;
     fetched rows / total rows = 1/1
-    +------------+
-    | lastname   |
-    |------------|
-    | Bond       |
-    +------------+
+    +----------+
+    | lastname |
+    |----------|
+    | Bond     |
+    +----------+
 
 
 MATCH_PHRASE
@@ -175,22 +175,22 @@ Example with only ``fields`` and ``query`` expressions, and all other parameters
 
     os> source=books | where multi_match(['title'], 'Pooh House') | fields id, title, author;
     fetched rows / total rows = 2/2
-    +------+--------------------------+----------------------+
-    | id   | title                    | author               |
-    |------+--------------------------+----------------------|
-    | 1    | The House at Pooh Corner | Alan Alexander Milne |
-    | 2    | Winnie-the-Pooh          | Alan Alexander Milne |
-    +------+--------------------------+----------------------+
+    +----+--------------------------+----------------------+
+    | id | title                    | author               |
+    |----+--------------------------+----------------------|
+    | 1  | The House at Pooh Corner | Alan Alexander Milne |
+    | 2  | Winnie-the-Pooh          | Alan Alexander Milne |
+    +----+--------------------------+----------------------+
 
 Another example to show how to set custom values for the optional parameters::
 
     os> source=books | where multi_match(['title'], 'Pooh House', operator='AND', analyzer=default) | fields id, title, author;
     fetched rows / total rows = 1/1
-    +------+--------------------------+----------------------+
-    | id   | title                    | author               |
-    |------+--------------------------+----------------------|
-    | 1    | The House at Pooh Corner | Alan Alexander Milne |
-    +------+--------------------------+----------------------+
+    +----+--------------------------+----------------------+
+    | id | title                    | author               |
+    |----+--------------------------+----------------------|
+    | 1  | The House at Pooh Corner | Alan Alexander Milne |
+    +----+--------------------------+----------------------+
 
 
 SIMPLE_QUERY_STRING
@@ -228,22 +228,22 @@ Example with only ``fields`` and ``query`` expressions, and all other parameters
 
     os> source=books | where simple_query_string(['title'], 'Pooh House') | fields id, title, author;
     fetched rows / total rows = 2/2
-    +------+--------------------------+----------------------+
-    | id   | title                    | author               |
-    |------+--------------------------+----------------------|
-    | 1    | The House at Pooh Corner | Alan Alexander Milne |
-    | 2    | Winnie-the-Pooh          | Alan Alexander Milne |
-    +------+--------------------------+----------------------+
+    +----+--------------------------+----------------------+
+    | id | title                    | author               |
+    |----+--------------------------+----------------------|
+    | 1  | The House at Pooh Corner | Alan Alexander Milne |
+    | 2  | Winnie-the-Pooh          | Alan Alexander Milne |
+    +----+--------------------------+----------------------+
 
 Another example to show how to set custom values for the optional parameters::
 
     os> source=books | where simple_query_string(['title'], 'Pooh House', flags='ALL', default_operator='AND') | fields id, title, author;
     fetched rows / total rows = 1/1
-    +------+--------------------------+----------------------+
-    | id   | title                    | author               |
-    |------+--------------------------+----------------------|
-    | 1    | The House at Pooh Corner | Alan Alexander Milne |
-    +------+--------------------------+----------------------+
+    +----+--------------------------+----------------------+
+    | id | title                    | author               |
+    |----+--------------------------+----------------------|
+    | 1  | The House at Pooh Corner | Alan Alexander Milne |
+    +----+--------------------------+----------------------+
 
 
 MATCH_BOOL_PREFIX
@@ -270,22 +270,22 @@ Example with only ``field`` and ``query`` expressions, and all other parameters 
 
     os> source=accounts | where match_bool_prefix(address, 'Bristol Stre') | fields firstname, address
     fetched rows / total rows = 2/2
-    +-------------+--------------------+
-    | firstname   | address            |
-    |-------------+--------------------|
-    | Hattie      | 671 Bristol Street |
-    | Nanette     | 789 Madison Street |
-    +-------------+--------------------+
+    +-----------+--------------------+
+    | firstname | address            |
+    |-----------+--------------------|
+    | Hattie    | 671 Bristol Street |
+    | Nanette   | 789 Madison Street |
+    +-----------+--------------------+
 
 Another example to show how to set custom values for the optional parameters::
 
     os> source=accounts | where match_bool_prefix(address, 'Bristol Stre', minimum_should_match = 2) | fields firstname, address
     fetched rows / total rows = 1/1
-    +-------------+--------------------+
-    | firstname   | address            |
-    |-------------+--------------------|
-    | Hattie      | 671 Bristol Street |
-    +-------------+--------------------+
+    +-----------+--------------------+
+    | firstname | address            |
+    |-----------+--------------------|
+    | Hattie    | 671 Bristol Street |
+    +-----------+--------------------+
 
 
 QUERY_STRING
@@ -335,22 +335,22 @@ Example with only ``fields`` and ``query`` expressions, and all other parameters
 
     os> source=books | where query_string(['title'], 'Pooh House') | fields id, title, author;
     fetched rows / total rows = 2/2
-    +------+--------------------------+----------------------+
-    | id   | title                    | author               |
-    |------+--------------------------+----------------------|
-    | 1    | The House at Pooh Corner | Alan Alexander Milne |
-    | 2    | Winnie-the-Pooh          | Alan Alexander Milne |
-    +------+--------------------------+----------------------+
+    +----+--------------------------+----------------------+
+    | id | title                    | author               |
+    |----+--------------------------+----------------------|
+    | 1  | The House at Pooh Corner | Alan Alexander Milne |
+    | 2  | Winnie-the-Pooh          | Alan Alexander Milne |
+    +----+--------------------------+----------------------+
 
 Another example to show how to set custom values for the optional parameters::
 
     os> source=books | where query_string(['title'], 'Pooh House', default_operator='AND') | fields id, title, author;
     fetched rows / total rows = 1/1
-    +------+--------------------------+----------------------+
-    | id   | title                    | author               |
-    |------+--------------------------+----------------------|
-    | 1    | The House at Pooh Corner | Alan Alexander Milne |
-    +------+--------------------------+----------------------+
+    +----+--------------------------+----------------------+
+    | id | title                    | author               |
+    |----+--------------------------+----------------------|
+    | 1  | The House at Pooh Corner | Alan Alexander Milne |
+    +----+--------------------------+----------------------+
 
 Limitations
 >>>>>>>>>>>

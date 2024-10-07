@@ -24,8 +24,8 @@ Example::
 
     os> source=people | eval `typeof(date)` = typeof(DATE('2008-04-14')), `typeof(int)` = typeof(1), `typeof(now())` = typeof(now()), `typeof(column)` = typeof(accounts) | fields `typeof(date)`, `typeof(int)`, `typeof(now())`, `typeof(column)`
     fetched rows / total rows = 1/1
-    +----------------+---------------+-----------------+------------------+
-    | typeof(date)   | typeof(int)   | typeof(now())   | typeof(column)   |
-    |----------------+---------------+-----------------+------------------|
-    | DATE           | INTEGER       | TIMESTAMP       | OBJECT           |
-    +----------------+---------------+-----------------+------------------+
+    +--------------+-------------+---------------+----------------+
+    | typeof(date) | typeof(int) | typeof(now()) | typeof(column) |
+    |--------------+-------------+---------------+----------------|
+    | DATE         | INTEGER     | TIMESTAMP     | OBJECT         |
+    +--------------+-------------+---------------+----------------+
