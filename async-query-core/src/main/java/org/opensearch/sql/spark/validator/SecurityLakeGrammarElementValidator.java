@@ -14,6 +14,7 @@ import static org.opensearch.sql.spark.validator.GrammarElement.CLUSTER_BY;
 import static org.opensearch.sql.spark.validator.GrammarElement.CREATE_FUNCTION;
 import static org.opensearch.sql.spark.validator.GrammarElement.CREATE_NAMESPACE;
 import static org.opensearch.sql.spark.validator.GrammarElement.CREATE_VIEW;
+import static org.opensearch.sql.spark.validator.GrammarElement.CROSS_JOIN;
 import static org.opensearch.sql.spark.validator.GrammarElement.CSV_FUNCTIONS;
 import static org.opensearch.sql.spark.validator.GrammarElement.DESCRIBE_FUNCTION;
 import static org.opensearch.sql.spark.validator.GrammarElement.DESCRIBE_NAMESPACE;
@@ -24,9 +25,12 @@ import static org.opensearch.sql.spark.validator.GrammarElement.DROP_FUNCTION;
 import static org.opensearch.sql.spark.validator.GrammarElement.DROP_NAMESPACE;
 import static org.opensearch.sql.spark.validator.GrammarElement.DROP_VIEW;
 import static org.opensearch.sql.spark.validator.GrammarElement.FILE;
+import static org.opensearch.sql.spark.validator.GrammarElement.FULL_OUTER_JOIN;
 import static org.opensearch.sql.spark.validator.GrammarElement.HINTS;
 import static org.opensearch.sql.spark.validator.GrammarElement.INLINE_TABLE;
 import static org.opensearch.sql.spark.validator.GrammarElement.INSERT;
+import static org.opensearch.sql.spark.validator.GrammarElement.LEFT_ANTI_JOIN;
+import static org.opensearch.sql.spark.validator.GrammarElement.LEFT_SEMI_JOIN;
 import static org.opensearch.sql.spark.validator.GrammarElement.LOAD;
 import static org.opensearch.sql.spark.validator.GrammarElement.MANAGE_RESOURCE;
 import static org.opensearch.sql.spark.validator.GrammarElement.MISC_FUNCTIONS;
@@ -35,6 +39,7 @@ import static org.opensearch.sql.spark.validator.GrammarElement.REFRESH_RESOURCE
 import static org.opensearch.sql.spark.validator.GrammarElement.REFRESH_TABLE;
 import static org.opensearch.sql.spark.validator.GrammarElement.REPAIR_TABLE;
 import static org.opensearch.sql.spark.validator.GrammarElement.RESET;
+import static org.opensearch.sql.spark.validator.GrammarElement.RIGHT_OUTER_JOIN;
 import static org.opensearch.sql.spark.validator.GrammarElement.SET;
 import static org.opensearch.sql.spark.validator.GrammarElement.SHOW_COLUMNS;
 import static org.opensearch.sql.spark.validator.GrammarElement.SHOW_CREATE_TABLE;
@@ -76,6 +81,11 @@ public class SecurityLakeGrammarElementValidator extends DenyListGrammarElementV
               HINTS,
               INLINE_TABLE,
               FILE,
+              CROSS_JOIN,
+              LEFT_SEMI_JOIN,
+              RIGHT_OUTER_JOIN,
+              FULL_OUTER_JOIN,
+              LEFT_ANTI_JOIN,
               TABLESAMPLE,
               TABLE_VALUED_FUNCTION,
               TRANSFORM,
