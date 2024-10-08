@@ -156,6 +156,7 @@ class OpenSearchExprValueFactoryTest {
   public void constructByte() {
     assertAll(
         () -> assertEquals(byteValue((byte) 1), tupleValue("{\"byteV\":1}").get("byteV")),
+        () -> assertEquals(byteValue((byte) 1), tupleValue("{\"byteV\":\"1\"}").get("byteV")),
         () -> assertEquals(byteValue((byte) 1), constructFromObject("byteV", 1)),
         () -> assertEquals(byteValue((byte) 1), constructFromObject("byteV", "1.0")));
   }
@@ -164,6 +165,7 @@ class OpenSearchExprValueFactoryTest {
   public void constructShort() {
     assertAll(
         () -> assertEquals(shortValue((short) 1), tupleValue("{\"shortV\":1}").get("shortV")),
+        () -> assertEquals(shortValue((short) 1), tupleValue("{\"shortV\":\"1\"}").get("shortV")),
         () -> assertEquals(shortValue((short) 1), constructFromObject("shortV", 1)),
         () -> assertEquals(shortValue((short) 1), constructFromObject("shortV", "1.0")));
   }
@@ -172,19 +174,16 @@ class OpenSearchExprValueFactoryTest {
   public void constructInteger() {
     assertAll(
         () -> assertEquals(integerValue(1), tupleValue("{\"intV\":1}").get("intV")),
+        () -> assertEquals(integerValue(1), tupleValue("{\"intV\":\"1\"}").get("intV")),
         () -> assertEquals(integerValue(1), constructFromObject("intV", 1)),
         () -> assertEquals(integerValue(1), constructFromObject("intV", "1.0")));
-  }
-
-  @Test
-  public void constructIntegerValueInStringValue() {
-    assertEquals(integerValue(1), constructFromObject("intV", "1"));
   }
 
   @Test
   public void constructLong() {
     assertAll(
         () -> assertEquals(longValue(1L), tupleValue("{\"longV\":1}").get("longV")),
+        () -> assertEquals(longValue(1L), tupleValue("{\"longV\":\"1\"}").get("longV")),
         () -> assertEquals(longValue(1L), constructFromObject("longV", 1L)),
         () -> assertEquals(longValue(1L), constructFromObject("longV", "1.0")));
   }
@@ -193,6 +192,7 @@ class OpenSearchExprValueFactoryTest {
   public void constructFloat() {
     assertAll(
         () -> assertEquals(floatValue(1f), tupleValue("{\"floatV\":1.0}").get("floatV")),
+        () -> assertEquals(floatValue(1f), tupleValue("{\"floatV\":\"1.0\"}").get("floatV")),
         () -> assertEquals(floatValue(1f), constructFromObject("floatV", 1f)));
   }
 
@@ -200,6 +200,7 @@ class OpenSearchExprValueFactoryTest {
   public void constructDouble() {
     assertAll(
         () -> assertEquals(doubleValue(1d), tupleValue("{\"doubleV\":1.0}").get("doubleV")),
+        () -> assertEquals(doubleValue(1d), tupleValue("{\"doubleV\":\"1.0\"}").get("doubleV")),
         () -> assertEquals(doubleValue(1d), constructFromObject("doubleV", 1d)));
   }
 
@@ -215,6 +216,7 @@ class OpenSearchExprValueFactoryTest {
   public void constructBoolean() {
     assertAll(
         () -> assertEquals(booleanValue(true), tupleValue("{\"boolV\":true}").get("boolV")),
+        () -> assertEquals(booleanValue(true), tupleValue("{\"boolV\":\"true\"}").get("boolV")),
         () -> assertEquals(booleanValue(true), constructFromObject("boolV", true)),
         () -> assertEquals(booleanValue(true), constructFromObject("boolV", "true")),
         () -> assertEquals(booleanValue(true), constructFromObject("boolV", 1)),
@@ -756,6 +758,27 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
+  public void constructNumberFromUnsupportedFormatShouldThrowException() {
+    OpenSearchParseException exception =
+        assertThrows(
+            OpenSearchParseException.class, () -> tupleValue("{\"intV\": false}").get("intV"));
+    assertEquals("node must be a number", exception.getMessage());
+
+    exception =
+        assertThrows(
+            OpenSearchParseException.class, () -> tupleValue("{\"longV\": false}").get("intV"));
+    assertEquals("node must be a number", exception.getMessage());
+  }
+
+  @Test
+  public void constructBooleanFromUnsupportedFormatShouldThrowException() {
+    OpenSearchParseException exception =
+        assertThrows(
+            OpenSearchParseException.class, () -> tupleValue("{\"boolV\": 1}").get("boolV"));
+    assertEquals("node must be a boolean", exception.getMessage());
+  }
+
+  @Test
   public void constructBinary() {
     assertEquals(
         new OpenSearchExprBinaryValue("U29tZSBiaW5hcnkgYmxvYg=="),
@@ -769,6 +792,7 @@ class OpenSearchExprValueFactoryTest {
   @Test
   public void constructFromOpenSearchArrayReturnFirstElement() {
     assertEquals(integerValue(1), tupleValue("{\"intV\":[1, 2, 3]}").get("intV"));
+    assertEquals(integerValue(1), tupleValue("{\"intV\":[\"1\", 2, 3]}").get("intV"));
     assertEquals(
         new ExprTupleValue(
             new LinkedHashMap<String, ExprValue>() {

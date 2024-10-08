@@ -29,7 +29,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | eval `str` = typeof('pewpew'),"
+                "source=%s | head 1 | eval `str` = typeof('pewpew'),"
                     + " `double` = typeof(1.0),"
                     + "`int` = typeof(12345),"
                     + " `long` = typeof(1234567891011),"
@@ -42,7 +42,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
     response =
         executeQuery(
             String.format(
-                "source=%s | eval "
+                "source=%s | head 1 | eval "
                     + "`timestamp` = typeof(CAST('1961-04-12 09:07:00' AS TIMESTAMP)),"
                     + "`time` = typeof(CAST('09:07:00' AS TIME)),"
                     + "`date` = typeof(CAST('1961-04-12' AS DATE))"
@@ -56,7 +56,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | eval `double` = typeof(double_number), `long` ="
+                "source=%s | head 1 | eval `double` = typeof(double_number), `long` ="
                     + " typeof(long_number),`integer` = typeof(integer_number), `byte` ="
                     + " typeof(byte_number),`short` = typeof(short_number), `float` ="
                     + " typeof(float_number),`half_float` = typeof(half_float_number),"
@@ -69,11 +69,11 @@ public class SystemFunctionIT extends PPLIntegTestCase {
     response =
         executeQuery(
             String.format(
-                "source=%s | eval `text` = typeof(text_value), `date` = typeof(date_value),"
-                    + " `date_nanos` = typeof(date_nanos_value),`boolean` = typeof(boolean_value),"
-                    + " `object` = typeof(object_value),`keyword` = typeof(keyword_value), `ip` ="
-                    + " typeof(ip_value),`binary` = typeof(binary_value), `geo_point` ="
-                    + " typeof(geo_point_value)"
+                "source=%s | head 1 | eval `text` = typeof(text_value), `date` ="
+                    + " typeof(date_value), `date_nanos` = typeof(date_nanos_value),`boolean` ="
+                    + " typeof(boolean_value), `object` = typeof(object_value),`keyword` ="
+                    + " typeof(keyword_value), `ip` = typeof(ip_value),`binary` ="
+                    + " typeof(binary_value), `geo_point` = typeof(geo_point_value)"
                     // TODO activate this test once `ARRAY` type supported, see
                     // ExpressionAnalyzer::isTypeNotSupported
                     // + ", `nested` = typeof(nested_value)"
