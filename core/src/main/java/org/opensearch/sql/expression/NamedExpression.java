@@ -60,6 +60,6 @@ public class NamedExpression implements Expression {
 
   @Override
   public String toString() {
-    return getNameOrAlias();
+    return Strings.isNullOrEmpty(alias) ? name : name + " AS " + alias;
   }
 }
