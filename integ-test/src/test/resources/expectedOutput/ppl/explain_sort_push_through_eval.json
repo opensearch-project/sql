@@ -1,0 +1,27 @@
+{
+  "root": {
+    "name": "ProjectOperator",
+    "description": {
+      "fields": "[newAge]"
+    },
+    "children": [
+      {
+        "name": "EvalOperator",
+        "description": {
+          "expressions": {
+            "newAge": "age"
+          }
+        },
+        "children": [
+          {
+            "name": "OpenSearchIndexScan",
+            "description": {
+              "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"sort\":[{\"age\":{\"order\":\"asc\",\"missing\":\"_first\"}}]}, searchDone=false)"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

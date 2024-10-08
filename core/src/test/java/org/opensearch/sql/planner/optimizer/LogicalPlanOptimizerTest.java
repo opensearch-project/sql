@@ -42,6 +42,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -366,6 +367,66 @@ class LogicalPlanOptimizerTest {
     assertEquals(
         eval(tableScanBuilder, evalExpr),
         optimize(limit(eval(relation("schema", table), evalExpr), 10, 5)));
+  }
+
+  /** Sort - Eval --> Eval - Sort. */
+  @Test
+  void push_sort_under_eval() {
+    ReferenceExpression sortRef = DSL.ref("intV", INTEGER);
+    ReferenceExpression evalRef = DSL.ref("name1", INTEGER);
+    Pair<ReferenceExpression, Expression> evalExpr = Pair.of(evalRef, DSL.ref("name", STRING));
+    Pair<SortOption, Expression> sortExpr = Pair.of(Sort.SortOption.DEFAULT_ASC, sortRef);
+    assertEquals(
+        eval(sort(tableScanBuilder, sortExpr), evalExpr),
+        optimize(sort(eval(relation("schema", table), evalExpr), sortExpr)));
+  }
+
+  /** Sort - Eval - Scan --> Eval - Scan. */
+  @Test
+  void push_sort_through_eval_into_scan() {
+    when(tableScanBuilder.pushDownSort(any())).thenReturn(true);
+    Pair<ReferenceExpression, Expression> evalExpr =
+        Pair.of(DSL.ref("name1", STRING), DSL.ref("name", STRING));
+    Pair<SortOption, Expression> sortExpr =
+        Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER));
+    assertEquals(
+        eval(tableScanBuilder, evalExpr),
+        optimize(sort(eval(relation("schema", table), evalExpr), sortExpr)));
+  }
+
+  @Test
+  void no_push_sort_under_eval_if_sort_field_is_not_reference_expression() {
+    // don't push sort if sort field is not ReferenceExpression
+    ReferenceExpression evalRef = DSL.ref("name1", INTEGER);
+    Pair<ReferenceExpression, Expression> evalExpr = Pair.of(evalRef, DSL.ref("name", STRING));
+    Expression nonRefExpr = DSL.add(DSL.ref("intV", INTEGER), DSL.literal(1));
+    Pair<SortOption, Expression> sortExprWithNonRef =
+        Pair.of(Sort.SortOption.DEFAULT_ASC, nonRefExpr);
+    LogicalPlan originPlan = sort(eval(relation("schema", table), evalExpr), sortExprWithNonRef);
+    assertEquals(originPlan, optimize(originPlan));
+  }
+
+  @Test
+  void no_push_sort_under_eval_if_replaced_field_is_not_reference_expression() {
+    // don't push sort if replaced expr in eval is not ReferenceExpression
+    ReferenceExpression sortRef = DSL.ref("intV", INTEGER);
+    Pair<SortOption, Expression> sortExpr = Pair.of(Sort.SortOption.DEFAULT_ASC, sortRef);
+    Expression nonRefExpr = DSL.add(DSL.ref("intV", INTEGER), DSL.literal(1));
+    Pair<ReferenceExpression, Expression> evalExprWithNonRef = Pair.of(sortRef, nonRefExpr);
+    LogicalPlan originPlan = sort(eval(relation("schema", table), evalExprWithNonRef), sortExpr);
+    assertEquals(originPlan, optimize(originPlan));
+  }
+
+  @Test
+  void no_push_sort_under_eval_if_having_internal_reference() {
+    // don't push sort if there are internal reference in eval
+    ReferenceExpression sortRef = DSL.ref("intV", INTEGER);
+    ReferenceExpression evalRef = DSL.ref("name1", INTEGER);
+    Pair<SortOption, Expression> sortExpr = Pair.of(Sort.SortOption.DEFAULT_ASC, sortRef);
+    Pair<ReferenceExpression, Expression> evalExpr = Pair.of(evalRef, DSL.ref("name", STRING));
+    Pair<ReferenceExpression, Expression> evalExpr2 = Pair.of(sortRef, evalRef);
+    LogicalPlan originPlan = sort(eval(relation("schema", table), evalExpr, evalExpr2), sortExpr);
+    assertEquals(originPlan, optimize(originPlan));
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {
