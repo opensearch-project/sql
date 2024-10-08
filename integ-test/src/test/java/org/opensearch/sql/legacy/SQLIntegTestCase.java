@@ -707,6 +707,13 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "calcs",
         getMappingFile("calcs_index_mappings.json"),
         "src/test/resources/calcs.json"),
+    // Calcs has enough records for shards to be interesting, but updating the existing mapping with shards in-place
+    // breaks existing tests. Aside from introducing a primary shard setting > 1, this index is identical to CALCS.
+    CALCS_WITH_SHARDS(
+            TestsConstants.TEST_INDEX_CALCS,
+            "calcs",
+            getMappingFile("calcs_with_shards_index_mappings.json"),
+            "src/test/resources/calcs.json"),
     DATE_FORMATS(
         TestsConstants.TEST_INDEX_DATE_FORMATS,
         "date_formats",
