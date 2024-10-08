@@ -48,6 +48,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.ML;
@@ -88,6 +89,7 @@ import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalJoin;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
@@ -134,6 +136,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   public LogicalPlan analyze(UnresolvedPlan unresolved, AnalysisContext context) {
     return unresolved.accept(this, context);
+  }
+
+  @Override
+  public LogicalPlan visitJoin(Join node, AnalysisContext context) {
+    // TODO tables-join instead of plans-join supported only now
+    LogicalPlan left = visitRelation((Relation) node.getLeft(), context);
+    LogicalPlan right = visitRelation((Relation) node.getRight(), context);
+    Expression condition = expressionAnalyzer.analyze(node.getJoinCondition(), context);
+    ExpressionReferenceOptimizer optimizer =
+        new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), left, right);
+    Expression optimized = optimizer.optimize(condition, context);
+    return new LogicalJoin(left, right, node.getJoinType(), optimized);
   }
 
   @Override

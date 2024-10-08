@@ -48,6 +48,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
@@ -470,5 +471,13 @@ public class AstDSL {
       Literal pattern,
       java.util.Map<String, Literal> arguments) {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
+  }
+
+  public static Join join(
+      UnresolvedPlan left,
+      UnresolvedPlan right,
+      Join.JoinType joinType,
+      UnresolvedExpression condition) {
+    return new Join(left, right, joinType, condition);
   }
 }
