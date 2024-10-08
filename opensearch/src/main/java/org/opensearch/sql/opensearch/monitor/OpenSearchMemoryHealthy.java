@@ -36,7 +36,7 @@ public class OpenSearchMemoryHealthy {
     } else {
       log.warn("Memory usage:{} exceed limit:{}", memoryUsage, limitBytes);
       if (randomFail.shouldFail()) {
-        log.warn("Fast failure the current request");
+        log.warn("Fast failing the current request");
         throw new MemoryUsageExceedFastFailureException();
       } else {
         throw new MemoryUsageExceedException();
