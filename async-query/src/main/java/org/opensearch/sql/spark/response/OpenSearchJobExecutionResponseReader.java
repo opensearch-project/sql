@@ -34,12 +34,17 @@ public class OpenSearchJobExecutionResponseReader implements JobExecutionRespons
   }
 
   @Override
-  public JSONObject getResultFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata, AsyncQueryRequestContext asyncQueryRequestContext) {
-    return searchInSparkIndex(QueryBuilders.termQuery(JOB_ID_FIELD, asyncQueryJobMetadata.getJobId()), asyncQueryJobMetadata.getResultIndex());
+  public JSONObject getResultFromResultIndex(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
+    return searchInSparkIndex(
+        QueryBuilders.termQuery(JOB_ID_FIELD, asyncQueryJobMetadata.getJobId()),
+        asyncQueryJobMetadata.getResultIndex());
   }
 
   @Override
-  public JSONObject getResultWithQueryId(String queryId, String resultLocation, AsyncQueryRequestContext asyncQueryRequestContext) {
+  public JSONObject getResultWithQueryId(
+      String queryId, String resultLocation, AsyncQueryRequestContext asyncQueryRequestContext) {
     return searchInSparkIndex(QueryBuilders.termQuery("queryId", queryId), resultLocation);
   }
 

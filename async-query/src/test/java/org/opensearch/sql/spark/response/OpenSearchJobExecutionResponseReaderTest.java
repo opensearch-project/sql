@@ -51,7 +51,11 @@ public class OpenSearchJobExecutionResponseReaderTest {
                 new SearchHit[] {searchHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0F));
     Mockito.when(searchHit.getSourceAsMap()).thenReturn(Map.of("stepId", EMR_JOB_ID));
 
-    assertFalse(jobExecutionResponseReader.getResultFromResultIndex(AsyncQueryJobMetadata.builder().jobId(EMR_JOB_ID).build(), null).isEmpty());
+    assertFalse(
+        jobExecutionResponseReader
+            .getResultFromResultIndex(
+                AsyncQueryJobMetadata.builder().jobId(EMR_JOB_ID).build(), null)
+            .isEmpty());
   }
 
   @Test
@@ -65,7 +69,11 @@ public class OpenSearchJobExecutionResponseReaderTest {
                 new SearchHit[] {searchHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0F));
     Mockito.when(searchHit.getSourceAsMap()).thenReturn(Map.of("stepId", EMR_JOB_ID));
 
-    assertFalse(jobExecutionResponseReader.getResultFromResultIndex(AsyncQueryJobMetadata.builder().jobId(EMR_JOB_ID).resultIndex("foo").build(), null).isEmpty());
+    assertFalse(
+        jobExecutionResponseReader
+            .getResultFromResultIndex(
+                AsyncQueryJobMetadata.builder().jobId(EMR_JOB_ID).resultIndex("foo").build(), null)
+            .isEmpty());
   }
 
   @Test
@@ -77,7 +85,9 @@ public class OpenSearchJobExecutionResponseReaderTest {
     RuntimeException exception =
         assertThrows(
             RuntimeException.class,
-                () -> jobExecutionResponseReader.getResultFromResultIndex(AsyncQueryJobMetadata.builder().jobId(EMR_JOB_ID).build(), null));
+            () ->
+                jobExecutionResponseReader.getResultFromResultIndex(
+                    AsyncQueryJobMetadata.builder().jobId(EMR_JOB_ID).build(), null));
 
     Assertions.assertEquals(
         "Fetching result from "
@@ -93,13 +103,18 @@ public class OpenSearchJobExecutionResponseReaderTest {
 
     assertThrows(
         RuntimeException.class,
-            () -> jobExecutionResponseReader.getResultFromResultIndex(AsyncQueryJobMetadata.builder().jobId(EMR_JOB_ID).build(), null));
+        () ->
+            jobExecutionResponseReader.getResultFromResultIndex(
+                AsyncQueryJobMetadata.builder().jobId(EMR_JOB_ID).build(), null));
   }
 
   @Test
   public void testIndexNotFoundException() {
     when(client.search(any())).thenThrow(IndexNotFoundException.class);
-
-    assertTrue(jobExecutionResponseReader.getResultFromResultIndex(AsyncQueryJobMetadata.builder().jobId(EMR_JOB_ID).resultIndex("foo").build(), null).isEmpty());
+    assertTrue(
+        jobExecutionResponseReader
+            .getResultFromResultIndex(
+                AsyncQueryJobMetadata.builder().jobId(EMR_JOB_ID).resultIndex("foo").build(), null)
+            .isEmpty());
   }
 }

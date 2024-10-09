@@ -429,13 +429,22 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
                */
               new JobExecutionResponseReader() {
                 @Override
-                public JSONObject getResultFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata, AsyncQueryRequestContext asyncQueryRequestContext) {
-                    return interaction.interact(new InteractionStep(emrClient, asyncQueryJobMetadata.getJobId(), asyncQueryJobMetadata.getResultIndex()));
+                public JSONObject getResultFromResultIndex(
+                    AsyncQueryJobMetadata asyncQueryJobMetadata,
+                    AsyncQueryRequestContext asyncQueryRequestContext) {
+                  return interaction.interact(
+                      new InteractionStep(
+                          emrClient,
+                          asyncQueryJobMetadata.getJobId(),
+                          asyncQueryJobMetadata.getResultIndex()));
                 }
 
                 @Override
-                public JSONObject getResultWithQueryId(String queryId, String resultIndex, AsyncQueryRequestContext asyncQueryRequestContext) {
-                    return interaction.interact(new InteractionStep(emrClient, queryId, resultIndex));
+                public JSONObject getResultWithQueryId(
+                    String queryId,
+                    String resultIndex,
+                    AsyncQueryRequestContext asyncQueryRequestContext) {
+                  return interaction.interact(new InteractionStep(emrClient, queryId, resultIndex));
                 }
               });
       this.createQueryResponse =
@@ -502,7 +511,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     /** Simulate PPL plugin search query_execution_result */
     JSONObject pluginSearchQueryResult() {
       return new OpenSearchJobExecutionResponseReader(client)
-              .getResultWithQueryId(queryId, resultIndex, null);
+          .getResultWithQueryId(queryId, resultIndex, null);
     }
 
     /** Simulate EMR-S bulk writes query_execution_result with refresh = wait_for */

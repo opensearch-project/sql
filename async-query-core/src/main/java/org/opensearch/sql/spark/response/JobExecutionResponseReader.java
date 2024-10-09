@@ -16,6 +16,7 @@ public interface JobExecutionResponseReader {
    *
    * @param asyncQueryJobMetadata metadata will have jobId and resultLocation and other required
    *     params.
+   * @param asyncQueryRequestContext request context passed to AsyncQueryExecutorService
    * @return A JSONObject containing the result data.
    */
   JSONObject getResultFromResultIndex(
