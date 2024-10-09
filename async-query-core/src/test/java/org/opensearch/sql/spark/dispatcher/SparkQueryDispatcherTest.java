@@ -765,7 +765,17 @@ public class SparkQueryDispatcherTest {
     when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.PENDING)));
     // simulate result index is not created yet
-    when(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, null))
+    when(jobExecutionResponseReader.getResultFromResultIndex(
+            AsyncQueryJobMetadata.builder()
+                .jobId(EMR_JOB_ID)
+                .queryId(QUERY_ID)
+                .applicationId(EMRS_APPLICATION_ID)
+                .jobId(EMR_JOB_ID)
+                .jobType(JobType.INTERACTIVE)
+                .datasourceName(MY_GLUE)
+                .metadata(ImmutableMap.of())
+                .build(),
+            asyncQueryRequestContext))
         .thenReturn(new JSONObject());
 
     JSONObject result =
@@ -782,7 +792,7 @@ public class SparkQueryDispatcherTest {
     doReturn(StatementState.WAITING).when(statement).getStatementState();
     doReturn(new JSONObject())
         .when(jobExecutionResponseReader)
-        .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
+        .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any(), eq(asyncQueryRequestContext));
 
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(
@@ -798,7 +808,7 @@ public class SparkQueryDispatcherTest {
     doReturn(Optional.empty()).when(sessionManager).getSession(MOCK_SESSION_ID, MY_GLUE);
     doReturn(new JSONObject())
         .when(jobExecutionResponseReader)
-        .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
+        .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any(), eq(asyncQueryRequestContext));
 
     IllegalArgumentException exception =
         Assertions.assertThrows(
@@ -818,7 +828,7 @@ public class SparkQueryDispatcherTest {
     doReturn(Optional.empty()).when(session).get(any(), eq(asyncQueryRequestContext));
     doReturn(new JSONObject())
         .when(jobExecutionResponseReader)
-        .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
+        .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any(), eq(asyncQueryRequestContext));
 
     IllegalArgumentException exception =
         Assertions.assertThrows(
@@ -840,12 +850,25 @@ public class SparkQueryDispatcherTest {
     resultMap.put(STATUS_FIELD, "SUCCESS");
     resultMap.put(ERROR_FIELD, "");
     queryResult.put(DATA_FIELD, resultMap);
-    when(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, null)).thenReturn(queryResult);
+    AsyncQueryJobMetadata asyncQueryJobMetadata =
+        AsyncQueryJobMetadata.builder()
+            .queryId(QUERY_ID)
+            .applicationId(EMRS_APPLICATION_ID)
+            .jobId(EMR_JOB_ID)
+            .jobType(JobType.INTERACTIVE)
+            .datasourceName(MY_GLUE)
+            .metadata(ImmutableMap.of())
+            .jobId(EMR_JOB_ID)
+            .build();
+    when(jobExecutionResponseReader.getResultFromResultIndex(
+            asyncQueryJobMetadata, asyncQueryRequestContext))
+        .thenReturn(queryResult);
 
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(asyncQueryJobMetadata(), asyncQueryRequestContext);
 
-    verify(jobExecutionResponseReader, times(1)).getResultWithJobId(EMR_JOB_ID, null);
+    verify(jobExecutionResponseReader, times(1))
+        .getResultFromResultIndex(asyncQueryJobMetadata, asyncQueryRequestContext);
     assertEquals(
         new HashSet<>(Arrays.asList(DATA_FIELD, STATUS_FIELD, ERROR_FIELD)), result.keySet());
     JSONObject dataJson = new JSONObject();
