@@ -19,11 +19,10 @@ public class ErrorMessageFactory {
    */
   public static ErrorMessage createErrorMessage(Exception e, int status) {
     if (e instanceof OpenSearchException) {
-      return new OpenSearchErrorMessage(
-          (OpenSearchException) e, ((OpenSearchException) e).status().getStatus());
+      return new OpenSearchErrorMessage((OpenSearchException) e);
     } else if (unwrapCause(e) instanceof OpenSearchException) {
       OpenSearchException exception = (OpenSearchException) unwrapCause(e);
-      return new OpenSearchErrorMessage(exception, exception.status().getStatus());
+      return new OpenSearchErrorMessage(exception);
     }
     return new ErrorMessage(e, status);
   }
