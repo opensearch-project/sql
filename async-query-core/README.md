@@ -32,3 +32,11 @@ Following is the list of extension points where the consumer of the library need
   - [DataSourceSparkParameterComposer](src/main/java/org/opensearch/sql/spark/parameter/DataSourceSparkParameterComposer.java)
   - [GeneralSparkParameterComposer](src/main/java/org/opensearch/sql/spark/parameter/GeneralSparkParameterComposer.java)
   - [SparkSubmitParameterModifier](src/main/java/org/opensearch/sql/spark/config/SparkSubmitParameterModifier.java) To be deprecated in favor of GeneralSparkParameterComposer
+
+## Update Grammar files
+This package uses ANTLR grammar files from `opensearch-spark` and `Spark` repositories.
+To update the grammar files, update `build.gradle` file (in `downloadG4Files` task) as needed and run:
+```
+./gradlew async-query-core:downloadG4Files
+```
+This will overwrite the files under `src/main/antlr`.
