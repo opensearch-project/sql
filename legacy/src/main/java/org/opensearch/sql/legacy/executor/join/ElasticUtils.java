@@ -39,6 +39,7 @@ public class ElasticUtils {
     boolean ordered = originalSelect.isOrderdSelect();
     if (!ordered) {
       scrollRequest.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+      scrollRequest.addSort("_id", SortOrder.ASC);
     }
     SearchResponse responseWithHits = scrollRequest.get();
     // on ordered select - not using SCAN , elastic returns hits on first scroll
