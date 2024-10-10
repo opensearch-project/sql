@@ -31,14 +31,14 @@ PPL query::
 
     os> source=accounts | rename account_number as an | fields an;
     fetched rows / total rows = 4/4
-    +------+
-    | an   |
-    |------|
-    | 1    |
-    | 6    |
-    | 13   |
-    | 18   |
-    +------+
+    +----+
+    | an |
+    |----|
+    | 1  |
+    | 6  |
+    | 13 |
+    | 18 |
+    +----+
 
 
 Example 2: Rename multiple fields
@@ -50,14 +50,14 @@ PPL query::
 
     os> source=accounts | rename account_number as an, employer as emp | fields an, emp;
     fetched rows / total rows = 4/4
-    +------+---------+
-    | an   | emp     |
-    |------+---------|
-    | 1    | Pyrami  |
-    | 6    | Netagy  |
-    | 13   | Quility |
-    | 18   | null    |
-    +------+---------+
+    +----+---------+
+    | an | emp     |
+    |----+---------|
+    | 1  | Pyrami  |
+    | 6  | Netagy  |
+    | 13 | Quility |
+    | 18 | null    |
+    +----+---------+
 
 Limitation
 ==========

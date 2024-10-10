@@ -48,13 +48,13 @@ Here is an example for different type of arithmetic expressions::
 
     os> source=accounts | where age > (25 + 5) | fields age ;
     fetched rows / total rows = 3/3
-    +-------+
-    | age   |
-    |-------|
-    | 32    |
-    | 36    |
-    | 33    |
-    +-------+
+    +-----+
+    | age |
+    |-----|
+    | 32  |
+    | 36  |
+    | 33  |
+    +-----+
 
 Predicate Operators
 ===================
@@ -108,11 +108,11 @@ Here is an example for comparison operators::
 
     os> source=accounts | where age > 33 | fields age ;
     fetched rows / total rows = 1/1
-    +-------+
-    | age   |
-    |-------|
-    | 36    |
-    +-------+
+    +-----+
+    | age |
+    |-----|
+    | 36  |
+    +-----+
 
 
 IN
@@ -122,12 +122,12 @@ IN operator test field in value lists::
 
     os> source=accounts | where age in (32, 33) | fields age ;
     fetched rows / total rows = 2/2
-    +-------+
-    | age   |
-    |-------|
-    | 32    |
-    | 33    |
-    +-------+
+    +-----+
+    | age |
+    |-----|
+    | 32  |
+    | 33  |
+    +-----+
 
 
 OR
@@ -137,12 +137,12 @@ OR operator ::
 
     os> source=accounts | where age = 32 OR age = 33 | fields age ;
     fetched rows / total rows = 2/2
-    +-------+
-    | age   |
-    |-------|
-    | 32    |
-    | 33    |
-    +-------+
+    +-----+
+    | age |
+    |-----|
+    | 32  |
+    | 33  |
+    +-----+
 
 
 NOT
@@ -152,10 +152,10 @@ NOT operator ::
 
     os> source=accounts | where not age in (32, 33) | fields age ;
     fetched rows / total rows = 2/2
-    +-------+
-    | age   |
-    |-------|
-    | 36    |
-    | 28    |
-    +-------+
+    +-----+
+    | age |
+    |-----|
+    | 36  |
+    | 28  |
+    +-----+
 

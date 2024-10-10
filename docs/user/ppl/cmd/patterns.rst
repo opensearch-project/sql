@@ -31,14 +31,14 @@ PPL query::
 
     os> source=accounts | patterns email | fields email, patterns_field ;
     fetched rows / total rows = 4/4
-    +-----------------------+------------------+
-    | email                 | patterns_field   |
-    |-----------------------+------------------|
-    | amberduke@pyrami.com  | @.               |
-    | hattiebond@netagy.com | @.               |
-    | null                  |                  |
-    | daleadams@boink.com   | @.               |
-    +-----------------------+------------------+
+    +-----------------------+----------------+
+    | email                 | patterns_field |
+    |-----------------------+----------------|
+    | amberduke@pyrami.com  | @.             |
+    | hattiebond@netagy.com | @.             |
+    | null                  |                |
+    | daleadams@boink.com   | @.             |
+    +-----------------------+----------------+
 
 Example 2: Extract log patterns
 ===============================

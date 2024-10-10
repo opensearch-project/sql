@@ -26,11 +26,11 @@ A single-line comment starts with either ``#`` or ``--``. All characters in the 
     ... -- comments
     ... 123; -- comments
     fetched rows / total rows = 1/1
-    +-------+
-    | 123   |
-    |-------|
-    | 123   |
-    +-------+
+    +-----+
+    | 123 |
+    |-----|
+    | 123 |
+    +-----+
 
 Note that double-dash style requires at least one whitespace followed.
 
@@ -48,10 +48,10 @@ A block comment is enclosed within ``/*`` and ``*/`` across one or multiple line
     ... /* comments */
     ... 123;
     fetched rows / total rows = 1/1
-    +-------+
-    | 123   |
-    |-------|
-    | 123   |
-    +-------+
+    +-----+
+    | 123 |
+    |-----|
+    | 123 |
+    +-----+
 
 Additionally, ``/*! ... */`` is supported though ignored for now. This may be used to support optimization hints in future.

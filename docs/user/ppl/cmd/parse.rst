@@ -72,13 +72,13 @@ PPL query::
 
     os> source=accounts | parse address '(?<streetNumber>\d+) (?<street>.+)' | where cast(streetNumber as int) > 500 | sort num(streetNumber) | fields streetNumber, street ;
     fetched rows / total rows = 3/3
-    +----------------+----------------+
-    | streetNumber   | street         |
-    |----------------+----------------|
-    | 671            | Bristol Street |
-    | 789            | Madison Street |
-    | 880            | Holmes Lane    |
-    +----------------+----------------+
+    +--------------+----------------+
+    | streetNumber | street         |
+    |--------------+----------------|
+    | 671          | Bristol Street |
+    | 789          | Madison Street |
+    | 880          | Holmes Lane    |
+    +--------------+----------------+
 
 Limitations
 ===========

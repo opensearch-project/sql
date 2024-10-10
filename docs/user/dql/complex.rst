@@ -247,14 +247,14 @@ Here is another example with aggregation function and GROUP BY in subquery::
     ...   SELECT AVG(balance) AS avg_balance FROM accounts GROUP BY gender, age
     ... ) AS a;
     fetched rows / total rows = 4/4
-    +---------------+
-    | avg_balance   |
-    |---------------|
-    | 32838.0       |
-    | 39225.0       |
-    | 4180.0        |
-    | 5686.0        |
-    +---------------+
+    +-------------+
+    | avg_balance |
+    |-------------|
+    | 32838.0     |
+    | 39225.0     |
+    | 4180.0      |
+    | 5686.0      |
+    +-------------+
 
 
 Query with multiple layers of subquery is supported as well, here follows a example::
@@ -265,12 +265,12 @@ Query with multiple layers of subquery is supported as well, here follows a exam
     ...   ) AS accounts WHERE age < 35
     ... ) AS accounts
     fetched rows / total rows = 2/2
-    +--------+
-    | name   |
-    |--------|
-    | Duke   |
-    | Adams  |
-    +--------+
+    +-------+
+    | name  |
+    |-------|
+    | Duke  |
+    | Adams |
+    +-------+
 
 
 JOINs
