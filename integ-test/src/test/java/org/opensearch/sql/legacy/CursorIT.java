@@ -442,11 +442,11 @@ public class CursorIT extends SQLIntegTestCase {
 
   @Test
   public void testMalformedCursorGracefullyHandled() throws IOException {
-    ResponseException result = assertThrows(
+    ResponseException result =
+        assertThrows(
             "Expected query with malformed cursor to raise error, but didn't",
             ResponseException.class,
-            () -> executeCursorQuery("d:a11b4db33f")
-    );
+            () -> executeCursorQuery("d:a11b4db33f"));
     assertTrue(result.getMessage().contains("Malformed cursor"));
     assertEquals(result.getResponse().getStatusLine().getStatusCode(), 400);
   }

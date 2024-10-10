@@ -60,14 +60,15 @@ public class CursorResultExecutor implements CursorRestExecutor {
     } catch (IllegalArgumentException | JSONException e) {
       Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
       LOG.error("Error parsing the cursor", e);
-      channel.sendResponse(new BytesRestResponse(
+      channel.sendResponse(
+          new BytesRestResponse(
               RestStatus.BAD_REQUEST,
               "application/json; charset=UTF-8",
               ErrorMessageFactory.createErrorMessage(
-                      new IllegalArgumentException("Malformed cursor: unable to extract cursor information"),
-                      RestStatus.BAD_REQUEST.getStatus()
-              ).toString()
-      ));
+                      new IllegalArgumentException(
+                          "Malformed cursor: unable to extract cursor information"),
+                      RestStatus.BAD_REQUEST.getStatus())
+                  .toString()));
     } catch (OpenSearchException e) {
       int status = (e.status().getStatus());
       if (status > 399 && status < 500) {
