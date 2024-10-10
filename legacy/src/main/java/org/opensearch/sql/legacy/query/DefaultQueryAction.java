@@ -110,6 +110,7 @@ public class DefaultQueryAction extends QueryAction {
         boolean ordered = select.isOrderdSelect();
         if (!ordered) {
           request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+          request.addSort("_id", SortOrder.ASC);
         }
         // Request also requires PointInTime, but we should create pit while execution.
       } else {

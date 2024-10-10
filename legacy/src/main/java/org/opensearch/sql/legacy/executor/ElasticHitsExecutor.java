@@ -19,6 +19,7 @@ import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.PointInTimeBuilder;
+import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
@@ -70,6 +71,7 @@ public abstract class ElasticHitsExecutor {
       boolean ordered = select.isOrderdSelect();
       if (!ordered) {
         request.addSort(DOC_FIELD_NAME, ASC);
+        request.addSort("_id", SortOrder.ASC);
       }
       // Set PIT
       request.setPointInTime(new PointInTimeBuilder(pit.getPitId()));

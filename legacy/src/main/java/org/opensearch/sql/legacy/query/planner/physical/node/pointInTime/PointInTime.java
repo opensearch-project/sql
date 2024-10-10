@@ -42,6 +42,7 @@ public class PointInTime extends Paginate {
         request
             .getRequestBuilder()
             .addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC)
+            .addSort("_id", SortOrder.ASC)
             .setSize(pageSize)
             .setTimeout(TimeValue.timeValueSeconds(timeout))
             .setPointInTime(new PointInTimeBuilder(pitId))
