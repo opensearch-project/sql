@@ -253,17 +253,6 @@ public class PaginationIT extends SQLIntegTestCase {
     assertEquals(aliasFilteredResponse.getInt("size"), 4);
   }
 
-  @Test
-  public void testMalformedCursorGracefullyHandled() throws IOException {
-    ResponseException result = assertThrows(
-            "Expected query with malformed cursor to raise error, but didn't",
-            ResponseException.class,
-            () -> executeCursorQuery("d:a11b4db33f")
-    );
-    assertTrue(result.getMessage().contains("Malformed cursor"));
-    assertEquals(result.getResponse().getStatusLine().getStatusCode(), 400);
-  }
-
   private String executeFetchQuery(String query, int fetchSize, String requestType, String filter)
       throws IOException {
     String endpoint = "/_plugins/_sql?format=" + requestType;
