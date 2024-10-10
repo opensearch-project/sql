@@ -1,1 +1,2 @@
 zc.customdoctests==1.0.1
+setuptools>=70.0.0
