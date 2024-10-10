@@ -452,7 +452,8 @@ public class AsyncQueryCoreIntegTest {
             .sessionId(SESSION_ID)
             .resultIndex(RESULT_INDEX));
     JSONObject result = getValidExecutionResponse();
-    when(jobExecutionResponseReader.getResultWithQueryId(QUERY_ID, RESULT_INDEX))
+    when(jobExecutionResponseReader.getResultWithQueryId(
+            QUERY_ID, RESULT_INDEX, asyncQueryRequestContext))
         .thenReturn(result);
 
     AsyncQueryExecutionResponse response =
@@ -471,7 +472,8 @@ public class AsyncQueryCoreIntegTest {
             .jobId(DROP_INDEX_JOB_ID)
             .resultIndex(RESULT_INDEX));
     JSONObject result = getValidExecutionResponse();
-    when(jobExecutionResponseReader.getResultWithQueryId(QUERY_ID, RESULT_INDEX))
+    when(jobExecutionResponseReader.getResultWithQueryId(
+            QUERY_ID, RESULT_INDEX, asyncQueryRequestContext))
         .thenReturn(result);
 
     AsyncQueryExecutionResponse response =
@@ -491,7 +493,18 @@ public class AsyncQueryCoreIntegTest {
             .jobType(JobType.BATCH)
             .resultIndex(RESULT_INDEX));
     JSONObject result = getValidExecutionResponse();
-    when(jobExecutionResponseReader.getResultWithJobId(JOB_ID, RESULT_INDEX)).thenReturn(result);
+    when(jobExecutionResponseReader.getResultFromResultIndex(
+            AsyncQueryJobMetadata.builder()
+                .applicationId(APPLICATION_ID)
+                .queryId(QUERY_ID)
+                .jobId(JOB_ID)
+                .datasourceName(DATASOURCE_NAME)
+                .resultIndex(RESULT_INDEX)
+                .jobType(JobType.BATCH)
+                .metadata(ImmutableMap.of())
+                .build(),
+            asyncQueryRequestContext))
+        .thenReturn(result);
 
     AsyncQueryExecutionResponse response =
         asyncQueryExecutorService.getAsyncQueryResults(QUERY_ID, asyncQueryRequestContext);
