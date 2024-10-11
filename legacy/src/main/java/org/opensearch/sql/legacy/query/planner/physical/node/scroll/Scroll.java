@@ -12,6 +12,8 @@ import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.physical.node.Paginate;
 
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
+
 /** OpenSearch Scroll API as physical implementation of TableScan */
 public class Scroll extends Paginate {
 
@@ -40,7 +42,7 @@ public class Scroll extends Paginate {
         request
             .getRequestBuilder()
             .addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC)
-            .addSort("_id", SortOrder.ASC)
+            .addSort(METADATA_FIELD_ID, SortOrder.ASC)
             .setSize(pageSize)
             .setScroll(TimeValue.timeValueSeconds(timeout))
             .get();

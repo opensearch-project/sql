@@ -6,6 +6,7 @@
 package org.opensearch.sql.legacy.query;
 
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
@@ -110,7 +111,7 @@ public class DefaultQueryAction extends QueryAction {
         boolean ordered = select.isOrderdSelect();
         if (!ordered) {
           request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
-          request.addSort("_id", SortOrder.ASC);
+          request.addSort(METADATA_FIELD_ID, SortOrder.ASC);
         }
         // Request also requires PointInTime, but we should create pit while execution.
       } else {

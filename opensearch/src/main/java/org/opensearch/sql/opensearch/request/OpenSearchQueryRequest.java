@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.request;
 import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -191,7 +192,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
         this.sourceBuilder.sort(DOC_FIELD_NAME, ASC);
         // Workaround to preserve sort location more exactly,
         // see https://github.com/opensearch-project/sql/pull/3061
-        this.sourceBuilder.sort("_id", ASC);
+        this.sourceBuilder.sort(METADATA_FIELD_ID, ASC);
       }
       SearchRequest searchRequest = new SearchRequest().source(this.sourceBuilder);
       this.searchResponse = searchAction.apply(searchRequest);

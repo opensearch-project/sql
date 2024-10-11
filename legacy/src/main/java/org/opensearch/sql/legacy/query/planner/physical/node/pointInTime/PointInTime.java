@@ -8,6 +8,8 @@ import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.physical.node.Paginate;
 
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
+
 /** OpenSearch Search API with Point in time as physical implementation of TableScan */
 public class PointInTime extends Paginate {
 
@@ -42,7 +44,7 @@ public class PointInTime extends Paginate {
         request
             .getRequestBuilder()
             .addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC)
-            .addSort("_id", SortOrder.ASC)
+            .addSort(METADATA_FIELD_ID, SortOrder.ASC)
             .setSize(pageSize)
             .setTimeout(TimeValue.timeValueSeconds(timeout))
             .setPointInTime(new PointInTimeBuilder(pitId))

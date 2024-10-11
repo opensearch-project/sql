@@ -9,6 +9,7 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
@@ -71,7 +72,7 @@ public abstract class ElasticHitsExecutor {
       boolean ordered = select.isOrderdSelect();
       if (!ordered) {
         request.addSort(DOC_FIELD_NAME, ASC);
-        request.addSort("_id", SortOrder.ASC);
+        request.addSort(METADATA_FIELD_ID, SortOrder.ASC);
       }
       // Set PIT
       request.setPointInTime(new PointInTimeBuilder(pit.getPitId()));
