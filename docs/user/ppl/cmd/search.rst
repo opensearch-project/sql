@@ -37,14 +37,14 @@ PPL query::
 
     os> source=accounts;
     fetched rows / total rows = 4/4
-    +------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------+
-    | account_number   | firstname   | address              | balance   | gender   | city   | employer   | state   | age   | email                 | lastname   |
-    |------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------|
-    | 1                | Amber       | 880 Holmes Lane      | 39225     | M        | Brogan | Pyrami     | IL      | 32    | amberduke@pyrami.com  | Duke       |
-    | 6                | Hattie      | 671 Bristol Street   | 5686      | M        | Dante  | Netagy     | TN      | 36    | hattiebond@netagy.com | Bond       |
-    | 13               | Nanette     | 789 Madison Street   | 32838     | F        | Nogal  | Quility    | VA      | 28    | null                  | Bates      |
-    | 18               | Dale        | 467 Hutchinson Court | 4180      | M        | Orick  | null       | MD      | 33    | daleadams@boink.com   | Adams      |
-    +------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------+
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
+    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname |
+    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------|
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    |
+    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    |
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
 
 Example 2: Fetch data with condition
 ====================================
@@ -55,10 +55,10 @@ PPL query::
 
     os> source=accounts account_number=1 or gender="F";
     fetched rows / total rows = 2/2
-    +------------------+-------------+--------------------+-----------+----------+--------+------------+---------+-------+----------------------+------------+
-    | account_number   | firstname   | address            | balance   | gender   | city   | employer   | state   | age   | email                | lastname   |
-    |------------------+-------------+--------------------+-----------+----------+--------+------------+---------+-------+----------------------+------------|
-    | 1                | Amber       | 880 Holmes Lane    | 39225     | M        | Brogan | Pyrami     | IL      | 32    | amberduke@pyrami.com | Duke       |
-    | 13               | Nanette     | 789 Madison Street | 32838     | F        | Nogal  | Quility    | VA      | 28    | null                 | Bates      |
-    +------------------+-------------+--------------------+-----------+----------+--------+------------+---------+-------+----------------------+------------+
+    +----------------+-----------+--------------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
+    | account_number | firstname | address            | balance | gender | city   | employer | state | age | email                | lastname |
+    |----------------+-----------+--------------------+---------+--------+--------+----------+-------+-----+----------------------+----------|
+    | 1              | Amber     | 880 Holmes Lane    | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com | Duke     |
+    | 13             | Nanette   | 789 Madison Street | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                 | Bates    |
+    +----------------+-----------+--------------------+---------+--------+--------+----------+-------+-----+----------------------+----------+
 
