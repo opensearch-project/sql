@@ -12,8 +12,8 @@ import org.opensearch.sql.legacy.utils.StringUtils;
 
 public class OpenSearchErrorMessage extends ErrorMessage<OpenSearchException> {
 
-  OpenSearchErrorMessage(OpenSearchException exception) {
-    super(exception, exception.status().getStatus());
+  OpenSearchErrorMessage(OpenSearchException exception, int status) {
+    super(exception, status);
   }
 
   @Override

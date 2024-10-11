@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.response.error;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
+import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,7 +30,8 @@ class OpenSearchErrorMessageTest {
   public void fetchReason() {
     when(openSearchException.getMessage()).thenReturn("error");
 
-    OpenSearchErrorMessage errorMessage = new OpenSearchErrorMessage(openSearchException);
+    OpenSearchErrorMessage errorMessage =
+        new OpenSearchErrorMessage(openSearchException, SERVICE_UNAVAILABLE.getStatus());
     assertEquals("Error occurred in OpenSearch engine: error", errorMessage.fetchReason());
   }
 
@@ -37,7 +39,8 @@ class OpenSearchErrorMessageTest {
   public void fetchDetailsWithOpenSearchException() {
     when(openSearchException.getDetailedMessage()).thenReturn("detail error");
 
-    OpenSearchErrorMessage errorMessage = new OpenSearchErrorMessage(openSearchException);
+    OpenSearchErrorMessage errorMessage =
+        new OpenSearchErrorMessage(openSearchException, SERVICE_UNAVAILABLE.getStatus());
     assertEquals(
         "detail error\n"
             + "For more details, please send request for "
@@ -52,7 +55,8 @@ class OpenSearchErrorMessageTest {
     when(shardSearchFailure.shardId()).thenReturn(1);
     when(shardSearchFailure.getCause()).thenReturn(new IllegalStateException("illegal state"));
 
-    OpenSearchErrorMessage errorMessage = new OpenSearchErrorMessage(searchPhaseExecutionException);
+    OpenSearchErrorMessage errorMessage =
+        new OpenSearchErrorMessage(searchPhaseExecutionException, SERVICE_UNAVAILABLE.getStatus());
     assertEquals(
         "Shard[1]: java.lang.IllegalStateException: illegal state\n"
             + "\n"
