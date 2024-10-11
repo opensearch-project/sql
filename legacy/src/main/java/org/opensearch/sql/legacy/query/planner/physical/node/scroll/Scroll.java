@@ -5,14 +5,14 @@
 
 package org.opensearch.sql.legacy.query.planner.physical.node.scroll;
 
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
+
 import org.opensearch.action.search.ClearScrollResponse;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.physical.node.Paginate;
-
-import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 /** OpenSearch Scroll API as physical implementation of TableScan */
 public class Scroll extends Paginate {

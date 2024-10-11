@@ -1,5 +1,7 @@
 package org.opensearch.sql.legacy.query.planner.physical.node.pointInTime;
 
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
+
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.sort.FieldSortBuilder;
@@ -7,8 +9,6 @@ import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.physical.node.Paginate;
-
-import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 /** OpenSearch Search API with Point in time as physical implementation of TableScan */
 public class PointInTime extends Paginate {

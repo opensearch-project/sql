@@ -5,17 +5,16 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.legacy.TestsConstants.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
-
-import static org.opensearch.sql.legacy.TestsConstants.*;
 
 public class PaginationWindowIT extends SQLIntegTestCase {
   @Override
@@ -99,8 +98,10 @@ public class PaginationWindowIT extends SQLIntegTestCase {
 
   @Test
   public void testMultiShardPagesEqualsActualData() throws IOException {
-    // A bug made it so when pulling unordered data from an index with multiple shards, data gets lost if the fetchSize
-    // is not a multiple of the shard count. This tests that, for an index with 4 shards, pulling one page of 10 records
+    // A bug made it so when pulling unordered data from an index with multiple shards, data gets
+    // lost if the fetchSize
+    // is not a multiple of the shard count. This tests that, for an index with 4 shards, pulling
+    // one page of 10 records
     // is equivalent to pulling two pages of 5 records.
 
     var query = "SELECT key from " + TEST_INDEX_CALCS;
