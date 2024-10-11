@@ -93,10 +93,14 @@ jobs:
           integ-test/build/testclusters/*/logs/*
 
   bwc-tests:
+    needs: Get-CI-Image-Tag
     runs-on: ubuntu-latest
     strategy:
       matrix:
         java: [21]
+    container:
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      options: --user root
 
     steps:
       - uses: actions/checkout@v3
