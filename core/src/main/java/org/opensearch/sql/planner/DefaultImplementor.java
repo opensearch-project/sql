@@ -23,6 +23,7 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.logical.LogicalWindow;
 import org.opensearch.sql.planner.physical.AggregationOperator;
@@ -39,6 +40,7 @@ import org.opensearch.sql.planner.physical.RemoveOperator;
 import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
 import org.opensearch.sql.planner.physical.TakeOrderedOperator;
+import org.opensearch.sql.planner.physical.TrendlineOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
@@ -164,6 +166,11 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   @Override
   public PhysicalPlan visitCloseCursor(LogicalCloseCursor node, C context) {
     return new CursorCloseOperator(visitChild(node, context));
+  }
+
+  @Override
+  public PhysicalPlan visitTrendline(LogicalTrendline plan, C context) {
+    return new TrendlineOperator(visitChild(plan, context), plan.getComputations());
   }
 
   // Called when paging query requested without `FROM` clause only

@@ -50,6 +50,7 @@ commands
    | adCommand
    | mlCommand
    | fillnullCommand
+   | trendlineCommand
    ;
 
 searchCommand
@@ -143,6 +144,18 @@ fillNullWithFieldVariousValues
 
 nullReplacementExpression
    : nullableField = fieldExpression EQUAL nullReplacement = valueExpression
+
+trendlineCommand
+   : TRENDLINE trendlineClause (trendlineClause)*
+   ;
+
+trendlineClause
+   : trendlineType LT_PRTHS numberOfDataPoints = integerLiteral COMMA field = fieldExpression RT_PRTHS AS alias = fieldExpression
+   ;
+
+trendlineType
+   : SMA
+   | WMA
    ;
 
 kmeansCommand

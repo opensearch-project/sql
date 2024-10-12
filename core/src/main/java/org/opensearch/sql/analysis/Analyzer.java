@@ -62,6 +62,7 @@ import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -100,6 +101,7 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.opensearch.sql.storage.Table;
@@ -592,6 +594,17 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             v -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, v.getKey()), v.getValue()));
 
     return new LogicalML(child, node.getArguments());
+  }
+
+  /** Build {@link LogicalTrendline} for Trendline command. */
+  @Override
+  public LogicalPlan visitTrendline(Trendline node, AnalysisContext context) {
+    final LogicalPlan child = node.getChild().get(0).accept(this, context);
+    final List<UnresolvedExpression> unresolvedComputations = node.getComputations();
+    final List<Trendline.TrendlineComputation> computations =
+        unresolvedComputations.stream().map(expression ->
+            (Trendline.TrendlineComputation) expression).toList();
+    return new LogicalTrendline(child, computations);
   }
 
   @Override

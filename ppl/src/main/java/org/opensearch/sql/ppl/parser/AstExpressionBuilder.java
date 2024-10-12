@@ -52,6 +52,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
@@ -73,6 +74,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitEvalClause(EvalClauseContext ctx) {
     return new Let((Field) visit(ctx.fieldExpression()), visit(ctx.expression()));
+  }
+
+  /** Trendline clause. */
+  @Override
+  public UnresolvedExpression visitTrendlineClause(OpenSearchPPLParser.TrendlineClauseContext ctx) {
+    Integer numberOfDataPoints = Integer.parseInt(ctx.numberOfDataPoints.getText());
+    Field dataField = (Field) this.visitFieldExpression(ctx.field);
+    String alias = ctx.alias.getText();
+    String computationType = ctx.trendlineType().getText();
+    return new Trendline.TrendlineComputation(numberOfDataPoints, dataField, alias, computationType);
   }
 
   /** Logical expression excluding boolean, comparison. */

@@ -24,6 +24,7 @@ import org.opensearch.sql.planner.physical.RemoveOperator;
 import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
 import org.opensearch.sql.planner.physical.TakeOrderedOperator;
+import org.opensearch.sql.planner.physical.TrendlineOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -185,6 +186,15 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
             visitInput(mlOperator.getInput(), context),
             mlOperator.getArguments(),
             mlOperator.getNodeClient()));
+  }
+
+  @Override
+  public PhysicalPlan visitTrendline(PhysicalPlan node, Object context) {
+    TrendlineOperator trendlineOperator = (TrendlineOperator) node;
+    return doProtect(
+        new TrendlineOperator(
+            visitInput(trendlineOperator.getInput(), context),
+            trendlineOperator.getComputations()));
   }
 
   PhysicalPlan visitInput(PhysicalPlan node, Object context) {
