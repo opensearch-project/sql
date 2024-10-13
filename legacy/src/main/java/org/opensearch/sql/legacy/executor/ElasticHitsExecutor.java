@@ -9,6 +9,7 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
@@ -19,6 +20,7 @@ import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.PointInTimeBuilder;
+import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
@@ -70,6 +72,7 @@ public abstract class ElasticHitsExecutor {
       boolean ordered = select.isOrderdSelect();
       if (!ordered) {
         request.addSort(DOC_FIELD_NAME, ASC);
+        request.addSort(METADATA_FIELD_ID, SortOrder.ASC);
       }
       // Set PIT
       request.setPointInTime(new PointInTimeBuilder(pit.getPitId()));

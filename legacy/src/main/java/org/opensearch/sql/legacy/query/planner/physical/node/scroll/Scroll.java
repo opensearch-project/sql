@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.query.planner.physical.node.scroll;
 
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
+
 import org.opensearch.action.search.ClearScrollResponse;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.sort.FieldSortBuilder;
@@ -40,6 +42,7 @@ public class Scroll extends Paginate {
         request
             .getRequestBuilder()
             .addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC)
+            .addSort(METADATA_FIELD_ID, SortOrder.ASC)
             .setSize(pageSize)
             .setScroll(TimeValue.timeValueSeconds(timeout))
             .get();
