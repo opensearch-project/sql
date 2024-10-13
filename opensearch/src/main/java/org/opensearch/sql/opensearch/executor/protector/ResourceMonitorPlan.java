@@ -44,7 +44,7 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
   @Override
   public void open() {
     if (!this.monitor.isHealthy()) {
-      throw new IllegalStateException("resource is not enough to run the query, quit.");
+      throw new IllegalStateException("insufficient resources to run the query, quit.");
     }
     delegate.open();
   }
@@ -68,7 +68,7 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
   public ExprValue next() {
     boolean shouldCheck = (++nextCallCount % NUMBER_OF_NEXT_CALL_TO_CHECK == 0);
     if (shouldCheck && !this.monitor.isHealthy()) {
-      throw new IllegalStateException("resource is not enough to load next row, quit.");
+      throw new IllegalStateException("insufficient resources to load next row, quit.");
     }
     return delegate.next();
   }
