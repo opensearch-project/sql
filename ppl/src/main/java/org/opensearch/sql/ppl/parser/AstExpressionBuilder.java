@@ -83,7 +83,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     Field dataField = (Field) this.visitFieldExpression(ctx.field);
     String alias = ctx.alias.getText();
     String computationType = ctx.trendlineType().getText();
-    return new Trendline.TrendlineComputation(numberOfDataPoints, dataField, alias, computationType);
+    return new Trendline.TrendlineComputation(
+        numberOfDataPoints, dataField, alias, computationType);
   }
 
   /** Logical expression excluding boolean, comparison. */
