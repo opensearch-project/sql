@@ -80,7 +80,8 @@ public class TrendlineOperator extends PhysicalPlan {
                 computation ->
                     new ExecutionEngine.Schema.Column(computation.getDataField().getChild().getFirst().toString(),
                         computation.getAlias(), DOUBLE))
-            .collect(Collectors.toList()));  }
+            .collect(Collectors.toList()));
+  }
 
   @Override
   public ExprValue next() {
