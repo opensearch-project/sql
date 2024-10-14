@@ -8,29 +8,27 @@ package org.opensearch.sql.planner.physical;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.EvictingQueue;
+import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.EvictingQueue;
-import com.google.common.collect.ImmutableMap.Builder;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
+import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
 
 /** Trendline command implementation */
 @ToString
@@ -46,9 +44,7 @@ public class TrendlineOperator extends PhysicalPlan {
   public TrendlineOperator(PhysicalPlan input, List<Trendline.TrendlineComputation> computations) {
     this.input = input;
     this.computations = computations;
-    this.accumulators = computations.stream()
-        .map(TrendlineOperator::createAccumulator)
-        .toList();
+    this.accumulators = computations.stream().map(TrendlineOperator::createAccumulator).toList();
     fieldToIndexMap = new HashMap<>(computations.size());
     for (int i = 0; i < computations.size(); ++i) {
 
@@ -78,8 +74,10 @@ public class TrendlineOperator extends PhysicalPlan {
         computations.stream()
             .map(
                 computation ->
-                    new ExecutionEngine.Schema.Column(computation.getDataField().getChild().getFirst().toString(),
-                        computation.getAlias(), DOUBLE))
+                    new ExecutionEngine.Schema.Column(
+                        computation.getDataField().getChild().getFirst().toString(),
+                        computation.getAlias(),
+                        DOUBLE))
             .collect(Collectors.toList()));
   }
 
@@ -121,9 +119,11 @@ public class TrendlineOperator extends PhysicalPlan {
 
     // Position the cursor such that enough data points have been accumulated
     // to get one trendline calculation.
-    final int smallestNumberOfDataPoints = computations.stream()
-        .mapToInt(Trendline.TrendlineComputation::getNumberOfDataPoints)
-        .min().orElseThrow(() -> new SyntaxCheckException("Period not supplied."));
+    final int smallestNumberOfDataPoints =
+        computations.stream()
+            .mapToInt(Trendline.TrendlineComputation::getNumberOfDataPoints)
+            .min()
+            .orElseThrow(() -> new SyntaxCheckException("Period not supplied."));
 
     int i;
     for (i = 0; i < smallestNumberOfDataPoints && input.hasNext(); ++i) {
@@ -154,7 +154,8 @@ public class TrendlineOperator extends PhysicalPlan {
     }
   }
 
-  private static TrendlineAccumulator createAccumulator(Trendline.TrendlineComputation computation) {
+  private static TrendlineAccumulator createAccumulator(
+      Trendline.TrendlineComputation computation) {
     switch (computation.getComputationType()) {
       case SMA:
         return new SimpleMovingAverageAccumulator(computation);
@@ -164,18 +165,18 @@ public class TrendlineOperator extends PhysicalPlan {
     }
   }
 
-  /**
-   * Maintains stateful information for calculating the trendline.
-   */
+  /** Maintains stateful information for calculating the trendline. */
   private interface TrendlineAccumulator {
     void accumulate(ExprValue value);
+
     ExprValue calculate();
   }
 
+  // TODO: Make the actual math polymorphic based on types to deal with datetimes.
   private static class SimpleMovingAverageAccumulator implements TrendlineAccumulator {
     private final ExprValue dataPointsNeeded;
     private final EvictingQueue<ExprValue> receivedValues;
-    private ExprValue runningAverage = new ExprDoubleValue(0.0);
+    private ExprValue runningAverage = null;
 
     public SimpleMovingAverageAccumulator(Trendline.TrendlineComputation computation) {
       dataPointsNeeded = new ExprIntegerValue(computation.getNumberOfDataPoints());
@@ -184,25 +185,56 @@ public class TrendlineOperator extends PhysicalPlan {
 
     @Override
     public void accumulate(ExprValue value) {
+      if (value == null) {
+        // Should this make the whole calculation null?
+        return;
+      }
+
+      if (dataPointsNeeded.integerValue() == 1) {
+        runningAverage = value;
+        receivedValues.add(value);
+        return;
+      }
+
+      final ExprValue valueToRemove;
+      if (receivedValues.size() == dataPointsNeeded.integerValue()) {
+        valueToRemove = receivedValues.remove();
+      } else {
+        valueToRemove = null;
+      }
       receivedValues.add(value);
+
+      if (receivedValues.size() == dataPointsNeeded.integerValue()) {
+        if (runningAverage != null) {
+          // We can use the previous average calculation.
+          // Subtract the evicted value / period and add the new value / period.
+          // Refactored, that would be previous + (newValue - oldValue) / period
+          runningAverage =
+              DSL.add(
+                      DSL.literal(runningAverage),
+                      DSL.divide(
+                          DSL.subtract(DSL.literal(value), DSL.literal(valueToRemove)),
+                          DSL.literal(dataPointsNeeded.doubleValue())))
+                  .valueOf();
+        } else {
+          // This is the first average calculation so sum the entire receivedValues dataset.
+          final List<ExprValue> data = receivedValues.stream().toList();
+          Expression runningTotal = DSL.literal(0.0D);
+          for (ExprValue entry : data) {
+            runningTotal = DSL.add(runningTotal, DSL.literal(entry));
+          }
+          runningAverage =
+              DSL.divide(runningTotal, DSL.literal(dataPointsNeeded.doubleValue())).valueOf();
+        }
+      }
     }
 
     @Override
     public ExprValue calculate() {
-      // TODO: Calculate this properly using the DSL and optimize it to use
-      // a running average instead of iterating over the whole window.
       if (receivedValues.size() < dataPointsNeeded.integerValue()) {
         return ExprNullValue.of();
       }
-      ExprValue[] entries = new ExprValue[0];
-      ExprValue[] data = receivedValues.toArray(entries);
-      double result = 0;
-      for (int i = 0; i < data.length; i++) {
-        result += data[i].doubleValue();
-      }
-
-      result /= receivedValues.size();
-      return new ExprDoubleValue(result);
+      return runningAverage;
     }
   }
 }
