@@ -425,10 +425,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** trendline command. */
   @Override
   public UnresolvedPlan visitTrendlineCommand(OpenSearchPPLParser.TrendlineCommandContext ctx) {
-    List<UnresolvedExpression> trendlineComputations = ctx.trendlineClause()
-        .stream()
-        .map(expressionBuilder::visit)
-        .collect(Collectors.toList());
+    List<UnresolvedExpression> trendlineComputations =
+        ctx.trendlineClause().stream().map(expressionBuilder::visit).collect(Collectors.toList());
     return new Trendline(trendlineComputations);
   }
 

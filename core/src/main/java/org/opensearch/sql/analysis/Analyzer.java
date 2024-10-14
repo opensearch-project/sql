@@ -602,8 +602,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     final LogicalPlan child = node.getChild().get(0).accept(this, context);
     final List<UnresolvedExpression> unresolvedComputations = node.getComputations();
     final List<Trendline.TrendlineComputation> computations =
-        unresolvedComputations.stream().map(expression ->
-            (Trendline.TrendlineComputation) expression).toList();
+        unresolvedComputations.stream()
+            .map(expression -> (Trendline.TrendlineComputation) expression)
+            .toList();
     return new LogicalTrendline(child, computations);
   }
 

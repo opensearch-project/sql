@@ -6,6 +6,7 @@
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -13,8 +14,6 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
-
-import java.util.List;
 
 @ToString
 @Getter
@@ -49,7 +48,11 @@ public class Trendline extends UnresolvedPlan {
     private final String alias;
     private final TrendlineType computationType;
 
-    public TrendlineComputation(Integer numberOfDataPoints, UnresolvedExpression dataField, String alias, String computationType) {
+    public TrendlineComputation(
+        Integer numberOfDataPoints,
+        UnresolvedExpression dataField,
+        String alias,
+        String computationType) {
       this.numberOfDataPoints = numberOfDataPoints;
       this.dataField = dataField;
       this.alias = alias;
