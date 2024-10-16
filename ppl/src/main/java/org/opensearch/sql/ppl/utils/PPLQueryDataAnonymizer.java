@@ -34,6 +34,7 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Project;
@@ -232,6 +233,33 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   private String visitExpression(UnresolvedExpression expression) {
     return expressionAnalyzer.analyze(expression, null);
+  }
+
+  @Override
+  public String visitFillNull(FillNull node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    List<FillNull.NullableFieldFill> fieldFills = node.getNullableFieldFills();
+    final UnresolvedExpression firstReplacement = fieldFills.getFirst().getReplaceNullWithMe();
+    if (fieldFills.stream().allMatch(n -> firstReplacement == n.getReplaceNullWithMe())) {
+      return StringUtils.format(
+          "%s | fillnull with %s in %s",
+          child,
+          firstReplacement,
+          node.getNullableFieldFills().stream()
+              .map(n -> visitExpression(n.getNullableFieldReference()))
+              .collect(Collectors.joining(",")));
+    } else {
+      return StringUtils.format(
+          "%s | fillnull using %s",
+          child,
+          node.getNullableFieldFills().stream()
+              .map(
+                  n ->
+                      StringUtils.format(
+                          "%s = %s",
+                          visitExpression(n.getNullableFieldReference()), n.getReplaceNullWithMe()))
+              .collect(Collectors.joining(", ")));
+    }
   }
 
   private String groupBy(String groupBy) {
