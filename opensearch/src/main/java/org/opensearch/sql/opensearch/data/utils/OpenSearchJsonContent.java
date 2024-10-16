@@ -14,6 +14,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.OpenSearchParseException;
+import org.opensearch.common.Numbers;
 import org.opensearch.common.geo.GeoPoint;
 import org.opensearch.common.geo.GeoUtils;
 import org.opensearch.common.xcontent.json.JsonXContentParser;
@@ -29,32 +30,32 @@ public class OpenSearchJsonContent implements Content {
 
   @Override
   public Integer intValue() {
-    return value().intValue();
+    return (int) extractDoubleValue(value());
   }
 
   @Override
   public Long longValue() {
-    return value().longValue();
+    return extractLongValue(value());
   }
 
   @Override
   public Short shortValue() {
-    return value().shortValue();
+    return (short) extractDoubleValue(value());
   }
 
   @Override
   public Byte byteValue() {
-    return (byte) value().shortValue();
+    return (byte) extractDoubleValue(value());
   }
 
   @Override
   public Float floatValue() {
-    return value().floatValue();
+    return (float) extractDoubleValue(value());
   }
 
   @Override
   public Double doubleValue() {
-    return value().doubleValue();
+    return extractDoubleValue(value());
   }
 
   @Override
@@ -64,7 +65,7 @@ public class OpenSearchJsonContent implements Content {
 
   @Override
   public Boolean booleanValue() {
-    return value().booleanValue();
+    return extractBooleanValue(value());
   }
 
   @Override
@@ -147,5 +148,41 @@ public class OpenSearchJsonContent implements Content {
   /** Getter for value. If value is array the whole array is returned. */
   private JsonNode value() {
     return value;
+  }
+
+  /** Get double value from JsonNode if possible. */
+  private double extractDoubleValue(JsonNode node) {
+    if (node.isTextual()) {
+      return Double.parseDouble(node.textValue());
+    }
+    if (node.isNumber()) {
+      return node.doubleValue();
+    } else {
+      throw new OpenSearchParseException("node must be a number");
+    }
+  }
+
+  /** Get long value from JsonNode if possible. */
+  private long extractLongValue(JsonNode node) {
+    if (node.isTextual()) {
+      return Numbers.toLong(node.textValue(), true);
+    }
+    if (node.isNumber()) {
+      return node.longValue();
+    } else {
+      throw new OpenSearchParseException("node must be a number");
+    }
+  }
+
+  /** Get boolean value from JsonNode if possible. */
+  private boolean extractBooleanValue(JsonNode node) {
+    if (node.isTextual()) {
+      return Boolean.parseBoolean(node.textValue());
+    }
+    if (node.isBoolean()) {
+      return node.booleanValue();
+    } else {
+      throw new OpenSearchParseException("node must be a boolean");
+    }
   }
 }
