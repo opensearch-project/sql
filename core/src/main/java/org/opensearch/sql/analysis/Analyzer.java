@@ -46,6 +46,7 @@ import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -556,6 +557,29 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
           ExprCoreType.TIMESTAMP);
     }
     return new LogicalAD(child, options);
+  }
+
+  /** Build {@link LogicalAD} for fillnull command. */
+  @Override
+  public LogicalPlan visitFillNull(final FillNull node, final AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+
+    ImmutableList.Builder<Pair<ReferenceExpression, Expression>> expressionsBuilder =
+        new Builder<>();
+    for (FillNull.NullableFieldFill fieldFill : node.getNullableFieldFills()) {
+      Expression fieldExpr =
+          expressionAnalyzer.analyze(fieldFill.getNullableFieldReference(), context);
+      ReferenceExpression ref =
+          DSL.ref(fieldFill.getNullableFieldReference().getField().toString(), fieldExpr.type());
+      FunctionExpression ifNullFunction =
+          DSL.ifnull(ref, expressionAnalyzer.analyze(fieldFill.getReplaceNullWithMe(), context));
+      expressionsBuilder.add(new ImmutablePair<>(ref, ifNullFunction));
+      TypeEnvironment typeEnvironment = context.peek();
+      // define the new reference in type env.
+      typeEnvironment.define(ref);
+    }
+
+    return new LogicalEval(child, expressionsBuilder.build());
   }
 
   /** Build {@link LogicalML} for ml command. */
