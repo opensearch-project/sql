@@ -24,8 +24,8 @@ public class GrokUtils {
       Pattern.compile(
           "%\\{"
               + "(?<name>"
-              + "(?<pattern>[A-z0-9]+)"
-              + "(?::(?<subname>[A-z0-9_:;,\\-\\/\\s\\.']+))?"
+              + "(?<pattern>[a-zA-Z0-9_]+)"
+              + "(?::(?<subname>[a-zA-Z0-9_:;,\\-\\/\\s\\.']+))?"
               + ")"
               + "(?:=(?<definition>"
               + "(?:"
