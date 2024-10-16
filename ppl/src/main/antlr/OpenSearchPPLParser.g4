@@ -170,10 +170,46 @@ fromClause
    | INDEX EQUAL tableSourceClause
    | SOURCE EQUAL tableFunction
    | INDEX EQUAL tableFunction
+   | SOURCE EQUAL relation
+   | INDEX EQUAL relation
    ;
 
 tableSourceClause
    : tableSource (COMMA tableSource)*
+   ;
+
+// TODO two-tables join only. Multi-tables join `relationExtension*` is unsupported in current implementation.
+relation
+   : tablePrimary relationExtension
+   ;
+
+tablePrimary
+   : tableSource (AS alias = qualifiedName)?
+   ;
+
+relationExtension
+   : joinSource
+   ;
+
+ // TODO joinCriteria could be none `(joinCriteria?)` for complex cases. It's unsupported in current implementation.
+ // TODO join hints `(hintStatement)?` is unsupported in current implementation.
+ // TODO directly tables jon only, join two plans is unsupported in current implementation.
+joinSource
+   : (joinType) JOIN right = tablePrimary joinCriteria
+   ;
+
+joinType
+   : INNER?
+   | CROSS
+   | LEFT OUTER?
+   | RIGHT OUTER?
+   | FULL OUTER?
+   | LEFT? SEMI
+   | LEFT? ANTI
+   ;
+
+joinCriteria
+   : ON logicalExpression
    ;
 
 renameClasue
@@ -925,4 +961,14 @@ keywordsCanBeId
    | SPARKLINE
    | C
    | DC
+   // JOIN
+   | ON
+   | INNER
+   | CROSS
+   | OUTER
+   | SEMI
+   | LEFT
+   | RIGHT
+   | FULL
+   | ANTI
    ;

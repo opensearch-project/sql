@@ -18,6 +18,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
@@ -131,5 +132,46 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
                 AstDSL.map(AstDSL.field("integer_value"), AstDSL.field("ivalue"))),
             AstDSL.defaultFieldsArgs(),
             AllFields.of()));
+  }
+
+  @Test
+  public void project_all_from_join() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.innerJoin(
+                LogicalPlanDSL.relation("schema1", table),
+                LogicalPlanDSL.relation("schema2", table),
+                DSL.and(
+                    DSL.equal(
+                        DSL.ref("schema1.integer_value", INTEGER),
+                        DSL.ref("schema2.integer_value", INTEGER)),
+                    DSL.equal(
+                        DSL.ref("schema1.double_value", DOUBLE),
+                        DSL.ref("schema2.double_value", DOUBLE)))),
+            DSL.named("schema1.integer_value", DSL.ref("schema1.integer_value", INTEGER)),
+            DSL.named("schema1.double_value", DSL.ref("schema1.double_value", DOUBLE)),
+            DSL.named("schema1.string_value", DSL.ref("schema1.string_value", STRING)),
+            DSL.named("schema2.integer_value", DSL.ref("schema2.integer_value", INTEGER)),
+            DSL.named("schema2.double_value", DSL.ref("schema2.double_value", DOUBLE)),
+            DSL.named("schema2.string_value", DSL.ref("schema2.string_value", STRING))),
+        AstDSL.projectWithArg(
+            AstDSL.join(
+                AstDSL.relation("schema1"),
+                AstDSL.relation("schema2"),
+                Join.JoinType.INNER,
+                AstDSL.and(
+                    AstDSL.equalTo(
+                        AstDSL.field("schema1.integer_value"),
+                        AstDSL.field("schema2.integer_value")),
+                    AstDSL.equalTo(
+                        AstDSL.field("schema1.double_value"),
+                        AstDSL.field("schema2.double_value")))),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("schema1.integer_value", AstDSL.field("schema1.integer_value")),
+            AstDSL.alias("schema1.double_value", AstDSL.field("schema1.double_value")),
+            AstDSL.alias("schema1.string_value", AstDSL.field("schema1.string_value")),
+            AstDSL.alias("schema2.integer_value", AstDSL.field("schema2.integer_value")),
+            AstDSL.alias("schema2.double_value", AstDSL.field("schema2.double_value")),
+            AstDSL.alias("schema2.string_value", AstDSL.field("schema2.string_value"))));
   }
 }
