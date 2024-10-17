@@ -21,6 +21,8 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 
 /** JobExecutionResponseReader implementation for reading response from OpenSearch index. */
 public class OpenSearchJobExecutionResponseReader implements JobExecutionResponseReader {
@@ -32,12 +34,17 @@ public class OpenSearchJobExecutionResponseReader implements JobExecutionRespons
   }
 
   @Override
-  public JSONObject getResultWithJobId(String jobId, String resultLocation) {
-    return searchInSparkIndex(QueryBuilders.termQuery(JOB_ID_FIELD, jobId), resultLocation);
+  public JSONObject getResultFromResultIndex(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
+    return searchInSparkIndex(
+        QueryBuilders.termQuery(JOB_ID_FIELD, asyncQueryJobMetadata.getJobId()),
+        asyncQueryJobMetadata.getResultIndex());
   }
 
   @Override
-  public JSONObject getResultWithQueryId(String queryId, String resultLocation) {
+  public JSONObject getResultWithQueryId(
+      String queryId, String resultLocation, AsyncQueryRequestContext asyncQueryRequestContext) {
     return searchInSparkIndex(QueryBuilders.termQuery("queryId", queryId), resultLocation);
   }
 
