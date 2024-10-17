@@ -376,7 +376,7 @@ public class CursorIT extends SQLIntegTestCase {
 
     JSONObject resp = new JSONObject(TestUtils.getResponseBody(response));
     assertThat(resp.getInt("status"), equalTo(400));
-    assertThat(resp.query("/error/type"), equalTo("illegal_argument_exception"));
+    assertThat(resp.query("/error/type"), equalTo("IllegalArgumentException"));
   }
 
   /**

@@ -13,8 +13,8 @@ import org.opensearch.action.search.ShardSearchFailure;
 /** OpenSearch Error Message. */
 public class OpenSearchErrorMessage extends ErrorMessage {
 
-  OpenSearchErrorMessage(OpenSearchException exception, int status) {
-    super(exception, status);
+  OpenSearchErrorMessage(OpenSearchException exception, int defaultStatus) {
+    super(exception, exception.status() != null ? exception.status().getStatus() : defaultStatus);
   }
 
   @Override
