@@ -1,9 +1,6 @@
 package org.opensearch.sql.legacy;
 
-import static org.opensearch.sql.legacy.TestUtils.performRequest;
-
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Locale;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
@@ -33,7 +30,6 @@ public class MalformedQueryIT extends SQLIntegTestCase {
                         TestsConstants.TEST_INDEX_BANK,
                         TestsConstants.TEST_INDEX_BANK_TWO)));
     var errMsg = new JSONObject(EntityUtils.toString(result.getResponse().getEntity()));
-    System.err.println("Full response: " + errMsg);
 
     Assert.assertEquals("SqlParseException", errMsg.getJSONObject("error").getString("type"));
     Assert.assertEquals(400, errMsg.getInt("status"));
@@ -48,13 +44,13 @@ public class MalformedQueryIT extends SQLIntegTestCase {
                 executeQuery(
                     String.format(
                         Locale.ROOT,
-                        "SELECT a.age FROM %s AS a WHERE a.age IN (SELECT b.age FROM * AS b)",
+                        "SELECT a.first_name FROM %s AS a WHERE a.age IN (SELECT age FROM * WHERE age > 30)",
                         TestsConstants.TEST_INDEX_BANK)));
     var errMsg = new JSONObject(EntityUtils.toString(result.getResponse().getEntity()));
     System.err.println("Full response: " + errMsg);
 
     Assert.assertEquals(
-        "IllegalArgumentException", errMsg.getJSONObject("error").getString("type"));
+        "SqlParseException", errMsg.getJSONObject("error").getString("type"));
     Assert.assertEquals(400, errMsg.getInt("status"));
   }
 }
