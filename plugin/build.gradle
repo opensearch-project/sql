@@ -50,7 +50,7 @@ opensearchplugin {
     name 'opensearch-sql'
     description 'OpenSearch SQL'
     classname 'org.opensearch.sql.plugin.SQLPlugin'
-    extendedPlugins = ['opensearch-job-scheduler']
+    extendedPlugins = ['opensearch-job-scheduler', 'opensearch-geospatial']
     licenseFile rootProject.file("LICENSE.txt")
     noticeFile rootProject.file("NOTICE")
 }
@@ -149,6 +149,7 @@ spotless {
 
 dependencies {
     compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
+    compileOnly "org.opensearch:opensearch-geospatial-spi:${opensearch_build}"
     compileOnly "com.google.guava:guava:${guava_version}"
     compileOnly 'com.google.guava:failureaccess:1.0.2'
 
@@ -171,6 +172,7 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
 
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-geospatial', version: "${opensearch_build}"
 }
 
 test {
@@ -301,8 +303,26 @@ def getJobSchedulerPlugin() {
     })
 }
 
+def getGeospatialPlugin() {
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-geospatial*'
+                    }.singleFile
+                }
+            }
+        }
+    })
+
+}
+
 testClusters.integTest {
     plugin(getJobSchedulerPlugin())
+    plugin(getGeospatialPlugin())
     plugin(project.tasks.bundlePlugin.archiveFile)
     testDistribution = "ARCHIVE"
 
