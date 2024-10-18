@@ -17,6 +17,7 @@ import org.opensearch.action.search.ClearScrollResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
@@ -30,6 +31,7 @@ import org.opensearch.sql.legacy.executor.format.Protocol;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
+import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 
 public class CursorResultExecutor implements CursorRestExecutor {
 
@@ -52,7 +54,15 @@ public class CursorResultExecutor implements CursorRestExecutor {
     } catch (IllegalArgumentException | JSONException e) {
       Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
       LOG.error("Error parsing the cursor", e);
-      channel.sendResponse(new BytesRestResponse(channel, e));
+      channel.sendResponse(
+          new BytesRestResponse(
+              RestStatus.BAD_REQUEST,
+              "application/json; charset=UTF-8",
+              ErrorMessageFactory.createErrorMessage(
+                      new IllegalArgumentException(
+                          "Malformed cursor: unable to extract cursor information"),
+                      RestStatus.BAD_REQUEST.getStatus())
+                  .toString()));
     } catch (OpenSearchException e) {
       int status = (e.status().getStatus());
       if (status > 399 && status < 500) {
