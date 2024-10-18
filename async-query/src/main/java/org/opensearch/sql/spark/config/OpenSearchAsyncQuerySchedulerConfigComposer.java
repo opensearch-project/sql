@@ -33,7 +33,7 @@ public class OpenSearchAsyncQuerySchedulerConfigComposer implements GeneralSpark
         FLINT_JOB_EXTERNAL_SCHEDULER_ENABLED, String.valueOf(externalSchedulerEnabled));
     if (!Strings.isNullOrEmpty(externalSchedulerInterval)) {
       externalSchedulerInterval =
-          "\"" + externalSchedulerInterval + "\""; // Wrap the query with double quotes
+          "\"" + externalSchedulerInterval + "\""; // Wrap the value with double quotes
       sparkSubmitParameters.setConfigItem(
           FLINT_JOB_EXTERNAL_SCHEDULER_INTERVAL, externalSchedulerInterval);
     }
