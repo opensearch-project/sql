@@ -7,16 +7,19 @@ package org.opensearch.sql.legacy.pit;
 
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 
+import java.util.concurrent.ExecutionException;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.search.CreatePitAction;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.CreatePitResponse;
+import org.opensearch.action.search.DeletePitAction;
 import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.action.search.DeletePitResponse;
 import org.opensearch.client.Client;
-import org.opensearch.core.action.ActionListener;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 
 /** Handler for Point In Time */
@@ -37,47 +40,45 @@ public class PointInTimeHandlerImpl implements PointInTimeHandler {
     this.indices = indices;
   }
 
+  /**
+   * Constructor for class
+   *
+   * @param client OpenSearch client
+   * @param pitId Point In Time ID
+   */
+  public PointInTimeHandlerImpl(Client client, String pitId) {
+    this.client = client;
+    this.pitId = pitId;
+  }
+
   /** Create PIT for given indices */
   @Override
   public void create() {
     CreatePitRequest createPitRequest =
         new CreatePitRequest(
             LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE), false, indices);
-    client.createPit(
-        createPitRequest,
-        new ActionListener<>() {
-          @Override
-          public void onResponse(CreatePitResponse createPitResponse) {
-            pitId = createPitResponse.getId();
-            LOG.info("Created Point In Time {} successfully.", pitId);
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            LOG.error("Error occurred while creating PIT", e);
-          }
-        });
+    ActionFuture<CreatePitResponse> execute =
+        client.execute(CreatePitAction.INSTANCE, createPitRequest);
+    try {
+      CreatePitResponse pitResponse = execute.get();
+      pitId = pitResponse.getId();
+      LOG.info("Created Point In Time {} successfully.", pitId);
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException("Error occurred while creating PIT.", e);
+    }
   }
 
   /** Delete PIT */
   @Override
   public void delete() {
     DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
-    client.deletePits(
-        deletePitRequest,
-        new ActionListener<>() {
-          @Override
-          public void onResponse(DeletePitResponse deletePitResponse) {
-            LOG.info(
-                "Delete Point In Time {} status: {}",
-                pitId,
-                deletePitResponse.status().getStatus());
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            LOG.error("Error occurred while deleting PIT", e);
-          }
-        });
+    ActionFuture<DeletePitResponse> execute =
+        client.execute(DeletePitAction.INSTANCE, deletePitRequest);
+    try {
+      DeletePitResponse deletePitResponse = execute.get();
+      LOG.info("Delete Point In Time {} status: {}", pitId, deletePitResponse.status().getStatus());
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException("Error occurred while deleting PIT.", e);
+    }
   }
 }
