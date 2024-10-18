@@ -271,4 +271,23 @@ public class ExplainIT extends SQLIntegTestCase {
 
     assertEquals("application/json; charset=UTF-8", response.getHeader("content-type"));
   }
+
+  @Test
+  public void explainAlias() throws IOException {
+
+    String expectedOutputFilePath =
+        TestUtils.getResourceFilePath("src/test/resources/expectedOutput/alias_explain.json");
+    String expectedOutput =
+        Files.toString(new File(expectedOutputFilePath), StandardCharsets.UTF_8)
+            .replaceAll("\r", "");
+
+    String result =
+        explainQuery(
+            String.format(
+                "SELECT city, (age + 1) AS agePlusOne, (balance + 1000) as newBalance FROM %s LIMIT"
+                    + " 10",
+                TEST_INDEX_ACCOUNT));
+    Assert.assertThat(
+        result.replaceAll("\\s+", ""), equalTo(expectedOutput.replaceAll("\\s+", "")));
+  }
 }

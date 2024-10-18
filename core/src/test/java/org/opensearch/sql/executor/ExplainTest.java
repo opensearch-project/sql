@@ -77,7 +77,7 @@ class ExplainTest extends ExpressionTestBase {
         new ExplainResponse(
             new ExplainResponseNode(
                 "ProjectOperator",
-                Map.of("fields", "[name, age]"),
+                Map.of("fields", "[full_name AS name, age]"),
                 singletonList(
                     new ExplainResponseNode(
                         "FilterOperator",
