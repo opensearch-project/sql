@@ -401,7 +401,7 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var result =
         executeQuery(
             String.format(
-                "source=%s | eval `%s` = %s | fields `%s`",
+                "source=%s | head 1 | eval `%s` = %s | fields `%s`",
                 TEST_INDEX_DATATYPE_NONNUMERIC, name, functionCall, name));
     verifySchema(result, schema(name, null, "boolean"));
     verifyDataRows(result, rows(expectedResult));

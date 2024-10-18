@@ -223,7 +223,8 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   @SneakyThrows
   public void testDateNanosWithNanos() {
     String query =
-        String.format("SELECT date_nanos_value" + " FROM %s", TEST_INDEX_DATATYPE_NONNUMERIC);
+        String.format(
+            "SELECT date_nanos_value" + " FROM %s limit 1", TEST_INDEX_DATATYPE_NONNUMERIC);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("date_nanos_value", null, "timestamp"));
     verifyDataRows(result, rows("2019-03-24 01:34:46.123456789"));

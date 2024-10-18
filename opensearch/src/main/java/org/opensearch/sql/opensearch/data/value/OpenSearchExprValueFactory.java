@@ -60,10 +60,8 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchIpType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
@@ -346,9 +344,8 @@ public class OpenSearchExprValueFactory {
     if (content.objectValue() instanceof ObjectNode) {
       result.add(parseStruct(content, prefix, supportArrays));
       // non-object type arrays are only supported when parsing inner_hits of OS response.
-    } else if (!(type instanceof OpenSearchDataType
-            && ((OpenSearchDataType) type).getExprType().equals(ARRAY))
-        && !supportArrays) {
+    } else if (((OpenSearchDataType) type).getExprType().equals(ARRAY) == false
+        && supportArrays == false) {
       return parseInnerArrayValue(content.array().next(), prefix, type, supportArrays);
     } else {
       content
@@ -415,10 +412,10 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseInnerArrayValue(
       Content content, String prefix, ExprType type, boolean supportArrays) {
-    if (type instanceof OpenSearchIpType
-        || type instanceof OpenSearchBinaryType
-        || type instanceof OpenSearchDateType) {
-      return parse(content, prefix, Optional.of(type), supportArrays);
+    if (content.isArray()) {
+      return parseArray(content, prefix, type, supportArrays);
+    } else if (typeActionMap.containsKey(type)) {
+      return typeActionMap.get(type).apply(content, type);
     } else if (content.isString()) {
       return parse(content, prefix, Optional.of(OpenSearchDataType.of(STRING)), supportArrays);
     } else if (content.isLong()) {
