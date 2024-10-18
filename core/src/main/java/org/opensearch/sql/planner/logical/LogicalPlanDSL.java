@@ -13,6 +13,7 @@ import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.expression.Expression;
@@ -137,5 +138,14 @@ public class LogicalPlanDSL {
 
   public static LogicalPlan limit(LogicalPlan input, Integer limit, Integer offset) {
     return new LogicalLimit(input, limit, offset);
+  }
+
+  public LogicalPlan innerJoin(LogicalPlan left, LogicalPlan right, Expression condition) {
+    return join(left, right, Join.JoinType.INNER, condition);
+  }
+
+  public LogicalPlan join(
+      LogicalPlan left, LogicalPlan right, Join.JoinType joinType, Expression condition) {
+    return new LogicalJoin(left, right, joinType, condition);
   }
 }

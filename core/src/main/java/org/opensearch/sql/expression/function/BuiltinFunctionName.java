@@ -289,6 +289,10 @@ public enum BuiltinFunctionName {
     return Optional.ofNullable(ALL_NATIVE_FUNCTIONS.getOrDefault(FunctionName.of(str), null));
   }
 
+  public static BuiltinFunctionName of(FunctionName name) {
+    return ALL_NATIVE_FUNCTIONS.get(name);
+  }
+
   public static Optional<BuiltinFunctionName> ofAggregation(String functionName) {
     return Optional.ofNullable(
         AGGREGATION_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
