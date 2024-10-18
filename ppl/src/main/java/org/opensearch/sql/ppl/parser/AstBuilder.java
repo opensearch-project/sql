@@ -63,6 +63,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -390,6 +391,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
               builder.put(x.argName.getText(), (Literal) internalVisitExpression(x.argValue));
             });
     return new ML(builder.build());
+  }
+
+  /** trendline command. */
+  @Override
+  public UnresolvedPlan visitTrendlineCommand(OpenSearchPPLParser.TrendlineCommandContext ctx) {
+    List<UnresolvedExpression> trendlineComputations =
+        ctx.trendlineClause().stream().map(expressionBuilder::visit).collect(Collectors.toList());
+    return new Trendline(trendlineComputations);
   }
 
   /** Get original text in query. */
