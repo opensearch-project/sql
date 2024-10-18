@@ -24,7 +24,6 @@ import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.google.common.annotations.VisibleForTesting;
 import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 import java.util.List;
 import org.opensearch.client.Client;
