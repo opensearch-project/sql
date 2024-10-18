@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.planner.physical;
 
-import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
-import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -15,18 +12,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.tree.Trendline;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 
@@ -39,7 +33,6 @@ public class TrendlineOperator extends PhysicalPlan {
   private final List<TrendlineAccumulator> accumulators;
   private final Map<String, Integer> fieldToIndexMap;
   private boolean hasAnotherRow = false;
-  private boolean isTuple = false;
 
   public TrendlineOperator(PhysicalPlan input, List<Trendline.TrendlineComputation> computations) {
     this.input = input;
@@ -64,93 +57,40 @@ public class TrendlineOperator extends PhysicalPlan {
 
   @Override
   public boolean hasNext() {
-    return hasAnotherRow;
-  }
-
-  @Override
-  public ExecutionEngine.Schema schema() {
-    // TODO: Don't hardcode the type.
-    return new ExecutionEngine.Schema(
-        computations.stream()
-            .map(
-                computation ->
-                    new ExecutionEngine.Schema.Column(
-                        computation.getDataField().getChild().getFirst().toString(),
-                        computation.getAlias(),
-                        DOUBLE))
-            .collect(Collectors.toList()));
+    return getChild().getFirst().hasNext();
   }
 
   @Override
   public ExprValue next() {
-    Preconditions.checkState(hasAnotherRow);
+    Preconditions.checkState(hasNext());
     final ExprValue result;
-    if (isTuple) {
-      Builder<String, ExprValue> mapBuilder = new Builder<>();
-      for (int i = 0; i < accumulators.size(); ++i) {
-        final ExprValue calculateResult = accumulators.get(i).calculate();
-        if (calculateResult == null) {
-          continue;
-        }
+    final ExprValue next = input.next();
+    consumeInputTuple(next);
+    final Map<String, ExprValue> inputStruct = ExprValueUtils.getTupleValue(next);
+    final Builder<String, ExprValue> mapBuilder = new Builder<>();
+    mapBuilder.putAll(inputStruct);
 
-        if (null != computations.get(i).getAlias()) {
-          mapBuilder.put(computations.get(i).getAlias(), calculateResult);
-        } else {
-          mapBuilder.put(computations.get(i).getDataField().toString(), calculateResult);
-        }
+    // Add calculated trendline values, which might overwrite existing fields from the input.
+    for (int i = 0; i < accumulators.size(); ++i) {
+      final ExprValue calculateResult = accumulators.get(i).calculate();
+      if (null != computations.get(i).getAlias()) {
+        mapBuilder.put(computations.get(i).getAlias(), calculateResult);
+      } else {
+        mapBuilder.put(computations.get(i).getDataField().getChild().getFirst().toString(), calculateResult);
       }
-      result = ExprTupleValue.fromExprValueMap(mapBuilder.build());
-    } else {
-      result = accumulators.getFirst().calculate();
     }
-
-    if (input.hasNext()) {
-      final ExprValue next = input.next();
-      consumeInputTuple(next);
-    } else {
-      hasAnotherRow = false;
-    }
+    result = ExprTupleValue.fromExprValueMap(mapBuilder.buildKeepingLast());
     return result;
   }
 
-  @Override
-  public void open() {
-    super.open();
-
-    // Position the cursor such that enough data points have been accumulated
-    // to get one trendline calculation.
-    final int smallestNumberOfDataPoints =
-        computations.stream()
-            .mapToInt(Trendline.TrendlineComputation::getNumberOfDataPoints)
-            .min()
-            .orElseThrow(() -> new SyntaxCheckException("Period not supplied."));
-
-    int i;
-    for (i = 0; i < smallestNumberOfDataPoints && input.hasNext(); ++i) {
-      final ExprValue next = input.next();
-      if (next.type() == STRUCT) {
-        isTuple = true;
-      }
-      consumeInputTuple(next);
-    }
-
-    if (i == smallestNumberOfDataPoints) {
-      hasAnotherRow = true;
-    }
-  }
-
   private void consumeInputTuple(ExprValue inputValue) {
-    if (isTuple) {
-      Map<String, ExprValue> tupleValue = ExprValueUtils.getTupleValue(inputValue);
-      for (String bindName : tupleValue.keySet()) {
-        final Integer index = fieldToIndexMap.get(bindName);
-        if (index == null) {
-          continue;
-        }
-        accumulators.get(index).accumulate(tupleValue.get(bindName));
+    final Map<String, ExprValue> tupleValue = ExprValueUtils.getTupleValue(inputValue);
+    for (String bindName : tupleValue.keySet()) {
+      final Integer index = fieldToIndexMap.get(bindName);
+      if (index == null) {
+        continue;
       }
-    } else {
-      accumulators.getFirst().accumulate(inputValue);
+      accumulators.get(index).accumulate(tupleValue.get(bindName));
     }
   }
 
@@ -235,6 +175,19 @@ public class TrendlineOperator extends PhysicalPlan {
         return ExprNullValue.of();
       }
       return runningAverage;
+    }
+  }
+
+  private static class WeightedMovingAverageAccumulator implements TrendlineAccumulator {
+
+    @Override
+    public void accumulate(ExprValue value) {
+
+    }
+
+    @Override
+    public ExprValue calculate() {
+      return null;
     }
   }
 }
