@@ -46,7 +46,7 @@ Here is an example for different type of literals::
     +---------+---------+---------+---------+--------+---------+---------+-----------+----------+
     | "Hello" | 'Hello' | "It""s" | 'It''s' | "It's" | '"Its"' | 'It\'s' | 'It\\\'s' | "\I\t\s" |
     |---------+---------+---------+---------+--------+---------+---------+-----------+----------|
-    | Hello   | Hello   | It"s    | It's    | It's   | "Its"   | It's    | It\'s     | \I\t\s   |
+    | Hello   | Hello   | It"s    | It's    | It's   | "Its"   | It\'s   | It\\\'s   | \I\t\s   |
     +---------+---------+---------+---------+--------+---------+---------+-----------+----------+
 
 
@@ -181,18 +181,18 @@ The following rule is applied on coversion: a `TIME` applied to today's date; `D
 
     os> SELECT current_time() = now() AS `now.time = now`, typeof(current_time()) AS `now.time.type`, typeof(now()) AS `now.type`;
     fetched rows / total rows = 1/1
-    +----------------+---------------+-----------+
-    | now.time = now | now.time.type | now.type  |
-    |----------------+---------------+-----------|
-    | True           | TIME          | TIMESTAMP |
-    +----------------+---------------+-----------+
+    +----------------+---------------+----------+
+    | now.time = now | now.time.type | now.type |
+    |----------------+---------------+----------|
+    | True           | TIME          | DATETIME |
+    +----------------+---------------+----------+
 
     os> SELECT subtime(now(), current_time()) = current_date() AS `midnight = now.date`, typeof(subtime(now(), current_time())) AS `midnight.type`, typeof(current_date()) AS `now.date.type`;
     fetched rows / total rows = 1/1
     +---------------------+---------------+---------------+
     | midnight = now.date | midnight.type | now.date.type |
     |---------------------+---------------+---------------|
-    | True                | TIMESTAMP     | DATE          |
+    | True                | DATETIME      | DATE          |
     +---------------------+---------------+---------------+
 
 
