@@ -655,14 +655,6 @@ public class DSL {
     return lte(FunctionProperties.None, expressions);
   }
 
-  public static FunctionExpression geoip(FunctionProperties fp, Expression... expressions) {
-    return compile(fp, BuiltinFunctionName.GEOIP, expressions);
-  }
-
-  public static FunctionExpression geoip(Expression... expressions) {
-    return geoip(FunctionProperties.None, expressions);
-  }
-
   public static FunctionExpression greater(FunctionProperties fp, Expression... expressions) {
     return compile(fp, BuiltinFunctionName.GREATER, expressions);
   }

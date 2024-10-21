@@ -252,11 +252,7 @@ public enum BuiltinFunctionName {
   MULTIMATCH(FunctionName.of("multimatch")),
   MULTIMATCHQUERY(FunctionName.of("multimatchquery")),
   WILDCARDQUERY(FunctionName.of("wildcardquery")),
-  WILDCARD_QUERY(FunctionName.of("wildcard_query")),
-
-  /** Geospatial Function. */
-  GEOIP(FunctionName.of("geoip")),
-  IPLOCATION(FunctionName.of("iplocation"));
+  WILDCARD_QUERY(FunctionName.of("wildcard_query"));
 
   private final FunctionName name;
 

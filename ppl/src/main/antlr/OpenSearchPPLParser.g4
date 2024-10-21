@@ -387,7 +387,6 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
-   | geospatialFunctionName
    ;
 
 functionArgs
@@ -665,11 +664,6 @@ textFunctionName
 
 positionFunctionName
    : POSITION
-   ;
-
-geospatialFunctionName
-   : GEOIP
-   | IPLOCATION
    ;
 
 // operators

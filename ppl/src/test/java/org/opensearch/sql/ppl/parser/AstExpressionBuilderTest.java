@@ -816,32 +816,4 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     stringLiteral("1997-01-01 00:00:00"),
                     stringLiteral("2001-03-06 00:00:00")))));
   }
-
-  @Test
-  public void testGeoIpFunctionExpr() {
-    assertEqual(
-            "source=t | eval f=geoip('127.0.0.1', 'lat,lon')",
-            eval(
-                    relation("t"),
-                    let(
-                            field("f"),
-                            function(
-                                    "geoip",
-                                    stringLiteral("127.0.0.1"),
-                                    stringLiteral("lat,lon")))));
-  }
-
-  @Test
-  public void testIpLocationFunctionExpr() {
-    assertEqual(
-            "source=t | eval f=iplocation('127.0.0.1', 'lat,lon')",
-            eval(
-                    relation("t"),
-                    let(
-                            field("f"),
-                            function(
-                                    "iplocation",
-                                    stringLiteral("127.0.0.1"),
-                                    stringLiteral("lat,lon")))));
-  }
 }
