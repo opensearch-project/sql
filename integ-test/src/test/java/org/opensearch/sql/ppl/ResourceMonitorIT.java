@@ -34,7 +34,7 @@ public class ResourceMonitorIT extends PPLIntegTestCase {
     assertEquals(500, exception.getResponse().getStatusLine().getStatusCode());
     assertThat(
         exception.getMessage(),
-        Matchers.containsString("resource is not enough to run the" + " query, quit."));
+        Matchers.containsString("insufficient resources to run the query, quit."));
 
     // update plugins.ppl.query.memory_limit to default value 85%
     updateClusterSettings(
