@@ -89,6 +89,18 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| fields ageMinus"));
   }
 
+  @Test
+  public void testFillNullPushDownExplain() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| fields age, balance "
+                + "| fillnull with -1 in age,balance"));
+  }
+
   String loadFromFile(String filename) throws Exception {
     URI uri = Resources.getResource(filename).toURI();
     return new String(Files.readAllBytes(Paths.get(uri)));
