@@ -1,0 +1,27 @@
+{
+  "root": {
+    "name": "ProjectOperator",
+    "description": {
+      "fields": "[ageMinus]"
+    },
+    "children": [
+      {
+        "name": "EvalOperator",
+        "description": {
+          "expressions": {
+            "ageMinus": "-(age, 30)"
+          }
+        },
+        "children": [
+          {
+            "name": "OpenSearchIndexScan",
+            "description": {
+              "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\"}, searchDone=false)"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}
