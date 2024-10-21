@@ -32,7 +32,6 @@ public class TrendlineOperator extends PhysicalPlan {
   @Getter private final List<Trendline.TrendlineComputation> computations;
   private final List<TrendlineAccumulator> accumulators;
   private final Map<String, Integer> fieldToIndexMap;
-  private boolean hasAnotherRow = false;
 
   public TrendlineOperator(PhysicalPlan input, List<Trendline.TrendlineComputation> computations) {
     this.input = input;
@@ -41,7 +40,7 @@ public class TrendlineOperator extends PhysicalPlan {
     fieldToIndexMap = new HashMap<>(computations.size());
     for (int i = 0; i < computations.size(); ++i) {
 
-      fieldToIndexMap.put(computations.get(i).getDataField().getChild().getFirst().toString(), i);
+      fieldToIndexMap.put(computations.get(i).getDataField().getChild().get(0).toString(), i);
     }
   }
 
@@ -76,7 +75,7 @@ public class TrendlineOperator extends PhysicalPlan {
       if (null != computations.get(i).getAlias()) {
         mapBuilder.put(computations.get(i).getAlias(), calculateResult);
       } else {
-        mapBuilder.put(computations.get(i).getDataField().getChild().getFirst().toString(), calculateResult);
+        mapBuilder.put(computations.get(i).getDataField().getChild().get(0).toString(), calculateResult);
       }
     }
     result = ExprTupleValue.fromExprValueMap(mapBuilder.buildKeepingLast());

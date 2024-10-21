@@ -265,7 +265,7 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
                 ImmutableMap.of(
                     "computationType", computation.getComputationType().name().toLowerCase(Locale.ROOT),
                     "numberOfDataPoints", computation.getNumberOfDataPoints().toString(),
-                    "dataField", computation.getDataField().getChild().getFirst().toString(),
+                    "dataField", computation.getDataField().getChild().get(0).toString(),
                     "alias", computation.getAlias() != null ? computation.getAlias() : ""))
         .collect(Collectors.toList());
   }
