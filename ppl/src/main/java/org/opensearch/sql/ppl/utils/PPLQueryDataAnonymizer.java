@@ -225,7 +225,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitTrendline(Trendline node, String context) {
-    String child = node.getChild().getFirst().accept(this, context);
+    String child = node.getChild().get(0).accept(this, context);
     String computations = visitExpressionList(node.getComputations());
     return StringUtils.format("%s | trendline %s", child, computations);
   }
