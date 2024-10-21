@@ -9,6 +9,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_E
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_EXTERNAL_SCHEDULER_INTERVAL;
 
 import lombok.RequiredArgsConstructor;
+import org.opensearch.core.common.Strings;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
@@ -30,7 +31,11 @@ public class OpenSearchAsyncQuerySchedulerConfigComposer implements GeneralSpark
         settings.getSettingValue(Settings.Key.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL);
     sparkSubmitParameters.setConfigItem(
         FLINT_JOB_EXTERNAL_SCHEDULER_ENABLED, String.valueOf(externalSchedulerEnabled));
-    sparkSubmitParameters.setConfigItem(
-        FLINT_JOB_EXTERNAL_SCHEDULER_INTERVAL, externalSchedulerInterval);
+    if (!Strings.isNullOrEmpty(externalSchedulerInterval)) {
+      externalSchedulerInterval =
+          "\"" + externalSchedulerInterval + "\""; // Wrap the value with double quotes
+      sparkSubmitParameters.setConfigItem(
+          FLINT_JOB_EXTERNAL_SCHEDULER_INTERVAL, externalSchedulerInterval);
+    }
   }
 }
