@@ -600,11 +600,16 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitTrendline(Trendline node, AnalysisContext context) {
     final LogicalPlan child = node.getChild().get(0).accept(this, context);
+
+    final TypeEnvironment currEnv = context.peek();
     final List<UnresolvedExpression> unresolvedComputations = node.getComputations();
     final List<Trendline.TrendlineComputation> computations =
         unresolvedComputations.stream()
             .map(expression -> (Trendline.TrendlineComputation) expression)
             .toList();
+
+    computations.forEach(computation -> currEnv.define(
+        new Symbol(Namespace.FIELD_NAME, computation.getAlias()), ExprCoreType.DOUBLE));
     return new LogicalTrendline(child, computations);
   }
 
