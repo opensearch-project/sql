@@ -1,5 +1,6 @@
 package org.opensearch.sql.spark.config;
 
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,7 +41,7 @@ public class OpenSearchAsyncQuerySchedulerConfigComposerTest {
     verify(sparkSubmitParameters)
         .setConfigItem("spark.flint.job.externalScheduler.enabled", "true");
     verify(sparkSubmitParameters)
-        .setConfigItem("spark.flint.job.externalScheduler.interval", "10 minutes");
+        .setConfigItem("spark.flint.job.externalScheduler.interval", "\"10 minutes\"");
   }
 
   @Test
@@ -63,6 +64,6 @@ public class OpenSearchAsyncQuerySchedulerConfigComposerTest {
 
     composer.compose(sparkSubmitParameters, dispatchQueryRequest, context);
 
-    verify(sparkSubmitParameters).setConfigItem("spark.flint.job.externalScheduler.interval", "");
+    assertNull(sparkSubmitParameters.getConfigItem("spark.flint.job.externalScheduler.interval"));
   }
 }
