@@ -26,6 +26,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.utils.IPUtils;
 import org.opensearch.sql.utils.OperatorUtils;
 
 /**
@@ -55,6 +56,7 @@ public class BinaryPredicateOperator {
     repository.register(like());
     repository.register(notLike());
     repository.register(regexp());
+    repository.register(cidr());
   }
 
   /**
@@ -118,7 +120,7 @@ public class BinaryPredicateOperator {
    *   </tr>
    * </table>
    */
-  private static Table<ExprValue, ExprValue, ExprValue> andTable =
+  private static final Table<ExprValue, ExprValue, ExprValue> andTable =
       new ImmutableTable.Builder<ExprValue, ExprValue, ExprValue>()
           .put(LITERAL_TRUE, LITERAL_TRUE, LITERAL_TRUE)
           .put(LITERAL_TRUE, LITERAL_FALSE, LITERAL_FALSE)
@@ -193,7 +195,7 @@ public class BinaryPredicateOperator {
    *   </tr>
    * </table>
    */
-  private static Table<ExprValue, ExprValue, ExprValue> orTable =
+  private static final Table<ExprValue, ExprValue, ExprValue> orTable =
       new ImmutableTable.Builder<ExprValue, ExprValue, ExprValue>()
           .put(LITERAL_TRUE, LITERAL_TRUE, LITERAL_TRUE)
           .put(LITERAL_TRUE, LITERAL_FALSE, LITERAL_TRUE)
@@ -268,7 +270,7 @@ public class BinaryPredicateOperator {
    *   </tr>
    * </table>
    */
-  private static Table<ExprValue, ExprValue, ExprValue> xorTable =
+  private static final Table<ExprValue, ExprValue, ExprValue> xorTable =
       new ImmutableTable.Builder<ExprValue, ExprValue, ExprValue>()
           .put(LITERAL_TRUE, LITERAL_TRUE, LITERAL_FALSE)
           .put(LITERAL_TRUE, LITERAL_FALSE, LITERAL_TRUE)
@@ -394,6 +396,12 @@ public class BinaryPredicateOperator {
     return define(
         BuiltinFunctionName.REGEXP.getName(),
         impl(nullMissingHandling(OperatorUtils::matchesRegexp), INTEGER, STRING, STRING));
+  }
+
+  private static DefaultFunctionResolver cidr() {
+    return define(
+            BuiltinFunctionName.CIDR.getName(),
+            impl(nullMissingHandling(IPUtils::isAddressInRange), BOOLEAN, STRING, STRING));
   }
 
   private static DefaultFunctionResolver notLike() {
