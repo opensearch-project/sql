@@ -629,6 +629,7 @@ conditionFunctionName
    : LIKE
    | ISNULL
    | ISNOTNULL
+   | CIDR
    ;
 
 // flow control function return non-boolean value

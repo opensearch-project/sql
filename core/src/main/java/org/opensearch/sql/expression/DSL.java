@@ -563,6 +563,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.REGEXP, expressions);
   }
 
+  public static FunctionExpression cidr(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.CIDR, expressions);
+  }
+
   public static FunctionExpression concat(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.CONCAT, expressions);
   }

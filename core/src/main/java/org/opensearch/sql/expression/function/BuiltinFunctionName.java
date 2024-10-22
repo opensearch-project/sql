@@ -132,6 +132,9 @@ public enum BuiltinFunctionName {
   /** Text Functions. */
   TOSTRING(FunctionName.of("tostring")),
 
+  /** IP Functions. */
+  CIDR(FunctionName.of("cidr")),
+
   /** Arithmetic Operators. */
   ADD(FunctionName.of("+")),
   ADDFUNCTION(FunctionName.of("add")),
