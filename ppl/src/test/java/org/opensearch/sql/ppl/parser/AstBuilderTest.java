@@ -13,6 +13,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.computation;
 import static org.opensearch.sql.ast.dsl.AstDSL.dedupe;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultDedupArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
@@ -38,6 +39,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
+import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
@@ -690,6 +692,16 @@ public class AstBuilderTest {
                     .add(new FillNull.NullableFieldFill(field("b"), intLiteral(2)))
                     .add(new FillNull.NullableFieldFill(field("c"), intLiteral(3)))
                     .build())));
+  }
+
+  public void testTrendline() {
+    assertEqual(
+        "source=t | trendline sma(5, test_field) as test_field_alias sma(1, test_field_2) as test_field_alias_2",
+        trendline(
+            relation("t"),
+            computation(5, field("test_field"), "test_field_alias", "sma"),
+            computation(1, field("test_field)2"), "test_field_alias_2", "sma")
+    ));
   }
 
   @Test
