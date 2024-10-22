@@ -116,12 +116,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    */
   private void addParsedHitsToBuilder(
       ImmutableMap.Builder<String, ExprValue> builder, SearchHit hit) {
-    builder.putAll(
-        exprValueFactory
-            .construct(
-                hit.getSourceAsString(),
-                !(hit.getInnerHits() == null || hit.getInnerHits().isEmpty()))
-            .tupleValue());
+    builder.putAll(exprValueFactory.construct(hit.getSourceAsString(), true).tupleValue());
   }
 
   /**
