@@ -94,7 +94,7 @@ public class OpenSearchActionFactory {
                   + rawExpr.getClass().getSimpleName()
                   + ". The query is not runnable.");
         }
-        SQLQueryExpr sqlExpr = (SQLQueryExpr) toSqlExpr(sql);
+        SQLQueryExpr sqlExpr = (SQLQueryExpr) rawExpr;
 
         RewriteRuleExecutor<SQLQueryExpr> ruleExecutor =
             RewriteRuleExecutor.builder()
