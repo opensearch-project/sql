@@ -14,7 +14,7 @@ CIDR
 Description
 >>>>>>>>>>>
 
-Usage: cidr(address, range) returns true if IP address is within the IP address range in CIDR notation. Supports both IPv4 and IPv6 addresses.
+Usage: cidr(address, range) returns whether the given IP address is within the specified IP address range. Supports both IPv4 and IPv6 addresses.
 
 Argument type: STRING, STRING
 
