@@ -38,21 +38,21 @@ Cast to string example::
 
     os> source=people | eval `cbool` = CAST(true as string), `cint` = CAST(1 as string), `cdate` = CAST(CAST('2012-08-07' as date) as string) | fields `cbool`, `cint`, `cdate`
     fetched rows / total rows = 1/1
-    +---------+--------+------------+
-    | cbool   | cint   | cdate      |
-    |---------+--------+------------|
-    | true    | 1      | 2012-08-07 |
-    +---------+--------+------------+
+    +-------+------+------------+
+    | cbool | cint | cdate      |
+    |-------+------+------------|
+    | true  | 1    | 2012-08-07 |
+    +-------+------+------------+
 
 Cast to number example::
 
     os> source=people | eval `cbool` = CAST(true as int), `cstring` = CAST('1' as int) | fields `cbool`, `cstring`
     fetched rows / total rows = 1/1
-    +---------+-----------+
-    | cbool   | cstring   |
-    |---------+-----------|
-    | 1       | 1         |
-    +---------+-----------+
+    +-------+---------+
+    | cbool | cstring |
+    |-------+---------|
+    | 1     | 1       |
+    +-------+---------+
 
 Cast to date example::
 
@@ -68,8 +68,8 @@ Cast function can be chained::
 
     os> source=people | eval `cbool` = CAST(CAST(true as string) as boolean) | fields `cbool`
     fetched rows / total rows = 1/1
-    +---------+
-    | cbool   |
-    |---------|
-    | True    |
-    +---------+
+    +-------+
+    | cbool |
+    |-------|
+    | True  |
+    +-------+
