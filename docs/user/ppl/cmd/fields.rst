@@ -31,14 +31,14 @@ PPL query::
 
     os> source=accounts | fields account_number, firstname, lastname;
     fetched rows / total rows = 4/4
-    +------------------+-------------+------------+
-    | account_number   | firstname   | lastname   |
-    |------------------+-------------+------------|
-    | 1                | Amber       | Duke       |
-    | 6                | Hattie      | Bond       |
-    | 13               | Nanette     | Bates      |
-    | 18               | Dale        | Adams      |
-    +------------------+-------------+------------+
+    +----------------+-----------+----------+
+    | account_number | firstname | lastname |
+    |----------------+-----------+----------|
+    | 1              | Amber     | Duke     |
+    | 6              | Hattie    | Bond     |
+    | 13             | Nanette   | Bates    |
+    | 18             | Dale      | Adams    |
+    +----------------+-----------+----------+
 
 Example 2: Remove specified fields from result
 ==============================================
@@ -49,12 +49,12 @@ PPL query::
 
     os> source=accounts | fields account_number, firstname, lastname | fields - account_number ;
     fetched rows / total rows = 4/4
-    +-------------+------------+
-    | firstname   | lastname   |
-    |-------------+------------|
-    | Amber       | Duke       |
-    | Hattie      | Bond       |
-    | Nanette     | Bates      |
-    | Dale        | Adams      |
-    +-------------+------------+
+    +-----------+----------+
+    | firstname | lastname |
+    |-----------+----------|
+    | Amber     | Duke     |
+    | Hattie    | Bond     |
+    | Nanette   | Bates    |
+    | Dale      | Adams    |
+    +-----------+----------+
 

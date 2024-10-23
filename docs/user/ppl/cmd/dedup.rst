@@ -34,12 +34,12 @@ PPL query::
 
     os> source=accounts | dedup gender | fields account_number, gender;
     fetched rows / total rows = 2/2
-    +------------------+----------+
-    | account_number   | gender   |
-    |------------------+----------|
-    | 1                | M        |
-    | 13               | F        |
-    +------------------+----------+
+    +----------------+--------+
+    | account_number | gender |
+    |----------------+--------|
+    | 1              | M      |
+    | 13             | F      |
+    +----------------+--------+
 
 Example 2: Keep 2 duplicates documents
 ======================================
@@ -50,13 +50,13 @@ PPL query::
 
     os> source=accounts | dedup 2 gender | fields account_number, gender;
     fetched rows / total rows = 3/3
-    +------------------+----------+
-    | account_number   | gender   |
-    |------------------+----------|
-    | 1                | M        |
-    | 6                | M        |
-    | 13               | F        |
-    +------------------+----------+
+    +----------------+--------+
+    | account_number | gender |
+    |----------------+--------|
+    | 1              | M      |
+    | 6              | M      |
+    | 13             | F      |
+    +----------------+--------+
 
 Example 3: Keep or Ignore the empty field by default
 ============================================
@@ -67,14 +67,14 @@ PPL query::
 
     os> source=accounts | dedup email keepempty=true | fields account_number, email;
     fetched rows / total rows = 4/4
-    +------------------+-----------------------+
-    | account_number   | email                 |
-    |------------------+-----------------------|
-    | 1                | amberduke@pyrami.com  |
-    | 6                | hattiebond@netagy.com |
-    | 13               | null                  |
-    | 18               | daleadams@boink.com   |
-    +------------------+-----------------------+
+    +----------------+-----------------------+
+    | account_number | email                 |
+    |----------------+-----------------------|
+    | 1              | amberduke@pyrami.com  |
+    | 6              | hattiebond@netagy.com |
+    | 13             | null                  |
+    | 18             | daleadams@boink.com   |
+    +----------------+-----------------------+
 
 
 The example show dedup the document by ignore the empty value field.
@@ -83,13 +83,13 @@ PPL query::
 
     os> source=accounts | dedup email | fields account_number, email;
     fetched rows / total rows = 3/3
-    +------------------+-----------------------+
-    | account_number   | email                 |
-    |------------------+-----------------------|
-    | 1                | amberduke@pyrami.com  |
-    | 6                | hattiebond@netagy.com |
-    | 18               | daleadams@boink.com   |
-    +------------------+-----------------------+
+    +----------------+-----------------------+
+    | account_number | email                 |
+    |----------------+-----------------------|
+    | 1              | amberduke@pyrami.com  |
+    | 6              | hattiebond@netagy.com |
+    | 18             | daleadams@boink.com   |
+    +----------------+-----------------------+
 
 
 Example 4: Dedup in consecutive document
@@ -101,13 +101,13 @@ PPL query::
 
     os> source=accounts | dedup gender consecutive=true | fields account_number, gender;
     fetched rows / total rows = 3/3
-    +------------------+----------+
-    | account_number   | gender   |
-    |------------------+----------|
-    | 1                | M        |
-    | 13               | F        |
-    | 18               | M        |
-    +------------------+----------+
+    +----------------+--------+
+    | account_number | gender |
+    |----------------+--------|
+    | 1              | M      |
+    | 13             | F      |
+    | 18             | M      |
+    +----------------+--------+
 
 Limitation
 ==========

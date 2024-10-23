@@ -202,11 +202,11 @@ Selecting top level for object fields, object fields of array value and nested f
 
     os> SELECT city, accounts, projects FROM people;
     fetched rows / total rows = 1/1
-    +-----------------------------------------------------+------------+----------------------------------------------------------------------------------------------------------------+
-    | city                                                | accounts   | projects                                                                                                       |
-    |-----------------------------------------------------+------------+----------------------------------------------------------------------------------------------------------------|
-    | {'name': 'Seattle', 'location': {'latitude': 10.5}} | {'id': 1}  | [{'name': 'AWS Redshift Spectrum querying'},{'name': 'AWS Redshift security'},{'name': 'AWS Aurora security'}] |
-    +-----------------------------------------------------+------------+----------------------------------------------------------------------------------------------------------------+
+    +-----------------------------------------------------+-----------+----------------------------------------------------------------------------------------------------------------+
+    | city                                                | accounts  | projects                                                                                                       |
+    |-----------------------------------------------------+-----------+----------------------------------------------------------------------------------------------------------------|
+    | {'name': 'Seattle', 'location': {'latitude': 10.5}} | {'id': 1} | [{'name': 'AWS Redshift Spectrum querying'},{'name': 'AWS Redshift security'},{'name': 'AWS Aurora security'}] |
+    +-----------------------------------------------------+-----------+----------------------------------------------------------------------------------------------------------------+
 
 Example 2: Selecting Deeper Levels
 ----------------------------------
@@ -215,11 +215,11 @@ Selecting at deeper levels for object fields of regular value returns inner fiel
 
     os> SELECT city.location, city.location.latitude FROM people;
     fetched rows / total rows = 1/1
-    +--------------------+--------------------------+
-    | city.location      | city.location.latitude   |
-    |--------------------+--------------------------|
-    | {'latitude': 10.5} | 10.5                     |
-    +--------------------+--------------------------+
+    +--------------------+------------------------+
+    | city.location      | city.location.latitude |
+    |--------------------+------------------------|
+    | {'latitude': 10.5} | 10.5                   |
+    +--------------------+------------------------+
 
 
 For selecting second level for nested fields, please read on and find more details in the following sections.

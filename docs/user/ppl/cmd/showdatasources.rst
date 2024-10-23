@@ -28,9 +28,9 @@ PPL query for all PROMETHEUS DATASOURCES::
 
     os> show datasources | where CONNECTOR_TYPE='PROMETHEUS';
     fetched rows / total rows = 1/1
-    +-------------------+------------------+
-    | DATASOURCE_NAME   | CONNECTOR_TYPE   |
-    |-------------------+------------------|
-    | my_prometheus     | PROMETHEUS       |
-    +-------------------+------------------+
+    +-----------------+----------------+
+    | DATASOURCE_NAME | CONNECTOR_TYPE |
+    |-----------------+----------------|
+    | my_prometheus   | PROMETHEUS     |
+    +-----------------+----------------+
 
