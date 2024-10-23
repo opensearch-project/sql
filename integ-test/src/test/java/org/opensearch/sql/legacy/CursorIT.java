@@ -423,6 +423,17 @@ public class CursorIT extends SQLIntegTestCase {
     assertThat(rows.length, equalTo(1000));
   }
 
+  @Test
+  public void testMalformedCursorGracefullyHandled() throws IOException {
+    ResponseException result =
+        assertThrows(
+            "Expected query with malformed cursor to raise error, but didn't",
+            ResponseException.class,
+            () -> executeCursorQuery("d:a11b4db33f"));
+    assertTrue(result.getMessage().contains("Malformed cursor"));
+    assertEquals(result.getResponse().getStatusLine().getStatusCode(), 400);
+  }
+
   public void verifyWithAndWithoutPaginationResponse(
       String sqlQuery, String cursorQuery, int fetch_size, boolean shouldFallBackToV1)
       throws IOException {
