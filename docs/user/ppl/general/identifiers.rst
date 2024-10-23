@@ -39,14 +39,14 @@ Here are examples for using index pattern directly without quotes::
 
     os> source=accounts | fields account_number, firstname, lastname;
     fetched rows / total rows = 4/4
-    +------------------+-------------+------------+
-    | account_number   | firstname   | lastname   |
-    |------------------+-------------+------------|
-    | 1                | Amber       | Duke       |
-    | 6                | Hattie      | Bond       |
-    | 13               | Nanette     | Bates      |
-    | 18               | Dale        | Adams      |
-    +------------------+-------------+------------+
+    +----------------+-----------+----------+
+    | account_number | firstname | lastname |
+    |----------------+-----------+----------|
+    | 1              | Amber     | Duke     |
+    | 6              | Hattie    | Bond     |
+    | 13             | Nanette   | Bates    |
+    | 18             | Dale      | Adams    |
+    +----------------+-----------+----------+
 
 
 Delimited Identifiers
@@ -73,14 +73,14 @@ Here are examples for quoting an index name by back ticks::
 
     os> source=`accounts` | fields `account_number`;
     fetched rows / total rows = 4/4
-    +------------------+
-    | account_number   |
-    |------------------|
-    | 1                |
-    | 6                |
-    | 13               |
-    | 18               |
-    +------------------+
+    +----------------+
+    | account_number |
+    |----------------|
+    | 1              |
+    | 6              |
+    | 13             |
+    | 18             |
+    +----------------+
 
 
 Cross-Cluster Index Identifiers
@@ -135,29 +135,29 @@ Query wildcard indices::
 
     os> source=acc* | stats count();
     fetched rows / total rows = 1/1
-    +-----------+
-    | count()   |
-    |-----------|
-    | 5         |
-    +-----------+
+    +---------+
+    | count() |
+    |---------|
+    | 5       |
+    +---------+
 
 Query multiple indices seperated by ``,``::
 
     os> source=accounts, account2 | stats count();
     fetched rows / total rows = 1/1
-    +-----------+
-    | count()   |
-    |-----------|
-    | 5         |
-    +-----------+
+    +---------+
+    | count() |
+    |---------|
+    | 5       |
+    +---------+
 
 Query delimited multiple indices seperated by ``,``::
 
     os> source=`accounts,account2` | stats count();
     fetched rows / total rows = 1/1
-    +-----------+
-    | count()   |
-    |-----------|
-    | 5         |
-    +-----------+
+    +---------+
+    | count() |
+    |---------|
+    | 5       |
+    +---------+
 

@@ -7,8 +7,8 @@ package org.opensearch.sql.legacy;
 
 import java.io.IOException;
 import java.util.Locale;
-import org.apache.hc.core5.http.ParseException;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.http.ParseException;
+import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.opensearch.client.ResponseException;
