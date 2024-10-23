@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.planner.physical;
 
-import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.write.TableWriteOperator;
 

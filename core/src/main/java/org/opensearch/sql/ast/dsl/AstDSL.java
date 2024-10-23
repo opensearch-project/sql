@@ -467,15 +467,13 @@ public class AstDSL {
     return new Limit(limit, offset).attach(input);
   }
 
-  public static Trendline trendline(UnresolvedPlan input, Trendline.TrendlineComputation... computations) {
+  public static Trendline trendline(
+      UnresolvedPlan input, Trendline.TrendlineComputation... computations) {
     return new Trendline(Arrays.asList(computations)).attach(input);
   }
 
   public static Trendline.TrendlineComputation computation(
-      Integer numDataPoints,
-      UnresolvedExpression dataField,
-      String alias,
-      String type) {
+      Integer numDataPoints, UnresolvedExpression dataField, String alias, String type) {
     return new Trendline.TrendlineComputation(numDataPoints, dataField, alias, type);
   }
 

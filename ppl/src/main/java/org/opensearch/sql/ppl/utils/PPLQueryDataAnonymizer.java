@@ -359,8 +359,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       final String dataField = node.getDataField().accept(this, context);
       final String aliasOrEmpty = node.getAlias() != null ? " as " + node.getAlias() : "";
       final String computationType = node.getComputationType().name().toLowerCase(Locale.ROOT);
-      return StringUtils.format("%s(%d, %s)%s",
-          computationType, node.getNumberOfDataPoints(), dataField, aliasOrEmpty);
+      return StringUtils.format(
+          "%s(%d, %s)%s", computationType, node.getNumberOfDataPoints(), dataField, aliasOrEmpty);
     }
   }
 }

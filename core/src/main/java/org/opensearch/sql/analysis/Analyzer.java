@@ -608,8 +608,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             .map(expression -> (Trendline.TrendlineComputation) expression)
             .toList();
 
-    computations.forEach(computation -> currEnv.define(
-        new Symbol(Namespace.FIELD_NAME, computation.getAlias()), ExprCoreType.DOUBLE));
+    computations.forEach(
+        computation ->
+            currEnv.define(
+                new Symbol(Namespace.FIELD_NAME, computation.getAlias()), ExprCoreType.DOUBLE));
     return new LogicalTrendline(child, computations);
   }
 

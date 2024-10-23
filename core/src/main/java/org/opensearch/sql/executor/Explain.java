@@ -219,8 +219,10 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
     return explain(
         node,
         context,
-        explainNode -> explainNode.setDescription(
-            ImmutableMap.of("computations", describeTrendlineComputations(node.getComputations()))));
+        explainNode ->
+            explainNode.setDescription(
+                ImmutableMap.of(
+                    "computations", describeTrendlineComputations(node.getComputations()))));
   }
 
   protected ExplainResponseNode explain(
@@ -261,13 +263,14 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
   private List<Map<String, String>> describeTrendlineComputations(
       List<Trendline.TrendlineComputation> computations) {
     return computations.stream()
-        .map(computation ->
+        .map(
+            computation ->
                 ImmutableMap.of(
-                    "computationType", computation.getComputationType().name().toLowerCase(Locale.ROOT),
+                    "computationType",
+                        computation.getComputationType().name().toLowerCase(Locale.ROOT),
                     "numberOfDataPoints", computation.getNumberOfDataPoints().toString(),
                     "dataField", computation.getDataField().getChild().get(0).toString(),
                     "alias", computation.getAlias() != null ? computation.getAlias() : ""))
         .collect(Collectors.toList());
   }
-
 }
