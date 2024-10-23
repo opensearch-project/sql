@@ -8,7 +8,6 @@ package org.opensearch.sql.ast.tree;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Locale;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +57,8 @@ public class Trendline extends UnresolvedPlan {
       this.numberOfDataPoints = numberOfDataPoints;
       this.dataField = dataField;
       this.alias = alias;
-      this.computationType = Trendline.TrendlineType.valueOf(computationType.toUpperCase(Locale.ROOT));
+      this.computationType =
+          Trendline.TrendlineType.valueOf(computationType.toUpperCase(Locale.ROOT));
     }
 
     @Override
