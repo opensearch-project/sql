@@ -57,7 +57,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 
 class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
-  private static List<StringPatternPair> STRING_PATTERN_PAIRS =
+  private static final List<StringPatternPair> STRING_PATTERN_PAIRS =
       ImmutableList.of(
           new StringPatternPair("Michael!", ".*"),
           new StringPatternPair("new*\\n*line", "new\\\\*.\\\\*line"),
@@ -209,13 +209,31 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     return builder.build();
   }
 
+  private static Stream<Arguments> getCidrArguments() {
+    return Stream.of(
+            Arguments.of("10.24.33.5", "10.24.34.0/24", false), // IPv4 less
+            Arguments.of("10.24.34.5", "10.24.34.0/24", true),   // IPv4 between
+            Arguments.of("10.24.35.5", "10.24.34.0/24", false), // IPv4 greater
+            Arguments.of("10.24.35.5", "10.24.34.0/33", false), // IPv4 prefix too long
+
+            Arguments.of("2001:0db7::8329", "2001:0db8::/32", false), // IPv6 less
+            Arguments.of("2001:0db8::8329", "2001:0db8::/32", true),  // IPv6 between
+            Arguments.of("2001:0db9::8329", "2001:0db8::/32", false), // IPv6 greater
+            Arguments.of("2001:0db9::8329", "2001:0db8::/129", false), // IPv6 prefix too long
+
+            Arguments.of("INVALID", "10.24.34.0/24", false), // Invalid argument
+            Arguments.of("10.24.34.5", "INVALID", false), // Invalid range
+            Arguments.of("10.24.34.5", "10.24.34.0/INVALID", false) // Invalid prefix
+    );
+  }
+
   @ParameterizedTest(name = "and({0}, {1})")
   @MethodSource("binaryPredicateArguments")
   public void test_and(Boolean v1, Boolean v2) {
     FunctionExpression and = DSL.and(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, and.type());
     assertEquals(v1 && v2, ExprValueUtils.getBooleanValue(and.valueOf(valueEnv())));
-    assertEquals(String.format("and(%s, %s)", v1.toString(), v2.toString()), and.toString());
+    assertEquals(String.format("and(%s, %s)", v1, v2.toString()), and.toString());
   }
 
   @Test
@@ -295,7 +313,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression or = DSL.or(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, or.type());
     assertEquals(v1 || v2, ExprValueUtils.getBooleanValue(or.valueOf(valueEnv())));
-    assertEquals(String.format("or(%s, %s)", v1.toString(), v2.toString()), or.toString());
+    assertEquals(String.format("or(%s, %s)", v1, v2.toString()), or.toString());
   }
 
   @Test
@@ -375,7 +393,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression xor = DSL.xor(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(v1 ^ v2, ExprValueUtils.getBooleanValue(xor.valueOf(valueEnv())));
-    assertEquals(String.format("xor(%s, %s)", v1.toString(), v2.toString()), xor.toString());
+    assertEquals(String.format("xor(%s, %s)", v1, v2), xor.toString());
   }
 
   @Test
@@ -555,7 +573,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression like = DSL.like(DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, like.type());
     assertEquals(matches(v1, v2), like.valueOf(valueEnv()));
-    assertEquals(String.format("like(%s, %s)", v1.toString(), v2.toString()), like.toString());
+    assertEquals(String.format("like(%s, %s)", v1, v2), like.toString());
   }
 
   @Test
@@ -584,7 +602,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     assertEquals(stringPatternPair.regExpTest(), expression.valueOf(valueEnv()).integerValue());
   }
 
-  /** Todo. remove this test cases after script serilization implemented. */
+  /** Todo. remove this test cases after script serialization implemented. */
   @Test
   public void serializationTest() throws Exception {
     Expression expression = DSL.equal(DSL.literal("v1"), DSL.literal("v2"));
@@ -614,5 +632,13 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   public void compare_int_long() {
     FunctionExpression equal = DSL.equal(DSL.literal(1), DSL.literal(1L));
     assertTrue(equal.valueOf(valueEnv()).booleanValue());
+  }
+
+  @ParameterizedTest
+  @MethodSource("getCidrArguments")
+  public void test_cidr(String address, String range, boolean expected) {
+    FunctionExpression cidr = DSL.cidr(DSL.literal(address), DSL.literal(range));
+    assertEquals(cidr.type(), BOOLEAN);
+    assertEquals(cidr.valueOf().booleanValue(), expected);
   }
 }
