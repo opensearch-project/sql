@@ -21,6 +21,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCo
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.GeoipFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsTableQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
@@ -197,6 +198,14 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitEvalFunctionCall(EvalFunctionCallContext ctx) {
     return buildFunction(ctx.evalFunctionName().getText(), ctx.functionArgs().functionArg());
+  }
+
+  /** Eval function. */
+  @Override
+  public UnresolvedExpression visitGeoipFunctionCall(GeoipFunctionCallContext ctx) {
+    String properties = ctx.properties != null ? visit(ctx.properties).toString() : "";
+    UnresolvedExpression datasource = ctx.datasource != null ? visit(ctx.datasource) : AstDSL.stringLiteral("");
+    return new Geoip(datasource, visit(ctx.ipAddress), properties);
   }
 
   /** Cast function. */
