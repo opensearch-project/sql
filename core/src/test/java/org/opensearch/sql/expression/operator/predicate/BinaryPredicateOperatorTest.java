@@ -57,7 +57,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 
 class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
-  private static final List<StringPatternPair> STRING_PATTERN_PAIRS =
+  private static List<StringPatternPair> STRING_PATTERN_PAIRS =
       ImmutableList.of(
           new StringPatternPair("Michael!", ".*"),
           new StringPatternPair("new*\\n*line", "new\\\\*.\\\\*line"),
@@ -233,7 +233,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression and = DSL.and(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, and.type());
     assertEquals(v1 && v2, ExprValueUtils.getBooleanValue(and.valueOf(valueEnv())));
-    assertEquals(String.format("and(%s, %s)", v1, v2.toString()), and.toString());
+    assertEquals(String.format("and(%s, %s)", v1.toString(), v2.toString()), and.toString());
   }
 
   @Test
@@ -313,7 +313,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression or = DSL.or(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, or.type());
     assertEquals(v1 || v2, ExprValueUtils.getBooleanValue(or.valueOf(valueEnv())));
-    assertEquals(String.format("or(%s, %s)", v1, v2.toString()), or.toString());
+    assertEquals(String.format("or(%s, %s)", v1.toString(), v2.toString()), or.toString());
   }
 
   @Test
@@ -393,7 +393,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression xor = DSL.xor(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(v1 ^ v2, ExprValueUtils.getBooleanValue(xor.valueOf(valueEnv())));
-    assertEquals(String.format("xor(%s, %s)", v1, v2), xor.toString());
+    assertEquals(String.format("xor(%s, %s)", v1.toString(), v2.toString()), xor.toString());
   }
 
   @Test
@@ -573,7 +573,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression like = DSL.like(DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, like.type());
     assertEquals(matches(v1, v2), like.valueOf(valueEnv()));
-    assertEquals(String.format("like(%s, %s)", v1, v2), like.toString());
+    assertEquals(String.format("like(%s, %s)", v1.toString(), v2.toString()), like.toString());
   }
 
   @Test
