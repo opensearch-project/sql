@@ -75,7 +75,8 @@ public class TrendlineOperator extends PhysicalPlan {
       if (null != computations.get(i).getAlias()) {
         mapBuilder.put(computations.get(i).getAlias(), calculateResult);
       } else {
-        mapBuilder.put(computations.get(i).getDataField().getChild().get(0).toString(), calculateResult);
+        mapBuilder.put(
+            computations.get(i).getDataField().getChild().get(0).toString(), calculateResult);
       }
     }
     result = ExprTupleValue.fromExprValueMap(mapBuilder.buildKeepingLast());
@@ -180,9 +181,7 @@ public class TrendlineOperator extends PhysicalPlan {
   private static class WeightedMovingAverageAccumulator implements TrendlineAccumulator {
 
     @Override
-    public void accumulate(ExprValue value) {
-
-    }
+    public void accumulate(ExprValue value) {}
 
     @Override
     public ExprValue calculate() {
