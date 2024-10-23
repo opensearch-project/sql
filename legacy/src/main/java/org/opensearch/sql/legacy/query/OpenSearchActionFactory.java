@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy.query;
 import static org.opensearch.sql.legacy.domain.IndexStatement.StatementType;
 import static org.opensearch.sql.legacy.utils.Util.toSqlExpr;
 
+import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
 import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
@@ -86,7 +87,14 @@ public class OpenSearchActionFactory {
 
     switch (getFirstWord(sql)) {
       case "SELECT":
-        SQLQueryExpr sqlExpr = (SQLQueryExpr) toSqlExpr(sql);
+        SQLExpr rawExpr = toSqlExpr(sql);
+        if (!(rawExpr instanceof SQLQueryExpr)) {
+          throw new SqlParseException(
+              "Expected a query expression, but found a "
+                  + rawExpr.getClass().getSimpleName()
+                  + ". The query is not runnable.");
+        }
+        SQLQueryExpr sqlExpr = (SQLQueryExpr) rawExpr;
 
         RewriteRuleExecutor<SQLQueryExpr> ruleExecutor =
             RewriteRuleExecutor.builder()
