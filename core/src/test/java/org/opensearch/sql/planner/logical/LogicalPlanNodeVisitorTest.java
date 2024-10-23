@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -141,6 +142,12 @@ class LogicalPlanNodeVisitorTest {
 
     LogicalCloseCursor closeCursor = new LogicalCloseCursor(cursor);
 
+    LogicalTrendline trendline =
+        new LogicalTrendline(
+            relation,
+            Collections.singletonList(
+                AstDSL.computation(1, AstDSL.field("testField"), "dummy", "sma")));
+
     return Stream.of(
             relation,
             tableScanBuilder,
@@ -163,7 +170,8 @@ class LogicalPlanNodeVisitorTest {
             paginate,
             nested,
             cursor,
-            closeCursor)
+            closeCursor,
+            trendline)
         .map(Arguments::of);
   }
 
