@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -81,19 +82,21 @@ public class SQLQueryRequest {
    * @return true if supported.
    */
   public boolean isSupported() {
-    var noCursor = !isCursor();
-    var noQuery = query == null;
-    var noUnsupportedParams =
-        params.isEmpty() || (params.size() == 1 && params.containsKey(QUERY_PARAMS_FORMAT));
-    var noContent = jsonContent == null || jsonContent.isEmpty();
+    boolean hasCursor = isCursor();
+    boolean hasQuery = query != null;
+    boolean hasContent = jsonContent != null && !jsonContent.isEmpty();
 
-    return ((!noCursor
-                && noQuery
-                && noUnsupportedParams
-                && noContent) // if cursor is given, but other things
-            || (noCursor && !noQuery)) // or if cursor is not given, but query
-        && isOnlySupportedFieldInPayload() // and request has supported fields only
-        && isSupportedFormat(); // and request is in supported format
+    Predicate<String> supportedParams = Set.of(QUERY_PARAMS_FORMAT, QUERY_PARAMS_PRETTY)::contains;
+    boolean hasUnsupportedParams =
+        (!params.isEmpty())
+            && params.keySet().stream().dropWhile(supportedParams).findAny().isPresent();
+
+    boolean validCursor = hasCursor && !hasQuery && !hasUnsupportedParams && !hasContent;
+    boolean validQuery = !hasCursor && hasQuery;
+
+    return (validCursor || validQuery) // It's a valid cursor or a valid query
+        && isOnlySupportedFieldInPayload() // and request must contain supported fields only
+        && isSupportedFormat(); // and request must be a supported format
   }
 
   private boolean isCursor() {
