@@ -120,7 +120,7 @@ public class BinaryPredicateOperator {
    *   </tr>
    * </table>
    */
-  private static final Table<ExprValue, ExprValue, ExprValue> andTable =
+  private static Table<ExprValue, ExprValue, ExprValue> andTable =
       new ImmutableTable.Builder<ExprValue, ExprValue, ExprValue>()
           .put(LITERAL_TRUE, LITERAL_TRUE, LITERAL_TRUE)
           .put(LITERAL_TRUE, LITERAL_FALSE, LITERAL_FALSE)
@@ -195,7 +195,7 @@ public class BinaryPredicateOperator {
    *   </tr>
    * </table>
    */
-  private static final Table<ExprValue, ExprValue, ExprValue> orTable =
+  private static Table<ExprValue, ExprValue, ExprValue> orTable =
       new ImmutableTable.Builder<ExprValue, ExprValue, ExprValue>()
           .put(LITERAL_TRUE, LITERAL_TRUE, LITERAL_TRUE)
           .put(LITERAL_TRUE, LITERAL_FALSE, LITERAL_TRUE)
@@ -270,7 +270,7 @@ public class BinaryPredicateOperator {
    *   </tr>
    * </table>
    */
-  private static final Table<ExprValue, ExprValue, ExprValue> xorTable =
+  private static Table<ExprValue, ExprValue, ExprValue> xorTable =
       new ImmutableTable.Builder<ExprValue, ExprValue, ExprValue>()
           .put(LITERAL_TRUE, LITERAL_TRUE, LITERAL_FALSE)
           .put(LITERAL_TRUE, LITERAL_FALSE, LITERAL_TRUE)
