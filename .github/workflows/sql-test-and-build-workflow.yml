@@ -51,7 +51,7 @@ jobs:
     - name: Build with Gradle
       run: |
         chown -R 1000:1000 `pwd`
-        su `id -un 1000` -c "./gradlew --continue build"
+        su `id -un 1000` -c "./gradlew --continue build -xdoctest"
 
     - name: Create Artifact Path
       run: |
@@ -199,3 +199,48 @@ jobs:
           plugin/build/reports/**
           doctest/build/testclusters/docTestCluster-0/logs/*
           integ-test/build/testclusters/*/logs/*
+
+  doctest:
+    needs: Get-CI-Image-Tag
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [21]
+    container:
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      options: --user root
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+
+      - name: Run doctests
+        run: |
+          chown -R 1000:1000 `pwd`
+          su `id -un 1000` -c "./gradlew --continue doctest"
+
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: test-reports-ubuntu-latest-${{ matrix.java }}-doctest
+          path: |
+            sql/build/reports/**
+            ppl/build/reports/**
+            core/build/reports/**
+            common/build/reports/**
+            opensearch/build/reports/**
+            integ-test/build/reports/**
+            protocol/build/reports/**
+            legacy/build/reports/**
+            plugin/build/reports/**
+            doctest/build/testclusters/docTestCluster-0/logs/*
+            integ-test/build/testclusters/*/logs/*
