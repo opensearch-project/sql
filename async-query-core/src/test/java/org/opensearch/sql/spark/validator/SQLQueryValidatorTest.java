@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.UUID;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -566,8 +565,10 @@ class SQLQueryValidatorTest {
 
   @Test
   void testValidateFlintExtensionQuery() {
-    assertDoesNotThrow(() -> 
-            sqlQueryValidator.validateFlintExtensionQuery(UUID.randomUUID().toString(), DataSourceType.SECURITY_LAKE));
+    assertDoesNotThrow(
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                UUID.randomUUID().toString(), DataSourceType.SECURITY_LAKE));
   }
 
   @AllArgsConstructor
