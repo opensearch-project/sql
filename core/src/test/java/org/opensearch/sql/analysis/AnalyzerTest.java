@@ -18,6 +18,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.computation;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.filteredAggregate;
@@ -1435,6 +1436,19 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         new LogicalMLCommons(LogicalPlanDSL.relation("schema", table), "kmeans", argumentMap),
         new Kmeans(AstDSL.relation("schema"), argumentMap));
+  }
+
+  @Test
+  public void trendline() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.relation("schema", table),
+            computation(5, field("float_value"), "test_field_alias", "sma"),
+            computation(1, field("double_value"), "test_field_alias_2", "sma")),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            computation(5, field("float_value"), "test_field_alias", "sma"),
+            computation(1, field("double_value"), "test_field_alias_2", "sma")));
   }
 
   @Test
