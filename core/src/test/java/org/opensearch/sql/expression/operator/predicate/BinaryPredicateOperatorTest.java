@@ -221,7 +221,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
             Arguments.of("2001:0db9::8329", "2001:0db8::/32", false), // IPv6 greater
             Arguments.of("2001:0db9::8329", "2001:0db8::/129", false), // IPv6 prefix too long
 
-            Arguments.of("INVALID", "10.24.34.0/24", false), // Invalid argument
+            Arguments.of("INVALID", "10.24.34.0/24", false), // Invalid address
             Arguments.of("10.24.34.5", "INVALID", false), // Invalid range
             Arguments.of("10.24.34.5", "10.24.34.0/INVALID", false) // Invalid prefix
     );
