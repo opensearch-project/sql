@@ -182,7 +182,7 @@ public class CursorIT extends SQLIntegTestCase {
     String selectQuery =
         StringUtils.format(
             "SELECT firstname, state FROM %s ORDER BY balance DESC ", TEST_INDEX_ACCOUNT);
-    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 26, false);
+    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 25, false);
   }
 
   @Test
@@ -421,6 +421,17 @@ public class CursorIT extends SQLIntegTestCase {
     rows = rawResult.split(NEW_LINE);
     // all the 1000 records (NO headers) are retrieved instead of fetch_size number of records
     assertThat(rows.length, equalTo(1000));
+  }
+
+  @Test
+  public void testMalformedCursorGracefullyHandled() throws IOException {
+    ResponseException result =
+        assertThrows(
+            "Expected query with malformed cursor to raise error, but didn't",
+            ResponseException.class,
+            () -> executeCursorQuery("d:a11b4db33f"));
+    assertTrue(result.getMessage().contains("Malformed cursor"));
+    assertEquals(result.getResponse().getStatusLine().getStatusCode(), 400);
   }
 
   public void verifyWithAndWithoutPaginationResponse(

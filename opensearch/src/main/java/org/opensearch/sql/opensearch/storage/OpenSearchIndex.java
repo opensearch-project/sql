@@ -163,13 +163,13 @@ public class OpenSearchIndex implements Table {
     final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
 
     final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    var builder = new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory());
+    var builder = new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory(), settings);
     Function<OpenSearchRequestBuilder, OpenSearchIndexScan> createScanOperator =
         requestBuilder ->
             new OpenSearchIndexScan(
                 client,
                 requestBuilder.getMaxResponseSize(),
-                requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive));
+                requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
     return new OpenSearchIndexScanBuilder(builder, createScanOperator);
   }
 

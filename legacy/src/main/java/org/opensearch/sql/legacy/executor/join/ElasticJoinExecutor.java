@@ -99,6 +99,7 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
       this.metaResults.setTookImMilli(joinTimeInMilli);
     } catch (Exception e) {
       LOG.error("Failed during join query run.", e);
+      throw new IllegalStateException("Error occurred during join query run", e);
     } finally {
       if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
         try {

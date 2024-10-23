@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy.executor.format;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
 
 import java.util.Map;
+import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -132,13 +133,11 @@ public class PrettyFormatRestExecutor implements RestExecutor {
     return protocol;
   }
 
-  private boolean isDefaultCursor(SearchResponse searchResponse, DefaultQueryAction queryAction) {
+  protected boolean isDefaultCursor(SearchResponse searchResponse, DefaultQueryAction queryAction) {
     if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-      if (searchResponse.getHits().getTotalHits().value < queryAction.getSqlRequest().fetchSize()) {
-        return false;
-      } else {
-        return true;
-      }
+      return queryAction.getSqlRequest().fetchSize() != 0
+          && Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value
+              >= queryAction.getSqlRequest().fetchSize();
     } else {
       return !Strings.isNullOrEmpty(searchResponse.getScrollId());
     }
