@@ -13,7 +13,7 @@ public class IPUtils {
      * Supports both IPv4 and IPv6 addresses.
      *
      * @param addressExprValue IP address (e.g. "198.51.100.14" or "2001:0db8::ff00:42:8329").
-     * @param rangeExprValue   IP address range in CIDR notation (e.g. "198.51.100.0/24" or "2001:0db8:/32")
+     * @param rangeExprValue   IP address range in CIDR notation (e.g. "198.51.100.0/24" or "2001:0db8::/32")
      * @return true if IP address is in range; else false
      */
     public static ExprBooleanValue isAddressInRange(ExprValue addressExprValue, ExprValue rangeExprValue) {
