@@ -36,4 +36,7 @@ public class SQLQueryValidator {
       throw e;
     }
   }
+
+  public void validateFlintExtensionQuery(String sqlQuery, DataSourceType dataSourceType) {
+  }
 }
