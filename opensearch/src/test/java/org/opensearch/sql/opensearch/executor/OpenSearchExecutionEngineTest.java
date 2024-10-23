@@ -175,6 +175,7 @@ class OpenSearchExecutionEngineTest {
     Settings settings = mock(Settings.class);
     when(settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE)).thenReturn(TimeValue.timeValueMinutes(1));
     when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
+    when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(false);
 
     OpenSearchExprValueFactory exprValueFactory = mock(OpenSearchExprValueFactory.class);
     final var name = new OpenSearchRequest.IndexName("test");

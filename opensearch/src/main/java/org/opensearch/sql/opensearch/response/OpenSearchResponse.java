@@ -48,6 +48,8 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   /** List of requested include fields. */
   private final List<String> includes;
 
+  private boolean fieldTypeTolerance;
+
   /** OpenSearchExprValueFactory used to build ExprValue from search result. */
   @EqualsAndHashCode.Exclude private final OpenSearchExprValueFactory exprValueFactory;
 
@@ -55,20 +57,26 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   public OpenSearchResponse(
       SearchResponse searchResponse,
       OpenSearchExprValueFactory exprValueFactory,
-      List<String> includes) {
+      List<String> includes,
+      boolean fieldTypeTolerance) {
     this.hits = searchResponse.getHits();
     this.aggregations = searchResponse.getAggregations();
     this.exprValueFactory = exprValueFactory;
     this.includes = includes;
+    this.fieldTypeTolerance = fieldTypeTolerance;
   }
 
   /** Constructor of OpenSearchResponse with SearchHits. */
   public OpenSearchResponse(
-      SearchHits hits, OpenSearchExprValueFactory exprValueFactory, List<String> includes) {
+      SearchHits hits,
+      OpenSearchExprValueFactory exprValueFactory,
+      List<String> includes,
+      boolean fieldTypeTolerance) {
     this.hits = hits;
     this.aggregations = null;
     this.exprValueFactory = exprValueFactory;
     this.includes = includes;
+    this.fieldTypeTolerance = fieldTypeTolerance;
   }
 
   /**
@@ -116,7 +124,12 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    */
   private void addParsedHitsToBuilder(
       ImmutableMap.Builder<String, ExprValue> builder, SearchHit hit) {
-    builder.putAll(exprValueFactory.construct(hit.getSourceAsString(), true).tupleValue());
+    builder.putAll(
+        exprValueFactory
+            .construct(
+                hit.getSourceAsString(),
+                fieldTypeTolerance || !(hit.getInnerHits() == null || hit.getInnerHits().isEmpty()))
+            .tupleValue());
   }
 
   /**

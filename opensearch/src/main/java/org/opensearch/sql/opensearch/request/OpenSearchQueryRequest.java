@@ -73,6 +73,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
   private SearchResponse searchResponse = null;
 
+  private boolean fieldTypeTolerance;
+
   /** Constructor of OpenSearchQueryRequest. */
   public OpenSearchQueryRequest(
       String indexName, int size, OpenSearchExprValueFactory factory, List<String> includes) {
@@ -101,6 +103,21 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = factory;
     this.includes = includes;
+    this.fieldTypeTolerance = false;
+  }
+
+  /** Constructor of OpenSearchQueryRequest. */
+  public OpenSearchQueryRequest(
+      IndexName indexName,
+      SearchSourceBuilder sourceBuilder,
+      OpenSearchExprValueFactory factory,
+      List<String> includes,
+      boolean fieldTypeTolerance) {
+    this.indexName = indexName;
+    this.sourceBuilder = sourceBuilder;
+    this.exprValueFactory = factory;
+    this.includes = includes;
+    this.fieldTypeTolerance = fieldTypeTolerance;
   }
 
   /** Constructor of OpenSearchQueryRequest with PIT support. */
@@ -117,6 +134,25 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     this.includes = includes;
     this.cursorKeepAlive = cursorKeepAlive;
     this.pitId = pitId;
+    this.fieldTypeTolerance = false;
+  }
+
+  /** Constructor of OpenSearchQueryRequest with PIT support. */
+  public OpenSearchQueryRequest(
+      IndexName indexName,
+      SearchSourceBuilder sourceBuilder,
+      OpenSearchExprValueFactory factory,
+      List<String> includes,
+      TimeValue cursorKeepAlive,
+      String pitId,
+      boolean fieldTypeTolerance) {
+    this.indexName = indexName;
+    this.sourceBuilder = sourceBuilder;
+    this.exprValueFactory = factory;
+    this.includes = includes;
+    this.cursorKeepAlive = cursorKeepAlive;
+    this.pitId = pitId;
+    this.fieldTypeTolerance = fieldTypeTolerance;
   }
 
   /**
@@ -161,14 +197,16 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     if (this.pitId == null) {
       // When SearchRequest doesn't contain PitId, fetch single page request
       if (searchDone) {
-        return new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
+        return new OpenSearchResponse(
+            SearchHits.empty(), exprValueFactory, includes, fieldTypeTolerance);
       } else {
         searchDone = true;
         return new OpenSearchResponse(
             searchAction.apply(
                 new SearchRequest().indices(indexName.getIndexNames()).source(sourceBuilder)),
             exprValueFactory,
-            includes);
+            includes,
+            fieldTypeTolerance);
       }
     } else {
       // Search with PIT instead of scroll API
@@ -179,7 +217,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   public OpenSearchResponse searchWithPIT(Function<SearchRequest, SearchResponse> searchAction) {
     OpenSearchResponse openSearchResponse;
     if (searchDone) {
-      openSearchResponse = new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
+      openSearchResponse =
+          new OpenSearchResponse(
+              SearchHits.empty(), exprValueFactory, includes, fieldTypeTolerance);
     } else {
       this.sourceBuilder.pointInTimeBuilder(new PointInTimeBuilder(this.pitId));
       this.sourceBuilder.timeout(cursorKeepAlive);
@@ -197,7 +237,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       SearchRequest searchRequest = new SearchRequest().source(this.sourceBuilder);
       this.searchResponse = searchAction.apply(searchRequest);
 
-      openSearchResponse = new OpenSearchResponse(this.searchResponse, exprValueFactory, includes);
+      openSearchResponse =
+          new OpenSearchResponse(
+              this.searchResponse, exprValueFactory, includes, fieldTypeTolerance);
 
       needClean = openSearchResponse.isEmpty();
       searchDone = openSearchResponse.isEmpty();

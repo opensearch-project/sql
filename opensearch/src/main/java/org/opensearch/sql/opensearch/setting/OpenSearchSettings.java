@@ -229,6 +229,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> FIELD_TYPE_TOLERANCE_SETTING =
+      Setting.boolSetting(
+          Key.FIELD_TYPE_TOLERANCE.getKeyValue(),
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   /** Construct OpenSearchSetting. The OpenSearchSetting must be singleton. */
   @SuppressWarnings("unchecked")
   public OpenSearchSettings(ClusterSettings clusterSettings) {
@@ -372,13 +379,19 @@ public class OpenSearchSettings extends Settings {
         clusterSettings,
         Key.SESSION_INACTIVITY_TIMEOUT_MILLIS,
         SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING,
-        new Updater((Key.SESSION_INACTIVITY_TIMEOUT_MILLIS)));
+        new Updater(Key.SESSION_INACTIVITY_TIMEOUT_MILLIS));
     register(
         settingBuilder,
         clusterSettings,
         Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL,
         STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING,
-        new Updater((Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL)));
+        new Updater(Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.FIELD_TYPE_TOLERANCE,
+        FIELD_TYPE_TOLERANCE_SETTING,
+        new Updater(Key.FIELD_TYPE_TOLERANCE));
     defaultSettings = settingBuilder.build();
   }
 
@@ -455,6 +468,7 @@ public class OpenSearchSettings extends Settings {
         .add(DATASOURCES_LIMIT_SETTING)
         .add(SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING)
         .add(STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING)
+        .add(FIELD_TYPE_TOLERANCE_SETTING)
         .build();
   }
 

@@ -85,6 +85,7 @@ class OpenSearchIndexScanTest {
     lenient()
         .when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER))
         .thenReturn(true);
+    lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(false);
   }
 
   @Test

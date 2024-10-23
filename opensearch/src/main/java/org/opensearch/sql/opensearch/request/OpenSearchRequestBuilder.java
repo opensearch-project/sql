@@ -110,6 +110,7 @@ public class OpenSearchRequestBuilder {
     int size = requestedTotalSize;
     FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
     List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
+    boolean fieldTypeTolerance = settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE);
 
     if (pageSize == null) {
       if (startFrom + size > maxResultWindow) {
@@ -117,12 +118,19 @@ public class OpenSearchRequestBuilder {
         // Search with PIT request
         String pitId = createPit(indexName, cursorKeepAlive, client);
         return new OpenSearchQueryRequest(
-            indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
+            indexName,
+            sourceBuilder,
+            exprValueFactory,
+            includes,
+            cursorKeepAlive,
+            pitId,
+            fieldTypeTolerance);
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(requestedTotalSize);
         // Search with non-Pit request
-        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
+        return new OpenSearchQueryRequest(
+            indexName, sourceBuilder, exprValueFactory, includes, fieldTypeTolerance);
       }
     } else {
       if (startFrom != 0) {
@@ -132,7 +140,13 @@ public class OpenSearchRequestBuilder {
       // Search with PIT request
       String pitId = createPit(indexName, cursorKeepAlive, client);
       return new OpenSearchQueryRequest(
-          indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
+          indexName,
+          sourceBuilder,
+          exprValueFactory,
+          includes,
+          cursorKeepAlive,
+          pitId,
+          fieldTypeTolerance);
     }
   }
 
@@ -141,6 +155,7 @@ public class OpenSearchRequestBuilder {
     int size = requestedTotalSize;
     FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
     List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
+    boolean fieldTypeTolerance = settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE);
 
     if (pageSize == null) {
       if (startFrom + size > maxResultWindow) {
@@ -150,7 +165,8 @@ public class OpenSearchRequestBuilder {
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(requestedTotalSize);
-        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
+        return new OpenSearchQueryRequest(
+            indexName, sourceBuilder, exprValueFactory, includes, fieldTypeTolerance);
       }
     } else {
       if (startFrom != 0) {

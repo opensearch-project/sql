@@ -77,24 +77,24 @@ class OpenSearchResponseTest {
                 new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
                 1.0F));
 
-    var response = new OpenSearchResponse(searchResponse, factory, includes);
+    var response = new OpenSearchResponse(searchResponse, factory, includes, false);
     assertFalse(response.isEmpty());
 
     when(searchResponse.getHits()).thenReturn(SearchHits.empty());
     when(searchResponse.getAggregations()).thenReturn(null);
 
-    response = new OpenSearchResponse(searchResponse, factory, includes);
+    response = new OpenSearchResponse(searchResponse, factory, includes, false);
     assertTrue(response.isEmpty());
 
     when(searchResponse.getHits())
         .thenReturn(new SearchHits(null, new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0));
-    response = new OpenSearchResponse(searchResponse, factory, includes);
+    response = new OpenSearchResponse(searchResponse, factory, includes, false);
     assertTrue(response.isEmpty());
 
     when(searchResponse.getHits()).thenReturn(SearchHits.empty());
     when(searchResponse.getAggregations()).thenReturn(new Aggregations(emptyList()));
 
-    response = new OpenSearchResponse(searchResponse, factory, includes);
+    response = new OpenSearchResponse(searchResponse, factory, includes, false);
     assertFalse(response.isEmpty());
   }
 
@@ -114,7 +114,7 @@ class OpenSearchResponseTest {
         .thenReturn(exprTupleValue2);
 
     int i = 0;
-    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, List.of("id1"))) {
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, List.of("id1"), false)) {
       if (i == 0) {
         assertEquals(exprTupleValue1.tupleValue().get("id"), hit.tupleValue().get("id"));
       } else if (i == 1) {
@@ -163,7 +163,7 @@ class OpenSearchResponseTest {
                 "_maxscore", new ExprFloatValue(3.75F)));
     List includes = List.of("id1", "_index", "_id", "_routing", "_sort", "_score", "_maxscore");
     int i = 0;
-    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes, false)) {
       if (i == 0) {
         assertEquals(exprTupleResponse, hit);
       } else {
@@ -194,7 +194,7 @@ class OpenSearchResponseTest {
     ExprTupleValue exprTupleResponse =
         ExprTupleValue.fromExprValueMap(ImmutableMap.of("id1", new ExprIntegerValue(1)));
     int i = 0;
-    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes, true)) {
       if (i == 0) {
         assertEquals(exprTupleResponse, hit);
       } else {
@@ -234,7 +234,7 @@ class OpenSearchResponseTest {
                 "_id", new ExprStringValue("testId"),
                 "_sort", new ExprLongValue(123456L)));
     int i = 0;
-    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes, true)) {
       if (i == 0) {
         assertEquals(exprTupleResponse, hit);
       } else {
@@ -255,7 +255,7 @@ class OpenSearchResponseTest {
 
     when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleValue1);
 
-    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes, false)) {
       assertEquals(exprTupleValue1, hit);
     }
   }
@@ -264,7 +264,7 @@ class OpenSearchResponseTest {
   void response_is_aggregation_when_aggregation_not_empty() {
     when(searchResponse.getAggregations()).thenReturn(aggregations);
 
-    OpenSearchResponse response = new OpenSearchResponse(searchResponse, factory, includes);
+    OpenSearchResponse response = new OpenSearchResponse(searchResponse, factory, includes, false);
     assertTrue(response.isAggregationResponse());
   }
 
@@ -272,7 +272,7 @@ class OpenSearchResponseTest {
   void response_isnot_aggregation_when_aggregation_is_empty() {
     when(searchResponse.getAggregations()).thenReturn(null);
 
-    OpenSearchResponse response = new OpenSearchResponse(searchResponse, factory, includes);
+    OpenSearchResponse response = new OpenSearchResponse(searchResponse, factory, includes, false);
     assertFalse(response.isAggregationResponse());
   }
 
@@ -289,7 +289,7 @@ class OpenSearchResponseTest {
         .thenReturn(new ExprIntegerValue(2));
 
     int i = 0;
-    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes, false)) {
       if (i == 0) {
         assertEquals(exprTupleValue1, hit);
       } else if (i == 1) {
@@ -321,7 +321,7 @@ class OpenSearchResponseTest {
     when(searchHit1.getHighlightFields()).thenReturn(highlightMap);
     when(factory.construct(any(), anyBoolean())).thenReturn(resultTuple);
 
-    for (ExprValue resultHit : new OpenSearchResponse(searchResponse, factory, includes)) {
+    for (ExprValue resultHit : new OpenSearchResponse(searchResponse, factory, includes, false)) {
       var expected =
           ExprValueUtils.collectionValue(
               Arrays.stream(searchHit.getHighlightFields().get("highlights").getFragments())
