@@ -5,37 +5,7 @@
 
 package org.opensearch.sql.ast;
 
-import org.opensearch.sql.ast.expression.AggregateFunction;
-import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.AllFields;
-import org.opensearch.sql.ast.expression.And;
-import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.ast.expression.AttributeList;
-import org.opensearch.sql.ast.expression.Between;
-import org.opensearch.sql.ast.expression.Case;
-import org.opensearch.sql.ast.expression.Cast;
-import org.opensearch.sql.ast.expression.Compare;
-import org.opensearch.sql.ast.expression.EqualTo;
-import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.Function;
-import org.opensearch.sql.ast.expression.HighlightFunction;
-import org.opensearch.sql.ast.expression.In;
-import org.opensearch.sql.ast.expression.Interval;
-import org.opensearch.sql.ast.expression.Let;
-import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.Map;
-import org.opensearch.sql.ast.expression.NestedAllTupleFields;
-import org.opensearch.sql.ast.expression.Not;
-import org.opensearch.sql.ast.expression.Or;
-import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.RelevanceFieldList;
-import org.opensearch.sql.ast.expression.ScoreFunction;
-import org.opensearch.sql.ast.expression.Span;
-import org.opensearch.sql.ast.expression.UnresolvedArgument;
-import org.opensearch.sql.ast.expression.UnresolvedAttribute;
-import org.opensearch.sql.ast.expression.When;
-import org.opensearch.sql.ast.expression.WindowFunction;
-import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
@@ -164,6 +134,8 @@ public abstract class AbstractNodeVisitor<T, C> {
   public T visitFunction(Function node, C context) {
     return visitChildren(node, context);
   }
+
+  public T visitGeoip(Geoip node, C context) { return visitChildren(node, context); }
 
   public T visitWindowFunction(WindowFunction node, C context) {
     return visitChildren(node, context);

@@ -6,6 +6,8 @@
 package org.opensearch.sql.expression;
 
 import java.util.Arrays;
+
+import org.opensearch.sql.ast.expression.Geoip;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -19,6 +21,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionImplementation;
 import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.ip.GeoipExpression;
 import org.opensearch.sql.expression.parse.GrokExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.parse.PatternsExpression;
@@ -140,6 +143,10 @@ public class DSL {
 
   public static SpanExpression span(Expression field, Expression value, String unit) {
     return new SpanExpression(field, value, SpanUnit.of(unit));
+  }
+
+  public static GeoipExpression geoip(Expression datasource, Expression ipAddress, String properties) {
+    return new GeoipExpression(datasource, ipAddress, properties);
   }
 
   public static FunctionExpression abs(Expression... expressions) {
@@ -965,7 +972,7 @@ public class DSL {
   private static <T extends FunctionImplementation> T compile(
       FunctionProperties functionProperties, BuiltinFunctionName bfn, Expression... args) {
     return (T)
-        BuiltinFunctionRepository.getInstance()
-            .compile(functionProperties, bfn.getName(), Arrays.asList(args));
+            BuiltinFunctionRepository.getInstance()
+                    .compile(functionProperties, bfn.getName(), Arrays.asList(args));
   }
 }
