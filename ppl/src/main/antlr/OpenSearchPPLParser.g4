@@ -49,6 +49,7 @@ commands
    | kmeansCommand
    | adCommand
    | mlCommand
+   | fillnullCommand
    ;
 
 searchCommand
@@ -125,6 +126,27 @@ patternsParameter
 patternsMethod
    : PUNCT
    | REGEX
+   ;
+
+fillnullCommand
+   : FILLNULL (fillNullWithTheSameValue
+   | fillNullWithFieldVariousValues)
+   ;
+
+fillNullWithTheSameValue
+   : WITH nullReplacement IN nullableField (COMMA nullableField)*
+   ;
+
+fillNullWithFieldVariousValues
+   : USING nullableField EQUAL nullReplacement (COMMA nullableField EQUAL nullReplacement)*
+   ;
+
+nullableField
+   : fieldExpression
+   ;
+
+nullReplacement
+   : expression
    ;
 
 kmeansCommand
