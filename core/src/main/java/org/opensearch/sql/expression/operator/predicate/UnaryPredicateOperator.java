@@ -161,7 +161,7 @@ public class UnaryPredicateOperator {
    *
    * @param v1 varable 1
    * @param v2 varable 2
-   * @return null if v1 equls to v2
+   * @return null if v1 equals to v2
    */
   public static ExprValue exprNullIf(ExprValue v1, ExprValue v2) {
     return v1.equals(v2) ? LITERAL_NULL : v1;
