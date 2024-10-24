@@ -5,11 +5,13 @@
 
 package org.opensearch.sql.spark.validator;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -559,6 +561,14 @@ class SQLQueryValidatorTest {
     v.ng(TestElement.SCALAR_USER_DEFINED_FUNCTIONS);
     v.ng(TestElement.USER_DEFINED_AGGREGATE_FUNCTIONS);
     v.ng(TestElement.INTEGRATION_WITH_HIVE_UDFS_UDAFS_UDTFS);
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery() {
+    assertDoesNotThrow(
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                UUID.randomUUID().toString(), DataSourceType.SECURITY_LAKE));
   }
 
   @AllArgsConstructor

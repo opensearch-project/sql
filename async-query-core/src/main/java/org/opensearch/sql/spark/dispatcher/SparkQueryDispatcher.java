@@ -51,6 +51,7 @@ public class SparkQueryDispatcher {
       String query = dispatchQueryRequest.getQuery();
 
       if (SQLQueryUtils.isFlintExtensionQuery(query)) {
+        sqlQueryValidator.validateFlintExtensionQuery(query, dataSourceMetadata.getConnector());
         return handleFlintExtensionQuery(
             dispatchQueryRequest, asyncQueryRequestContext, dataSourceMetadata);
       }
