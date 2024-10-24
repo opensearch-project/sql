@@ -63,7 +63,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
     String query =
         String.format(
             "SELECT custom_time, custom_timestamp, custom_date_or_date,"
-                + "custom_date_or_custom_time, custom_time_parser_check FROM %s",
+                + "custom_date_or_custom_time, custom_time_parser_check, yyyy-MM-dd FROM %s",
             TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
     verifySchema(
@@ -72,17 +72,24 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
         schema("custom_timestamp", null, "timestamp"),
         schema("custom_date_or_date", null, "date"),
         schema("custom_date_or_custom_time", null, "timestamp"),
-        schema("custom_time_parser_check", null, "time"));
+        schema("custom_time_parser_check", null, "time"),
+        schema("yyyy-MM-dd", null, "date"));
     verifyDataRows(
         result,
         rows(
-            "09:07:42", "1984-04-12 09:07:42", "1984-04-12", "1961-04-12 00:00:00", "23:44:36.321"),
+            "09:07:42",
+            "1984-04-12 09:07:42",
+            "1984-04-12",
+            "1961-04-12 00:00:00",
+            "23:44:36.321",
+            "1984-04-12"),
         rows(
             "21:07:42",
             "1984-04-12 22:07:42",
             "1984-04-12",
             "1970-01-01 09:07:00",
-            "09:01:16.542"));
+            "09:01:16.542",
+            "1984-04-12"));
   }
 
   @Test

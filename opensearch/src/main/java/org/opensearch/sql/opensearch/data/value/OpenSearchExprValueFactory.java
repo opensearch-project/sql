@@ -58,7 +58,6 @@ import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
@@ -228,14 +227,6 @@ public class OpenSearchExprValueFactory {
    * @return Parsed value
    */
   private static ExprValue parseDateTimeString(String value, OpenSearchDateType dataType) {
-    try {
-      String customFormat = dataType.getAllCustomFormatters().toString();
-      OpenSearchDateType dateType = OpenSearchDateType.of(customFormat);
-      LocalDate parsedDate = dateType.getParsedDateTime(value).toLocalDate();
-      return ExprValueUtils.dateValue(parsedDate);
-    } catch (Exception ignored) {
-      // nothing to do, try another old parser
-    }
     List<DateFormatter> formatters = dataType.getAllNamedFormatters();
     formatters.addAll(dataType.getAllCustomFormatters());
     ExprCoreType returnFormat = dataType.getExprCoreType();
