@@ -14,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 /**
@@ -80,6 +81,19 @@ public class ObjectFieldSelectIT extends SQLIntegTestCase {
   public void testSelectObjectFieldOfArrayValuesItself() {
     JSONObject response = new JSONObject(query("SELECT accounts FROM %s"));
     verifyDataRows(response, rows(new JSONArray("[{\"id\":1},{\"id\":2}]")));
+  }
+
+  @Test
+  public void testSelectObjectFieldOfArrayValuesItselfNoFieldTypeTolerance() throws Exception {
+    updateClusterSettings(
+        new ClusterSetting(PERSISTENT, Settings.Key.FIELD_TYPE_TOLERANCE.getKeyValue(), "false"));
+    try {
+      JSONObject response = new JSONObject(query("SELECT accounts FROM %s"));
+      verifyDataRows(response, rows(new JSONObject("{\"id\":1}")));
+    } finally {
+      updateClusterSettings(
+          new ClusterSetting(PERSISTENT, Settings.Key.FIELD_TYPE_TOLERANCE.getKeyValue(), "true"));
+    }
   }
 
   @Test

@@ -135,10 +135,7 @@ class OpenSearchExecutionProtectorTest {
                                                 filter(
                                                     resourceMonitor(
                                                         new OpenSearchIndexScan(
-                                                            client,
-                                                            true,
-                                                            maxResultWindow,
-                                                            request)),
+                                                            client, maxResultWindow, request)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -165,7 +162,7 @@ class OpenSearchExecutionProtectorTest {
                                             PhysicalPlanDSL.agg(
                                                 filter(
                                                     new OpenSearchIndexScan(
-                                                        client, true, maxResultWindow, request),
+                                                        client, maxResultWindow, request),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),

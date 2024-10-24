@@ -459,7 +459,7 @@ public class OpenSearchQueryRequestTest {
     when(engine.getTable(null, "sample")).thenReturn(index);
     when(stream.readVInt()).thenReturn(2);
     when(stream.readGenericValue()).thenReturn("sampleSearchAfter");
-    OpenSearchQueryRequest request = new OpenSearchQueryRequest(stream, engine, true);
+    OpenSearchQueryRequest request = new OpenSearchQueryRequest(stream, engine);
     assertNotNull(request);
   }
 

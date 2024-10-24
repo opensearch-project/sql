@@ -126,9 +126,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
    * @param engine OpenSearchSqlEngine to get node-specific context.
    * @throws IOException thrown if reading from input {@code in} fails.
    */
-  public OpenSearchQueryRequest(
-      StreamInput in, OpenSearchStorageEngine engine, boolean fieldTypeTolerance)
-      throws IOException {
+  public OpenSearchQueryRequest(StreamInput in, OpenSearchStorageEngine engine) throws IOException {
     // Deserialize the SearchSourceBuilder from the string representation
     String sourceBuilderString = in.readString();
 
@@ -154,7 +152,8 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
     OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());
     exprValueFactory =
-        new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes(), fieldTypeTolerance);
+        new OpenSearchExprValueFactory(
+            index.getFieldOpenSearchTypes(), index.isFieldTypeTolerance());
   }
 
   @Override

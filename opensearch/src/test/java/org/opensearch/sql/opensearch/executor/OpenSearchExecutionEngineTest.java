@@ -186,7 +186,6 @@ class OpenSearchExecutionEngineTest {
     PhysicalPlan plan =
         new OpenSearchIndexScan(
             mock(OpenSearchClient.class),
-            true,
             maxResultWindow,
             requestBuilder.build(
                 name, maxResultWindow, settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE), client));

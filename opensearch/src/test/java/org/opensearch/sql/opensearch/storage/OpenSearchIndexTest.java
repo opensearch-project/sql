@@ -207,10 +207,7 @@ class OpenSearchIndexTest {
         new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client,
-            true,
-            200,
-            requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
+            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
         index.implement(index.optimize(plan)));
   }
 
@@ -224,10 +221,7 @@ class OpenSearchIndexTest {
         new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client,
-            true,
-            200,
-            requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
+            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
         index.implement(plan));
   }
 
@@ -267,7 +261,6 @@ class OpenSearchIndexTest {
                             PhysicalPlanDSL.rename(
                                 new OpenSearchIndexScan(
                                     client,
-                                    true,
                                     QUERY_SIZE_LIMIT,
                                     requestBuilder.build(
                                         INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),

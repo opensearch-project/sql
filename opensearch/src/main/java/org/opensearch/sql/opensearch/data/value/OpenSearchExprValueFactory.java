@@ -74,6 +74,7 @@ public class OpenSearchExprValueFactory {
   /** The Mapping of Field and ExprType. */
   private final Map<String, OpenSearchDataType> typeMapping;
 
+  /** Whether to support nested value types (such as arrays) */
   private final boolean fieldTypeTolerance;
 
   /**

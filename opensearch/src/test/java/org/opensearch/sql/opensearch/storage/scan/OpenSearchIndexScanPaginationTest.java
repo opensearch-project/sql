@@ -78,7 +78,6 @@ public class OpenSearchIndexScanPaginationTest {
     try (var indexScan =
         new OpenSearchIndexScan(
             client,
-            true,
             MAX_RESULT_WINDOW,
             builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
       indexScan.open();
@@ -107,7 +106,6 @@ public class OpenSearchIndexScanPaginationTest {
     try (var indexScan =
         new OpenSearchIndexScan(
             client,
-            true,
             MAX_RESULT_WINDOW,
             builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
       indexScan.open();

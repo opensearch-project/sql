@@ -168,7 +168,6 @@ public class OpenSearchIndex implements Table {
         requestBuilder ->
             new OpenSearchIndexScan(
                 client,
-                settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE),
                 requestBuilder.getMaxResponseSize(),
                 requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
     return new OpenSearchIndexScanBuilder(builder, createScanOperator);

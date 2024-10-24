@@ -853,6 +853,90 @@ class OpenSearchExprValueFactoryTest {
             .get("structV"));
   }
 
+  /**
+   * Return the all elements if is OpenSearch Array.
+   * https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html.
+   */
+  @Test
+  public void constructFromOpenSearchArrayReturnAllWithArraySupport() {
+    assertEquals(
+        new ExprCollectionValue(List.of(integerValue(1), integerValue(2), integerValue(3))),
+        tupleValue("{\"intV\":[1, 2, 3]}").get("intV"));
+    assertEquals(
+        new ExprCollectionValue(
+            List.of(
+                new ExprTupleValue(
+                    new LinkedHashMap<String, ExprValue>() {
+                      {
+                        put("id", integerValue(1));
+                        put("state", stringValue("WA"));
+                      }
+                    }),
+                new ExprTupleValue(
+                    new LinkedHashMap<String, ExprValue>() {
+                      {
+                        put("id", integerValue(2));
+                        put("state", stringValue("CA"));
+                      }
+                    }))),
+        tupleValueWithArraySupport(
+                "{\"structV\":[{\"id\":1,\"state\":\"WA\"},{\"id\":2,\"state\":\"CA\"}]}}")
+            .get("structV"));
+  }
+
+  /**
+   * Return only the first element if is OpenSearch Array.
+   * https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html.
+   */
+  @Test
+  public void constructFromOpenSearchArrayReturnAllWithoutArraySupport() {
+    assertEquals(
+        new ExprCollectionValue(List.of(integerValue(1), integerValue(2), integerValue(3))),
+        tupleValue("{\"intV\":[1, 2, 3]}").get("intV"));
+    assertEquals(
+        new ExprTupleValue(
+            new LinkedHashMap<String, ExprValue>() {
+              {
+                put("id", integerValue(1));
+                put("state", stringValue("WA"));
+              }
+            }),
+        tupleValueWithoutArraySupport(
+                "{\"structV\":[{\"id\":1,\"state\":\"WA\"},{\"id\":2,\"state\":\"CA\"}]}}")
+            .get("structV"));
+  }
+
+  /**
+   * Return only the first element if is OpenSearch Array.
+   * https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html.
+   */
+  @Test
+  public void constructFromOpenSearchArrayReturnAllWithoutArraySupportNoFieldTolerance() {
+    assertEquals(
+        new ExprCollectionValue(List.of(integerValue(1), integerValue(2), integerValue(3))),
+        tupleValue("{\"intV\":[1, 2, 3]}").get("intV"));
+    assertEquals(
+        new ExprCollectionValue(
+            List.of(
+                new ExprTupleValue(
+                    new LinkedHashMap<String, ExprValue>() {
+                      {
+                        put("id", integerValue(1));
+                        put("state", stringValue("WA"));
+                      }
+                    }),
+                new ExprTupleValue(
+                    new LinkedHashMap<String, ExprValue>() {
+                      {
+                        put("id", integerValue(2));
+                        put("state", stringValue("CA"));
+                      }
+                    }))),
+        tupleValueWithoutArraySupportNoFieldTolerance(
+                "{\"structV\":[{\"id\":1,\"state\":\"WA\"},{\"id\":2,\"state\":\"CA\"}]}}")
+            .get("structV"));
+  }
+
   @Test
   public void constructFromInvalidJsonThrowException() {
     IllegalStateException exception =
