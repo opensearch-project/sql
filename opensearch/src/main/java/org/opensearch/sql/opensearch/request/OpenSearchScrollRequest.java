@@ -102,7 +102,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
       openSearchResponse = searchAction.apply(initialSearchRequest);
     }
 
-    var response = new OpenSearchResponse(openSearchResponse, exprValueFactory, includes, false);
+    var response = new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);
     needClean = response.isEmpty();
     if (!needClean) {
       setScrollId(openSearchResponse.getScrollId());
@@ -178,6 +178,8 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     includes = in.readStringList();
     indexName = new IndexName(in);
     OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());
-    exprValueFactory = new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes());
+    exprValueFactory =
+        new OpenSearchExprValueFactory(
+            index.getFieldOpenSearchTypes(), index.isFieldTypeTolerance());
   }
 }

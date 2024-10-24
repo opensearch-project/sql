@@ -79,9 +79,7 @@ public class ObjectFieldSelectIT extends SQLIntegTestCase {
   @Test
   public void testSelectObjectFieldOfArrayValuesItself() {
     JSONObject response = new JSONObject(query("SELECT accounts FROM %s"));
-
-    // Only the first element of the list of is returned.
-    verifyDataRows(response, rows(new JSONObject("{\"id\":1}")));
+    verifyDataRows(response, rows(new JSONArray("[{\"id\":1},{\"id\":2}]")));
   }
 
   @Test

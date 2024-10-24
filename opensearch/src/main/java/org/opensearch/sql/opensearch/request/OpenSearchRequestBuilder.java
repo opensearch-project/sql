@@ -118,19 +118,12 @@ public class OpenSearchRequestBuilder {
         // Search with PIT request
         String pitId = createPit(indexName, cursorKeepAlive, client);
         return new OpenSearchQueryRequest(
-            indexName,
-            sourceBuilder,
-            exprValueFactory,
-            includes,
-            cursorKeepAlive,
-            pitId,
-            fieldTypeTolerance);
+            indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(requestedTotalSize);
         // Search with non-Pit request
-        return new OpenSearchQueryRequest(
-            indexName, sourceBuilder, exprValueFactory, includes, fieldTypeTolerance);
+        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
       }
     } else {
       if (startFrom != 0) {
@@ -140,13 +133,7 @@ public class OpenSearchRequestBuilder {
       // Search with PIT request
       String pitId = createPit(indexName, cursorKeepAlive, client);
       return new OpenSearchQueryRequest(
-          indexName,
-          sourceBuilder,
-          exprValueFactory,
-          includes,
-          cursorKeepAlive,
-          pitId,
-          fieldTypeTolerance);
+          indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
     }
   }
 
@@ -165,8 +152,7 @@ public class OpenSearchRequestBuilder {
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(requestedTotalSize);
-        return new OpenSearchQueryRequest(
-            indexName, sourceBuilder, exprValueFactory, includes, fieldTypeTolerance);
+        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
       }
     } else {
       if (startFrom != 0) {

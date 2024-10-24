@@ -232,7 +232,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> FIELD_TYPE_TOLERANCE_SETTING =
       Setting.boolSetting(
           Key.FIELD_TYPE_TOLERANCE.getKeyValue(),
-          false,
+          true,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 

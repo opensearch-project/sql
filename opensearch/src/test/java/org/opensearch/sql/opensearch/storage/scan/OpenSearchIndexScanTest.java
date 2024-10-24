@@ -78,21 +78,22 @@ class OpenSearchIndexScanTest {
   private final OpenSearchExprValueFactory exprValueFactory =
       new OpenSearchExprValueFactory(
           Map.of(
-              "name", OpenSearchDataType.of(STRING), "department", OpenSearchDataType.of(STRING)));
+              "name", OpenSearchDataType.of(STRING), "department", OpenSearchDataType.of(STRING)),
+          true);
 
   @BeforeEach
   void setup() {
     lenient()
         .when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER))
         .thenReturn(true);
-    lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(false);
+    lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
   }
 
   @Test
   void explain() {
     var request = mock(OpenSearchRequest.class);
     when(request.toString()).thenReturn("explain works!");
-    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
+    try (var indexScan = new OpenSearchIndexScan(client, true, QUERY_SIZE, request)) {
       assertEquals("explain works!", indexScan.explain());
     }
   }
@@ -102,7 +103,7 @@ class OpenSearchIndexScanTest {
   void throws_no_cursor_exception() {
     var request = mock(OpenSearchRequest.class);
     when(request.hasAnotherBatch()).thenReturn(false);
-    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request);
+    try (var indexScan = new OpenSearchIndexScan(client, true, QUERY_SIZE, request);
         var byteStream = new ByteArrayOutputStream();
         var objectStream = new ObjectOutputStream(byteStream)) {
       assertThrows(NoCursorException.class, () -> objectStream.writeObject(indexScan));
@@ -138,7 +139,7 @@ class OpenSearchIndexScanTest {
     when(hits.getHits()).thenReturn(new SearchHit[] {mock()});
     request.search(null, (req) -> response);
 
-    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
+    try (var indexScan = new OpenSearchIndexScan(client, true, QUERY_SIZE, request)) {
       var planSerializer = new PlanSerializer(engine);
       var cursor = planSerializer.convertToCursor(indexScan);
       var newPlan = planSerializer.convertToPlan(cursor.toString());
@@ -178,7 +179,7 @@ class OpenSearchIndexScanTest {
     when(hits.getHits()).thenReturn(new SearchHit[] {hit});
     request.search((req) -> response, null);
 
-    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
+    try (var indexScan = new OpenSearchIndexScan(client, true, QUERY_SIZE, request)) {
       var planSerializer = new PlanSerializer(engine);
       var cursor = planSerializer.convertToCursor(indexScan);
       var newPlan = planSerializer.convertToPlan(cursor.toString());
@@ -200,7 +201,7 @@ class OpenSearchIndexScanTest {
     ObjectInputStream objectInput =
         new ObjectInputStream(new ByteArrayInputStream(output.toByteArray()));
 
-    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
+    try (var indexScan = new OpenSearchIndexScan(client, true, QUERY_SIZE, request)) {
       assertThrows(IOException.class, () -> indexScan.readExternal(objectInput));
     }
   }
@@ -208,7 +209,7 @@ class OpenSearchIndexScanTest {
   @Test
   void plan_for_serialization() {
     var request = mock(OpenSearchRequest.class);
-    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
+    try (var indexScan = new OpenSearchIndexScan(client, true, QUERY_SIZE, request)) {
       assertEquals(indexScan, indexScan.getPlanForSerialization());
     }
   }
@@ -221,6 +222,7 @@ class OpenSearchIndexScanTest {
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
             client,
+            true,
             QUERY_SIZE,
             requestBuilder.build(name, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
@@ -240,7 +242,7 @@ class OpenSearchIndexScanTest {
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory, settings);
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
-            client, 10, requestBuilder.build(INDEX_NAME, 10000, CURSOR_KEEP_ALIVE, client))) {
+            client, true, 10, requestBuilder.build(INDEX_NAME, 10000, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
 
       assertAll(
@@ -268,7 +270,7 @@ class OpenSearchIndexScanTest {
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory, settings);
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
-            client, 10, requestBuilder.build(INDEX_NAME, 10000, CURSOR_KEEP_ALIVE, client))) {
+            client, true, 10, requestBuilder.build(INDEX_NAME, 10000, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
 
       assertAll(
@@ -299,6 +301,7 @@ class OpenSearchIndexScanTest {
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
             client,
+            true,
             limit,
             builder.build(INDEX_NAME, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
@@ -322,6 +325,7 @@ class OpenSearchIndexScanTest {
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
             client,
+            true,
             3,
             requestuilder.build(INDEX_NAME, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
@@ -362,6 +366,7 @@ class OpenSearchIndexScanTest {
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
             client,
+            true,
             defaultQuerySize,
             requestBuilder.build(INDEX_NAME, QUERY_SIZE, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
@@ -465,6 +470,7 @@ class OpenSearchIndexScanTest {
       var indexScan =
           new OpenSearchIndexScan(
               client,
+              true,
               QUERY_SIZE,
               requestBuilder.build(EMPLOYEES_INDEX, 10000, CURSOR_KEEP_ALIVE, client));
       indexScan.open();
@@ -485,6 +491,7 @@ class OpenSearchIndexScanTest {
       var indexScan =
           new OpenSearchIndexScan(
               client,
+              true,
               10000,
               requestBuilder.build(EMPLOYEES_INDEX, 10000, CURSOR_KEEP_ALIVE, client));
       indexScan.open();

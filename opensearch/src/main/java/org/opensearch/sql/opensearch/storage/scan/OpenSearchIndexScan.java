@@ -47,14 +47,18 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
-  private Settings pluginSettings;
+  private boolean fieldTypeTolerance;
 
   /** Creates index scan based on a provided OpenSearchRequestBuilder. */
   public OpenSearchIndexScan(
-      OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
+      OpenSearchClient client,
+      boolean fieldTypeTolerance,
+      int maxResponseSize,
+      OpenSearchRequest request) {
     this.client = client;
     this.maxResponseSize = maxResponseSize;
     this.request = request;
+    this.fieldTypeTolerance = fieldTypeTolerance;
   }
 
   @Override
@@ -129,9 +133,10 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     boolean pointInTimeEnabled =
         Boolean.parseBoolean(
             client.meta().get(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER.getKeyValue()));
+    fieldTypeTolerance = in.readBoolean();
     try (BytesStreamInput bsi = new BytesStreamInput(requestStream)) {
       if (pointInTimeEnabled) {
-        request = new OpenSearchQueryRequest(bsi, engine);
+        request = new OpenSearchQueryRequest(bsi, engine, fieldTypeTolerance);
       } else {
         request = new OpenSearchScrollRequest(bsi, engine);
       }
@@ -157,6 +162,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     out.writeInt(reqOut.size());
     out.write(reqAsBytes, 0, reqOut.size());
 
+    out.writeBoolean(fieldTypeTolerance);
     out.writeInt(maxResponseSize);
   }
 }

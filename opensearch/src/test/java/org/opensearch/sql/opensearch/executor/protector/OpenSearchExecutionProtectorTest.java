@@ -90,7 +90,7 @@ class OpenSearchExecutionProtectorTest {
   @Test
   void test_protect_indexScan() {
     when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
-    when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(false);
+    when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
 
     String indexName = "test";
     final int maxResultWindow = 10000;
@@ -135,7 +135,10 @@ class OpenSearchExecutionProtectorTest {
                                                 filter(
                                                     resourceMonitor(
                                                         new OpenSearchIndexScan(
-                                                            client, maxResultWindow, request)),
+                                                            client,
+                                                            true,
+                                                            maxResultWindow,
+                                                            request)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -162,7 +165,7 @@ class OpenSearchExecutionProtectorTest {
                                             PhysicalPlanDSL.agg(
                                                 filter(
                                                     new OpenSearchIndexScan(
-                                                        client, maxResultWindow, request),
+                                                        client, true, maxResultWindow, request),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
