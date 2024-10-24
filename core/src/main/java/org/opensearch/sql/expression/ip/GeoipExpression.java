@@ -33,9 +33,7 @@ public class GeoipExpression implements Expression {
 
     @Override
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-        Rounding<?> rounding =
-                Rounding.createRounding(this); // TODO: will integrate with WindowAssigner
-        return rounding.round(field.valueOf(valueEnv));
+        return ipAddress.valueOf(valueEnv);
     }
 
     @Override
