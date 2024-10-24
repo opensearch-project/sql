@@ -90,7 +90,6 @@ class OpenSearchExecutionProtectorTest {
   @Test
   void test_protect_indexScan() {
     when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
-    when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
 
     String indexName = "test";
     final int maxResultWindow = 10000;

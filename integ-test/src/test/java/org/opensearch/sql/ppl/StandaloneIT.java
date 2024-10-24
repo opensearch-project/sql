@@ -153,7 +153,7 @@ public class StandaloneIT extends PPLIntegTestCase {
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
               .put(Key.SQL_PAGINATION_API_SEARCH_AFTER, true)
-              .put(Key.FIELD_TYPE_TOLERANCE, false)
+              .put(Key.FIELD_TYPE_TOLERANCE, true)
               .build();
 
       @Override

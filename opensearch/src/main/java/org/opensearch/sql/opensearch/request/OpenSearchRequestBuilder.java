@@ -110,7 +110,6 @@ public class OpenSearchRequestBuilder {
     int size = requestedTotalSize;
     FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
     List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
-    boolean fieldTypeTolerance = settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE);
 
     if (pageSize == null) {
       if (startFrom + size > maxResultWindow) {
