@@ -824,3 +824,55 @@ To Re-enable Data Sources:::
       }
     }
 
+plugins.query.field_type_tolerance
+==================================
+
+Description
+-----------
+
+This setting controls whether preserve arrays. If this setting is set to false, then an array is reduced
+to the first non array value of any level of nesting.
+
+If you have an index with the following value for a field::
+
+    [
+      [
+        {"name": "one", "value": 1},
+        {"name": "two", "value": 2},
+        3
+      ]
+    ]
+
+With plugins.query.field_type_tolerance set to true, the array is returned in full::
+
+    [
+      [
+        {"name": "one", "value": 1},
+        {"name": "two", "value": 2},
+        3
+      ]
+    ]
+
+With plugins.query.field_type_tolerance set to false, the array is reduced::
+
+    {"name": "one", "value": 1}
+
+1. The default value is true (preserve arrays)
+2. This setting is node scope
+3. This setting can be updated dynamically
+
+Update Settings Request::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT 'localhost:9200/_cluster/settings?pretty' \
+    ... -d '{"transient":{"plugins.query.field_type_tolerance":"false"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "query": {
+            "field_type_tolerance": "false"
+          }
+        }
+      }
+    }
