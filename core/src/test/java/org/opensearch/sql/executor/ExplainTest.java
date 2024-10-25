@@ -31,6 +31,7 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.takeOrdered;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.values;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.window;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -56,8 +57,6 @@ import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.TrendlineOperator;
 import org.opensearch.sql.storage.TableScanOperator;
-
-import com.google.common.collect.ImmutableMap;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ExplainTest extends ExpressionTestBase {
@@ -263,30 +262,40 @@ class ExplainTest extends ExpressionTestBase {
 
   @Test
   void can_explain_trendline() {
-    PhysicalPlan plan = new TrendlineOperator(tableScan, Arrays.asList(
-        AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
-        AstDSL.computation(3, AstDSL.field("time"), "time_alias", "sma")));
+    PhysicalPlan plan =
+        new TrendlineOperator(
+            tableScan,
+            Arrays.asList(
+                AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+                AstDSL.computation(3, AstDSL.field("time"), "time_alias", "sma")));
     assertEquals(
         new ExplainResponse(
             new ExplainResponseNode(
                 "TrendlineOperator",
-                ImmutableMap.of("computations", List.of(
-                    ImmutableMap.of(
-                      "computationType",
-                      "sma",
-                      "numberOfDataPoints", 2,
-                      "dataField", "distance",
-                      "alias", "distance_alias"),
-                    ImmutableMap.of(
-                        "computationType",
-                        "sma",
-                        "numberOfDataPoints", 3,
-                        "dataField", "time",
-                        "alias", "time_alias"))),
+                ImmutableMap.of(
+                    "computations",
+                    List.of(
+                        ImmutableMap.of(
+                            "computationType",
+                            "sma",
+                            "numberOfDataPoints",
+                            2,
+                            "dataField",
+                            "distance",
+                            "alias",
+                            "distance_alias"),
+                        ImmutableMap.of(
+                            "computationType",
+                            "sma",
+                            "numberOfDataPoints",
+                            3,
+                            "dataField",
+                            "time",
+                            "alias",
+                            "time_alias"))),
                 singletonList(tableScan.explainNode()))),
         explain.apply(plan));
   }
-
 
   private static class FakeTableScan extends TableScanOperator {
     @Override
