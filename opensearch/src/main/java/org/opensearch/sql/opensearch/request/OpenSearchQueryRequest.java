@@ -150,7 +150,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     }
 
     OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());
-    exprValueFactory = new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes());
+    exprValueFactory =
+        new OpenSearchExprValueFactory(
+            index.getFieldOpenSearchTypes(), index.isFieldTypeTolerance());
   }
 
   @Override

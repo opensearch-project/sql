@@ -20,7 +20,6 @@ import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.search.SearchRequest;
@@ -72,7 +71,7 @@ public class OpenSearchQueryRequestTest {
   @Mock private OpenSearchStorageEngine engine;
   @Mock private PointInTimeBuilder pointInTimeBuilder;
 
-  @InjectMocks private OpenSearchQueryRequest serializationRequest;
+  private OpenSearchQueryRequest serializationRequest;
 
   private SearchSourceBuilder sourceBuilderForSerializer;
 
