@@ -27,6 +27,9 @@ public abstract class Settings {
     /** PPL Settings. */
     PPL_ENABLED("plugins.ppl.enabled"),
 
+    /** Query Settings. */
+    FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),
+
     /** Common Settings for SQL and PPL. */
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),

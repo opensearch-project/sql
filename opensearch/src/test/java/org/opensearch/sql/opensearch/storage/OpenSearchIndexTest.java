@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -79,6 +80,7 @@ class OpenSearchIndexTest {
   @BeforeEach
   void setUp() {
     this.index = new OpenSearchIndex(client, settings, "test");
+    lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
   }
 
   @Test
@@ -263,5 +265,14 @@ class OpenSearchIndexTest {
                 dedupeField),
             include),
         index.implement(plan));
+  }
+
+  @Test
+  void isFieldTypeTolerance() {
+    when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE))
+        .thenReturn(true)
+        .thenReturn(false);
+    assertTrue(index.isFieldTypeTolerance());
+    assertFalse(index.isFieldTypeTolerance());
   }
 }

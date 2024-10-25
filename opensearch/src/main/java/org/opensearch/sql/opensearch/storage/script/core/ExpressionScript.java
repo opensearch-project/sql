@@ -102,7 +102,7 @@ public class ExpressionScript {
     Map<String, OpenSearchDataType> typeEnv =
         fields.stream()
             .collect(toMap(ReferenceExpression::getAttr, e -> OpenSearchDataType.of(e.type())));
-    return new OpenSearchExprValueFactory(typeEnv);
+    return new OpenSearchExprValueFactory(typeEnv, false);
   }
 
   private Environment<Expression, ExprValue> buildValueEnv(
