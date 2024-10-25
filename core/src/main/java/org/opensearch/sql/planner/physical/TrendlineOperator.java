@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.planner.physical;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Collections;
@@ -17,7 +16,6 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.data.model.ExprIntegerValue;
-import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -30,8 +28,8 @@ import org.opensearch.sql.expression.Expression;
 public class TrendlineOperator extends PhysicalPlan {
   @Getter private final PhysicalPlan input;
   @Getter private final List<Trendline.TrendlineComputation> computations;
-  private final List<TrendlineAccumulator> accumulators;
-  private final Map<String, Integer> fieldToIndexMap;
+  @EqualsAndHashCode.Exclude private final List<TrendlineAccumulator> accumulators;
+  @EqualsAndHashCode.Exclude private final Map<String, Integer> fieldToIndexMap;
 
   public TrendlineOperator(PhysicalPlan input, List<Trendline.TrendlineComputation> computations) {
     this.input = input;
@@ -61,7 +59,6 @@ public class TrendlineOperator extends PhysicalPlan {
 
   @Override
   public ExprValue next() {
-    Preconditions.checkState(hasNext());
     final ExprValue result;
     final ExprValue next = input.next();
     consumeInputTuple(next);
@@ -72,11 +69,13 @@ public class TrendlineOperator extends PhysicalPlan {
     // Add calculated trendline values, which might overwrite existing fields from the input.
     for (int i = 0; i < accumulators.size(); ++i) {
       final ExprValue calculateResult = accumulators.get(i).calculate();
-      if (null != computations.get(i).getAlias()) {
-        mapBuilder.put(computations.get(i).getAlias(), calculateResult);
-      } else {
-        mapBuilder.put(
-            computations.get(i).getDataField().getChild().get(0).toString(), calculateResult);
+      if (null != calculateResult) {
+        if (null != computations.get(i).getAlias()) {
+          mapBuilder.put(computations.get(i).getAlias(), calculateResult);
+        } else {
+          mapBuilder.put(
+              computations.get(i).getDataField().getChild().get(0).toString(), calculateResult);
+        }
       }
     }
     result = ExprTupleValue.fromExprValueMap(mapBuilder.buildKeepingLast());
@@ -172,7 +171,7 @@ public class TrendlineOperator extends PhysicalPlan {
     @Override
     public ExprValue calculate() {
       if (receivedValues.size() < dataPointsNeeded.integerValue()) {
-        return ExprNullValue.of();
+        return null;
       }
       return runningAverage;
     }

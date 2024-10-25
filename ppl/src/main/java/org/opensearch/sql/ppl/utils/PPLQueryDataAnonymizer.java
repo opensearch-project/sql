@@ -226,7 +226,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitTrendline(Trendline node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    String computations = visitExpressionList(node.getComputations());
+    String computations = visitExpressionList(node.getComputations(), " ");
     return StringUtils.format("%s | trendline %s", child, computations);
   }
 
@@ -235,9 +235,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   private String visitExpressionList(List<UnresolvedExpression> expressionList) {
+    return visitExpressionList(expressionList, ",");
+  }
+
+  private String visitExpressionList(List<UnresolvedExpression> expressionList, String delimiter) {
     return expressionList.isEmpty()
         ? ""
-        : expressionList.stream().map(this::visitExpression).collect(Collectors.joining(","));
+        : expressionList.stream().map(this::visitExpression).collect(Collectors.joining(delimiter));
   }
 
   private String visitExpression(UnresolvedExpression expression) {
