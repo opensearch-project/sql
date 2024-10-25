@@ -190,4 +190,27 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     verifySchema(result, schema("cnt", null, "integer"), schema("span", null, "date"));
     verifyDataRows(result, rows(2, "1984-04-12"));
   }
+
+  @Test
+  public void testSpanDatetimeWithEpochMillisFormat() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = 1 | stats count() as cnt by span(epoch_millis, 1d) as span",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(result, schema("cnt", null, "integer"), schema("span", null, "timestamp"));
+    verifyDataRows(result, rows(2, "1984-04-12 00:00:00"));
+  }
+
+  @Test
+  public void testSpanDatetimeWithDisjunctiveDifferentFormats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = 1 | stats count() as cnt by span(yyyy-MM-dd_OR_epoch_millis,"
+                    + " 1d) as span",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(result, schema("cnt", null, "integer"), schema("span", null, "timestamp"));
+    verifyDataRows(result, rows(2, "1984-04-12 00:00:00"));
+  }
 }
