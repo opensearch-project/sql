@@ -47,8 +47,6 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
-  private Settings pluginSettings;
-
   /** Creates index scan based on a provided OpenSearchRequestBuilder. */
   public OpenSearchIndexScan(
       OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
