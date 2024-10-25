@@ -31,6 +31,7 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.takeOrdered;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.values;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.window;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +40,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
@@ -52,7 +54,10 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.physical.TrendlineOperator;
 import org.opensearch.sql.storage.TableScanOperator;
+
+import com.google.common.collect.ImmutableMap;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ExplainTest extends ExpressionTestBase {
@@ -255,6 +260,33 @@ class ExplainTest extends ExpressionTestBase {
                 singletonList(tableScan.explainNode()))),
         explain.apply(plan));
   }
+
+  @Test
+  void can_explain_trendline() {
+    PhysicalPlan plan = new TrendlineOperator(tableScan, Arrays.asList(
+        AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+        AstDSL.computation(3, AstDSL.field("time"), "time_alias", "sma")));
+    assertEquals(
+        new ExplainResponse(
+            new ExplainResponseNode(
+                "TrendlineOperator",
+                ImmutableMap.of("computations", List.of(
+                    ImmutableMap.of(
+                      "computationType",
+                      "sma",
+                      "numberOfDataPoints", 2,
+                      "dataField", "distance",
+                      "alias", "distance_alias"),
+                    ImmutableMap.of(
+                        "computationType",
+                        "sma",
+                        "numberOfDataPoints", 3,
+                        "dataField", "time",
+                        "alias", "time_alias"))),
+                singletonList(tableScan.explainNode()))),
+        explain.apply(plan));
+  }
+
 
   private static class FakeTableScan extends TableScanOperator {
     @Override
