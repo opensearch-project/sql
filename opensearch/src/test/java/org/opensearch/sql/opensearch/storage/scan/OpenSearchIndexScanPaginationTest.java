@@ -56,6 +56,7 @@ public class OpenSearchIndexScanPaginationTest {
     lenient()
         .when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
+    lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
   }
 
   @Mock private OpenSearchClient client;
@@ -64,7 +65,8 @@ public class OpenSearchIndexScanPaginationTest {
       new OpenSearchExprValueFactory(
           Map.of(
               "name", OpenSearchDataType.of(STRING),
-              "department", OpenSearchDataType.of(STRING)));
+              "department", OpenSearchDataType.of(STRING)),
+          true);
 
   @Test
   void query_empty_result() {

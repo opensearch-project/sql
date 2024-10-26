@@ -423,7 +423,7 @@ public class NestedIT extends SQLIntegTestCase {
             + " nested(message.dayOfWeek) >= 4";
     JSONObject result = executeJdbcRequest(query);
     assertEquals(2, result.getInt("total"));
-    verifyDataRows(result, rows("c", "ab", 4), rows("zz", "aa", 6));
+    verifyDataRows(result, rows("c", "ab", 4), rows("zz", new JSONArray(List.of("aa", "bb")), 6));
   }
 
   @Test

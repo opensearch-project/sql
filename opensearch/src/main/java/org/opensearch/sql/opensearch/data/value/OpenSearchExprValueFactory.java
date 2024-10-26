@@ -75,6 +75,9 @@ public class OpenSearchExprValueFactory {
   /** The Mapping of Field and ExprType. */
   private final Map<String, OpenSearchDataType> typeMapping;
 
+  /** Whether to support nested value types (such as arrays) */
+  private final boolean fieldTypeTolerance;
+
   /**
    * Extend existing mapping by new data without overwrite. Called from aggregation only {@see
    * AggregationQueryBuilder#buildTypeMapping}.
@@ -143,8 +146,10 @@ public class OpenSearchExprValueFactory {
           .build();
 
   /** Constructor of OpenSearchExprValueFactory. */
-  public OpenSearchExprValueFactory(Map<String, OpenSearchDataType> typeMapping) {
+  public OpenSearchExprValueFactory(
+      Map<String, OpenSearchDataType> typeMapping, boolean fieldTypeTolerance) {
     this.typeMapping = OpenSearchDataType.traverseAndFlatten(typeMapping);
+    this.fieldTypeTolerance = fieldTypeTolerance;
   }
 
   /**
@@ -160,7 +165,7 @@ public class OpenSearchExprValueFactory {
           new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)),
           TOP_PATH,
           Optional.of(STRUCT),
-          supportArrays);
+          fieldTypeTolerance || supportArrays);
     } catch (JsonProcessingException e) {
       throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
     }

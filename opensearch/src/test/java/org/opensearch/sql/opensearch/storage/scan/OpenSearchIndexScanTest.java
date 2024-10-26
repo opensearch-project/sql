@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.expression.DSL.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -81,7 +82,8 @@ class OpenSearchIndexScanTest {
   private final OpenSearchExprValueFactory exprValueFactory =
       new OpenSearchExprValueFactory(
           Map.of(
-              "name", OpenSearchDataType.of(STRING), "department", OpenSearchDataType.of(STRING)));
+              "name", OpenSearchDataType.of(STRING), "department", OpenSearchDataType.of(STRING)),
+          true);
 
   @BeforeEach
   void setup() {}
@@ -94,6 +96,8 @@ class OpenSearchIndexScanTest {
       assertEquals("explain works!", indexScan.explain());
     }
   }
+
+  private void assertEquals(String s, String explain) {}
 
   @Test
   @SneakyThrows
