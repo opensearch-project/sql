@@ -9,6 +9,7 @@ import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
@@ -30,15 +31,20 @@ public class TrendlineOperator extends PhysicalPlan {
   @Getter private final List<Trendline.TrendlineComputation> computations;
   @EqualsAndHashCode.Exclude private final List<TrendlineAccumulator> accumulators;
   @EqualsAndHashCode.Exclude private final Map<String, Integer> fieldToIndexMap;
+  @EqualsAndHashCode.Exclude private final HashSet<String> aliases;
 
   public TrendlineOperator(PhysicalPlan input, List<Trendline.TrendlineComputation> computations) {
     this.input = input;
     this.computations = computations;
     this.accumulators = computations.stream().map(TrendlineOperator::createAccumulator).toList();
     fieldToIndexMap = new HashMap<>(computations.size());
+    aliases = new HashSet<>(computations.size());
     for (int i = 0; i < computations.size(); ++i) {
-
-      fieldToIndexMap.put(computations.get(i).getDataField().getChild().get(0).toString(), i);
+      final Trendline.TrendlineComputation computation = computations.get(i);
+      fieldToIndexMap.put(computation.getDataField().getChild().get(0).toString(), i);
+      if (computation.getAlias() != null) {
+        aliases.add(computation.getAlias());
+      }
     }
   }
 
@@ -61,36 +67,36 @@ public class TrendlineOperator extends PhysicalPlan {
   public ExprValue next() {
     final ExprValue result;
     final ExprValue next = input.next();
-    consumeInputTuple(next);
-    final Map<String, ExprValue> inputStruct = ExprValueUtils.getTupleValue(next);
+    final Map<String, ExprValue> inputStruct = consumeInputTuple(next);
     final Builder<String, ExprValue> mapBuilder = new Builder<>();
     mapBuilder.putAll(inputStruct);
 
     // Add calculated trendline values, which might overwrite existing fields from the input.
     for (int i = 0; i < accumulators.size(); ++i) {
       final ExprValue calculateResult = accumulators.get(i).calculate();
-      if (null != calculateResult) {
-        if (null != computations.get(i).getAlias()) {
-          mapBuilder.put(computations.get(i).getAlias(), calculateResult);
-        } else {
-          mapBuilder.put(
-              computations.get(i).getDataField().getChild().get(0).toString(), calculateResult);
-        }
+      final String field =
+          null != computations.get(i).getAlias()
+              ? computations.get(i).getAlias()
+              : computations.get(i).getDataField().getChild().get(0).toString();
+      if (calculateResult != null) {
+        mapBuilder.put(field, calculateResult);
       }
     }
+
     result = ExprTupleValue.fromExprValueMap(mapBuilder.buildKeepingLast());
     return result;
   }
 
-  private void consumeInputTuple(ExprValue inputValue) {
+  private Map<String, ExprValue> consumeInputTuple(ExprValue inputValue) {
     final Map<String, ExprValue> tupleValue = ExprValueUtils.getTupleValue(inputValue);
     for (String bindName : tupleValue.keySet()) {
       final Integer index = fieldToIndexMap.get(bindName);
-      if (index == null) {
-        continue;
+      if (index != null) {
+        accumulators.get(index).accumulate(tupleValue.get(bindName));
       }
-      accumulators.get(index).accumulate(tupleValue.get(bindName));
     }
+    tupleValue.keySet().removeAll(aliases);
+    return tupleValue;
   }
 
   private static TrendlineAccumulator createAccumulator(
