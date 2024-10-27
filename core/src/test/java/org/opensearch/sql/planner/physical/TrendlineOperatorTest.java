@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -37,7 +39,9 @@ public class TrendlineOperatorTest {
         new TrendlineOperator(
             inputPlan,
             Collections.singletonList(
-                AstDSL.computation(1, AstDSL.field("distance"), "distance_alias", "sma")));
+                Pair.of(
+                    AstDSL.computation(1, AstDSL.field("distance"), "distance_alias", "sma"),
+                    ExprCoreType.DOUBLE)));
 
     plan.open();
     assertTrue(plan.hasNext());
@@ -59,7 +63,9 @@ public class TrendlineOperatorTest {
         new TrendlineOperator(
             inputPlan,
             Collections.singletonList(
-                AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma")));
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+                    ExprCoreType.DOUBLE)));
 
     plan.open();
     assertTrue(plan.hasNext());
@@ -86,7 +92,9 @@ public class TrendlineOperatorTest {
         new TrendlineOperator(
             inputPlan,
             Collections.singletonList(
-                AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma")));
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+                    ExprCoreType.DOUBLE)));
 
     plan.open();
     assertTrue(plan.hasNext());
@@ -118,8 +126,12 @@ public class TrendlineOperatorTest {
         new TrendlineOperator(
             inputPlan,
             Arrays.asList(
-                AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
-                AstDSL.computation(2, AstDSL.field("time"), "time_alias", "sma")));
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+                    ExprCoreType.DOUBLE),
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("time"), "time_alias", "sma"),
+                    ExprCoreType.DOUBLE)));
 
     plan.open();
     assertTrue(plan.hasNext());
@@ -153,7 +165,9 @@ public class TrendlineOperatorTest {
         new TrendlineOperator(
             inputPlan,
             Collections.singletonList(
-                AstDSL.computation(2, AstDSL.field("distance"), "time", "sma")));
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "time", "sma"),
+                    ExprCoreType.DOUBLE)));
 
     plan.open();
     assertTrue(plan.hasNext());
@@ -180,7 +194,9 @@ public class TrendlineOperatorTest {
         new TrendlineOperator(
             inputPlan,
             Collections.singletonList(
-                AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma")));
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+                    ExprCoreType.DOUBLE)));
 
     plan.open();
     assertTrue(plan.hasNext());

@@ -16,6 +16,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
@@ -132,7 +133,7 @@ public class LogicalPlanDSL {
   }
 
   public static LogicalTrendline trendline(
-      LogicalPlan input, Trendline.TrendlineComputation... computations) {
+      LogicalPlan input, Pair<Trendline.TrendlineComputation, ExprCoreType>... computations) {
     return new LogicalTrendline(input, Arrays.asList(computations));
   }
 

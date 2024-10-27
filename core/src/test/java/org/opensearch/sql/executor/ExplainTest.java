@@ -266,8 +266,10 @@ class ExplainTest extends ExpressionTestBase {
         new TrendlineOperator(
             tableScan,
             Arrays.asList(
-                AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
-                AstDSL.computation(3, AstDSL.field("time"), "time_alias", "sma")));
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+                    DOUBLE),
+                Pair.of(AstDSL.computation(3, AstDSL.field("time"), "time_alias", "sma"), DOUBLE)));
     assertEquals(
         new ExplainResponse(
             new ExplainResponseNode(

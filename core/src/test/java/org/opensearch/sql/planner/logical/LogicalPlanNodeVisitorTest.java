@@ -29,6 +29,7 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
@@ -146,7 +147,9 @@ class LogicalPlanNodeVisitorTest {
         new LogicalTrendline(
             relation,
             Collections.singletonList(
-                AstDSL.computation(1, AstDSL.field("testField"), "dummy", "sma")));
+                Pair.of(
+                    AstDSL.computation(1, AstDSL.field("testField"), "dummy", "sma"),
+                    ExprCoreType.DOUBLE)));
 
     return Stream.of(
             relation,

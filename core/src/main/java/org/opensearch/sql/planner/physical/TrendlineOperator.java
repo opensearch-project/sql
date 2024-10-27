@@ -15,11 +15,14 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 
@@ -28,19 +31,20 @@ import org.opensearch.sql.expression.Expression;
 @EqualsAndHashCode(callSuper = false)
 public class TrendlineOperator extends PhysicalPlan {
   @Getter private final PhysicalPlan input;
-  @Getter private final List<Trendline.TrendlineComputation> computations;
+  @Getter private final List<Pair<Trendline.TrendlineComputation, ExprCoreType>> computations;
   @EqualsAndHashCode.Exclude private final List<TrendlineAccumulator> accumulators;
   @EqualsAndHashCode.Exclude private final Map<String, Integer> fieldToIndexMap;
   @EqualsAndHashCode.Exclude private final HashSet<String> aliases;
 
-  public TrendlineOperator(PhysicalPlan input, List<Trendline.TrendlineComputation> computations) {
+  public TrendlineOperator(
+      PhysicalPlan input, List<Pair<Trendline.TrendlineComputation, ExprCoreType>> computations) {
     this.input = input;
     this.computations = computations;
     this.accumulators = computations.stream().map(TrendlineOperator::createAccumulator).toList();
     fieldToIndexMap = new HashMap<>(computations.size());
     aliases = new HashSet<>(computations.size());
     for (int i = 0; i < computations.size(); ++i) {
-      final Trendline.TrendlineComputation computation = computations.get(i);
+      final Trendline.TrendlineComputation computation = computations.get(i).getKey();
       fieldToIndexMap.put(computation.getDataField().getChild().get(0).toString(), i);
       aliases.add(computation.getAlias());
     }
@@ -72,7 +76,7 @@ public class TrendlineOperator extends PhysicalPlan {
     // Add calculated trendline values, which might overwrite existing fields from the input.
     for (int i = 0; i < accumulators.size(); ++i) {
       final ExprValue calculateResult = accumulators.get(i).calculate();
-      final String field = computations.get(i).getAlias();
+      final String field = computations.get(i).getKey().getAlias();
       if (calculateResult != null) {
         mapBuilder.put(field, calculateResult);
       }
@@ -95,13 +99,14 @@ public class TrendlineOperator extends PhysicalPlan {
   }
 
   private static TrendlineAccumulator createAccumulator(
-      Trendline.TrendlineComputation computation) {
-    switch (computation.getComputationType()) {
+      Pair<Trendline.TrendlineComputation, ExprCoreType> computation) {
+    switch (computation.getKey().getComputationType()) {
       case SMA:
-        return new SimpleMovingAverageAccumulator(computation);
+        return new SimpleMovingAverageAccumulator(computation.getKey());
       case WMA:
       default:
-        throw new IllegalStateException("Unexpected value: " + computation.getComputationType());
+        throw new IllegalStateException(
+            "Unexpected value: " + computation.getKey().getComputationType());
     }
   }
 

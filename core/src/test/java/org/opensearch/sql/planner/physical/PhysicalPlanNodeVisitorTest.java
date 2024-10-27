@@ -71,8 +71,10 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
                                     new TrendlineOperator(
                                         new TestScan(),
                                         Collections.singletonList(
-                                            AstDSL.computation(
-                                                1, AstDSL.field("field"), "alias", "sma"))),
+                                            Pair.of(
+                                                AstDSL.computation(
+                                                    1, AstDSL.field("field"), "alias", "sma"),
+                                                DOUBLE))),
                                     1,
                                     1),
                                 DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10))),
@@ -148,7 +150,7 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
         new TrendlineOperator(
             plan,
             Collections.singletonList(
-                AstDSL.computation(1, AstDSL.field("field"), "alias", "sma")));
+                Pair.of(AstDSL.computation(1, AstDSL.field("field"), "alias", "sma"), DOUBLE)));
 
     return Stream.of(
         Arguments.of(filter, "filter"),
