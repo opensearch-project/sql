@@ -42,9 +42,7 @@ public class TrendlineOperator extends PhysicalPlan {
     for (int i = 0; i < computations.size(); ++i) {
       final Trendline.TrendlineComputation computation = computations.get(i);
       fieldToIndexMap.put(computation.getDataField().getChild().get(0).toString(), i);
-      if (computation.getAlias() != null) {
-        aliases.add(computation.getAlias());
-      }
+      aliases.add(computation.getAlias());
     }
   }
 
@@ -74,10 +72,7 @@ public class TrendlineOperator extends PhysicalPlan {
     // Add calculated trendline values, which might overwrite existing fields from the input.
     for (int i = 0; i < accumulators.size(); ++i) {
       final ExprValue calculateResult = accumulators.get(i).calculate();
-      final String field =
-          null != computations.get(i).getAlias()
-              ? computations.get(i).getAlias()
-              : computations.get(i).getDataField().getChild().get(0).toString();
+      final String field = computations.get(i).getAlias();
       if (calculateResult != null) {
         mapBuilder.put(field, calculateResult);
       }

@@ -361,10 +361,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     @Override
     public String visitTrendlineComputation(Trendline.TrendlineComputation node, String context) {
       final String dataField = node.getDataField().accept(this, context);
-      final String aliasOrEmpty = node.getAlias() != null ? " as " + node.getAlias() : "";
+      final String aliasClause = " as " + node.getAlias();
       final String computationType = node.getComputationType().name().toLowerCase(Locale.ROOT);
       return StringUtils.format(
-          "%s(%d, %s)%s", computationType, node.getNumberOfDataPoints(), dataField, aliasOrEmpty);
+          "%s(%d, %s)%s", computationType, node.getNumberOfDataPoints(), dataField, aliasClause);
     }
   }
 }
