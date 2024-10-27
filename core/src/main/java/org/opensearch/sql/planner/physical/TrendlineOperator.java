@@ -177,15 +177,4 @@ public class TrendlineOperator extends PhysicalPlan {
       return runningAverage;
     }
   }
-
-  private static class WeightedMovingAverageAccumulator implements TrendlineAccumulator {
-
-    @Override
-    public void accumulate(ExprValue value) {}
-
-    @Override
-    public ExprValue calculate() {
-      return null;
-    }
-  }
 }
