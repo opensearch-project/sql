@@ -131,7 +131,7 @@ public class TrendlineOperator extends PhysicalPlan {
     @Override
     public void accumulate(ExprValue value) {
       if (value == null) {
-        // Should this make the whole calculation null?
+        // Ignore null values, for consistency with average aggregate.
         return;
       }
 
