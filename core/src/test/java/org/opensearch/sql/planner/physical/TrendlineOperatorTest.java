@@ -140,6 +140,7 @@ public class TrendlineOperatorTest {
     assertFalse(plan.hasNext());
   }
 
+  @Test
   public void alias_overwrites_input_field() {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
@@ -156,14 +157,42 @@ public class TrendlineOperatorTest {
 
     plan.open();
     assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 100)), plan.next());
+    assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100)), plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
         plan.next(), ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 150.0)));
     assertTrue(plan.hasNext());
     assertEquals(
         plan.next(), ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 200.0)));
+    assertFalse(plan.hasNext());
+  }
+
+  @Test
+  public void calculates_simple_moving_average_one_field_two_samples_three_rows_null_value() {
+    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
+    when(inputPlan.next())
+        .thenReturn(
+            ExprValueUtils.tupleValue(ImmutableMap.of("time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 300, "time", 10)));
+
+    var plan =
+        new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma")));
+
+    plan.open();
+    assertTrue(plan.hasNext());
+    assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of("time", 10)), plan.next());
+    assertTrue(plan.hasNext());
+    assertEquals(
+        plan.next(), ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+    assertTrue(plan.hasNext());
+    assertEquals(
+        plan.next(),
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 300, "time", 10, "distance_alias", 250.0)));
     assertFalse(plan.hasNext());
   }
 }
