@@ -1487,8 +1487,8 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.trendline(
             LogicalPlanDSL.relation("schema", table),
-            computation(5, field("float_value"), "test_field_alias", "sma"),
-            computation(1, field("double_value"), "test_field_alias_2", "sma")),
+            Pair.of(computation(5, field("float_value"), "test_field_alias", "sma"), DOUBLE),
+            Pair.of(computation(1, field("double_value"), "test_field_alias_2", "sma"), DOUBLE)),
         AstDSL.trendline(
             AstDSL.relation("schema"),
             computation(5, field("float_value"), "test_field_alias", "sma"),

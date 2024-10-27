@@ -608,11 +608,37 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             .map(expression -> (Trendline.TrendlineComputation) expression)
             .toList();
 
+    final ImmutableList.Builder<Pair<Trendline.TrendlineComputation, ExprCoreType>>
+        computationsAndTypes = ImmutableList.builder();
     computations.forEach(
-        computation ->
-            currEnv.define(
-                new Symbol(Namespace.FIELD_NAME, computation.getAlias()), ExprCoreType.DOUBLE));
-    return new LogicalTrendline(child, computations);
+        computation -> {
+          final Expression resolvedField =
+              expressionAnalyzer.analyze(computation.getDataField(), context);
+          final ExprCoreType averageType;
+          // Duplicate the semantics of AvgAggregator#create():
+          // - All numerical types have the DOUBLE type for the moving average.
+          // - All datetime types have the same datetime type for the moving average.
+          if (ExprCoreType.numberTypes().contains(resolvedField.type())) {
+            averageType = ExprCoreType.DOUBLE;
+          } else if (ExprCoreType.DATE == resolvedField.type()) {
+            averageType = ExprCoreType.DATE;
+          } else if (ExprCoreType.TIME == resolvedField.type()) {
+            averageType = ExprCoreType.TIME;
+          } else if (ExprCoreType.TIMESTAMP == resolvedField.type()) {
+            averageType = ExprCoreType.TIMESTAMP;
+          } else {
+            throw new SemanticCheckException(
+                String.format(
+                    "Invalid field used for trendline computation %s. Source field %s had type %s"
+                        + " but must be a numerical or datetime field.",
+                    computation.getAlias(),
+                    computation.getDataField().getChild().get(0),
+                    resolvedField.type().typeName()));
+          }
+          currEnv.define(new Symbol(Namespace.FIELD_NAME, computation.getAlias()), averageType);
+          computationsAndTypes.add(Pair.of(computation, averageType));
+        });
+    return new LogicalTrendline(child, computationsAndTypes.build());
   }
 
   @Override

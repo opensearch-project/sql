@@ -190,11 +190,8 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   @Override
   public PhysicalPlan visitTrendline(TrendlineOperator node, Object context) {
-    TrendlineOperator trendlineOperator = (TrendlineOperator) node;
     return doProtect(
-        new TrendlineOperator(
-            visitInput(trendlineOperator.getInput(), context),
-            trendlineOperator.getComputations()));
+        new TrendlineOperator(visitInput(node.getInput(), context), node.getComputations()));
   }
 
   PhysicalPlan visitInput(PhysicalPlan node, Object context) {

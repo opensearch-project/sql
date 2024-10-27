@@ -222,7 +222,11 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
         explainNode ->
             explainNode.setDescription(
                 ImmutableMap.of(
-                    "computations", describeTrendlineComputations(node.getComputations()))));
+                    "computations",
+                    describeTrendlineComputations(
+                        node.getComputations().stream()
+                            .map(Pair::getKey)
+                            .collect(Collectors.toList())))));
   }
 
   protected ExplainResponseNode explain(

@@ -317,7 +317,9 @@ class DefaultImplementorTest {
     when(logicalChild.accept(implementor, null)).thenReturn(physicalChild);
     final Trendline.TrendlineComputation computation =
         AstDSL.computation(1, AstDSL.field("field"), "alias", "sma");
-    var logicalPlan = new LogicalTrendline(logicalChild, Collections.singletonList(computation));
+    var logicalPlan =
+        new LogicalTrendline(
+            logicalChild, Collections.singletonList(Pair.of(computation, ExprCoreType.DOUBLE)));
     var implemented = logicalPlan.accept(implementor, null);
     assertInstanceOf(TrendlineOperator.class, implemented);
     assertSame(physicalChild, implemented.getChild().get(0));
