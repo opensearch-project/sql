@@ -872,3 +872,10 @@ Reenable field type tolerance::
 	      "plugins.query.field_type_tolerance" : true
 	    }
 	  }'
+
+Limitations:
+------------
+* Fields with array values should only be used in the projection list
+* Array values are not supported by SQL or PPL functions
+* Array values in expressions will cause the query to fail or produce incorrect results
+* PPL commands do not support examining or altering array values
