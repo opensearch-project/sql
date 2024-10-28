@@ -1496,6 +1496,29 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void trendline_datetime_types() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.relation("schema", table),
+            Pair.of(
+                computation(5, field("timestamp_value"), "test_field_alias", "sma"), TIMESTAMP)),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            computation(5, field("timestamp_value"), "test_field_alias", "sma")));
+  }
+
+  @Test
+  public void trendline_illegal_type() {
+    assertThrows(
+        SemanticCheckException.class,
+        () ->
+            analyze(
+                AstDSL.trendline(
+                    AstDSL.relation("schema"),
+                    computation(5, field("array_value"), "test_field_alias", "sma"))));
+  }
+
+  @Test
   public void ad_batchRCF_relation() {
     Map<String, Literal> argumentMap =
         new HashMap<String, Literal>() {
