@@ -15,16 +15,15 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.tree.Trendline;
-import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.LiteralExpression;
 
 /** Trendline command implementation */
 @ToString
@@ -119,12 +118,12 @@ public class TrendlineOperator extends PhysicalPlan {
 
   // TODO: Make the actual math polymorphic based on types to deal with datetimes.
   private static class SimpleMovingAverageAccumulator implements TrendlineAccumulator {
-    private final ExprValue dataPointsNeeded;
+    private final LiteralExpression dataPointsNeeded;
     private final EvictingQueue<ExprValue> receivedValues;
-    private ExprValue runningAverage = null;
+    private Expression runningTotal = null;
 
     public SimpleMovingAverageAccumulator(Trendline.TrendlineComputation computation) {
-      dataPointsNeeded = new ExprIntegerValue(computation.getNumberOfDataPoints());
+      dataPointsNeeded = DSL.literal(computation.getNumberOfDataPoints().doubleValue());
       receivedValues = EvictingQueue.create(computation.getNumberOfDataPoints());
     }
 
@@ -135,51 +134,44 @@ public class TrendlineOperator extends PhysicalPlan {
         return;
       }
 
-      if (dataPointsNeeded.integerValue() == 1) {
-        runningAverage = value;
+      if (dataPointsNeeded.valueOf().integerValue() == 1) {
+        runningTotal = DSL.literal(value);
         receivedValues.add(value);
         return;
       }
 
       final ExprValue valueToRemove;
-      if (receivedValues.size() == dataPointsNeeded.integerValue()) {
+      if (receivedValues.size() == dataPointsNeeded.valueOf().integerValue()) {
         valueToRemove = receivedValues.remove();
       } else {
         valueToRemove = null;
       }
       receivedValues.add(value);
 
-      if (receivedValues.size() == dataPointsNeeded.integerValue()) {
-        if (runningAverage != null) {
-          // We can use the previous average calculation.
-          // Subtract the evicted value / period and add the new value / period.
-          // Refactored, that would be previous + (newValue - oldValue) / period
-          runningAverage =
-              DSL.add(
-                      DSL.literal(runningAverage),
-                      DSL.divide(
-                          DSL.subtract(DSL.literal(value), DSL.literal(valueToRemove)),
-                          DSL.literal(dataPointsNeeded.doubleValue())))
-                  .valueOf();
+      if (receivedValues.size() == dataPointsNeeded.valueOf().integerValue()) {
+        if (runningTotal != null) {
+          // We can use the previous calculation.
+          // Subtract the evicted value and add the new value.
+          // Refactored, that would be previous + (newValue - oldValue).
+          runningTotal =
+              DSL.add(runningTotal, DSL.subtract(DSL.literal(value), DSL.literal(valueToRemove)));
         } else {
           // This is the first average calculation so sum the entire receivedValues dataset.
           final List<ExprValue> data = receivedValues.stream().toList();
-          Expression runningTotal = DSL.literal(0.0D);
+          runningTotal = DSL.literal(0.0D);
           for (ExprValue entry : data) {
             runningTotal = DSL.add(runningTotal, DSL.literal(entry));
           }
-          runningAverage =
-              DSL.divide(runningTotal, DSL.literal(dataPointsNeeded.doubleValue())).valueOf();
         }
       }
     }
 
     @Override
     public ExprValue calculate() {
-      if (receivedValues.size() < dataPointsNeeded.integerValue()) {
+      if (receivedValues.size() < dataPointsNeeded.valueOf().integerValue()) {
         return null;
       }
-      return runningAverage;
+      return DSL.divide(runningTotal, dataPointsNeeded).valueOf();
     }
   }
 }
