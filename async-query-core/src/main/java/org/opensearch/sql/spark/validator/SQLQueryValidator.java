@@ -36,4 +36,12 @@ public class SQLQueryValidator {
       throw e;
     }
   }
+
+  /**
+   * Validates a query from the Flint extension grammar. The method is currently a no-op.
+   *
+   * @param sqlQuery The Flint extension query to be validated
+   * @param dataSourceType The type of the datasource the query is being run on
+   */
+  public void validateFlintExtensionQuery(String sqlQuery, DataSourceType dataSourceType) {}
 }
