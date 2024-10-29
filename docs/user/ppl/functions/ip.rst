@@ -22,12 +22,11 @@ Return type: BOOLEAN
 
 Example::
 
-    os> source=devices | where cidr(address, "198.51.100.0/24")
-    fetched rows / total rows = 2/2
-    +----------------+----------------+
-    | name           | address        |
-    |----------------+----------------+
-    | John's Macbook | 198.51.100.2   |
-    | Iain's PC      | 198.51.100.254 |
-    +----------------+----------------+
+    os> source=weblogs | where cidr(address, "199.120.110.0/24") | fields host, method, url
+    fetched rows / total rows = 1/1
+    +----------------+--------+----------------------------------------------+
+    | host           | method | url                                          |
+    |----------------+--------+----------------------------------------------+
+    | 199.120.110.21 | GET    | /shuttle/missions/sts-73/mission-sts-73.html |
+    +----------------+--------+----------------------------------------------+
 

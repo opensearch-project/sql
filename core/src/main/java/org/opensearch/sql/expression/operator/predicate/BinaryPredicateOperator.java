@@ -26,7 +26,6 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
-import org.opensearch.sql.utils.IPUtils;
 import org.opensearch.sql.utils.OperatorUtils;
 
 /**
@@ -56,7 +55,6 @@ public class BinaryPredicateOperator {
     repository.register(like());
     repository.register(notLike());
     repository.register(regexp());
-    repository.register(cidr());
   }
 
   /**
@@ -396,12 +394,6 @@ public class BinaryPredicateOperator {
     return define(
         BuiltinFunctionName.REGEXP.getName(),
         impl(nullMissingHandling(OperatorUtils::matchesRegexp), INTEGER, STRING, STRING));
-  }
-
-  private static DefaultFunctionResolver cidr() {
-    return define(
-            BuiltinFunctionName.CIDR.getName(),
-            impl(nullMissingHandling(IPUtils::isAddressInRange), BOOLEAN, STRING, STRING));
   }
 
   private static DefaultFunctionResolver notLike() {
