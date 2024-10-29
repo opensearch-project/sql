@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.expression.ip;
 
 import org.junit.jupiter.api.Test;
@@ -22,20 +27,20 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 public class IPFunctionTest {
 
     // IP range and address constants for testing.
-    static final ExprValue IPv4Range = ExprValueUtils.stringValue("198.51.100.0/24");
-    static final ExprValue IPv6Range = ExprValueUtils.stringValue("2001:0db8::/32");
+    private static final ExprValue IPv4Range = ExprValueUtils.stringValue("198.51.100.0/24");
+    private static final ExprValue IPv6Range = ExprValueUtils.stringValue("2001:0db8::/32");
 
-    static final ExprValue IPv4AddressBelow = ExprValueUtils.stringValue("198.51.99.1");
-    static final ExprValue IPv4AddressWithin = ExprValueUtils.stringValue("198.51.100.1");
-    static final ExprValue IPv4AddressAbove = ExprValueUtils.stringValue("198.51.101.2");
+    private static final ExprValue IPv4AddressBelow = ExprValueUtils.stringValue("198.51.99.1");
+    private static final ExprValue IPv4AddressWithin = ExprValueUtils.stringValue("198.51.100.1");
+    private static final ExprValue IPv4AddressAbove = ExprValueUtils.stringValue("198.51.101.2");
 
-    static final ExprValue IPv6AddressBelow = ExprValueUtils.stringValue("2001:0db7::ff00:42:8329");
-    static final ExprValue IPv6AddressWithin = ExprValueUtils.stringValue("2001:0db8::ff00:42:8329");
-    static final ExprValue IPv6AddressAbove = ExprValueUtils.stringValue("2001:0db9::ff00:42:8329");
+    private static final ExprValue IPv6AddressBelow = ExprValueUtils.stringValue("2001:0db7::ff00:42:8329");
+    private static final ExprValue IPv6AddressWithin = ExprValueUtils.stringValue("2001:0db8::ff00:42:8329");
+    private static final ExprValue IPv6AddressAbove = ExprValueUtils.stringValue("2001:0db9::ff00:42:8329");
 
     // Mock value environment for testing.
     @Mock
-    Environment<Expression, ExprValue> env;
+    private Environment<Expression, ExprValue> env;
 
     @Test
     public void cidr_invalid_address() {

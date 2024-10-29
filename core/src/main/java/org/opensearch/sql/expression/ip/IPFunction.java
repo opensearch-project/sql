@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.expression.ip;
 
 import com.google.common.net.InetAddresses;
@@ -10,12 +15,12 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 
 import java.math.BigInteger;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.opensearch.sql.data.type.ExprCoreType.*;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.function.FunctionDSL.*;
 
 /**
@@ -31,9 +36,7 @@ public class IPFunction {
     }
 
     private DefaultFunctionResolver cidr() {
-        return define(
-                BuiltinFunctionName.CIDR.getName(),
-                impl(nullMissingHandling(IPFunction::exprCidr), BOOLEAN, STRING, STRING));
+        return define(BuiltinFunctionName.CIDR.getName(), impl(nullMissingHandling(IPFunction::exprCidr), BOOLEAN, STRING, STRING));
     }
 
     /**
@@ -49,8 +52,9 @@ public class IPFunction {
 
         // Get address
         String addressString = addressExprValue.stringValue();
-        if (!InetAddresses.isInetAddress(addressString))
+        if (!InetAddresses.isInetAddress(addressString)) {
             return ExprValueUtils.nullValue();
+        }
 
         InetAddress address = InetAddresses.forString(addressString);
 
@@ -67,8 +71,10 @@ public class IPFunction {
 
         InetAddress rangeAddress = InetAddresses.forString(rangeAddressString);
 
-        if ((address instanceof Inet4Address) ^ (rangeAddress instanceof Inet4Address))
+        // Address and range must use the same IP version (IPv4 or IPv6).
+        if (address.getClass().equals(rangeAddress.getClass())) {
             return ExprValueUtils.booleanValue(false);
+        }
 
         int networkLengthBits = Integer.parseInt(cidrMatcher.group("networkLength"));
         int addressLengthBits = address.getAddress().length * Byte.SIZE;

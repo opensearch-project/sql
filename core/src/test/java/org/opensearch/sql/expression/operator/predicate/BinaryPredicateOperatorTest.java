@@ -209,24 +209,6 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     return builder.build();
   }
 
-  private static Stream<Arguments> getCidrArguments() {
-    return Stream.of(
-            Arguments.of("10.24.33.5", "10.24.34.0/24", false), // IPv4 less
-            Arguments.of("10.24.34.5", "10.24.34.0/24", true),   // IPv4 between
-            Arguments.of("10.24.35.5", "10.24.34.0/24", false), // IPv4 greater
-            Arguments.of("10.24.35.5", "10.24.34.0/33", false), // IPv4 prefix too long
-
-            Arguments.of("2001:0db7::8329", "2001:0db8::/32", false), // IPv6 less
-            Arguments.of("2001:0db8::8329", "2001:0db8::/32", true),  // IPv6 between
-            Arguments.of("2001:0db9::8329", "2001:0db8::/32", false), // IPv6 greater
-            Arguments.of("2001:0db9::8329", "2001:0db8::/129", false), // IPv6 prefix too long
-
-            Arguments.of("INVALID", "10.24.34.0/24", false), // Invalid address
-            Arguments.of("10.24.34.5", "INVALID", false), // Invalid range
-            Arguments.of("10.24.34.5", "10.24.34.0/INVALID", false) // Invalid prefix
-    );
-  }
-
   @ParameterizedTest(name = "and({0}, {1})")
   @MethodSource("binaryPredicateArguments")
   public void test_and(Boolean v1, Boolean v2) {
@@ -632,13 +614,5 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   public void compare_int_long() {
     FunctionExpression equal = DSL.equal(DSL.literal(1), DSL.literal(1L));
     assertTrue(equal.valueOf(valueEnv()).booleanValue());
-  }
-
-  @ParameterizedTest
-  @MethodSource("getCidrArguments")
-  public void test_cidr(String address, String range, boolean expected) {
-    FunctionExpression cidr = DSL.cidr(DSL.literal(address), DSL.literal(range));
-    assertEquals(cidr.type(), BOOLEAN);
-    assertEquals(cidr.valueOf().booleanValue(), expected);
   }
 }

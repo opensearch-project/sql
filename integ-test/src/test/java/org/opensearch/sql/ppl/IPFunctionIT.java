@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.ppl;
 
 import org.json.JSONObject;
@@ -33,8 +38,6 @@ public class IPFunctionIT extends PPLIntegTestCase {
         // Multiple matches
         result = executeQuery(String.format("source=%s | where cidr(host, '199.0.0.0/8') | fields url", TEST_INDEX_WEBLOG));
         verifySchema(result, schema("url", null, "boolean"));
-        verifyDataRows(result,
-                rows("/history/apollo/"),
-                rows("/shuttle/missions/sts-73/mission-sts-73.html"));
+        verifyDataRows(result, rows("/history/apollo/"), rows("/shuttle/missions/sts-73/mission-sts-73.html"));
     }
 }
