@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 
@@ -217,6 +218,38 @@ public class TrendlineOperatorTest {
   }
 
   @Test
+  public void use_null_value() {
+    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
+    when(inputPlan.next())
+        .thenReturn(
+            ExprValueUtils.tupleValue(ImmutableMap.of("time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", ExprNullValue.of(), "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)));
+
+    var plan =
+        new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(1, AstDSL.field("distance"), "distance_alias", "sma"),
+                    ExprCoreType.DOUBLE)));
+
+    plan.open();
+    assertTrue(plan.hasNext());
+    assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of("time", 10)), plan.next());
+    assertTrue(plan.hasNext());
+    assertEquals(
+        ExprValueUtils.tupleValue(ImmutableMap.of("distance", ExprNullValue.of(), "time", 10)),
+        plan.next());
+    assertTrue(plan.hasNext());
+    assertEquals(
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100)),
+        plan.next());
+    assertFalse(plan.hasNext());
+  }
+
+  @Test
   public void use_illegal_core_type() {
     assertThrows(
         IllegalArgumentException.class,
@@ -227,6 +260,20 @@ public class TrendlineOperatorTest {
                   Pair.of(
                       AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
                       ExprCoreType.ARRAY)));
+        });
+  }
+
+  @Test
+  public void use_illegal_computation_type() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          new TrendlineOperator(
+              inputPlan,
+              Collections.singletonList(
+                  Pair.of(
+                      AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "fake"),
+                      ExprCoreType.DOUBLE)));
         });
   }
 
