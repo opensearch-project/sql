@@ -72,7 +72,7 @@ public class IPFunction {
         InetAddress rangeAddress = InetAddresses.forString(rangeAddressString);
 
         // Address and range must use the same IP version (IPv4 or IPv6).
-        if (address.getClass().equals(rangeAddress.getClass())) {
+        if (!address.getClass().equals(rangeAddress.getClass())) {
             return ExprValueUtils.booleanValue(false);
         }
 
