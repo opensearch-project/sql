@@ -1,5 +1,5 @@
 =============
-rename
+trendline
 =============
 
 .. rubric:: Table of contents
