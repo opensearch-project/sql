@@ -101,3 +101,24 @@ The response in JDBC format with cursor id::
     }
 
 The query with `aggregation` and `join` does not support pagination for now.
+
+Limitations on Using Multi-valued Fields
+========================================
+
+Using a multi-valued field as an argument of a SQL or PPL function/operator will cause the query to fail. For
+example, the following query fails::
+
+    POST _plugins/_sql/
+    {
+      "query": "SELECT id, ABS(long_array) FROM multi_value_long"
+    }
+The response in JSON format is::
+
+    {
+      "error": {
+        "reason": "Invalid SQL query",
+        "details": "invalid to get longValue from value of type ARRAY",
+        "type": "ExpressionEvaluationException"
+      },
+      "status": 400
+    }
