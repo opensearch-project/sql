@@ -102,7 +102,7 @@ The query start with search command and then flowing a set of command delimited 
 
   - `System Functions <functions/system.rst>`_
 
-  - `IP Functions <functions/ip.rst>`_
+  - `IP Address Functions <functions/ip.rst>`_
 
 * **Optimization**
 
