@@ -322,7 +322,7 @@ CAST:                               'CAST';
 LIKE:                               'LIKE';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
-CIDR:                               'CIDR';
+CIDRMATCH:                          'CIDRMATCH';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';

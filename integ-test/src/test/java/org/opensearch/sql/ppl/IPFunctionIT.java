@@ -20,7 +20,7 @@ public class IPFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testCidr() throws IOException {
+  public void test_cidrmatch() throws IOException {
 
     JSONObject result;
 

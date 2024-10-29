@@ -30,13 +30,13 @@ public class IPFunction {
       Pattern.compile("(?<address>.+)[/](?<networkLength>[0-9]+)");
 
   public void register(BuiltinFunctionRepository repository) {
-    repository.register(cidr());
+    repository.register(cidrmatch());
   }
 
-  private DefaultFunctionResolver cidr() {
+  private DefaultFunctionResolver cidrmatch() {
     return define(
-        BuiltinFunctionName.CIDR.getName(),
-        impl(nullMissingHandling(IPFunction::exprCidr), BOOLEAN, STRING, STRING));
+        BuiltinFunctionName.CIDRMATCH.getName(),
+        impl(nullMissingHandling(IPFunction::exprCidrMatch), BOOLEAN, STRING, STRING));
   }
 
   /**
@@ -49,7 +49,7 @@ public class IPFunction {
    * @return null if the address is not valid; true if the address is in the range; otherwise false.
    * @throws SemanticCheckException if the range is not valid
    */
-  private ExprValue exprCidr(ExprValue addressExprValue, ExprValue rangeExprValue) {
+  private ExprValue exprCidrMatch(ExprValue addressExprValue, ExprValue rangeExprValue) {
 
     // Get address
     String addressString = addressExprValue.stringValue();

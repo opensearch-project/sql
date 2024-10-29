@@ -133,7 +133,7 @@ public enum BuiltinFunctionName {
   TOSTRING(FunctionName.of("tostring")),
 
   /** IP Functions. */
-  CIDR(FunctionName.of("cidr")),
+  CIDRMATCH(FunctionName.of("cidrmatch")),
 
   /** Arithmetic Operators. */
   ADD(FunctionName.of("+")),

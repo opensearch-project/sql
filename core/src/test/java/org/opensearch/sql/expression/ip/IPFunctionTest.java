@@ -45,12 +45,12 @@ public class IPFunctionTest {
   @Mock private Environment<Expression, ExprValue> env;
 
   @Test
-  public void cidr_invalid_address() {
+  public void cidrmatch_invalid_address() {
     assertEquals(LITERAL_NULL, execute(ExprValueUtils.stringValue("INVALID"), IPv4Range));
   }
 
   @Test
-  public void cidr_invalid_range() {
+  public void cidrmatch_invalid_range() {
     assertThrows(
         SemanticCheckException.class,
         () -> execute(IPv4AddressWithin, ExprValueUtils.stringValue("INVALID")));
@@ -63,21 +63,21 @@ public class IPFunctionTest {
   }
 
   @Test
-  public void cidr_valid_ipv4() {
+  public void cidrmatch_valid_ipv4() {
     assertEquals(LITERAL_FALSE, execute(IPv4AddressBelow, IPv4Range));
     assertEquals(LITERAL_TRUE, execute(IPv4AddressWithin, IPv4Range));
     assertEquals(LITERAL_FALSE, execute(IPv4AddressAbove, IPv4Range));
   }
 
   @Test
-  public void cidr_valid_ipv6() {
+  public void cidrmatch_valid_ipv6() {
     assertEquals(LITERAL_FALSE, execute(IPv6AddressBelow, IPv6Range));
     assertEquals(LITERAL_TRUE, execute(IPv6AddressWithin, IPv6Range));
     assertEquals(LITERAL_FALSE, execute(IPv6AddressAbove, IPv6Range));
   }
 
   @Test
-  public void cidr_valid_different_versions() {
+  public void cidrmatch_valid_different_versions() {
     assertEquals(LITERAL_FALSE, execute(IPv4AddressWithin, IPv6Range));
     assertEquals(LITERAL_FALSE, execute(IPv6AddressWithin, IPv4Range));
   }
@@ -89,7 +89,7 @@ public class IPFunctionTest {
   private ExprValue execute(ExprValue field, ExprValue range) {
 
     final String fieldName = "ip_address";
-    FunctionExpression exp = DSL.cidr(DSL.ref(fieldName, STRING), DSL.literal(range));
+    FunctionExpression exp = DSL.cidrmatch(DSL.ref(fieldName, STRING), DSL.literal(range));
 
     // Mock the value environment to return the specified field
     // expression as the value for the "ip_address" field.
