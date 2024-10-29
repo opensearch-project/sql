@@ -5,26 +5,20 @@
 
 package org.opensearch.sql.expression.operator.predicate;
 
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
-import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
-import static org.opensearch.sql.expression.function.FunctionDSL.impl;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
-import org.opensearch.sql.expression.function.DefaultFunctionResolver;
-import org.opensearch.sql.expression.function.FunctionBuilder;
-import org.opensearch.sql.expression.function.FunctionDSL;
-import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionSignature;
-import org.opensearch.sql.expression.function.SerializableFunction;
+import org.opensearch.sql.expression.function.*;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 
 /**
  * The definition of unary predicate function not, Accepts one Boolean value and produces a Boolean.
@@ -148,8 +142,8 @@ public class UnaryPredicateOperator {
   /**
    * v2 if v1 is null.
    *
-   * @param v1 varable 1
-   * @param v2 varable 2
+   * @param v1 variable 1
+   * @param v2 variable 2
    * @return v2 if v1 is null
    */
   public static ExprValue exprIfNull(ExprValue v1, ExprValue v2) {
@@ -157,10 +151,10 @@ public class UnaryPredicateOperator {
   }
 
   /**
-   * return null if v1 equls to v2.
+   * return null if v1 equals to v2.
    *
-   * @param v1 varable 1
-   * @param v2 varable 2
+   * @param v1 variable 1
+   * @param v2 variable 2
    * @return null if v1 equals to v2
    */
   public static ExprValue exprNullIf(ExprValue v1, ExprValue v2) {
