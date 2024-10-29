@@ -94,7 +94,10 @@ public class TrendlineOperator extends PhysicalPlan {
     for (String bindName : tupleValue.keySet()) {
       final Integer index = fieldToIndexMap.get(bindName);
       if (index != null) {
-        accumulators.get(index).accumulate(tupleValue.get(bindName));
+        final ExprValue fieldValue = tupleValue.get(bindName);
+        if (!fieldValue.isNull()) {
+          accumulators.get(index).accumulate(fieldValue);
+        }
       }
     }
     tupleValue.keySet().removeAll(aliases);
@@ -103,14 +106,9 @@ public class TrendlineOperator extends PhysicalPlan {
 
   private static TrendlineAccumulator createAccumulator(
       Pair<Trendline.TrendlineComputation, ExprCoreType> computation) {
-    switch (computation.getKey().getComputationType()) {
-      case SMA:
-        return new SimpleMovingAverageAccumulator(computation.getKey(), computation.getValue());
-      case WMA:
-      default:
-        throw new IllegalStateException(
-            "Unexpected value: " + computation.getKey().getComputationType());
-    }
+    // Add a switch statement based on computation type to choose the accumulator when more
+    // types of computations are supported.
+    return new SimpleMovingAverageAccumulator(computation.getKey(), computation.getValue());
   }
 
   /** Maintains stateful information for calculating the trendline. */
@@ -150,11 +148,6 @@ public class TrendlineOperator extends PhysicalPlan {
 
     @Override
     public void accumulate(ExprValue value) {
-      if (value == null) {
-        // Ignore null values, for consistency with average aggregate.
-        return;
-      }
-
       if (dataPointsNeeded.valueOf().integerValue() == 1) {
         runningTotal = evaluator.calculateFirstTotal(Collections.singletonList(value));
         receivedValues.add(value);
