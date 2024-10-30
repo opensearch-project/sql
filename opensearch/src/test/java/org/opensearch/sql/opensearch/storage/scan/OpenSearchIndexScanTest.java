@@ -78,13 +78,15 @@ class OpenSearchIndexScanTest {
   private final OpenSearchExprValueFactory exprValueFactory =
       new OpenSearchExprValueFactory(
           Map.of(
-              "name", OpenSearchDataType.of(STRING), "department", OpenSearchDataType.of(STRING)));
+              "name", OpenSearchDataType.of(STRING), "department", OpenSearchDataType.of(STRING)),
+          true);
 
   @BeforeEach
   void setup() {
     lenient()
         .when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER))
         .thenReturn(true);
+    lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
   }
 
   @Test
