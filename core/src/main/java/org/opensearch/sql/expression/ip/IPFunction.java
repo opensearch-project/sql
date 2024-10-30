@@ -5,15 +5,9 @@
 
 package org.opensearch.sql.expression.ip;
 
-import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
-import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.expression.function.FunctionDSL.*;
-
-import com.google.common.net.InetAddresses;
-import java.math.BigInteger;
-import java.net.InetAddress;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import inet.ipaddr.AddressStringException;
+import inet.ipaddr.IPAddressString;
+import inet.ipaddr.IPAddressStringParameters;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -22,12 +16,13 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.expression.function.FunctionDSL.*;
+
 /** Utility class that defines and registers IP functions. */
 @UtilityClass
 public class IPFunction {
-
-  private static final Pattern cidrPattern =
-      Pattern.compile("(?<address>.+)[/](?<networkLength>[0-9]+)");
 
   public void register(BuiltinFunctionRepository repository) {
     repository.register(cidrmatch());
@@ -40,8 +35,8 @@ public class IPFunction {
   }
 
   /**
-   * Returns whether the given IP address is within the specified CIDR IP address range.
-   * Supports both IPv4 and IPv6 addresses.
+   * Returns whether the given IP address is within the specified CIDR IP address range. Supports
+   * both IPv4 and IPv6 addresses.
    *
    * @param addressExprValue IP address (e.g. "198.51.100.14" or "2001:0db8::ff00:42:8329").
    * @param rangeExprValue IP address range in CIDR notation (e.g. "198.51.100.0/24" or
@@ -51,56 +46,51 @@ public class IPFunction {
    */
   private ExprValue exprCidrMatch(ExprValue addressExprValue, ExprValue rangeExprValue) {
 
-    // Get address
     String addressString = addressExprValue.stringValue();
-    if (!InetAddresses.isInetAddress(addressString)) {
-      return ExprValueUtils.nullValue();
-    }
-
-    InetAddress address = InetAddresses.forString(addressString);
-
-    // Get range and network length
     String rangeString = rangeExprValue.stringValue();
 
-    Matcher cidrMatcher = cidrPattern.matcher(rangeString);
-    if (!cidrMatcher.matches())
-      throw new SemanticCheckException(
-          String.format("CIDR notation '%s' in not valid", rangeString));
+    final IPAddressStringParameters validationOptions =
+        new IPAddressStringParameters.Builder()
+            .allowEmpty(false)
+            .setEmptyAsLoopback(false)
+            .allow_inet_aton(false)
+            .allowSingleSegment(false)
+            .toParams();
 
-    String rangeAddressString = cidrMatcher.group("address");
-    if (!InetAddresses.isInetAddress(rangeAddressString))
-      throw new SemanticCheckException(
-          String.format("IP address '%s' in not valid", rangeAddressString));
+    // Get and validate IP address.
+    IPAddressString address =
+        new IPAddressString(addressExprValue.stringValue(), validationOptions);
 
-    InetAddress rangeAddress = InetAddresses.forString(rangeAddressString);
+    try {
+      address.validate();
+    } catch (AddressStringException e) {
+      throw new SemanticCheckException(
+          String.format(
+              "IP address '%s' is not supported. Error details: %s",
+              addressString, e.getMessage()));
+    }
+
+    // Get and validate CIDR IP address range.
+    IPAddressString range = new IPAddressString(rangeExprValue.stringValue(), validationOptions);
+
+    try {
+      range.validate();
+    } catch (AddressStringException e) {
+      throw new SemanticCheckException(
+          String.format(
+              "CIDR IP address range '%s' is not supported. Error details: %s",
+              rangeString, e.getMessage()));
+    }
 
     // Address and range must use the same IP version (IPv4 or IPv6).
-    if (!address.getClass().equals(rangeAddress.getClass())) {
-      return ExprValueUtils.booleanValue(false);
-    }
-
-    int networkLengthBits = Integer.parseInt(cidrMatcher.group("networkLength"));
-    int addressLengthBits = address.getAddress().length * Byte.SIZE;
-
-    if (networkLengthBits > addressLengthBits)
+    if (address.isIPv4() ^ range.isIPv4()) {
       throw new SemanticCheckException(
-          String.format("Network length of '%s' bits is not valid", networkLengthBits));
-
-    // Build bounds by converting the address to an integer, setting all the non-significant bits to
-    // zero for the lower bounds and one for the upper bounds, and then converting back to
-    // addresses.
-    BigInteger lowerBoundInt = InetAddresses.toBigInteger(rangeAddress);
-    BigInteger upperBoundInt = InetAddresses.toBigInteger(rangeAddress);
-
-    int hostLengthBits = addressLengthBits - networkLengthBits;
-    for (int bit = 0; bit < hostLengthBits; bit++) {
-      lowerBoundInt = lowerBoundInt.clearBit(bit);
-      upperBoundInt = upperBoundInt.setBit(bit);
+          String.format(
+              "IP address '%s' and CIDR IP address range '%s' are not compatible. Both must be"
+                  + " either IPv4 or IPv6.",
+              addressString, rangeString));
     }
 
-    // Convert the address to an integer and compare it to the bounds.
-    BigInteger addressInt = InetAddresses.toBigInteger(address);
-    return ExprValueUtils.booleanValue(
-        (addressInt.compareTo(lowerBoundInt) >= 0) && (addressInt.compareTo(upperBoundInt) <= 0));
+    return ExprValueUtils.booleanValue(range.contains(address));
   }
 }
