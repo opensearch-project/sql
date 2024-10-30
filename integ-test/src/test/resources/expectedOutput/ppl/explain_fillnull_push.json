@@ -6,11 +6,11 @@
     },
     "children": [
       {
-        "name":"EvalOperator",
+        "name": "EvalOperator",
         "description": {
           "expressions": {
             "balance": "ifnull(balance, -1)",
-            "age":"ifnull(age, -1)"
+            "age": "ifnull(age, -1)"
           }
         },
         "children": [
@@ -23,7 +23,7 @@
               {
                 "name": "OpenSearchIndexScan",
                 "description": {
-                  "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"balance\",\"age\"],\"excludes\":[]}}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+                  "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\",\"balance\"],\"excludes\":[]}}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
                 },
                 "children": []
               }

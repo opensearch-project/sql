@@ -51,16 +51,16 @@ The example show to replace null values for email with "<not found>" and null va
 
 PPL query::
 
-    os> source=accounts | fields email, host | fillnull using email = '<not found>', host = '<no host>' ;
+    os> source=accounts | fields email, employer | fillnull using email = '<not found>', employer = '<no employer>' ;
     fetched rows / total rows = 4/4
-    +-----------------------+------------+
-    | email                 | host       |
-    |-----------------------+------------|
-    | amberduke@pyrami.com  | pyrami.com |
-    | hattiebond@netagy.com | netagy.com |
-    | <not found>           |            |
-    | daleadams@boink.com   | boink.com  |
-    +-----------------------+------------+
+    +-----------------------+---------------+
+    | email                 | employer      |
+    |-----------------------+---------------|
+    | amberduke@pyrami.com  | Pyrami        |
+    | hattiebond@netagy.com | Netagy        |
+    | <not found>           | Quility       |
+    | daleadams@boink.com   | <no employer> |
+    +-----------------------+---------------+
 
 Limitation
 ==========
