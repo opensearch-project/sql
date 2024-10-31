@@ -80,10 +80,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   /** Trendline clause. */
   @Override
-  public UnresolvedExpression visitTrendlineClause(OpenSearchPPLParser.TrendlineClauseContext ctx) {
+  public Trendline.TrendlineComputation visitTrendlineClause(
+      OpenSearchPPLParser.TrendlineClauseContext ctx) {
     final int numberOfDataPoints = Integer.parseInt(ctx.numberOfDataPoints.getText());
     if (numberOfDataPoints < 1) {
-      throw new SyntaxCheckException("Number of trendline data-points must be greater than or equal to 1");
+      throw new SyntaxCheckException(
+          "Number of trendline data-points must be greater than or equal to 1");
     }
 
     final Field dataField = (Field) this.visitFieldExpression(ctx.field);

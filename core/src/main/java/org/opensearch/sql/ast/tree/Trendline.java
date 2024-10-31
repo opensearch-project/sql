@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,8 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public class Trendline extends UnresolvedPlan {
 
   private UnresolvedPlan child;
-  private final List<UnresolvedExpression> computations;
+  private final Optional<Field> sortByField;
+  private final List<TrendlineComputation> computations;
 
   @Override
   public Trendline attach(UnresolvedPlan child) {

@@ -68,6 +68,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Disabled;
@@ -89,6 +90,7 @@ import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -1448,6 +1450,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             Pair.of(computation(1, field("double_value"), "test_field_alias_2", SMA), DOUBLE)),
         AstDSL.trendline(
             AstDSL.relation("schema"),
+            Optional.empty(),
             computation(5, field("float_value"), "test_field_alias", SMA),
             computation(1, field("double_value"), "test_field_alias_2", SMA)));
   }
@@ -1460,6 +1463,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             Pair.of(computation(5, field("timestamp_value"), "test_field_alias", SMA), TIMESTAMP)),
         AstDSL.trendline(
             AstDSL.relation("schema"),
+            Optional.empty(),
             computation(5, field("timestamp_value"), "test_field_alias", SMA)));
   }
 
@@ -1471,7 +1475,26 @@ class AnalyzerTest extends AnalyzerTestBase {
             analyze(
                 AstDSL.trendline(
                     AstDSL.relation("schema"),
+                    Optional.empty(),
                     computation(5, field("array_value"), "test_field_alias", SMA))));
+  }
+
+  @Test
+  public void trendline_with_sort() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.sort(
+                LogicalPlanDSL.relation("schema", table),
+                Pair.of(
+                    new SortOption(SortOrder.ASC, NullOrder.NULL_FIRST),
+                    DSL.ref("float_value", ExprCoreType.FLOAT))),
+            Pair.of(computation(5, field("float_value"), "test_field_alias", SMA), DOUBLE),
+            Pair.of(computation(1, field("double_value"), "test_field_alias_2", SMA), DOUBLE)),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            Optional.of(field("float_value", argument("asc", booleanLiteral(true)))),
+            computation(5, field("float_value"), "test_field_alias", SMA),
+            computation(1, field("double_value"), "test_field_alias_2", SMA)));
   }
 
   @Test

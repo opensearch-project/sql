@@ -265,20 +265,6 @@ public class TrendlineOperatorTest {
   }
 
   @Test
-  public void use_illegal_computation_type() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> {
-          new TrendlineOperator(
-              inputPlan,
-              Collections.singletonList(
-                  Pair.of(
-                      AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "fake"),
-                      ExprCoreType.DOUBLE)));
-        });
-  }
-
-  @Test
   public void calculates_simple_moving_average_date() {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
