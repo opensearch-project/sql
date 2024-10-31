@@ -108,6 +108,7 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
+                + "| head 5 "
                 + "| trendline sma(2, age) as ageTrend "
                 + "| fields ageTrend"));
   }
