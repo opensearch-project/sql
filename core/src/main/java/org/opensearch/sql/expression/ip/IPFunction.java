@@ -41,8 +41,9 @@ public class IPFunction {
    * @param addressExprValue IP address (e.g. "198.51.100.14" or "2001:0db8::ff00:42:8329").
    * @param rangeExprValue IP address range in CIDR notation (e.g. "198.51.100.0/24" or
    *     "2001:0db8::/32")
-   * @return null if the address is not valid; true if the address is in the range; otherwise false.
-   * @throws SemanticCheckException if the range is not valid
+   * @return true if the address is in the range; otherwise false.
+   * @throws SemanticCheckException if the address or range is not valid, or if they do not use the
+   *     same version (IPv4 or IPv6).
    */
   private ExprValue exprCidrMatch(ExprValue addressExprValue, ExprValue rangeExprValue) {
 
@@ -66,8 +67,7 @@ public class IPFunction {
     } catch (AddressStringException e) {
       throw new SemanticCheckException(
           String.format(
-              "IP address '%s' is not supported. Error details: %s",
-              addressString, e.getMessage()));
+              "IP address '%s' is not valid. Error details: %s", addressString, e.getMessage()));
     }
 
     // Get and validate CIDR IP address range.
@@ -78,7 +78,7 @@ public class IPFunction {
     } catch (AddressStringException e) {
       throw new SemanticCheckException(
           String.format(
-              "CIDR IP address range '%s' is not supported. Error details: %s",
+              "CIDR IP address range '%s' is not valid. Error details: %s",
               rangeString, e.getMessage()));
     }
 

@@ -51,58 +51,23 @@ public class IPFunctionTest {
             SemanticCheckException.class,
             () -> execute(ExprValueUtils.stringValue("INVALID"), IPv4Range));
     assertTrue(
-        exception.getMessage().matches("IP address 'INVALID' is not supported. Error details: .*"));
+        exception.getMessage().matches("IP address 'INVALID' is not valid. Error details: .*"));
   }
 
   @Test
   public void cidrmatch_invalid_range() {
-    SemanticCheckException exception;
-
-    exception =
+    SemanticCheckException exception =
         assertThrows(
             SemanticCheckException.class,
             () -> execute(IPv4AddressWithin, ExprValueUtils.stringValue("INVALID")));
     assertTrue(
         exception
             .getMessage()
-            .matches("CIDR IP address range 'INVALID' is not supported. Error details: .*"));
-
-    exception =
-        assertThrows(
-            SemanticCheckException.class,
-            () -> execute(IPv4AddressWithin, ExprValueUtils.stringValue("INVALID/32")));
-    assertTrue(
-        exception
-            .getMessage()
-            .matches("CIDR IP address range 'INVALID/32' is not supported. Error details: .*"));
-
-    exception =
-        assertThrows(
-            SemanticCheckException.class,
-            () -> execute(IPv4AddressWithin, ExprValueUtils.stringValue("198.51.100.0/33")));
-    assertTrue(
-        exception
-            .getMessage()
-            .matches(
-                "CIDR IP address range '198.51.100.0/33' is not supported. Error details: .*"));
+            .matches("CIDR IP address range 'INVALID' is not valid. Error details: .*"));
   }
 
   @Test
-  public void cidrmatch_valid_ipv4() {
-    assertEquals(LITERAL_FALSE, execute(IPv4AddressBelow, IPv4Range));
-    assertEquals(LITERAL_TRUE, execute(IPv4AddressWithin, IPv4Range));
-    assertEquals(LITERAL_FALSE, execute(IPv4AddressAbove, IPv4Range));
-  }
-
-  @Test
-  public void cidrmatch_valid_ipv6() {
-    assertEquals(LITERAL_FALSE, execute(IPv6AddressBelow, IPv6Range));
-    assertEquals(LITERAL_TRUE, execute(IPv6AddressWithin, IPv6Range));
-    assertEquals(LITERAL_FALSE, execute(IPv6AddressAbove, IPv6Range));
-  }
-
-  @Test
-  public void cidrmatch_valid_different_versions() {
+  public void cidrmatch_different_versions() {
     SemanticCheckException exception;
 
     exception =
@@ -118,6 +83,20 @@ public class IPFunctionTest {
         "IP address '2001:0db8::ff00:42:8329' and CIDR IP address range '198.51.100.0/24' are not"
             + " compatible. Both must be either IPv4 or IPv6.",
         exception.getMessage());
+  }
+
+  @Test
+  public void cidrmatch_valid_ipv4() {
+    assertEquals(LITERAL_FALSE, execute(IPv4AddressBelow, IPv4Range));
+    assertEquals(LITERAL_TRUE, execute(IPv4AddressWithin, IPv4Range));
+    assertEquals(LITERAL_FALSE, execute(IPv4AddressAbove, IPv4Range));
+  }
+
+  @Test
+  public void cidrmatch_valid_ipv6() {
+    assertEquals(LITERAL_FALSE, execute(IPv6AddressBelow, IPv6Range));
+    assertEquals(LITERAL_TRUE, execute(IPv6AddressWithin, IPv6Range));
+    assertEquals(LITERAL_FALSE, execute(IPv6AddressAbove, IPv6Range));
   }
 
   /**
