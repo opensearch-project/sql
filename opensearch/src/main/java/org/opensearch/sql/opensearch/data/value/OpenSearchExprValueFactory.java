@@ -170,14 +170,12 @@ public class OpenSearchExprValueFactory {
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
         || type == STRUCT) {
       return parseStruct(content, field, supportArrays);
+    } else if (typeActionMap.containsKey(type)) {
+      return typeActionMap.get(type).apply(content, type);
     } else {
-      if (typeActionMap.containsKey(type)) {
-        return typeActionMap.get(type).apply(content, type);
-      } else {
-        throw new IllegalStateException(
-            String.format(
-                "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
-      }
+      throw new IllegalStateException(
+          String.format(
+              "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
     }
   }
 

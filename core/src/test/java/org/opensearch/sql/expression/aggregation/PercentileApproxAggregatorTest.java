@@ -16,7 +16,8 @@ package org.opensearch.sql.expression.aggregation;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.data.model.ExprValueUtils.*;
+import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
 import static org.opensearch.sql.data.type.ExprCoreType.*;
 
 import java.util.ArrayList;
@@ -195,7 +196,7 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
         "percentile_approx function expected"
             + " {[INTEGER,DOUBLE],[INTEGER,DOUBLE,DOUBLE],[LONG,DOUBLE],[LONG,DOUBLE,DOUBLE],"
             + "[FLOAT,DOUBLE],[FLOAT,DOUBLE,DOUBLE],[DOUBLE,DOUBLE],[DOUBLE,DOUBLE,DOUBLE]},"
-            + " but get [DOUBLE,STRING]",
+            + " but got [DOUBLE,STRING]",
         exception2.getMessage());
   }
 
