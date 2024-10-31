@@ -150,7 +150,7 @@ trendlineCommand
    ;
 
 trendlineClause
-   : trendlineType LT_PRTHS numberOfDataPoints = integerLiteral COMMA field = fieldExpression RT_PRTHS (AS alias = fieldExpression)?
+   : trendlineType LT_PRTHS numberOfDataPoints = integerLiteral COMMA field = fieldExpression RT_PRTHS (AS alias = qualifiedName)?
    ;
 
 trendlineType

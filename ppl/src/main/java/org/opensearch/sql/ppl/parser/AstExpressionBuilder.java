@@ -54,6 +54,7 @@ import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
@@ -80,7 +81,11 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** Trendline clause. */
   @Override
   public UnresolvedExpression visitTrendlineClause(OpenSearchPPLParser.TrendlineClauseContext ctx) {
-    final Integer numberOfDataPoints = Integer.parseInt(ctx.numberOfDataPoints.getText());
+    final int numberOfDataPoints = Integer.parseInt(ctx.numberOfDataPoints.getText());
+    if (numberOfDataPoints < 1) {
+      throw new SyntaxCheckException("Number of trendline data-points must be greater than or equal to 1");
+    }
+
     final Field dataField = (Field) this.visitFieldExpression(ctx.field);
     final String alias =
         ctx.alias != null
