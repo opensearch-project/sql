@@ -6,86 +6,31 @@
 package org.opensearch.sql.analysis;
 
 import static java.util.Collections.emptyList;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.analysis.NestedAnalyzer.isNestedFunction;
-import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
-import static org.opensearch.sql.ast.dsl.AstDSL.alias;
-import static org.opensearch.sql.ast.dsl.AstDSL.argument;
-import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
-import static org.opensearch.sql.ast.dsl.AstDSL.compare;
-import static org.opensearch.sql.ast.dsl.AstDSL.field;
-import static org.opensearch.sql.ast.dsl.AstDSL.filter;
-import static org.opensearch.sql.ast.dsl.AstDSL.filteredAggregate;
-import static org.opensearch.sql.ast.dsl.AstDSL.function;
-import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
-import static org.opensearch.sql.ast.dsl.AstDSL.nestedAllTupleFields;
-import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
-import static org.opensearch.sql.ast.dsl.AstDSL.relation;
-import static org.opensearch.sql.ast.dsl.AstDSL.span;
-import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
-import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
-import static org.opensearch.sql.ast.tree.Sort.NullOrder;
-import static org.opensearch.sql.ast.tree.Sort.SortOption;
+import static org.opensearch.sql.ast.dsl.AstDSL.*;
+import static org.opensearch.sql.ast.tree.Sort.*;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
-import static org.opensearch.sql.ast.tree.Sort.SortOrder;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
-import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
-import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.data.type.ExprCoreType.LONG;
-import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.data.type.ExprCoreType.*;
 import static org.opensearch.sql.expression.DSL.literal;
-import static org.opensearch.sql.utils.MLCommonsConstants.ACTION;
-import static org.opensearch.sql.utils.MLCommonsConstants.ALGO;
-import static org.opensearch.sql.utils.MLCommonsConstants.ASYNC;
-import static org.opensearch.sql.utils.MLCommonsConstants.CLUSTERID;
-import static org.opensearch.sql.utils.MLCommonsConstants.KMEANS;
-import static org.opensearch.sql.utils.MLCommonsConstants.MODELID;
-import static org.opensearch.sql.utils.MLCommonsConstants.PREDICT;
-import static org.opensearch.sql.utils.MLCommonsConstants.RCF;
-import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
-import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
-import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
-import static org.opensearch.sql.utils.MLCommonsConstants.RCF_TIME_FIELD;
-import static org.opensearch.sql.utils.MLCommonsConstants.STATUS;
-import static org.opensearch.sql.utils.MLCommonsConstants.TASKID;
-import static org.opensearch.sql.utils.MLCommonsConstants.TRAIN;
+import static org.opensearch.sql.utils.MLCommonsConstants.*;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.HighlightFunction;
-import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.ParseMethod;
-import org.opensearch.sql.ast.expression.ScoreFunction;
-import org.opensearch.sql.ast.expression.SpanUnit;
-import org.opensearch.sql.ast.tree.AD;
-import org.opensearch.sql.ast.tree.CloseCursor;
-import org.opensearch.sql.ast.tree.FetchCursor;
-import org.opensearch.sql.ast.tree.Kmeans;
-import org.opensearch.sql.ast.tree.ML;
-import org.opensearch.sql.ast.tree.Paginate;
+import org.opensearch.sql.ast.expression.*;
+import org.opensearch.sql.ast.tree.*;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -95,16 +40,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.window.WindowDefinition;
-import org.opensearch.sql.planner.logical.LogicalAD;
-import org.opensearch.sql.planner.logical.LogicalCloseCursor;
-import org.opensearch.sql.planner.logical.LogicalFetchCursor;
-import org.opensearch.sql.planner.logical.LogicalFilter;
-import org.opensearch.sql.planner.logical.LogicalMLCommons;
-import org.opensearch.sql.planner.logical.LogicalPaginate;
-import org.opensearch.sql.planner.logical.LogicalPlan;
-import org.opensearch.sql.planner.logical.LogicalPlanDSL;
-import org.opensearch.sql.planner.logical.LogicalProject;
-import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.*;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 
 class AnalyzerTest extends AnalyzerTestBase {
@@ -158,7 +94,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         "= function expected {[BYTE,BYTE],[SHORT,SHORT],[INTEGER,INTEGER],[LONG,LONG],"
             + "[FLOAT,FLOAT],[DOUBLE,DOUBLE],[STRING,STRING],[BOOLEAN,BOOLEAN],[DATE,DATE],"
             + "[TIME,TIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],"
-            + "[STRUCT,STRUCT],[ARRAY,ARRAY]}, but get [STRING,INTEGER]",
+            + "[STRUCT,STRUCT],[ARRAY,ARRAY]}, but got [STRING,INTEGER]",
         exception.getMessage());
   }
 
