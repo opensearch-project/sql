@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.opensearch.data.type;
 
-import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import lombok.EqualsAndHashCode;
 
@@ -20,7 +20,7 @@ public class OpenSearchIpType extends OpenSearchDataType {
 
   private OpenSearchIpType() {
     super(MappingType.Ip);
-    exprCoreType = UNKNOWN;
+    exprCoreType = STRING;
   }
 
   public static OpenSearchIpType of() {

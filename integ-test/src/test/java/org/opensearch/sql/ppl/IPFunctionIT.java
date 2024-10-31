@@ -28,27 +28,27 @@ public class IPFunctionIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "source=%s | where cidr(host, '199.120.111.0/24') | fields url",
+                "source=%s | where cidrmatch(host, '199.120.111.0/24') | fields host",
                 TEST_INDEX_WEBLOG));
-    verifySchema(result, schema("url", null, "boolean"));
-    verifyDataRows(result, rows("/shuttle/missions/sts-73/mission-sts-73.html"));
+    verifySchema(result, schema("host", null, "string"));
+    verifyDataRows(result);
 
     // One match
     result =
         executeQuery(
             String.format(
-                "source=%s | where cidr(host, '199.120.110.0/24') | fields url",
+                "source=%s | where cidrmatch(host, '199.120.110.0/24') | fields host",
                 TEST_INDEX_WEBLOG));
-    verifySchema(result, schema("url", null, "boolean"));
-    verifyDataRows(result, rows("/shuttle/missions/sts-73/mission-sts-73.html"));
+    verifySchema(result, schema("host", null, "string"));
+    verifyDataRows(result, rows("199.120.110.21"));
 
     // Multiple matches
     result =
         executeQuery(
             String.format(
-                "source=%s | where cidr(host, '199.0.0.0/8') | fields url", TEST_INDEX_WEBLOG));
-    verifySchema(result, schema("url", null, "boolean"));
-    verifyDataRows(
-        result, rows("/history/apollo/"), rows("/shuttle/missions/sts-73/mission-sts-73.html"));
+                "source=%s | where cidrmatch(host, '199.0.0.0/8') | fields host",
+                TEST_INDEX_WEBLOG));
+    verifySchema(result, schema("host", null, "string"));
+    verifyDataRows(result, rows("199.72.81.55"), rows("199.120.110.21"));
   }
 }
