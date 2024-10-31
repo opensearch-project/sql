@@ -8,6 +8,7 @@ package org.opensearch.sql.planner.logical;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.named;
 
@@ -148,7 +149,7 @@ class LogicalPlanNodeVisitorTest {
             relation,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(1, AstDSL.field("testField"), "dummy", "sma"),
+                    AstDSL.computation(1, AstDSL.field("testField"), "dummy", SMA),
                     ExprCoreType.DOUBLE)));
 
     return Stream.of(

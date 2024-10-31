@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
@@ -45,7 +46,7 @@ public class TrendlineOperatorTest {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(1, AstDSL.field("distance"), "distance_alias", "sma"),
+                    AstDSL.computation(1, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
     plan.open();
@@ -69,7 +70,7 @@ public class TrendlineOperatorTest {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
     plan.open();
@@ -98,7 +99,7 @@ public class TrendlineOperatorTest {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
     plan.open();
@@ -132,10 +133,10 @@ public class TrendlineOperatorTest {
             inputPlan,
             Arrays.asList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE),
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("time"), "time_alias", "sma"),
+                    AstDSL.computation(2, AstDSL.field("time"), "time_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
     plan.open();
@@ -171,7 +172,7 @@ public class TrendlineOperatorTest {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "time", "sma"),
+                    AstDSL.computation(2, AstDSL.field("distance"), "time", SMA),
                     ExprCoreType.DOUBLE)));
 
     plan.open();
@@ -200,7 +201,7 @@ public class TrendlineOperatorTest {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
     plan.open();
@@ -231,7 +232,7 @@ public class TrendlineOperatorTest {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(1, AstDSL.field("distance"), "distance_alias", "sma"),
+                    AstDSL.computation(1, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
     plan.open();
@@ -258,7 +259,7 @@ public class TrendlineOperatorTest {
               inputPlan,
               Collections.singletonList(
                   Pair.of(
-                      AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
+                      AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                       ExprCoreType.ARRAY)));
         });
   }
@@ -294,7 +295,7 @@ public class TrendlineOperatorTest {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("date"), "date_alias", "sma"),
+                    AstDSL.computation(2, AstDSL.field("date"), "date_alias", SMA),
                     ExprCoreType.DATE)));
 
     plan.open();
@@ -341,7 +342,7 @@ public class TrendlineOperatorTest {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("time"), "time_alias", "sma"),
+                    AstDSL.computation(2, AstDSL.field("time"), "time_alias", SMA),
                     ExprCoreType.TIME)));
 
     plan.open();
@@ -381,7 +382,7 @@ public class TrendlineOperatorTest {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("timestamp"), "timestamp_alias", "sma"),
+                    AstDSL.computation(2, AstDSL.field("timestamp"), "timestamp_alias", SMA),
                     ExprCoreType.TIMESTAMP)));
 
     plan.open();

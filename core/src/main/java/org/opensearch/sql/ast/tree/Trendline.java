@@ -7,13 +7,13 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 @ToString
@@ -45,20 +45,16 @@ public class Trendline extends UnresolvedPlan {
   public static class TrendlineComputation extends UnresolvedExpression {
 
     private final Integer numberOfDataPoints;
-    private final UnresolvedExpression dataField;
+    private final Field dataField;
     private final String alias;
     private final TrendlineType computationType;
 
     public TrendlineComputation(
-        Integer numberOfDataPoints,
-        UnresolvedExpression dataField,
-        String alias,
-        String computationType) {
+        Integer numberOfDataPoints, Field dataField, String alias, TrendlineType computationType) {
       this.numberOfDataPoints = numberOfDataPoints;
       this.dataField = dataField;
       this.alias = alias;
-      this.computationType =
-          Trendline.TrendlineType.valueOf(computationType.toUpperCase(Locale.ROOT));
+      this.computationType = computationType;
     }
 
     @Override

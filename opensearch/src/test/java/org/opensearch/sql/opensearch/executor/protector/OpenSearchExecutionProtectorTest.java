@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.*;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -330,7 +331,7 @@ class OpenSearchExecutionProtectorTest {
             Collections.singletonList(
                 Pair.of(
                     new Trendline.TrendlineComputation(
-                        1, AstDSL.field("dummy"), "dummy_alias", "sma"),
+                        1, AstDSL.field("dummy"), "dummy_alias", SMA),
                     DOUBLE)));
 
     assertEquals(

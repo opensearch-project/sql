@@ -10,6 +10,7 @@ import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.ast.tree.RareTopN.CommandType.TOP;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -267,9 +268,8 @@ class ExplainTest extends ExpressionTestBase {
             tableScan,
             Arrays.asList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", "sma"),
-                    DOUBLE),
-                Pair.of(AstDSL.computation(3, AstDSL.field("time"), "time_alias", "sma"), DOUBLE)));
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA), DOUBLE),
+                Pair.of(AstDSL.computation(3, AstDSL.field("time"), "time_alias", SMA), DOUBLE)));
     assertEquals(
         new ExplainResponse(
             new ExplainResponseNode(
