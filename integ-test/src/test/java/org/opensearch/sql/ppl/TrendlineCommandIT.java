@@ -64,4 +64,15 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows(new Object[] {null}), rows(44313.0), rows(39882.5));
   }
+
+  @Test
+  public void testTrendlineWithSort() throws IOException {
+    final JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where balance > 39000 | trendline sort balance sma(2, balance) |"
+                    + " fields balance_trendline",
+                TEST_INDEX_BANK));
+    verifyDataRows(result, rows(new Object[] {null}), rows(44313.0), rows(39882.5));
+  }
 }

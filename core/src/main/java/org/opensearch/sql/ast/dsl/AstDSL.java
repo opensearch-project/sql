@@ -8,6 +8,7 @@ package org.opensearch.sql.ast.dsl;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -468,8 +469,10 @@ public class AstDSL {
   }
 
   public static Trendline trendline(
-      UnresolvedPlan input, Trendline.TrendlineComputation... computations) {
-    return new Trendline(Arrays.asList(computations)).attach(input);
+      UnresolvedPlan input,
+      Optional<Field> sortField,
+      Trendline.TrendlineComputation... computations) {
+    return new Trendline(sortField, Arrays.asList(computations)).attach(input);
   }
 
   public static Trendline.TrendlineComputation computation(

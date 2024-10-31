@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -474,23 +475,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitSort(Sort node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    ExpressionReferenceOptimizer optimizer =
-        new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
-
-    List<Pair<SortOption, Expression>> sortList =
-        node.getSortList().stream()
-            .map(
-                sortField -> {
-                  var analyzed = expressionAnalyzer.analyze(sortField.getField(), context);
-                  if (analyzed == null) {
-                    throw new UnsupportedOperationException(
-                        String.format("Invalid use of expression %s", sortField.getField()));
-                  }
-                  Expression expression = optimizer.optimize(analyzed, context);
-                  return ImmutablePair.of(analyzeSortOption(sortField.getFieldArgs()), expression);
-                })
-            .collect(Collectors.toList());
-    return new LogicalSort(child, sortList);
+    return buildSort(child, context, node.getSortList());
   }
 
   /** Build {@link LogicalDedupe}. */
@@ -605,12 +590,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     final LogicalPlan child = node.getChild().get(0).accept(this, context);
 
     final TypeEnvironment currEnv = context.peek();
-    final List<UnresolvedExpression> unresolvedComputations = node.getComputations();
-    final List<Trendline.TrendlineComputation> computations =
-        unresolvedComputations.stream()
-            .map(expression -> (Trendline.TrendlineComputation) expression)
-            .toList();
-
+    final List<Trendline.TrendlineComputation> computations = node.getComputations();
     final ImmutableList.Builder<Pair<Trendline.TrendlineComputation, ExprCoreType>>
         computationsAndTypes = ImmutableList.builder();
     computations.forEach(
@@ -643,7 +623,14 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
           currEnv.define(new Symbol(Namespace.FIELD_NAME, computation.getAlias()), averageType);
           computationsAndTypes.add(Pair.of(computation, averageType));
         });
-    return new LogicalTrendline(child, computationsAndTypes.build());
+
+    if (node.getSortByField().isEmpty()) {
+      return new LogicalTrendline(child, computationsAndTypes.build());
+    }
+
+    return new LogicalTrendline(
+        buildSort(child, context, Collections.singletonList(node.getSortByField().get())),
+        computationsAndTypes.build());
   }
 
   @Override
@@ -662,6 +649,27 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitCloseCursor(CloseCursor closeCursor, AnalysisContext context) {
     return new LogicalCloseCursor(closeCursor.getChild().get(0).accept(this, context));
+  }
+
+  private LogicalSort buildSort(
+      LogicalPlan child, AnalysisContext context, List<Field> sortFields) {
+    ExpressionReferenceOptimizer optimizer =
+        new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
+
+    List<Pair<SortOption, Expression>> sortList =
+        sortFields.stream()
+            .map(
+                sortField -> {
+                  var analyzed = expressionAnalyzer.analyze(sortField.getField(), context);
+                  if (analyzed == null) {
+                    throw new UnsupportedOperationException(
+                        String.format("Invalid use of expression %s", sortField.getField()));
+                  }
+                  Expression expression = optimizer.optimize(analyzed, context);
+                  return ImmutablePair.of(analyzeSortOption(sortField.getFieldArgs()), expression);
+                })
+            .collect(Collectors.toList());
+    return new LogicalSort(child, sortList);
   }
 
   /**

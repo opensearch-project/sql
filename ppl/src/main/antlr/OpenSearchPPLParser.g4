@@ -146,7 +146,7 @@ nullReplacementExpression
    : nullableField = fieldExpression EQUAL nullReplacement = valueExpression
 
 trendlineCommand
-   : TRENDLINE trendlineClause (trendlineClause)*
+   : TRENDLINE (SORT sortField)? trendlineClause (trendlineClause)*
    ;
 
 trendlineClause
