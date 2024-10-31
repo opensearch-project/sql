@@ -11,18 +11,27 @@ trendline
 
 Description
 ============
-| Use the ``trendline`` command to calculate the moving average on one or more fields in a search result.
-
+| Using ``trendline`` command to calculate moving averages of fields.
 
 Syntax
 ============
-trendline <average-type>(<number-of-samples>, <source-field>) AS <target-field> [" " <average-type>(<number-of-samples>, <source-field>) AS <target-field> ]...
+`TRENDLINE [sort <[+|-] sort-field>] SMA(number-of-datapoints, field) [AS alias] [SMA(number-of-datapoints, field) [AS alias]]...`
 
-* average-type: mandatory. The moving average computation. Can be ``sma`` (simple moving average) currently.
-* number-of-samples: mandatory. The number of samples to use in the average calculation. Must be a positive non-zero integer.
-* source-field: mandatory. The field to compute the average on.
-* target-field: mandatory. The field name to report the computation under.
+* [+|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
+* sort-field: mandatory when sorting is used. The field used to sort.
+* number-of-datapoints: mandatory. number of datapoints to calculate the moving average (must be greater than zero).
+* field: mandatory. the name of the field the moving average should be calculated for.
+* alias: optional. the name of the resulting column containing the moving average.
 
+And the moment only the Simple Moving Average (SMA) type is supported.
+
+It is calculated like
+
+    f[i]: The value of field 'f' in the i-th data-point
+    n: The number of data-points in the moving window (period)
+    t: The current time index
+
+    SMA(t) = (1/n) * Σ(f[i]), where i = t-n+1 to t
 
 Example 1: Calculate the moving average on one field.
 =====================================================
@@ -60,4 +69,22 @@ PPL query::
     | 9.5  | 32.0      |
     | 15.5 | 30.5      |
     +------+-----------+
+
+Example 4: Calculate the moving average on one field without specifying an alias.
+=================================================================================
+
+The example shows how to calculate the moving average on one field.
+
+PPL query::
+
+    os> source=accounts | trendline sma(2, account_number)  | fields accounts_trendline;
+    fetched rows / total rows = 4/4
+    +--------------------+
+    | accounts_trendline |
+    |--------------------|
+    | null               |
+    | 3.5                |
+    | 9.5                |
+    | 15.5               |
+    +--------------------+
 
