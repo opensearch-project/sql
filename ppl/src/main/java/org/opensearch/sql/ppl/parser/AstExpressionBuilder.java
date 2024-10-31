@@ -45,6 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -79,10 +80,15 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** Trendline clause. */
   @Override
   public UnresolvedExpression visitTrendlineClause(OpenSearchPPLParser.TrendlineClauseContext ctx) {
-    Integer numberOfDataPoints = Integer.parseInt(ctx.numberOfDataPoints.getText());
-    Field dataField = (Field) this.visitFieldExpression(ctx.field);
-    String alias = ctx.alias.getText();
-    String computationType = ctx.trendlineType().getText();
+    final Integer numberOfDataPoints = Integer.parseInt(ctx.numberOfDataPoints.getText());
+    final Field dataField = (Field) this.visitFieldExpression(ctx.field);
+    final String alias =
+        ctx.alias != null
+            ? ctx.alias.getText()
+            : dataField.getChild().get(0).toString() + "_trendline";
+
+    final Trendline.TrendlineType computationType =
+        Trendline.TrendlineType.valueOf(ctx.trendlineType().getText().toUpperCase(Locale.ROOT));
     return new Trendline.TrendlineComputation(
         numberOfDataPoints, dataField, alias, computationType);
   }

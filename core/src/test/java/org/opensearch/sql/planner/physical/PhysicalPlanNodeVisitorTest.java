@@ -9,6 +9,7 @@ import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.expression.DSL.named;
@@ -73,7 +74,7 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
                                         Collections.singletonList(
                                             Pair.of(
                                                 AstDSL.computation(
-                                                    1, AstDSL.field("field"), "alias", "sma"),
+                                                    1, AstDSL.field("field"), "alias", SMA),
                                                 DOUBLE))),
                                     1,
                                     1),
@@ -150,7 +151,7 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
         new TrendlineOperator(
             plan,
             Collections.singletonList(
-                Pair.of(AstDSL.computation(1, AstDSL.field("field"), "alias", "sma"), DOUBLE)));
+                Pair.of(AstDSL.computation(1, AstDSL.field("field"), "alias", SMA), DOUBLE)));
 
     return Stream.of(
         Arguments.of(filter, "filter"),

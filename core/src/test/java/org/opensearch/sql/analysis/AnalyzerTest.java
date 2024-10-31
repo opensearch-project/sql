@@ -34,6 +34,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -1487,12 +1488,12 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.trendline(
             LogicalPlanDSL.relation("schema", table),
-            Pair.of(computation(5, field("float_value"), "test_field_alias", "sma"), DOUBLE),
-            Pair.of(computation(1, field("double_value"), "test_field_alias_2", "sma"), DOUBLE)),
+            Pair.of(computation(5, field("float_value"), "test_field_alias", SMA), DOUBLE),
+            Pair.of(computation(1, field("double_value"), "test_field_alias_2", SMA), DOUBLE)),
         AstDSL.trendline(
             AstDSL.relation("schema"),
-            computation(5, field("float_value"), "test_field_alias", "sma"),
-            computation(1, field("double_value"), "test_field_alias_2", "sma")));
+            computation(5, field("float_value"), "test_field_alias", SMA),
+            computation(1, field("double_value"), "test_field_alias_2", SMA)));
   }
 
   @Test
@@ -1500,11 +1501,10 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.trendline(
             LogicalPlanDSL.relation("schema", table),
-            Pair.of(
-                computation(5, field("timestamp_value"), "test_field_alias", "sma"), TIMESTAMP)),
+            Pair.of(computation(5, field("timestamp_value"), "test_field_alias", SMA), TIMESTAMP)),
         AstDSL.trendline(
             AstDSL.relation("schema"),
-            computation(5, field("timestamp_value"), "test_field_alias", "sma")));
+            computation(5, field("timestamp_value"), "test_field_alias", SMA)));
   }
 
   @Test
@@ -1515,7 +1515,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             analyze(
                 AstDSL.trendline(
                     AstDSL.relation("schema"),
-                    computation(5, field("array_value"), "test_field_alias", "sma"))));
+                    computation(5, field("array_value"), "test_field_alias", SMA))));
   }
 
   @Test

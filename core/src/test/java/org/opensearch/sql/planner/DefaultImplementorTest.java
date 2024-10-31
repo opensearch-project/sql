@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
@@ -316,7 +317,7 @@ class DefaultImplementorTest {
     var physicalChild = mock(PhysicalPlan.class);
     when(logicalChild.accept(implementor, null)).thenReturn(physicalChild);
     final Trendline.TrendlineComputation computation =
-        AstDSL.computation(1, AstDSL.field("field"), "alias", "sma");
+        AstDSL.computation(1, AstDSL.field("field"), "alias", SMA);
     var logicalPlan =
         new LogicalTrendline(
             logicalChild, Collections.singletonList(Pair.of(computation, ExprCoreType.DOUBLE)));

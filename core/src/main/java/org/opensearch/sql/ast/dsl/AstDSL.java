@@ -473,7 +473,7 @@ public class AstDSL {
   }
 
   public static Trendline.TrendlineComputation computation(
-      Integer numDataPoints, UnresolvedExpression dataField, String alias, String type) {
+      Integer numDataPoints, Field dataField, String alias, Trendline.TrendlineType type) {
     return new Trendline.TrendlineComputation(numDataPoints, dataField, alias, type);
   }
 

@@ -41,6 +41,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
@@ -700,8 +701,15 @@ public class AstBuilderTest {
             + " test_field_alias_2",
         trendline(
             relation("t"),
-            computation(5, field("test_field"), "test_field_alias", "sma"),
-            computation(1, field("test_field_2"), "test_field_alias_2", "sma")));
+            computation(5, field("test_field"), "test_field_alias", SMA),
+            computation(1, field("test_field_2"), "test_field_alias_2", SMA)));
+  }
+
+  @Test
+  public void testTrendlineNoAlias() {
+    assertEqual(
+        "source=t | trendline sma(5, test_field)",
+        trendline(relation("t"), computation(5, field("test_field"), "test_field_trendline", SMA)));
   }
 
   @Test
