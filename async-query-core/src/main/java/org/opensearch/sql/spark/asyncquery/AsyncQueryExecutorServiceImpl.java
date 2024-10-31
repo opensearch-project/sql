@@ -19,6 +19,7 @@ import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundExceptio
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
@@ -116,7 +117,11 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
     Optional<AsyncQueryJobMetadata> asyncQueryJobMetadata =
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
     if (asyncQueryJobMetadata.isPresent()) {
-      return sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata.get(), asyncQueryRequestContext);
+      String result =
+          sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata.get(), asyncQueryRequestContext);
+      asyncQueryJobMetadataStorageService.updateState(
+          asyncQueryJobMetadata.get(), QueryState.CANCELLED, asyncQueryRequestContext);
+      return result;
     }
     throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));
   }
