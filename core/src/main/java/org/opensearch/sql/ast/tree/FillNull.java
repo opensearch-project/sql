@@ -16,6 +16,7 @@ import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
+/** AST node represent FillNull operation. */
 @RequiredArgsConstructor
 @AllArgsConstructor
 public class FillNull extends UnresolvedPlan {

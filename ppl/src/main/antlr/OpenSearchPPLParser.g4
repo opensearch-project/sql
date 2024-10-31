@@ -146,7 +146,7 @@ nullableField
    ;
 
 nullReplacement
-   : expression
+   : valueExpression
    ;
 
 kmeansCommand

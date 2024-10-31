@@ -15,19 +15,11 @@
         },
         "children": [
           {
-            "name": "ProjectOperator",
+            "name": "OpenSearchIndexScan",
             "description": {
-              "fields": "[age, balance]"
+              "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
             },
-            "children": [
-              {
-                "name": "OpenSearchIndexScan",
-                "description": {
-                  "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\",\"balance\"],\"excludes\":[]}}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
-                },
-                "children": []
-              }
-            ]
+            "children": []
           }
         ]
       }

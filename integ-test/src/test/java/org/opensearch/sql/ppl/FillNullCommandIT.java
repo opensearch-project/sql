@@ -127,4 +127,88 @@ public class FillNullCommandIT extends PPLIntegTestCase {
         rows(-1, 10.98),
         rows(-1, 7.87));
   }
+
+  @Test
+  public void testFillNullWithOtherField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fillnull using num0 = num1 | fields str2, num0", TEST_INDEX_CALCS));
+    verifyDataRows(
+        result,
+        rows("one", 12.3),
+        rows("two", -12.3),
+        rows("three", 15.7),
+        rows(null, -15.7),
+        rows("five", 3.5),
+        rows("six", -3.5),
+        rows(null, 0),
+        rows("eight", 11.38),
+        rows("nine", 10),
+        rows("ten", 12.4),
+        rows("eleven", 10.32),
+        rows("twelve", 2.47),
+        rows(null, 12.05),
+        rows("fourteen", 10.37),
+        rows("fifteen", 7.1),
+        rows("sixteen", 16.81),
+        rows(null, 7.12));
+  }
+
+  @Test
+  public void testFillNullWithFunctionOnOtherField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fillnull with ceil(num1) in num0 | fields str2, num0",
+                TEST_INDEX_CALCS));
+    verifyDataRows(
+        result,
+        rows("one", 12.3),
+        rows("two", -12.3),
+        rows("three", 15.7),
+        rows(null, -15.7),
+        rows("five", 3.5),
+        rows("six", -3.5),
+        rows(null, 0),
+        rows("eight", 12),
+        rows("nine", 10),
+        rows("ten", 13),
+        rows("eleven", 11),
+        rows("twelve", 3),
+        rows(null, 13),
+        rows("fourteen", 11),
+        rows("fifteen", 8),
+        rows("sixteen", 17),
+        rows(null, 8));
+  }
+
+  @Test
+  public void testFillNullWithFunctionMultipleCommands() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fillnull with num1 in num0 | fields str2, num0 | fillnull with"
+                    + " 'unknown' in str2",
+                TEST_INDEX_CALCS));
+    verifyDataRows(
+        result,
+        rows("one", 12.3),
+        rows("two", -12.3),
+        rows("three", 15.7),
+        rows("unknown", -15.7),
+        rows("five", 3.5),
+        rows("six", -3.5),
+        rows("unknown", 0),
+        rows("eight", 11.38),
+        rows("nine", 10),
+        rows("ten", 12.4),
+        rows("eleven", 10.32),
+        rows("twelve", 2.47),
+        rows("unknown", 12.05),
+        rows("fourteen", 10.37),
+        rows("fifteen", 7.1),
+        rows("sixteen", 16.81),
+        rows("unknown", 7.12));
+  }
 }

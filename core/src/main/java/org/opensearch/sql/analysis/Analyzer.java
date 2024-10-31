@@ -559,7 +559,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalAD(child, options);
   }
 
-  /** Build {@link LogicalAD} for fillnull command. */
+  /** Build {@link LogicalEval} for fillnull command. */
   @Override
   public LogicalPlan visitFillNull(final FillNull node, final AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);

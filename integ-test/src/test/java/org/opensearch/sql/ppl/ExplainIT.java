@@ -97,8 +97,7 @@ public class ExplainIT extends PPLIntegTestCase {
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
-                + "| fields age, balance "
-                + "| fillnull with -1 in age,balance"));
+                + " | fillnull with -1 in age,balance | fields age, balance"));
   }
 
   String loadFromFile(String filename) throws Exception {

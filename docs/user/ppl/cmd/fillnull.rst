@@ -33,16 +33,16 @@ The example show to replace null values for email and host with "<not found>".
 
 PPL query::
 
-    os> source=accounts | fields email, host | fillnull with '<not found>' email, host ;
+    os> source=accounts | fields email, employer | fillnull with '<not found>' in email ;
     fetched rows / total rows = 4/4
-    +-----------------------+------------+
-    | email                 | host       |
-    |-----------------------+------------|
-    | amberduke@pyrami.com  | pyrami.com |
-    | hattiebond@netagy.com | netagy.com |
-    | <not found>           |            |
-    | daleadams@boink.com   | boink.com  |
-    +-----------------------+------------+
+    +-----------------------+----------+
+    | email                 | employer |
+    |-----------------------+----------|
+    | amberduke@pyrami.com  | Pyrami   |
+    | hattiebond@netagy.com | Netagy   |
+    | <not found>           | Quility  |
+    | daleadams@boink.com   | null     |
+    +-----------------------+----------+
 
 Example 2: Replace null values for multiple fields with different values
 ========================================================================
