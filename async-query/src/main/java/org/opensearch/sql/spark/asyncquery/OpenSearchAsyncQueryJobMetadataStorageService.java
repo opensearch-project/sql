@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContentSerializer;
@@ -37,6 +38,14 @@ public class OpenSearchAsyncQueryJobMetadataStorageService
         asyncQueryJobMetadata,
         AsyncQueryJobMetadata::copy,
         OpenSearchStateStoreUtil.getIndexName(asyncQueryJobMetadata.getDatasourceName()));
+  }
+
+  @Override
+  public void updateState(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      QueryState newState,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
+    // NoOp since AsyncQueryJobMetadata record does not store state now
   }
 
   private String mapIdToDocumentId(String id) {
