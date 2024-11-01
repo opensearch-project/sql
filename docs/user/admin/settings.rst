@@ -824,3 +824,61 @@ To Re-enable Data Sources:::
       }
     }
 
+plugins.query.field_type_tolerance
+==================================
+
+Description
+-----------
+
+This setting controls whether preserve arrays. If this setting is set to false, then an array is reduced
+to the first non array value of any level of nesting.
+
+1. The default value is true (preserve arrays)
+2. This setting is node scope
+3. This setting can be updated dynamically
+
+Querying a field containing array values will return the full array values::
+
+    os> SELECT accounts FROM people;
+    fetched rows / total rows = 1/1
+    +-----------------------+
+    | accounts              |
+    +-----------------------+
+    | [{'id': 1},{'id': 2}] |
+    +-----------------------+
+
+Disable field type tolerance::
+
+    >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	    "transient" : {
+	      "plugins.query.field_type_tolerance" : false
+	    }
+	  }'
+
+When field type tolerance is disabled, arrays are collapsed to the first non array value::
+
+    os> SELECT accounts FROM people;
+    fetched rows / total rows = 1/1
+    +-----------+
+    | accounts  |
+    +-----------+
+    | {'id': 1} |
+    +-----------+
+
+Reenable field type tolerance::
+
+    >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	    "transient" : {
+	      "plugins.query.field_type_tolerance" : true
+	    }
+	  }'
+
+Limitations:
+------------
+OpenSearch does not natively support the ARRAY data type but does allow multi-value fields implicitly. The
+SQL/PPL plugin adheres strictly to the data type semantics defined in index mappings. When parsing OpenSearch
+responses, it expects data to match the declared type and does not account for data in array format. If the
+plugins.query.field_type_tolerance setting is enabled, the SQL/PPL plugin will handle array datasets by returning
+scalar data types, allowing basic queries (e.g., SELECT * FROM tbl WHERE condition). However, using multi-value
+fields in expressions or functions will result in exceptions. If this setting is disabled or absent, only the
+first element of an array is returned, preserving the default behavior.
