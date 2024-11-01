@@ -49,16 +49,16 @@ public abstract class Rounding<T> {
     if (DOUBLE.isCompatible(type)) {
       return new DoubleRounding(interval);
     }
-    if (type.equals(DATETIME)) {
+    if (type.equals(DATETIME) || type.typeName().equalsIgnoreCase(DATETIME.typeName()))) {
       return new DatetimeRounding(interval, span.getUnit().getName());
     }
-    if (type.equals(TIMESTAMP)) {
+    if (type.equals(TIMESTAMP) || type.typeName().equalsIgnoreCase(TIMESTAMP.typeName())) {
       return new TimestampRounding(interval, span.getUnit().getName());
     }
-    if (type.equals(DATE)) {
+    if (type.equals(DATE) || type.typeName().equalsIgnoreCase(DATE.typeName())) {
       return new DateRounding(interval, span.getUnit().getName());
     }
-    if (type.equals(TIME)) {
+    if (type.equals(TIME) || type.typeName().equalsIgnoreCase(TIME.typeName())) {
       return new TimeRounding(interval, span.getUnit().getName());
     }
     return new UnknownRounding();
