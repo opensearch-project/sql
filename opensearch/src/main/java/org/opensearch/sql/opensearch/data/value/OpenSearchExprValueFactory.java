@@ -295,7 +295,7 @@ public class OpenSearchExprValueFactory {
         }
       } else {
         // custom format
-        return parseDateTimeString(value.stringValue(), dt);
+        return parseDateTimeString(value.objectValue().toString(), dt);
       }
     }
     if (value.isString()) {
