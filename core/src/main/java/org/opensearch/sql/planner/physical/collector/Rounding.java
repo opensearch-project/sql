@@ -49,7 +49,7 @@ public abstract class Rounding<T> {
     if (DOUBLE.isCompatible(type)) {
       return new DoubleRounding(interval);
     }
-    if (type.equals(DATETIME) || type.typeName().equalsIgnoreCase(DATETIME.typeName()))) {
+    if (type.equals(DATETIME) || type.typeName().equalsIgnoreCase(DATETIME.typeName())) {
       return new DatetimeRounding(interval, span.getUnit().getName());
     }
     if (type.equals(TIMESTAMP) || type.typeName().equalsIgnoreCase(TIMESTAMP.typeName())) {
