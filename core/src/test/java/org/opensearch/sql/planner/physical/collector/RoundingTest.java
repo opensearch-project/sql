@@ -57,6 +57,10 @@ public class RoundingTest {
         DSL.span(DSL.ref("timestamp", new MockTimestampExprType()), DSL.literal(1), "h");
     rounding = Rounding.createRounding(timestampSpan);
     assertInstanceOf(Rounding.TimestampRounding.class, rounding);
+    SpanExpression datetimeSpan =
+        DSL.span(DSL.ref("datetime", new MockDateTimeExprType()), DSL.literal(1), "h");
+    rounding = Rounding.createRounding(datetimeSpan);
+    assertInstanceOf(Rounding.DatetimeRounding.class, rounding);
   }
 
   @Test
@@ -93,6 +97,13 @@ public class RoundingTest {
     @Override
     public String typeName() {
       return "TIMESTAMP";
+    }
+  }
+
+  static class MockDateTimeExprType implements ExprType {
+    @Override
+    public String typeName() {
+      return "DATETIME";
     }
   }
 }
