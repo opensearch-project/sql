@@ -108,17 +108,12 @@ public class CsvResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-<<<<<<< HEAD
-            Arrays.asList(tupleValue(ImmutableMap.of("na,me", "John,Smith", ",,age", "30,,,"))));
-    String expected = "\"na,me\",\",,age\"%n" + "\"John,Smith\",\"30,,,\"";
-=======
             Arrays.asList(
                 tupleValue(ImmutableMap.of("na,me", "John,Smith", ",,age", "30,,,")),
                 tupleValue(ImmutableMap.of("na,me", "\"Janice Jones", ",,age", "26\""))));
     String expected =
         "\"na,me\",\",,age\"%n\"John,Smith\",\"30,,,\"%n\"\"\"Janice Jones\",\"26\"\"\"";
->>>>>>> cfe38d7d6 (Fix: CSV and Raw output, escape quotes (#3063))
-    assertEquals(format(expected), formatter.format(response));
+   assertEquals(format(expected), formatter.format(response));
   }
 
   @Test
