@@ -177,7 +177,12 @@ public class OpenSearchIndex implements Table {
     Map<String, OpenSearchDataType> allFields = new HashMap<>();
     getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
     allFields.putAll(getFieldOpenSearchTypes());
-    return new OpenSearchExprValueFactory(allFields);
+    return new OpenSearchExprValueFactory(
+        allFields, settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE));
+  }
+
+  public boolean isFieldTypeTolerance() {
+    return settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE);
   }
 
   @VisibleForTesting

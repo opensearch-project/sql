@@ -641,6 +641,11 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchRecoverIndexQuery() {
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            MY_GLUE, asyncQueryRequestContext))
+        .thenReturn(dataSourceMetadata);
+
     String query = "RECOVER INDEX JOB `flint_spark_catalog_default_test_skipping_index`";
     Assertions.assertThrows(
         IllegalArgumentException.class,
