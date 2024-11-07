@@ -105,8 +105,7 @@ public class UnaryPredicateOperator {
                 .map(v -> impl((UnaryPredicateOperator::exprIf), v, BOOLEAN, v, v))
                 .collect(Collectors.toList());
 
-    DefaultFunctionResolver functionResolver = FunctionDSL.define(functionName, functionsOne);
-    return functionResolver;
+    return FunctionDSL.define(functionName, functionsOne);
   }
 
   private static DefaultFunctionResolver ifNull() {
@@ -122,21 +121,18 @@ public class UnaryPredicateOperator {
                 .map(v -> impl((UnaryPredicateOperator::exprIfNull), v, v, v))
                 .collect(Collectors.toList());
 
-    DefaultFunctionResolver functionResolver = FunctionDSL.define(functionName, functionsOne);
-    return functionResolver;
+    return FunctionDSL.define(functionName, functionsOne);
   }
 
   private static DefaultFunctionResolver nullIf() {
     FunctionName functionName = BuiltinFunctionName.NULLIF.getName();
     List<ExprCoreType> typeList = ExprCoreType.coreTypes();
 
-    DefaultFunctionResolver functionResolver =
-        FunctionDSL.define(
+    return FunctionDSL.define(
             functionName,
             typeList.stream()
                 .map(v -> impl((UnaryPredicateOperator::exprNullIf), v, v, v))
                 .collect(Collectors.toList()));
-    return functionResolver;
   }
 
   /**
