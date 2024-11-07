@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression;
 
+import java.util.Arrays;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -24,8 +25,6 @@ import org.opensearch.sql.expression.parse.PatternsExpression;
 import org.opensearch.sql.expression.parse.RegexExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
-
-import java.util.Arrays;
 
 public class DSL {
 
