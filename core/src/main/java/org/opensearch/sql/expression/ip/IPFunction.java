@@ -65,9 +65,10 @@ public class IPFunction {
     try {
       address.validate();
     } catch (AddressStringException e) {
-      throw new SemanticCheckException(
+      String msg =
           String.format(
-              "IP address '%s' is not valid. Error details: %s", addressString, e.getMessage()));
+              "IP address '%s' is not valid. Error details: %s", addressString, e.getMessage());
+      throw new SemanticCheckException(msg, e);
     }
 
     // Get and validate CIDR IP address range.
@@ -76,19 +77,21 @@ public class IPFunction {
     try {
       range.validate();
     } catch (AddressStringException e) {
-      throw new SemanticCheckException(
+      String msg =
           String.format(
               "CIDR IP address range '%s' is not valid. Error details: %s",
-              rangeString, e.getMessage()));
+              rangeString, e.getMessage());
+      throw new SemanticCheckException(msg, e);
     }
 
     // Address and range must use the same IP version (IPv4 or IPv6).
     if (address.isIPv4() ^ range.isIPv4()) {
-      throw new SemanticCheckException(
+      String msg =
           String.format(
               "IP address '%s' and CIDR IP address range '%s' are not compatible. Both must be"
                   + " either IPv4 or IPv6.",
-              addressString, rangeString));
+              addressString, rangeString);
+      throw new SemanticCheckException(msg);
     }
 
     return ExprValueUtils.booleanValue(range.contains(address));
