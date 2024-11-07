@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
@@ -61,6 +62,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstBuilderTest {
@@ -726,6 +728,11 @@ public class AstBuilderTest {
             relation("t"),
             Optional.empty(),
             computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineTooFewSamples() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | trendline sma(0, test_field)"));
   }
 
   @Test
