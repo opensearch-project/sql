@@ -5,20 +5,19 @@
 
 package org.opensearch.sql.expression.operator.predicate;
 
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.*;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
-import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
-import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 
 /**
  * The definition of unary predicate function not, Accepts one Boolean value and produces a Boolean.
@@ -129,10 +128,10 @@ public class UnaryPredicateOperator {
     List<ExprCoreType> typeList = ExprCoreType.coreTypes();
 
     return FunctionDSL.define(
-            functionName,
-            typeList.stream()
-                .map(v -> impl((UnaryPredicateOperator::exprNullIf), v, v, v))
-                .collect(Collectors.toList()));
+        functionName,
+        typeList.stream()
+            .map(v -> impl((UnaryPredicateOperator::exprNullIf), v, v, v))
+            .collect(Collectors.toList()));
   }
 
   /**
