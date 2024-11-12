@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.expression.ip;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;

@@ -7,7 +7,9 @@ package org.opensearch.sql.expression.ip;
 
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.expression.function.FunctionDSL.*;
+import static org.opensearch.sql.expression.function.FunctionDSL.define;
+import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import inet.ipaddr.AddressStringException;
 import inet.ipaddr.IPAddressString;
