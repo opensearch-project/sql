@@ -17,7 +17,14 @@ import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.expression.function.*;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.expression.function.FunctionBuilder;
+import org.opensearch.sql.expression.function.FunctionDSL;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.function.SerializableFunction;
 
 /**
  * The definition of unary predicate function not, Accepts one Boolean value and produces a Boolean.

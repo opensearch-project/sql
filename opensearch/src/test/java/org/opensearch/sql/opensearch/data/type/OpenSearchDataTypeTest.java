@@ -5,9 +5,29 @@
 
 package org.opensearch.sql.opensearch.data.type;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
-import static org.opensearch.sql.data.type.ExprCoreType.*;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 
 import java.util.Map;
@@ -33,6 +53,28 @@ class OpenSearchDataTypeTest {
   private static final String emptyFormatString = "";
 
   private static final OpenSearchDateType dateType = OpenSearchDateType.of(emptyFormatString);
+
+  private static Stream<Arguments> getTestDataWithType() {
+    return Stream.of(
+        Arguments.of(MappingType.Text, "text", OpenSearchTextType.of()),
+        Arguments.of(MappingType.Keyword, "keyword", STRING),
+        Arguments.of(MappingType.Byte, "byte", BYTE),
+        Arguments.of(MappingType.Short, "short", SHORT),
+        Arguments.of(MappingType.Integer, "integer", INTEGER),
+        Arguments.of(MappingType.Long, "long", LONG),
+        Arguments.of(MappingType.HalfFloat, "half_float", FLOAT),
+        Arguments.of(MappingType.Float, "float", FLOAT),
+        Arguments.of(MappingType.ScaledFloat, "scaled_float", DOUBLE),
+        Arguments.of(MappingType.Double, "double", DOUBLE),
+        Arguments.of(MappingType.Boolean, "boolean", BOOLEAN),
+        Arguments.of(MappingType.Date, "timestamp", TIMESTAMP),
+        Arguments.of(MappingType.DateNanos, "timestamp", TIMESTAMP),
+        Arguments.of(MappingType.Object, "object", STRUCT),
+        Arguments.of(MappingType.Nested, "nested", ARRAY),
+        Arguments.of(MappingType.GeoPoint, "geo_point", OpenSearchGeoPointType.of()),
+        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()),
+        Arguments.of(MappingType.Ip, "ip", STRING));
+  }
 
   @Test
   public void isCompatible() {
@@ -69,28 +111,6 @@ class OpenSearchDataTypeTest {
   public void shouldCast() {
     assertFalse(textType.shouldCast(STRING));
     assertFalse(textKeywordType.shouldCast(STRING));
-  }
-
-  private static Stream<Arguments> getTestDataWithType() {
-    return Stream.of(
-        Arguments.of(MappingType.Text, "text", OpenSearchTextType.of()),
-        Arguments.of(MappingType.Keyword, "keyword", STRING),
-        Arguments.of(MappingType.Byte, "byte", BYTE),
-        Arguments.of(MappingType.Short, "short", SHORT),
-        Arguments.of(MappingType.Integer, "integer", INTEGER),
-        Arguments.of(MappingType.Long, "long", LONG),
-        Arguments.of(MappingType.HalfFloat, "half_float", FLOAT),
-        Arguments.of(MappingType.Float, "float", FLOAT),
-        Arguments.of(MappingType.ScaledFloat, "scaled_float", DOUBLE),
-        Arguments.of(MappingType.Double, "double", DOUBLE),
-        Arguments.of(MappingType.Boolean, "boolean", BOOLEAN),
-        Arguments.of(MappingType.Date, "timestamp", TIMESTAMP),
-        Arguments.of(MappingType.DateNanos, "timestamp", TIMESTAMP),
-        Arguments.of(MappingType.Object, "object", STRUCT),
-        Arguments.of(MappingType.Nested, "nested", ARRAY),
-        Arguments.of(MappingType.GeoPoint, "geo_point", OpenSearchGeoPointType.of()),
-        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()),
-        Arguments.of(MappingType.Ip, "ip", STRING));
   }
 
   @ParameterizedTest(name = "{1}")

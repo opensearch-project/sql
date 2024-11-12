@@ -5,9 +5,34 @@
 
 package org.opensearch.sql.opensearch.data.value;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.opensearch.sql.data.model.ExprValueUtils.*;
-import static org.opensearch.sql.data.type.ExprCoreType.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.opensearch.sql.data.model.ExprValueUtils.booleanValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.byteValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.floatValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.shortValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,7 +49,13 @@ import lombok.ToString;
 import org.junit.jupiter.api.Test;
 import org.opensearch.OpenSearchParseException;
 import org.opensearch.geometry.utils.Geohash;
-import org.opensearch.sql.data.model.*;
+import org.opensearch.sql.data.model.ExprCollectionValue;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
@@ -88,10 +119,9 @@ class OpenSearchExprValueFactoryTest {
           .put("geoV", OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))
           .put("binaryV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary))
           .build();
-
+  private static final double TOLERANCE = 1E-5;
   private final OpenSearchExprValueFactory exprValueFactory =
       new OpenSearchExprValueFactory(MAPPING, true);
-
   private final OpenSearchExprValueFactory exprValueFactoryNoArrays =
       new OpenSearchExprValueFactory(MAPPING, false);
 
@@ -725,8 +755,6 @@ class OpenSearchExprValueFactoryTest {
         tupleValue(String.format("{\"%s\":\"%s\"}", fieldIp, valueIpv6)).get(fieldIp));
     assertEquals(stringValue(valueIpv6), constructFromObject(fieldIp, valueIpv6));
   }
-
-  private static final double TOLERANCE = 1E-5;
 
   @Test
   public void constructGeoPoint() {
