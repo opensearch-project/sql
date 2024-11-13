@@ -77,7 +77,8 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   }
 
   /**
-   * This method allows RefreshQueryHandler to override the job type when calling leaseManager.borrow.
+   * This method allows RefreshQueryHandler to override the job type when calling
+   * leaseManager.borrow.
    */
   protected void borrow(String datasource) {
     leaseManager.borrow(new LeaseRequest(JobType.BATCH, datasource));
