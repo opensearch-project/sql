@@ -89,7 +89,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
             "BOOLEAN",
             "OBJECT",
             "KEYWORD",
-            "IP",
+            "KEYWORD",
             "BINARY",
             "GEO_POINT"));
   }

@@ -157,7 +157,7 @@ public class JdbcTestIT extends SQLIntegTestCase {
         executeQuery(
             "SELECT host AS hostIP FROM " + TestsConstants.TEST_INDEX_WEBLOG + " ORDER BY hostIP",
             "jdbc"),
-        containsString("\"type\": \"ip\""));
+        containsString("\"type\": \"string\""));
   }
 
   @Test
