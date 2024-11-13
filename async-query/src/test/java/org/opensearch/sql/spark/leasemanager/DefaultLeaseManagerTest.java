@@ -33,9 +33,12 @@ class DefaultLeaseManagerTest {
   }
 
   @Test
-  public void concurrentRefreshRuleOnlyNotAppliedToInteractiveQuery() {
+  public void concurrentRefreshRuleNotAppliedToInteractiveAndBatchQuery() {
     assertTrue(
         new DefaultLeaseManager.ConcurrentRefreshJobRule(settings, stateStore)
             .test(new LeaseRequest(JobType.INTERACTIVE, "mys3")));
+    assertTrue(
+        new DefaultLeaseManager.ConcurrentRefreshJobRule(settings, stateStore)
+            .test(new LeaseRequest(JobType.BATCH, "mys3")));
   }
 }
