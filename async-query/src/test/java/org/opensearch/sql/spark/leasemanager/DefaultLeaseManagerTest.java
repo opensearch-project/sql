@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.spark.leasemanager;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,22 +25,33 @@ class DefaultLeaseManagerTest {
   @Mock private StateStore stateStore;
 
   @Test
-  public void concurrentSessionRuleOnlyApplyToInteractiveQuery() {
-    assertTrue(
-        new DefaultLeaseManager.ConcurrentSessionRule(settings, stateStore)
-            .test(new LeaseRequest(JobType.BATCH, "mys3")));
-    assertTrue(
-        new DefaultLeaseManager.ConcurrentSessionRule(settings, stateStore)
-            .test(new LeaseRequest(JobType.STREAMING, "mys3")));
+  public void leaseManagerRejectsJobs() {
+    when(stateStore.count(any(), any())).thenReturn(3L);
+    when(settings.getSettingValue(any())).thenReturn(3);
+    DefaultLeaseManager defaultLeaseManager = new DefaultLeaseManager(settings, stateStore);
+
+    defaultLeaseManager.borrow(getLeaseRequest(JobType.BATCH));
+    assertThrows(ConcurrencyLimitExceededException.class, () ->
+    defaultLeaseManager.borrow(getLeaseRequest(JobType.INTERACTIVE)));
+    assertThrows(ConcurrencyLimitExceededException.class, () ->
+    defaultLeaseManager.borrow(getLeaseRequest(JobType.STREAMING)));
+    assertThrows(ConcurrencyLimitExceededException.class, () ->
+    defaultLeaseManager.borrow(getLeaseRequest(JobType.REFRESH)));
   }
 
   @Test
-  public void concurrentRefreshRuleNotAppliedToInteractiveAndBatchQuery() {
-    assertTrue(
-        new DefaultLeaseManager.ConcurrentRefreshJobRule(settings, stateStore)
-            .test(new LeaseRequest(JobType.INTERACTIVE, "mys3")));
-    assertTrue(
-        new DefaultLeaseManager.ConcurrentRefreshJobRule(settings, stateStore)
-            .test(new LeaseRequest(JobType.BATCH, "mys3")));
+  public void leaseManagerAcceptsJobs() {
+    when(stateStore.count(any(), any())).thenReturn(2L);
+    when(settings.getSettingValue(any())).thenReturn(3);
+    DefaultLeaseManager defaultLeaseManager = new DefaultLeaseManager(settings, stateStore);
+
+    defaultLeaseManager.borrow(getLeaseRequest(JobType.BATCH));
+    defaultLeaseManager.borrow(getLeaseRequest(JobType.INTERACTIVE));
+    defaultLeaseManager.borrow(getLeaseRequest(JobType.STREAMING));
+    defaultLeaseManager.borrow(getLeaseRequest(JobType.REFRESH));
+  }
+
+  private LeaseRequest getLeaseRequest(JobType jobType) {
+    return new LeaseRequest(jobType, "mys3");
   }
 }
