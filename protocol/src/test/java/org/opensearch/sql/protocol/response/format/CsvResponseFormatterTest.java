@@ -108,9 +108,12 @@ public class CsvResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(tupleValue(ImmutableMap.of("na,me", "John,Smith", ",,age", "30,,,"))));
-    String expected = "\"na,me\",\",,age\"%n" + "\"John,Smith\",\"30,,,\"";
-    assertEquals(format(expected), formatter.format(response));
+            Arrays.asList(
+                tupleValue(ImmutableMap.of("na,me", "John,Smith", ",,age", "30,,,")),
+                tupleValue(ImmutableMap.of("na,me", "\"Janice Jones", ",,age", "26\""))));
+    String expected =
+        "\"na,me\",\",,age\"%n\"John,Smith\",\"30,,,\"%n\"\"\"Janice Jones\",\"26\"\"\"";
+   assertEquals(format(expected), formatter.format(response));
   }
 
   @Test

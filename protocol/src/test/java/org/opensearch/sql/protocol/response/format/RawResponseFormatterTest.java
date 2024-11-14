@@ -120,10 +120,18 @@ public class RawResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(tupleValue(ImmutableMap.of("na|me", "John|Smith", "||age", "30|||"))));
-    String expected = "\"na|me\"|\"||age\"%n" + "\"John|Smith\"|\"30|||\"";
+            Arrays.asList(
+                tupleValue(ImmutableMap.of("na|me", "John|Smith", "||age", "30|||")),
+                tupleValue(ImmutableMap.of("na|me", "Ja\"ne J\"ones", "||age", "\"40\""))));
+    String expected =
+        "\"na|me\"|\"||age\"%n"
+            + "\"John|Smith\"|\"30|||\"%n"
+            + "\"Ja\"\"ne J\"\"ones\"|\"\"\"40\"\"\"";
     assertEquals(format(expected), getRawFormatter().format(response));
-    String expectedPretty = "\"na|me\"     |\"||age\"%n" + "\"John|Smith\"|\"30|||\"";
+    String expectedPretty =
+        "\"na|me\"         |\"||age\" %n"
+            + "\"John|Smith\"    |\"30|||\" %n"
+            + "\"Ja\"\"ne J\"\"ones\"|\"\"\"40\"\"\"";
     assertEquals(format(expectedPretty), getRawFormatterPretty().format(response));
   }
 

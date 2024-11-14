@@ -84,6 +84,10 @@ public class FlatResponseBase {
 
   protected String quoteIfRequired(String separator, String cell) {
     final String quote = "\"";
-    return cell.contains(separator) ? quote + cell.replaceAll("\"", "\"\"") + quote : cell;
+    if (cell != null && (cell.contains(separator) || cell.contains(quote))) {
+      return quote + cell.replaceAll(quote, quote + quote) + quote;
+    } else {
+      return cell;
+    }
   }
 }
