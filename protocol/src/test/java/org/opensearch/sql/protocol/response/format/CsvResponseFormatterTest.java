@@ -113,7 +113,7 @@ public class CsvResponseFormatterTest {
                 tupleValue(ImmutableMap.of("na,me", "\"Janice Jones", ",,age", "26\""))));
     String expected =
         "\"na,me\",\",,age\"%n\"John,Smith\",\"30,,,\"%n\"\"\"Janice Jones\",\"26\"\"\"";
-   assertEquals(format(expected), formatter.format(response));
+    assertEquals(format(expected), formatter.format(response));
   }
 
   @Test
