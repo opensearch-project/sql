@@ -237,7 +237,8 @@ public class StateStore {
     }
   }
 
-  private long count(String indexName, QueryBuilder query) {
+  @VisibleForTesting
+  public long count(String indexName, QueryBuilder query) {
     SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     searchSourceBuilder.query(query);
     searchSourceBuilder.size(0);

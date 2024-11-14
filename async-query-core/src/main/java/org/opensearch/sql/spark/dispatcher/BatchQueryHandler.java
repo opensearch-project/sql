@@ -25,6 +25,7 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
+import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.metrics.MetricsService;
 import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilderProvider;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
@@ -75,12 +76,22 @@ public class BatchQueryHandler extends AsyncQueryHandler {
     return asyncQueryJobMetadata.getQueryId();
   }
 
+  /**
+   * This method allows RefreshQueryHandler to override the job type when calling
+   * leaseManager.borrow.
+   */
+  protected void borrow(String datasource) {
+    leaseManager.borrow(new LeaseRequest(JobType.BATCH, datasource));
+  }
+
   @Override
   public DispatchQueryResponse submit(
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
     String clusterName = dispatchQueryRequest.getClusterName();
     Map<String, String> tags = context.getTags();
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
+
+    this.borrow(dispatchQueryRequest.getDatasource());
 
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     StartJobRequest startJobRequest =

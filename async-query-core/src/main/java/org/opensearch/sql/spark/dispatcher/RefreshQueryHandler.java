@@ -72,9 +72,13 @@ public class RefreshQueryHandler extends BatchQueryHandler {
   }
 
   @Override
+  protected void borrow(String datasource) {
+    leaseManager.borrow(new LeaseRequest(JobType.REFRESH, datasource));
+  }
+
+  @Override
   public DispatchQueryResponse submit(
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
-    leaseManager.borrow(new LeaseRequest(JobType.REFRESH, dispatchQueryRequest.getDatasource()));
 
     DispatchQueryResponse resp = super.submit(dispatchQueryRequest, context);
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
