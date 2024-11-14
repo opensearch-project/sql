@@ -22,11 +22,10 @@ Return type: BOOLEAN
 
 Example::
 
-    os> source=weblogs | where cidrmatch(host, "199.120.110.0/24") | fields host
-    fetched rows / total rows = 1/3
+    os> source=weblogs | where cidrmatch(host, "199.120.110.0/24") | fields host ;
+    fetched rows / total rows = 1/1
     +----------------+
     | host           |
-    |----------------+
+    |----------------|
     | 199.120.110.21 |
     +----------------+
-

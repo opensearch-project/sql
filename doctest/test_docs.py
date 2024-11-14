@@ -1,21 +1,20 @@
 # Copyright OpenSearch Contributors
 # SPDX-License-Identifier: Apache-2.0
 
+import click
 import doctest
+import json
 import os
 import os.path
-import zc.customdoctests
-import json
-import re
 import random
+import re
 import subprocess
 import unittest
-import click
-
+import zc.customdoctests
 from functools import partial
+from opensearch_sql_cli.formatter import Formatter
 from opensearch_sql_cli.opensearch_connection import OpenSearchConnection
 from opensearch_sql_cli.utils import OutputSettings
-from opensearch_sql_cli.formatter import Formatter
 from opensearchpy import OpenSearch, helpers
 
 ENDPOINT = "http://localhost:9200"
@@ -29,7 +28,7 @@ APACHE = "apache"
 WILDCARD = "wildcard"
 NESTED = "nested"
 DATASOURCES = ".ql-datasources"
-
+WEBLOGS = "weblogs"
 
 class DocTestConnection(OpenSearchConnection):
 
@@ -122,6 +121,7 @@ def set_up_test_indices(test):
     load_file("wildcard.json", index_name=WILDCARD)
     load_file("nested_objects.json", index_name=NESTED)
     load_file("datasources.json", index_name=DATASOURCES)
+    load_file("weblogs.json", index_name=WEBLOGS)
 
 
 def load_file(filename, index_name):
@@ -150,7 +150,7 @@ def set_up(test):
 
 def tear_down(test):
     # drop leftover tables after each test
-    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED], ignore_unavailable=True)
+    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS], ignore_unavailable=True)
 
 
 docsuite = partial(doctest.DocFileSuite,
