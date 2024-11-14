@@ -31,12 +31,15 @@ class DefaultLeaseManagerTest {
     DefaultLeaseManager defaultLeaseManager = new DefaultLeaseManager(settings, stateStore);
 
     defaultLeaseManager.borrow(getLeaseRequest(JobType.BATCH));
-    assertThrows(ConcurrencyLimitExceededException.class, () ->
-    defaultLeaseManager.borrow(getLeaseRequest(JobType.INTERACTIVE)));
-    assertThrows(ConcurrencyLimitExceededException.class, () ->
-    defaultLeaseManager.borrow(getLeaseRequest(JobType.STREAMING)));
-    assertThrows(ConcurrencyLimitExceededException.class, () ->
-    defaultLeaseManager.borrow(getLeaseRequest(JobType.REFRESH)));
+    assertThrows(
+        ConcurrencyLimitExceededException.class,
+        () -> defaultLeaseManager.borrow(getLeaseRequest(JobType.INTERACTIVE)));
+    assertThrows(
+        ConcurrencyLimitExceededException.class,
+        () -> defaultLeaseManager.borrow(getLeaseRequest(JobType.STREAMING)));
+    assertThrows(
+        ConcurrencyLimitExceededException.class,
+        () -> defaultLeaseManager.borrow(getLeaseRequest(JobType.REFRESH)));
   }
 
   @Test
