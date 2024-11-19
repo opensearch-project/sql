@@ -1,20 +1,21 @@
 # Copyright OpenSearch Contributors
 # SPDX-License-Identifier: Apache-2.0
 
-import click
 import doctest
-import json
 import os
 import os.path
-import random
+import zc.customdoctests
+import json
 import re
+import random
 import subprocess
 import unittest
-import zc.customdoctests
+import click
+
 from functools import partial
-from opensearch_sql_cli.formatter import Formatter
 from opensearch_sql_cli.opensearch_connection import OpenSearchConnection
 from opensearch_sql_cli.utils import OutputSettings
+from opensearch_sql_cli.formatter import Formatter
 from opensearchpy import OpenSearch, helpers
 
 ENDPOINT = "http://localhost:9200"

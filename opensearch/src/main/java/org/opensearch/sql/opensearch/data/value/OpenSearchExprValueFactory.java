@@ -228,9 +228,7 @@ public class OpenSearchExprValueFactory {
     for (var field : typeMapping.keySet()) {
       // Prevent overwriting, because aggregation engine may be not aware
       // of all niceties of all types.
-      if (!this.typeMapping.containsKey(field)) {
-        this.typeMapping.put(field, typeMapping.get(field));
-      }
+      this.typeMapping.putIfAbsent(field, typeMapping.get(field));
     }
   }
 
