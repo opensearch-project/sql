@@ -241,7 +241,7 @@ tableName = ``logs.12.13.1``.
 3. ``my_prometheus.http_requests_total``
 
 
-datasourceName = ```my_prometheus`` [Is in the list of datasources configured].
+datasourceName = ``my_prometheus`` [Is in the list of datasources configured].
 
 schemaName = ``default`` [No supported schema found, so default to `default`].
 
