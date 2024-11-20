@@ -8,7 +8,7 @@ package org.opensearch.sql.spark.validator;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-enum GrammarElement {
+public enum GrammarElement {
   ALTER_NAMESPACE("ALTER (DATABASE|TABLE|NAMESPACE)"),
   ALTER_VIEW("ALTER VIEW"),
   CREATE_NAMESPACE("CREATE (DATABASE|TABLE|NAMESPACE)"),
