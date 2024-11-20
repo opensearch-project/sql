@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.esdomain.mapping.FieldMappings;
+import org.opensearch.sql.legacy.utils.StringUtils;
 
 /** Formatter to transform date fields into a consistent format for consumption by clients. */
 public class DateFieldFormatter {
@@ -83,7 +84,7 @@ public class DateFieldFormatter {
       Date date = parseDateString(formats, columnOriginalDate.toString());
       if (date != null) {
         rowSource.put(columnName, DateFormat.getFormattedDate(date, FORMAT_JDBC));
-        break;
+//        break;
       } else {
         LOG.warn("Could not parse date value; returning original value");
       }
@@ -152,15 +153,26 @@ public class DateFieldFormatter {
         switch (columnFormat) {
           case "date_optional_time":
           case "strict_date_optional_time":
-            parsedDate =
-                DateUtils.parseDate(
-                    columnOriginalDate,
-                    FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_LOGS_EXCEPTION,
-                    FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION,
-                    FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION_NO_TIME,
-                    FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_ECOMMERCE_EXCEPTION,
-                    FORMAT_DOT_DATE_AND_TIME,
-                    FORMAT_DOT_DATE);
+            // It's possible to have date stored in second / millisecond form without explicit format hint.
+            // Parse it on a best-effort basis.
+            if (StringUtils.isNumeric(columnOriginalDate) ) {
+              long timestamp = Long.parseLong(columnOriginalDate);
+              if (timestamp > Integer.MAX_VALUE) {
+                parsedDate = new Date(timestamp);
+              } else {
+                parsedDate = new Date(timestamp*1000);
+              }
+            } else {
+              parsedDate =
+                      DateUtils.parseDate(
+                              columnOriginalDate,
+                              FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_LOGS_EXCEPTION,
+                              FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION,
+                              FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION_NO_TIME,
+                              FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_ECOMMERCE_EXCEPTION,
+                              FORMAT_DOT_DATE_AND_TIME,
+                              FORMAT_DOT_DATE);
+            }
             break;
           case "epoch_millis":
             parsedDate = new Date(Long.parseLong(columnOriginalDate));
