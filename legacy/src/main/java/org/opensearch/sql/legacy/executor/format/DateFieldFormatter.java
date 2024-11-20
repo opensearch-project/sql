@@ -84,7 +84,6 @@ public class DateFieldFormatter {
       Date date = parseDateString(formats, columnOriginalDate.toString());
       if (date != null) {
         rowSource.put(columnName, DateFormat.getFormattedDate(date, FORMAT_JDBC));
-//        break;
       } else {
         LOG.warn("Could not parse date value; returning original value");
       }
