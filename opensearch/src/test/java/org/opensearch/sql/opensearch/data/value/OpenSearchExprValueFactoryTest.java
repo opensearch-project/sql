@@ -51,7 +51,6 @@ import org.opensearch.OpenSearchParseException;
 import org.opensearch.geometry.utils.Geohash;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -666,7 +665,8 @@ class OpenSearchExprValueFactoryTest {
     final String ip2 = "192.168.0.2";
 
     assertEquals(
-        new ExprCollectionValue(List.of(new ExprStringValue(ip1), new ExprStringValue(ip2))),
+        new ExprCollectionValue(
+            List.of(new OpenSearchExprIpValue(ip1), new OpenSearchExprIpValue(ip2))),
         tupleValue(String.format("{\"%s\":[\"%s\",\"%s\"]}", fieldIp, ip1, ip2)).get(fieldIp));
   }
 
@@ -743,17 +743,10 @@ class OpenSearchExprValueFactoryTest {
 
   @Test
   public void constructIP() {
-    final String valueIpv4 = "192.168.0.1";
+    final String valueIp = "192.168.0.1";
     assertEquals(
-        stringValue(valueIpv4),
-        tupleValue(String.format("{\"%s\":\"%s\"}", fieldIp, valueIpv4)).get(fieldIp));
-    assertEquals(stringValue(valueIpv4), constructFromObject(fieldIp, valueIpv4));
-
-    final String valueIpv6 = "2001:0db7::ff00:42:8329";
-    assertEquals(
-        stringValue(valueIpv6),
-        tupleValue(String.format("{\"%s\":\"%s\"}", fieldIp, valueIpv6)).get(fieldIp));
-    assertEquals(stringValue(valueIpv6), constructFromObject(fieldIp, valueIpv6));
+        new OpenSearchExprIpValue(valueIp),
+        tupleValue(String.format("{\"%s\":\"%s\"}", fieldIp, valueIp)).get(fieldIp));
   }
 
   @Test

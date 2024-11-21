@@ -54,28 +54,6 @@ class OpenSearchDataTypeTest {
 
   private static final OpenSearchDateType dateType = OpenSearchDateType.of(emptyFormatString);
 
-  private static Stream<Arguments> getTestDataWithType() {
-    return Stream.of(
-        Arguments.of(MappingType.Text, "text", OpenSearchTextType.of()),
-        Arguments.of(MappingType.Keyword, "keyword", STRING),
-        Arguments.of(MappingType.Byte, "byte", BYTE),
-        Arguments.of(MappingType.Short, "short", SHORT),
-        Arguments.of(MappingType.Integer, "integer", INTEGER),
-        Arguments.of(MappingType.Long, "long", LONG),
-        Arguments.of(MappingType.HalfFloat, "half_float", FLOAT),
-        Arguments.of(MappingType.Float, "float", FLOAT),
-        Arguments.of(MappingType.ScaledFloat, "scaled_float", DOUBLE),
-        Arguments.of(MappingType.Double, "double", DOUBLE),
-        Arguments.of(MappingType.Boolean, "boolean", BOOLEAN),
-        Arguments.of(MappingType.Date, "timestamp", TIMESTAMP),
-        Arguments.of(MappingType.DateNanos, "timestamp", TIMESTAMP),
-        Arguments.of(MappingType.Object, "object", STRUCT),
-        Arguments.of(MappingType.Nested, "nested", ARRAY),
-        Arguments.of(MappingType.GeoPoint, "geo_point", OpenSearchGeoPointType.of()),
-        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()),
-        Arguments.of(MappingType.Ip, "ip", STRING));
-  }
-
   @Test
   public void isCompatible() {
     assertTrue(STRING.isCompatible(textType));
@@ -111,6 +89,28 @@ class OpenSearchDataTypeTest {
   public void shouldCast() {
     assertFalse(textType.shouldCast(STRING));
     assertFalse(textKeywordType.shouldCast(STRING));
+  }
+
+  private static Stream<Arguments> getTestDataWithType() {
+    return Stream.of(
+        Arguments.of(MappingType.Text, "text", OpenSearchTextType.of()),
+        Arguments.of(MappingType.Keyword, "keyword", STRING),
+        Arguments.of(MappingType.Byte, "byte", BYTE),
+        Arguments.of(MappingType.Short, "short", SHORT),
+        Arguments.of(MappingType.Integer, "integer", INTEGER),
+        Arguments.of(MappingType.Long, "long", LONG),
+        Arguments.of(MappingType.HalfFloat, "half_float", FLOAT),
+        Arguments.of(MappingType.Float, "float", FLOAT),
+        Arguments.of(MappingType.ScaledFloat, "scaled_float", DOUBLE),
+        Arguments.of(MappingType.Double, "double", DOUBLE),
+        Arguments.of(MappingType.Boolean, "boolean", BOOLEAN),
+        Arguments.of(MappingType.Date, "timestamp", TIMESTAMP),
+        Arguments.of(MappingType.DateNanos, "timestamp", TIMESTAMP),
+        Arguments.of(MappingType.Object, "object", STRUCT),
+        Arguments.of(MappingType.Nested, "nested", ARRAY),
+        Arguments.of(MappingType.GeoPoint, "geo_point", OpenSearchGeoPointType.of()),
+        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()),
+        Arguments.of(MappingType.Ip, "ip", OpenSearchIpType.of()));
   }
 
   @ParameterizedTest(name = "{1}")

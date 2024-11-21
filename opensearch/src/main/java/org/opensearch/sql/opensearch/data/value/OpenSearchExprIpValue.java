@@ -45,9 +45,4 @@ public class OpenSearchExprIpValue extends AbstractExprValue {
   public int hashCode() {
     return Objects.hashCode(ip);
   }
-
-  @Override
-  public String stringValue() {
-    return ip;
-  }
 }

@@ -42,9 +42,4 @@ public class OpenSearchExprIpValueTest {
   void testHashCode() {
     assertNotNull(ipValue.hashCode());
   }
-
-  @Test
-  void testStringValue() {
-    assertEquals(ipString, ipValue.stringValue());
-  }
 }

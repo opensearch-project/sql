@@ -71,8 +71,32 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 
 /** Construct ExprValue from OpenSearch response. */
 public class OpenSearchExprValueFactory {
+  /** The Mapping of Field and ExprType. */
+  private final Map<String, OpenSearchDataType> typeMapping;
+
+  /** Whether to support nested value types (such as arrays) */
+  private final boolean fieldTypeTolerance;
+
+  /**
+   * Extend existing mapping by new data without overwrite. Called from aggregation only {@see
+   * AggregationQueryBuilder#buildTypeMapping}.
+   *
+   * @param typeMapping A data type mapping produced by aggregation.
+   */
+  public void extendTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
+    for (var field : typeMapping.keySet()) {
+      // Prevent overwriting, because aggregation engine may be not aware
+      // of all niceties of all types.
+      this.typeMapping.putIfAbsent(field, typeMapping.get(field));
+    }
+  }
+
+  @Getter @Setter private OpenSearchAggregationResponseParser parser;
+
   private static final String TOP_PATH = "";
+
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   private static final Map<ExprType, BiFunction<Content, ExprType, ExprValue>> typeActionMap =
       new ImmutableMap.Builder<ExprType, BiFunction<Content, ExprType, ExprValue>>()
           .put(
@@ -110,25 +134,91 @@ public class OpenSearchExprValueFactory {
               OpenSearchExprValueFactory::createOpenSearchDateType)
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip),
-              (c, dt) -> new ExprStringValue(c.stringValue()))
+              (c, dt) -> new OpenSearchExprIpValue(c.stringValue()))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),
               (c, dt) -> new OpenSearchExprBinaryValue(c.stringValue()))
           .build();
-
-  /** The Mapping of Field and ExprType. */
-  private final Map<String, OpenSearchDataType> typeMapping;
-
-  /** Whether to support nested value types (such as arrays) */
-  private final boolean fieldTypeTolerance;
-
-  @Getter @Setter private OpenSearchAggregationResponseParser parser;
 
   /** Constructor of OpenSearchExprValueFactory. */
   public OpenSearchExprValueFactory(
       Map<String, OpenSearchDataType> typeMapping, boolean fieldTypeTolerance) {
     this.typeMapping = OpenSearchDataType.traverseAndFlatten(typeMapping);
     this.fieldTypeTolerance = fieldTypeTolerance;
+  }
+
+  /**
+   *
+   *
+   * <pre>
+   * The struct construction has the following assumption:
+   *  1. The field has OpenSearch Object data type.
+   *     See <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">
+   *       docs</a>
+   *  2. The deeper field is flattened in the typeMapping. e.g.
+   *     { "employ",       "STRUCT"  }
+   *     { "employ.id",    "INTEGER" }
+   *     { "employ.state", "STRING"  }
+   *  </pre>
+   */
+  public ExprValue construct(String jsonString, boolean supportArrays) {
+    try {
+      return parse(
+          new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)),
+          TOP_PATH,
+          Optional.of(STRUCT),
+          fieldTypeTolerance || supportArrays);
+    } catch (JsonProcessingException e) {
+      throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
+    }
+  }
+
+  /**
+   * Construct ExprValue from field and its value object. Throw exception if trying to construct
+   * from field of unsupported type.<br>
+   * Todo, add IP, GeoPoint support after we have function implementation around it.
+   *
+   * @param field field name
+   * @param value value object
+   * @return ExprValue
+   */
+  public ExprValue construct(String field, Object value, boolean supportArrays) {
+    return parse(new ObjectContent(value), field, type(field), supportArrays);
+  }
+
+  private ExprValue parse(
+      Content content, String field, Optional<ExprType> fieldType, boolean supportArrays) {
+    if (content.isNull() || !fieldType.isPresent()) {
+      return ExprNullValue.of();
+    }
+
+    final ExprType type = fieldType.get();
+
+    if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))) {
+      return parseGeoPoint(content, supportArrays);
+    } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
+        || content.isArray()) {
+      return parseArray(content, field, type, supportArrays);
+    } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
+        || type == STRUCT) {
+      return parseStruct(content, field, supportArrays);
+    } else {
+      if (typeActionMap.containsKey(type)) {
+        return typeActionMap.get(type).apply(content, type);
+      } else {
+        throw new IllegalStateException(
+            String.format(
+                "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
+      }
+    }
+  }
+
+  /**
+   * In OpenSearch, it is possible field doesn't have type definition in mapping. but has empty
+   * value. For example, {"empty_field": []}.
+   */
+  private Optional<ExprType> type(String field) {
+    return Optional.ofNullable(typeMapping.get(field));
   }
 
   /**
@@ -216,92 +306,6 @@ public class OpenSearchExprValueFactory {
     }
 
     return new ExprTimestampValue((Instant) value.objectValue());
-  }
-
-  /**
-   * Extend existing mapping by new data without overwrite. Called from aggregation only {@see
-   * AggregationQueryBuilder#buildTypeMapping}.
-   *
-   * @param typeMapping A data type mapping produced by aggregation.
-   */
-  public void extendTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
-    for (var field : typeMapping.keySet()) {
-      // Prevent overwriting, because aggregation engine may be not aware
-      // of all niceties of all types.
-      this.typeMapping.putIfAbsent(field, typeMapping.get(field));
-    }
-  }
-
-  /**
-   *
-   *
-   * <pre>
-   * The struct construction has the following assumption:
-   *  1. The field has OpenSearch Object data type.
-   *     See <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">
-   *       docs</a>
-   *  2. The deeper field is flattened in the typeMapping. e.g.
-   *     { "employ",       "STRUCT"  }
-   *     { "employ.id",    "INTEGER" }
-   *     { "employ.state", "STRING"  }
-   *  </pre>
-   */
-  public ExprValue construct(String jsonString, boolean supportArrays) {
-    try {
-      return parse(
-          new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)),
-          TOP_PATH,
-          Optional.of(STRUCT),
-          fieldTypeTolerance || supportArrays);
-    } catch (JsonProcessingException e) {
-      throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
-    }
-  }
-
-  /**
-   * Construct ExprValue from field and its value object. Throw exception if trying to construct
-   * from field of unsupported type.<br>
-   * Todo, add IP, GeoPoint support after we have function implementation around it.
-   *
-   * @param field field name
-   * @param value value object
-   * @return ExprValue
-   */
-  public ExprValue construct(String field, Object value, boolean supportArrays) {
-    return parse(new ObjectContent(value), field, type(field), supportArrays);
-  }
-
-  private ExprValue parse(
-      Content content, String field, Optional<ExprType> fieldType, boolean supportArrays) {
-    if (content.isNull() || !fieldType.isPresent()) {
-      return ExprNullValue.of();
-    }
-
-    final ExprType type = fieldType.get();
-
-    if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))) {
-      return parseGeoPoint(content, supportArrays);
-    } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
-        || content.isArray()) {
-      return parseArray(content, field, type, supportArrays);
-    } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
-        || type == STRUCT) {
-      return parseStruct(content, field, supportArrays);
-    } else if (typeActionMap.containsKey(type)) {
-      return typeActionMap.get(type).apply(content, type);
-    } else {
-      throw new IllegalStateException(
-          String.format(
-              "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
-    }
-  }
-
-  /**
-   * In OpenSearch, it is possible field doesn't have type definition in mapping. but has empty
-   * value. For example, {"empty_field": []}.
-   */
-  private Optional<ExprType> type(String field) {
-    return Optional.ofNullable(typeMapping.get(field));
   }
 
   /**
