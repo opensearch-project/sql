@@ -561,11 +561,17 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
       case MAP:
         validateAllowed(GrammarElement.MAP_FUNCTIONS);
         break;
+      case BITWISE:
+        validateAllowed(GrammarElement.BITWISE_FUNCTIONS);
+        break;
       case CSV:
         validateAllowed(GrammarElement.CSV_FUNCTIONS);
         break;
       case MISC:
         validateAllowed(GrammarElement.MISC_FUNCTIONS);
+        break;
+      case GENERATOR:
+        validateAllowed(GrammarElement.GENERATOR_FUNCTIONS);
         break;
       case UDF:
         validateAllowed(GrammarElement.UDF);
