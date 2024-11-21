@@ -74,7 +74,9 @@ public enum GrammarElement {
 
   // Functions
   MAP_FUNCTIONS("Map functions"),
+  BITWISE_FUNCTIONS("Bitwise functions"),
   CSV_FUNCTIONS("CSV functions"),
+  GENERATOR_FUNCTIONS("Generator functions"),
   MISC_FUNCTIONS("Misc functions"),
 
   // UDF

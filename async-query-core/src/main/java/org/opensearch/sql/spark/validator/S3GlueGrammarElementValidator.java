@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.validator;
 
 import static org.opensearch.sql.spark.validator.GrammarElement.ALTER_VIEW;
+import static org.opensearch.sql.spark.validator.GrammarElement.BITWISE_FUNCTIONS;
 import static org.opensearch.sql.spark.validator.GrammarElement.CLUSTER_BY;
 import static org.opensearch.sql.spark.validator.GrammarElement.CREATE_FUNCTION;
 import static org.opensearch.sql.spark.validator.GrammarElement.CREATE_VIEW;
@@ -71,6 +72,7 @@ public class S3GlueGrammarElementValidator extends DenyListGrammarElementValidat
               SET,
               SHOW_FUNCTIONS,
               SHOW_VIEWS,
+              BITWISE_FUNCTIONS,
               MISC_FUNCTIONS,
               UDF)
           .build();

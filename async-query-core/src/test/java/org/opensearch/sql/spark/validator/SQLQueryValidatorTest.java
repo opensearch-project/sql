@@ -309,7 +309,7 @@ class SQLQueryValidatorTest {
     v.ok(TestElement.JSON_FUNCTIONS);
     v.ok(TestElement.MATHEMATICAL_FUNCTIONS);
     v.ok(TestElement.STRING_FUNCTIONS);
-    v.ok(TestElement.BITWISE_FUNCTIONS);
+    v.ng(TestElement.BITWISE_FUNCTIONS);
     v.ok(TestElement.CONVERSION_FUNCTIONS);
     v.ok(TestElement.CONDITIONAL_FUNCTIONS);
     v.ok(TestElement.PREDICATE_FUNCTIONS);
@@ -321,7 +321,7 @@ class SQLQueryValidatorTest {
     v.ok(TestElement.WINDOW_FUNCTIONS);
 
     // Generator Functions
-    v.ok(TestElement.GENERATOR_FUNCTIONS);
+    v.ng(TestElement.GENERATOR_FUNCTIONS);
 
     // UDFs
     v.ng(TestElement.SCALAR_USER_DEFINED_FUNCTIONS);
@@ -426,7 +426,7 @@ class SQLQueryValidatorTest {
     v.ok(TestElement.JSON_FUNCTIONS);
     v.ok(TestElement.MATHEMATICAL_FUNCTIONS);
     v.ok(TestElement.STRING_FUNCTIONS);
-    v.ok(TestElement.BITWISE_FUNCTIONS);
+    v.ng(TestElement.BITWISE_FUNCTIONS);
     v.ok(TestElement.CONVERSION_FUNCTIONS);
     v.ok(TestElement.CONDITIONAL_FUNCTIONS);
     v.ok(TestElement.PREDICATE_FUNCTIONS);
