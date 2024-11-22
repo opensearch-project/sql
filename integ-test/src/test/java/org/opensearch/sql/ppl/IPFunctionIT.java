@@ -25,6 +25,7 @@ public class IPFunctionIT extends PPLIntegTestCase {
   @Test
   public void test_cidrmatch() throws IOException {
 
+    // TODO #3145: Add tests for IP address data type.
     JSONObject result;
 
     // No matches

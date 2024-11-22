@@ -31,6 +31,8 @@ public class IPFunction {
   }
 
   private DefaultFunctionResolver cidrmatch() {
+
+    // TODO #3145: Add support for IP address data type.
     return define(
         BuiltinFunctionName.CIDRMATCH.getName(),
         impl(nullMissingHandling(IPFunction::exprCidrMatch), BOOLEAN, STRING, STRING));

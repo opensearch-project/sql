@@ -32,6 +32,7 @@ public class IPFunctionTest {
   private static final ExprValue IPv4Range = ExprValueUtils.stringValue("198.51.100.0/24");
   private static final ExprValue IPv6Range = ExprValueUtils.stringValue("2001:0db8::/32");
 
+  // TODO #3145: Add tests for IP address data type.
   private static final ExprValue IPv4AddressBelow = ExprValueUtils.stringValue("198.51.99.1");
   private static final ExprValue IPv4AddressWithin = ExprValueUtils.stringValue("198.51.100.1");
   private static final ExprValue IPv4AddressAbove = ExprValueUtils.stringValue("198.51.101.2");
