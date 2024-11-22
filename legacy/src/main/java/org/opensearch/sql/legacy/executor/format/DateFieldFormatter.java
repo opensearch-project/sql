@@ -152,25 +152,26 @@ public class DateFieldFormatter {
         switch (columnFormat) {
           case "date_optional_time":
           case "strict_date_optional_time":
-            // It's possible to have date stored in second / millisecond form without explicit format hint.
+            // It's possible to have date stored in second / millisecond form without explicit
+            // format hint.
             // Parse it on a best-effort basis.
-            if (StringUtils.isNumeric(columnOriginalDate) ) {
+            if (StringUtils.isNumeric(columnOriginalDate)) {
               long timestamp = Long.parseLong(columnOriginalDate);
               if (timestamp > Integer.MAX_VALUE) {
                 parsedDate = new Date(timestamp);
               } else {
-                parsedDate = new Date(timestamp*1000);
+                parsedDate = new Date(timestamp * 1000);
               }
             } else {
               parsedDate =
-                      DateUtils.parseDate(
-                              columnOriginalDate,
-                              FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_LOGS_EXCEPTION,
-                              FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION,
-                              FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION_NO_TIME,
-                              FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_ECOMMERCE_EXCEPTION,
-                              FORMAT_DOT_DATE_AND_TIME,
-                              FORMAT_DOT_DATE);
+                  DateUtils.parseDate(
+                      columnOriginalDate,
+                      FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_LOGS_EXCEPTION,
+                      FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION,
+                      FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_FLIGHTS_EXCEPTION_NO_TIME,
+                      FORMAT_DOT_OPENSEARCH_DASHBOARDS_SAMPLE_DATA_ECOMMERCE_EXCEPTION,
+                      FORMAT_DOT_DATE_AND_TIME,
+                      FORMAT_DOT_DATE);
             }
             break;
           case "epoch_millis":
