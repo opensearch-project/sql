@@ -65,7 +65,6 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
-import org.opensearch.sql.spark.validator.CWLPPLGrammarElementValidator;
 import org.opensearch.sql.spark.validator.DefaultGrammarElementValidator;
 import org.opensearch.sql.spark.validator.GrammarElementValidatorProvider;
 import org.opensearch.sql.spark.validator.PPLQueryValidator;
@@ -206,8 +205,7 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   public PPLQueryValidator pplQueryValidator() {
     GrammarElementValidatorProvider validatorProvider =
         new GrammarElementValidatorProvider(
-            ImmutableMap.of(DataSourceType.S3GLUE, new CWLPPLGrammarElementValidator()),
-            new DefaultGrammarElementValidator());
+            ImmutableMap.of(), new DefaultGrammarElementValidator());
     return new PPLQueryValidator(validatorProvider);
   }
 

@@ -8,8 +8,21 @@ package org.opensearch.sql.spark.validator;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.spark.validator.PPLGrammarElement.DESCRIBE_COMMAND;
+import static org.opensearch.sql.spark.validator.PPLGrammarElement.EXPAND_COMMAND;
+import static org.opensearch.sql.spark.validator.PPLGrammarElement.FILLNULL_COMMAND;
+import static org.opensearch.sql.spark.validator.PPLGrammarElement.FLATTEN_COMMAND;
+import static org.opensearch.sql.spark.validator.PPLGrammarElement.IPADDRESS_FUNCTIONS;
+import static org.opensearch.sql.spark.validator.PPLGrammarElement.JOIN_COMMAND;
+import static org.opensearch.sql.spark.validator.PPLGrammarElement.JSON_FUNCTIONS;
+import static org.opensearch.sql.spark.validator.PPLGrammarElement.LAMBDA_FUNCTIONS;
+import static org.opensearch.sql.spark.validator.PPLGrammarElement.LOOKUP_COMMAND;
+import static org.opensearch.sql.spark.validator.PPLGrammarElement.PATTERNS_COMMAND;
+import static org.opensearch.sql.spark.validator.PPLGrammarElement.SUBQUERY_COMMAND;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -88,10 +101,32 @@ public class PPLQueryValidatorTest {
     Arrays.stream(PPLQueryValidatorTest.TestElement.values()).forEach(v::ok);
   }
 
+  private static class TestPPLGrammarElementValidator extends DenyListGrammarElementValidator {
+    private static final Set<GrammarElement> DENY_LIST =
+        ImmutableSet.<GrammarElement>builder()
+            .add(
+                PATTERNS_COMMAND,
+                JOIN_COMMAND,
+                LOOKUP_COMMAND,
+                SUBQUERY_COMMAND,
+                FLATTEN_COMMAND,
+                FILLNULL_COMMAND,
+                EXPAND_COMMAND,
+                DESCRIBE_COMMAND,
+                IPADDRESS_FUNCTIONS,
+                JSON_FUNCTIONS,
+                LAMBDA_FUNCTIONS)
+            .build();
+
+    public TestPPLGrammarElementValidator() {
+      super(DENY_LIST);
+    }
+  }
+
   @Test
   void testCwlValidator() {
     when(mockedProvider.getValidatorForDatasource(any()))
-        .thenReturn(new CWLPPLGrammarElementValidator());
+        .thenReturn(new TestPPLGrammarElementValidator());
     VerifyValidator v = new VerifyValidator(pplQueryValidator, DataSourceType.SPARK);
 
     v.ok(TestElement.FIELDS);
