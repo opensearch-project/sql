@@ -23,6 +23,7 @@ import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.utils.SQLQueryUtils;
+import org.opensearch.sql.spark.validator.PPLQueryValidator;
 import org.opensearch.sql.spark.validator.SQLQueryValidator;
 
 /** This class takes care of understanding query and dispatching job query to emr serverless. */
@@ -39,6 +40,7 @@ public class SparkQueryDispatcher {
   private final QueryHandlerFactory queryHandlerFactory;
   private final QueryIdProvider queryIdProvider;
   private final SQLQueryValidator sqlQueryValidator;
+  private final PPLQueryValidator pplQueryValidator;
 
   public DispatchQueryResponse dispatch(
       DispatchQueryRequest dispatchQueryRequest,
@@ -47,9 +49,8 @@ public class SparkQueryDispatcher {
         this.dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
             dispatchQueryRequest.getDatasource(), asyncQueryRequestContext);
 
+    String query = dispatchQueryRequest.getQuery();
     if (LangType.SQL.equals(dispatchQueryRequest.getLangType())) {
-      String query = dispatchQueryRequest.getQuery();
-
       if (SQLQueryUtils.isFlintExtensionQuery(query)) {
         sqlQueryValidator.validateFlintExtensionQuery(query, dataSourceMetadata.getConnector());
         return handleFlintExtensionQuery(
@@ -57,6 +58,8 @@ public class SparkQueryDispatcher {
       }
 
       sqlQueryValidator.validate(query, dataSourceMetadata.getConnector());
+    } else if (LangType.PPL.equals(dispatchQueryRequest.getLangType())) {
+      pplQueryValidator.validate(query, dataSourceMetadata.getConnector());
     }
     return handleDefaultQuery(dispatchQueryRequest, asyncQueryRequestContext, dataSourceMetadata);
   }

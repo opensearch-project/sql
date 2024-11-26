@@ -332,7 +332,7 @@ class SQLQueryValidatorTest {
   @Test
   void testS3glueQueries() {
     when(mockedProvider.getValidatorForDatasource(any()))
-        .thenReturn(new S3GlueGrammarElementValidator());
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
     VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
 
     // DDL Statements
@@ -449,7 +449,7 @@ class SQLQueryValidatorTest {
   @Test
   void testSecurityLakeQueries() {
     when(mockedProvider.getValidatorForDatasource(any()))
-        .thenReturn(new SecurityLakeGrammarElementValidator());
+        .thenReturn(new SecurityLakeSQLGrammarElementValidator());
     VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SECURITY_LAKE);
 
     // DDL Statements

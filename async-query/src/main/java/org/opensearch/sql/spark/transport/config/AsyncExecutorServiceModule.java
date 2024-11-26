@@ -65,11 +65,13 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
+import org.opensearch.sql.spark.validator.CWLPPLGrammarElementValidator;
 import org.opensearch.sql.spark.validator.DefaultGrammarElementValidator;
 import org.opensearch.sql.spark.validator.GrammarElementValidatorProvider;
-import org.opensearch.sql.spark.validator.S3GlueGrammarElementValidator;
+import org.opensearch.sql.spark.validator.PPLQueryValidator;
+import org.opensearch.sql.spark.validator.S3GlueSQLGrammarElementValidator;
 import org.opensearch.sql.spark.validator.SQLQueryValidator;
-import org.opensearch.sql.spark.validator.SecurityLakeGrammarElementValidator;
+import org.opensearch.sql.spark.validator.SecurityLakeSQLGrammarElementValidator;
 
 @RequiredArgsConstructor
 public class AsyncExecutorServiceModule extends AbstractModule {
@@ -108,9 +110,15 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       SessionManager sessionManager,
       QueryHandlerFactory queryHandlerFactory,
       QueryIdProvider queryIdProvider,
-      SQLQueryValidator sqlQueryValidator) {
+      SQLQueryValidator sqlQueryValidator,
+      PPLQueryValidator pplQueryValidator) {
     return new SparkQueryDispatcher(
-        dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider, sqlQueryValidator);
+        dataSourceService,
+        sessionManager,
+        queryHandlerFactory,
+        queryIdProvider,
+        sqlQueryValidator,
+        pplQueryValidator);
   }
 
   @Provides
@@ -187,11 +195,20 @@ public class AsyncExecutorServiceModule extends AbstractModule {
         new GrammarElementValidatorProvider(
             ImmutableMap.of(
                 DataSourceType.S3GLUE,
-                new S3GlueGrammarElementValidator(),
+                new S3GlueSQLGrammarElementValidator(),
                 DataSourceType.SECURITY_LAKE,
-                new SecurityLakeGrammarElementValidator()),
+                new SecurityLakeSQLGrammarElementValidator()),
             new DefaultGrammarElementValidator());
     return new SQLQueryValidator(validatorProvider);
+  }
+
+  @Provides
+  public PPLQueryValidator pplQueryValidator() {
+    GrammarElementValidatorProvider validatorProvider =
+        new GrammarElementValidatorProvider(
+            ImmutableMap.of(DataSourceType.S3GLUE, new CWLPPLGrammarElementValidator()),
+            new DefaultGrammarElementValidator());
+    return new PPLQueryValidator(validatorProvider);
   }
 
   @Provides
