@@ -13,6 +13,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -57,6 +58,7 @@ class WideningTypeRuleTest {
           .put(STRING, TIMESTAMP, 1)
           .put(STRING, DATE, 1)
           .put(STRING, TIME, 1)
+          .put(STRING, IP, 1)
           .put(DATE, TIMESTAMP, 1)
           .put(TIME, TIMESTAMP, 1)
           .put(UNDEFINED, BYTE, 1)
