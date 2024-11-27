@@ -11,25 +11,20 @@ fillnull
 
 Description
 ============
-| The ``fillnull`` command replaces null values for one or more fields.
+Using ``fillnull`` command to fill null with provided value in one or more fields in the search result.
 
 
 Syntax
 ============
-fillnull "with" <expression> <field> ["," <field> ]...
+`fillnull [with <null-replacement> in <nullable-field>["," <nullable-field>]] | [using <source-field> = <null-replacement> [","<source-field> = <null-replacement>]]`
 
-* field: mandatory. Name of an existing field that was piped into ``fillnull``. Null values for all specified fields are replaced with the value of expression.
-* expression: mandatory. Any expression support by the system. The expression value type must match the type of field.
+* null-replacement: mandatory. The value used to replace `null`s.
+* nullable-field: mandatory. Field reference. The `null` values in the field referred to by the property will be replaced with the values from the null-replacement.
 
-fillnull "using" <field> "=" <expression> ["," <field> "=" <expression> ]...
-
-* field: mandatory. Name of an existing field that was piped into ``fillnull``.
-* expression: mandatory. Any expression support by the system. The expression value type must match the type of field.
-
-Example 1: Replace null values with the same value for multiple fields
+Example 1: fillnull one field
 ======================================================================
 
-The example show to replace null values for email and host with "<not found>".
+The example show fillnull one field.
 
 PPL query::
 
@@ -44,10 +39,10 @@ PPL query::
     | daleadams@boink.com   | null     |
     +-----------------------+----------+
 
-Example 2: Replace null values for multiple fields with different values
+Example 2: fillnull applied to multiple fields
 ========================================================================
 
-The example show to replace null values for email with "<not found>" and null values for host with "<no host>".
+The example show fillnull applied to multiple fields.
 
 PPL query::
 
