@@ -888,6 +888,7 @@ keywordsCanBeId
    | KMEANS
    | AD
    | ML
+   | TRENDLINE
    // commands assist keywords
    | SOURCE
    | INDEX
