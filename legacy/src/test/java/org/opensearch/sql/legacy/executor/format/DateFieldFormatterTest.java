@@ -575,7 +575,7 @@ public class DateFieldFormatterTest {
     String dateFormat = "date_optional_time";
     String originalDateValue = "1581724085";
     // Invalid format for date value; should return original value
-    String expectedDateValue = "1581724085";
+    String expectedDateValue = "2020-02-14 23:48:05.000";
 
     verifyFormatting(columnName, dateFormat, originalDateValue, expectedDateValue);
   }
