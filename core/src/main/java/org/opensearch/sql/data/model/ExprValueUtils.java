@@ -75,6 +75,10 @@ public class ExprValueUtils {
     return new ExprTimestampValue(value);
   }
 
+  public static ExprValue ipValue(String value) {
+    return new ExprIpValue(value);
+  }
+
   /** {@link ExprTupleValue} constructor. */
   public static ExprValue tupleValue(Map<String, Object> map) {
     LinkedHashMap<String, ExprValue> valueMap = new LinkedHashMap<>();
