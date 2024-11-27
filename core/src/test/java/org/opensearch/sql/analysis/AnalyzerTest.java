@@ -9,6 +9,7 @@ import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
@@ -298,7 +299,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     LogicalPlan logicalPlan = analyze(unresolvedPlan);
     OpenSearchFunctions.OpenSearchFunction relevanceQuery =
         (OpenSearchFunctions.OpenSearchFunction) ((LogicalFilter) logicalPlan).getCondition();
-    assertEquals(true, relevanceQuery.isScoreTracked());
+    assertTrue(relevanceQuery.isScoreTracked());
   }
 
   @Test
@@ -323,7 +324,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     LogicalPlan logicalPlan = analyze(unresolvedPlan);
     OpenSearchFunctions.OpenSearchFunction relevanceQuery =
         (OpenSearchFunctions.OpenSearchFunction) ((LogicalFilter) logicalPlan).getCondition();
-    assertEquals(false, relevanceQuery.isScoreTracked());
+    assertFalse(relevanceQuery.isScoreTracked());
   }
 
   @Test
@@ -352,7 +353,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     LogicalPlan logicalPlan = analyze(unresolvedPlan);
     OpenSearchFunctions.OpenSearchFunction relevanceQuery =
         (OpenSearchFunctions.OpenSearchFunction) ((LogicalFilter) logicalPlan).getCondition();
-    assertEquals(true, relevanceQuery.isScoreTracked());
+    assertTrue(relevanceQuery.isScoreTracked());
   }
 
   @Test
@@ -791,7 +792,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                         AstDSL.defaultFieldsArgs(),
                         AstDSL.alias(
                             "message", function("nested", qualifiedName("message")), null))));
-    assertEquals(exception.getMessage(), "Illegal nested field name: message");
+    assertEquals("Illegal nested field name: message", exception.getMessage());
   }
 
   @Test
@@ -806,7 +807,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                         AstDSL.defaultFieldsArgs(),
                         AstDSL.alias(
                             "message", function("nested", stringLiteral("message")), null))));
-    assertEquals(exception.getMessage(), "Illegal nested field name: message");
+    assertEquals("Illegal nested field name: message", exception.getMessage());
   }
 
   @Test
@@ -821,8 +822,8 @@ class AnalyzerTest extends AnalyzerTestBase {
                         AstDSL.defaultFieldsArgs(),
                         AstDSL.alias("message", function("nested"), null))));
     assertEquals(
-        exception.getMessage(),
-        "on nested object only allowed 2 parameters (field,path) or 1 parameter (field)");
+        "on nested object only allowed 2 parameters (field,path) or 1 parameter (field)",
+        exception.getMessage());
   }
 
   @Test
@@ -844,8 +845,8 @@ class AnalyzerTest extends AnalyzerTestBase {
                                 stringLiteral("message")),
                             null))));
     assertEquals(
-        exception.getMessage(),
-        "on nested object only allowed 2 parameters (field,path) or 1 parameter (field)");
+        "on nested object only allowed 2 parameters (field,path) or 1 parameter (field)",
+        exception.getMessage());
   }
 
   @Test
@@ -902,19 +903,18 @@ class AnalyzerTest extends AnalyzerTestBase {
           + "https://github.com/opensearch-project/sql/issues/917 is resolved")
   @Test
   public void project_source_change_type_env() {
-    SemanticCheckException exception =
-        assertThrows(
-            SemanticCheckException.class,
-            () ->
-                analyze(
+    assertThrows(
+        SemanticCheckException.class,
+        () ->
+            analyze(
+                AstDSL.projectWithArg(
                     AstDSL.projectWithArg(
-                        AstDSL.projectWithArg(
-                            AstDSL.relation("schema"),
-                            AstDSL.defaultFieldsArgs(),
-                            AstDSL.field("integer_value"),
-                            AstDSL.field("double_value")),
+                        AstDSL.relation("schema"),
                         AstDSL.defaultFieldsArgs(),
-                        AstDSL.field("float_value"))));
+                        AstDSL.field("integer_value"),
+                        AstDSL.field("double_value")),
+                    AstDSL.defaultFieldsArgs(),
+                    AstDSL.field("float_value"))));
   }
 
   @Test
@@ -1185,7 +1185,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value")))));
   }
 
-  /** SELECT abs(name), abs(avg(age) FROM test GROUP BY abs(name). */
+  /** SELECT abs(name), abs(avg(age)) FROM test GROUP BY abs(name). */
   @Test
   public void sql_expression_over_one_aggregation() {
     assertAnalyzeEqual(
@@ -1425,7 +1425,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void kmeanns_relation() {
     Map<String, Literal> argumentMap =
-        new HashMap<String, Literal>() {
+        new HashMap<>() {
           {
             put("centroids", new Literal(3, DataType.INTEGER));
             put("iterations", new Literal(2, DataType.INTEGER));
@@ -1440,7 +1440,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void ad_batchRCF_relation() {
     Map<String, Literal> argumentMap =
-        new HashMap<String, Literal>() {
+        new HashMap<>() {
           {
             put("shingle_size", new Literal(8, DataType.INTEGER));
           }
@@ -1453,7 +1453,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void ad_fitRCF_relation() {
     Map<String, Literal> argumentMap =
-        new HashMap<String, Literal>() {
+        new HashMap<>() {
           {
             put("shingle_size", new Literal(8, DataType.INTEGER));
             put("time_decay", new Literal(0.0001, DataType.DOUBLE));
@@ -1468,7 +1468,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void ad_fitRCF_relation_with_time_field() {
     Map<String, Literal> argumentMap =
-        new HashMap<String, Literal>() {
+        new HashMap<>() {
           {
             put("shingle_size", new Literal(8, DataType.INTEGER));
             put("time_decay", new Literal(0.0001, DataType.DOUBLE));
@@ -1683,7 +1683,7 @@ class AnalyzerTest extends AnalyzerTestBase {
 
     LogicalPlan actual =
         analyze(AstDSL.project(new ML(AstDSL.relation("schema"), argumentMap), AstDSL.allFields()));
-    assertTrue(((LogicalProject) actual).getProjectList().size() >= 1);
+    assertFalse(((LogicalProject) actual).getProjectList().isEmpty());
     assertTrue(
         ((LogicalProject) actual)
             .getProjectList()
@@ -1744,14 +1744,14 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void visit_paginate() {
     LogicalPlan actual = analyze(new Paginate(10, AstDSL.relation("dummy")));
-    assertTrue(actual instanceof LogicalPaginate);
+    assertInstanceOf(LogicalPaginate.class, actual);
     assertEquals(10, ((LogicalPaginate) actual).getPageSize());
   }
 
   @Test
   void visit_cursor() {
     LogicalPlan actual = analyze((new FetchCursor("test")));
-    assertTrue(actual instanceof LogicalFetchCursor);
+    assertInstanceOf(LogicalFetchCursor.class, actual);
     assertEquals(
         new LogicalFetchCursor(
             "test", dataSourceService.getDataSource("@opensearch").getStorageEngine()),
@@ -1762,9 +1762,10 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void visit_close_cursor() {
     var analyzed = analyze(new CloseCursor().attach(new FetchCursor("pewpew")));
     assertAll(
-        () -> assertTrue(analyzed instanceof LogicalCloseCursor),
-        () -> assertTrue(analyzed.getChild().get(0) instanceof LogicalFetchCursor),
+        () -> assertInstanceOf(LogicalCloseCursor.class, analyzed),
+        () -> assertInstanceOf(LogicalFetchCursor.class, analyzed.getChild().getFirst()),
         () ->
-            assertEquals("pewpew", ((LogicalFetchCursor) analyzed.getChild().get(0)).getCursor()));
+            assertEquals(
+                "pewpew", ((LogicalFetchCursor) analyzed.getChild().getFirst()).getCursor()));
   }
 }

@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.data.value;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.model.ExprValueUtils.booleanValue;
@@ -268,7 +269,7 @@ class OpenSearchExprValueFactoryTest {
     ExprValue timeStringV = constructFromObject("timeStringV", "12:10:30.000Z");
     assertAll(
         () -> assertTrue(timeStringV.isDateTime()),
-        () -> assertTrue(timeStringV instanceof ExprTimeValue),
+        () -> assertInstanceOf(ExprTimeValue.class, timeStringV),
         () -> assertEquals(new ExprTimeValue("12:10:30"), timeStringV),
         () ->
             assertEquals(
@@ -441,7 +442,7 @@ class OpenSearchExprValueFactoryTest {
         new ExprCollectionValue(
             List.of(
                 new ExprTupleValue(
-                    new LinkedHashMap<String, ExprValue>() {
+                    new LinkedHashMap<>() {
                       {
                         put("info", stringValue("zz"));
                         put("author", stringValue("au"));
@@ -452,7 +453,7 @@ class OpenSearchExprValueFactoryTest {
         new ExprCollectionValue(
             List.of(
                 new ExprTupleValue(
-                    new LinkedHashMap<String, ExprValue>() {
+                    new LinkedHashMap<>() {
                       {
                         put("info", stringValue("zz"));
                         put("author", stringValue("au"));
@@ -723,7 +724,7 @@ class OpenSearchExprValueFactoryTest {
   public void constructStruct() {
     assertEquals(
         new ExprTupleValue(
-            new LinkedHashMap<String, ExprValue>() {
+            new LinkedHashMap<>() {
               {
                 put("id", integerValue(1));
                 put("state", stringValue("WA"));
@@ -732,7 +733,7 @@ class OpenSearchExprValueFactoryTest {
         tupleValue("{\"structV\":{\"id\":1,\"state\":\"WA\"}}").get("structV"));
     assertEquals(
         new ExprTupleValue(
-            new LinkedHashMap<String, ExprValue>() {
+            new LinkedHashMap<>() {
               {
                 put("id", integerValue(1));
                 put("state", stringValue("WA"));
@@ -825,8 +826,8 @@ class OpenSearchExprValueFactoryTest {
   }
 
   /**
-   * Return the all elements if is OpenSearch Array.
-   * https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html.
+   * Return the all elements if is OpenSearch Array. <a
+   * href="https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html">...</a>.
    */
   @Test
   public void constructFromOpenSearchArrayReturnAll() {
@@ -837,14 +838,14 @@ class OpenSearchExprValueFactoryTest {
         new ExprCollectionValue(
             List.of(
                 new ExprTupleValue(
-                    new LinkedHashMap<String, ExprValue>() {
+                    new LinkedHashMap<>() {
                       {
                         put("id", integerValue(1));
                         put("state", stringValue("WA"));
                       }
                     }),
                 new ExprTupleValue(
-                    new LinkedHashMap<String, ExprValue>() {
+                    new LinkedHashMap<>() {
                       {
                         put("id", integerValue(2));
                         put("state", stringValue("CA"));
@@ -855,8 +856,8 @@ class OpenSearchExprValueFactoryTest {
   }
 
   /**
-   * Return the all elements if is OpenSearch Array.
-   * https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html.
+   * Return the all elements if is OpenSearch Array. <a
+   * href="https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html">...</a>.
    */
   @Test
   public void constructFromOpenSearchArrayReturnAllWithArraySupport() {
@@ -867,14 +868,14 @@ class OpenSearchExprValueFactoryTest {
         new ExprCollectionValue(
             List.of(
                 new ExprTupleValue(
-                    new LinkedHashMap<String, ExprValue>() {
+                    new LinkedHashMap<>() {
                       {
                         put("id", integerValue(1));
                         put("state", stringValue("WA"));
                       }
                     }),
                 new ExprTupleValue(
-                    new LinkedHashMap<String, ExprValue>() {
+                    new LinkedHashMap<>() {
                       {
                         put("id", integerValue(2));
                         put("state", stringValue("CA"));
@@ -886,8 +887,8 @@ class OpenSearchExprValueFactoryTest {
   }
 
   /**
-   * Return only the first element if is OpenSearch Array.
-   * https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html.
+   * Return only the first element if is OpenSearch Array. <a
+   * href="https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html">...</a>.
    */
   @Test
   public void constructFromOpenSearchArrayReturnAllWithoutArraySupport() {
@@ -896,7 +897,7 @@ class OpenSearchExprValueFactoryTest {
         tupleValue("{\"intV\":[1, 2, 3]}").get("intV"));
     assertEquals(
         new ExprTupleValue(
-            new LinkedHashMap<String, ExprValue>() {
+            new LinkedHashMap<>() {
               {
                 put("id", integerValue(1));
                 put("state", stringValue("WA"));
@@ -908,8 +909,8 @@ class OpenSearchExprValueFactoryTest {
   }
 
   /**
-   * Return only the first element if is OpenSearch Array.
-   * https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html.
+   * Return only the first element if is OpenSearch Array. <a
+   * href="https://www.elastic.co/guide/en/elasticsearch/reference/current/array.html">...</a>.
    */
   @Test
   public void constructFromOpenSearchArrayReturnAllWithoutArraySupportNoFieldTolerance() {
@@ -920,14 +921,14 @@ class OpenSearchExprValueFactoryTest {
         new ExprCollectionValue(
             List.of(
                 new ExprTupleValue(
-                    new LinkedHashMap<String, ExprValue>() {
+                    new LinkedHashMap<>() {
                       {
                         put("id", integerValue(1));
                         put("state", stringValue("WA"));
                       }
                     }),
                 new ExprTupleValue(
-                    new LinkedHashMap<String, ExprValue>() {
+                    new LinkedHashMap<>() {
                       {
                         put("id", integerValue(2));
                         put("state", stringValue("CA"));

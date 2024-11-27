@@ -18,6 +18,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
 /** The extension of ExprType in OpenSearch. */
+@Getter
 @EqualsAndHashCode
 public class OpenSearchDataType implements ExprType, Serializable {
 
@@ -59,10 +60,10 @@ public class OpenSearchDataType implements ExprType, Serializable {
     }
   }
 
-  @EqualsAndHashCode.Exclude @Getter protected MappingType mappingType;
+  @EqualsAndHashCode.Exclude protected MappingType mappingType;
 
   // resolved ExprCoreType
-  @Getter protected ExprCoreType exprCoreType;
+  protected ExprCoreType exprCoreType;
 
   /**
    * Get a simplified type {@link ExprCoreType} if possible. To avoid returning `UNKNOWN` for
@@ -215,7 +216,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
 
   // For datatypes with properties (example: object and nested types)
   // a read-only collection
-  @Getter @EqualsAndHashCode.Exclude Map<String, OpenSearchDataType> properties = ImmutableMap.of();
+  @EqualsAndHashCode.Exclude Map<String, OpenSearchDataType> properties = ImmutableMap.of();
 
   @Override
   // Called when building TypeEnvironment and when serializing PPL response

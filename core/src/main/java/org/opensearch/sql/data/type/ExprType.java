@@ -7,7 +7,6 @@ package org.opensearch.sql.data.type;
 
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
-import java.util.Arrays;
 import java.util.List;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
@@ -44,7 +43,7 @@ public interface ExprType {
 
   /** Get the parent type. */
   default List<ExprType> getParent() {
-    return Arrays.asList(UNKNOWN);
+    return List.of(UNKNOWN);
   }
 
   /** Get the type name. */

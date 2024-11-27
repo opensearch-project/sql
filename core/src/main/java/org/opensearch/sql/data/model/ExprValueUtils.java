@@ -100,56 +100,35 @@ public class ExprValueUtils {
 
   /** Construct ExprValue from Object. */
   public static ExprValue fromObjectValue(Object o) {
-    if (null == o) {
-      return LITERAL_NULL;
-    }
-    if (o instanceof Map) {
-      return tupleValue((Map) o);
-    } else if (o instanceof List) {
-      return collectionValue(((List) o));
-    } else if (o instanceof Byte) {
-      return byteValue((Byte) o);
-    } else if (o instanceof Short) {
-      return shortValue((Short) o);
-    } else if (o instanceof Integer) {
-      return integerValue((Integer) o);
-    } else if (o instanceof Long) {
-      return longValue(((Long) o));
-    } else if (o instanceof Boolean) {
-      return booleanValue((Boolean) o);
-    } else if (o instanceof Double) {
-      return doubleValue((Double) o);
-    } else if (o instanceof String) {
-      return stringValue((String) o);
-    } else if (o instanceof Float) {
-      return floatValue((Float) o);
-    } else if (o instanceof LocalDate) {
-      return dateValue((LocalDate) o);
-    } else if (o instanceof LocalTime) {
-      return timeValue((LocalTime) o);
-    } else if (o instanceof Instant) {
-      return timestampValue((Instant) o);
-    } else if (o instanceof TemporalAmount) {
-      return intervalValue((TemporalAmount) o);
-    } else if (o instanceof LocalDateTime) {
-      return timestampValue(((LocalDateTime) o).toInstant(ZoneOffset.UTC));
-    } else {
-      throw new ExpressionEvaluationException("unsupported object " + o.getClass());
-    }
+    return switch (o) {
+      case null -> LITERAL_NULL;
+      case Map map -> tupleValue(map);
+      case List list -> collectionValue(list);
+      case Byte b -> byteValue(b);
+      case Short i -> shortValue(i);
+      case Integer i -> integerValue(i);
+      case Long l -> longValue(l);
+      case Boolean b -> booleanValue(b);
+      case Double v -> doubleValue(v);
+      case String s -> stringValue(s);
+      case Float v -> floatValue(v);
+      case LocalDate localDate -> dateValue(localDate);
+      case LocalTime localTime -> timeValue(localTime);
+      case Instant instant -> timestampValue(instant);
+      case TemporalAmount temporalAmount -> intervalValue(temporalAmount);
+      case LocalDateTime localDateTime -> timestampValue(localDateTime.toInstant(ZoneOffset.UTC));
+      default -> throw new ExpressionEvaluationException("unsupported object " + o.getClass());
+    };
   }
 
   /** Construct ExprValue from Object with ExprCoreType. */
   public static ExprValue fromObjectValue(Object o, ExprCoreType type) {
-    switch (type) {
-      case TIMESTAMP:
-        return new ExprTimestampValue((String) o);
-      case DATE:
-        return new ExprDateValue((String) o);
-      case TIME:
-        return new ExprTimeValue((String) o);
-      default:
-        return fromObjectValue(o);
-    }
+    return switch (type) {
+      case TIMESTAMP -> new ExprTimestampValue((String) o);
+      case DATE -> new ExprDateValue((String) o);
+      case TIME -> new ExprTimeValue((String) o);
+      default -> fromObjectValue(o);
+    };
   }
 
   public static Byte getByteValue(ExprValue exprValue) {

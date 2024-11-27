@@ -188,7 +188,7 @@ public class OpenSearchExprValueFactory {
 
   private ExprValue parse(
       Content content, String field, Optional<ExprType> fieldType, boolean supportArrays) {
-    if (content.isNull() || !fieldType.isPresent()) {
+    if (content.isNull() || fieldType.isEmpty()) {
       return ExprNullValue.of();
     }
 
@@ -238,15 +238,14 @@ public class OpenSearchExprValueFactory {
       try {
         TemporalAccessor accessor = formatter.parse(value);
         ZonedDateTime zonedDateTime = DateFormatters.from(accessor);
-        switch (returnFormat) {
-          case TIME:
-            return new ExprTimeValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toLocalTime());
-          case DATE:
-            return new ExprDateValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toLocalDate());
-          default:
-            return new ExprTimestampValue(
-                zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toInstant());
-        }
+        return switch (returnFormat) {
+          case TIME -> new ExprTimeValue(
+              zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toLocalTime());
+          case DATE -> new ExprDateValue(
+              zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toLocalDate());
+          default -> new ExprTimestampValue(
+              zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toInstant());
+        };
       } catch (IllegalArgumentException ignored) {
         // nothing to do, try another format
       }
@@ -254,17 +253,14 @@ public class OpenSearchExprValueFactory {
 
     // if no formatters are available, try the default formatter
     try {
-      switch (returnFormat) {
-        case TIME:
-          return new ExprTimeValue(
-              DateFormatters.from(STRICT_HOUR_MINUTE_SECOND_FORMATTER.parse(value)).toLocalTime());
-        case DATE:
-          return new ExprDateValue(
-              DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
-        default:
-          return new ExprTimestampValue(
-              DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
-      }
+      return switch (returnFormat) {
+        case TIME -> new ExprTimeValue(
+            DateFormatters.from(STRICT_HOUR_MINUTE_SECOND_FORMATTER.parse(value)).toLocalTime());
+        case DATE -> new ExprDateValue(
+            DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
+        default -> new ExprTimestampValue(
+            DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
+      };
     } catch (DateTimeParseException ignored) {
       // ignored
     }
@@ -278,8 +274,8 @@ public class OpenSearchExprValueFactory {
     ExprCoreType returnFormat = dt.getExprCoreType();
     if (value.isNumber()) { // isNumber
       var numFormatters = dt.getNumericNamedFormatters();
-      if (numFormatters.size() > 0 || !dt.hasFormats()) {
-        long epochMillis = 0;
+      if (!numFormatters.isEmpty() || !dt.hasFormats()) {
+        long epochMillis;
         if (numFormatters.contains(
             DateFormatter.forPattern(FormatNames.EPOCH_SECOND.getSnakeCaseName()))) {
           // no CamelCase for `EPOCH_*` formats
@@ -288,14 +284,11 @@ public class OpenSearchExprValueFactory {
           epochMillis = value.longValue();
         }
         Instant instant = Instant.ofEpochMilli(epochMillis);
-        switch (returnFormat) {
-          case TIME:
-            return new ExprTimeValue(LocalTime.from(instant.atZone(ZoneOffset.UTC)));
-          case DATE:
-            return new ExprDateValue(LocalDate.ofInstant(instant, ZoneOffset.UTC));
-          default:
-            return new ExprTimestampValue(instant);
-        }
+        return switch (returnFormat) {
+          case TIME -> new ExprTimeValue(LocalTime.from(instant.atZone(ZoneOffset.UTC)));
+          case DATE -> new ExprDateValue(LocalDate.ofInstant(instant, ZoneOffset.UTC));
+          default -> new ExprTimestampValue(instant);
+        };
       } else {
         // custom format
         return parseDateTimeString(value.objectValue().toString(), dt);
@@ -352,14 +345,11 @@ public class OpenSearchExprValueFactory {
     } else if (!(type instanceof OpenSearchDataType
             && ((OpenSearchDataType) type).getExprType().equals(ARRAY))
         && !supportArrays) {
-      return parseInnerArrayValue(content.array().next(), prefix, type, supportArrays);
+      return parseInnerArrayValue(content.array().next(), prefix, type, false);
     } else {
       content
           .array()
-          .forEachRemaining(
-              v -> {
-                result.add(parseInnerArrayValue(v, prefix, type, supportArrays));
-              });
+          .forEachRemaining(v -> result.add(parseInnerArrayValue(v, prefix, type, supportArrays)));
     }
     return new ExprCollectionValue(result);
   }
@@ -373,7 +363,7 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseGeoPoint(Content content, boolean supportArrays) {
     // there is only one point in doc.
-    if (content.isArray() == false) {
+    if (!content.isArray()) {
       final var pair = content.geoValue();
       return new OpenSearchExprGeoPointValue(pair.getLeft(), pair.getRight());
     }
@@ -384,7 +374,7 @@ public class OpenSearchExprValueFactory {
     if (first.isNumber()) {
       double lon = first.doubleValue();
       var second = elements.next();
-      if (second.isNumber() == false) {
+      if (!second.isNumber()) {
         throw new OpenSearchParseException("lat must be a number, got " + second.objectValue());
       }
       return new OpenSearchExprGeoPointValue(second.doubleValue(), lon);
