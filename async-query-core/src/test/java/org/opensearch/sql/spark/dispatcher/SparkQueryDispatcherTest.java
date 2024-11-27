@@ -91,7 +91,8 @@ import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 import org.opensearch.sql.spark.validator.DefaultGrammarElementValidator;
 import org.opensearch.sql.spark.validator.GrammarElementValidatorProvider;
-import org.opensearch.sql.spark.validator.S3GlueGrammarElementValidator;
+import org.opensearch.sql.spark.validator.PPLQueryValidator;
+import org.opensearch.sql.spark.validator.S3GlueSQLGrammarElementValidator;
 import org.opensearch.sql.spark.validator.SQLQueryValidator;
 
 @ExtendWith(MockitoExtension.class)
@@ -120,8 +121,13 @@ public class SparkQueryDispatcherTest {
   private final SQLQueryValidator sqlQueryValidator =
       new SQLQueryValidator(
           new GrammarElementValidatorProvider(
-              ImmutableMap.of(DataSourceType.S3GLUE, new S3GlueGrammarElementValidator()),
+              ImmutableMap.of(DataSourceType.S3GLUE, new S3GlueSQLGrammarElementValidator()),
               new DefaultGrammarElementValidator()));
+
+  private final PPLQueryValidator pplQueryValidator =
+      new PPLQueryValidator(
+          new GrammarElementValidatorProvider(
+              ImmutableMap.of(), new DefaultGrammarElementValidator()));
 
   private DataSourceSparkParameterComposer dataSourceSparkParameterComposer =
       (datasourceMetadata, sparkSubmitParameters, dispatchQueryRequest, context) -> {
@@ -175,7 +181,8 @@ public class SparkQueryDispatcherTest {
             sessionManager,
             queryHandlerFactory,
             queryIdProvider,
-            sqlQueryValidator);
+            sqlQueryValidator,
+            pplQueryValidator);
   }
 
   @Test
@@ -584,7 +591,8 @@ public class SparkQueryDispatcherTest {
             sessionManager,
             queryHandlerFactory,
             queryIdProvider,
-            sqlQueryValidator);
+            sqlQueryValidator,
+            pplQueryValidator);
     String query =
         "ALTER INDEX elb_and_requestUri ON my_glue.default.http_logs WITH"
             + " (auto_refresh = false)";
@@ -614,7 +622,8 @@ public class SparkQueryDispatcherTest {
             sessionManager,
             queryHandlerFactory,
             queryIdProvider,
-            sqlQueryValidator);
+            sqlQueryValidator,
+            pplQueryValidator);
     String query = "DROP INDEX elb_and_requestUri ON my_glue.default.http_logs";
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
