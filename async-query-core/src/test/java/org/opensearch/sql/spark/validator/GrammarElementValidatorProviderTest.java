@@ -12,25 +12,26 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.datasource.model.DataSourceType;
 
 class GrammarElementValidatorProviderTest {
-  S3GlueGrammarElementValidator s3GlueGrammarElementValidator = new S3GlueGrammarElementValidator();
-  SecurityLakeGrammarElementValidator securityLakeGrammarElementValidator =
-      new SecurityLakeGrammarElementValidator();
+  S3GlueSQLGrammarElementValidator s3GlueSQLGrammarElementValidator =
+      new S3GlueSQLGrammarElementValidator();
+  SecurityLakeSQLGrammarElementValidator securityLakeSQLGrammarElementValidator =
+      new SecurityLakeSQLGrammarElementValidator();
   DefaultGrammarElementValidator defaultGrammarElementValidator =
       new DefaultGrammarElementValidator();
   GrammarElementValidatorProvider grammarElementValidatorProvider =
       new GrammarElementValidatorProvider(
           ImmutableMap.of(
-              DataSourceType.S3GLUE, s3GlueGrammarElementValidator,
-              DataSourceType.SECURITY_LAKE, securityLakeGrammarElementValidator),
+              DataSourceType.S3GLUE, s3GlueSQLGrammarElementValidator,
+              DataSourceType.SECURITY_LAKE, securityLakeSQLGrammarElementValidator),
           defaultGrammarElementValidator);
 
   @Test
   public void test() {
     assertEquals(
-        s3GlueGrammarElementValidator,
+        s3GlueSQLGrammarElementValidator,
         grammarElementValidatorProvider.getValidatorForDatasource(DataSourceType.S3GLUE));
     assertEquals(
-        securityLakeGrammarElementValidator,
+        securityLakeSQLGrammarElementValidator,
         grammarElementValidatorProvider.getValidatorForDatasource(DataSourceType.SECURITY_LAKE));
     assertEquals(
         defaultGrammarElementValidator,
