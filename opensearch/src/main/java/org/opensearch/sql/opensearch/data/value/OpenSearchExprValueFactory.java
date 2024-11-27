@@ -50,6 +50,7 @@ import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprShortValue;
@@ -133,8 +134,8 @@ public class OpenSearchExprValueFactory {
               OpenSearchDateType.of(TIMESTAMP),
               OpenSearchExprValueFactory::createOpenSearchDateType)
           .put(
-              OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip),
-              (c, dt) -> new OpenSearchExprIpValue(c.stringValue()))
+              OpenSearchDateType.of(OpenSearchDataType.MappingType.Ip),
+              (c, dt) -> new ExprIpValue(c.stringValue()))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),
               (c, dt) -> new OpenSearchExprBinaryValue(c.stringValue()))
