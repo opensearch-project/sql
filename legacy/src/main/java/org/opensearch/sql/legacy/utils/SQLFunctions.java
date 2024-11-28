@@ -112,7 +112,7 @@ public class SQLFunctions {
           .flatMap(Set::stream)
           .collect(Collectors.toSet());
 
-  private Map<String, Integer> generatedIds = new HashMap<>();
+  private final Map<String, Integer> generatedIds = new HashMap<>();
 
   /**
    * Generates next id for given method name. The id's are increasing for each method name, so
@@ -135,7 +135,7 @@ public class SQLFunctions {
       case "cast":
         {
           SQLCastExpr castExpr =
-              (SQLCastExpr) ((SQLIdentifierExpr) paramers.get(0).value).getParent();
+              (SQLCastExpr) ((SQLIdentifierExpr) paramers.getFirst().value).getParent();
           String typeName = castExpr.getDataType().getName();
           functionStr = cast(typeName, paramers);
           break;
@@ -144,7 +144,7 @@ public class SQLFunctions {
         {
           functionStr =
               lower(
-                  (SQLExpr) paramers.get(0).value,
+                  (SQLExpr) paramers.getFirst().value,
                   getLocaleForCaseChangingFunction(paramers),
                   name);
           break;
@@ -153,7 +153,7 @@ public class SQLFunctions {
         {
           functionStr =
               upper(
-                  (SQLExpr) paramers.get(0).value,
+                  (SQLExpr) paramers.getFirst().value,
                   getLocaleForCaseChangingFunction(paramers),
                   name);
           break;
@@ -181,7 +181,7 @@ public class SQLFunctions {
         for (int i = 1; i < paramers.size(); i++) {
           result.add((SQLExpr) paramers.get(i).value);
         }
-        functionStr = concat_ws(paramers.get(0).value.toString(), result);
+        functionStr = concat_ws(paramers.getFirst().value.toString(), result);
 
         break;
 
@@ -197,53 +197,55 @@ public class SQLFunctions {
         break;
 
       case "year":
-        functionStr = dateFunctionTemplate("year", (SQLExpr) paramers.get(0).value);
+        functionStr = dateFunctionTemplate("year", (SQLExpr) paramers.getFirst().value);
         break;
       case "month_of_year":
       case "month":
-        functionStr = dateFunctionTemplate("monthValue", (SQLExpr) paramers.get(0).value);
+        functionStr = dateFunctionTemplate("monthValue", (SQLExpr) paramers.getFirst().value);
         break;
       case "monthname":
-        functionStr = dateFunctionTemplate("month", (SQLExpr) paramers.get(0).value);
+        functionStr = dateFunctionTemplate("month", (SQLExpr) paramers.getFirst().value);
         break;
       case "week_of_year":
         functionStr =
             dateFunctionTemplate(
                 "weekOfWeekyear",
                 "get(WeekFields.ISO.weekOfWeekBasedYear())",
-                (SQLExpr) paramers.get(0).value);
+                (SQLExpr) paramers.getFirst().value);
         break;
       case "day_of_year":
-        functionStr = dateFunctionTemplate("dayOfYear", (SQLExpr) paramers.get(0).value);
+        functionStr = dateFunctionTemplate("dayOfYear", (SQLExpr) paramers.getFirst().value);
         break;
       case "day_of_month":
       case "dayofmonth":
-        functionStr = dateFunctionTemplate("dayOfMonth", (SQLExpr) paramers.get(0).value);
+        functionStr = dateFunctionTemplate("dayOfMonth", (SQLExpr) paramers.getFirst().value);
         break;
       case "day_of_week":
         functionStr =
             dateFunctionTemplate(
-                "dayOfWeek", "getDayOfWeekEnum().getValue()", (SQLExpr) paramers.get(0).value);
+                "dayOfWeek", "getDayOfWeekEnum().getValue()", (SQLExpr) paramers.getFirst().value);
         break;
       case "date":
-        functionStr = date((SQLExpr) paramers.get(0).value);
+        functionStr = date((SQLExpr) paramers.getFirst().value);
         break;
       case "hour_of_day":
-        functionStr = dateFunctionTemplate("hour", (SQLExpr) paramers.get(0).value);
+        functionStr = dateFunctionTemplate("hour", (SQLExpr) paramers.getFirst().value);
         break;
       case "minute_of_day":
         functionStr =
             dateFunctionTemplate(
-                "minuteOfDay", "get(ChronoField.MINUTE_OF_DAY)", (SQLExpr) paramers.get(0).value);
+                "minuteOfDay",
+                "get(ChronoField.MINUTE_OF_DAY)",
+                (SQLExpr) paramers.getFirst().value);
         break;
       case "minute_of_hour":
-        functionStr = dateFunctionTemplate("minute", (SQLExpr) paramers.get(0).value);
+        functionStr = dateFunctionTemplate("minute", (SQLExpr) paramers.getFirst().value);
         break;
       case "second_of_minute":
-        functionStr = dateFunctionTemplate("second", (SQLExpr) paramers.get(0).value);
+        functionStr = dateFunctionTemplate("second", (SQLExpr) paramers.getFirst().value);
         break;
       case "timestamp":
-        functionStr = timestamp((SQLExpr) paramers.get(0).value);
+        functionStr = timestamp((SQLExpr) paramers.getFirst().value);
         break;
       case "maketime":
         functionStr =
@@ -284,14 +286,14 @@ public class SQLFunctions {
       case "cosh":
         functionStr =
             mathSingleValueTemplate(
-                "Math." + methodName, methodName, (SQLExpr) paramers.get(0).value, name);
+                "Math." + methodName, methodName, (SQLExpr) paramers.getFirst().value, name);
         break;
 
       case "rand":
         if (paramers.isEmpty()) {
           functionStr = rand();
         } else {
-          functionStr = rand((SQLExpr) paramers.get(0).value);
+          functionStr = rand((SQLExpr) paramers.getFirst().value);
         }
         break;
 
@@ -299,7 +301,7 @@ public class SQLFunctions {
         // OpenSearch does not support the function name cot
         functionStr =
             mathSingleValueTemplate(
-                "1 / Math.tan", methodName, (SQLExpr) paramers.get(0).value, name);
+                "1 / Math.tan", methodName, (SQLExpr) paramers.getFirst().value, name);
         break;
 
       case "sign":
@@ -307,7 +309,7 @@ public class SQLFunctions {
         methodName = "signum";
         functionStr =
             mathSingleValueTemplate(
-                "Math." + methodName, methodName, (SQLExpr) paramers.get(0).value, name);
+                "Math." + methodName, methodName, (SQLExpr) paramers.getFirst().value, name);
         break;
 
       case "pow":
@@ -340,14 +342,14 @@ public class SQLFunctions {
         break;
 
       case "degrees":
-        functionStr = degrees((SQLExpr) paramers.get(0).value, name);
+        functionStr = degrees((SQLExpr) paramers.getFirst().value, name);
         break;
       case "radians":
-        functionStr = radians((SQLExpr) paramers.get(0).value, name);
+        functionStr = radians((SQLExpr) paramers.getFirst().value, name);
         break;
 
       case "trim":
-        functionStr = trim((SQLExpr) paramers.get(0).value, name);
+        functionStr = trim((SQLExpr) paramers.getFirst().value, name);
         break;
 
       case "add":
@@ -369,30 +371,30 @@ public class SQLFunctions {
         break;
 
       case "field":
-        functionStr = field(Util.expr2Object((SQLExpr) paramers.get(0).value).toString());
+        functionStr = field(Util.expr2Object((SQLExpr) paramers.getFirst().value).toString());
         break;
 
       case "log2":
-        functionStr = log(SQLUtils.toSQLExpr("2"), (SQLExpr) paramers.get(0).value, name);
+        functionStr = log(SQLUtils.toSQLExpr("2"), (SQLExpr) paramers.getFirst().value, name);
         break;
       case "log10":
-        functionStr = log10((SQLExpr) paramers.get(0).value);
+        functionStr = log10((SQLExpr) paramers.getFirst().value);
         break;
       case "log":
         if (paramers.size() > 1) {
           functionStr = log((SQLExpr) paramers.get(0).value, (SQLExpr) paramers.get(1).value, name);
         } else {
-          functionStr = ln((SQLExpr) paramers.get(0).value);
+          functionStr = ln((SQLExpr) paramers.getFirst().value);
         }
         break;
       case "ln":
-        functionStr = ln((SQLExpr) paramers.get(0).value);
+        functionStr = ln((SQLExpr) paramers.getFirst().value);
         break;
       case "assign":
-        functionStr = assign((SQLExpr) paramers.get(0).value);
+        functionStr = assign((SQLExpr) paramers.getFirst().value);
         break;
       case "length":
-        functionStr = length((SQLExpr) paramers.get(0).value);
+        functionStr = length((SQLExpr) paramers.getFirst().value);
         break;
       case "replace":
         functionStr =
@@ -410,13 +412,13 @@ public class SQLFunctions {
             locate(paramers.get(0).value.toString(), (SQLExpr) paramers.get(1).value, start);
         break;
       case "rtrim":
-        functionStr = rtrim((SQLExpr) paramers.get(0).value);
+        functionStr = rtrim((SQLExpr) paramers.getFirst().value);
         break;
       case "ltrim":
-        functionStr = ltrim((SQLExpr) paramers.get(0).value);
+        functionStr = ltrim((SQLExpr) paramers.getFirst().value);
         break;
       case "ascii":
-        functionStr = ascii((SQLExpr) paramers.get(0).value);
+        functionStr = ascii((SQLExpr) paramers.getFirst().value);
         break;
       case "left":
         functionStr = left((SQLExpr) paramers.get(0).value, (SQLExpr) paramers.get(1).value);
@@ -432,7 +434,7 @@ public class SQLFunctions {
         functionStr = ifnull((SQLExpr) paramers.get(0).value, (SQLExpr) paramers.get(1).value);
         break;
       case "isnull":
-        functionStr = isnull((SQLExpr) paramers.get(0).value);
+        functionStr = isnull((SQLExpr) paramers.getFirst().value);
         break;
 
       default:
@@ -738,8 +740,7 @@ public class SQLFunctions {
   }
 
   private String getScriptText(MethodField field) {
-    String content = ((SQLTextLiteralExpr) field.getParams().get(1).value).getText();
-    return content;
+    return ((SQLTextLiteralExpr) field.getParams().get(1).value).getText();
   }
 
   /**
@@ -1028,12 +1029,12 @@ public class SQLFunctions {
     if (paramers.get(0).value instanceof SQLNullExpr) {
       return new Tuple<>(name, def(name, expr2));
     }
-    if (paramers.get(0).value instanceof MethodField) {
-      String condition = getScriptText((MethodField) paramers.get(0).value);
+    if (paramers.getFirst().value instanceof MethodField) {
+      String condition = getScriptText((MethodField) paramers.getFirst().value);
       return new Tuple<>(
           name, "boolean cond = " + condition + ";" + def(name, "cond ? " + expr1 + " : " + expr2));
-    } else if (paramers.get(0).value instanceof SQLBooleanExpr) {
-      Boolean condition = ((SQLBooleanExpr) paramers.get(0).value).getValue();
+    } else if (paramers.getFirst().value instanceof SQLBooleanExpr) {
+      boolean condition = ((SQLBooleanExpr) paramers.getFirst().value).getValue();
       if (condition) {
         return new Tuple<>(name, def(name, expr1));
       } else {
@@ -1048,8 +1049,8 @@ public class SQLFunctions {
        * <p>Either a or b could be a column name, literal, or a number: - if isNumeric is true -->
        * number - else if this string is single quoted --> literal - else --> column name
        */
-      String key = getPropertyOrValue(paramers.get(0).key);
-      String value = getPropertyOrValue(paramers.get(0).value.toString());
+      String key = getPropertyOrValue(paramers.getFirst().key);
+      String value = getPropertyOrValue(paramers.getFirst().value.toString());
       String condition = key + " == " + value;
       return new Tuple<>(
           name, "boolean cond = " + condition + ";" + def(name, "cond ? " + expr1 + " : " + expr2));
@@ -1106,23 +1107,17 @@ public class SQLFunctions {
 
   public String getCastScriptStatement(String name, String castType, List<KVValue> paramers)
       throws SqlParseException {
-    String castFieldName = String.format("doc['%s'].value", paramers.get(0).toString());
-    switch (StringUtils.toUpper(castType)) {
-      case "INT":
-      case "LONG":
-      case "FLOAT":
-      case "DOUBLE":
-        return getCastToNumericValueScript(name, castFieldName, StringUtils.toLower(castType));
-      case "STRING":
-        return String.format("def %s = %s.toString()", name, castFieldName);
-      case "DATETIME":
-        return String.format(
-            "def %s = DateTimeFormatter.ofPattern(\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\").format("
-                + "DateTimeFormatter.ISO_DATE_TIME.parse(%s.toString()))",
-            name, castFieldName);
-      default:
-        throw new SqlParseException("Unsupported cast type " + castType);
-    }
+    String castFieldName = String.format("doc['%s'].value", paramers.getFirst().toString());
+    return switch (StringUtils.toUpper(castType)) {
+      case "INT", "LONG", "FLOAT", "DOUBLE" -> getCastToNumericValueScript(
+          name, castFieldName, StringUtils.toLower(castType));
+      case "STRING" -> String.format("def %s = %s.toString()", name, castFieldName);
+      case "DATETIME" -> String.format(
+          "def %s = DateTimeFormatter.ofPattern(\"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\").format("
+              + "DateTimeFormatter.ISO_DATE_TIME.parse(%s.toString()))",
+          name, castFieldName);
+      default -> throw new SqlParseException("Unsupported cast type " + castType);
+    };
   }
 
   private String getCastToNumericValueScript(String varName, String docValue, String targetType) {
@@ -1150,23 +1145,16 @@ public class SQLFunctions {
   }
 
   public static Schema.Type getCastFunctionReturnType(String castType) {
-    switch (StringUtils.toUpper(castType)) {
-      case "FLOAT":
-        return Schema.Type.FLOAT;
-      case "DOUBLE":
-        return Schema.Type.DOUBLE;
-      case "INT":
-        return Schema.Type.INTEGER;
-      case "STRING":
-        return Schema.Type.TEXT;
-      case "DATETIME":
-        return Schema.Type.DATE;
-      case "LONG":
-        return Schema.Type.LONG;
-      default:
-        throw new UnsupportedOperationException(
-            StringUtils.format("The following type is not supported by cast(): %s", castType));
-    }
+    return switch (StringUtils.toUpper(castType)) {
+      case "FLOAT" -> Schema.Type.FLOAT;
+      case "DOUBLE" -> Schema.Type.DOUBLE;
+      case "INT" -> Schema.Type.INTEGER;
+      case "STRING" -> Schema.Type.TEXT;
+      case "DATETIME" -> Schema.Type.DATE;
+      case "LONG" -> Schema.Type.LONG;
+      default -> throw new UnsupportedOperationException(
+          StringUtils.format("The following type is not supported by cast(): %s", castType));
+    };
   }
 
   /**

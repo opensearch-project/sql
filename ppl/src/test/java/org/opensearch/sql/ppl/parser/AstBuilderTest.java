@@ -45,9 +45,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
@@ -61,9 +59,7 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstBuilderTest {
 
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
-
-  private PPLSyntaxParser parser = new PPLSyntaxParser();
+  private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   @Test
   public void testSearchCommand() {

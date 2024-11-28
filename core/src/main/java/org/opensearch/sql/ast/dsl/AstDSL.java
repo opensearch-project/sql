@@ -396,10 +396,6 @@ public class AstDSL {
     return Arrays.asList(exprList);
   }
 
-  public static List<UnresolvedArgument> unresolvedArgList(UnresolvedArgument... exprList) {
-    return Arrays.asList(exprList);
-  }
-
   public static List<Argument> defaultFieldsArgs() {
     return exprList(argument("exclude", booleanLiteral(false)));
   }
@@ -421,10 +417,6 @@ public class AstDSL {
         argument("consecutive", booleanLiteral(false)));
   }
 
-  public static List<Argument> sortOptions() {
-    return exprList(argument("desc", booleanLiteral(false)));
-  }
-
   public static List<Argument> defaultSortFieldArgs() {
     return exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()));
   }
@@ -443,10 +435,6 @@ public class AstDSL {
 
   public static Head head(UnresolvedPlan input, Integer size, Integer from) {
     return new Head(input, size, from);
-  }
-
-  public static List<Argument> defaultTopArgs() {
-    return exprList(argument("noOfResults", intLiteral(10)));
   }
 
   public static RareTopN rareTopN(

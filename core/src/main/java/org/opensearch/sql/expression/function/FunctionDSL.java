@@ -115,7 +115,7 @@ public class FunctionDSL {
               new FunctionExpression(functionName, arguments) {
                 @Override
                 public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-                  ExprValue value = arguments.get(0).valueOf(valueEnv);
+                  ExprValue value = arguments.getFirst().valueOf(valueEnv);
                   return function.apply(functionProperties, value);
                 }
 

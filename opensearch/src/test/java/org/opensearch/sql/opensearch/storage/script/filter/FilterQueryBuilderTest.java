@@ -107,14 +107,15 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_term_query_for_equality_expression() {
     assertJsonEquals(
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"name\" : {\n"
-            + "      \"value\" : \"John\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "term" : {
+                        "name" : {
+                          "value" : "John",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(DSL.equal(ref("name", STRING), literal("John"))));
   }
 
@@ -156,15 +157,16 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_wildcard_query_for_like_expression() {
     assertJsonEquals(
-        "{\n"
-            + "  \"wildcard\" : {\n"
-            + "    \"name\" : {\n"
-            + "      \"wildcard\" : \"*John?\",\n"
-            + "      \"case_insensitive\" : true,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "wildcard" : {
+                        "name" : {
+                          "wildcard" : "*John?",
+                          "case_insensitive" : true,
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(DSL.like(ref("name", STRING), literal("%John_"))));
   }
 
@@ -172,15 +174,16 @@ class FilterQueryBuilderTest {
   void should_build_script_query_for_unsupported_lucene_query() {
     mockToStringSerializer();
     assertJsonEquals(
-        "{\n"
-            + "  \"script\" : {\n"
-            + "    \"script\" : {\n"
-            + "      \"source\" : \"is not null(age)\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
-            + "    },\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "script" : {
+                        "script" : {
+                          "source" : "is not null(age)",
+                          "lang" : "opensearch_query_expression"
+                        },
+                        "boost" : 1.0
+                      }
+                    }""",
         buildQuery(DSL.isnotnull(ref("age", INTEGER))));
   }
 
@@ -188,15 +191,16 @@ class FilterQueryBuilderTest {
   void should_build_script_query_for_function_expression() {
     mockToStringSerializer();
     assertJsonEquals(
-        "{\n"
-            + "  \"script\" : {\n"
-            + "    \"script\" : {\n"
-            + "      \"source\" : \"=(abs(age), 30)\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
-            + "    },\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "script" : {
+                        "script" : {
+                          "source" : "=(abs(age), 30)",
+                          "lang" : "opensearch_query_expression"
+                        },
+                        "boost" : 1.0
+                      }
+                    }""",
         buildQuery(DSL.equal(DSL.abs(ref("age", INTEGER)), literal(30))));
   }
 
@@ -204,15 +208,16 @@ class FilterQueryBuilderTest {
   void should_build_script_query_for_comparison_between_fields() {
     mockToStringSerializer();
     assertJsonEquals(
-        "{\n"
-            + "  \"script\" : {\n"
-            + "    \"script\" : {\n"
-            + "      \"source\" : \"=(age1, age2)\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
-            + "    },\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "script" : {
+                        "script" : {
+                          "source" : "=(age1, age2)",
+                          "lang" : "opensearch_query_expression"
+                        },
+                        "boost" : 1.0
+                      }
+                    }""",
         buildQuery(DSL.equal(ref("age1", INTEGER), ref("age2", INTEGER))));
   }
 
@@ -258,36 +263,38 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_bool_query_for_not_expression() {
     assertJsonEquals(
-        "{\n"
-            + "  \"bool\" : {\n"
-            + "    \"must_not\" : [\n"
-            + "      {\n"
-            + "        \"term\" : {\n"
-            + "          \"age\" : {\n"
-            + "            \"value\" : 30,\n"
-            + "            \"boost\" : 1.0\n"
-            + "          }\n"
-            + "        }\n"
-            + "      }\n"
-            + "    ],\n"
-            + "    \"adjust_pure_negative\" : true,\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "bool" : {
+                        "must_not" : [
+                          {
+                            "term" : {
+                              "age" : {
+                                "value" : 30,
+                                "boost" : 1.0
+                              }
+                            }
+                          }
+                        ],
+                        "adjust_pure_negative" : true,
+                        "boost" : 1.0
+                      }
+                    }""",
         buildQuery(DSL.not(DSL.equal(ref("age", INTEGER), literal(30)))));
   }
 
   @Test
   void should_use_keyword_for_multi_field_in_equality_expression() {
     assertJsonEquals(
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"name.keyword\" : {\n"
-            + "      \"value\" : \"John\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "term" : {
+                        "name.keyword" : {
+                          "value" : "John",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.equal(
                 ref(
@@ -302,15 +309,16 @@ class FilterQueryBuilderTest {
   @Test
   void should_use_keyword_for_multi_field_in_like_expression() {
     assertJsonEquals(
-        "{\n"
-            + "  \"wildcard\" : {\n"
-            + "    \"name.keyword\" : {\n"
-            + "      \"wildcard\" : \"John*\",\n"
-            + "      \"case_insensitive\" : true,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "wildcard" : {
+                        "name.keyword" : {
+                          "wildcard" : "John*",
+                          "case_insensitive" : true,
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.like(
                 ref(
@@ -325,22 +333,23 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_term_query_predicate_expression_with_nested_function() {
     assertJsonEquals(
-        "{\n"
-            + "  \"nested\" : {\n"
-            + "    \"query\" : {\n"
-            + "      \"term\" : {\n"
-            + "        \"message.info\" : {\n"
-            + "          \"value\" : \"string_value\",\n"
-            + "          \"boost\" : 1.0\n"
-            + "        }\n"
-            + "      }\n"
-            + "    },\n"
-            + "    \"path\" : \"message\",\n"
-            + "    \"ignore_unmapped\" : false,\n"
-            + "    \"score_mode\" : \"none\",\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "nested" : {
+                        "query" : {
+                          "term" : {
+                            "message.info" : {
+                              "value" : "string_value",
+                              "boost" : 1.0
+                            }
+                          }
+                        },
+                        "path" : "message",
+                        "ignore_unmapped" : false,
+                        "score_mode" : "none",
+                        "boost" : 1.0
+                      }
+                    }""",
         buildQuery(
             DSL.equal(
                 DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)),
@@ -350,25 +359,26 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_range_query_predicate_expression_with_nested_function() {
     assertJsonEquals(
-        "{\n"
-            + "  \"nested\" : {\n"
-            + "    \"query\" : {\n"
-            + "      \"range\" : {\n"
-            + "        \"lottery.number.id\" : {\n"
-            + "          \"from\" : 1234,\n"
-            + "          \"to\" : null,\n"
-            + "          \"include_lower\" : false,\n"
-            + "          \"include_upper\" : true,\n"
-            + "          \"boost\" : 1.0\n"
-            + "        }\n"
-            + "      }\n"
-            + "    },\n"
-            + "    \"path\" : \"lottery.number\",\n"
-            + "    \"ignore_unmapped\" : false,\n"
-            + "    \"score_mode\" : \"none\",\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "nested" : {
+                        "query" : {
+                          "range" : {
+                            "lottery.number.id" : {
+                              "from" : 1234,
+                              "to" : null,
+                              "include_lower" : false,
+                              "include_upper" : true,
+                              "boost" : 1.0
+                            }
+                          }
+                        },
+                        "path" : "lottery.number",
+                        "ignore_unmapped" : false,
+                        "score_mode" : "none",
+                        "boost" : 1.0
+                      }
+                    }""",
         buildQuery(DSL.greater(DSL.nested(DSL.ref("lottery.number.id", INTEGER)), literal(1234))));
   }
 
@@ -435,21 +445,22 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_match_query_with_default_parameters() {
     assertJsonEquals(
-        "{\n"
-            + "  \"match\" : {\n"
-            + "    \"message\" : {\n"
-            + "      \"query\" : \"search query\",\n"
-            + "      \"operator\" : \"OR\",\n"
-            + "      \"prefix_length\" : 0,\n"
-            + "      \"max_expansions\" : 50,\n"
-            + "      \"fuzzy_transpositions\" : true,\n"
-            + "      \"lenient\" : false,\n"
-            + "      \"zero_terms_query\" : \"NONE\",\n"
-            + "      \"auto_generate_synonyms_phrase_query\" : true,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "match" : {
+                        "message" : {
+                          "query" : "search query",
+                          "operator" : "OR",
+                          "prefix_length" : 0,
+                          "max_expansions" : 50,
+                          "fuzzy_transpositions" : true,
+                          "lenient" : false,
+                          "zero_terms_query" : "NONE",
+                          "auto_generate_synonyms_phrase_query" : true,
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.match(
                 DSL.namedArgument(
@@ -460,25 +471,26 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_match_query_with_custom_parameters() {
     assertJsonEquals(
-        "{\n"
-            + "  \"match\" : {\n"
-            + "    \"message\" : {\n"
-            + "      \"query\" : \"search query\",\n"
-            + "      \"operator\" : \"AND\",\n"
-            + "      \"analyzer\" : \"keyword\","
-            + "      \"fuzziness\" : \"AUTO\","
-            + "      \"prefix_length\" : 0,\n"
-            + "      \"max_expansions\" : 50,\n"
-            + "      \"minimum_should_match\" : \"3\","
-            + "      \"fuzzy_rewrite\" : \"top_terms_1\","
-            + "      \"fuzzy_transpositions\" : false,\n"
-            + "      \"lenient\" : false,\n"
-            + "      \"zero_terms_query\" : \"ALL\",\n"
-            + "      \"auto_generate_synonyms_phrase_query\" : true,\n"
-            + "      \"boost\" : 2.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "match" : {
+                        "message" : {
+                          "query" : "search query",
+                          "operator" : "AND",
+                          "analyzer" : "keyword",\
+                          "fuzziness" : "AUTO",\
+                          "prefix_length" : 0,
+                          "max_expansions" : 50,
+                          "minimum_should_match" : "3",\
+                          "fuzzy_rewrite" : "top_terms_1",\
+                          "fuzzy_transpositions" : false,
+                          "lenient" : false,
+                          "zero_terms_query" : "ALL",
+                          "auto_generate_synonyms_phrase_query" : true,
+                          "boost" : 2.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.match(
                 DSL.namedArgument(
@@ -568,16 +580,17 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_match_phrase_query_with_default_parameters() {
     assertJsonEquals(
-        "{\n"
-            + "  \"match_phrase\" : {\n"
-            + "    \"message\" : {\n"
-            + "      \"query\" : \"search query\",\n"
-            + "      \"slop\" : 0,\n"
-            + "      \"zero_terms_query\" : \"NONE\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "match_phrase" : {
+                        "message" : {
+                          "query" : "search query",
+                          "slop" : 0,
+                          "zero_terms_query" : "NONE",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.match_phrase(
                 DSL.namedArgument(
@@ -588,23 +601,24 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_multi_match_query_with_default_parameters_single_field() {
     assertJsonEquals(
-        "{\n"
-            + "  \"multi_match\" : {\n"
-            + "    \"query\" : \"search query\",\n"
-            + "    \"fields\" : [\n"
-            + "      \"field1^1.0\"\n"
-            + "    ],\n"
-            + "    \"type\" : \"best_fields\",\n"
-            + "    \"operator\" : \"OR\",\n"
-            + "    \"slop\" : 0,\n"
-            + "    \"prefix_length\" : 0,\n"
-            + "    \"max_expansions\" : 50,\n"
-            + "    \"zero_terms_query\" : \"NONE\",\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
-            + "    \"fuzzy_transpositions\" : true,\n"
-            + "    \"boost\" : 1.0,\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "multi_match" : {
+                        "query" : "search query",
+                        "fields" : [
+                          "field1^1.0"
+                        ],
+                        "type" : "best_fields",
+                        "operator" : "OR",
+                        "slop" : 0,
+                        "prefix_length" : 0,
+                        "max_expansions" : 50,
+                        "zero_terms_query" : "NONE",
+                        "auto_generate_synonyms_phrase_query" : true,
+                        "fuzzy_transpositions" : true,
+                        "boost" : 1.0,
+                      }
+                    }""",
         buildQuery(
             DSL.multi_match(
                 DSL.namedArgument(
@@ -619,23 +633,24 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_multi_match_query_with_default_parameters_all_fields() {
     assertJsonEquals(
-        "{\n"
-            + "  \"multi_match\" : {\n"
-            + "    \"query\" : \"search query\",\n"
-            + "    \"fields\" : [\n"
-            + "      \"*^1.0\"\n"
-            + "    ],\n"
-            + "    \"type\" : \"best_fields\",\n"
-            + "    \"operator\" : \"OR\",\n"
-            + "    \"slop\" : 0,\n"
-            + "    \"prefix_length\" : 0,\n"
-            + "    \"max_expansions\" : 50,\n"
-            + "    \"zero_terms_query\" : \"NONE\",\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
-            + "    \"fuzzy_transpositions\" : true,\n"
-            + "    \"boost\" : 1.0,\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "multi_match" : {
+                        "query" : "search query",
+                        "fields" : [
+                          "*^1.0"
+                        ],
+                        "type" : "best_fields",
+                        "operator" : "OR",
+                        "slop" : 0,
+                        "prefix_length" : 0,
+                        "max_expansions" : 50,
+                        "zero_terms_query" : "NONE",
+                        "auto_generate_synonyms_phrase_query" : true,
+                        "fuzzy_transpositions" : true,
+                        "boost" : 1.0,
+                      }
+                    }""",
         buildQuery(
             DSL.multi_match(
                 DSL.namedArgument(
@@ -650,21 +665,22 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_multi_match_query_with_default_parameters_no_fields() {
     assertJsonEquals(
-        "{\n"
-            + "  \"multi_match\" : {\n"
-            + "    \"query\" : \"search query\",\n"
-            + "    \"fields\" : [],\n"
-            + "    \"type\" : \"best_fields\",\n"
-            + "    \"operator\" : \"OR\",\n"
-            + "    \"slop\" : 0,\n"
-            + "    \"prefix_length\" : 0,\n"
-            + "    \"max_expansions\" : 50,\n"
-            + "    \"zero_terms_query\" : \"NONE\",\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
-            + "    \"fuzzy_transpositions\" : true,\n"
-            + "    \"boost\" : 1.0,\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "multi_match" : {
+                        "query" : "search query",
+                        "fields" : [],
+                        "type" : "best_fields",
+                        "operator" : "OR",
+                        "slop" : 0,
+                        "prefix_length" : 0,
+                        "max_expansions" : 50,
+                        "zero_terms_query" : "NONE",
+                        "auto_generate_synonyms_phrase_query" : true,
+                        "fuzzy_transpositions" : true,
+                        "boost" : 1.0,
+                      }
+                    }""",
         buildQuery(
             DSL.multi_match(
                 DSL.namedArgument(
@@ -678,21 +694,22 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_multi_match_query_with_default_parameters_multiple_fields() {
     var expected =
-        "{\n"
-            + "  \"multi_match\" : {\n"
-            + "    \"query\" : \"search query\",\n"
-            + "    \"fields\" : [%s],\n"
-            + "    \"type\" : \"best_fields\",\n"
-            + "    \"operator\" : \"OR\",\n"
-            + "    \"slop\" : 0,\n"
-            + "    \"max_expansions\" : 50,\n"
-            + "    \"prefix_length\" : 0,\n"
-            + "    \"zero_terms_query\" : \"NONE\",\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
-            + "    \"fuzzy_transpositions\" : true,\n"
-            + "    \"boost\" : 1.0,\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "multi_match" : {
+                        "query" : "search query",
+                        "fields" : [%s],
+                        "type" : "best_fields",
+                        "operator" : "OR",
+                        "slop" : 0,
+                        "max_expansions" : 50,
+                        "prefix_length" : 0,
+                        "zero_terms_query" : "NONE",
+                        "auto_generate_synonyms_phrase_query" : true,
+                        "fuzzy_transpositions" : true,
+                        "boost" : 1.0,
+                      }
+                    }""";
     var actual =
         buildQuery(
             DSL.multi_match(
@@ -717,27 +734,28 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_multi_match_query_with_custom_parameters() {
     var expected =
-        "{\n"
-            + "  \"multi_match\" : {\n"
-            + "    \"query\" : \"search query\",\n"
-            + "    \"fields\" : [%s],\n"
-            + "    \"type\" : \"phrase_prefix\",\n"
-            + "    \"operator\" : \"AND\",\n"
-            + "    \"analyzer\" : \"keyword\",\n"
-            + "    \"slop\" : 1,\n"
-            + "    \"fuzziness\" : \"AUTO:2,4\",\n"
-            + "    \"prefix_length\" : 1,\n"
-            + "    \"max_expansions\" : 3,\n"
-            + "    \"minimum_should_match\" : \"3\",\n"
-            + "    \"tie_breaker\" : 1.0,\n"
-            + "    \"lenient\" : false,\n"
-            + "    \"cutoff_frequency\" : 4.3,\n"
-            + "    \"zero_terms_query\" : \"ALL\",\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : false,\n"
-            + "    \"fuzzy_transpositions\" : false,\n"
-            + "    \"boost\" : 2.0\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "multi_match" : {
+                        "query" : "search query",
+                        "fields" : [%s],
+                        "type" : "phrase_prefix",
+                        "operator" : "AND",
+                        "analyzer" : "keyword",
+                        "slop" : 1,
+                        "fuzziness" : "AUTO:2,4",
+                        "prefix_length" : 1,
+                        "max_expansions" : 3,
+                        "minimum_should_match" : "3",
+                        "tie_breaker" : 1.0,
+                        "lenient" : false,
+                        "cutoff_frequency" : 4.3,
+                        "zero_terms_query" : "ALL",
+                        "auto_generate_synonyms_phrase_query" : false,
+                        "fuzzy_transpositions" : false,
+                        "boost" : 2.0
+                      }
+                    }""";
     var actual =
         buildQuery(
             DSL.multi_match(
@@ -793,17 +811,18 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_match_phrase_query_with_custom_parameters() {
     assertJsonEquals(
-        "{\n"
-            + "  \"match_phrase\" : {\n"
-            + "    \"message\" : {\n"
-            + "      \"query\" : \"search query\",\n"
-            + "      \"analyzer\" : \"keyword\","
-            + "      \"slop\" : 2,\n"
-            + "      \"zero_terms_query\" : \"ALL\",\n"
-            + "      \"boost\" : 1.2\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "match_phrase" : {
+                        "message" : {
+                          "query" : "search query",
+                          "analyzer" : "keyword",\
+                          "slop" : 2,
+                          "zero_terms_query" : "ALL",
+                          "boost" : 1.2
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.match_phrase(
                 DSL.namedArgument(
@@ -832,14 +851,15 @@ class FilterQueryBuilderTest {
   void wildcard_query_convert_sql_wildcard_to_lucene() {
     // Test conversion of % wildcard to *
     assertJsonEquals(
-        "{\n"
-            + "  \"wildcard\" : {\n"
-            + "    \"field\" : {\n"
-            + "      \"wildcard\" : \"search query*\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "wildcard" : {
+                        "field" : {
+                          "wildcard" : "search query*",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.wildcard_query(
                 DSL.namedArgument(
@@ -847,14 +867,15 @@ class FilterQueryBuilderTest {
                 DSL.namedArgument("query", literal("search query%")))));
 
     assertJsonEquals(
-        "{\n"
-            + "  \"wildcard\" : {\n"
-            + "    \"field\" : {\n"
-            + "      \"wildcard\" : \"search query?\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "wildcard" : {
+                        "field" : {
+                          "wildcard" : "search query?",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.wildcard_query(
                 DSL.namedArgument(
@@ -865,14 +886,15 @@ class FilterQueryBuilderTest {
   @Test
   void wildcard_query_escape_wildcards_characters() {
     assertJsonEquals(
-        "{\n"
-            + "  \"wildcard\" : {\n"
-            + "    \"field\" : {\n"
-            + "      \"wildcard\" : \"search query%\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "wildcard" : {
+                        "field" : {
+                          "wildcard" : "search query%",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.wildcard_query(
                 DSL.namedArgument(
@@ -880,14 +902,15 @@ class FilterQueryBuilderTest {
                 DSL.namedArgument("query", literal("search query\\%")))));
 
     assertJsonEquals(
-        "{\n"
-            + "  \"wildcard\" : {\n"
-            + "    \"field\" : {\n"
-            + "      \"wildcard\" : \"search query_\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "wildcard" : {
+                        "field" : {
+                          "wildcard" : "search query_",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.wildcard_query(
                 DSL.namedArgument(
@@ -895,14 +918,15 @@ class FilterQueryBuilderTest {
                 DSL.namedArgument("query", literal("search query\\_")))));
 
     assertJsonEquals(
-        "{\n"
-            + "  \"wildcard\" : {\n"
-            + "    \"field\" : {\n"
-            + "      \"wildcard\" : \"search query\\\\*\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "wildcard" : {
+                        "field" : {
+                          "wildcard" : "search query\\\\*",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.wildcard_query(
                 DSL.namedArgument(
@@ -910,14 +934,15 @@ class FilterQueryBuilderTest {
                 DSL.namedArgument("query", literal("search query\\*")))));
 
     assertJsonEquals(
-        "{\n"
-            + "  \"wildcard\" : {\n"
-            + "    \"field\" : {\n"
-            + "      \"wildcard\" : \"search query\\\\?\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "wildcard" : {
+                        "field" : {
+                          "wildcard" : "search query\\\\?",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.wildcard_query(
                 DSL.namedArgument(
@@ -928,14 +953,15 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_wildcard_query_with_default_parameters() {
     assertJsonEquals(
-        "{\n"
-            + "  \"wildcard\" : {\n"
-            + "    \"field\" : {\n"
-            + "      \"wildcard\" : \"search query*\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "wildcard" : {
+                        "field" : {
+                          "wildcard" : "search query*",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.wildcard_query(
                 DSL.namedArgument(
@@ -946,16 +972,17 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_wildcard_query_query_with_custom_parameters() {
     assertJsonEquals(
-        "{\n"
-            + "  \"wildcard\" : {\n"
-            + "    \"field\" : {\n"
-            + "      \"wildcard\" : \"search query*\",\n"
-            + "      \"boost\" : 0.6,\n"
-            + "      \"case_insensitive\" : true,\n"
-            + "      \"rewrite\" : \"constant_score_boolean\"\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "wildcard" : {
+                        "field" : {
+                          "wildcard" : "search query*",
+                          "boost" : 0.6,
+                          "case_insensitive" : true,
+                          "rewrite" : "constant_score_boolean"
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.wildcard_query(
                 DSL.namedArgument(
@@ -990,24 +1017,25 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_query_query_with_default_parameters() {
     var expected =
-        "{\n"
-            + "  \"query_string\" : {\n"
-            + "    \"query\" : \"field1:query_value\",\n"
-            + "    \"fields\" : [],\n"
-            + "    \"type\" : \"best_fields\",\n"
-            + "    \"default_operator\" : \"or\",\n"
-            + "    \"max_determinized_states\" : 10000,\n"
-            + "    \"enable_position_increments\" : true,\n"
-            + "    \"fuzziness\" : \"AUTO\",\n"
-            + "    \"fuzzy_prefix_length\" : 0,\n"
-            + "    \"fuzzy_max_expansions\" : 50,\n"
-            + "    \"phrase_slop\" : 0,\n"
-            + "    \"escape\" : false,\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
-            + "    \"fuzzy_transpositions\" : true,\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "query_string" : {
+                        "query" : "field1:query_value",
+                        "fields" : [],
+                        "type" : "best_fields",
+                        "default_operator" : "or",
+                        "max_determinized_states" : 10000,
+                        "enable_position_increments" : true,
+                        "fuzziness" : "AUTO",
+                        "fuzzy_prefix_length" : 0,
+                        "fuzzy_max_expansions" : 50,
+                        "phrase_slop" : 0,
+                        "escape" : false,
+                        "auto_generate_synonyms_phrase_query" : true,
+                        "fuzzy_transpositions" : true,
+                        "boost" : 1.0
+                      }
+                    }""";
 
     assertJsonEquals(
         expected, buildQuery(DSL.query(DSL.namedArgument("query", literal("field1:query_value")))));
@@ -1016,29 +1044,30 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_query_query_with_custom_parameters() {
     var expected =
-        "{\n"
-            + "  \"query_string\" : {\n"
-            + "    \"query\" : \"field1:query_value\",\n"
-            + "    \"fields\" : [],\n"
-            + "    \"type\" : \"cross_fields\",\n"
-            + "    \"tie_breaker\" : 1.3,\n"
-            + "    \"default_operator\" : \"and\",\n"
-            + "    \"analyzer\" : \"keyword\",\n"
-            + "    \"max_determinized_states\" : 10000,\n"
-            + "    \"enable_position_increments\" : true,\n"
-            + "    \"fuzziness\" : \"AUTO\",\n"
-            + "    \"fuzzy_prefix_length\" : 2,\n"
-            + "    \"fuzzy_max_expansions\" : 10,\n"
-            + "    \"phrase_slop\" : 0,\n"
-            + "    \"analyze_wildcard\" : true,\n"
-            + "    \"minimum_should_match\" : \"3\",\n"
-            + "    \"lenient\" : false,\n"
-            + "    \"escape\" : false,\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : false,\n"
-            + "    \"fuzzy_transpositions\" : false,\n"
-            + "    \"boost\" : 2.0,\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "query_string" : {
+                        "query" : "field1:query_value",
+                        "fields" : [],
+                        "type" : "cross_fields",
+                        "tie_breaker" : 1.3,
+                        "default_operator" : "and",
+                        "analyzer" : "keyword",
+                        "max_determinized_states" : 10000,
+                        "enable_position_increments" : true,
+                        "fuzziness" : "AUTO",
+                        "fuzzy_prefix_length" : 2,
+                        "fuzzy_max_expansions" : 10,
+                        "phrase_slop" : 0,
+                        "analyze_wildcard" : true,
+                        "minimum_should_match" : "3",
+                        "lenient" : false,
+                        "escape" : false,
+                        "auto_generate_synonyms_phrase_query" : false,
+                        "fuzzy_transpositions" : false,
+                        "boost" : 2.0,
+                      }
+                    }""";
     var actual =
         buildQuery(
             DSL.query(
@@ -1082,24 +1111,25 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_query_string_query_with_default_parameters_multiple_fields() {
     var expected =
-        "{\n"
-            + "  \"query_string\" : {\n"
-            + "    \"query\" : \"query_value\",\n"
-            + "    \"fields\" : [%s],\n"
-            + "    \"type\" : \"best_fields\",\n"
-            + "    \"default_operator\" : \"or\",\n"
-            + "    \"max_determinized_states\" : 10000,\n"
-            + "    \"enable_position_increments\" : true,\n"
-            + "    \"fuzziness\" : \"AUTO\",\n"
-            + "    \"fuzzy_prefix_length\" : 0,\n"
-            + "    \"fuzzy_max_expansions\" : 50,\n"
-            + "    \"phrase_slop\" : 0,\n"
-            + "    \"escape\" : false,\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
-            + "    \"fuzzy_transpositions\" : true,\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "query_string" : {
+                        "query" : "query_value",
+                        "fields" : [%s],
+                        "type" : "best_fields",
+                        "default_operator" : "or",
+                        "max_determinized_states" : 10000,
+                        "enable_position_increments" : true,
+                        "fuzziness" : "AUTO",
+                        "fuzzy_prefix_length" : 0,
+                        "fuzzy_max_expansions" : 50,
+                        "phrase_slop" : 0,
+                        "escape" : false,
+                        "auto_generate_synonyms_phrase_query" : true,
+                        "fuzzy_transpositions" : true,
+                        "boost" : 1.0
+                      }
+                    }""";
     var actual =
         buildQuery(
             DSL.query_string(
@@ -1124,29 +1154,30 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_query_string_query_with_custom_parameters() {
     var expected =
-        "{\n"
-            + "  \"query_string\" : {\n"
-            + "    \"query\" : \"query_value\",\n"
-            + "    \"fields\" : [%s],\n"
-            + "    \"type\" : \"cross_fields\",\n"
-            + "    \"tie_breaker\" : 1.3,\n"
-            + "    \"default_operator\" : \"and\",\n"
-            + "    \"analyzer\" : \"keyword\",\n"
-            + "    \"max_determinized_states\" : 10000,\n"
-            + "    \"enable_position_increments\" : true,\n"
-            + "    \"fuzziness\" : \"AUTO\",\n"
-            + "    \"fuzzy_prefix_length\" : 2,\n"
-            + "    \"fuzzy_max_expansions\" : 10,\n"
-            + "    \"phrase_slop\" : 0,\n"
-            + "    \"analyze_wildcard\" : true,\n"
-            + "    \"minimum_should_match\" : \"3\",\n"
-            + "    \"lenient\" : false,\n"
-            + "    \"escape\" : false,\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : false,\n"
-            + "    \"fuzzy_transpositions\" : false,\n"
-            + "    \"boost\" : 2.0,\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "query_string" : {
+                        "query" : "query_value",
+                        "fields" : [%s],
+                        "type" : "cross_fields",
+                        "tie_breaker" : 1.3,
+                        "default_operator" : "and",
+                        "analyzer" : "keyword",
+                        "max_determinized_states" : 10000,
+                        "enable_position_increments" : true,
+                        "fuzziness" : "AUTO",
+                        "fuzzy_prefix_length" : 2,
+                        "fuzzy_max_expansions" : 10,
+                        "phrase_slop" : 0,
+                        "analyze_wildcard" : true,
+                        "minimum_should_match" : "3",
+                        "lenient" : false,
+                        "escape" : false,
+                        "auto_generate_synonyms_phrase_query" : false,
+                        "fuzzy_transpositions" : false,
+                        "boost" : 2.0,
+                      }
+                    }""";
     var actual =
         buildQuery(
             DSL.query_string(
@@ -1179,26 +1210,27 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_query_string_query_with_default_parameters_single_field() {
     assertJsonEquals(
-        "{\n"
-            + "  \"query_string\" : {\n"
-            + "    \"query\" : \"query_value\",\n"
-            + "    \"fields\" : [\n"
-            + "      \"field1^1.0\"\n"
-            + "    ],\n"
-            + "    \"type\" : best_fields,\n"
-            + "    \"default_operator\" : or,\n"
-            + "    \"max_determinized_states\" : 10000,\n"
-            + "    \"enable_position_increments\" : true,\n"
-            + "    \"fuzziness\" : \"AUTO\",\n"
-            + "    \"fuzzy_prefix_length\" : 0,\n"
-            + "    \"fuzzy_max_expansions\" : 50,\n"
-            + "    \"phrase_slop\" : 0,\n"
-            + "    \"escape\" : false,\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
-            + "    \"fuzzy_transpositions\" : true,\n"
-            + "    \"boost\" : 1.0,\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "query_string" : {
+                        "query" : "query_value",
+                        "fields" : [
+                          "field1^1.0"
+                        ],
+                        "type" : best_fields,
+                        "default_operator" : or,
+                        "max_determinized_states" : 10000,
+                        "enable_position_increments" : true,
+                        "fuzziness" : "AUTO",
+                        "fuzzy_prefix_length" : 0,
+                        "fuzzy_max_expansions" : 50,
+                        "phrase_slop" : 0,
+                        "escape" : false,
+                        "auto_generate_synonyms_phrase_query" : true,
+                        "fuzzy_transpositions" : true,
+                        "boost" : 1.0,
+                      }
+                    }""",
         buildQuery(
             DSL.query_string(
                 DSL.namedArgument(
@@ -1217,22 +1249,23 @@ class FilterQueryBuilderTest {
   // 3) `minimum_should_match` printed as a string
   void should_build_simple_query_string_query_with_default_parameters_single_field() {
     assertJsonEquals(
-        "{\n"
-            + "  \"simple_query_string\" : {\n"
-            + "    \"query\" : \"search query\",\n"
-            + "    \"fields\" : [\n"
-            + "      \"field1^1.0\"\n"
-            + "    ],\n"
-            + "    \"default_operator\" : \"or\",\n"
-            + "    \"analyze_wildcard\" : false,\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
-            + "    \"flags\" : -1,\n"
-            + "    \"fuzzy_max_expansions\" : 50,\n"
-            + "    \"fuzzy_prefix_length\" : 0,\n"
-            + "    \"fuzzy_transpositions\" : true,\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "simple_query_string" : {
+                        "query" : "search query",
+                        "fields" : [
+                          "field1^1.0"
+                        ],
+                        "default_operator" : "or",
+                        "analyze_wildcard" : false,
+                        "auto_generate_synonyms_phrase_query" : true,
+                        "flags" : -1,
+                        "fuzzy_max_expansions" : 50,
+                        "fuzzy_prefix_length" : 0,
+                        "fuzzy_transpositions" : true,
+                        "boost" : 1.0
+                      }
+                    }""",
         buildQuery(
             DSL.simple_query_string(
                 DSL.namedArgument(
@@ -1247,20 +1280,21 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_simple_query_string_query_with_default_parameters_multiple_fields() {
     var expected =
-        "{\n"
-            + "  \"simple_query_string\" : {\n"
-            + "    \"query\" : \"search query\",\n"
-            + "    \"fields\" : [%s],\n"
-            + "    \"default_operator\" : \"or\",\n"
-            + "    \"analyze_wildcard\" : false,\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : true,\n"
-            + "    \"flags\" : -1,\n"
-            + "    \"fuzzy_max_expansions\" : 50,\n"
-            + "    \"fuzzy_prefix_length\" : 0,\n"
-            + "    \"fuzzy_transpositions\" : true,\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "simple_query_string" : {
+                        "query" : "search query",
+                        "fields" : [%s],
+                        "default_operator" : "or",
+                        "analyze_wildcard" : false,
+                        "auto_generate_synonyms_phrase_query" : true,
+                        "flags" : -1,
+                        "fuzzy_max_expansions" : 50,
+                        "fuzzy_prefix_length" : 0,
+                        "fuzzy_transpositions" : true,
+                        "boost" : 1.0
+                      }
+                    }""";
     var actual =
         buildQuery(
             DSL.simple_query_string(
@@ -1285,23 +1319,24 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_simple_query_string_query_with_custom_parameters() {
     var expected =
-        "{\n"
-            + "  \"simple_query_string\" : {\n"
-            + "    \"query\" : \"search query\",\n"
-            + "    \"fields\" : [%s],\n"
-            + "    \"analyze_wildcard\" : true,\n"
-            + "    \"analyzer\" : \"keyword\",\n"
-            + "    \"auto_generate_synonyms_phrase_query\" : false,\n"
-            + "    \"default_operator\" : \"and\",\n"
-            + "    \"flags\" : 1,\n"
-            + "    \"fuzzy_max_expansions\" : 10,\n"
-            + "    \"fuzzy_prefix_length\" : 2,\n"
-            + "    \"fuzzy_transpositions\" : false,\n"
-            + "    \"lenient\" : false,\n"
-            + "    \"minimum_should_match\" : \"3\",\n"
-            + "    \"boost\" : 2.0\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "simple_query_string" : {
+                        "query" : "search query",
+                        "fields" : [%s],
+                        "analyze_wildcard" : true,
+                        "analyzer" : "keyword",
+                        "auto_generate_synonyms_phrase_query" : false,
+                        "default_operator" : "and",
+                        "flags" : 1,
+                        "fuzzy_max_expansions" : 10,
+                        "fuzzy_prefix_length" : 2,
+                        "fuzzy_transpositions" : false,
+                        "lenient" : false,
+                        "minimum_should_match" : "3",
+                        "boost" : 2.0
+                      }
+                    }""";
     var actual =
         buildQuery(
             DSL.simple_query_string(
@@ -1430,18 +1465,19 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_match_bool_prefix_query_with_default_parameters() {
     assertJsonEquals(
-        "{\n"
-            + "  \"match_bool_prefix\" : {\n"
-            + "    \"message\" : {\n"
-            + "      \"query\" : \"search query\",\n"
-            + "      \"operator\" : \"OR\",\n"
-            + "      \"prefix_length\" : 0,\n"
-            + "      \"max_expansions\" : 50,\n"
-            + "      \"fuzzy_transpositions\" : true,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "match_bool_prefix" : {
+                        "message" : {
+                          "query" : "search query",
+                          "operator" : "OR",
+                          "prefix_length" : 0,
+                          "max_expansions" : 50,
+                          "fuzzy_transpositions" : true,
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.match_bool_prefix(
                 DSL.namedArgument(
@@ -1485,17 +1521,18 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_match_phrase_prefix_query_with_default_parameters() {
     assertJsonEquals(
-        "{\n"
-            + "  \"match_phrase_prefix\" : {\n"
-            + "    \"message\" : {\n"
-            + "      \"query\" : \"search query\",\n"
-            + "      \"slop\" : 0,\n"
-            + "      \"zero_terms_query\" : \"NONE\",\n"
-            + "      \"max_expansions\" : 50,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "match_phrase_prefix" : {
+                        "message" : {
+                          "query" : "search query",
+                          "slop" : 0,
+                          "zero_terms_query" : "NONE",
+                          "max_expansions" : 50,
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.match_phrase_prefix(
                 DSL.namedArgument(
@@ -1506,18 +1543,19 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_match_phrase_prefix_query_with_non_default_parameters() {
     assertJsonEquals(
-        "{\n"
-            + "  \"match_phrase_prefix\" : {\n"
-            + "    \"message\" : {\n"
-            + "      \"query\" : \"search query\",\n"
-            + "      \"slop\" : 0,\n"
-            + "      \"zero_terms_query\" : \"NONE\",\n"
-            + "      \"max_expansions\" : 42,\n"
-            + "      \"boost\" : 1.2,\n"
-            + "      \"analyzer\": english\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "match_phrase_prefix" : {
+                        "message" : {
+                          "query" : "search query",
+                          "slop" : 0,
+                          "zero_terms_query" : "NONE",
+                          "max_expansions" : 42,
+                          "boost" : 1.2,
+                          "analyzer": english
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.match_phrase_prefix(
                 DSL.namedArgument(
@@ -1531,14 +1569,15 @@ class FilterQueryBuilderTest {
   @Test
   void cast_to_string_in_filter() {
     String json =
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"string_value\" : {\n"
-            + "      \"value\" : \"1\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "term" : {
+                        "string_value" : {
+                          "value" : "1",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""";
 
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("string_value", STRING), DSL.castString(literal(1)))));
@@ -1579,14 +1618,15 @@ class FilterQueryBuilderTest {
   void cast_to_byte_in_filter(LiteralExpression expr) {
     assertJsonEquals(
         String.format(
-            "{\n"
-                + "  \"term\" : {\n"
-                + "    \"byte_value\" : {\n"
-                + "      \"value\" : %d,\n"
-                + "      \"boost\" : 1.0\n"
-                + "    }\n"
-                + "  }\n"
-                + "}",
+            """
+                        {
+                          "term" : {
+                            "byte_value" : {
+                              "value" : %d,
+                              "boost" : 1.0
+                            }
+                          }
+                        }""",
             castToInteger(expr.valueOf().value())),
         buildQuery(DSL.equal(ref("byte_value", BYTE), DSL.castByte(expr))));
   }
@@ -1596,14 +1636,15 @@ class FilterQueryBuilderTest {
   void cast_to_short_in_filter(LiteralExpression expr) {
     assertJsonEquals(
         String.format(
-            "{\n"
-                + "  \"term\" : {\n"
-                + "    \"short_value\" : {\n"
-                + "      \"value\" : %d,\n"
-                + "      \"boost\" : 1.0\n"
-                + "    }\n"
-                + "  }\n"
-                + "}",
+            """
+                        {
+                          "term" : {
+                            "short_value" : {
+                              "value" : %d,
+                              "boost" : 1.0
+                            }
+                          }
+                        }""",
             castToInteger(expr.valueOf().value())),
         buildQuery(DSL.equal(ref("short_value", SHORT), DSL.castShort(expr))));
   }
@@ -1613,14 +1654,15 @@ class FilterQueryBuilderTest {
   void cast_to_int_in_filter(LiteralExpression expr) {
     assertJsonEquals(
         String.format(
-            "{\n"
-                + "  \"term\" : {\n"
-                + "    \"integer_value\" : {\n"
-                + "      \"value\" : %d,\n"
-                + "      \"boost\" : 1.0\n"
-                + "    }\n"
-                + "  }\n"
-                + "}",
+            """
+                        {
+                          "term" : {
+                            "integer_value" : {
+                              "value" : %d,
+                              "boost" : 1.0
+                            }
+                          }
+                        }""",
             castToInteger(expr.valueOf().value())),
         buildQuery(DSL.equal(ref("integer_value", INTEGER), DSL.castInt(expr))));
   }
@@ -1630,14 +1672,15 @@ class FilterQueryBuilderTest {
   void cast_to_long_in_filter(LiteralExpression expr) {
     assertJsonEquals(
         String.format(
-            "{\n"
-                + "  \"term\" : {\n"
-                + "    \"long_value\" : {\n"
-                + "      \"value\" : %d,\n"
-                + "      \"boost\" : 1.0\n"
-                + "    }\n"
-                + "  }\n"
-                + "}",
+            """
+                        {
+                          "term" : {
+                            "long_value" : {
+                              "value" : %d,
+                              "boost" : 1.0
+                            }
+                          }
+                        }""",
             castToInteger(expr.valueOf().value())),
         buildQuery(DSL.equal(ref("long_value", LONG), DSL.castLong(expr))));
   }
@@ -1647,14 +1690,15 @@ class FilterQueryBuilderTest {
   void cast_to_float_in_filter(LiteralExpression expr) {
     assertJsonEquals(
         String.format(
-            "{\n"
-                + "  \"term\" : {\n"
-                + "    \"float_value\" : {\n"
-                + "      \"value\" : %f,\n"
-                + "      \"boost\" : 1.0\n"
-                + "    }\n"
-                + "  }\n"
-                + "}",
+            """
+                        {
+                          "term" : {
+                            "float_value" : {
+                              "value" : %f,
+                              "boost" : 1.0
+                            }
+                          }
+                        }""",
             castToFloat(expr.valueOf().value())),
         buildQuery(DSL.equal(ref("float_value", FLOAT), DSL.castFloat(expr))));
   }
@@ -1669,14 +1713,15 @@ class FilterQueryBuilderTest {
 
     assertJsonEquals(
         String.format(
-            "{\n"
-                + "  \"term\" : {\n"
-                + "    \"double_value\" : {\n"
-                + "      \"value\" : %2.20f,\n"
-                + "      \"boost\" : 1.0\n"
-                + "    }\n"
-                + "  }\n"
-                + "}",
+            """
+                        {
+                          "term" : {
+                            "double_value" : {
+                              "value" : %2.20f,
+                              "boost" : 1.0
+                            }
+                          }
+                        }""",
             DSL.castDouble(expr).valueOf().doubleValue()),
         buildQuery(DSL.equal(ref("double_value", DOUBLE), DSL.castDouble(expr))));
   }
@@ -1685,14 +1730,15 @@ class FilterQueryBuilderTest {
   @MethodSource({"booleanTrueCastSource"})
   void cast_to_boolean_true_in_filter(LiteralExpression expr) {
     String json =
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"boolean_value\" : {\n"
-            + "      \"value\" : true,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "term" : {
+                        "boolean_value" : {
+                          "value" : true,
+                          "boost" : 1.0
+                        }
+                      }
+                    }""";
 
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("boolean_value", BOOLEAN), DSL.castBoolean(expr))));
@@ -1702,14 +1748,15 @@ class FilterQueryBuilderTest {
   @MethodSource({"booleanFalseCastSource"})
   void cast_to_boolean_false_in_filter(LiteralExpression expr) {
     String json =
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"boolean_value\" : {\n"
-            + "      \"value\" : false,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "term" : {
+                        "boolean_value" : {
+                          "value" : false,
+                          "boost" : 1.0
+                        }
+                      }
+                    }""";
 
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("boolean_value", BOOLEAN), DSL.castBoolean(expr))));
@@ -1719,14 +1766,15 @@ class FilterQueryBuilderTest {
   void cast_from_boolean() {
     Expression booleanExpr = literal(false);
     String json =
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"my_value\" : {\n"
-            + "      \"value\" : 0,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "term" : {
+                        "my_value" : {
+                          "value" : 0,
+                          "boost" : 1.0
+                        }
+                      }
+                    }""";
     assertJsonEquals(json, buildQuery(DSL.equal(ref("my_value", BYTE), DSL.castByte(booleanExpr))));
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("my_value", SHORT), DSL.castShort(booleanExpr))));
@@ -1735,28 +1783,30 @@ class FilterQueryBuilderTest {
     assertJsonEquals(json, buildQuery(DSL.equal(ref("my_value", LONG), DSL.castLong(booleanExpr))));
 
     json =
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"my_value\" : {\n"
-            + "      \"value\" : 0.0,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "term" : {
+                        "my_value" : {
+                          "value" : 0.0,
+                          "boost" : 1.0
+                        }
+                      }
+                    }""";
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("my_value", FLOAT), DSL.castFloat(booleanExpr))));
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("my_value", DOUBLE), DSL.castDouble(booleanExpr))));
 
     json =
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"my_value\" : {\n"
-            + "      \"value\" : \"false\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "term" : {
+                        "my_value" : {
+                          "value" : "false",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""";
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("my_value", STRING), DSL.castString(booleanExpr))));
   }
@@ -1764,14 +1814,15 @@ class FilterQueryBuilderTest {
   @Test
   void cast_to_date_in_filter() {
     String json =
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"date_value\" : {\n"
-            + "      \"value\" : \"2021-11-08\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "term" : {
+                        "date_value" : {
+                          "value" : "2021-11-08",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""";
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("date_value", DATE), DSL.castDate(literal("2021-11-08")))));
 
@@ -1791,14 +1842,15 @@ class FilterQueryBuilderTest {
   @Test
   void cast_to_time_in_filter() {
     String json =
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"time_value\" : {\n"
-            + "      \"value\" : \"17:00:00\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "term" : {
+                        "time_value" : {
+                          "value" : "17:00:00",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""";
 
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("time_value", TIME), DSL.castTime(literal("17:00:00")))));
@@ -1818,14 +1870,15 @@ class FilterQueryBuilderTest {
   @Test
   void cast_to_timestamp_in_filter() {
     String json =
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"timestamp_value\" : {\n"
-            + "      \"value\" : \"2021-11-08 17:00:00\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        """
+                    {
+                      "term" : {
+                        "timestamp_value" : {
+                          "value" : "2021-11-08 17:00:00",
+                          "boost" : 1.0
+                        }
+                      }
+                    }""";
 
     assertJsonEquals(
         json,
@@ -1844,17 +1897,18 @@ class FilterQueryBuilderTest {
   @Test
   void cast_in_range_query() {
     assertJsonEquals(
-        "{\n"
-            + "  \"range\" : {\n"
-            + "    \"timestamp_value\" : {\n"
-            + "      \"from\" : \"2021-11-08 17:00:00\",\n"
-            + "      \"to\" : null,"
-            + "      \"include_lower\" : false,"
-            + "      \"include_upper\" : true,"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "range" : {
+                        "timestamp_value" : {
+                          "from" : "2021-11-08 17:00:00",
+                          "to" : null,\
+                          "include_lower" : false,\
+                          "include_upper" : true,\
+                          "boost" : 1.0
+                        }
+                      }
+                    }""",
         buildQuery(
             DSL.greater(
                 ref("timestamp_value", TIMESTAMP),
@@ -1865,15 +1919,16 @@ class FilterQueryBuilderTest {
   void non_literal_in_cast_should_build_script() {
     mockToStringSerializer();
     assertJsonEquals(
-        "{\n"
-            + "  \"script\" : {\n"
-            + "    \"script\" : {\n"
-            + "      \"source\" : \"=(string_value, cast_to_string(+(1, 0)))\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
-            + "    },\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "script" : {
+                        "script" : {
+                          "source" : "=(string_value, cast_to_string(+(1, 0)))",
+                          "lang" : "opensearch_query_expression"
+                        },
+                        "boost" : 1.0
+                      }
+                    }""",
         buildQuery(
             DSL.equal(
                 ref("string_value", STRING), DSL.castString(DSL.add(literal(1), literal(0))))));
@@ -1883,15 +1938,16 @@ class FilterQueryBuilderTest {
   void non_cast_nested_function_should_build_script() {
     mockToStringSerializer();
     assertJsonEquals(
-        "{\n"
-            + "  \"script\" : {\n"
-            + "    \"script\" : {\n"
-            + "      \"source\" : \"=(integer_value, abs(+(1, 0)))\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
-            + "    },\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "script" : {
+                        "script" : {
+                          "source" : "=(integer_value, abs(+(1, 0)))",
+                          "lang" : "opensearch_query_expression"
+                        },
+                        "boost" : 1.0
+                      }
+                    }""",
         buildQuery(
             DSL.equal(ref("integer_value", INTEGER), DSL.abs(DSL.add(literal(1), literal(0))))));
   }
