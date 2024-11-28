@@ -48,12 +48,6 @@ DATASOURCES:                        'DATASOURCES';
 // CLAUSE KEYWORDS
 SORTBY:                             'SORTBY';
 
-// FIELD KEYWORDS
-AUTO:                               'AUTO';
-STR:                                'STR';
-IP:                                 'IP';
-NUM:                                'NUM';
-
 // ARGUMENT KEYWORDS
 KEEPEMPTY:                          'KEEPEMPTY';
 CONSECUTIVE:                        'CONSECUTIVE';
@@ -135,6 +129,7 @@ LONG:                               'LONG';
 FLOAT:                              'FLOAT';
 STRING:                             'STRING';
 BOOLEAN:                            'BOOLEAN';
+IP:                                 'IP';
 
 // SPECIAL CHARACTERS AND OPERATORS
 PIPE:                               '|';

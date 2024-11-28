@@ -49,12 +49,14 @@ public class ExprIpValue extends AbstractExprValue {
 
   @Override
   public int compare(ExprValue other) {
-    return value.compareTo(((ExprIpValue) other).value);
+    IPAddress otherValue = ((ExprIpValue) other).value;
+    return value.compareTo(otherValue);
   }
 
   @Override
   public boolean equal(ExprValue other) {
-    return value.equals(((ExprIpValue) other).value);
+    IPAddress otherValue = ((ExprIpValue) other).value;
+    return value.equals(otherValue);
   }
 
   @Override
