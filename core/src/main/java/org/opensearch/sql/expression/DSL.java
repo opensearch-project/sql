@@ -835,6 +835,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_TIMESTAMP, value);
   }
 
+  public static FunctionExpression castIp(Expression value) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_IP, value);
+  }
+
   public static FunctionExpression typeof(Expression value) {
     return compile(FunctionProperties.None, BuiltinFunctionName.TYPEOF, value);
   }

@@ -52,12 +52,6 @@ WITH:                               'WITH';
 // CLAUSE KEYWORDS
 SORTBY:                             'SORTBY';
 
-// FIELD KEYWORDS
-AUTO:                               'AUTO';
-STR:                                'STR';
-IP:                                 'IP';
-NUM:                                'NUM';
-
 // TRENDLINE KEYWORDS
 SMA:                                'SMA';
 
@@ -142,6 +136,7 @@ LONG:                               'LONG';
 FLOAT:                              'FLOAT';
 STRING:                             'STRING';
 BOOLEAN:                            'BOOLEAN';
+IP:                                 'IP';
 
 // SPECIAL CHARACTERS AND OPERATORS
 PIPE:                               '|';

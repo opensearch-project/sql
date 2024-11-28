@@ -32,7 +32,6 @@ import static org.opensearch.sql.ast.dsl.AstDSL.intervalLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.longLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.not;
-import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.or;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
@@ -326,65 +325,22 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testSortFieldWithPlusKeyword() {
+    assertEqual(
+        "source=t | sort + f",
+        sort(relation("t"), field("f", argument("asc", booleanLiteral(true)))));
+  }
+
+  @Test
   public void testSortFieldWithMinusKeyword() {
     assertEqual(
         "source=t | sort - f",
-        sort(
-            relation("t"),
-            field("f", argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))));
+        sort(relation("t"), field("f", argument("asc", booleanLiteral(false)))));
   }
 
   @Test
   public void testSortFieldWithBackticks() {
     assertEqual("source=t | sort `f`", sort(relation("t"), field("f", defaultSortFieldArgs())));
-  }
-
-  @Test
-  public void testSortFieldWithAutoKeyword() {
-    assertEqual(
-        "source=t | sort auto(f)",
-        sort(
-            relation("t"),
-            field(
-                "f",
-                argument("asc", booleanLiteral(true)),
-                argument("type", stringLiteral("auto")))));
-  }
-
-  @Test
-  public void testSortFieldWithIpKeyword() {
-    assertEqual(
-        "source=t | sort ip(f)",
-        sort(
-            relation("t"),
-            field(
-                "f",
-                argument("asc", booleanLiteral(true)),
-                argument("type", stringLiteral("ip")))));
-  }
-
-  @Test
-  public void testSortFieldWithNumKeyword() {
-    assertEqual(
-        "source=t | sort num(f)",
-        sort(
-            relation("t"),
-            field(
-                "f",
-                argument("asc", booleanLiteral(true)),
-                argument("type", stringLiteral("num")))));
-  }
-
-  @Test
-  public void testSortFieldWithStrKeyword() {
-    assertEqual(
-        "source=t | sort str(f)",
-        sort(
-            relation("t"),
-            field(
-                "f",
-                argument("asc", booleanLiteral(true)),
-                argument("type", stringLiteral("str")))));
   }
 
   @Test

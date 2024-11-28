@@ -431,7 +431,7 @@ public class AstDSL {
   }
 
   public static List<Argument> defaultSortFieldArgs() {
-    return exprList(argument("asc", booleanLiteral(true)), argument("type", nullLiteral()));
+    return exprList(argument("asc", booleanLiteral(true)));
   }
 
   public static Span span(UnresolvedExpression field, UnresolvedExpression value, SpanUnit unit) {

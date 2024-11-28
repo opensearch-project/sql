@@ -18,6 +18,7 @@ import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -210,6 +211,14 @@ public abstract class LuceneQuery {
                     } else {
                       return expr.valueOf();
                     }
+                  })
+              .put(
+                  BuiltinFunctionName.CAST_TO_IP.getName(),
+                  (expr, ref) -> {
+                    ExprValue value = expr.valueOf();
+                    return value.type().equals(ExprCoreType.IP)
+                        ? value
+                        : new ExprIpValue(value.stringValue());
                   })
               .put(
                   BuiltinFunctionName.CAST_TO_DATE.getName(),
