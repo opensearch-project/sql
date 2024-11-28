@@ -118,10 +118,10 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
                           ImmutablePair.of(option, AstDSL.qualifiedName("integer_value")))));
 
           LogicalPlan plan = analyzer.analyze(ast, analysisContext);
-          LogicalSort sort = (LogicalSort) plan.getChild().get(0);
+          LogicalSort sort = (LogicalSort) plan.getChild().getFirst();
           assertEquals(
               expect,
-              sort.getSortList().get(0).getLeft(),
+              sort.getSortList().getFirst().getLeft(),
               "Assertion failed on input option: " + option);
         });
   }

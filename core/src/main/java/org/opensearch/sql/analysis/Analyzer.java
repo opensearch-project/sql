@@ -174,7 +174,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitRelationSubquery(RelationSubquery node, AnalysisContext context) {
-    LogicalPlan subquery = analyze(node.getChild().get(0), context);
+    LogicalPlan subquery = analyze(node.getChild().getFirst(), context);
     // inherit the parent environment to keep the subquery fields in current environment
     TypeEnvironment curEnv = context.peek();
 
@@ -227,13 +227,13 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitLimit(Limit node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
     return new LogicalLimit(child, node.getLimit(), node.getOffset());
   }
 
   @Override
   public LogicalPlan visitFilter(Filter node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
     Expression condition = expressionAnalyzer.analyze(node.getCondition(), context);
 
     ExpressionReferenceOptimizer optimizer =
@@ -260,14 +260,14 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
                 + " GROUP BY, and HAVING clauses.");
       }
       ((FunctionExpression) condition)
-          .getArguments().stream().forEach(e -> verifySupportsCondition(e));
+          .getArguments().forEach(this::verifySupportsCondition);
     }
   }
 
   /** Build {@link LogicalRename}. */
   @Override
   public LogicalPlan visitRename(Rename node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
     ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> renameMapBuilder =
         new ImmutableMap.Builder<>();
     for (Map renameMap : node.getRenameList()) {
@@ -294,7 +294,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalAggregation}. */
   @Override
   public LogicalPlan visitAggregation(Aggregation node, AnalysisContext context) {
-    final LogicalPlan child = node.getChild().get(0).accept(this, context);
+    final LogicalPlan child = node.getChild().getFirst().accept(this, context);
     ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
     for (UnresolvedExpression expr : node.getAggExprList()) {
       NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
@@ -332,7 +332,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalRareTopN}. */
   @Override
   public LogicalPlan visitRareTopN(RareTopN node, AnalysisContext context) {
-    final LogicalPlan child = node.getChild().get(0).accept(this, context);
+    final LogicalPlan child = node.getChild().getFirst().accept(this, context);
 
     ImmutableList.Builder<Expression> groupbyBuilder = new ImmutableList.Builder<>();
     for (UnresolvedExpression expr : node.getGroupExprList()) {
@@ -355,7 +355,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         field -> newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));
 
     List<Argument> options = node.getNoOfResults();
-    Integer noOfResults = (Integer) options.get(0).getValue().getValue();
+    Integer noOfResults = (Integer) options.getFirst().getValue().getValue();
 
     return new LogicalRareTopN(child, node.getCommandType(), noOfResults, fields, groupBys);
   }
@@ -373,10 +373,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    */
   @Override
   public LogicalPlan visitProject(Project node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
 
     if (node.hasArgument()) {
-      Argument argument = node.getArgExprList().get(0);
+      Argument argument = node.getArgExprList().getFirst();
       Boolean exclude = (Boolean) argument.getValue().getValue();
       if (exclude) {
         TypeEnvironment curEnv = context.peek();
@@ -384,7 +384,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             node.getProjectList().stream()
                 .map(expr -> (ReferenceExpression) expressionAnalyzer.analyze(expr, context))
                 .collect(Collectors.toList());
-        referenceExpressions.forEach(ref -> curEnv.remove(ref));
+        referenceExpressions.forEach(curEnv::remove);
         return new LogicalRemove(child, ImmutableSet.copyOf(referenceExpressions));
       }
     }
@@ -427,7 +427,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalEval}. */
   @Override
   public LogicalPlan visitEval(Eval node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
     ImmutableList.Builder<Pair<ReferenceExpression, Expression>> expressionsBuilder =
         new Builder<>();
     for (Let let : node.getExpressionList()) {
@@ -444,7 +444,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
   @Override
   public LogicalPlan visitParse(Parse node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
     Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
     ParseMethod parseMethod = node.getParseMethod();
     java.util.Map<String, Literal> arguments = node.getArguments();
@@ -467,7 +467,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalSort}. */
   @Override
   public LogicalPlan visitSort(Sort node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
     ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
 
@@ -490,7 +490,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalDedupe}. */
   @Override
   public LogicalPlan visitDedupe(Dedupe node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
     List<Argument> options = node.getOptions();
     // Todo, refactor the option.
     Integer allowedDuplication = (Integer) options.get(0).getValue().getValue();
@@ -509,7 +509,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   /** Logical head is identical to {@link LogicalLimit}. */
   public LogicalPlan visitHead(Head node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
     return new LogicalLimit(child, node.getSize(), node.getFrom());
   }
 
@@ -529,7 +529,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalMLCommons} for Kmeans command. */
   @Override
   public LogicalPlan visitKmeans(Kmeans node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
     java.util.Map<String, Literal> options = node.getArguments();
 
     TypeEnvironment currentEnv = context.peek();
@@ -541,7 +541,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalAD} for AD command. */
   @Override
   public LogicalPlan visitAD(AD node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
     java.util.Map<String, Literal> options = node.getArguments();
 
     TypeEnvironment currentEnv = context.peek();
@@ -561,18 +561,16 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalML} for ml command. */
   @Override
   public LogicalPlan visitML(ML node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
     TypeEnvironment currentEnv = context.peek();
-    node.getOutputSchema(currentEnv).entrySet().stream()
-        .forEach(
-            v -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, v.getKey()), v.getValue()));
+    node.getOutputSchema(currentEnv).forEach((key, value) -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, key), value));
 
     return new LogicalML(child, node.getArguments());
   }
 
   @Override
   public LogicalPlan visitPaginate(Paginate paginate, AnalysisContext context) {
-    LogicalPlan child = paginate.getChild().get(0).accept(this, context);
+    LogicalPlan child = paginate.getChild().getFirst().accept(this, context);
     return new LogicalPaginate(paginate.getPageSize(), List.of(child));
   }
 
@@ -585,7 +583,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitCloseCursor(CloseCursor closeCursor, AnalysisContext context) {
-    return new LogicalCloseCursor(closeCursor.getChild().get(0).accept(this, context));
+    return new LogicalCloseCursor(closeCursor.getChild().getFirst().accept(this, context));
   }
 
   /**
@@ -593,7 +591,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    * value. Otherwise just use DEFAULT_ASC/DESC.
    */
   private SortOption analyzeSortOption(List<Argument> fieldArgs) {
-    Boolean asc = (Boolean) fieldArgs.get(0).getValue().getValue();
+    Boolean asc = (Boolean) fieldArgs.getFirst().getValue().getValue();
     Optional<Argument> nullFirst =
         fieldArgs.stream().filter(option -> "nullFirst".equals(option.getArgName())).findFirst();
 

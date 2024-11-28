@@ -55,12 +55,11 @@ public class WindowExpressionAnalyzer extends AbstractNodeVisitor<LogicalPlan, A
 
   @Override
   public LogicalPlan visitAlias(Alias node, AnalysisContext context) {
-    if (!(node.getDelegated() instanceof WindowFunction)) {
+    if (!(node.getDelegated() instanceof WindowFunction unresolved)) {
       return null;
     }
 
-    WindowFunction unresolved = (WindowFunction) node.getDelegated();
-    Expression windowFunction = expressionAnalyzer.analyze(unresolved, context);
+      Expression windowFunction = expressionAnalyzer.analyze(unresolved, context);
     List<Expression> partitionByList = analyzePartitionList(unresolved, context);
     List<Pair<SortOption, Expression>> sortList = analyzeSortList(unresolved, context);
 

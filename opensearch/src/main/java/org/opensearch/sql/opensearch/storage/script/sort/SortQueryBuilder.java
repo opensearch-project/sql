@@ -25,14 +25,14 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 public class SortQueryBuilder {
 
   /** The mapping between Core Engine sort order and OpenSearch sort order. */
-  private Map<Sort.SortOrder, SortOrder> sortOrderMap =
+  private final Map<Sort.SortOrder, SortOrder> sortOrderMap =
       new ImmutableMap.Builder<Sort.SortOrder, SortOrder>()
           .put(Sort.SortOrder.ASC, SortOrder.ASC)
           .put(Sort.SortOrder.DESC, SortOrder.DESC)
           .build();
 
   /** The mapping between Core Engine null order and OpenSearch null order. */
-  private Map<Sort.NullOrder, String> missingMap =
+  private final Map<Sort.NullOrder, String> missingMap =
       new ImmutableMap.Builder<Sort.NullOrder, String>()
           .put(Sort.NullOrder.NULL_FIRST, "_first")
           .put(Sort.NullOrder.NULL_LAST, "_last")
@@ -74,7 +74,7 @@ public class SortQueryBuilder {
    * @param nestedFunc Nested function expression.
    */
   private void validateNestedArgs(FunctionExpression nestedFunc) {
-    if (nestedFunc.getArguments().size() < 1 || nestedFunc.getArguments().size() > 2) {
+    if (nestedFunc.getArguments().isEmpty() || nestedFunc.getArguments().size() > 2) {
       throw new IllegalArgumentException(
           "nested function supports 2 parameters (field, path) or 1 parameter (field)");
     }
