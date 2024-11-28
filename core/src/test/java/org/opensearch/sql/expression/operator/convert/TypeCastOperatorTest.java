@@ -7,12 +7,14 @@ package org.opensearch.sql.expression.operator.convert;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -29,12 +31,17 @@ import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprMissingValue;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.FunctionExpression;
 
@@ -316,10 +323,6 @@ class TypeCastOperatorTest {
     assertEquals(TIME, expression.type());
     assertEquals(new ExprTimeValue("01:01:01"), expression.valueOf());
 
-    expression = DSL.castTime(DSL.literal(new ExprTimestampValue("2012-08-07 01:01:01")));
-    assertEquals(TIME, expression.type());
-    assertEquals(new ExprTimeValue("01:01:01"), expression.valueOf());
-
     expression = DSL.castTime(DSL.literal(new ExprTimeValue("01:01:01")));
     assertEquals(TIME, expression.type());
     assertEquals(new ExprTimeValue("01:01:01"), expression.valueOf());
@@ -334,9 +337,59 @@ class TypeCastOperatorTest {
     expression = DSL.castTimestamp(DSL.literal(new ExprTimestampValue("2012-08-07 01:01:01")));
     assertEquals(TIMESTAMP, expression.type());
     assertEquals(new ExprTimestampValue("2012-08-07 01:01:01"), expression.valueOf());
+  }
 
-    expression = DSL.castTimestamp(DSL.literal(new ExprTimestampValue("2012-08-07 01:01:01")));
-    assertEquals(TIMESTAMP, expression.type());
-    assertEquals(new ExprTimestampValue("2012-08-07 01:01:01"), expression.valueOf());
+  @Test
+  void castToIp() {
+    FunctionExpression exp;
+
+    String expectedMsg;
+    String actualMsg;
+
+    final String ipv4String = "1.2.3.4";
+    final String ipv6String = "2001:db7::ff00:42:8329";
+    final String ipInvalidString = "INVALID";
+
+    final ExprValue exprIpv4Value = new ExprIpValue(ipv4String);
+    final ExprValue exprIpv6Value = new ExprIpValue(ipv6String);
+
+    // From string
+    exp = DSL.castIp(DSL.literal(ipv4String));
+    assertEquals(IP, exp.type());
+    assertEquals(exprIpv4Value, exp.valueOf());
+
+    exp = DSL.castIp(DSL.literal(ipv6String));
+    assertEquals(IP, exp.type());
+    assertEquals(exprIpv6Value, exp.valueOf());
+
+    exp = DSL.castIp(DSL.literal(ipInvalidString));
+    actualMsg = assertThrows(SemanticCheckException.class, exp::valueOf).getMessage();
+    expectedMsg = String.format("IP address '%s' is not valid. Error details: .*", ipInvalidString);
+    assertTrue(actualMsg.matches(expectedMsg));
+
+    // From IP address
+    exp = DSL.castIp(DSL.literal(exprIpv4Value));
+    assertEquals(IP, exp.type());
+    assertEquals(exprIpv4Value, exp.valueOf());
+
+    exp = DSL.castIp(DSL.literal(exprIpv6Value));
+    assertEquals(IP, exp.type());
+    assertEquals(exprIpv6Value, exp.valueOf());
+
+    // From invalid type
+    actualMsg =
+        assertThrows(ExpressionEvaluationException.class, () -> DSL.castIp(DSL.literal(0)))
+            .getMessage();
+    expectedMsg = "cast_to_ip function expected {[IP],[STRING]}, but get [INTEGER]";
+    assertEquals(expectedMsg, actualMsg);
+
+    // From null or missing value
+    exp = DSL.castIp(DSL.literal(ExprNullValue.of()));
+    assertEquals(IP, exp.type());
+    assertTrue(exp.valueOf().isNull());
+
+    exp = DSL.castIp(DSL.literal(ExprMissingValue.of()));
+    assertEquals(IP, exp.type());
+    assertTrue(exp.valueOf().isMissing());
   }
 }
