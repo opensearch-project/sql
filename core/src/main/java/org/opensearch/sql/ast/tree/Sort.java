@@ -13,7 +13,6 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -48,17 +47,13 @@ public class Sort extends UnresolvedPlan {
   }
 
   /** Sort Options. */
-  @Data
-  public static class SortOption {
+  public record SortOption(SortOrder sortOrder, NullOrder nullOrder) {
 
     /** Default ascending sort option, null first. */
     public static SortOption DEFAULT_ASC = new SortOption(ASC, NULL_FIRST);
 
     /** Default descending sort option, null last. */
     public static SortOption DEFAULT_DESC = new SortOption(DESC, NULL_LAST);
-
-    private final SortOrder sortOrder;
-    private final NullOrder nullOrder;
   }
 
   public enum SortOrder {

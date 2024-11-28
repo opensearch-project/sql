@@ -42,11 +42,11 @@ public interface SortHelper {
     for (Pair<SortOption, Expression> pair : sortList) {
       SortOption option = pair.getLeft();
       ExprValueOrdering ordering =
-          ASC.equals(option.getSortOrder())
+          ASC.equals(option.sortOrder())
               ? ExprValueOrdering.natural()
               : ExprValueOrdering.natural().reverse();
       ordering =
-          NULL_FIRST.equals(option.getNullOrder()) ? ordering.nullsFirst() : ordering.nullsLast();
+          NULL_FIRST.equals(option.nullOrder()) ? ordering.nullsFirst() : ordering.nullsLast();
       comparators.add(Pair.of(pair.getRight(), ordering));
     }
     return comparators;

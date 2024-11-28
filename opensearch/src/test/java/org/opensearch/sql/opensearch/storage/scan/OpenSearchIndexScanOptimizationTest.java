@@ -644,9 +644,9 @@ class OpenSearchIndexScanOptimizationTest {
                 Collections.singletonList(
                     new TermsValuesSourceBuilder(aggregation.groupBy)
                         .field(aggregation.groupBy)
-                        .order(aggregation.sortBy.getSortOrder() == ASC ? "asc" : "desc")
+                        .order(aggregation.sortBy.sortOrder() == ASC ? "asc" : "desc")
                         .missingOrder(
-                            aggregation.sortBy.getNullOrder() == NULL_FIRST ? "first" : "last")
+                            aggregation.sortBy.nullOrder() == NULL_FIRST ? "first" : "last")
                         .missingBucket(true)))
             .subAggregation(
                 AggregationBuilders.avg(aggregation.aggregateName).field(aggregation.aggregateBy))

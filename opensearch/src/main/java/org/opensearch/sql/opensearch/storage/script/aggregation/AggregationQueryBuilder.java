@@ -166,7 +166,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
 
     /** Get the {@link SortOrder} for expression. By default, the {@link SortOrder} is ASC. */
     public SortOrder sortOrder(NamedExpression expression) {
-      return SORT_MAP.get(sortOption(expression).getSortOrder());
+      return SORT_MAP.get(sortOption(expression).sortOrder());
     }
 
     /**
@@ -174,7 +174,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
      * missing first / DESC missing last.
      */
     public MissingOrder missingOrder(NamedExpression expression) {
-      return NULL_MAP.get(sortOption(expression).getNullOrder());
+      return NULL_MAP.get(sortOption(expression).nullOrder());
     }
 
     private Sort.SortOption sortOption(NamedExpression expression) {

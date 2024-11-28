@@ -242,7 +242,7 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
                 p -> p.getRight().toString(),
                 p ->
                     ImmutableMap.of(
-                        "sortOrder", p.getLeft().getSortOrder().toString(),
-                        "nullOrder", p.getLeft().getNullOrder().toString())));
+                        "sortOrder", p.getLeft().sortOrder().toString(),
+                        "nullOrder", p.getLeft().nullOrder().toString())));
   }
 }

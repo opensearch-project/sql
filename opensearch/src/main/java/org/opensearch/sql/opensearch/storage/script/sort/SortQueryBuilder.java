@@ -48,7 +48,7 @@ public class SortQueryBuilder {
   public SortBuilder<?> build(Expression expression, Sort.SortOption option) {
     if (expression instanceof ReferenceExpression) {
       if (((ReferenceExpression) expression).getAttr().equalsIgnoreCase("_score")) {
-        return SortBuilders.scoreSort().order(sortOrderMap.get(option.getSortOrder()));
+        return SortBuilders.scoreSort().order(sortOrderMap.get(option.sortOrder()));
       }
       return fieldBuild((ReferenceExpression) expression, option);
     } else if (isNestedFunction(expression)) {
@@ -61,7 +61,7 @@ public class SortQueryBuilder {
               ? (ReferenceExpression) ((FunctionExpression) expression).getArguments().get(1)
               : generatePath(orderByName);
       return SortBuilders.fieldSort(orderByName)
-          .order(sortOrderMap.get(option.getSortOrder()))
+          .order(sortOrderMap.get(option.sortOrder()))
           .setNestedSort(new NestedSortBuilder(path.toString()));
     } else {
       throw new IllegalStateException("unsupported expression " + expression.getClass());
@@ -90,7 +90,7 @@ public class SortQueryBuilder {
   private FieldSortBuilder fieldBuild(ReferenceExpression ref, Sort.SortOption option) {
     return SortBuilders.fieldSort(
             OpenSearchTextType.convertTextToKeyword(ref.getAttr(), ref.type()))
-        .order(sortOrderMap.get(option.getSortOrder()))
-        .missing(missingMap.get(option.getNullOrder()));
+        .order(sortOrderMap.get(option.sortOrder()))
+        .missing(missingMap.get(option.nullOrder()));
   }
 }

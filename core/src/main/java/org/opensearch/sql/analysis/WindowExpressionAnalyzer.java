@@ -98,9 +98,9 @@ public class WindowExpressionAnalyzer extends AbstractNodeVisitor<LogicalPlan, A
    * The final and default value for each is determined here during expression analysis.
    */
   private SortOption analyzeSortOption(SortOption option) {
-    if (option.getNullOrder() == null) {
-      return (option.getSortOrder() == DESC) ? DEFAULT_DESC : DEFAULT_ASC;
+    if (option.nullOrder() == null) {
+      return (option.sortOrder() == DESC) ? DEFAULT_DESC : DEFAULT_ASC;
     }
-    return new SortOption((option.getSortOrder() == DESC) ? DESC : ASC, option.getNullOrder());
+    return new SortOption((option.sortOrder() == DESC) ? DESC : ASC, option.nullOrder());
   }
 }

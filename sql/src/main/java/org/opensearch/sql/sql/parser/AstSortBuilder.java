@@ -58,8 +58,8 @@ public class AstSortBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPla
    * if absent.
    */
   private List<Argument> createSortArguments(SortOption option) {
-    SortOrder sortOrder = option.getSortOrder();
-    NullOrder nullOrder = option.getNullOrder();
+    SortOrder sortOrder = option.sortOrder();
+    NullOrder nullOrder = option.nullOrder();
     ImmutableList.Builder<Argument> args = ImmutableList.builder();
     args.add(new Argument("asc", booleanLiteral(sortOrder != DESC))); // handle both null and ASC
 
