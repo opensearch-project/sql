@@ -830,6 +830,7 @@ keywordsCanBeId
    | textFunctionName
    | mathematicalFunctionName
    | positionFunctionName
+   | conditionFunctionName
    // commands
    | SEARCH
    | DESCRIBE
