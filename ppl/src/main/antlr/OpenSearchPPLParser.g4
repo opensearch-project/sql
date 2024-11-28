@@ -865,6 +865,7 @@ keywordsCanBeId
    | DEDUP
    | SORT
    | EVAL
+   | FILLNULL
    | HEAD
    | TOP
    | RARE
