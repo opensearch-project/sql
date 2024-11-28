@@ -59,7 +59,7 @@ public class WindowExpressionAnalyzer extends AbstractNodeVisitor<LogicalPlan, A
       return null;
     }
 
-      Expression windowFunction = expressionAnalyzer.analyze(unresolved, context);
+    Expression windowFunction = expressionAnalyzer.analyze(unresolved, context);
     List<Expression> partitionByList = analyzePartitionList(unresolved, context);
     List<Pair<SortOption, Expression>> sortList = analyzeSortList(unresolved, context);
 

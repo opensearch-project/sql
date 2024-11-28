@@ -8,7 +8,6 @@ package org.opensearch.sql.opensearch.utils;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.tree.Sort;

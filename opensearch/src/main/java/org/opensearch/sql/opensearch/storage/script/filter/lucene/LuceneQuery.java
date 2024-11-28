@@ -66,7 +66,7 @@ public abstract class LuceneQuery {
    * @return return true if function has supported nested function expression.
    */
   public boolean isNestedPredicate(FunctionExpression func) {
-    return isNestedFunction(func.getArguments().get(0));
+    return isNestedFunction(func.getArguments().getFirst());
   }
 
   /**
@@ -88,10 +88,9 @@ public abstract class LuceneQuery {
    * Check if the second argument of the function is a literal expression wrapped by cast function.
    */
   private boolean literalExpressionWrappedByCast(FunctionExpression func) {
-    if (func.getArguments().get(1) instanceof FunctionExpression) {
-      FunctionExpression expr = (FunctionExpression) func.getArguments().get(1);
+    if (func.getArguments().get(1) instanceof FunctionExpression expr) {
       return castMap.containsKey(expr.getFunctionName())
-          && expr.getArguments().get(0) instanceof LiteralExpression;
+          && expr.getArguments().getFirst() instanceof LiteralExpression;
     }
     return false;
   }
@@ -114,7 +113,7 @@ public abstract class LuceneQuery {
   private ExprValue cast(FunctionExpression castFunction, ReferenceExpression ref) {
     return castMap
         .get(castFunction.getFunctionName())
-        .apply((LiteralExpression) castFunction.getArguments().get(0), ref);
+        .apply((LiteralExpression) castFunction.getArguments().getFirst(), ref);
   }
 
   /** Type converting map. */
@@ -293,8 +292,7 @@ public abstract class LuceneQuery {
    * @return the formatted date or time value if the field type requires it, otherwise the raw value
    */
   protected Object value(ExprValue literal, ExprType fieldType) {
-    if (fieldType instanceof OpenSearchDateType) {
-      OpenSearchDateType openSearchDateType = (OpenSearchDateType) fieldType;
+    if (fieldType instanceof OpenSearchDateType openSearchDateType) {
       if (literal.type().equals(ExprCoreType.TIMESTAMP)) {
         return openSearchDateType.hasNoFormatter()
             ? literal.timestampValue().toEpochMilli()

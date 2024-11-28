@@ -24,7 +24,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_BOOLEAN;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +72,7 @@ class BuiltinFunctionRepositoryTest {
   @Test
   void compile() {
     when(mockExpression.type()).thenReturn(UNDEFINED);
-    when(functionSignature.getParamTypeList()).thenReturn(Arrays.asList(UNDEFINED));
+    when(functionSignature.getParamTypeList()).thenReturn(List.of(UNDEFINED));
     when(mockfunctionResolver.getFunctionName()).thenReturn(mockFunctionName);
     when(mockfunctionResolver.resolve(any()))
         .thenReturn(Pair.of(functionSignature, functionExpressionBuilder));
@@ -82,7 +81,7 @@ class BuiltinFunctionRepositoryTest {
     BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockMap);
     repo.register(mockfunctionResolver);
 
-    repo.compile(functionProperties, mockFunctionName, Arrays.asList(mockExpression));
+    repo.compile(functionProperties, mockFunctionName, List.of(mockExpression));
     verify(functionExpressionBuilder, times(1)).apply(eq(functionProperties), any());
   }
 
@@ -90,7 +89,7 @@ class BuiltinFunctionRepositoryTest {
   void compile_datasource_defined_function() {
     DefaultFunctionResolver dataSourceFunctionResolver = mock(DefaultFunctionResolver.class);
     when(mockExpression.type()).thenReturn(UNDEFINED);
-    when(functionSignature.getParamTypeList()).thenReturn(Arrays.asList(UNDEFINED));
+    when(functionSignature.getParamTypeList()).thenReturn(List.of(UNDEFINED));
     when(dataSourceFunctionResolver.getFunctionName()).thenReturn(mockFunctionName);
     when(dataSourceFunctionResolver.resolve(any()))
         .thenReturn(Pair.of(functionSignature, functionExpressionBuilder));
@@ -100,7 +99,7 @@ class BuiltinFunctionRepositoryTest {
         functionProperties,
         Collections.singletonList(dataSourceFunctionResolver),
         mockFunctionName,
-        Arrays.asList(mockExpression));
+        List.of(mockExpression));
     verify(functionExpressionBuilder, times(1)).apply(eq(functionProperties), any());
   }
 
@@ -178,7 +177,7 @@ class BuiltinFunctionRepositoryTest {
                         Collections.emptyList(),
                         registerFunctionResolver(mockFunctionName, BYTE, STRUCT))
                     .apply(functionProperties, ImmutableList.of(mockExpression)));
-    assertEquals(error.getMessage(), "Type conversion to type STRUCT is not supported");
+    assertEquals("Type conversion to type STRUCT is not supported", error.getMessage());
   }
 
   @Test

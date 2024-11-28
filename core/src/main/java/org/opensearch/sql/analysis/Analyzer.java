@@ -259,8 +259,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             "Falling back to legacy engine. Nested function is not supported in WHERE,"
                 + " GROUP BY, and HAVING clauses.");
       }
-      ((FunctionExpression) condition)
-          .getArguments().forEach(this::verifySupportsCondition);
+      ((FunctionExpression) condition).getArguments().forEach(this::verifySupportsCondition);
     }
   }
 
@@ -563,7 +562,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitML(ML node, AnalysisContext context) {
     LogicalPlan child = node.getChild().getFirst().accept(this, context);
     TypeEnvironment currentEnv = context.peek();
-    node.getOutputSchema(currentEnv).forEach((key, value) -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, key), value));
+    node.getOutputSchema(currentEnv)
+        .forEach((key, value) -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, key), value));
 
     return new LogicalML(child, node.getArguments());
   }

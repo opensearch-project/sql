@@ -46,7 +46,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.expression.AllFields;
@@ -744,7 +743,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         Arrays.stream(antlrFunctionName.split("\\|"))
             .map(String::stripLeading)
             .map(String::stripTrailing)
-            .collect(Collectors.toList());
+            .toList();
 
     assertFalse(functionList.isEmpty());
     for (String functionName : functionList) {

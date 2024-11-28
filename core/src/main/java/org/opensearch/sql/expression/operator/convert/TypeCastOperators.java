@@ -21,7 +21,6 @@ import static org.opensearch.sql.expression.function.FunctionDSL.implWithPropert
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
 
-import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
@@ -63,9 +62,7 @@ public class TypeCastOperators {
     return FunctionDSL.define(
         BuiltinFunctionName.CAST_TO_STRING.getName(),
         Stream.concat(
-                Arrays.asList(
-                        BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE, BOOLEAN, TIME, DATE, TIMESTAMP)
-                    .stream()
+                Stream.of(BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE, BOOLEAN, TIME, DATE, TIMESTAMP)
                     .map(
                         type ->
                             impl(
