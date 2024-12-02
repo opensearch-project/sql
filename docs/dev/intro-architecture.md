@@ -12,7 +12,7 @@ In the high level, the OD-SQL Engine could be divided into four major sub-module
 
 * *Parser*: Currently, there are two Lex&Parser coexists. The Druid Lex&Parser is the original one from NLPChina. The input AST of Core Engine is from the Druid Lex&Parser. The [ANTLR](https://github.com/opensearch-project/sql/blob/main/legacy/src/main/antlr/OpenSearchLegacySqlLexer.g4) Lex&Parser is added by us to customized the verification and exception handling.
 * *Analyzer*: The analyzer module take the output from ANTLR Lex&Parser then perform syntax and semantic analyze.
-* *Core Engine*: The QueryAction take the output from Druid Lex&Parser and translate to the OpenSearch DSL if possible. This is an NLPChina original module. The QueryPlanner Builder is added by us to support the JOIN and Post-processing logic. The QueryPlanner will take the take the output from Druid Lex&Parser and build the PhysicalPlan
+* *Core Engine*: The QueryAction take the output from Druid Lex&Parser and translate to the OpenSearch DSL if possible. This is an NLPChina original module. The QueryPlanner Builder is added by us to support the JOIN and Post-processing logic. The QueryPlanner will take the output from Druid Lex&Parser and build the PhysicalPlan
 * *Execution*: The execution module execute QueryAction or QueryPlanner and return the response to the client. Different from the Frontend, Analyzer and Core Engine which running on the Transport Thread and can’t do any blocking operation. The Execution module running on the client threadpool and can perform the blocking operation.
 
 There are also others modules include in the OD-SQL engine.

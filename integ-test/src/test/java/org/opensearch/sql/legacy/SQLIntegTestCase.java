@@ -20,6 +20,7 @@ import static org.opensearch.sql.legacy.TestUtils.getDogs2IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
@@ -461,6 +462,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return String.format("{ \"fetch_size\": \"%s\", \"query\": \"%s\" }", fetch_size, query);
   }
 
+  protected String makeRequest(String query, int fetch_size, String filterQuery) {
+    return String.format(
+        "{ \"fetch_size\": \"%s\", \"query\": \"%s\", \"filter\" :  %s }",
+        fetch_size, query, filterQuery);
+  }
+
   protected String makeFetchLessRequest(String query) {
     return String.format("{\n" + "  \"query\": \"%s\"\n" + "}", query);
   }
@@ -700,6 +707,15 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "calcs",
         getMappingFile("calcs_index_mappings.json"),
         "src/test/resources/calcs.json"),
+    // Calcs has enough records for shards to be interesting, but updating the existing mapping with
+    // shards in-place
+    // breaks existing tests. Aside from introducing a primary shard setting > 1, this index is
+    // identical to CALCS.
+    CALCS_WITH_SHARDS(
+        TestsConstants.TEST_INDEX_CALCS,
+        "calcs",
+        getMappingFile("calcs_with_shards_index_mappings.json"),
+        "src/test/resources/calcs.json"),
     DATE_FORMATS(
         TestsConstants.TEST_INDEX_DATE_FORMATS,
         "date_formats",
@@ -725,16 +741,21 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "multi_nested",
         getNestedTypeIndexMapping(),
         "src/test/resources/nested_with_nulls.json"),
-    IOT_READINGS(
-        TestsConstants.TEST_INDEX_IOT_READINGS,
-        "iot_readings",
-        getMappingFile("iot_readings_index_mapping.json"),
-        "src/test/resources/iot_readings.json"),
-    IOT_SENSORS(
-        TestsConstants.TEST_INDEX_IOT_SENSORS,
-        "iot_sensors",
-        getMappingFile("iot_sensors_index_mapping.json"),
-        "src/test/resources/iot_sensors.json");
+      IOT_READINGS(
+              TestsConstants.TEST_INDEX_IOT_READINGS,
+              "iot_readings",
+              getMappingFile("iot_readings_index_mapping.json"),
+              "src/test/resources/iot_readings.json"),
+      IOT_SENSORS(
+              TestsConstants.TEST_INDEX_IOT_SENSORS,
+              "iot_sensors",
+              getMappingFile("iot_sensors_index_mapping.json"),
+              "src/test/resources/iot_sensors.json"),
+    GEOPOINTS(
+        TestsConstants.TEST_INDEX_GEOPOINT,
+        "dates",
+        getGeopointIndexMapping(),
+        "src/test/resources/geopoints.json");
 
     private final String name;
     private final String type;

@@ -24,6 +24,7 @@ import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
@@ -428,12 +429,21 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
                */
               new JobExecutionResponseReader() {
                 @Override
-                public JSONObject getResultWithJobId(String jobId, String resultIndex) {
-                  return interaction.interact(new InteractionStep(emrClient, jobId, resultIndex));
+                public JSONObject getResultFromResultIndex(
+                    AsyncQueryJobMetadata asyncQueryJobMetadata,
+                    AsyncQueryRequestContext asyncQueryRequestContext) {
+                  return interaction.interact(
+                      new InteractionStep(
+                          emrClient,
+                          asyncQueryJobMetadata.getJobId(),
+                          asyncQueryJobMetadata.getResultIndex()));
                 }
 
                 @Override
-                public JSONObject getResultWithQueryId(String queryId, String resultIndex) {
+                public JSONObject getResultWithQueryId(
+                    String queryId,
+                    String resultIndex,
+                    AsyncQueryRequestContext asyncQueryRequestContext) {
                   return interaction.interact(new InteractionStep(emrClient, queryId, resultIndex));
                 }
               });
@@ -450,7 +460,8 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     AssertionHelper assertQueryResults(String status, List<ExprValue> data) {
       AsyncQueryExecutionResponse results =
-          queryService.getAsyncQueryResults(createQueryResponse.getQueryId());
+          queryService.getAsyncQueryResults(
+              createQueryResponse.getQueryId(), asyncQueryRequestContext);
       assertEquals(status, results.getStatus());
       assertEquals(data, results.getResults());
       return this;
@@ -458,7 +469,8 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     AssertionHelper assertFormattedQueryResults(String expected) {
       AsyncQueryExecutionResponse results =
-          queryService.getAsyncQueryResults(createQueryResponse.getQueryId());
+          queryService.getAsyncQueryResults(
+              createQueryResponse.getQueryId(), asyncQueryRequestContext);
 
       ResponseFormatter<AsyncQueryResult> formatter =
           new AsyncQueryResultResponseFormatter(JsonResponseFormatter.Style.COMPACT);
@@ -499,7 +511,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     /** Simulate PPL plugin search query_execution_result */
     JSONObject pluginSearchQueryResult() {
       return new OpenSearchJobExecutionResponseReader(client)
-          .getResultWithQueryId(queryId, resultIndex);
+          .getResultWithQueryId(queryId, resultIndex, null);
     }
 
     /** Simulate EMR-S bulk writes query_execution_result with refresh = wait_for */
@@ -515,8 +527,11 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     /** Simulate EMR-S updates query_execution_request with state */
     void emrJobUpdateStatementState(StatementState newState) {
-      StatementModel stmt = statementStorageService.getStatement(queryId, MYS3_DATASOURCE).get();
-      statementStorageService.updateStatementState(stmt, newState);
+      StatementModel stmt =
+          statementStorageService
+              .getStatement(queryId, MYS3_DATASOURCE, asyncQueryRequestContext)
+              .get();
+      statementStorageService.updateStatementState(stmt, newState, asyncQueryRequestContext);
     }
 
     void emrJobUpdateJobState(JobRunState jobState) {

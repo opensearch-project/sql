@@ -172,10 +172,12 @@ public class EmrServerlessClientImplTest {
 
     RuntimeException runtimeException =
         Assertions.assertThrows(
-            RuntimeException.class,
+            IllegalArgumentException.class,
             () -> emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, false));
 
-    Assertions.assertEquals("Internal Server Error.", runtimeException.getMessage());
+    Assertions.assertEquals(
+        "The input fails to satisfy the constraints specified by AWS EMR Serverless.",
+        runtimeException.getMessage());
   }
 
   @Test

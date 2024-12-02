@@ -149,8 +149,12 @@ public class StandaloneIT extends PPLIntegTestCase {
 
   private Settings defaultSettings() {
     return new Settings() {
-      private final Map<Key, Integer> defaultSettings =
-          new ImmutableMap.Builder<Key, Integer>().put(Key.QUERY_SIZE_LIMIT, 200).build();
+      private final Map<Key, Object> defaultSettings =
+          new ImmutableMap.Builder<Key, Object>()
+              .put(Key.QUERY_SIZE_LIMIT, 200)
+              .put(Key.SQL_PAGINATION_API_SEARCH_AFTER, true)
+              .put(Key.FIELD_TYPE_TOLERANCE, true)
+              .build();
 
       @Override
       public <T> T getSettingValue(Key key) {

@@ -11,16 +11,22 @@ import java.util.Locale;
 import lombok.Getter;
 import lombok.experimental.UtilityClass;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsBaseVisitor;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsLexer;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser;
+import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser.MaterializedViewQueryContext;
+import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser.RecoverIndexJobStatementContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseLexer;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.IdentifierReferenceContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.StatementContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParserBaseVisitor;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
@@ -34,13 +40,14 @@ import org.opensearch.sql.spark.flint.FlintIndexType;
  */
 @UtilityClass
 public class SQLQueryUtils {
+  private static final Logger logger = LogManager.getLogger(SQLQueryUtils.class);
 
   public static List<FullyQualifiedTableName> extractFullyQualifiedTableNames(String sqlQuery) {
     SqlBaseParser sqlBaseParser =
         new SqlBaseParser(
             new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(sqlQuery))));
     sqlBaseParser.addErrorListener(new SyntaxAnalysisErrorListener());
-    SqlBaseParser.StatementContext statement = sqlBaseParser.statement();
+    StatementContext statement = sqlBaseParser.statement();
     SparkSqlTableNameVisitor sparkSqlTableNameVisitor = new SparkSqlTableNameVisitor();
     statement.accept(sparkSqlTableNameVisitor);
     return sparkSqlTableNameVisitor.getFullyQualifiedTableNames();
@@ -71,6 +78,14 @@ public class SQLQueryUtils {
     } catch (SyntaxCheckException syntaxCheckException) {
       return false;
     }
+  }
+
+  public static SqlBaseParser getBaseParser(String sqlQuery) {
+    SqlBaseParser sqlBaseParser =
+        new SqlBaseParser(
+            new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(sqlQuery))));
+    sqlBaseParser.addErrorListener(new SyntaxAnalysisErrorListener());
+    return sqlBaseParser;
   }
 
   public static class SparkSqlTableNameVisitor extends SqlBaseParserBaseVisitor<Void> {
@@ -191,31 +206,6 @@ public class SQLQueryUtils {
     }
 
     @Override
-    public Void visitVacuumSkippingIndexStatement(
-        FlintSparkSqlExtensionsParser.VacuumSkippingIndexStatementContext ctx) {
-      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.VACUUM);
-      indexQueryDetailsBuilder.indexType(FlintIndexType.SKIPPING);
-      return super.visitVacuumSkippingIndexStatement(ctx);
-    }
-
-    @Override
-    public Void visitVacuumCoveringIndexStatement(
-        FlintSparkSqlExtensionsParser.VacuumCoveringIndexStatementContext ctx) {
-      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.VACUUM);
-      indexQueryDetailsBuilder.indexType(FlintIndexType.COVERING);
-      return super.visitVacuumCoveringIndexStatement(ctx);
-    }
-
-    @Override
-    public Void visitVacuumMaterializedViewStatement(
-        FlintSparkSqlExtensionsParser.VacuumMaterializedViewStatementContext ctx) {
-      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.VACUUM);
-      indexQueryDetailsBuilder.indexType(FlintIndexType.MATERIALIZED_VIEW);
-      indexQueryDetailsBuilder.mvName(ctx.mvName.getText());
-      return super.visitVacuumMaterializedViewStatement(ctx);
-    }
-
-    @Override
     public Void visitDescribeCoveringIndexStatement(
         FlintSparkSqlExtensionsParser.DescribeCoveringIndexStatementContext ctx) {
       indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.DESCRIBE);
@@ -323,6 +313,21 @@ public class SQLQueryUtils {
       indexQueryDetailsBuilder.mvName(ctx.mvName.getText());
       visitPropertyList(ctx.propertyList());
       return super.visitAlterMaterializedViewStatement(ctx);
+    }
+
+    @Override
+    public Void visitMaterializedViewQuery(MaterializedViewQueryContext ctx) {
+      int a = ctx.start.getStartIndex();
+      int b = ctx.stop.getStopIndex();
+      String query = ctx.start.getInputStream().getText(new Interval(a, b));
+      indexQueryDetailsBuilder.mvQuery(query);
+      return super.visitMaterializedViewQuery(ctx);
+    }
+
+    @Override
+    public Void visitRecoverIndexJobStatement(RecoverIndexJobStatementContext ctx) {
+      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.RECOVER);
+      return super.visitRecoverIndexJobStatement(ctx);
     }
 
     private String propertyKey(FlintSparkSqlExtensionsParser.PropertyKeyContext key) {

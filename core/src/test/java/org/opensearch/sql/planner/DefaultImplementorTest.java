@@ -278,4 +278,30 @@ class DefaultImplementorTest {
         new ProjectOperator(new ValuesOperator(List.of(List.of())), List.of(), List.of());
     assertEquals(physicalPlanTree, logicalPlanTree.accept(implementor, null));
   }
+
+  @Test
+  public void visitLimit_support_return_takeOrdered() {
+    // replace SortOperator + LimitOperator with TakeOrderedOperator
+    Pair<Sort.SortOption, Expression> sort =
+        ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("a", INTEGER));
+    var logicalValues = values(emptyList());
+    var logicalSort = sort(logicalValues, sort);
+    var logicalLimit = limit(logicalSort, 10, 5);
+    PhysicalPlan physicalPlanTree =
+        PhysicalPlanDSL.takeOrdered(PhysicalPlanDSL.values(emptyList()), 10, 5, sort);
+    assertEquals(physicalPlanTree, logicalLimit.accept(implementor, null));
+
+    // don't replace if LimitOperator's child is not SortOperator
+    Pair<ReferenceExpression, Expression> newEvalField =
+        ImmutablePair.of(ref("name1", STRING), ref("name", STRING));
+    var logicalEval = eval(logicalSort, newEvalField);
+    logicalLimit = limit(logicalEval, 10, 5);
+    physicalPlanTree =
+        PhysicalPlanDSL.limit(
+            PhysicalPlanDSL.eval(
+                PhysicalPlanDSL.sort(PhysicalPlanDSL.values(emptyList()), sort), newEvalField),
+            10,
+            5);
+    assertEquals(physicalPlanTree, logicalLimit.accept(implementor, null));
+  }
 }

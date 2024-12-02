@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.xcontent.XContentSerializerUtil;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
@@ -28,21 +29,26 @@ public class FlintIndexOpTest {
 
   @Mock private FlintIndexStateModelService flintIndexStateModelService;
   @Mock private EMRServerlessClientFactory mockEmrServerlessClientFactory;
+  @Mock private AsyncQueryRequestContext asyncQueryRequestContext;
 
   @Test
   public void testApplyWithTransitioningStateFailure() {
     FlintIndexMetadata metadata = mock(FlintIndexMetadata.class);
     when(metadata.getLatestId()).thenReturn(Optional.of("latestId"));
     FlintIndexStateModel fakeModel = getFlintIndexStateModel(metadata);
-    when(flintIndexStateModelService.getFlintIndexStateModel(eq("latestId"), any()))
+    when(flintIndexStateModelService.getFlintIndexStateModel(
+            eq("latestId"), any(), eq(asyncQueryRequestContext)))
         .thenReturn(Optional.of(fakeModel));
-    when(flintIndexStateModelService.updateFlintIndexState(any(), any(), any()))
+    when(flintIndexStateModelService.updateFlintIndexState(
+            any(), any(), any(), eq(asyncQueryRequestContext)))
         .thenThrow(new RuntimeException("Transitioning state failed"));
     FlintIndexOp flintIndexOp =
         new TestFlintIndexOp(flintIndexStateModelService, "myS3", mockEmrServerlessClientFactory);
 
     IllegalStateException illegalStateException =
-        Assertions.assertThrows(IllegalStateException.class, () -> flintIndexOp.apply(metadata));
+        Assertions.assertThrows(
+            IllegalStateException.class,
+            () -> flintIndexOp.apply(metadata, asyncQueryRequestContext));
 
     Assertions.assertEquals(
         "Moving to transition state:DELETING failed.", illegalStateException.getMessage());
@@ -53,9 +59,11 @@ public class FlintIndexOpTest {
     FlintIndexMetadata metadata = mock(FlintIndexMetadata.class);
     when(metadata.getLatestId()).thenReturn(Optional.of("latestId"));
     FlintIndexStateModel fakeModel = getFlintIndexStateModel(metadata);
-    when(flintIndexStateModelService.getFlintIndexStateModel(eq("latestId"), any()))
+    when(flintIndexStateModelService.getFlintIndexStateModel(
+            eq("latestId"), any(), eq(asyncQueryRequestContext)))
         .thenReturn(Optional.of(fakeModel));
-    when(flintIndexStateModelService.updateFlintIndexState(any(), any(), any()))
+    when(flintIndexStateModelService.updateFlintIndexState(
+            any(), any(), any(), eq(asyncQueryRequestContext)))
         .thenReturn(
             FlintIndexStateModel.copy(fakeModel, XContentSerializerUtil.buildMetadata(1, 2)))
         .thenThrow(new RuntimeException("Commit state failed"))
@@ -65,7 +73,9 @@ public class FlintIndexOpTest {
         new TestFlintIndexOp(flintIndexStateModelService, "myS3", mockEmrServerlessClientFactory);
 
     IllegalStateException illegalStateException =
-        Assertions.assertThrows(IllegalStateException.class, () -> flintIndexOp.apply(metadata));
+        Assertions.assertThrows(
+            IllegalStateException.class,
+            () -> flintIndexOp.apply(metadata, asyncQueryRequestContext));
 
     Assertions.assertEquals(
         "commit failed. target stable state: [DELETED]", illegalStateException.getMessage());
@@ -76,9 +86,11 @@ public class FlintIndexOpTest {
     FlintIndexMetadata metadata = mock(FlintIndexMetadata.class);
     when(metadata.getLatestId()).thenReturn(Optional.of("latestId"));
     FlintIndexStateModel fakeModel = getFlintIndexStateModel(metadata);
-    when(flintIndexStateModelService.getFlintIndexStateModel(eq("latestId"), any()))
+    when(flintIndexStateModelService.getFlintIndexStateModel(
+            eq("latestId"), any(), eq(asyncQueryRequestContext)))
         .thenReturn(Optional.of(fakeModel));
-    when(flintIndexStateModelService.updateFlintIndexState(any(), any(), any()))
+    when(flintIndexStateModelService.updateFlintIndexState(
+            any(), any(), any(), eq(asyncQueryRequestContext)))
         .thenReturn(
             FlintIndexStateModel.copy(fakeModel, XContentSerializerUtil.buildMetadata(1, 2)))
         .thenThrow(new RuntimeException("Commit state failed"))
@@ -87,7 +99,9 @@ public class FlintIndexOpTest {
         new TestFlintIndexOp(flintIndexStateModelService, "myS3", mockEmrServerlessClientFactory);
 
     IllegalStateException illegalStateException =
-        Assertions.assertThrows(IllegalStateException.class, () -> flintIndexOp.apply(metadata));
+        Assertions.assertThrows(
+            IllegalStateException.class,
+            () -> flintIndexOp.apply(metadata, asyncQueryRequestContext));
 
     Assertions.assertEquals(
         "commit failed. target stable state: [DELETED]", illegalStateException.getMessage());
@@ -125,7 +139,10 @@ public class FlintIndexOpTest {
     }
 
     @Override
-    void runOp(FlintIndexMetadata flintIndexMetadata, FlintIndexStateModel flintIndex) {}
+    void runOp(
+        FlintIndexMetadata flintIndexMetadata,
+        FlintIndexStateModel flintIndex,
+        AsyncQueryRequestContext asyncQueryRequestContext) {}
 
     @Override
     FlintIndexState stableState() {

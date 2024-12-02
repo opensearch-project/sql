@@ -31,6 +31,7 @@ import org.opensearch.sql.planner.physical.RareTopNOperator;
 import org.opensearch.sql.planner.physical.RemoveOperator;
 import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
+import org.opensearch.sql.planner.physical.TakeOrderedOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -72,6 +73,19 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
         explainNode ->
             explainNode.setDescription(
                 ImmutableMap.of("sortList", describeSortList(node.getSortList()))));
+  }
+
+  @Override
+  public ExplainResponseNode visitTakeOrdered(TakeOrderedOperator node, Object context) {
+    return explain(
+        node,
+        context,
+        explainNode ->
+            explainNode.setDescription(
+                ImmutableMap.of(
+                    "limit", node.getLimit(),
+                    "offset", node.getOffset(),
+                    "sortList", describeSortList(node.getSortList()))));
   }
 
   @Override

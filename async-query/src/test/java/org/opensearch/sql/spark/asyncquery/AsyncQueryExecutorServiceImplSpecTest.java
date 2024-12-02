@@ -66,12 +66,14 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
 
     // 2. fetch async query result.
     AsyncQueryExecutionResponse asyncQueryResults =
-        asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+        asyncQueryExecutorService.getAsyncQueryResults(
+            response.getQueryId(), asyncQueryRequestContext);
     assertEquals("RUNNING", asyncQueryResults.getStatus());
     emrsClient.getJobRunResultCalled(1);
 
     // 3. cancel async query.
-    String cancelQueryId = asyncQueryExecutorService.cancelQuery(response.getQueryId());
+    String cancelQueryId =
+        asyncQueryExecutorService.cancelQuery(response.getQueryId(), asyncQueryRequestContext);
     assertEquals(response.getQueryId(), cancelQueryId);
     emrsClient.cancelJobRunCalled(1);
   }
@@ -151,19 +153,22 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             asyncQueryRequestContext);
     assertNotNull(response.getSessionId());
     Optional<StatementModel> statementModel =
-        statementStorageService.getStatement(response.getQueryId(), MYS3_DATASOURCE);
+        statementStorageService.getStatement(
+            response.getQueryId(), MYS3_DATASOURCE, asyncQueryRequestContext);
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
     // 2. fetch async query result.
     AsyncQueryExecutionResponse asyncQueryResults =
-        asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+        asyncQueryExecutorService.getAsyncQueryResults(
+            response.getQueryId(), asyncQueryRequestContext);
     assertEquals("", asyncQueryResults.getError());
     assertTrue(Strings.isEmpty(asyncQueryResults.getError()));
     assertEquals(StatementState.WAITING.getState(), asyncQueryResults.getStatus());
 
     // 3. cancel async query.
-    String cancelQueryId = asyncQueryExecutorService.cancelQuery(response.getQueryId());
+    String cancelQueryId =
+        asyncQueryExecutorService.cancelQuery(response.getQueryId(), asyncQueryRequestContext);
     assertEquals(response.getQueryId(), cancelQueryId);
   }
 
@@ -209,13 +214,15 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
                 .must(QueryBuilders.termQuery(SESSION_ID, first.getSessionId()))));
 
     Optional<StatementModel> firstModel =
-        statementStorageService.getStatement(first.getQueryId(), MYS3_DATASOURCE);
+        statementStorageService.getStatement(
+            first.getQueryId(), MYS3_DATASOURCE, asyncQueryRequestContext);
     assertTrue(firstModel.isPresent());
     assertEquals(StatementState.WAITING, firstModel.get().getStatementState());
     assertEquals(first.getQueryId(), firstModel.get().getStatementId().getId());
     assertEquals(first.getQueryId(), firstModel.get().getQueryId());
     Optional<StatementModel> secondModel =
-        statementStorageService.getStatement(second.getQueryId(), MYS3_DATASOURCE);
+        statementStorageService.getStatement(
+            second.getQueryId(), MYS3_DATASOURCE, asyncQueryRequestContext);
     assertEquals(StatementState.WAITING, secondModel.get().getStatementState());
     assertEquals(second.getQueryId(), secondModel.get().getStatementId().getId());
     assertEquals(second.getQueryId(), secondModel.get().getQueryId());
@@ -305,11 +312,12 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("myselect 1", MYS3_DATASOURCE, LangType.SQL, null),
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null),
             asyncQueryRequestContext);
     assertNotNull(response.getSessionId());
     Optional<StatementModel> statementModel =
-        statementStorageService.getStatement(response.getQueryId(), MYS3_DATASOURCE);
+        statementStorageService.getStatement(
+            response.getQueryId(), MYS3_DATASOURCE, asyncQueryRequestContext);
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
@@ -332,10 +340,12 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             .error("mock error")
             .metadata(submitted.getMetadata())
             .build();
-    statementStorageService.updateStatementState(mocked, StatementState.FAILED);
+    statementStorageService.updateStatementState(
+        mocked, StatementState.FAILED, asyncQueryRequestContext);
 
     AsyncQueryExecutionResponse asyncQueryResults =
-        asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+        asyncQueryExecutorService.getAsyncQueryResults(
+            response.getQueryId(), asyncQueryRequestContext);
     assertEquals(StatementState.FAILED.getState(), asyncQueryResults.getStatus());
     assertEquals("mock error", asyncQueryResults.getError());
   }

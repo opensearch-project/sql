@@ -18,12 +18,17 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -42,6 +47,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.encryptor.EncryptorImpl;
@@ -58,6 +64,7 @@ import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.config.OpenSearchSparkSubmitParameterModifier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
+import org.opensearch.sql.spark.config.SparkExecutionEngineConfigClusterSettingLoader;
 import org.opensearch.sql.spark.dispatcher.DatasourceEmbeddedQueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
@@ -93,6 +100,13 @@ import org.opensearch.sql.spark.parameter.SparkParameterComposerCollection;
 import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilderProvider;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
+import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
+import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
+import org.opensearch.sql.spark.validator.DefaultGrammarElementValidator;
+import org.opensearch.sql.spark.validator.GrammarElementValidatorProvider;
+import org.opensearch.sql.spark.validator.PPLQueryValidator;
+import org.opensearch.sql.spark.validator.S3GlueSQLGrammarElementValidator;
+import org.opensearch.sql.spark.validator.SQLQueryValidator;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
@@ -100,6 +114,10 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
   public static final String MYS3_DATASOURCE = "mys3";
   public static final String MYGLUE_DATASOURCE = "my_glue";
+  public static final String ACCOUNT_ID = "accountId";
+  public static final String APPLICATION_ID = "appId";
+  public static final String REGION = "us-west-2";
+  public static final String ROLE_ARN = "roleArn";
 
   protected ClusterService clusterService;
   protected org.opensearch.sql.common.setting.Settings pluginSettings;
@@ -113,6 +131,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected StateStore stateStore;
   protected SessionStorageService sessionStorageService;
   protected StatementStorageService statementStorageService;
+  protected AsyncQueryScheduler asyncQueryScheduler;
   protected AsyncQueryRequestContext asyncQueryRequestContext;
   protected SessionIdProvider sessionIdProvider = new DatasourceEmbeddedSessionIdProvider();
 
@@ -193,6 +212,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         new OpenSearchSessionStorageService(stateStore, new SessionModelXContentSerializer());
     statementStorageService =
         new OpenSearchStatementStorageService(stateStore, new StatementModelXContentSerializer());
+    asyncQueryScheduler = new OpenSearchAsyncQueryScheduler(client, clusterService);
   }
 
   protected FlintIndexOpFactory getFlintIndexOpFactory(
@@ -201,7 +221,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         flintIndexStateModelService,
         flintIndexClient,
         flintIndexMetadataService,
-        emrServerlessClientFactory);
+        emrServerlessClientFactory,
+        asyncQueryScheduler);
   }
 
   @After
@@ -262,7 +283,13 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     SparkParameterComposerCollection sparkParameterComposerCollection =
         new SparkParameterComposerCollection();
     sparkParameterComposerCollection.register(
-        DataSourceType.S3GLUE, new S3GlueDataSourceSparkParameterComposer());
+        DataSourceType.S3GLUE,
+        new S3GlueDataSourceSparkParameterComposer(
+            getSparkExecutionEngineConfigClusterSettingLoader()));
+    sparkParameterComposerCollection.register(
+        DataSourceType.SECURITY_LAKE,
+        new S3GlueDataSourceSparkParameterComposer(
+            getSparkExecutionEngineConfigClusterSettingLoader()));
     SparkSubmitParametersBuilderProvider sparkSubmitParametersBuilderProvider =
         new SparkSubmitParametersBuilderProvider(sparkParameterComposerCollection);
     QueryHandlerFactory queryHandlerFactory =
@@ -281,10 +308,20 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 flintIndexStateModelService,
                 flintIndexClient,
                 new FlintIndexMetadataServiceImpl(client),
-                emrServerlessClientFactory),
+                emrServerlessClientFactory,
+                asyncQueryScheduler),
             emrServerlessClientFactory,
             new OpenSearchMetricsService(),
             sparkSubmitParametersBuilderProvider);
+    SQLQueryValidator sqlQueryValidator =
+        new SQLQueryValidator(
+            new GrammarElementValidatorProvider(
+                ImmutableMap.of(DataSourceType.S3GLUE, new S3GlueSQLGrammarElementValidator()),
+                new DefaultGrammarElementValidator()));
+    PPLQueryValidator pplQueryValidator =
+        new PPLQueryValidator(
+            new GrammarElementValidatorProvider(
+                ImmutableMap.of(), new DefaultGrammarElementValidator()));
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
             this.dataSourceService,
@@ -295,7 +332,9 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 sessionConfigSupplier,
                 sessionIdProvider),
             queryHandlerFactory,
-            new DatasourceEmbeddedQueryIdProvider());
+            new DatasourceEmbeddedQueryIdProvider(),
+            sqlQueryValidator,
+            pplQueryValidator);
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
@@ -372,12 +411,54 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   public SparkExecutionEngineConfig sparkExecutionEngineConfig(
       AsyncQueryRequestContext asyncQueryRequestContext) {
     return SparkExecutionEngineConfig.builder()
-        .applicationId("appId")
-        .region("us-west-2")
-        .executionRoleARN("roleArn")
+        .applicationId(APPLICATION_ID)
+        .region(REGION)
+        .executionRoleARN(ROLE_ARN)
         .sparkSubmitParameterModifier(new OpenSearchSparkSubmitParameterModifier(""))
         .clusterName("myCluster")
         .build();
+  }
+
+  public static class TestSettings extends org.opensearch.sql.common.setting.Settings {
+    final Map<Key, Object> values;
+
+    public TestSettings() {
+      values = new HashMap<>();
+    }
+
+    /** Get Setting Value. */
+    @Override
+    public <T> T getSettingValue(Key key) {
+      return (T) values.get(key);
+    }
+
+    @Override
+    public List<String> getSettings() {
+      return values.keySet().stream().map(Key::getKeyValue).collect(Collectors.toList());
+    }
+
+    public <T> void putSettingValue(Key key, T value) {
+      values.put(key, value);
+    }
+  }
+
+  public SparkExecutionEngineConfigClusterSettingLoader
+      getSparkExecutionEngineConfigClusterSettingLoader() {
+    Gson gson = new Gson();
+    JsonObject jsonObject = new JsonObject();
+    jsonObject.addProperty("accountId", ACCOUNT_ID);
+    jsonObject.addProperty("applicationId", APPLICATION_ID);
+    jsonObject.addProperty("region", REGION);
+    jsonObject.addProperty("executionRoleARN", ROLE_ARN);
+    jsonObject.addProperty("sparkSubmitParameters", "");
+
+    // Convert JsonObject to JSON string
+    final String jsonString = gson.toJson(jsonObject);
+
+    final TestSettings settings = new TestSettings();
+    settings.putSettingValue(Key.SPARK_EXECUTION_ENGINE_CONFIG, jsonString);
+
+    return new SparkExecutionEngineConfigClusterSettingLoader(settings);
   }
 
   public void enableSession(boolean enabled) {

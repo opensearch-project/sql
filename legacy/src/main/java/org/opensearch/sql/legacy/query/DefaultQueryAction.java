@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.legacy.query;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
+
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
@@ -100,7 +103,20 @@ public class DefaultQueryAction extends QueryAction {
           .getNumericalMetric(MetricName.DEFAULT_CURSOR_REQUEST_COUNT_TOTAL)
           .increment();
       Metrics.getInstance().getNumericalMetric(MetricName.DEFAULT_CURSOR_REQUEST_TOTAL).increment();
-      request.setSize(fetchSize).setScroll(timeValue);
+      request.setSize(fetchSize);
+      // Set scroll or search after for pagination
+      if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+        // search after requires results to be in specific order
+        // set sort field for search_after
+        boolean ordered = select.isOrderdSelect();
+        if (!ordered) {
+          request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+          request.addSort(METADATA_FIELD_ID, SortOrder.ASC);
+        }
+        // Request also requires PointInTime, but we should create pit while execution.
+      } else {
+        request.setScroll(timeValue);
+      }
     } else {
       request.setSearchType(SearchType.DFS_QUERY_THEN_FETCH);
       setLimit(select.getOffset(), rowCount != null ? rowCount : Select.DEFAULT_LIMIT);

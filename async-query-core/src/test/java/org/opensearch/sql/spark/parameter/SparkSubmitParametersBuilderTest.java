@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.parameter;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -93,6 +94,7 @@ public class SparkSubmitParametersBuilderTest {
     params.setConfigItem(SPARK_JARS_KEY, "Overridden");
     String result = params.toString();
 
+    assertEquals("Overridden", params.getConfigItem(SPARK_JARS_KEY));
     assertTrue(result.contains(String.format("%s=Overridden", SPARK_JARS_KEY)));
   }
 
@@ -150,6 +152,11 @@ public class SparkSubmitParametersBuilderTest {
     sparkSubmitParametersBuilder.acceptModifier(sparkSubmitParameterModifier);
 
     verify(sparkSubmitParameterModifier).modifyParameters(sparkSubmitParametersBuilder);
+  }
+
+  @Test
+  public void testAcceptNullModifier() {
+    sparkSubmitParametersBuilder.acceptModifier(null);
   }
 
   @Test

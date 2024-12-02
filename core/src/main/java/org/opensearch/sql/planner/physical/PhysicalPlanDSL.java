@@ -65,6 +65,11 @@ public class PhysicalPlanDSL {
     return new SortOperator(input, Arrays.asList(sorts));
   }
 
+  public static TakeOrderedOperator takeOrdered(
+      PhysicalPlan input, Integer limit, Integer offset, Pair<SortOption, Expression>... sorts) {
+    return new TakeOrderedOperator(input, limit, offset, Arrays.asList(sorts));
+  }
+
   public static DedupeOperator dedupe(PhysicalPlan input, Expression... expressions) {
     return new DedupeOperator(input, Arrays.asList(expressions));
   }

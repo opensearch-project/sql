@@ -46,7 +46,7 @@ dependencies {
     antlr "org.antlr:antlr4:4.7.1"
 
     implementation "org.antlr:antlr4-runtime:4.7.1"
-    implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
+    implementation group: 'com.google.guava', name: 'guava', version: "${guava_version}"
     implementation group: 'org.json', name: 'json', version:'20231013'
     implementation project(':common')
     implementation project(':core')

@@ -8,9 +8,7 @@ package org.opensearch.sql.opensearch.executor.protector;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -69,6 +67,7 @@ import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
+import org.opensearch.sql.planner.physical.TakeOrderedOperator;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -93,6 +92,8 @@ class OpenSearchExecutionProtectorTest {
 
   @Test
   void test_protect_indexScan() {
+    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
+
     String indexName = "test";
     final int maxResultWindow = 10000;
     final int querySizeLimit = 200;
@@ -116,11 +117,12 @@ class OpenSearchExecutionProtectorTest {
 
     final var name = new OpenSearchRequest.IndexName(indexName);
     final var request =
-        new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory)
+        new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory, settings)
             .build(
                 name,
                 maxResultWindow,
-                settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE));
+                settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE),
+                client);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.lookup(
@@ -319,6 +321,16 @@ class OpenSearchExecutionProtectorTest {
     var plan = new CursorCloseOperator(child);
     assertSame(plan, executionProtector.protect(plan));
     verify(child, never()).accept(executionProtector, null);
+  }
+
+  @Test
+  public void test_visitTakeOrdered() {
+    Pair<Sort.SortOption, Expression> sort =
+        ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("a", INTEGER));
+    TakeOrderedOperator takeOrdered =
+        PhysicalPlanDSL.takeOrdered(PhysicalPlanDSL.values(emptyList()), 10, 5, sort);
+    assertEquals(
+        resourceMonitor(takeOrdered), executionProtector.visitTakeOrdered(takeOrdered, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

@@ -6,10 +6,11 @@
 package org.opensearch.sql.datasource;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
-import static org.opensearch.sql.legacy.TestsConstants.DATASOURCES;
 
+import java.io.IOException;
 import lombok.SneakyThrows;
 import org.json.JSONObject;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.client.Request;
@@ -19,37 +20,33 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class DataSourceEnabledIT extends PPLIntegTestCase {
 
-  @Override
-  protected boolean preserveClusterUponCompletion() {
-    return false;
+  @After
+  public void cleanUp() throws IOException {
+    wipeAllClusterSettings();
   }
 
   @Test
-  public void testDataSourceIndexIsCreatedByDefault() {
-    assertDataSourceCount(0);
-    assertSelectFromDataSourceReturnsDoesNotExist();
-    assertDataSourceIndexCreated(true);
-  }
-
-  @Test
-  public void testDataSourceIndexIsCreatedIfSettingIsEnabled() {
-    setDataSourcesEnabled("transient", true);
-    assertDataSourceCount(0);
-    assertSelectFromDataSourceReturnsDoesNotExist();
-    assertDataSourceIndexCreated(true);
-  }
-
-  @Test
-  public void testDataSourceIndexIsNotCreatedIfSettingIsDisabled() {
+  public void testAsyncQueryAPIFailureIfSettingIsDisabled() {
     setDataSourcesEnabled("transient", false);
     assertDataSourceCount(0);
     assertSelectFromDataSourceReturnsDoesNotExist();
-    assertDataSourceIndexCreated(false);
     assertAsyncQueryApiDisabled();
   }
 
   @Test
+  public void testDataSourceCreationWithDefaultSettings() {
+    createOpenSearchDataSource();
+    createIndex();
+    assertDataSourceCount(1);
+    assertSelectFromDataSourceReturnsSuccess();
+    assertSelectFromDummyIndexInValidDataSourceDataSourceReturnsDoesNotExist();
+    deleteSelfDataSourceCreated();
+    deleteIndex();
+  }
+
+  @Test
   public void testAfterPreviousEnable() {
+    setDataSourcesEnabled("transient", true);
     createOpenSearchDataSource();
     createIndex();
     assertDataSourceCount(1);
@@ -59,6 +56,9 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
     assertDataSourceCount(0);
     assertSelectFromDataSourceReturnsDoesNotExist();
     assertAsyncQueryApiDisabled();
+    setDataSourcesEnabled("transient", true);
+    deleteSelfDataSourceCreated();
+    deleteIndex();
   }
 
   @SneakyThrows
@@ -98,6 +98,12 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
 
   private void createIndex() {
     Request request = new Request("PUT", "/myindex");
+    Response response = performRequest(request);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+  }
+
+  private void deleteIndex() {
+    Request request = new Request("DELETE", "/myindex");
     Response response = performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
   }
@@ -142,23 +148,18 @@ public class DataSourceEnabledIT extends PPLIntegTestCase {
   }
 
   @SneakyThrows
-  private void assertDataSourceIndexCreated(boolean expected) {
-    Request request = new Request("GET", "/" + DATASOURCES);
-    Response response = performRequest(request);
-    String responseBody = getResponseBody(response);
-    boolean indexDoesExist =
-        response.getStatusLine().getStatusCode() == 200
-            && responseBody.contains(DATASOURCES)
-            && responseBody.contains("mappings");
-    Assert.assertEquals(expected, indexDoesExist);
-  }
-
-  @SneakyThrows
   private Response performRequest(Request request) {
     try {
       return client().performRequest(request);
     } catch (ResponseException e) {
       return e.getResponse();
     }
+  }
+
+  @SneakyThrows
+  private void deleteSelfDataSourceCreated() {
+    Request deleteRequest = getDeleteDataSourceRequest("self");
+    Response deleteResponse = client().performRequest(deleteRequest);
+    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
   }
 }
