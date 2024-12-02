@@ -615,10 +615,7 @@ public class DateTimeFunctions {
         BuiltinFunctionName.FROM_UNIXTIME.getName(),
         impl(nullMissingHandling(DateTimeFunctions::exprFromUnixTime), TIMESTAMP, DOUBLE),
         impl(
-            nullMissingHandling(DateTimeFunctions::exprFromUnixTimeFormat),
-            STRING,
-            DOUBLE,
-            STRING));
+            nullMissingHandling(DateTimeFunctions::exprFromUnixTimeFormat), STRING, DOUBLE, STRING));
   }
 
   private DefaultFunctionResolver get_format() {
@@ -837,8 +834,7 @@ public class DateTimeFunctions {
         BuiltinFunctionName.STR_TO_DATE.getName(),
         implWithProperties(
             nullMissingHandlingWithProperties(
-                (functionProperties, arg, format) ->
-                    DateTimeFunctions.exprStrToDate(functionProperties, arg, format)),
+                    DateTimeFunctions::exprStrToDate),
             TIMESTAMP,
             STRING,
             STRING));
@@ -953,8 +949,7 @@ public class DateTimeFunctions {
             TIMESTAMP),
         implWithProperties(
             nullMissingHandlingWithProperties(
-                (functionProperties, part, startTime, endTime) ->
-                    exprTimestampDiffForTimeType(functionProperties, part, startTime, endTime)),
+                    DateTimeFunctions::exprTimestampDiffForTimeType),
             TIMESTAMP,
             STRING,
             TIME,
@@ -998,21 +993,21 @@ public class DateTimeFunctions {
   private DefaultFunctionResolver utc_date() {
     return define(
         BuiltinFunctionName.UTC_DATE.getName(),
-        implWithProperties(functionProperties -> exprUtcDate(functionProperties), DATE));
+        implWithProperties(DateTimeFunctions::exprUtcDate, DATE));
   }
 
   /** UTC_TIME(). return the current UTC Time in format HH:mm:ss */
   private DefaultFunctionResolver utc_time() {
     return define(
         BuiltinFunctionName.UTC_TIME.getName(),
-        implWithProperties(functionProperties -> exprUtcTime(functionProperties), TIME));
+        implWithProperties(DateTimeFunctions::exprUtcTime, TIME));
   }
 
   /** UTC_TIMESTAMP(). return the current UTC TimeStamp in format yyyy-MM-dd HH:mm:ss */
   private DefaultFunctionResolver utc_timestamp() {
     return define(
         BuiltinFunctionName.UTC_TIMESTAMP.getName(),
-        implWithProperties(functionProperties -> exprUtcTimeStamp(functionProperties), TIMESTAMP));
+        implWithProperties(DateTimeFunctions::exprUtcTimeStamp, TIMESTAMP));
   }
 
   /** WEEK(DATE[,mode]). return the week number for date. */
@@ -2028,32 +2023,24 @@ public class DateTimeFunctions {
     }
 
     // Check below from YYYYMMDD - MMDD which format should be used
-    switch (length) {
-        // Check if dateAsInt is at least 8 digits long
-      case FULL_DATE_LENGTH:
-        return DATE_FORMATTER_LONG_YEAR;
+      return switch (length) {
+          // Check if dateAsInt is at least 8 digits long
+          case FULL_DATE_LENGTH -> DATE_FORMATTER_LONG_YEAR;
 
-        // Check if dateAsInt is at least 6 digits long
-      case SHORT_DATE_LENGTH:
-        return DATE_FORMATTER_SHORT_YEAR;
+          // Check if dateAsInt is at least 6 digits long
+          case SHORT_DATE_LENGTH -> DATE_FORMATTER_SHORT_YEAR;
 
-        // Check if dateAsInt is at least 5 digits long
-      case SINGLE_DIGIT_YEAR_DATE_LENGTH:
-        return DATE_FORMATTER_SINGLE_DIGIT_YEAR;
+          // Check if dateAsInt is at least 5 digits long
+          case SINGLE_DIGIT_YEAR_DATE_LENGTH -> DATE_FORMATTER_SINGLE_DIGIT_YEAR;
 
-        // Check if dateAsInt is at least 4 digits long
-      case NO_YEAR_DATE_LENGTH:
-        return DATE_FORMATTER_NO_YEAR;
+          // Check if dateAsInt is at least 4 digits long
+          case NO_YEAR_DATE_LENGTH -> DATE_FORMATTER_NO_YEAR;
 
-        // Check if dateAsInt is at least 3 digits long
-      case SINGLE_DIGIT_MONTH_DATE_LENGTH:
-        return DATE_FORMATTER_SINGLE_DIGIT_MONTH;
+          // Check if dateAsInt is at least 3 digits long
+          case SINGLE_DIGIT_MONTH_DATE_LENGTH -> DATE_FORMATTER_SINGLE_DIGIT_MONTH;
+          default -> throw new DateTimeException("No Matching Format");
+      };
 
-      default:
-        break;
-    }
-
-    throw new DateTimeException("No Matching Format");
   }
 
   /**

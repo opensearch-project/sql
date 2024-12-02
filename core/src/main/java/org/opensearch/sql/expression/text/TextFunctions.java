@@ -184,7 +184,7 @@ public class TextFunctions {
                         List<ExprValue> exprValues =
                             args.stream()
                                 .map(arg -> arg.valueOf(valueEnv))
-                                .collect(Collectors.toList());
+                                .toList();
                         if (exprValues.stream().anyMatch(ExprValue::isMissing)) {
                           return ExprValueUtils.missingValue();
                         }
@@ -205,7 +205,7 @@ public class TextFunctions {
   }
 
   /**
-   * TODO: https://github.com/opendistro-for-elasticsearch/sql/issues/710<br>
+   * TODO: <a href="https://github.com/opendistro-for-elasticsearch/sql/issues/710">...</a><br>
    * Extend to accept variable argument amounts.<br>
    * <br>
    * Concatenates a list of Strings with a separator string. Supports following<br>
@@ -310,8 +310,7 @@ public class TextFunctions {
         BuiltinFunctionName.LOCATE.getName(),
         impl(
             nullMissingHandling(
-                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>)
-                    TextFunctions::exprLocate),
+                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>) TextFunctions::exprLocate),
             INTEGER,
             STRING,
             STRING),
@@ -338,8 +337,7 @@ public class TextFunctions {
         BuiltinFunctionName.POSITION.getName(),
         impl(
             nullMissingHandling(
-                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>)
-                    TextFunctions::exprLocate),
+                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>) TextFunctions::exprLocate),
             INTEGER,
             STRING,
             STRING));
@@ -419,7 +417,7 @@ public class TextFunctions {
 
   private static ExprValue exprAscii(ExprValue expr) {
     return new ExprIntegerValue(
-        expr.stringValue().length() == 0 ? 0 : (int) expr.stringValue().charAt(0));
+            expr.stringValue().isEmpty() ? 0 : (int) expr.stringValue().charAt(0));
   }
 
   private static ExprValue exprLocate(ExprValue subStr, ExprValue str) {
