@@ -741,16 +741,16 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "multi_nested",
         getNestedTypeIndexMapping(),
         "src/test/resources/nested_with_nulls.json"),
-      IOT_READINGS(
-              TestsConstants.TEST_INDEX_IOT_READINGS,
-              "iot_readings",
-              getMappingFile("iot_readings_index_mapping.json"),
-              "src/test/resources/iot_readings.json"),
-      IOT_SENSORS(
-              TestsConstants.TEST_INDEX_IOT_SENSORS,
-              "iot_sensors",
-              getMappingFile("iot_sensors_index_mapping.json"),
-              "src/test/resources/iot_sensors.json"),
+    IOT_READINGS(
+        TestsConstants.TEST_INDEX_IOT_READINGS,
+        "iot_readings",
+        getMappingFile("iot_readings_index_mapping.json"),
+        "src/test/resources/iot_readings.json"),
+    IOT_SENSORS(
+        TestsConstants.TEST_INDEX_IOT_SENSORS,
+        "iot_sensors",
+        getMappingFile("iot_sensors_index_mapping.json"),
+        "src/test/resources/iot_sensors.json"),
     GEOPOINTS(
         TestsConstants.TEST_INDEX_GEOPOINT,
         "dates",

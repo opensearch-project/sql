@@ -271,43 +271,43 @@ class OpenSearchIndexTest {
             include);
 
     Integer maxResultWindow = index.getMaxResultWindow();
-      BiFunction<String, Map<String, Object>, Map<String, Object>> anyBifunction =
-              new BiFunction<>() {
-                  @Override
-                  public Map<String, Object> apply(String s, Map<String, Object> stringObjectMap) {
-                      return Map.of();
-                  }
+    BiFunction<String, Map<String, Object>, Map<String, Object>> anyBifunction =
+        new BiFunction<>() {
+          @Override
+          public Map<String, Object> apply(String s, Map<String, Object> stringObjectMap) {
+            return Map.of();
+          }
 
-                  @Override
-                  public boolean equals(Object obj) {
-                      return obj instanceof BiFunction;
-                  }
-              };
-      
+          @Override
+          public boolean equals(Object obj) {
+            return obj instanceof BiFunction;
+          }
+        };
+
     final var requestBuilder =
         new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
     assertEquals(
-     PhysicalPlanDSL.project(
-        PhysicalPlanDSL.lookup(
-            PhysicalPlanDSL.dedupe(
-                PhysicalPlanDSL.sort(
-                    PhysicalPlanDSL.eval(
-                        PhysicalPlanDSL.remove(
-                            PhysicalPlanDSL.rename(
-                                new OpenSearchIndexScan(
-                                    client,
-                                    QUERY_SIZE_LIMIT,
-                                    requestBuilder.build(
-                                        INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
-                                mappings),
-                            exclude),
-                        newEvalField),
-                    sortField),
-                dedupeField),
+        PhysicalPlanDSL.project(
+            PhysicalPlanDSL.lookup(
+                PhysicalPlanDSL.dedupe(
+                    PhysicalPlanDSL.sort(
+                        PhysicalPlanDSL.eval(
+                            PhysicalPlanDSL.remove(
+                                PhysicalPlanDSL.rename(
+                                    new OpenSearchIndexScan(
+                                        client,
+                                        QUERY_SIZE_LIMIT,
+                                        requestBuilder.build(
+                                            INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
+                                    mappings),
+                                exclude),
+                            newEvalField),
+                        sortField),
+                    dedupeField),
                 LOOKUP_INDEX_NAME,
                 Map.of(
-                        new ReferenceExpression(LOOKUP_TABLE_FIELD, STRING),
-                        new ReferenceExpression(QUERY_FIELD, STRING)),
+                    new ReferenceExpression(LOOKUP_TABLE_FIELD, STRING),
+                    new ReferenceExpression(QUERY_FIELD, STRING)),
                 true,
                 Collections.emptyMap(),
                 anyBifunction),
