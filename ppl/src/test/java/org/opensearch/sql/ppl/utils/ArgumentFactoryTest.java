@@ -114,7 +114,7 @@ public class ArgumentFactoryTest extends AstBuilderTest {
             relation("t"),
             "a",
             fieldMap("field", "field"),
-            exprList(argument("appendonly", booleanLiteral(false))),
+            exprList(argument("overwrite", booleanLiteral(false))),
             Collections.emptyList()));
   }
 
@@ -127,31 +127,31 @@ public class ArgumentFactoryTest extends AstBuilderTest {
             relation("t"),
             "a",
             fieldMap("field", "field1", "field2", "field3"),
-            exprList(argument("appendonly", booleanLiteral(false))),
+            exprList(argument("overwrite", booleanLiteral(false))),
             fieldMap("destfield", "destfield1", "destfield2", "destfield3")));
   }
 
   @Test
   public void testLookupCommandAppendTrueArgument() {
     assertEqual(
-        "source=t | lookup a field appendonly=true",
+        "source=t | lookup a field overwrite=true",
         lookup(
             relation("t"),
             "a",
             fieldMap("field", "field"),
-            exprList(argument("appendonly", booleanLiteral(true))),
+            exprList(argument("overwrite", booleanLiteral(true))),
             Collections.emptyList()));
   }
 
   @Test
   public void testLookupCommandAppendFalseArgument() {
     assertEqual(
-        "source=t | lookup a field appendonly=false",
+        "source=t | lookup a field overwrite=false",
         lookup(
             relation("t"),
             "a",
             fieldMap("field", "field"),
-            exprList(argument("appendonly", booleanLiteral(false))),
+            exprList(argument("overwrite", booleanLiteral(false))),
             Collections.emptyList()));
   }
 }

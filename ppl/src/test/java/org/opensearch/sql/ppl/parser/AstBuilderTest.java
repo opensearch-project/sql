@@ -404,7 +404,7 @@ public class AstBuilderTest {
             relation("t"),
             "a",
             fieldMap("field", "field"),
-            exprList(argument("appendonly", booleanLiteral(false))),
+            exprList(argument("overwrite", booleanLiteral(false))),
             Collections.emptyList()));
   }
 

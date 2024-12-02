@@ -83,9 +83,9 @@ public class ArgumentFactory {
 
   public static List<Argument> getArgumentList(LookupCommandContext ctx) {
     return Arrays.asList(
-        ctx.appendonly != null
-            ? new Argument("appendonly", getArgumentValue(ctx.appendonly))
-            : new Argument("appendonly", new Literal(false, DataType.BOOLEAN)));
+        ctx.overwrite != null
+            ? new Argument("overwrite", getArgumentValue(ctx.overwrite))
+            : new Argument("overwrite", new Literal(false, DataType.BOOLEAN)));
   }
 
   /**

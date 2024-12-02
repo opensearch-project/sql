@@ -124,7 +124,7 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
         visitInput(node.getInput(), context),
         node.getIndexName(),
         node.getMatchFieldMap(),
-        node.getAppendOnly(),
+        node.getOverwrite(),
         node.getCopyFieldMap(),
         node.getLookup());
   }

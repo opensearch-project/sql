@@ -21,20 +21,20 @@ public class LogicalLookup extends LogicalPlan {
   private final String indexName;
   private final Map<ReferenceExpression, ReferenceExpression> matchFieldMap;
   private final Map<ReferenceExpression, ReferenceExpression> copyFieldMap;
-  private final Boolean appendOnly;
+  private final Boolean overwrite;
 
   /** Constructor of LogicalLookup. */
   public LogicalLookup(
       LogicalPlan child,
       String indexName,
       Map<ReferenceExpression, ReferenceExpression> matchFieldMap,
-      Boolean appendOnly,
+      Boolean overwrite,
       Map<ReferenceExpression, ReferenceExpression> copyFieldMap) {
     super(Arrays.asList(child));
     this.indexName = indexName;
     this.copyFieldMap = copyFieldMap;
     this.matchFieldMap = matchFieldMap;
-    this.appendOnly = appendOnly;
+    this.overwrite = overwrite;
   }
 
   @Override

@@ -31,7 +31,7 @@ public class LookupOperator extends PhysicalPlan {
   @Getter private final String indexName;
   @Getter private final Map<ReferenceExpression, ReferenceExpression> matchFieldMap;
   @Getter private final Map<ReferenceExpression, ReferenceExpression> copyFieldMap;
-  @Getter private final Boolean appendOnly;
+  @Getter private final Boolean overwrite;
 
   @EqualsAndHashCode.Exclude
   private final BiFunction<String, Map<String, Object>, Map<String, Object>> lookup;
@@ -42,13 +42,13 @@ public class LookupOperator extends PhysicalPlan {
       PhysicalPlan input,
       String indexName,
       Map<ReferenceExpression, ReferenceExpression> matchFieldMap,
-      Boolean appendOnly,
+      Boolean overwrite,
       Map<ReferenceExpression, ReferenceExpression> copyFieldMap,
       BiFunction<String, Map<String, Object>, Map<String, Object>> lookup) {
     this.input = input;
     this.indexName = indexName;
     this.matchFieldMap = matchFieldMap;
-    this.appendOnly = appendOnly;
+    this.overwrite = overwrite;
     this.copyFieldMap = copyFieldMap;
     this.lookup = lookup;
   }
@@ -116,7 +116,7 @@ public class LookupOperator extends PhysicalPlan {
         Object lookedUpFieldValue = sourceOfAdditionalField.getValue();
         String finalFieldName = copyMap.getOrDefault(lookedUpFieldName, lookedUpFieldName);
         ExprValue value = ExprValueUtils.fromObjectValue(lookedUpFieldValue);
-        if (appendOnly) {
+        if (overwrite) {
           resultTupleBuilder.putIfAbsent(finalFieldName, value);
         } else {
           resultTupleBuilder.put(finalFieldName, value);

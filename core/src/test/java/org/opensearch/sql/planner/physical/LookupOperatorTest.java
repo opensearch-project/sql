@@ -580,7 +580,7 @@ public class LookupOperatorTest extends PhysicalPlanTestBase {
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
-  public void lookup_table_with_nulls(boolean appendOnly) {
+  public void lookup_table_with_nulls(boolean overwrite) {
     when(lookupFunction.apply(eq(LOOKUP_INDEX), anyMap()))
         .thenAnswer(lookupTableQueryResults("ip_v4", LOOKUP_TABLE_WITH_NULLS));
     PhysicalPlan plan =
@@ -589,7 +589,7 @@ public class LookupOperatorTest extends PhysicalPlanTestBase {
             LOOKUP_INDEX,
             ImmutableMap.of(
                 new ReferenceExpression("ip_v4", STRING), new ReferenceExpression("ip", STRING)),
-            appendOnly,
+            overwrite,
             ImmutableMap.of(),
             lookupFunction);
 

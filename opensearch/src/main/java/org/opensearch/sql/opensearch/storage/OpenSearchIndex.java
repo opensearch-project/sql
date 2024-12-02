@@ -231,7 +231,7 @@ public class OpenSearchIndex implements Table {
           visitChild(node, context),
           node.getIndexName(),
           node.getMatchFieldMap(),
-          node.getAppendOnly(),
+          node.getOverwrite(),
           node.getCopyFieldMap(),
           lookup(singleRowQuery));
     }

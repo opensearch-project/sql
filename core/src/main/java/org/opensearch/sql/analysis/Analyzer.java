@@ -516,7 +516,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalPlan child = node.getChild().get(0).accept(this, queryContext);
     List<Argument> options = node.getOptions();
     // Todo, refactor the option.
-    Boolean appendOnly = (Boolean) options.get(0).getValue().getValue();
+    Boolean overwrite = (Boolean) options.get(0).getValue().getValue();
 
     Table table =
         dataSourceService
@@ -543,7 +543,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         child,
         node.getIndexName(),
         matchFieldMap,
-        appendOnly,
+        overwrite,
         analyzeLookupCopyFields(node.getCopyFieldList(), queryContext, table));
   }
 

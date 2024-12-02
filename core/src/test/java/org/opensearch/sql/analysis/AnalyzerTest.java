@@ -1872,7 +1872,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("ip_v4", "field_value2")),
-            ImmutableList.of(AstDSL.argument("appendonly", AstDSL.booleanLiteral(false))),
+            ImmutableList.of(AstDSL.argument("overwrite", AstDSL.booleanLiteral(false))),
             Collections.emptyList()));
   }
 
@@ -1894,7 +1894,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(
                 AstDSL.map("comment", "comment"), AstDSL.map("dev_id", "field_value1")),
-            ImmutableList.of(AstDSL.argument("appendonly", AstDSL.booleanLiteral(false))),
+            ImmutableList.of(AstDSL.argument("overwrite", AstDSL.booleanLiteral(false))),
             Collections.emptyList()));
   }
 
@@ -1913,7 +1913,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("dev_id", "comment")),
-            ImmutableList.of(AstDSL.argument("appendonly", AstDSL.booleanLiteral(true))),
+            ImmutableList.of(AstDSL.argument("overwrite", AstDSL.booleanLiteral(true))),
             Collections.emptyList()));
   }
 
@@ -1925,7 +1925,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             relation("schema"),
             tableName,
             ImmutableList.of(AstDSL.map("string_value", "comment")),
-            ImmutableList.of(argument("appendonly", booleanLiteral(true))),
+            ImmutableList.of(argument("overwrite", booleanLiteral(true))),
             emptyList());
 
     assertThrows(SemanticCheckException.class, () -> analyze(lookup));
@@ -1938,7 +1938,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("no_such_field", "comment")),
-            ImmutableList.of(argument("appendonly", booleanLiteral(true))),
+            ImmutableList.of(argument("overwrite", booleanLiteral(true))),
             emptyList());
 
     assertThrows(SemanticCheckException.class, () -> analyze(lookup));
@@ -1951,7 +1951,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("no_such_field", "comment")),
-            ImmutableList.of(argument("appendonly", booleanLiteral(true))),
+            ImmutableList.of(argument("overwrite", booleanLiteral(true))),
             emptyList());
 
     assertThrows(SemanticCheckException.class, () -> analyze(lookup));
@@ -1964,7 +1964,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("ip_v4", "no_such_field")),
-            ImmutableList.of(argument("appendonly", booleanLiteral(true))),
+            ImmutableList.of(argument("overwrite", booleanLiteral(true))),
             emptyList());
 
     assertThrows(SemanticCheckException.class, () -> analyze(lookup));
@@ -1978,7 +1978,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("ip_v4", "dev_id")),
-            ImmutableList.of(argument("appendonly", booleanLiteral(true))),
+            ImmutableList.of(argument("overwrite", booleanLiteral(true))),
             emptyList());
 
     assertThrows(SemanticCheckException.class, () -> analyze(lookup));
@@ -1992,7 +1992,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("string_value", "field_value2")),
-            ImmutableList.of(argument("appendonly", booleanLiteral(true))),
+            ImmutableList.of(argument("overwrite", booleanLiteral(true))),
             emptyList());
 
     assertThrows(SemanticCheckException.class, () -> analyze(lookup));
@@ -2005,7 +2005,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map(field("ip_v4"), intLiteral(7))),
-            ImmutableList.of(argument("appendonly", booleanLiteral(false))),
+            ImmutableList.of(argument("overwrite", booleanLiteral(false))),
             emptyList());
 
     assertThrows(SemanticCheckException.class, () -> analyze(lookup));
@@ -2028,7 +2028,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("ip_v4", "field_value2")),
-            ImmutableList.of(AstDSL.argument("appendonly", AstDSL.booleanLiteral(false))),
+            ImmutableList.of(AstDSL.argument("overwrite", AstDSL.booleanLiteral(false))),
             ImmutableList.of(AstDSL.map("vendor", "maker"))));
   }
 
@@ -2051,7 +2051,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("ip_v4", "field_value2")),
-            ImmutableList.of(AstDSL.argument("appendonly", AstDSL.booleanLiteral(false))),
+            ImmutableList.of(AstDSL.argument("overwrite", AstDSL.booleanLiteral(false))),
             ImmutableList.of(
                 AstDSL.map("vendor", "maker"), AstDSL.map("serial_number", "serial"))));
   }
@@ -2073,7 +2073,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("ip_v4", "field_value2")),
-            ImmutableList.of(AstDSL.argument("appendonly", AstDSL.booleanLiteral(false))),
+            ImmutableList.of(AstDSL.argument("overwrite", AstDSL.booleanLiteral(false))),
             ImmutableList.of(AstDSL.map("vendor", "vendor"))));
   }
 
@@ -2084,7 +2084,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("ip_v4", "field_value2")),
-            ImmutableList.of(argument("appendonly", booleanLiteral(false))),
+            ImmutableList.of(argument("overwrite", booleanLiteral(false))),
             ImmutableList.of(AstDSL.map("no_such_field", "maker")));
 
     assertThrows(SemanticCheckException.class, () -> analyze(lookup));
@@ -2097,7 +2097,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("ip_v4", "field_value2")),
-            ImmutableList.of(argument("appendonly", booleanLiteral(false))),
+            ImmutableList.of(argument("overwrite", booleanLiteral(false))),
             ImmutableList.of(AstDSL.map(AstDSL.field("vendor"), AstDSL.intLiteral(8))));
 
     assertThrows(SemanticCheckException.class, () -> analyze(lookup));
@@ -2110,7 +2110,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             relation("schema"),
             LOOKUP_TABLE_DEVICE_NAMES,
             ImmutableList.of(AstDSL.map("ip_v4", "field_value2")),
-            ImmutableList.of(argument("appendonly", booleanLiteral(false))),
+            ImmutableList.of(argument("overwrite", booleanLiteral(false))),
             ImmutableList.of(AstDSL.map(AstDSL.booleanLiteral(true), AstDSL.field("maker"))));
 
     assertThrows(SemanticCheckException.class, () -> analyze(lookup));

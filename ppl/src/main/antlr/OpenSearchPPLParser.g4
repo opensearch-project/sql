@@ -95,7 +95,7 @@ copyFieldWithOptAs
    ;
 
 lookupCommand
-   : LOOKUP tableSource matchFieldWithOptAs (COMMA matchFieldWithOptAs)* (APPENDONLY EQUAL appendonly = booleanLiteral)? (copyFieldWithOptAs (COMMA copyFieldWithOptAs)*)*
+   : LOOKUP tableSource matchFieldWithOptAs (COMMA matchFieldWithOptAs)* (OVERWRITE EQUAL overwrite = booleanLiteral)? (copyFieldWithOptAs (COMMA copyFieldWithOptAs)*)*
    ;
 
 sortCommand

@@ -241,11 +241,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
             .collect(Collectors.joining(","));
 
     List<Argument> options = node.getOptions();
-    Boolean appendonly = (Boolean) options.get(0).getValue().getValue();
+    Boolean overwrite = (Boolean) options.get(0).getValue().getValue();
 
     return StringUtils.format(
-            "%s | lookup %s %s appendonly=%b %s",
-            child, lookupIndexName, matches, appendonly, copies)
+            "%s | lookup %s %s overwrite=%b %s",
+            child, lookupIndexName, matches, overwrite, copies)
         .trim();
   }
 

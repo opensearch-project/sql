@@ -278,7 +278,7 @@ class ExplainTest extends ExpressionTestBase {
                     "{lookup_index_field=query_index_field}",
                     "indexname",
                     "lookup_index_name",
-                    "appendonly",
+                    "overwrite",
                     true),
                 singletonList(tableScan.explainNode()))),
         explain.apply(plan));
