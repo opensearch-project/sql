@@ -132,7 +132,8 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   public PhysicalPlan visitLimit(LogicalLimit node, C context) {
     PhysicalPlan child = visitChild(node, context);
     // Optimize sort + limit to take ordered operator
-    if (child instanceof SortOperator sortChild) {
+    if (child instanceof SortOperator) {
+      SortOperator sortChild = (SortOperator) child;
       return new TakeOrderedOperator(
           sortChild.getInput(), node.getLimit(), node.getOffset(), sortChild.getSortList());
     }
