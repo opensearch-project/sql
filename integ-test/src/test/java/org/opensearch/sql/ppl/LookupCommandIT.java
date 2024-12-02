@@ -170,7 +170,7 @@ public class LookupCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testLookupShouldAppendOnlyShouldBeFalseByDefault() throws IOException {
+  public void testLookupShouldOverwriteShouldBeFalseByDefault() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
@@ -212,11 +212,11 @@ public class LookupCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testLookupWithAppendOnlyFalse() throws IOException {
+  public void testLookupWithOverwriteFalse() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | rename temperature as vendor | lookup %s did as device-id appendonly ="
+                "source=%s | rename temperature as vendor | lookup %s did as device-id overwrite ="
                     + " true | sort @timestamp",
                 TEST_INDEX_IOT_READINGS, TEST_INDEX_IOT_SENSORS));
     verifyDataRows(

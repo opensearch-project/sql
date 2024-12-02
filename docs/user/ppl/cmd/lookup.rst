@@ -15,12 +15,12 @@ Description
 
 Syntax
 ============
-lookup <lookup-index> <lookup-field> [AS <local-lookup-field>] ["," <lookup-field> [AS <local-lookup-field>]]... [appendonly=<bool>] [<source-field> [AS <local-source-field>]] ["," <source-field> [AS <local-source-field>]]...
+lookup <lookup-index> <lookup-field> [AS <local-lookup-field>] ["," <lookup-field> [AS <local-lookup-field>]]... [overwrite=<bool>] [<source-field> [AS <local-source-field>]] ["," <source-field> [AS <local-source-field>]]...
 
 * lookup-index: mandatory. the name of the lookup index. If more than one is provided, all of them must match.
 * lookup-field: mandatory. the name of the lookup field. Must be existing in the lookup-index. It is used to match to a local field (in the current search) to get the lookup document. When there is no lookup document matching it is a no-op. If there is more than one an exception is thrown.
 * local-lookup-field: optional. the name of a field in the current search to match against the lookup-field. **Default:** value of lookup-field.
-* appendonly: optional. indicates if the values to copy over to the search result from the lookup document should overwrite existing values. If true no existing values are overwritten. **Default:** false.
+* overwrite: optional. indicates if the values to copy over to the search result from the lookup document should overwrite existing values. If true no existing values are overwritten. **Default:** false.
 * source-field: optional. the fields to copy over from the lookup document to the search result. If no such fields are given all fields are copied. **Default:** all fields
 * local-source-field: optional. the final name of the field in the search result (if different from the field name in the lookup document). **Default:** value of source-field.
 
@@ -125,7 +125,7 @@ PPL query::
     | 21               | NULL         | finance    | false  |
     +------------------+--------------+------------+--------+
 
-    os> source=accounts | lookup hr employee_number AS account_number, dep AS department appendonly=true;
+    os> source=accounts | lookup hr employee_number AS account_number, dep AS department overwrite=true;
     fetched rows / total rows = 4/4
     +------------------+----------+------------------+------------+-----------+---------+-----------------+
     | account_number   | gender   | name             | department | active    | dep     | employee_number |
@@ -136,7 +136,7 @@ PPL query::
     | 21               | F        | Mandy Smith      | it         | NULL      | it      | 21              |
     +------------------+----------+------------------+------------+-----------+---------+-----------------+
 
-    os> source=accounts | lookup hr employee_number AS account_number, dep AS department appendonly=false;
+    os> source=accounts | lookup hr employee_number AS account_number, dep AS department overwrite=false;
     fetched rows / total rows = 4/4
     +------------------+----------+------------------+------------+-----------+---------+-----------------+
     | account_number   | gender   | name             | department | active    | dep     | employee_number |

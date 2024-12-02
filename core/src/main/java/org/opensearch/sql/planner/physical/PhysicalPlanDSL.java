@@ -88,11 +88,11 @@ public class PhysicalPlanDSL {
       PhysicalPlan input,
       String indexName,
       Map<ReferenceExpression, ReferenceExpression> matchFieldMap,
-      Boolean appendOnly,
+      Boolean overwrite,
       Map<ReferenceExpression, ReferenceExpression> copyFieldMap,
       BiFunction<String, Map<String, Object>, Map<String, Object>> lookupFunction) {
     return new LookupOperator(
-        input, indexName, matchFieldMap, appendOnly, copyFieldMap, lookupFunction);
+        input, indexName, matchFieldMap, overwrite, copyFieldMap, lookupFunction);
   }
 
   public WindowOperator window(
