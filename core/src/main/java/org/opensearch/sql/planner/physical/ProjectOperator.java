@@ -27,13 +27,14 @@ import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.planner.SerializablePlan;
 
 /** Project the fields specified in {@link ProjectOperator#projectList} from input. */
+@Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @AllArgsConstructor
 public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
-  @Getter private PhysicalPlan input;
-  @Getter private List<NamedExpression> projectList;
-  @Getter private List<NamedExpression> namedParseExpressions;
+  private PhysicalPlan input;
+  private List<NamedExpression> projectList;
+  private List<NamedExpression> namedParseExpressions;
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {

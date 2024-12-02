@@ -95,7 +95,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       throw e;
     } catch (Exception e) {
       throw new IllegalStateException(
-          "Failed to read mapping for index pattern [" + indexExpression + "]", e);
+              "Failed to read mapping for index pattern [" + Arrays.toString(indexExpression) + "]", e);
     }
   }
 
@@ -123,7 +123,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       return result.build();
     } catch (Exception e) {
       throw new IllegalStateException(
-          "Failed to read setting for index pattern [" + indexExpression + "]", e);
+              "Failed to read setting for index pattern [" + Arrays.toString(indexExpression) + "]", e);
     }
   }
 
@@ -215,7 +215,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     ActionFuture<DeletePitResponse> execute =
         this.client.execute(DeletePitAction.INSTANCE, deletePitRequest);
     try {
-      DeletePitResponse deletePitResponse = execute.get();
+        execute.get();
     } catch (InterruptedException | ExecutionException e) {
       throw new RuntimeException("Error occurred while deleting PIT.", e);
     }

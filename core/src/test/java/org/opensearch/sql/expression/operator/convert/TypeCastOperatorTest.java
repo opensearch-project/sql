@@ -126,7 +126,7 @@ class TypeCastOperatorTest {
   @Test
   void castStringToIntException() {
     FunctionExpression expression = DSL.castInt(DSL.literal("invalid"));
-    assertThrows(RuntimeException.class, () -> expression.valueOf());
+    assertThrows(RuntimeException.class, expression::valueOf);
   }
 
   @Test
@@ -180,7 +180,7 @@ class TypeCastOperatorTest {
   @Test
   void castStringToLongException() {
     FunctionExpression expression = DSL.castLong(DSL.literal("invalid"));
-    assertThrows(RuntimeException.class, () -> expression.valueOf());
+    assertThrows(RuntimeException.class, expression::valueOf);
   }
 
   @Test
@@ -212,7 +212,7 @@ class TypeCastOperatorTest {
   @Test
   void castStringToFloatException() {
     FunctionExpression expression = DSL.castFloat(DSL.literal("invalid"));
-    assertThrows(RuntimeException.class, () -> expression.valueOf());
+    assertThrows(RuntimeException.class, expression::valueOf);
   }
 
   @Test
@@ -244,7 +244,7 @@ class TypeCastOperatorTest {
   @Test
   void castStringToDoubleException() {
     FunctionExpression expression = DSL.castDouble(DSL.literal("invalid"));
-    assertThrows(RuntimeException.class, () -> expression.valueOf());
+    assertThrows(RuntimeException.class, expression::valueOf);
   }
 
   @Test
