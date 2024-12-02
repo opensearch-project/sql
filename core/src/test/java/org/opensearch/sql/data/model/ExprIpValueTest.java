@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import inet.ipaddr.AddressStringException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -57,11 +56,12 @@ public class ExprIpValueTest {
     assertTrue(
         ex.getMessage()
             .matches(
-                String.format("IP address '%s' is not valid. Error details: .*", ipInvalidString)));
+                String.format(
+                    "IP address string '%s' is not valid. Error details: .*", ipInvalidString)));
   }
 
   @Test
-  public void testValue() throws AddressStringException {
+  public void testValue() {
     ipv4EqualStrings.forEach((s) -> assertEquals(ipv4String, ExprValueUtils.ipValue(s).value()));
     ipv6EqualStrings.forEach((s) -> assertEquals(ipv6String, ExprValueUtils.ipValue(s).value()));
   }

@@ -30,7 +30,17 @@ public class ExprIpValue extends AbstractExprValue {
           .toParams();
 
   public ExprIpValue(String s) {
-    value = stringToIpAddress(s);
+    try {
+      IPAddress address = new IPAddressString(s, validationOptions).toAddress();
+
+      // Convert IPv6 mapped IPv4 addresses to IPv4
+      if (address.isIPv4Convertible()) address = address.toIPv4();
+
+      value = address;
+    } catch (AddressStringException e) {
+      final String errorFormatString = "IP address string '%s' is not valid. Error details: %s";
+      throw new SemanticCheckException(String.format(errorFormatString, s, e.getMessage()));
+    }
   }
 
   @Override
@@ -45,14 +55,11 @@ public class ExprIpValue extends AbstractExprValue {
 
   @Override
   public int compare(ExprValue other) {
-    IPAddress otherValue =
-        other instanceof ExprIpValue exprIpValue
-            ? exprIpValue.value
-            : stringToIpAddress(other.stringValue());
+    assert (other instanceof ExprIpValue);
 
     // Map IPv4 addresses to IPv6 for comparison
     IPv6Address ipv6Value = toIPv6Address(value);
-    IPv6Address otherIpv6Value = toIPv6Address(otherValue);
+    IPv6Address otherIpv6Value = toIPv6Address(((ExprIpValue) other).value);
 
     return ipv6Value.compareTo(otherIpv6Value);
   }
@@ -65,17 +72,6 @@ public class ExprIpValue extends AbstractExprValue {
   @Override
   public String toString() {
     return String.format("IP %s", value());
-  }
-
-  /** Returns the {@link IPAddress} corresponding to the given {@link String}. */
-  private static IPAddress stringToIpAddress(String s) {
-    try {
-      IPAddress address = new IPAddressString(s, validationOptions).toAddress();
-      return address.isIPv4Convertible() ? address.toIPv4() : address;
-    } catch (AddressStringException e) {
-      final String errorFormatString = "IP address '%s' is not valid. Error details: %s";
-      throw new SemanticCheckException(String.format(errorFormatString, s, e.getMessage()));
-    }
   }
 
   /** Returns the {@link IPv6Address} corresponding to the given {@link IPAddress}. */
