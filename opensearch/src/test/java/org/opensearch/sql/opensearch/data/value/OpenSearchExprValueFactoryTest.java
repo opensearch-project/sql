@@ -59,6 +59,7 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchIpType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
 
@@ -116,7 +117,7 @@ class OpenSearchExprValueFactoryTest {
               "textKeywordV",
               OpenSearchTextType.of(
                   Map.of("words", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))
-          .put(fieldIp, OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip))
+          .put(fieldIp, OpenSearchIpType.of(OpenSearchDataType.MappingType.Ip))
           .put("geoV", OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))
           .put("binaryV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary))
           .build();
