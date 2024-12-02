@@ -615,7 +615,10 @@ public class DateTimeFunctions {
         BuiltinFunctionName.FROM_UNIXTIME.getName(),
         impl(nullMissingHandling(DateTimeFunctions::exprFromUnixTime), TIMESTAMP, DOUBLE),
         impl(
-            nullMissingHandling(DateTimeFunctions::exprFromUnixTimeFormat), STRING, DOUBLE, STRING));
+            nullMissingHandling(DateTimeFunctions::exprFromUnixTimeFormat),
+            STRING,
+            DOUBLE,
+            STRING));
   }
 
   private DefaultFunctionResolver get_format() {

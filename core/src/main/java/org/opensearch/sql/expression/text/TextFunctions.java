@@ -310,7 +310,8 @@ public class TextFunctions {
         BuiltinFunctionName.LOCATE.getName(),
         impl(
             nullMissingHandling(
-                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>) TextFunctions::exprLocate),
+                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>)
+                    TextFunctions::exprLocate),
             INTEGER,
             STRING,
             STRING),
@@ -337,7 +338,8 @@ public class TextFunctions {
         BuiltinFunctionName.POSITION.getName(),
         impl(
             nullMissingHandling(
-                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>) TextFunctions::exprLocate),
+                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>)
+                    TextFunctions::exprLocate),
             INTEGER,
             STRING,
             STRING));
