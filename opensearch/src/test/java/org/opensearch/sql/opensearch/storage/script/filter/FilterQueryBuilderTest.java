@@ -1725,14 +1725,15 @@ class FilterQueryBuilderTest {
   void cast_to_ip_in_filter(LiteralExpression expr) {
     String json =
         String.format(
-            "{\n"
-                + "  \"term\" : {\n"
-                + "    \"ip_value\" : {\n"
-                + "      \"value\" : \"%s\",\n"
-                + "      \"boost\" : 1.0\n"
-                + "    }\n"
-                + "  }\n"
-                + "}",
+            """
+                        {
+                          "term" : {
+                            "ip_value" : {
+                              "value" : "%s",
+                              "boost" : 1.0
+                            }
+                          }
+                        }""",
             expr.valueOf().stringValue());
 
     assertJsonEquals(json, buildQuery(DSL.equal(ref("ip_value", IP), DSL.castIp(expr))));
@@ -1906,15 +1907,16 @@ class FilterQueryBuilderTest {
   void non_cast_nested_function_should_build_script() {
     mockToStringSerializer();
     assertJsonEquals(
-        "{\n"
-            + "  \"script\" : {\n"
-            + "    \"script\" : {\n"
-            + "      \"source\" : \"=(integer_value, abs(+(1, 0)))\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
-            + "    },\n"
-            + "    \"boost\" : 1.0\n"
-            + "  }\n"
-            + "}",
+        """
+                    {
+                      "script" : {
+                        "script" : {
+                          "source" : "=(integer_value, abs(+(1, 0)))",
+                          "lang" : "opensearch_query_expression"
+                        },
+                        "boost" : 1.0
+                      }
+                    }""",
         buildQuery(
             DSL.equal(ref("integer_value", INTEGER), DSL.abs(DSL.add(literal(1), literal(0))))));
   }
