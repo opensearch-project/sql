@@ -38,7 +38,7 @@ import org.opensearch.sql.expression.function.SerializableTriFunction;
  * implementation should rely on ExprValue.
  */
 @UtilityClass
-public class TextFunction {
+public class TextFunctions {
   private static String EMPTY_STRING = "";
 
   /**
@@ -76,9 +76,9 @@ public class TextFunction {
   private DefaultFunctionResolver substringSubstr(FunctionName functionName) {
     return define(
         functionName,
-        impl(nullMissingHandling(TextFunction::exprSubstrStart), STRING, STRING, INTEGER),
+        impl(nullMissingHandling(TextFunctions::exprSubstrStart), STRING, STRING, INTEGER),
         impl(
-            nullMissingHandling(TextFunction::exprSubstrStartLength),
+            nullMissingHandling(TextFunctions::exprSubstrStartLength),
             STRING,
             STRING,
             INTEGER,
@@ -267,7 +267,7 @@ public class TextFunction {
   private DefaultFunctionResolver right() {
     return define(
         BuiltinFunctionName.RIGHT.getName(),
-        impl(nullMissingHandling(TextFunction::exprRight), STRING, STRING, INTEGER));
+        impl(nullMissingHandling(TextFunctions::exprRight), STRING, STRING, INTEGER));
   }
 
   /**
@@ -279,7 +279,7 @@ public class TextFunction {
   private DefaultFunctionResolver left() {
     return define(
         BuiltinFunctionName.LEFT.getName(),
-        impl(nullMissingHandling(TextFunction::exprLeft), STRING, STRING, INTEGER));
+        impl(nullMissingHandling(TextFunctions::exprLeft), STRING, STRING, INTEGER));
   }
 
   /**
@@ -292,7 +292,7 @@ public class TextFunction {
   private DefaultFunctionResolver ascii() {
     return define(
         BuiltinFunctionName.ASCII.getName(),
-        impl(nullMissingHandling(TextFunction::exprAscii), INTEGER, STRING));
+        impl(nullMissingHandling(TextFunctions::exprAscii), INTEGER, STRING));
   }
 
   /**
@@ -310,14 +310,14 @@ public class TextFunction {
         BuiltinFunctionName.LOCATE.getName(),
         impl(
             nullMissingHandling(
-                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>) TextFunction::exprLocate),
+                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>) TextFunctions::exprLocate),
             INTEGER,
             STRING,
             STRING),
         impl(
             nullMissingHandling(
                 (SerializableTriFunction<ExprValue, ExprValue, ExprValue, ExprValue>)
-                    TextFunction::exprLocate),
+                    TextFunctions::exprLocate),
             INTEGER,
             STRING,
             STRING,
@@ -337,7 +337,7 @@ public class TextFunction {
         BuiltinFunctionName.POSITION.getName(),
         impl(
             nullMissingHandling(
-                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>) TextFunction::exprLocate),
+                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>) TextFunctions::exprLocate),
             INTEGER,
             STRING,
             STRING));
@@ -353,7 +353,7 @@ public class TextFunction {
   private DefaultFunctionResolver replace() {
     return define(
         BuiltinFunctionName.REPLACE.getName(),
-        impl(nullMissingHandling(TextFunction::exprReplace), STRING, STRING, STRING, STRING));
+        impl(nullMissingHandling(TextFunctions::exprReplace), STRING, STRING, STRING, STRING));
   }
 
   /**
@@ -365,7 +365,7 @@ public class TextFunction {
   private DefaultFunctionResolver reverse() {
     return define(
         BuiltinFunctionName.REVERSE.getName(),
-        impl(nullMissingHandling(TextFunction::exprReverse), STRING, STRING));
+        impl(nullMissingHandling(TextFunctions::exprReverse), STRING, STRING));
   }
 
   private static ExprValue exprSubstrStart(ExprValue exprValue, ExprValue start) {

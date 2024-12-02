@@ -221,12 +221,12 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest
   @MethodSource("exprIfNullArguments")
   public void test_exprIfNull_predicate(ExprValue v1, ExprValue v2, ExprValue expected) {
-    assertEquals(expected.value(), UnaryPredicateOperator.exprIfNull(v1, v2).value());
+    assertEquals(expected.value(), UnaryPredicateOperators.exprIfNull(v1, v2).value());
   }
 
   @ParameterizedTest
   @MethodSource("exprNullIfArguments")
   public void test_exprNullIf_predicate(ExprValue v1, ExprValue v2, ExprValue expected) {
-    assertEquals(expected.value(), UnaryPredicateOperator.exprNullIf(v1, v2).value());
+    assertEquals(expected.value(), UnaryPredicateOperators.exprNullIf(v1, v2).value());
   }
 }

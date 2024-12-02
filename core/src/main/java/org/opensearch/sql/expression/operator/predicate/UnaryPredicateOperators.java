@@ -30,7 +30,8 @@ import org.opensearch.sql.expression.function.SerializableFunction;
  * The definition of unary predicate function not, Accepts one Boolean value and produces a Boolean.
  */
 @UtilityClass
-public class UnaryPredicateOperator {
+public class UnaryPredicateOperators {
+
   /** Register Unary Predicate Function. */
   public static void register(BuiltinFunctionRepository repository) {
     repository.register(not());
@@ -45,7 +46,7 @@ public class UnaryPredicateOperator {
   private static DefaultFunctionResolver not() {
     return FunctionDSL.define(
         BuiltinFunctionName.NOT.getName(),
-        FunctionDSL.impl(UnaryPredicateOperator::not, BOOLEAN, BOOLEAN));
+        FunctionDSL.impl(UnaryPredicateOperators::not, BOOLEAN, BOOLEAN));
   }
 
   /**
@@ -108,7 +109,7 @@ public class UnaryPredicateOperator {
                 org.apache.commons.lang3.tuple.Pair<FunctionSignature, FunctionBuilder>>>
         functionsOne =
             typeList.stream()
-                .map(v -> impl((UnaryPredicateOperator::exprIf), v, BOOLEAN, v, v))
+                .map(v -> impl((UnaryPredicateOperators::exprIf), v, BOOLEAN, v, v))
                 .collect(Collectors.toList());
 
     return FunctionDSL.define(functionName, functionsOne);
@@ -124,7 +125,7 @@ public class UnaryPredicateOperator {
                 org.apache.commons.lang3.tuple.Pair<FunctionSignature, FunctionBuilder>>>
         functionsOne =
             typeList.stream()
-                .map(v -> impl((UnaryPredicateOperator::exprIfNull), v, v, v))
+                .map(v -> impl((UnaryPredicateOperators::exprIfNull), v, v, v))
                 .collect(Collectors.toList());
 
     return FunctionDSL.define(functionName, functionsOne);
@@ -137,7 +138,7 @@ public class UnaryPredicateOperator {
     return FunctionDSL.define(
         functionName,
         typeList.stream()
-            .map(v -> impl((UnaryPredicateOperator::exprNullIf), v, v, v))
+            .map(v -> impl((UnaryPredicateOperators::exprNullIf), v, v, v))
             .collect(Collectors.toList()));
   }
 

@@ -24,7 +24,7 @@ import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 
 /** Utility class that defines and registers IP functions. */
 @UtilityClass
-public class IPFunction {
+public class IPFunctions {
 
   public void register(BuiltinFunctionRepository repository) {
     repository.register(cidrmatch());
@@ -35,7 +35,7 @@ public class IPFunction {
     // TODO #3145: Add support for IP address data type.
     return define(
         BuiltinFunctionName.CIDRMATCH.getName(),
-        impl(nullMissingHandling(IPFunction::exprCidrMatch), BOOLEAN, STRING, STRING));
+        impl(nullMissingHandling(IPFunctions::exprCidrMatch), BOOLEAN, STRING, STRING));
   }
 
   /**
