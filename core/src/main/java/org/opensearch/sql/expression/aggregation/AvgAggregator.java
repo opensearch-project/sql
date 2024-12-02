@@ -43,19 +43,15 @@ public class AvgAggregator extends Aggregator<AvgAggregator.AvgState> {
 
   @Override
   public AvgState create() {
-    switch (dataType) {
-      case DATE:
-        return new DateAvgState();
-      case TIMESTAMP:
-        return new TimestampAvgState();
-      case TIME:
-        return new TimeAvgState();
-      case DOUBLE:
-        return new DoubleAvgState();
-      default: // unreachable code - we don't expose signatures for unsupported types
-        throw new IllegalArgumentException(
-            String.format("avg aggregation over %s type is not supported", dataType));
-    }
+    // unreachable code - we don't expose signatures for unsupported types
+    return switch (dataType) {
+      case DATE -> new DateAvgState();
+      case TIMESTAMP -> new TimestampAvgState();
+      case TIME -> new TimeAvgState();
+      case DOUBLE -> new DoubleAvgState();
+      default -> throw new IllegalArgumentException(
+          String.format("avg aggregation over %s type is not supported", dataType));
+    };
   }
 
   @Override

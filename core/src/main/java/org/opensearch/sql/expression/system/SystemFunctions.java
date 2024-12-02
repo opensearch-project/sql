@@ -41,7 +41,7 @@ public class SystemFunctions {
                 new FunctionExpression(BuiltinFunctionName.TYPEOF.getName(), arguments) {
                   @Override
                   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-                    return new ExprStringValue(getArguments().get(0).type().legacyTypeName());
+                    return new ExprStringValue(getArguments().getFirst().type().legacyTypeName());
                   }
 
                   @Override

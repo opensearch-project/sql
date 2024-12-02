@@ -535,7 +535,7 @@ public class MathematicalFunctions {
             nullMissingHandling(
                 v ->
                     new ExprDoubleValue(
-                        new BigDecimal(v.doubleValue())
+                        BigDecimal.valueOf(v.doubleValue())
                             .setScale(0, RoundingMode.HALF_UP)
                             .doubleValue())),
             DOUBLE,
@@ -566,7 +566,7 @@ public class MathematicalFunctions {
             nullMissingHandling(
                 (x, d) ->
                     new ExprDoubleValue(
-                        new BigDecimal(x.floatValue())
+                        BigDecimal.valueOf(x.floatValue())
                             .setScale(d.integerValue(), RoundingMode.HALF_UP)
                             .doubleValue())),
             DOUBLE,
@@ -576,7 +576,7 @@ public class MathematicalFunctions {
             nullMissingHandling(
                 (x, d) ->
                     new ExprDoubleValue(
-                        new BigDecimal(x.doubleValue())
+                        BigDecimal.valueOf(x.doubleValue())
                             .setScale(d.integerValue(), RoundingMode.HALF_UP)
                             .doubleValue())),
             DOUBLE,
