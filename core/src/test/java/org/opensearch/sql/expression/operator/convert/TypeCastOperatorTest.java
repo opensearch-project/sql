@@ -364,7 +364,8 @@ class TypeCastOperatorTest {
 
     exp = DSL.castIp(DSL.literal(ipInvalidString));
     actualMsg = assertThrows(SemanticCheckException.class, exp::valueOf).getMessage();
-    expectedMsg = String.format("IP address '%s' is not valid. Error details: .*", ipInvalidString);
+    expectedMsg =
+        String.format("IP address string '%s' is not valid. Error details: .*", ipInvalidString);
     assertTrue(actualMsg.matches(expectedMsg));
 
     // From IP address
