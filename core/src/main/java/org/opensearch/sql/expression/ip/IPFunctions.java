@@ -39,11 +39,11 @@ public class IPFunctions {
   }
 
   /**
-   * Returns whether the given IP address is within the specified CIDR IP address range. Supports
-   * both IPv4 and IPv6 addresses.
+   * Returns whether the given IP address is within the specified inclusive CIDR IP address range.
+   * Supports both IPv4 and IPv6 addresses.
    *
-   * @param addressExprValue IP address (e.g. "198.51.100.14" or "2001:0db8::ff00:42:8329").
-   * @param rangeExprValue IP address range in CIDR notation (e.g. "198.51.100.0/24" or
+   * @param addressExprValue IP address as a string (e.g. "198.51.100.14" or "2001:0db8::ff00:42:8329").
+   * @param rangeExprValue IP address range in CIDR notation as a string (e.g. "198.51.100.0/24" or
    *     "2001:0db8::/32")
    * @return true if the address is in the range; otherwise false.
    * @throws SemanticCheckException if the address or range is not valid, or if they do not use the
@@ -51,6 +51,7 @@ public class IPFunctions {
    */
   private ExprValue exprCidrMatch(ExprValue addressExprValue, ExprValue rangeExprValue) {
 
+    // TODO #3145: Update to support IP address data type.
     String addressString = addressExprValue.stringValue();
     String rangeString = rangeExprValue.stringValue();
 
