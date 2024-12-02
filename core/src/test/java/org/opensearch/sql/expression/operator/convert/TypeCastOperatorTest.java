@@ -380,7 +380,7 @@ class TypeCastOperatorTest {
     actualMsg =
         assertThrows(ExpressionEvaluationException.class, () -> DSL.castIp(DSL.literal(0)))
             .getMessage();
-    expectedMsg = "cast_to_ip function expected {[IP],[STRING]}, but get [INTEGER]";
+    expectedMsg = "cast_to_ip function expected {[IP],[STRING]}, but got [INTEGER]";
     assertEquals(expectedMsg, actualMsg);
 
     // From null or missing value
