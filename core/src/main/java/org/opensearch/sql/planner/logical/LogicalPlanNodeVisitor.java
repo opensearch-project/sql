@@ -115,4 +115,8 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
   public R visitCloseCursor(LogicalCloseCursor plan, C context) {
     return visitNode(plan, context);
   }
+
+  public R visitJoin(LogicalJoin plan, C context) {
+    return visitNode(plan, context);
+  }
 }
