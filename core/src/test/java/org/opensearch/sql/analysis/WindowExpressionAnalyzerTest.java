@@ -68,6 +68,7 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
             analysisContext));
   }
 
+  // TODO row_number window function requires window to be ordered.
   @Test
   void should_not_generate_sort_operator_if_no_partition_by_and_order_by_list() {
     assertEquals(
@@ -80,6 +81,29 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
                 "row_number",
                 AstDSL.window(
                     AstDSL.function("row_number"), ImmutableList.of(), ImmutableList.of())),
+            analysisContext));
+  }
+
+  @Test
+  void can_analyze_without_partition_by() {
+    assertEquals(
+        LogicalPlanDSL.window(
+            LogicalPlanDSL.sort(
+                LogicalPlanDSL.relation("test", table),
+                ImmutablePair.of(DEFAULT_DESC, DSL.ref("integer_value", INTEGER))),
+            DSL.named("row_number", DSL.rowNumber()),
+            new WindowDefinition(
+                ImmutableList.of(),
+                ImmutableList.of(
+                    ImmutablePair.of(DEFAULT_DESC, DSL.ref("integer_value", INTEGER))))),
+        analyzer.analyze(
+            AstDSL.alias(
+                "row_number",
+                AstDSL.window(
+                    AstDSL.function("row_number"),
+                    ImmutableList.of(),
+                    ImmutableList.of(
+                        ImmutablePair.of(DEFAULT_DESC, AstDSL.qualifiedName("integer_value"))))),
             analysisContext));
   }
 

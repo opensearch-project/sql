@@ -130,7 +130,7 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
 
   @Override
   public Boolean visitAlias(Alias node, Object context) {
-    return canPaginate(node, context) && node.getDelegated().accept(this, context);
+    return canPaginate(node, context);
   }
 
   @Override
