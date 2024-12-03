@@ -666,7 +666,7 @@ public class AstBuilderTest {
   @Test
   public void testFillNullCommandSameValue() {
     assertEqual(
-        "source=t | fillnull with 0 in a,b,c",
+        "source=t | fillnull with 0 in a, b, c",
         new FillNull(
             relation("t"),
             FillNull.ContainNullableFieldFill.ofSameValue(
