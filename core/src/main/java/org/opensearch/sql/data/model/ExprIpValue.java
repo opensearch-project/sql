@@ -34,7 +34,9 @@ public class ExprIpValue extends AbstractExprValue {
       IPAddress address = new IPAddressString(s, validationOptions).toAddress();
 
       // Convert IPv6 mapped IPv4 addresses to IPv4
-      if (address.isIPv4Convertible()) address = address.toIPv4();
+      if (address.isIPv4Convertible()) {
+        address = address.toIPv4();
+      }
 
       value = address;
     } catch (AddressStringException e) {
@@ -55,7 +57,6 @@ public class ExprIpValue extends AbstractExprValue {
 
   @Override
   public int compare(ExprValue other) {
-    assert (other instanceof ExprIpValue);
 
     // Map IPv4 addresses to IPv6 for comparison
     IPv6Address ipv6Value = toIPv6Address(value);
