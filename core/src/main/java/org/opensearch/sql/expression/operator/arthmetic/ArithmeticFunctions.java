@@ -37,7 +37,7 @@ import org.opensearch.sql.expression.function.FunctionName;
  * module, Accepts two numbers and produces a number.
  */
 @UtilityClass
-public class ArithmeticFunction {
+public class ArithmeticFunctions {
   /**
    * Register Arithmetic Function.
    *

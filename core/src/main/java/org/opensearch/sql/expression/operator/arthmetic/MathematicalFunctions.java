@@ -46,7 +46,7 @@ import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.SerializableFunction;
 
 @UtilityClass
-public class MathematicalFunction {
+public class MathematicalFunctions {
   /**
    * Register Mathematical Functions.
    *

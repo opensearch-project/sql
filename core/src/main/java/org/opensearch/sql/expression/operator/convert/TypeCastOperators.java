@@ -42,7 +42,8 @@ import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionDSL;
 
 @UtilityClass
-public class TypeCastOperator {
+public class TypeCastOperators {
+
   /** Register Type Cast Operator. */
   public static void register(BuiltinFunctionRepository repository) {
     repository.register(castToString());

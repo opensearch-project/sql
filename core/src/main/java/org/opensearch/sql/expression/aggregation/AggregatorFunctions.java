@@ -40,7 +40,7 @@ import org.opensearch.sql.expression.function.FunctionSignature;
  * <em>count</em> accepts values of all types.
  */
 @UtilityClass
-public class AggregatorFunction {
+public class AggregatorFunctions {
   /**
    * Register Aggregation Function.
    *
