@@ -33,7 +33,7 @@ The example shows a simple lookup to add the name of a person from a lookup inde
 
 PPL query::
 
-    os> source=accounts;
+    os> source=account_data;
     fetched rows / total rows = 2/2
     +------------------+----------+
     | account_number   | gender   |
@@ -51,7 +51,7 @@ PPL query::
     | 13               | Alice    |
     +------------------+----------+
 
-    os> source=accounts | lookup hr account_number;
+    os> source=account_data | lookup hr account_number;
     fetched rows / total rows = 2/2
     +------------------+----------+----------+
     | account_number   | gender   | name     |
@@ -68,7 +68,7 @@ The example show a lookup to add the name of a person from a lookup index with d
 
 PPL query::
 
-    os> source=accounts;
+    os> source=account_data;
     fetched rows / total rows = 2/2
     +------------------+----------+
     | account_number   | gender   |
@@ -86,7 +86,7 @@ PPL query::
     | 13               | Alice    |
     +------------------+----------+
 
-    os> source=accounts | lookup hr employee_number AS account_number name AS given_name;
+    os> source=account_data | lookup hr employee_number AS account_number name AS given_name;
     fetched rows / total rows = 2/2
     +------------------+----------+----------------+
     | account_number   | gender   | given_name     |
@@ -102,7 +102,7 @@ The example show a lookup to add the name of a person from a lookup index with d
 
 PPL query::
 
-    os> source=accounts;
+    os> source=account_data;
     fetched rows / total rows = 4/4
     +------------------+----------+------------+------------------+
     | account_number   | gender   | department | name             |
@@ -125,7 +125,7 @@ PPL query::
     | 21               | NULL         | finance    | false  |
     +------------------+--------------+------------+--------+
 
-    os> source=accounts | lookup hr employee_number AS account_number, dep AS department overwrite=true;
+    os> source=account_data | lookup hr employee_number AS account_number, dep AS department overwrite=true;
     fetched rows / total rows = 4/4
     +------------------+----------+------------------+------------+-----------+---------+-----------------+
     | account_number   | gender   | name             | department | active    | dep     | employee_number |
@@ -136,7 +136,7 @@ PPL query::
     | 21               | F        | Mandy Smith      | it         | NULL      | it      | 21              |
     +------------------+----------+------------------+------------+-----------+---------+-----------------+
 
-    os> source=accounts | lookup hr employee_number AS account_number, dep AS department overwrite=false;
+    os> source=account_data | lookup hr employee_number AS account_number, dep AS department overwrite=false;
     fetched rows / total rows = 4/4
     +------------------+----------+------------------+------------+-----------+---------+-----------------+
     | account_number   | gender   | name             | department | active    | dep     | employee_number |
