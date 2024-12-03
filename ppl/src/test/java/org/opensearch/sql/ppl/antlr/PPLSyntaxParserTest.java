@@ -421,7 +421,7 @@ public class PPLSyntaxParserTest {
   @Test
   public void testCanParseFillNullSameValue() {
     assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull with 0 in a"));
-    assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull with 0 in a,b"));
+    assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull with 0 in a, b"));
   }
 
   @Test
