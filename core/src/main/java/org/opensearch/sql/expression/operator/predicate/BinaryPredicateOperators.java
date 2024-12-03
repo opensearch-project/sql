@@ -36,7 +36,7 @@ import org.opensearch.sql.utils.OperatorUtils;
  * equalTo, Compare the left expression and right expression and produces a Boolean.
  */
 @UtilityClass
-public class BinaryPredicateOperator {
+public class BinaryPredicateOperators {
   /**
    * Register Binary Predicate Function.
    *
@@ -401,7 +401,7 @@ public class BinaryPredicateOperator {
         BuiltinFunctionName.NOT_LIKE.getName(),
         impl(
             nullMissingHandling(
-                (v1, v2) -> UnaryPredicateOperator.not(OperatorUtils.matches(v1, v2))),
+                (v1, v2) -> UnaryPredicateOperators.not(OperatorUtils.matches(v1, v2))),
             BOOLEAN,
             STRING,
             STRING));

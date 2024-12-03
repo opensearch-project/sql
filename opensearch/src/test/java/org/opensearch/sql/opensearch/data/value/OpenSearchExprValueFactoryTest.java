@@ -64,6 +64,8 @@ import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
 
 class OpenSearchExprValueFactoryTest {
 
+  static final String fieldIp = "ipV";
+
   private static final Map<String, OpenSearchDataType> MAPPING =
       new ImmutableMap.Builder<String, OpenSearchDataType>()
           .put("byteV", OpenSearchDataType.of(BYTE))
@@ -115,14 +117,13 @@ class OpenSearchExprValueFactoryTest {
               "textKeywordV",
               OpenSearchTextType.of(
                   Map.of("words", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))
-          .put("ipV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip))
+          .put(fieldIp, OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip))
           .put("geoV", OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))
           .put("binaryV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary))
           .build();
-
+  private static final double TOLERANCE = 1E-5;
   private final OpenSearchExprValueFactory exprValueFactory =
       new OpenSearchExprValueFactory(MAPPING, true);
-
   private final OpenSearchExprValueFactory exprValueFactoryNoArrays =
       new OpenSearchExprValueFactory(MAPPING, false);
 
@@ -674,12 +675,13 @@ class OpenSearchExprValueFactoryTest {
 
   @Test
   public void constructArrayOfIPsReturnsAll() {
+    final String ip1 = "192.168.0.1";
+    final String ip2 = "192.168.0.2";
+
     assertEquals(
         new ExprCollectionValue(
-            List.of(
-                new OpenSearchExprIpValue("192.168.0.1"),
-                new OpenSearchExprIpValue("192.168.0.2"))),
-        tupleValue("{\"ipV\":[\"192.168.0.1\",\"192.168.0.2\"]}").get("ipV"));
+            List.of(new OpenSearchExprIpValue(ip1), new OpenSearchExprIpValue(ip2))),
+        tupleValue(String.format("{\"%s\":[\"%s\",\"%s\"]}", fieldIp, ip1, ip2)).get(fieldIp));
   }
 
   @Test
@@ -755,12 +757,11 @@ class OpenSearchExprValueFactoryTest {
 
   @Test
   public void constructIP() {
+    final String valueIp = "192.168.0.1";
     assertEquals(
-        new OpenSearchExprIpValue("192.168.0.1"),
-        tupleValue("{\"ipV\":\"192.168.0.1\"}").get("ipV"));
+        new OpenSearchExprIpValue(valueIp),
+        tupleValue(String.format("{\"%s\":\"%s\"}", fieldIp, valueIp)).get(fieldIp));
   }
-
-  private static final double TOLERANCE = 1E-5;
 
   @Test
   public void constructGeoPoint() {

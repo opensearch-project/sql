@@ -14,27 +14,28 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchIpType;
 
 public class OpenSearchExprIpValueTest {
 
-  private OpenSearchExprIpValue ipValue = new OpenSearchExprIpValue("192.168.0.1");
+  private final String ipString = "192.168.0.1";
+  private final OpenSearchExprIpValue ipValue = new OpenSearchExprIpValue(ipString);
 
   @Test
-  void value() {
-    assertEquals("192.168.0.1", ipValue.value());
+  void testValue() {
+    assertEquals(ipString, ipValue.value());
   }
 
   @Test
-  void type() {
+  void testType() {
     assertEquals(OpenSearchIpType.of(), ipValue.type());
   }
 
   @Test
-  void compare() {
-    assertEquals(0, ipValue.compareTo(new OpenSearchExprIpValue("192.168.0.1")));
-    assertEquals(ipValue, new OpenSearchExprIpValue("192.168.0.1"));
+  void testCompare() {
+    assertEquals(0, ipValue.compareTo(new OpenSearchExprIpValue(ipString)));
+    assertEquals(ipValue, new OpenSearchExprIpValue(ipString));
   }
 
   @Test
-  void equal() {
-    assertTrue(ipValue.equal(new OpenSearchExprIpValue("192.168.0.1")));
+  void testEqual() {
+    assertTrue(ipValue.equal(new OpenSearchExprIpValue(ipString)));
   }
 
   @Test

@@ -8,7 +8,7 @@ package org.opensearch.sql.expression.datetime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
-import static org.opensearch.sql.expression.datetime.DateTimeFunction.SECONDS_PER_DAY;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.SECONDS_PER_DAY;
 
 import java.time.Duration;
 import java.time.LocalDate;
