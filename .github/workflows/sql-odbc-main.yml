@@ -23,7 +23,7 @@ jobs:
         sh run_cppcheck.sh
     - name: upload-cppcheck-results
       if: failure()
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: cppcheck-results
         path: sql-odbc/cppcheck-results.log
@@ -61,13 +61,13 @@ jobs:
     #    cp ./bin64/*.log test-output
     - name: upload-build
       if: success()
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: mac64-build
         path: sql-odbc/build-output
     - name: upload-installer
       if: success()
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: mac64-installer
         path: sql-odbc/installer
@@ -106,13 +106,13 @@ jobs:
         .\scripts\prepare_ci_output.ps1 $Env:ODBC_BIN_PATH $Env:ODBC_LIB_PATH $Env:ODBC_BUILD_PATH
     - name: upload-build
       if: always()
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: windows32-build
         path: sql-odbc/ci-output/build
     - name: upload-installer
       if: always()
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: windows32-installer
         path: sql-odbc/ci-output/installer
@@ -151,13 +151,13 @@ jobs:
         .\scripts\prepare_ci_output.ps1 $Env:ODBC_BIN_PATH $Env:ODBC_LIB_PATH $Env:ODBC_BUILD_PATH
     - name: upload-build
       if: always()
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: windows64-build
         path: sql-odbc/ci-output/build
     - name: upload-installer
       if: always()
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: windows64-installer
         path: sql-odbc/ci-output/installer
