@@ -244,8 +244,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     Boolean overwrite = (Boolean) options.get(0).getValue().getValue();
 
     return StringUtils.format(
-            "%s | lookup %s %s overwrite=%b %s",
-            child, lookupIndexName, matches, overwrite, copies)
+            "%s | lookup %s %s overwrite=%b %s", child, lookupIndexName, matches, overwrite, copies)
         .trim();
   }
 
