@@ -108,7 +108,7 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testFillNullSameValue() {
     assertEquals(
-        "source=t | fillnull with 0 in f1,f2", anonymize("source=t | fillnull with 0 in f1,f2"));
+        "source=t | fillnull with 0 in f1, f2", anonymize("source=t | fillnull with 0 in f1, f2"));
   }
 
   @Test
