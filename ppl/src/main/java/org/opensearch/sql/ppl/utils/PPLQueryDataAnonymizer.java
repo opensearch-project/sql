@@ -247,7 +247,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
           firstReplacement,
           node.getNullableFieldFills().stream()
               .map(n -> visitExpression(n.getNullableFieldReference()))
-              .collect(Collectors.joining(",")));
+              .collect(Collectors.joining(", ")));
     } else {
       return StringUtils.format(
           "%s | fillnull using %s",
