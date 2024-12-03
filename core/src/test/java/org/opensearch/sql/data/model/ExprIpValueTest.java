@@ -6,12 +6,14 @@
 package org.opensearch.sql.data.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 public class ExprIpValueTest {
@@ -74,6 +76,9 @@ public class ExprIpValueTest {
 
   @Test
   public void testCompare() {
+    Exception ex;
+
+    // Compare to IP address.
     ipv4LesserStrings.forEach(
         (s) -> assertTrue(exprIpv4Value.compareTo(ExprValueUtils.ipValue(s)) > 0));
     ipv4EqualStrings.forEach(
@@ -86,12 +91,40 @@ public class ExprIpValueTest {
         (s) -> assertEquals(0, exprIpv6Value.compareTo(ExprValueUtils.ipValue(s))));
     ipv6GreaterStrings.forEach(
         (s) -> assertTrue(exprIpv6Value.compareTo(ExprValueUtils.ipValue(s)) < 0));
+
+    // Compare to null/missing value.
+    ex =
+        assertThrows(
+            IllegalStateException.class,
+            () -> exprIpv4Value.compareTo(ExprValueUtils.LITERAL_NULL));
+    assertEquals("[BUG] Unreachable, Comparing with NULL or MISSING is undefined", ex.getMessage());
+
+    ex =
+        assertThrows(
+            IllegalStateException.class,
+            () -> exprIpv4Value.compareTo(ExprValueUtils.LITERAL_MISSING));
+    assertEquals("[BUG] Unreachable, Comparing with NULL or MISSING is undefined", ex.getMessage());
+
+    // Compare to other data type.
+    ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> exprIpv4Value.compareTo(ExprValueUtils.LITERAL_TRUE));
+    assertEquals("compare expected value have same type, but with [IP, BOOLEAN]", ex.getMessage());
   }
 
   @Test
   public void testEquals() {
+    assertEquals(exprIpv4Value, exprIpv4Value);
+    assertNotEquals(exprIpv4Value, new Object());
+    assertNotEquals(exprIpv4Value, ExprValueUtils.LITERAL_NULL);
+    assertNotEquals(exprIpv4Value, ExprValueUtils.LITERAL_MISSING);
+
     ipv4EqualStrings.forEach((s) -> assertEquals(exprIpv4Value, ExprValueUtils.ipValue(s)));
     ipv6EqualStrings.forEach((s) -> assertEquals(exprIpv6Value, ExprValueUtils.ipValue(s)));
+
+    ipv4LesserStrings.forEach((s) -> assertNotEquals(exprIpv4Value, ExprValueUtils.ipValue(s)));
+    ipv6GreaterStrings.forEach((s) -> assertNotEquals(exprIpv6Value, ExprValueUtils.ipValue(s)));
   }
 
   @Test
