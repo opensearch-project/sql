@@ -629,6 +629,7 @@ conditionFunctionName
    : LIKE
    | ISNULL
    | ISNOTNULL
+   | CIDRMATCH
    ;
 
 // flow control function return non-boolean value
@@ -829,6 +830,7 @@ keywordsCanBeId
    | textFunctionName
    | mathematicalFunctionName
    | positionFunctionName
+   | conditionFunctionName
    // commands
    | SEARCH
    | DESCRIBE
