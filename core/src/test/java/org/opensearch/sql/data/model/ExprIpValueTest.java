@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.utils.IPUtils;
 
 public class ExprIpValueTest {
 
@@ -135,5 +136,11 @@ public class ExprIpValueTest {
     ipv6EqualStrings.forEach(
         (s) ->
             assertEquals(String.format("IP %s", ipv6String), ExprValueUtils.ipValue(s).toString()));
+  }
+
+  @Test
+  public void testIpValue() {
+    ipv4EqualStrings.forEach((s) -> assertEquals(IPUtils.toAddress(s), exprIpv4Value.ipValue()));
+    ipv6EqualStrings.forEach((s) -> assertEquals(IPUtils.toAddress(s), exprIpv6Value.ipValue()));
   }
 }

@@ -1,11 +1,8 @@
 {
   "mappings": {
     "properties": {
-      "host_ip": {
+      "host": {
         "type": "ip"
-      },
-      "host_string": {
-        "type": "keyword"
       },
       "method": {
         "type": "text"
