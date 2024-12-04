@@ -54,13 +54,10 @@ public class ExprIpValueTest {
 
   @Test
   public void testInvalid() {
-    Exception ex =
-        assertThrows(SemanticCheckException.class, () -> ExprValueUtils.ipValue(ipInvalidString));
-    assertTrue(
-        ex.getMessage()
-            .matches(
-                String.format(
-                    "IP address string '%s' is not valid. Error details: .*", ipInvalidString)));
+    assertThrows(
+        SemanticCheckException.class,
+        () -> ExprValueUtils.ipValue(ipInvalidString),
+        String.format("IP address string '%s' is not valid. Error details: .*", ipInvalidString));
   }
 
   @Test
@@ -77,7 +74,6 @@ public class ExprIpValueTest {
 
   @Test
   public void testCompare() {
-    Exception ex;
 
     // Compare to IP address.
     ipv4LesserStrings.forEach(
@@ -94,24 +90,20 @@ public class ExprIpValueTest {
         (s) -> assertTrue(exprIpv6Value.compareTo(ExprValueUtils.ipValue(s)) < 0));
 
     // Compare to null/missing value.
-    ex =
-        assertThrows(
-            IllegalStateException.class,
-            () -> exprIpv4Value.compareTo(ExprValueUtils.LITERAL_NULL));
-    assertEquals("[BUG] Unreachable, Comparing with NULL or MISSING is undefined", ex.getMessage());
-
-    ex =
-        assertThrows(
-            IllegalStateException.class,
-            () -> exprIpv4Value.compareTo(ExprValueUtils.LITERAL_MISSING));
-    assertEquals("[BUG] Unreachable, Comparing with NULL or MISSING is undefined", ex.getMessage());
+    assertThrows(
+        IllegalStateException.class,
+        () -> exprIpv4Value.compareTo(ExprValueUtils.LITERAL_NULL),
+        "[BUG] Unreachable, Comparing with NULL or MISSING is undefined");
+    assertThrows(
+        IllegalStateException.class,
+        () -> exprIpv4Value.compareTo(ExprValueUtils.LITERAL_MISSING),
+        "[BUG] Unreachable, Comparing with NULL or MISSING is undefined");
 
     // Compare to other data type.
-    ex =
-        assertThrows(
-            ExpressionEvaluationException.class,
-            () -> exprIpv4Value.compareTo(ExprValueUtils.LITERAL_TRUE));
-    assertEquals("compare expected value have same type, but with [IP, BOOLEAN]", ex.getMessage());
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> exprIpv4Value.compareTo(ExprValueUtils.LITERAL_TRUE),
+        "compare expected value have same type, but with [IP, BOOLEAN]");
   }
 
   @Test
