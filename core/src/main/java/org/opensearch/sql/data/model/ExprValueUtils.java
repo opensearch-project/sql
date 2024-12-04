@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.data.model;
 
+import inet.ipaddr.IPAddress;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -190,6 +191,10 @@ public class ExprValueUtils {
 
   public static Map<String, ExprValue> getTupleValue(ExprValue exprValue) {
     return exprValue.tupleValue();
+  }
+
+  public static IPAddress getIpValue(ExprValue exprValue) {
+    return exprValue.ipValue();
   }
 
   public static Boolean getBooleanValue(ExprValue exprValue) {
