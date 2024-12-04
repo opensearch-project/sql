@@ -109,7 +109,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
             NestedQuery nestedQuery =
                 (NestedQuery)
                     luceneQueries.get(
-                        ((FunctionExpression) func.getArguments().get(0)).getFunctionName());
+                        ((FunctionExpression) func.getArguments().getFirst()).getFunctionName());
             return nestedQuery.buildNested(func, query);
           }
           return buildScriptQuery(func);

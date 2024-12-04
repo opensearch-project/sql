@@ -7,7 +7,6 @@ package org.opensearch.sql.data.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import org.junit.jupiter.api.Test;
@@ -17,18 +16,18 @@ public class ExprStringValueTest {
   @Test
   public void equals_to_self() {
     ExprValue string = ExprValueUtils.stringValue("str");
-    assertEquals(string.stringValue(), "str");
-    assertTrue(string.equals(string));
+    assertEquals("str", string.stringValue());
+    assertEquals(string, string);
   }
 
   @Test
   public void equal() {
-    ExprValue v1 = new ExprStringValue("str");
+    ExprStringValue v1 = new ExprStringValue("str");
     ExprValue v2 = ExprValueUtils.stringValue("str");
-    assertTrue(v1.equals(v2));
-    assertTrue(v2.equals(v1));
-    assertEquals(0, ((ExprStringValue) v1).compare((ExprStringValue) v2));
-    assertEquals(0, ((ExprStringValue) v2).compare((ExprStringValue) v1));
+    assertEquals(v1, v2);
+    assertEquals(v2, v1);
+    assertEquals(0, v1.compare(v2));
+    assertEquals(0, ((ExprStringValue) v2).compare(v1));
   }
 
   @Test

@@ -50,18 +50,18 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
 @DisplayName("Test Expression Value Utils")
 public class ExprValueUtilsTest {
-  private static LinkedHashMap<String, ExprValue> testTuple = new LinkedHashMap<>();
+  private static final LinkedHashMap<String, ExprValue> testTuple = new LinkedHashMap<>();
 
   static {
     testTuple.put("1", new ExprIntegerValue(1));
   }
 
-  private static List<ExprValue> numberValues =
+  private static final List<ExprValue> numberValues =
       Stream.of((byte) 1, (short) 1, 1, 1L, 1f, 1D)
           .map(ExprValueUtils::fromObjectValue)
           .collect(Collectors.toList());
 
-  private static List<ExprValue> nonNumberValues =
+  private static final List<ExprValue> nonNumberValues =
       Arrays.asList(
           new ExprStringValue("1"),
           ExprBooleanValue.of(true),
@@ -72,10 +72,10 @@ public class ExprValueUtilsTest {
           new ExprTimestampValue("2012-08-07 18:00:00"),
           new ExprIntervalValue(Duration.ofSeconds(100)));
 
-  private static List<ExprValue> allValues =
+  private static final List<ExprValue> allValues =
       Lists.newArrayList(Iterables.concat(numberValues, nonNumberValues));
 
-  private static List<Function<ExprValue, Object>> numberValueExtractor =
+  private static final List<Function<ExprValue, Object>> numberValueExtractor =
       Arrays.asList(
           ExprValueUtils::getByteValue,
           ExprValueUtils::getShortValue,
@@ -83,24 +83,24 @@ public class ExprValueUtilsTest {
           ExprValueUtils::getLongValue,
           ExprValueUtils::getFloatValue,
           ExprValueUtils::getDoubleValue);
-  private static List<Function<ExprValue, Object>> nonNumberValueExtractor =
+  private static final List<Function<ExprValue, Object>> nonNumberValueExtractor =
       Arrays.asList(
           ExprValueUtils::getStringValue,
           ExprValueUtils::getBooleanValue,
           ExprValueUtils::getCollectionValue,
           ExprValueUtils::getTupleValue);
-  private static List<Function<ExprValue, Object>> dateAndTimeValueExtractor =
+  private static final List<Function<ExprValue, Object>> dateAndTimeValueExtractor =
       Arrays.asList(
           ExprValue::dateValue,
           ExprValue::timeValue,
           ExprValue::timestampValue,
           ExprValue::intervalValue);
-  private static List<Function<ExprValue, Object>> allValueExtractor =
+  private static final List<Function<ExprValue, Object>> allValueExtractor =
       Lists.newArrayList(
           Iterables.concat(
               numberValueExtractor, nonNumberValueExtractor, dateAndTimeValueExtractor));
 
-  private static List<ExprCoreType> numberTypes =
+  private static final List<ExprCoreType> numberTypes =
       Arrays.asList(
           ExprCoreType.BYTE,
           ExprCoreType.SHORT,
@@ -108,10 +108,11 @@ public class ExprValueUtilsTest {
           ExprCoreType.LONG,
           ExprCoreType.FLOAT,
           ExprCoreType.DOUBLE);
-  private static List<ExprCoreType> nonNumberTypes = Arrays.asList(STRING, BOOLEAN, ARRAY, STRUCT);
-  private static List<ExprCoreType> dateAndTimeTypes =
+  private static final List<ExprCoreType> nonNumberTypes =
+      Arrays.asList(STRING, BOOLEAN, ARRAY, STRUCT);
+  private static final List<ExprCoreType> dateAndTimeTypes =
       Arrays.asList(DATE, TIME, TIMESTAMP, INTERVAL);
-  private static List<ExprCoreType> allTypes =
+  private static final List<ExprCoreType> allTypes =
       Lists.newArrayList(Iterables.concat(numberTypes, nonNumberTypes, dateAndTimeTypes));
 
   private static Stream<Arguments> getValueTestArgumentStream() {
@@ -125,7 +126,7 @@ public class ExprValueUtilsTest {
             1D,
             "1",
             true,
-            Arrays.asList(integerValue(1)),
+            List.of(integerValue(1)),
             ImmutableMap.of("1", integerValue(1)),
             LocalDate.parse("2012-08-07"),
             LocalTime.parse("18:00:00"),
@@ -149,7 +150,7 @@ public class ExprValueUtilsTest {
 
   private static Stream<Arguments> invalidGetNumberValueArgumentStream() {
     return Lists.cartesianProduct(nonNumberValues, numberValueExtractor).stream()
-        .map(list -> Arguments.of(list.get(0), list.get(1)));
+        .map(list -> Arguments.of(list.getFirst(), list.get(1)));
   }
 
   @SuppressWarnings("unchecked")
@@ -200,8 +201,7 @@ public class ExprValueUtilsTest {
   /** Test Invalid to convert. */
   @ParameterizedTest(name = "invalid convert ExprValue:{0} to ExprType:{2}")
   @MethodSource("invalidConvert")
-  public void invalidConvertExprValue(
-      ExprValue value, Function<ExprValue, Object> extractor, ExprCoreType toType) {
+  public void invalidConvertExprValue(ExprValue value, Function<ExprValue, Object> extractor) {
     Exception exception =
         assertThrows(ExpressionEvaluationException.class, () -> extractor.apply(value));
     assertThat(exception.getMessage(), Matchers.containsString("invalid"));

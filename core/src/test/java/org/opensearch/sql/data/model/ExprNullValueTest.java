@@ -6,7 +6,7 @@
 package org.opensearch.sql.data.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -42,9 +42,9 @@ public class ExprNullValueTest {
 
   @Test
   public void equal() {
-    assertTrue(LITERAL_NULL.equals(LITERAL_NULL));
-    assertFalse(LITERAL_FALSE.equals(LITERAL_NULL));
-    assertFalse(LITERAL_NULL.equals(LITERAL_FALSE));
+    assertEquals(LITERAL_NULL, LITERAL_NULL);
+    assertNotEquals(LITERAL_FALSE, LITERAL_NULL);
+    assertNotEquals(LITERAL_NULL, LITERAL_FALSE);
   }
 
   @Test
