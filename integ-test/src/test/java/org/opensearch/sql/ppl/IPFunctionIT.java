@@ -24,7 +24,7 @@ public class IPFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void test_cidrmatch() throws IOException {
-    
+
     JSONObject result;
 
     // No matches
