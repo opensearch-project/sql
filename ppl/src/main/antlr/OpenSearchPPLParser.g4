@@ -134,19 +134,15 @@ fillnullCommand
    ;
 
 fillNullWithTheSameValue
-   : WITH nullReplacement IN nullableField (COMMA nullableField)*
+   : WITH nullReplacement = valueExpression IN nullableFieldList = fieldList
    ;
 
 fillNullWithFieldVariousValues
-   : USING nullableField EQUAL nullReplacement (COMMA nullableField EQUAL nullReplacement)*
+   : USING nullReplacementExpression (COMMA nullReplacementExpression)*
    ;
 
-nullableField
-   : fieldExpression
-   ;
-
-nullReplacement
-   : valueExpression
+nullReplacementExpression
+   : nullableField = fieldExpression EQUAL nullReplacement = valueExpression
    ;
 
 kmeansCommand

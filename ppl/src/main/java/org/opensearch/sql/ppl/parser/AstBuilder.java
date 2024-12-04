@@ -399,8 +399,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       OpenSearchPPLParser.FillNullWithTheSameValueContext ctx) {
     return new FillNull(
         FillNull.ContainNullableFieldFill.ofSameValue(
-            internalVisitExpression(ctx.nullReplacement()),
-            ctx.nullableField().stream().map(f -> (Field) internalVisitExpression(f)).toList()));
+            internalVisitExpression(ctx.nullReplacement),
+            ctx.nullableFieldList.fieldExpression().stream()
+                .map(f -> (Field) internalVisitExpression(f))
+                .toList()));
   }
 
   /** fillnull command. */
@@ -408,11 +410,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitFillNullWithFieldVariousValues(
       OpenSearchPPLParser.FillNullWithFieldVariousValuesContext ctx) {
     ImmutableList.Builder<FillNull.NullableFieldFill> replacementsBuilder = ImmutableList.builder();
-    for (int i = 0; i < ctx.nullableField().size(); i++) {
+    for (int i = 0; i < ctx.nullReplacementExpression().size(); i++) {
       replacementsBuilder.add(
           new FillNull.NullableFieldFill(
-              (Field) internalVisitExpression(ctx.nullableField(i)),
-              internalVisitExpression(ctx.nullReplacement(i))));
+              (Field) internalVisitExpression(ctx.nullReplacementExpression(i).nullableField),
+              internalVisitExpression(ctx.nullReplacementExpression(i).nullReplacement)));
     }
 
     return new FillNull(
