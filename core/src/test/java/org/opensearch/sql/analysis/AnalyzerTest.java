@@ -18,6 +18,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.computation;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.filteredAggregate;
@@ -33,6 +34,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -66,6 +68,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Disabled;
@@ -87,6 +90,7 @@ import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -1435,6 +1439,62 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         new LogicalMLCommons(LogicalPlanDSL.relation("schema", table), "kmeans", argumentMap),
         new Kmeans(AstDSL.relation("schema"), argumentMap));
+  }
+
+  @Test
+  public void trendline() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.relation("schema", table),
+            Pair.of(computation(5, field("float_value"), "test_field_alias", SMA), DOUBLE),
+            Pair.of(computation(1, field("double_value"), "test_field_alias_2", SMA), DOUBLE)),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            Optional.empty(),
+            computation(5, field("float_value"), "test_field_alias", SMA),
+            computation(1, field("double_value"), "test_field_alias_2", SMA)));
+  }
+
+  @Test
+  public void trendline_datetime_types() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.relation("schema", table),
+            Pair.of(computation(5, field("timestamp_value"), "test_field_alias", SMA), TIMESTAMP)),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            Optional.empty(),
+            computation(5, field("timestamp_value"), "test_field_alias", SMA)));
+  }
+
+  @Test
+  public void trendline_illegal_type() {
+    assertThrows(
+        SemanticCheckException.class,
+        () ->
+            analyze(
+                AstDSL.trendline(
+                    AstDSL.relation("schema"),
+                    Optional.empty(),
+                    computation(5, field("array_value"), "test_field_alias", SMA))));
+  }
+
+  @Test
+  public void trendline_with_sort() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.sort(
+                LogicalPlanDSL.relation("schema", table),
+                Pair.of(
+                    new SortOption(SortOrder.ASC, NullOrder.NULL_FIRST),
+                    DSL.ref("float_value", ExprCoreType.FLOAT))),
+            Pair.of(computation(5, field("float_value"), "test_field_alias", SMA), DOUBLE),
+            Pair.of(computation(1, field("double_value"), "test_field_alias_2", SMA), DOUBLE)),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            Optional.of(field("float_value", argument("asc", booleanLiteral(true)))),
+            computation(5, field("float_value"), "test_field_alias", SMA),
+            computation(1, field("double_value"), "test_field_alias_2", SMA)));
   }
 
   @Test

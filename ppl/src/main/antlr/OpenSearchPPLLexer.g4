@@ -35,6 +35,7 @@ NEW_FIELD:                          'NEW_FIELD';
 KMEANS:                             'KMEANS';
 AD:                                 'AD';
 ML:                                 'ML';
+TRENDLINE:                          'TRENDLINE';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -53,6 +54,9 @@ AUTO:                               'AUTO';
 STR:                                'STR';
 IP:                                 'IP';
 NUM:                                'NUM';
+
+// TRENDLINE KEYWORDS
+SMA:                                'SMA';
 
 // ARGUMENT KEYWORDS
 KEEPEMPTY:                          'KEEPEMPTY';

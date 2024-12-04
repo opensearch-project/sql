@@ -49,6 +49,7 @@ commands
    | kmeansCommand
    | adCommand
    | mlCommand
+   | trendlineCommand
    ;
 
 searchCommand
@@ -125,6 +126,18 @@ patternsParameter
 patternsMethod
    : PUNCT
    | REGEX
+   ;
+
+trendlineCommand
+   : TRENDLINE (SORT sortField)? trendlineClause (trendlineClause)*
+   ;
+
+trendlineClause
+   : trendlineType LT_PRTHS numberOfDataPoints = integerLiteral COMMA field = fieldExpression RT_PRTHS (AS alias = qualifiedName)?
+   ;
+
+trendlineType
+   : SMA
    ;
 
 kmeansCommand
@@ -857,6 +870,7 @@ keywordsCanBeId
    | KMEANS
    | AD
    | ML
+   | TRENDLINE
    // commands assist keywords
    | SOURCE
    | INDEX

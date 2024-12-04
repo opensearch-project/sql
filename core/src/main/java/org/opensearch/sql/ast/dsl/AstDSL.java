@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.dsl;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
@@ -59,6 +60,7 @@ import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 
@@ -461,6 +463,18 @@ public class AstDSL {
 
   public static Limit limit(UnresolvedPlan input, Integer limit, Integer offset) {
     return new Limit(limit, offset).attach(input);
+  }
+
+  public static Trendline trendline(
+      UnresolvedPlan input,
+      Optional<Field> sortField,
+      Trendline.TrendlineComputation... computations) {
+    return new Trendline(sortField, Arrays.asList(computations)).attach(input);
+  }
+
+  public static Trendline.TrendlineComputation computation(
+      Integer numDataPoints, Field dataField, String alias, Trendline.TrendlineType type) {
+    return new Trendline.TrendlineComputation(numDataPoints, dataField, alias, type);
   }
 
   public static Parse parse(
