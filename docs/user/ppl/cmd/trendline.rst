@@ -79,12 +79,12 @@ PPL query::
 
     os> source=accounts | trendline sma(2, account_number)  | fields account_number_trendline;
     fetched rows / total rows = 4/4
-    +--------------------+
-    | accounts_trendline |
-    |--------------------|
-    | null               |
-    | 3.5                |
-    | 9.5                |
-    | 15.5               |
-    +--------------------+
+    +--------------------------+
+    | account_number_trendline |
+    |--------------------------|
+    | null                     |
+    | 3.5                      |
+    | 9.5                      |
+    | 15.5                     |
+    +--------------------------+
 
