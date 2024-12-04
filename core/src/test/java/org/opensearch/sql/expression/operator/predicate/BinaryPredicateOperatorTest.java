@@ -584,7 +584,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     assertEquals(stringPatternPair.regExpTest(), expression.valueOf(valueEnv()).integerValue());
   }
 
-  /** Todo. remove this test cases after script serilization implemented. */
+  /** Todo. remove this test cases after script serialization implemented. */
   @Test
   public void serializationTest() throws Exception {
     Expression expression = DSL.equal(DSL.literal("v1"), DSL.literal("v2"));

@@ -30,7 +30,8 @@ import org.opensearch.sql.expression.function.SerializableFunction;
  * The definition of unary predicate function not, Accepts one Boolean value and produces a Boolean.
  */
 @UtilityClass
-public class UnaryPredicateOperator {
+public class UnaryPredicateOperators {
+
   /** Register Unary Predicate Function. */
   public static void register(BuiltinFunctionRepository repository) {
     repository.register(not());
@@ -45,7 +46,7 @@ public class UnaryPredicateOperator {
   private static DefaultFunctionResolver not() {
     return FunctionDSL.define(
         BuiltinFunctionName.NOT.getName(),
-        FunctionDSL.impl(UnaryPredicateOperator::not, BOOLEAN, BOOLEAN));
+        FunctionDSL.impl(UnaryPredicateOperators::not, BOOLEAN, BOOLEAN));
   }
 
   /**
@@ -108,11 +109,10 @@ public class UnaryPredicateOperator {
                 org.apache.commons.lang3.tuple.Pair<FunctionSignature, FunctionBuilder>>>
         functionsOne =
             typeList.stream()
-                .map(v -> impl((UnaryPredicateOperator::exprIf), v, BOOLEAN, v, v))
+                .map(v -> impl((UnaryPredicateOperators::exprIf), v, BOOLEAN, v, v))
                 .collect(Collectors.toList());
 
-    DefaultFunctionResolver functionResolver = FunctionDSL.define(functionName, functionsOne);
-    return functionResolver;
+    return FunctionDSL.define(functionName, functionsOne);
   }
 
   private static DefaultFunctionResolver ifNull() {
@@ -125,31 +125,28 @@ public class UnaryPredicateOperator {
                 org.apache.commons.lang3.tuple.Pair<FunctionSignature, FunctionBuilder>>>
         functionsOne =
             typeList.stream()
-                .map(v -> impl((UnaryPredicateOperator::exprIfNull), v, v, v))
+                .map(v -> impl((UnaryPredicateOperators::exprIfNull), v, v, v))
                 .collect(Collectors.toList());
 
-    DefaultFunctionResolver functionResolver = FunctionDSL.define(functionName, functionsOne);
-    return functionResolver;
+    return FunctionDSL.define(functionName, functionsOne);
   }
 
   private static DefaultFunctionResolver nullIf() {
     FunctionName functionName = BuiltinFunctionName.NULLIF.getName();
     List<ExprCoreType> typeList = ExprCoreType.coreTypes();
 
-    DefaultFunctionResolver functionResolver =
-        FunctionDSL.define(
-            functionName,
-            typeList.stream()
-                .map(v -> impl((UnaryPredicateOperator::exprNullIf), v, v, v))
-                .collect(Collectors.toList()));
-    return functionResolver;
+    return FunctionDSL.define(
+        functionName,
+        typeList.stream()
+            .map(v -> impl((UnaryPredicateOperators::exprNullIf), v, v, v))
+            .collect(Collectors.toList()));
   }
 
   /**
    * v2 if v1 is null.
    *
-   * @param v1 varable 1
-   * @param v2 varable 2
+   * @param v1 variable 1
+   * @param v2 variable 2
    * @return v2 if v1 is null
    */
   public static ExprValue exprIfNull(ExprValue v1, ExprValue v2) {
@@ -157,11 +154,11 @@ public class UnaryPredicateOperator {
   }
 
   /**
-   * return null if v1 equls to v2.
+   * return null if v1 equals to v2.
    *
-   * @param v1 varable 1
-   * @param v2 varable 2
-   * @return null if v1 equls to v2
+   * @param v1 variable 1
+   * @param v2 variable 2
+   * @return null if v1 equals to v2
    */
   public static ExprValue exprNullIf(ExprValue v1, ExprValue v2) {
     return v1.equals(v2) ? LITERAL_NULL : v1;

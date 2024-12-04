@@ -247,7 +247,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         "= function expected {[BYTE,BYTE],[SHORT,SHORT],[INTEGER,INTEGER],[LONG,LONG],"
             + "[FLOAT,FLOAT],[DOUBLE,DOUBLE],[STRING,STRING],[BOOLEAN,BOOLEAN],[DATE,DATE],"
             + "[TIME,TIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],"
-            + "[STRUCT,STRUCT],[ARRAY,ARRAY]}, but get [STRING,INTEGER]",
+            + "[STRUCT,STRUCT],[ARRAY,ARRAY]}, but got [STRING,INTEGER]",
         exception.getMessage());
   }
 

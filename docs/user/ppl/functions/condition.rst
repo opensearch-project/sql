@@ -101,7 +101,7 @@ NULLIF
 Description
 >>>>>>>>>>>
 
-Usage: nullif(field1, field2) return null if two parameters are same, otherwiser return field1.
+Usage: nullif(field1, field2) return null if two parameters are same, otherwise return field1.
 
 Argument type: all the supported data type, (NOTE : if two parameters has different type, if two parameters has different type, you will fail semantic check)
 
@@ -152,7 +152,7 @@ IF
 Description
 >>>>>>>>>>>
 
-Usage: if(condition, expr1, expr2) return expr1 if condition is true, otherwiser return expr2.
+Usage: if(condition, expr1, expr2) return expr1 if condition is true, otherwise return expr2.
 
 Argument type: all the supported data type, (NOTE : if expr1 and expr2 are different type,  you will fail semantic check
 
