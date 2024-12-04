@@ -59,7 +59,6 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchIpType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
 
@@ -117,7 +116,7 @@ class OpenSearchExprValueFactoryTest {
               "textKeywordV",
               OpenSearchTextType.of(
                   Map.of("words", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))
-          .put(fieldIp, OpenSearchIpType.of(OpenSearchDataType.MappingType.Ip))
+          .put(fieldIp, OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip))
           .put("geoV", OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))
           .put("binaryV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary))
           .build();
@@ -688,10 +687,10 @@ class OpenSearchExprValueFactoryTest {
   public void constructArrayOfIPsReturnsAll() {
     final String ipv4String = "1.2.3.4";
     final String ipv6String = "2001:db7::ff00:42:8329";
+
     assertEquals(
-        new ExprCollectionValue(List.of(ipValue(ipv4String), ipValue(ipv6String))),
-        tupleValue(String.format("{\"%s\":[\"%s\",\"%s\"]}", fieldIp, ipv4String, ipv6String))
-            .get(fieldIp));
+        new ExprCollectionValue(List.of(ipValue("1.2.3.4"), ipValue("2001:db7::ff00:42:8329"))),
+        tupleValue("{\"ipV\":[" + "\"1.2.3.4\"," + "\"2001:db7::ff00:42:8329\"" + "]}").get("ipV"));
   }
 
   @Test
