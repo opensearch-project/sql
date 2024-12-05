@@ -47,12 +47,13 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   private StatementStorageService statementStorageService;
   private SessionStorageService sessionStorageService;
-  private TestEMRServerlessClient emrsClient = new TestEMRServerlessClient();
-  private SessionConfigSupplier sessionConfigSupplier = () -> 600000L;
-  private SessionIdProvider sessionIdProvider = new DatasourceEmbeddedSessionIdProvider();
+  private final TestEMRServerlessClient emrsClient = new TestEMRServerlessClient();
+  private final SessionConfigSupplier sessionConfigSupplier = () -> 600000L;
+  private final SessionIdProvider sessionIdProvider = new DatasourceEmbeddedSessionIdProvider();
 
   private SessionManager sessionManager;
-  private AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
+  private final AsyncQueryRequestContext asyncQueryRequestContext =
+      new NullAsyncQueryRequestContext();
 
   @Before
   public void setup() {

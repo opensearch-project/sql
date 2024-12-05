@@ -18,7 +18,7 @@ import org.opensearch.sql.legacy.util.SqlParserUtils;
 /** Test cases for ordinal aliases in GROUP BY and ORDER BY */
 public class OrdinalRewriterRuleTest {
 
-  @Rule public ExpectedException exception = ExpectedException.none();
+  @Rule public final ExpectedException exception = ExpectedException.none();
 
   @Test
   public void ordinalInGroupByShouldMatch() {
@@ -118,8 +118,8 @@ public class OrdinalRewriterRuleTest {
 
   private static class QueryAssertion {
 
-    private OrdinalRewriterRule rule;
-    private SQLQueryExpr expr;
+    private final OrdinalRewriterRule rule;
+    private final SQLQueryExpr expr;
 
     QueryAssertion(String sql) {
       this.expr = SqlParserUtils.parse(sql);

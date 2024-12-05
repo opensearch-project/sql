@@ -36,8 +36,8 @@ import org.opensearch.sql.legacy.request.SqlRequest;
  */
 public abstract class QueryAction {
 
-  protected Query query;
-  protected Client client;
+  protected final Query query;
+  protected final Client client;
   protected SqlRequest sqlRequest = SqlRequest.NULL;
   protected ColumnTypeProvider scriptColumnType;
   protected Format format;

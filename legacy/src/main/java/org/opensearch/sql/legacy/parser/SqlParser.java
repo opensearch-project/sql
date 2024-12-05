@@ -55,7 +55,7 @@ import org.opensearch.sql.legacy.query.multi.MultiQuerySelect;
  * @author ansj
  */
 public class SqlParser {
-  private FieldMaker fieldMaker = new FieldMaker();
+  private final FieldMaker fieldMaker = new FieldMaker();
 
   public SqlParser() {}
 

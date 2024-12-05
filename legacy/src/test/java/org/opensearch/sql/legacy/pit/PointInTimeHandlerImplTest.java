@@ -38,7 +38,7 @@ import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 public class PointInTimeHandlerImplTest {
 
   @Mock private Client mockClient;
-  private String[] indices = {"index1", "index2"};
+  private final String[] indices = {"index1", "index2"};
   private PointInTimeHandlerImpl pointInTimeHandlerImpl;
   private final String PIT_ID = "testId";
   private CreatePitResponse mockCreatePitResponse;

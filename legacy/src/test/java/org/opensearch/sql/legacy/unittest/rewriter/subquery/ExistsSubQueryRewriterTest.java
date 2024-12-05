@@ -13,7 +13,7 @@ import org.junit.rules.ExpectedException;
 
 public class ExistsSubQueryRewriterTest extends SubQueryRewriterTestBase {
 
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void nonCorrelatedExists() {

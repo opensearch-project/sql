@@ -11,7 +11,7 @@ public enum JobType {
   REFRESH("refresh"),
   BATCH("batch");
 
-  private String text;
+  private final String text;
 
   JobType(String text) {
     this.text = text;

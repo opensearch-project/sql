@@ -27,7 +27,7 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.sql.util.TestUtils;
 
 public class PPLPluginIT extends PPLIntegTestCase {
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   private static final String PERSISTENT = "persistent";
 

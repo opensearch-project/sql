@@ -33,7 +33,7 @@ public class CursorCloseExecutor implements CursorRestExecutor {
   private static final String SUCCEEDED_TRUE = "{\"succeeded\":true}";
   private static final String SUCCEEDED_FALSE = "{\"succeeded\":false}";
 
-  private String cursorId;
+  private final String cursorId;
 
   public CursorCloseExecutor(String cursorId) {
     this.cursorId = cursorId;

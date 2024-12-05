@@ -33,7 +33,7 @@ import org.opensearch.sql.common.grok.exception.GrokException;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class BasicTest {
 
-  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+  @Rule public final TemporaryFolder tempFolder = new TemporaryFolder();
 
   private GrokCompiler compiler;
 

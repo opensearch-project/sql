@@ -57,7 +57,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 
 class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
-  private static List<StringPatternPair> STRING_PATTERN_PAIRS =
+  private static final List<StringPatternPair> STRING_PATTERN_PAIRS =
       ImmutableList.of(
           new StringPatternPair("Michael!", ".*"),
           new StringPatternPair("new*\\n*line", "new\\\\*.\\\\*line"),

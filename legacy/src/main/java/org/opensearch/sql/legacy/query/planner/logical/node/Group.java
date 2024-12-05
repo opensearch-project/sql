@@ -14,10 +14,10 @@ import org.opensearch.sql.legacy.query.planner.physical.PhysicalOperator;
 public class Group implements LogicalOperator {
 
   /** Optional pushed down projection */
-  private Project<?> project;
+  private final Project<?> project;
 
   /** Optional pushed down filter (selection) */
-  private Filter filter;
+  private final Filter filter;
 
   /** Required table scan operator */
   private final TableScan tableScan;

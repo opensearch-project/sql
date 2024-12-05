@@ -44,7 +44,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.utils.IDUtils;
 
 public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorServiceSpec {
-  AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
+  final AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
 
   @Disabled("batch query is unsupported")
   public void withoutSessionCreateAsyncQueryThenGetResultThenCancel() {

@@ -12,8 +12,8 @@ import org.opensearch.sql.legacy.domain.hints.Hint;
 /** Created by Eliran on 20/8/2015. */
 public class JoinSelect extends Query {
 
-  private TableOnJoinSelect firstTable;
-  private TableOnJoinSelect secondTable;
+  private final TableOnJoinSelect firstTable;
+  private final TableOnJoinSelect secondTable;
   private Where connectedWhere;
   private List<Hint> hints;
   private List<Condition> connectedConditions;

@@ -14,7 +14,8 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchGeoPointType;
 
 class OpenSearchExprGeoPointValueTest {
 
-  private OpenSearchExprGeoPointValue geoPointValue = new OpenSearchExprGeoPointValue(1.0, 1.0);
+  private final OpenSearchExprGeoPointValue geoPointValue =
+      new OpenSearchExprGeoPointValue(1.0, 1.0);
 
   @Test
   void value() {

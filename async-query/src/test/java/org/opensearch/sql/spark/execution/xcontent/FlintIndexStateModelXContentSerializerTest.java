@@ -23,7 +23,7 @@ import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 @ExtendWith(MockitoExtension.class)
 class FlintIndexStateModelXContentSerializerTest {
 
-  private FlintIndexStateModelXContentSerializer serializer =
+  private final FlintIndexStateModelXContentSerializer serializer =
       new FlintIndexStateModelXContentSerializer();
 
   @Test

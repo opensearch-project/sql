@@ -25,7 +25,7 @@ class StateModelTest {
     }
   }
 
-  ConcreteStateModel model =
+  final ConcreteStateModel model =
       ConcreteStateModel.builder().metadata(ImmutableMap.of(METADATA_KEY, METADATA_VALUE)).build();
 
   @Test

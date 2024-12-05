@@ -19,7 +19,7 @@ import org.opensearch.client.Client;
 public class Stats {
 
   /** Client connection to OpenSearch cluster (unused now) */
-  private Client client;
+  private final Client client;
 
   public Stats(Client client) {
     this.client = client;
@@ -31,8 +31,8 @@ public class Stats {
 
   /** Statistics data class for memory usage */
   public static class MemStats {
-    private long free;
-    private long total;
+    private final long free;
+    private final long total;
 
     public MemStats(long free, long total) {
       this.free = free;

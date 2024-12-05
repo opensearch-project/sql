@@ -42,7 +42,7 @@ public class DateFieldFormatter {
 
   private final Map<String, List<String>> dateFieldFormatMap;
   private final Map<String, String> fieldAliasMap;
-  private Set<String> dateColumns;
+  private final Set<String> dateColumns;
 
   public DateFieldFormatter(
       String indexName, List<Schema.Column> columns, Map<String, String> fieldAliasMap) {

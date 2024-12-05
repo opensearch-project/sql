@@ -39,7 +39,7 @@ import org.opensearch.sql.expression.function.SerializableTriFunction;
  */
 @UtilityClass
 public class TextFunctions {
-  private static String EMPTY_STRING = "";
+  private static final String EMPTY_STRING = "";
 
   /**
    * Register String Functions.

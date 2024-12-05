@@ -24,7 +24,7 @@ import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 
 /** Handler for Point In Time */
 public class PointInTimeHandlerImpl implements PointInTimeHandler {
-  private Client client;
+  private final Client client;
   private String[] indices;
   @Getter @Setter private String pitId;
   private static final Logger LOG = LogManager.getLogger();

@@ -12,13 +12,13 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.datasource.model.DataSourceType;
 
 class GrammarElementValidatorProviderTest {
-  S3GlueSQLGrammarElementValidator s3GlueSQLGrammarElementValidator =
+  final S3GlueSQLGrammarElementValidator s3GlueSQLGrammarElementValidator =
       new S3GlueSQLGrammarElementValidator();
-  SecurityLakeSQLGrammarElementValidator securityLakeSQLGrammarElementValidator =
+  final SecurityLakeSQLGrammarElementValidator securityLakeSQLGrammarElementValidator =
       new SecurityLakeSQLGrammarElementValidator();
-  DefaultGrammarElementValidator defaultGrammarElementValidator =
+  final DefaultGrammarElementValidator defaultGrammarElementValidator =
       new DefaultGrammarElementValidator();
-  GrammarElementValidatorProvider grammarElementValidatorProvider =
+  final GrammarElementValidatorProvider grammarElementValidatorProvider =
       new GrammarElementValidatorProvider(
           ImmutableMap.of(
               DataSourceType.S3GLUE, s3GlueSQLGrammarElementValidator,

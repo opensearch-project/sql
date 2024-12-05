@@ -52,15 +52,15 @@ public class Condition extends Where {
     NTERM,
     NREGEXP;
 
-    public static Map<String, OPERATOR> methodNameToOpear;
+    public static final Map<String, OPERATOR> methodNameToOpear;
 
-    public static Map<String, OPERATOR> operStringToOpear;
+    public static final Map<String, OPERATOR> operStringToOpear;
 
-    public static Map<String, OPERATOR> simpleOperStringToOpear;
+    public static final Map<String, OPERATOR> simpleOperStringToOpear;
 
-    private static BiMap<OPERATOR, OPERATOR> negatives;
+    private static final BiMap<OPERATOR, OPERATOR> negatives;
 
-    private static BiMap<OPERATOR, OPERATOR> simpleReverses;
+    private static final BiMap<OPERATOR, OPERATOR> simpleReverses;
 
     static {
       methodNameToOpear = new HashMap<>();
@@ -161,7 +161,7 @@ public class Condition extends Where {
 
   private String name;
 
-  private SQLExpr nameExpr;
+  private final SQLExpr nameExpr;
 
   private Object value;
 
@@ -173,7 +173,7 @@ public class Condition extends Where {
     return valueExpr;
   }
 
-  private SQLExpr valueExpr;
+  private final SQLExpr valueExpr;
 
   private OPERATOR OPERATOR;
 

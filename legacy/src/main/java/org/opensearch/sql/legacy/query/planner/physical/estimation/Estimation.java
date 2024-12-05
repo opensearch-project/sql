@@ -23,7 +23,7 @@ import org.opensearch.sql.legacy.query.planner.physical.PhysicalOperator;
 public class Estimation<T> implements LogicalPlanVisitor {
 
   /** Optimal physical operator for logical operator based on completed estimation */
-  private Map<LogicalOperator, PhysicalOperator<T>> optimalOps = new IdentityHashMap<>();
+  private final Map<LogicalOperator, PhysicalOperator<T>> optimalOps = new IdentityHashMap<>();
 
   /** Keep tracking of the operator that exit visit() */
   private PhysicalOperator<T> root;

@@ -112,7 +112,7 @@ public class SQLFunctions {
           .flatMap(Set::stream)
           .collect(Collectors.toSet());
 
-  private Map<String, Integer> generatedIds = new HashMap<>();
+  private final Map<String, Integer> generatedIds = new HashMap<>();
 
   /**
    * Generates next id for given method name. The id's are increasing for each method name, so

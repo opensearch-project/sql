@@ -37,7 +37,7 @@ import org.opensearch.sql.legacy.utils.StringUtils;
 
 public class SubqueryIT extends SQLIntegTestCase {
 
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Override
   protected void init() throws Exception {

@@ -14,7 +14,7 @@ import org.opensearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
 import org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchDataType;
 
 public class TypeSupplierTest {
-  @Rule public ExpectedException exception = ExpectedException.none();
+  @Rule public final ExpectedException exception = ExpectedException.none();
 
   @Test
   public void haveOneTypeShouldPass() {

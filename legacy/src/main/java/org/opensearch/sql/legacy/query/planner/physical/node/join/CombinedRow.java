@@ -18,8 +18,8 @@ import org.opensearch.sql.legacy.query.planner.physical.Row;
  */
 public class CombinedRow<T> {
 
-  private Row<T> rightRow;
-  private Collection<Row<T>> leftRows;
+  private final Row<T> rightRow;
+  private final Collection<Row<T>> leftRows;
 
   public CombinedRow(Row<T> rightRow, Collection<Row<T>> leftRows) {
     this.rightRow = rightRow;

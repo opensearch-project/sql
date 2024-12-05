@@ -19,7 +19,7 @@ import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 
 /** Created by Eliran on 19/8/2016. */
 public class MultiQueryAction extends QueryAction {
-  private MultiQuerySelect multiQuerySelect;
+  private final MultiQuerySelect multiQuerySelect;
 
   public MultiQueryAction(Client client, MultiQuerySelect multiSelect) {
     super(client, null);

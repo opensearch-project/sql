@@ -70,7 +70,7 @@ public class SelectResultSet extends ResultSet {
   private final String formatType;
 
   private Query query;
-  private Object queryResult;
+  private final Object queryResult;
 
   private boolean selectAll;
   private String indexName;
@@ -82,11 +82,11 @@ public class SelectResultSet extends ResultSet {
   private long totalHits;
   private long internalTotalHits;
   private List<DataRows.Row> rows;
-  private Cursor cursor;
+  private final Cursor cursor;
 
   private DateFieldFormatter dateFieldFormatter;
   // alias -> base field name
-  private Map<String, String> fieldAliasMap = new HashMap<>();
+  private final Map<String, String> fieldAliasMap = new HashMap<>();
 
   public SelectResultSet(
       Client client,

@@ -11,7 +11,7 @@ import org.opensearch.core.action.ActionResponse;
 
 /** Created by Eliran on 19/8/2015. */
 public class SqlOpenSearchRequestBuilder implements SqlElasticRequestBuilder {
-  ActionRequestBuilder requestBuilder;
+  final ActionRequestBuilder requestBuilder;
 
   public SqlOpenSearchRequestBuilder(ActionRequestBuilder requestBuilder) {
     this.requestBuilder = requestBuilder;

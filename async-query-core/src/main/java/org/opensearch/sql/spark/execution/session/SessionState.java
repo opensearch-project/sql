@@ -20,7 +20,7 @@ public enum SessionState {
   DEAD("dead"),
   FAIL("fail");
 
-  public static List<SessionState> END_STATE = ImmutableList.of(DEAD, FAIL);
+  public static final List<SessionState> END_STATE = ImmutableList.of(DEAD, FAIL);
 
   private final String sessionState;
 

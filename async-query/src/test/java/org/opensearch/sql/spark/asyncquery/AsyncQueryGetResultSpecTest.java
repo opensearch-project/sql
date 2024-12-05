@@ -41,7 +41,7 @@ import org.opensearch.sql.spark.transport.format.AsyncQueryResultResponseFormatt
 import org.opensearch.sql.spark.transport.model.AsyncQueryResult;
 
 public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
-  AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
+  final AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
 
   /** Mock Flint index and index state */
   private final FlintDatasetMock mockIndex =

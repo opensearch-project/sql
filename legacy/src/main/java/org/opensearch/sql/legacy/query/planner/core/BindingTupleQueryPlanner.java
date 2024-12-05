@@ -18,8 +18,8 @@ import org.opensearch.sql.legacy.query.planner.physical.node.scroll.PhysicalScro
 
 /** The definition of QueryPlanner which return the {@link BindingTuple} as result. */
 public class BindingTupleQueryPlanner {
-  private PhysicalOperator<BindingTuple> physicalOperator;
-  @Getter private List<ColumnNode> columnNodes;
+  private final PhysicalOperator<BindingTuple> physicalOperator;
+  @Getter private final List<ColumnNode> columnNodes;
 
   public BindingTupleQueryPlanner(
       Client client, SQLQueryExpr sqlExpr, ColumnTypeProvider columnTypeProvider) {

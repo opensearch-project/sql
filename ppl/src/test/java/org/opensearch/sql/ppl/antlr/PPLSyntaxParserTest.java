@@ -18,7 +18,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 public class PPLSyntaxParserTest {
 
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void testSearchCommandShouldPass() {

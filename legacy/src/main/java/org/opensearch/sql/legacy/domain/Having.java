@@ -44,7 +44,7 @@ public class Having {
   /** Conditions parsed out of HAVING clause */
   private final List<Where> conditions;
 
-  private HavingParser havingParser;
+  private final HavingParser havingParser;
 
   public List<Field> getHavingFields() {
     return havingParser.getHavingFields();

@@ -148,15 +148,15 @@ public class AnalyzerTestBase {
     };
   }
 
-  protected AnalysisContext analysisContext = analysisContext(typeEnvironment(symbolTable()));
+  protected final AnalysisContext analysisContext = analysisContext(typeEnvironment(symbolTable()));
 
-  protected ExpressionAnalyzer expressionAnalyzer = expressionAnalyzer();
+  protected final ExpressionAnalyzer expressionAnalyzer = expressionAnalyzer();
 
-  protected Table table = table();
+  protected final Table table = table();
 
-  protected DataSourceService dataSourceService = dataSourceService();
+  protected final DataSourceService dataSourceService = dataSourceService();
 
-  protected Analyzer analyzer = analyzer(expressionAnalyzer(), dataSourceService);
+  protected final Analyzer analyzer = analyzer(expressionAnalyzer(), dataSourceService);
 
   protected Analyzer analyzer(
       ExpressionAnalyzer expressionAnalyzer, DataSourceService dataSourceService) {
@@ -245,11 +245,11 @@ public class AnalyzerTestBase {
 
   private class TestTableFunctionImplementation implements TableFunctionImplementation {
 
-    private FunctionName functionName;
+    private final FunctionName functionName;
 
-    private List<Expression> arguments;
+    private final List<Expression> arguments;
 
-    private Table table;
+    private final Table table;
 
     public TestTableFunctionImplementation(
         FunctionName functionName, List<Expression> arguments, Table table) {

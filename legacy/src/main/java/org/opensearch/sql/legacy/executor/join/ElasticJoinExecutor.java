@@ -45,11 +45,11 @@ import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
 
   protected List<SearchHit> results; // Keep list to avoid copy to new array in SearchHits
-  protected MetaSearchResult metaResults;
+  protected final MetaSearchResult metaResults;
   protected final int MAX_RESULTS_ON_ONE_FETCH = 10000;
-  private Set<String> aliasesOnReturn;
-  private boolean allFieldsReturn;
-  protected String[] indices;
+  private final Set<String> aliasesOnReturn;
+  private final boolean allFieldsReturn;
+  protected final String[] indices;
 
   protected ElasticJoinExecutor(Client client, JoinRequestBuilder requestBuilder) {
     metaResults = new MetaSearchResult();

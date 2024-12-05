@@ -17,7 +17,7 @@ import org.opensearch.client.ResponseException;
 /** Test cases for writing missing join table aliases. */
 public class JoinAliasWriterRuleIT extends SQLIntegTestCase {
 
-  @Rule public ExpectedException exception = ExpectedException.none();
+  @Rule public final ExpectedException exception = ExpectedException.none();
 
   protected void init() throws Exception {
     loadIndex(Index.ORDER); // opensearch-sql_test_index_order

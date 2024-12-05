@@ -36,7 +36,7 @@ import org.opensearch.sql.data.type.WideningTypeRule;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 class WideningTypeRuleTest {
-  private static Table<ExprCoreType, ExprCoreType, Integer> numberWidenRule =
+  private static final Table<ExprCoreType, ExprCoreType, Integer> numberWidenRule =
       new ImmutableTable.Builder<ExprCoreType, ExprCoreType, Integer>()
           .put(BYTE, SHORT, 1)
           .put(BYTE, INTEGER, 2)
