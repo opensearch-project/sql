@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 
-import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,7 +27,7 @@ class OpenSearchCatIndicesRequestTest {
 
   @Test
   void testSearch() {
-    when(client.indices()).thenReturn(Arrays.asList("index"));
+    when(client.indices()).thenReturn(List.of("index"));
 
     final List<ExprValue> results = new OpenSearchCatIndicesRequest(client).search();
     assertEquals(1, results.size());

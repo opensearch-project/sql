@@ -31,7 +31,6 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.values;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.window;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -92,12 +91,12 @@ class DefaultImplementorTest {
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
     Expression filterExpr = literal(ExprBooleanValue.of(true));
-    List<NamedExpression> groupByExprs = Arrays.asList(DSL.named("age", ref("age", INTEGER)));
-    List<Expression> aggExprs = Arrays.asList(ref("age", INTEGER));
+    List<NamedExpression> groupByExprs = List.of(named("age", ref("age", INTEGER)));
+    List<Expression> aggExprs = List.of(ref("age", INTEGER));
     ReferenceExpression rareTopNField = ref("age", INTEGER);
-    List<Expression> topByExprs = Arrays.asList(ref("age", INTEGER));
+    List<Expression> topByExprs = List.of(ref("age", INTEGER));
     List<NamedAggregator> aggregators =
-        Arrays.asList(DSL.named("avg(age)", new AvgAggregator(aggExprs, ExprCoreType.DOUBLE)));
+        List.of(named("avg(age)", new AvgAggregator(aggExprs, ExprCoreType.DOUBLE)));
     Map<ReferenceExpression, ReferenceExpression> mappings =
         ImmutableMap.of(ref("name", STRING), ref("lastname", STRING));
     Pair<ReferenceExpression, Expression> newEvalField =

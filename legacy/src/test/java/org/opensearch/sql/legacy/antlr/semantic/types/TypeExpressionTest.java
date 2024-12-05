@@ -18,6 +18,7 @@ import static org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchData
 import static org.opensearch.sql.legacy.antlr.semantic.types.special.Generic.T;
 
 import java.util.Arrays;
+import java.util.List;
 import org.junit.Test;
 
 /** Test cases for default implementation methods in interface TypeExpression */
@@ -54,20 +55,20 @@ public class TypeExpressionTest {
             return "Temp type expression with empty specification";
           }
         };
-    assertEquals(UNKNOWN, expr.construct(Arrays.asList(NUMBER)));
+    assertEquals(UNKNOWN, expr.construct(List.of(NUMBER)));
     assertEquals(UNKNOWN, expr.construct(Arrays.asList(STRING, BOOLEAN)));
     assertEquals(UNKNOWN, expr.construct(Arrays.asList(INTEGER, DOUBLE, GEO_POINT)));
   }
 
   @Test
   public void compatibilityCheckShouldPassIfAnySpecificationCompatible() {
-    assertEquals(DOUBLE, test123.construct(Arrays.asList(DOUBLE)));
+    assertEquals(DOUBLE, test123.construct(List.of(DOUBLE)));
     assertEquals(DATE, test123.construct(Arrays.asList(STRING, BOOLEAN)));
   }
 
   @Test
   public void compatibilityCheckShouldFailIfNoSpecificationCompatible() {
-    assertEquals(TYPE_ERROR, test123.construct(Arrays.asList(BOOLEAN)));
+    assertEquals(TYPE_ERROR, test123.construct(List.of(BOOLEAN)));
   }
 
   @Test

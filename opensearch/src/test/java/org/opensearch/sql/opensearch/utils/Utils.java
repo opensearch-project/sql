@@ -24,7 +24,7 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 public class Utils {
 
   public static AvgAggregator avg(Expression expr, ExprCoreType type) {
-    return new AvgAggregator(Arrays.asList(expr), type);
+    return new AvgAggregator(Collections.singletonList(expr), type);
   }
 
   public static List<NamedAggregator> agg(NamedAggregator... exprs) {

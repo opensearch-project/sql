@@ -16,7 +16,6 @@ import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -92,6 +91,6 @@ public class SQLFunctionsTest {
         "def result = (doc['age'].value instanceof boolean) "
             + "? (doc['age'].value ? 1 : 0) "
             + ": Double.parseDouble(doc['age'].value.toString()).intValue()",
-        sqlFunctions.getCastScriptStatement("result", "int", Arrays.asList(new KVValue("age"))));
+        sqlFunctions.getCastScriptStatement("result", "int", List.of(new KVValue("age"))));
   }
 }

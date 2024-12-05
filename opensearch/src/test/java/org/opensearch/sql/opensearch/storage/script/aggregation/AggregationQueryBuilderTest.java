@@ -97,9 +97,8 @@ class AggregationQueryBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
-            Arrays.asList(named("name", ref("name", STRING)))));
+            List.of(named("avg(age)", new AvgAggregator(List.of(ref("age", INTEGER)), INTEGER))),
+            List.of(named("name", ref("name", STRING)))));
   }
 
   @Test
@@ -131,9 +130,8 @@ class AggregationQueryBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
-            Arrays.asList(named("name", ref("name", STRING))),
+            List.of(named("avg(age)", new AvgAggregator(List.of(ref("age", INTEGER)), INTEGER))),
+            List.of(named("name", ref("name", STRING))),
             sort(ref("name", STRING), Sort.SortOption.DEFAULT_DESC)));
   }
 
@@ -141,9 +139,8 @@ class AggregationQueryBuilderTest {
   void should_build_type_mapping_for_field_reference() {
     assertThat(
         buildTypeMapping(
-            Arrays.asList(
-                named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
-            Arrays.asList(named("name", ref("name", STRING)))),
+            List.of(named("avg(age)", new AvgAggregator(List.of(ref("age", INTEGER)), INTEGER))),
+            List.of(named("name", ref("name", STRING)))),
         containsInAnyOrder(
             map("avg(age)", OpenSearchDataType.of(INTEGER)),
             map("name", OpenSearchDataType.of(STRING))));
@@ -153,11 +150,11 @@ class AggregationQueryBuilderTest {
   void should_build_type_mapping_for_timestamp_type() {
     assertThat(
         buildTypeMapping(
-            Arrays.asList(
+            List.of(
                 named(
                     "avg(timestamp)",
-                    new AvgAggregator(Arrays.asList(ref("timestamp", TIMESTAMP)), TIMESTAMP))),
-            Arrays.asList(named("timestamp", ref("timestamp", TIMESTAMP)))),
+                    new AvgAggregator(List.of(ref("timestamp", TIMESTAMP)), TIMESTAMP))),
+            List.of(named("timestamp", ref("timestamp", TIMESTAMP)))),
         containsInAnyOrder(
             map("avg(timestamp)", OpenSearchDateType.of()),
             map("timestamp", OpenSearchDateType.of())));
@@ -167,9 +164,8 @@ class AggregationQueryBuilderTest {
   void should_build_type_mapping_for_date_type() {
     assertThat(
         buildTypeMapping(
-            Arrays.asList(
-                named("avg(date)", new AvgAggregator(Arrays.asList(ref("date", DATE)), DATE))),
-            Arrays.asList(named("date", ref("date", DATE)))),
+            List.of(named("avg(date)", new AvgAggregator(List.of(ref("date", DATE)), DATE))),
+            List.of(named("date", ref("date", DATE)))),
         containsInAnyOrder(
             map("avg(date)", OpenSearchDateType.of(DATE)),
             map("date", OpenSearchDateType.of(DATE))));
@@ -179,9 +175,8 @@ class AggregationQueryBuilderTest {
   void should_build_type_mapping_for_time_type() {
     assertThat(
         buildTypeMapping(
-            Arrays.asList(
-                named("avg(time)", new AvgAggregator(Arrays.asList(ref("time", TIME)), TIME))),
-            Arrays.asList(named("time", ref("time", TIME)))),
+            List.of(named("avg(time)", new AvgAggregator(List.of(ref("time", TIME)), TIME))),
+            List.of(named("time", ref("time", TIME)))),
         containsInAnyOrder(
             map("avg(time)", OpenSearchDateType.of(TIME)),
             map("time", OpenSearchDateType.of(TIME))));
@@ -216,9 +211,8 @@ class AggregationQueryBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
-            Arrays.asList(
+            List.of(named("avg(age)", new AvgAggregator(List.of(ref("age", INTEGER)), INTEGER))),
+            List.of(
                 named(
                     "name",
                     ref(
@@ -234,9 +228,8 @@ class AggregationQueryBuilderTest {
   void should_build_type_mapping_for_field_reference_of_keyword() {
     assertThat(
         buildTypeMapping(
-            Arrays.asList(
-                named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
-            Arrays.asList(named("name", ref("name", STRING)))),
+            List.of(named("avg(age)", new AvgAggregator(List.of(ref("age", INTEGER)), INTEGER))),
+            List.of(named("name", ref("name", STRING)))),
         containsInAnyOrder(
             map("avg(age)", OpenSearchDataType.of(INTEGER)),
             map("name", OpenSearchDataType.of(STRING))));
@@ -284,11 +277,12 @@ class AggregationQueryBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
+            List.of(
                 named(
                     "avg(balance)",
-                    new AvgAggregator(Arrays.asList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
-            Arrays.asList(named("age", DSL.asin(ref("age", INTEGER))))));
+                    new AvgAggregator(
+                        Collections.singletonList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
+            List.of(named("age", DSL.asin(ref("age", INTEGER))))));
   }
 
   @Test
@@ -342,11 +336,12 @@ class AggregationQueryBuilderTest {
   void should_build_type_mapping_for_expression() {
     assertThat(
         buildTypeMapping(
-            Arrays.asList(
+            List.of(
                 named(
                     "avg(balance)",
-                    new AvgAggregator(Arrays.asList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
-            Arrays.asList(named("age", DSL.asin(ref("age", INTEGER))))),
+                    new AvgAggregator(
+                        Collections.singletonList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
+            List.of(named("age", DSL.asin(ref("age", INTEGER))))),
         containsInAnyOrder(
             map("avg(balance)", OpenSearchDataType.of(INTEGER)),
             map("age", OpenSearchDataType.of(DOUBLE))));
@@ -364,10 +359,9 @@ class AggregationQueryBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
+            List.of(
                 named(
-                    "avg(balance)",
-                    new AvgAggregator(Arrays.asList(ref("balance", INTEGER)), INTEGER))),
+                    "avg(balance)", new AvgAggregator(List.of(ref("balance", INTEGER)), INTEGER))),
             Collections.emptyList()));
   }
 
@@ -398,10 +392,10 @@ class AggregationQueryBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
+            List.of(
                 named(
                     "avg(age) filter(where age > 34)",
-                    new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)
+                    new AvgAggregator(List.of(ref("age", INTEGER)), INTEGER)
                         .condition(DSL.greater(ref("age", INTEGER), literal(20))))),
             Collections.emptyList()));
   }
@@ -450,22 +444,21 @@ class AggregationQueryBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
+            List.of(
                 named(
                     "avg(age) filter(where age > 34)",
-                    new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)
+                    new AvgAggregator(List.of(ref("age", INTEGER)), INTEGER)
                         .condition(DSL.greater(ref("age", INTEGER), literal(20))))),
-            Arrays.asList(named(ref("gender", OpenSearchDataType.of(STRING))))));
+            List.of(named(ref("gender", OpenSearchDataType.of(STRING))))));
   }
 
   @Test
   void should_build_type_mapping_without_bucket() {
     assertThat(
         buildTypeMapping(
-            Arrays.asList(
+            List.of(
                 named(
-                    "avg(balance)",
-                    new AvgAggregator(Arrays.asList(ref("balance", INTEGER)), INTEGER))),
+                    "avg(balance)", new AvgAggregator(List.of(ref("balance", INTEGER)), INTEGER))),
             Collections.emptyList()),
         containsInAnyOrder(map("avg(balance)", OpenSearchDataType.of(INTEGER))));
   }
@@ -500,9 +493,8 @@ class AggregationQueryBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
-            Arrays.asList(named(span(ref("age", INTEGER), literal(10), "")))));
+            List.of(named("count(a)", new CountAggregator(List.of(ref("a", INTEGER)), INTEGER))),
+            List.of(named(span(ref("age", INTEGER), literal(10), "")))));
   }
 
   @Test
@@ -541,9 +533,9 @@ class AggregationQueryBuilderTest {
                 + "}"),
         buildQuery(
             Arrays.asList(
-                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER)),
-                named("avg(b)", new AvgAggregator(Arrays.asList(ref("b", INTEGER)), INTEGER))),
-            Arrays.asList(named(span(ref("age", INTEGER), literal(10), "")))));
+                named("count(a)", new CountAggregator(List.of(ref("a", INTEGER)), INTEGER)),
+                named("avg(b)", new AvgAggregator(List.of(ref("b", INTEGER)), INTEGER))),
+            List.of(named(span(ref("age", INTEGER), literal(10), "")))));
   }
 
   @Test
@@ -576,9 +568,8 @@ class AggregationQueryBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
-            Arrays.asList(named(span(ref("timestamp", TIMESTAMP), literal(1), "h")))));
+            List.of(named("count(a)", new CountAggregator(List.of(ref("a", INTEGER)), INTEGER))),
+            List.of(named(span(ref("timestamp", TIMESTAMP), literal(1), "h")))));
   }
 
   @Test
@@ -611,9 +602,8 @@ class AggregationQueryBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
-            Arrays.asList(named(span(ref("date", DATE), literal(1), "w")))));
+            List.of(named("count(a)", new CountAggregator(List.of(ref("a", INTEGER)), INTEGER))),
+            List.of(named(span(ref("date", DATE), literal(1), "w")))));
   }
 
   @Test
@@ -646,9 +636,8 @@ class AggregationQueryBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named("count(a)", new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
-            Arrays.asList(named(span(ref("age", INTEGER), literal(1), "")))));
+            List.of(named("count(a)", new CountAggregator(List.of(ref("a", INTEGER)), INTEGER))),
+            List.of(named(span(ref("age", INTEGER), literal(1), "")))));
   }
 
   @Test
@@ -657,11 +646,9 @@ class AggregationQueryBuilderTest {
         IllegalStateException.class,
         () ->
             buildQuery(
-                Arrays.asList(
-                    named(
-                        "count(a)",
-                        new CountAggregator(Arrays.asList(ref("a", INTEGER)), INTEGER))),
-                Arrays.asList(named(span(ref("age", INTEGER), literal(1), "invalid_unit")))));
+                List.of(
+                    named("count(a)", new CountAggregator(List.of(ref("a", INTEGER)), INTEGER))),
+                List.of(named(span(ref("age", INTEGER), literal(1), "invalid_unit")))));
   }
 
   @SneakyThrows

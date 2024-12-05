@@ -18,6 +18,7 @@ import static org.opensearch.sql.protocol.response.format.RawResponseFormatter.C
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -57,7 +58,7 @@ public class RawResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 tupleValue(
                     ImmutableMap.of(
                         "=firstname",

@@ -6,7 +6,7 @@
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -32,7 +32,7 @@ public class Relation extends UnresolvedPlan {
   }
 
   public Relation(UnresolvedExpression tableName, String alias) {
-    this.tableName = Arrays.asList(tableName);
+    this.tableName = Collections.singletonList(tableName);
     this.alias = alias;
   }
 

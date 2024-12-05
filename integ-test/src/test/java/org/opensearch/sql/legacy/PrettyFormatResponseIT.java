@@ -335,7 +335,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 "SELECT COUNT(*) FROM %s GROUP BY age",
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = Arrays.asList("COUNT(*)");
+    List<String> fields = List.of("COUNT(*)");
     assertContainsColumns(getSchema(response), fields);
 
     JSONArray dataRows = getDataRows(response);
@@ -357,7 +357,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 "SELECT count(*) FROM %s GROUP BY age",
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = Arrays.asList("COUNT(*)");
+    List<String> fields = List.of("COUNT(*)");
     assertContainsColumns(getSchema(response), fields);
 
     JSONArray dataRows = getDataRows(response);
@@ -378,7 +378,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 "SELECT COUNT(*) AS total FROM %s GROUP BY age",
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = Arrays.asList("total");
+    List<String> fields = List.of("total");
     assertContainsColumns(getSchema(response), fields);
 
     JSONArray dataRows = getDataRows(response);
