@@ -252,7 +252,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
         ctx.nullNotnull().NOT() == null
             ? IS_NULL.getName().getFunctionName()
             : IS_NOT_NULL.getName().getFunctionName(),
-        Arrays.asList(visit(ctx.predicate())));
+        Collections.singletonList(visit(ctx.predicate())));
   }
 
   @Override

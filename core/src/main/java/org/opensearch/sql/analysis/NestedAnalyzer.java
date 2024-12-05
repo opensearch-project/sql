@@ -8,7 +8,6 @@ package org.opensearch.sql.analysis;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -94,7 +93,7 @@ public class NestedAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisCon
                 generatePath(nestedField.toString()));
       }
 
-      return mergeChildIfLogicalNested(new ArrayList<>(Arrays.asList(args)));
+      return mergeChildIfLogicalNested(new ArrayList<>(List.of(args)));
     }
     return null;
   }

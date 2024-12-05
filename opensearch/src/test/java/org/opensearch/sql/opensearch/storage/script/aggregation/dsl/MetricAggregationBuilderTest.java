@@ -73,9 +73,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named(
-                    "avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+            List.of(named("avg(age)", new AvgAggregator(List.of(ref("age", INTEGER)), INTEGER)))));
   }
 
   @Test
@@ -90,9 +88,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named(
-                    "sum(age)", new SumAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+            List.of(named("sum(age)", new SumAggregator(List.of(ref("age", INTEGER)), INTEGER)))));
   }
 
   @Test
@@ -107,10 +103,8 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named(
-                    "count(age)",
-                    new CountAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+            List.of(
+                named("count(age)", new CountAggregator(List.of(ref("age", INTEGER)), INTEGER)))));
   }
 
   @Test
@@ -125,8 +119,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named("count(*)", new CountAggregator(Arrays.asList(literal("*")), INTEGER)))));
+            List.of(named("count(*)", new CountAggregator(List.of(literal("*")), INTEGER)))));
   }
 
   @Test
@@ -140,9 +133,7 @@ class MetricAggregationBuilderTest {
                 + "    }%n"
                 + "  }%n"
                 + "}"),
-        buildQuery(
-            Arrays.asList(
-                named("count(1)", new CountAggregator(Arrays.asList(literal(1)), INTEGER)))));
+        buildQuery(List.of(named("count(1)", new CountAggregator(List.of(literal(1)), INTEGER)))));
   }
 
   @Test
@@ -157,9 +148,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named(
-                    "min(age)", new MinAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+            List.of(named("min(age)", new MinAggregator(List.of(ref("age", INTEGER)), INTEGER)))));
   }
 
   @Test
@@ -174,9 +163,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named(
-                    "max(age)", new MaxAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+            List.of(named("max(age)", new MaxAggregator(List.of(ref("age", INTEGER)), INTEGER)))));
   }
 
   @Test
@@ -192,10 +179,8 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named(
-                    "var_pop(age)",
-                    variancePopulation(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+            List.of(
+                named("var_pop(age)", variancePopulation(List.of(ref("age", INTEGER)), INTEGER)))));
   }
 
   @Test
@@ -211,10 +196,8 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named(
-                    "var_samp(age)",
-                    varianceSample(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+            List.of(
+                named("var_samp(age)", varianceSample(List.of(ref("age", INTEGER)), INTEGER)))));
   }
 
   @Test
@@ -234,7 +217,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
+            List.of(
                 named(
                     "percentile(age, 50)",
                     new PercentileApproximateAggregator(
@@ -258,7 +241,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
+            List.of(
                 named(
                     "percentile(age, 50)",
                     new PercentileApproximateAggregator(
@@ -297,7 +280,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
+            List.of(
                 named(
                     "percentile(age, 50)",
                     new PercentileApproximateAggregator(
@@ -318,10 +301,9 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
+            List.of(
                 named(
-                    "stddev_pop(age)",
-                    stddevPopulation(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+                    "stddev_pop(age)", stddevPopulation(List.of(ref("age", INTEGER)), INTEGER)))));
   }
 
   @Test
@@ -337,10 +319,8 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            Arrays.asList(
-                named(
-                    "stddev_samp(age)",
-                    stddevSample(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+            List.of(
+                named("stddev_samp(age)", stddevSample(List.of(ref("age", INTEGER)), INTEGER)))));
   }
 
   @Test
@@ -483,12 +463,12 @@ class MetricAggregationBuilderTest {
   @Test
   void should_throw_exception_for_unsupported_aggregator() {
     when(aggregator.getFunctionName()).thenReturn(new FunctionName("unsupported_agg"));
-    when(aggregator.getArguments()).thenReturn(Arrays.asList(ref("age", INTEGER)));
+    when(aggregator.getArguments()).thenReturn(List.of(ref("age", INTEGER)));
 
     IllegalStateException exception =
         assertThrows(
             IllegalStateException.class,
-            () -> buildQuery(Arrays.asList(named("unsupported_agg(age)", aggregator))));
+            () -> buildQuery(List.of(named("unsupported_agg(age)", aggregator))));
     assertEquals("unsupported aggregator unsupported_agg", exception.getMessage());
   }
 
@@ -499,11 +479,11 @@ class MetricAggregationBuilderTest {
             IllegalStateException.class,
             () ->
                 buildQuery(
-                    Arrays.asList(
+                    List.of(
                         named(
                             "count(age)",
                             new CountAggregator(
-                                Arrays.asList(named("age", ref("age", INTEGER))), INTEGER)))));
+                                List.of(named("age", ref("age", INTEGER))), INTEGER)))));
     assertEquals("metric aggregation doesn't support expression age", exception.getMessage());
   }
 
