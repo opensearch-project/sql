@@ -62,8 +62,7 @@ public class DefaultCursor implements Cursor {
   private static final String SCHEMA_COLUMNS = "c";
   private static final String FIELD_ALIAS_MAP = "a";
   private static final String PIT_ID = "p";
-  private static final String SEARCH_REQUEST = "r";
-  private static final String SORT_FIELDS = "h";
+    private static final String SORT_FIELDS = "h";
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   /**
@@ -263,17 +262,15 @@ public class DefaultCursor implements Cursor {
   }
 
   private static List<Schema.Column> getColumnsFromSchema(JSONArray schema) {
-    List<Schema.Column> columns =
-        IntStream.range(0, schema.length())
-            .mapToObj(
-                i -> {
-                  JSONObject jsonColumn = schema.getJSONObject(i);
-                  return new Schema.Column(
-                      jsonColumn.getString("name"),
-                      jsonColumn.optString("alias", null),
-                      Schema.Type.valueOf(jsonColumn.getString("type").toUpperCase()));
-                })
-            .collect(Collectors.toList());
-    return columns;
+      return IntStream.range(0, schema.length())
+          .mapToObj(
+              i -> {
+                JSONObject jsonColumn = schema.getJSONObject(i);
+                return new Schema.Column(
+                    jsonColumn.getString("name"),
+                    jsonColumn.optString("alias", null),
+                    Schema.Type.valueOf(jsonColumn.getString("type").toUpperCase()));
+              })
+          .collect(Collectors.toList());
   }
 }

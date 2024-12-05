@@ -51,7 +51,7 @@ public class CursorIT extends SQLIntegTestCase {
         StringUtils.format("SELECT firstname, state FROM %s", TestsConstants.TEST_INDEX_ACCOUNT);
     Response response = null;
     try {
-      String queryResult = executeFetchQuery(query, -2, JDBC);
+        executeFetchQuery(query, -2, JDBC);
     } catch (ResponseException ex) {
       response = ex.getResponse();
     }
@@ -70,7 +70,7 @@ public class CursorIT extends SQLIntegTestCase {
         StringUtils.format("SELECT firstname, state FROM %s", TestsConstants.TEST_INDEX_ACCOUNT);
     Response response = null;
     try {
-      String queryResult = executeFetchAsStringQuery(query, "hello world", JDBC);
+        executeFetchAsStringQuery(query, "hello world", JDBC);
     } catch (ResponseException ex) {
       response = ex.getResponse();
     }
@@ -88,7 +88,7 @@ public class CursorIT extends SQLIntegTestCase {
     Request sqlRequest = getSqlRequest(cursorRequest, true);
     Response response = null;
     try {
-      String queryResult = executeRequest(sqlRequest);
+        executeRequest(sqlRequest);
     } catch (ResponseException ex) {
       response = ex.getResponse();
     }
@@ -222,7 +222,6 @@ public class CursorIT extends SQLIntegTestCase {
   public void testCursorWithPreparedStatement() throws IOException {
     JSONObject response =
         executeJDBCRequest(
-            String.format(
                 "{"
                     + "\"fetch_size\": 200,"
                     + "\"query\": \" SELECT age, state FROM %s WHERE age > ? OR state IN (?, ?)\","
@@ -241,7 +240,7 @@ public class CursorIT extends SQLIntegTestCase {
                     + "  }"
                     + "]"
                     + "}"
-                    + TestsConstants.TEST_INDEX_ACCOUNT));
+                    + TestsConstants.TEST_INDEX_ACCOUNT);
     assertTrue(response.has(CURSOR));
     verifyIsV1Cursor(response.getString(CURSOR));
   }
@@ -249,10 +248,10 @@ public class CursorIT extends SQLIntegTestCase {
   @Test
   public void testRegressionOnDateFormatChange() throws IOException {
     loadIndex(Index.DATETIME);
-    /**
-     * With pagination, the field should be date formatted to MySQL format as in
-     *
-     * @see <a href="https://github.com/opendistro-for-elasticsearch/sql/pull/367">PR #367</a
+    /*
+      With pagination, the field should be date formatted to MySQL format as in
+
+      @see <a href="https://github.com/opendistro-for-elasticsearch/sql/pull/367">PR #367</a
      *     <pre>
      * TEST_INDEX_DATE_TIME has three docs with login_time as date field with following values
      * 1.2015-01-01
@@ -368,7 +367,7 @@ public class CursorIT extends SQLIntegTestCase {
     // using the cursor after its cleared, will throw exception
     Response response = null;
     try {
-      JSONObject queryResult = executeCursorQuery(cursor);
+        executeCursorQuery(cursor);
     } catch (ResponseException ex) {
       response = ex.getResponse();
     }
@@ -388,7 +387,7 @@ public class CursorIT extends SQLIntegTestCase {
 
     Response response = null;
     try {
-      JSONObject resp = executeCursorQuery(randomCursor);
+        executeCursorQuery(randomCursor);
     } catch (ResponseException ex) {
       response = ex.getResponse();
     }
@@ -443,14 +442,14 @@ public class CursorIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void testMalformedCursorGracefullyHandled() throws IOException {
+  public void testMalformedCursorGracefullyHandled() {
     ResponseException result =
         assertThrows(
             "Expected query with malformed cursor to raise error, but didn't",
             ResponseException.class,
             () -> executeCursorQuery("d:a11b4db33f"));
     assertTrue(result.getMessage().contains("Malformed cursor"));
-    assertEquals(result.getResponse().getStatusLine().getStatusCode(), 400);
+    assertEquals(400, result.getResponse().getStatusLine().getStatusCode());
   }
 
   public void verifyWithAndWithoutPaginationResponse(
@@ -509,8 +508,7 @@ public class CursorIT extends SQLIntegTestCase {
     sqlRequest.setJsonEntity(requestBody);
 
     Response response = client().performRequest(sqlRequest);
-    String responseString = getResponseBody(response, true);
-    return responseString;
+      return getResponseBody(response, true);
   }
 
   private void verifyIsV1Cursor(String cursor) {
