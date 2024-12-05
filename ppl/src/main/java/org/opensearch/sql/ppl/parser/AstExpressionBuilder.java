@@ -237,7 +237,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     if (ctx.getChild(0) instanceof IdentsAsTableQualifiedNameContext) {
       return visitIdentsAsTableQualifiedName((IdentsAsTableQualifiedNameContext) ctx.getChild(0));
     } else {
-      return visitIdentifiers(Arrays.asList(ctx));
+      return visitIdentifiers(List.of(ctx));
     }
   }
 

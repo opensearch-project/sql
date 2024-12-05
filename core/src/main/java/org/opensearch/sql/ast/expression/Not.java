@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.ast.expression;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -23,7 +23,7 @@ public class Not extends UnresolvedExpression {
 
   @Override
   public List<UnresolvedExpression> getChild() {
-    return Arrays.asList(expression);
+    return Collections.singletonList(expression);
   }
 
   @Override

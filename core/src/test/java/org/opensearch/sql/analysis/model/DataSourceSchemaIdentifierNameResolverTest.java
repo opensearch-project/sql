@@ -40,7 +40,7 @@ public class DataSourceSchemaIdentifierNameResolverTest {
   @Test
   void defaultDataSourceNameResolve() {
     when(dataSourceService.dataSourceExists(any())).thenReturn(Boolean.FALSE);
-    identifierOf(Arrays.asList("tables"), dataSourceService)
+    identifierOf(List.of("tables"), dataSourceService)
         .datasource(DEFAULT_DATASOURCE_NAME)
         .schema(DEFAULT_SCHEMA_NAME)
         .name("tables");

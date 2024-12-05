@@ -14,6 +14,7 @@ import static org.opensearch.sql.legacy.util.MatcherUtils.featureValueOf;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.hamcrest.Matcher;
@@ -69,7 +70,7 @@ public class BindingTupleResultSetTest {
             Arrays.asList(
                 ColumnNode.builder().alias("dateValue").type(Schema.Type.DATE).build(),
                 ColumnNode.builder().alias("gender").type(Schema.Type.TEXT).build()),
-            Arrays.asList(
+            Collections.singletonList(
                 BindingTuple.from(ImmutableMap.of("dateValue", 1529712000000L, "gender", "m")))),
         containsInAnyOrder(
             rowContents(

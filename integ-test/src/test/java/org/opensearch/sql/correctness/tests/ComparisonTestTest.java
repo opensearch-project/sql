@@ -12,6 +12,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,14 +52,14 @@ public class ComparisonTestTest {
         .thenReturn(
             new DBResult(
                 "OpenSearch",
-                asList(new Type("firstname", "text")),
-                asList(new Row(asList("John")))));
+                List.of(new Type("firstname", "text")),
+                List.of(new Row(List.of("John")))));
     when(otherDbConnection.select(anyString()))
         .thenReturn(
             new DBResult(
                 "Other DB",
-                asList(new Type("firstname", "text")),
-                asList(new Row(asList("John")))));
+                List.of(new Type("firstname", "text")),
+                List.of(new Row(List.of("John")))));
 
     TestReport expected = new TestReport();
     expected.addTestCase(new SuccessTestCase(1, "SELECT * FROM accounts"));
@@ -70,10 +71,12 @@ public class ComparisonTestTest {
   public void testFailureDueToInconsistency() {
     DBResult openSearchResult =
         new DBResult(
-            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+            "OpenSearch",
+            List.of(new Type("firstname", "text")),
+            List.of(new Row(List.of("John"))));
     DBResult otherDbResult =
         new DBResult(
-            "Other DB", asList(new Type("firstname", "text")), asList(new Row(asList("JOHN"))));
+            "Other DB", List.of(new Type("firstname", "text")), List.of(new Row(List.of("JOHN"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherDbResult);
 
@@ -95,13 +98,17 @@ public class ComparisonTestTest {
 
     DBResult openSearchResult =
         new DBResult(
-            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+            "OpenSearch",
+            List.of(new Type("firstname", "text")),
+            List.of(new Row(List.of("John"))));
     DBResult otherDbResult =
         new DBResult(
-            "Other DB", asList(new Type("firstname", "text")), asList(new Row(asList("JOHN"))));
+            "Other DB", List.of(new Type("firstname", "text")), List.of(new Row(List.of("JOHN"))));
     DBResult anotherDbResult =
         new DBResult(
-            "Another DB", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+            "Another DB",
+            List.of(new Type("firstname", "text")),
+            List.of(new Row(List.of("John"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(anotherDbConnection.select(anyString())).thenReturn(anotherDbResult);
 
@@ -122,13 +129,15 @@ public class ComparisonTestTest {
 
     DBResult openSearchResult =
         new DBResult(
-            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+            "OpenSearch",
+            List.of(new Type("firstname", "text")),
+            List.of(new Row(List.of("John"))));
     DBResult otherDbResult =
         new DBResult(
-            "Other DB", asList(new Type("firstname", "text")), asList(new Row(asList("JOHN"))));
+            "Other DB", List.of(new Type("firstname", "text")), List.of(new Row(List.of("JOHN"))));
     DBResult anotherDbResult =
         new DBResult(
-            "ZZZ DB", asList(new Type("firstname", "text")), asList(new Row(asList("Hank"))));
+            "ZZZ DB", List.of(new Type("firstname", "text")), List.of(new Row(List.of("Hank"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherDbResult);
     when(anotherDbConnection.select(anyString())).thenReturn(anotherDbResult);
@@ -162,8 +171,8 @@ public class ComparisonTestTest {
         .thenReturn(
             new DBResult(
                 "OpenSearch",
-                asList(new Type("firstname", "text")),
-                asList(new Row(asList("John")))));
+                List.of(new Type("firstname", "text")),
+                List.of(new Row(List.of("John")))));
     when(otherDbConnection.select(anyString()))
         .thenThrow(new RuntimeException("Unsupported feature"));
 
@@ -189,14 +198,14 @@ public class ComparisonTestTest {
         .thenReturn(
             new DBResult(
                 "OpenSearch",
-                asList(new Type("firstname", "text")),
-                asList(new Row(asList("John")))));
+                List.of(new Type("firstname", "text")),
+                List.of(new Row(List.of("John")))));
     when(anotherDbConnection.select(anyString()))
         .thenReturn(
             new DBResult(
                 "Another DB",
-                asList(new Type("firstname", "text")),
-                asList(new Row(asList("John")))));
+                List.of(new Type("firstname", "text")),
+                List.of(new Row(List.of("John")))));
 
     TestReport expected = new TestReport();
     expected.addTestCase(new SuccessTestCase(1, "SELECT * FROM accounts"));
@@ -214,9 +223,11 @@ public class ComparisonTestTest {
 
     DBResult openSearchResult =
         new DBResult(
-            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+            "OpenSearch",
+            List.of(new Type("firstname", "text")),
+            List.of(new Row(List.of("John"))));
     DBResult otherResult =
-        new DBResult("Other", asList(new Type("firstname", "text")), Collections.emptyList());
+        new DBResult("Other", List.of(new Type("firstname", "text")), Collections.emptyList());
 
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherResult);
