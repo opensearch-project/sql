@@ -32,6 +32,7 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -174,7 +175,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitRelationSubquery(RelationSubquery node, AnalysisContext context) {
-    LogicalPlan subquery = analyze(node.getChild().getFirst(), context);
+    LogicalPlan subquery = visitFirstChild(node, context);
     // inherit the parent environment to keep the subquery fields in current environment
     TypeEnvironment curEnv = context.peek();
 
@@ -227,13 +228,13 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitLimit(Limit node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
     return new LogicalLimit(child, node.getLimit(), node.getOffset());
   }
 
   @Override
   public LogicalPlan visitFilter(Filter node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
     Expression condition = expressionAnalyzer.analyze(node.getCondition(), context);
 
     ExpressionReferenceOptimizer optimizer =
@@ -266,7 +267,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalRename}. */
   @Override
   public LogicalPlan visitRename(Rename node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
     ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> renameMapBuilder =
         new ImmutableMap.Builder<>();
     for (Map renameMap : node.getRenameList()) {
@@ -293,7 +294,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalAggregation}. */
   @Override
   public LogicalPlan visitAggregation(Aggregation node, AnalysisContext context) {
-    final LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    final LogicalPlan child = visitFirstChild(node, context);
     ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
     for (UnresolvedExpression expr : node.getAggExprList()) {
       NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
@@ -331,7 +332,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalRareTopN}. */
   @Override
   public LogicalPlan visitRareTopN(RareTopN node, AnalysisContext context) {
-    final LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    final LogicalPlan child = visitFirstChild(node, context);
 
     ImmutableList.Builder<Expression> groupbyBuilder = new ImmutableList.Builder<>();
     for (UnresolvedExpression expr : node.getGroupExprList()) {
@@ -372,7 +373,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    */
   @Override
   public LogicalPlan visitProject(Project node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
 
     if (node.hasArgument()) {
       Argument argument = node.getArgExprList().getFirst();
@@ -426,7 +427,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalEval}. */
   @Override
   public LogicalPlan visitEval(Eval node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
     ImmutableList.Builder<Pair<ReferenceExpression, Expression>> expressionsBuilder =
         new Builder<>();
     for (Let let : node.getExpressionList()) {
@@ -443,7 +444,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
   @Override
   public LogicalPlan visitParse(Parse node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
     Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
     ParseMethod parseMethod = node.getParseMethod();
     java.util.Map<String, Literal> arguments = node.getArguments();
@@ -466,7 +467,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalSort}. */
   @Override
   public LogicalPlan visitSort(Sort node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
     ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
 
@@ -489,7 +490,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalDedupe}. */
   @Override
   public LogicalPlan visitDedupe(Dedupe node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
     List<Argument> options = node.getOptions();
     // Todo, refactor the option.
     Integer allowedDuplication = (Integer) options.get(0).getValue().getValue();
@@ -508,7 +509,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   /** Logical head is identical to {@link LogicalLimit}. */
   public LogicalPlan visitHead(Head node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
     return new LogicalLimit(child, node.getSize(), node.getFrom());
   }
 
@@ -528,7 +529,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalMLCommons} for Kmeans command. */
   @Override
   public LogicalPlan visitKmeans(Kmeans node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
     java.util.Map<String, Literal> options = node.getArguments();
 
     TypeEnvironment currentEnv = context.peek();
@@ -540,7 +541,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalAD} for AD command. */
   @Override
   public LogicalPlan visitAD(AD node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
     java.util.Map<String, Literal> options = node.getArguments();
 
     TypeEnvironment currentEnv = context.peek();
@@ -560,7 +561,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /** Build {@link LogicalML} for ml command. */
   @Override
   public LogicalPlan visitML(ML node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(node, context);
     TypeEnvironment currentEnv = context.peek();
     node.getOutputSchema(currentEnv)
         .forEach((key, value) -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, key), value));
@@ -570,7 +571,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitPaginate(Paginate paginate, AnalysisContext context) {
-    LogicalPlan child = paginate.getChild().getFirst().accept(this, context);
+    LogicalPlan child = visitFirstChild(paginate, context);
     return new LogicalPaginate(paginate.getPageSize(), List.of(child));
   }
 
@@ -583,7 +584,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitCloseCursor(CloseCursor closeCursor, AnalysisContext context) {
-    return new LogicalCloseCursor(closeCursor.getChild().getFirst().accept(this, context));
+    LogicalPlan child = visitFirstChild(closeCursor, context);
+    return new LogicalCloseCursor(child);
   }
 
   /**
@@ -600,5 +602,14 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       return new SortOption((asc ? ASC : DESC), (isNullFirst ? NULL_FIRST : NULL_LAST));
     }
     return asc ? SortOption.DEFAULT_ASC : SortOption.DEFAULT_DESC;
+  }
+
+  /**
+   * Visit the first child of the specified node with the given analysis context.
+   *
+   * @return the resulting logical plan
+   */
+  private LogicalPlan visitFirstChild(Node node, AnalysisContext context) {
+    return node.getChild().getFirst().accept(this, context);
   }
 }
