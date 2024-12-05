@@ -175,9 +175,9 @@ public class DefaultCursor implements Cursor {
 
   public static DefaultCursor from(String cursorId) {
     /*
-      It is assumed that cursorId here is the second part of the original cursor passed by the
-      client after removing first part which identifies cursor type
-     */
+     It is assumed that cursorId here is the second part of the original cursor passed by the
+     client after removing first part which identifies cursor type
+    */
     JSONObject json = decodeCursor(cursorId);
     DefaultCursor cursor = new DefaultCursor();
     cursor.setFetchSize(json.getInt(FETCH_SIZE));
