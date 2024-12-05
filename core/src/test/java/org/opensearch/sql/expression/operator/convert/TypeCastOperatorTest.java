@@ -343,9 +343,6 @@ class TypeCastOperatorTest {
   void castToIp() {
     FunctionExpression exp;
 
-    String expectedMsg;
-    String actualMsg;
-
     final String ipv4String = "1.2.3.4";
     final String ipv6String = "2001:db7::ff00:42:8329";
     final String ipInvalidString = "INVALID";
@@ -363,10 +360,10 @@ class TypeCastOperatorTest {
     assertEquals(exprIpv6Value, exp.valueOf());
 
     exp = DSL.castIp(DSL.literal(ipInvalidString));
-    actualMsg = assertThrows(SemanticCheckException.class, exp::valueOf).getMessage();
-    expectedMsg =
-        String.format("IP address string '%s' is not valid. Error details: .*", ipInvalidString);
-    assertTrue(actualMsg.matches(expectedMsg));
+    assertThrows(
+        SemanticCheckException.class,
+        exp::valueOf,
+        String.format("IP address string '%s' is not valid. Error details: .*", ipInvalidString));
 
     // From IP address
     exp = DSL.castIp(DSL.literal(exprIpv4Value));
@@ -378,11 +375,10 @@ class TypeCastOperatorTest {
     assertEquals(exprIpv6Value, exp.valueOf());
 
     // From invalid type
-    actualMsg =
-        assertThrows(ExpressionEvaluationException.class, () -> DSL.castIp(DSL.literal(0)))
-            .getMessage();
-    expectedMsg = "cast_to_ip function expected {[IP],[STRING]}, but got [INTEGER]";
-    assertEquals(expectedMsg, actualMsg);
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.castIp(DSL.literal(0)),
+        "cast_to_ip function expected {[IP],[STRING]}, but got [INTEGER]");
 
     // From null or missing value
     exp = DSL.castIp(DSL.literal(ExprNullValue.of()));
