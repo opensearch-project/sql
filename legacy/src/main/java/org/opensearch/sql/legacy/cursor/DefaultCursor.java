@@ -62,7 +62,7 @@ public class DefaultCursor implements Cursor {
   private static final String SCHEMA_COLUMNS = "c";
   private static final String FIELD_ALIAS_MAP = "a";
   private static final String PIT_ID = "p";
-    private static final String SORT_FIELDS = "h";
+  private static final String SORT_FIELDS = "h";
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   /**
@@ -174,9 +174,9 @@ public class DefaultCursor implements Cursor {
   }
 
   public static DefaultCursor from(String cursorId) {
-    /**
-     * It is assumed that cursorId here is the second part of the original cursor passed by the
-     * client after removing first part which identifies cursor type
+    /*
+      It is assumed that cursorId here is the second part of the original cursor passed by the
+      client after removing first part which identifies cursor type
      */
     JSONObject json = decodeCursor(cursorId);
     DefaultCursor cursor = new DefaultCursor();
@@ -262,15 +262,15 @@ public class DefaultCursor implements Cursor {
   }
 
   private static List<Schema.Column> getColumnsFromSchema(JSONArray schema) {
-      return IntStream.range(0, schema.length())
-          .mapToObj(
-              i -> {
-                JSONObject jsonColumn = schema.getJSONObject(i);
-                return new Schema.Column(
-                    jsonColumn.getString("name"),
-                    jsonColumn.optString("alias", null),
-                    Schema.Type.valueOf(jsonColumn.getString("type").toUpperCase()));
-              })
-          .collect(Collectors.toList());
+    return IntStream.range(0, schema.length())
+        .mapToObj(
+            i -> {
+              JSONObject jsonColumn = schema.getJSONObject(i);
+              return new Schema.Column(
+                  jsonColumn.getString("name"),
+                  jsonColumn.optString("alias", null),
+                  Schema.Type.valueOf(jsonColumn.getString("type").toUpperCase()));
+            })
+        .collect(Collectors.toList());
   }
 }

@@ -46,20 +46,20 @@ public class ComparisonUtil {
           "invalid to call compare operation on values of different types");
     }
 
-      return switch ((ExprCoreType) v1.type()) {
-          case BYTE -> v1.byteValue().compareTo(v2.byteValue());
-          case SHORT -> v1.shortValue().compareTo(v2.shortValue());
-          case INTEGER -> getIntegerValue(v1).compareTo(getIntegerValue(v2));
-          case LONG -> getLongValue(v1).compareTo(getLongValue(v2));
-          case FLOAT -> getFloatValue(v1).compareTo(getFloatValue(v2));
-          case DOUBLE -> getDoubleValue(v1).compareTo(getDoubleValue(v2));
-          case STRING -> getStringValue(v1).compareTo(getStringValue(v2));
-          case BOOLEAN -> v1.booleanValue().compareTo(v2.booleanValue());
-          case TIME -> v1.timeValue().compareTo(v2.timeValue());
-          case DATE -> v1.dateValue().compareTo(v2.dateValue());
-          case TIMESTAMP -> v1.timestampValue().compareTo(v2.timestampValue());
-          default -> throw new ExpressionEvaluationException(
-                  String.format("%s instances are not comparable", v1.getClass().getSimpleName()));
-      };
+    return switch ((ExprCoreType) v1.type()) {
+      case BYTE -> v1.byteValue().compareTo(v2.byteValue());
+      case SHORT -> v1.shortValue().compareTo(v2.shortValue());
+      case INTEGER -> getIntegerValue(v1).compareTo(getIntegerValue(v2));
+      case LONG -> getLongValue(v1).compareTo(getLongValue(v2));
+      case FLOAT -> getFloatValue(v1).compareTo(getFloatValue(v2));
+      case DOUBLE -> getDoubleValue(v1).compareTo(getDoubleValue(v2));
+      case STRING -> getStringValue(v1).compareTo(getStringValue(v2));
+      case BOOLEAN -> v1.booleanValue().compareTo(v2.booleanValue());
+      case TIME -> v1.timeValue().compareTo(v2.timeValue());
+      case DATE -> v1.dateValue().compareTo(v2.dateValue());
+      case TIMESTAMP -> v1.timestampValue().compareTo(v2.timestampValue());
+      default -> throw new ExpressionEvaluationException(
+          String.format("%s instances are not comparable", v1.getClass().getSimpleName()));
+    };
   }
 }

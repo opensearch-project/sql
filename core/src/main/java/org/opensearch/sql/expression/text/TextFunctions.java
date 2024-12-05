@@ -182,9 +182,7 @@ public class TextFunctions {
                       @Override
                       public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
                         List<ExprValue> exprValues =
-                            args.stream()
-                                .map(arg -> arg.valueOf(valueEnv))
-                                .toList();
+                            args.stream().map(arg -> arg.valueOf(valueEnv)).toList();
                         if (exprValues.stream().anyMatch(ExprValue::isMissing)) {
                           return ExprValueUtils.missingValue();
                         }
@@ -310,7 +308,8 @@ public class TextFunctions {
         BuiltinFunctionName.LOCATE.getName(),
         impl(
             nullMissingHandling(
-                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>) TextFunctions::exprLocate),
+                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>)
+                    TextFunctions::exprLocate),
             INTEGER,
             STRING,
             STRING),
@@ -337,7 +336,8 @@ public class TextFunctions {
         BuiltinFunctionName.POSITION.getName(),
         impl(
             nullMissingHandling(
-                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>) TextFunctions::exprLocate),
+                (SerializableBiFunction<ExprValue, ExprValue, ExprValue>)
+                    TextFunctions::exprLocate),
             INTEGER,
             STRING,
             STRING));
@@ -417,7 +417,7 @@ public class TextFunctions {
 
   private static ExprValue exprAscii(ExprValue expr) {
     return new ExprIntegerValue(
-            expr.stringValue().isEmpty() ? 0 : (int) expr.stringValue().charAt(0));
+        expr.stringValue().isEmpty() ? 0 : (int) expr.stringValue().charAt(0));
   }
 
   private static ExprValue exprLocate(ExprValue subStr, ExprValue str) {

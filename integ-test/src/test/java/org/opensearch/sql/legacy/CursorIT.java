@@ -51,7 +51,7 @@ public class CursorIT extends SQLIntegTestCase {
         StringUtils.format("SELECT firstname, state FROM %s", TestsConstants.TEST_INDEX_ACCOUNT);
     Response response = null;
     try {
-        executeFetchQuery(query, -2, JDBC);
+      executeFetchQuery(query, -2, JDBC);
     } catch (ResponseException ex) {
       response = ex.getResponse();
     }
@@ -70,7 +70,7 @@ public class CursorIT extends SQLIntegTestCase {
         StringUtils.format("SELECT firstname, state FROM %s", TestsConstants.TEST_INDEX_ACCOUNT);
     Response response = null;
     try {
-        executeFetchAsStringQuery(query, "hello world", JDBC);
+      executeFetchAsStringQuery(query, "hello world", JDBC);
     } catch (ResponseException ex) {
       response = ex.getResponse();
     }
@@ -88,7 +88,7 @@ public class CursorIT extends SQLIntegTestCase {
     Request sqlRequest = getSqlRequest(cursorRequest, true);
     Response response = null;
     try {
-        executeRequest(sqlRequest);
+      executeRequest(sqlRequest);
     } catch (ResponseException ex) {
       response = ex.getResponse();
     }
@@ -222,25 +222,25 @@ public class CursorIT extends SQLIntegTestCase {
   public void testCursorWithPreparedStatement() throws IOException {
     JSONObject response =
         executeJDBCRequest(
-                "{"
-                    + "\"fetch_size\": 200,"
-                    + "\"query\": \" SELECT age, state FROM %s WHERE age > ? OR state IN (?, ?)\","
-                    + "\"parameters\": ["
-                    + "  {"
-                    + "   \"type\": \"integer\","
-                    + "   \"value\": 25"
-                    + "  },"
-                    + "  {"
-                    + "    \"type\": \"string\","
-                    + "    \"value\": \"WA\""
-                    + "  },"
-                    + "  {"
-                    + "    \"type\": \"string\","
-                    + "    \"value\": \"UT\""
-                    + "  }"
-                    + "]"
-                    + "}"
-                    + TestsConstants.TEST_INDEX_ACCOUNT);
+            "{"
+                + "\"fetch_size\": 200,"
+                + "\"query\": \" SELECT age, state FROM %s WHERE age > ? OR state IN (?, ?)\","
+                + "\"parameters\": ["
+                + "  {"
+                + "   \"type\": \"integer\","
+                + "   \"value\": 25"
+                + "  },"
+                + "  {"
+                + "    \"type\": \"string\","
+                + "    \"value\": \"WA\""
+                + "  },"
+                + "  {"
+                + "    \"type\": \"string\","
+                + "    \"value\": \"UT\""
+                + "  }"
+                + "]"
+                + "}"
+                + TestsConstants.TEST_INDEX_ACCOUNT);
     assertTrue(response.has(CURSOR));
     verifyIsV1Cursor(response.getString(CURSOR));
   }
@@ -249,17 +249,17 @@ public class CursorIT extends SQLIntegTestCase {
   public void testRegressionOnDateFormatChange() throws IOException {
     loadIndex(Index.DATETIME);
     /*
-      With pagination, the field should be date formatted to MySQL format as in
+     With pagination, the field should be date formatted to MySQL format as in
 
-      @see <a href="https://github.com/opendistro-for-elasticsearch/sql/pull/367">PR #367</a
-     *     <pre>
-     * TEST_INDEX_DATE_TIME has three docs with login_time as date field with following values
-     * 1.2015-01-01
-     * 2.2015-01-01T12:10:30Z
-     * 3.1585882955
-     * 4.2020-04-08T11:10:30+05:00
-     * </pre>
-     */
+     @see <a href="https://github.com/opendistro-for-elasticsearch/sql/pull/367">PR #367</a
+    *     <pre>
+    * TEST_INDEX_DATE_TIME has three docs with login_time as date field with following values
+    * 1.2015-01-01
+    * 2.2015-01-01T12:10:30Z
+    * 3.1585882955
+    * 4.2020-04-08T11:10:30+05:00
+    * </pre>
+    */
     List<String> actualDateList = new ArrayList<>();
     String selectQuery =
         StringUtils.format("SELECT login_time FROM %s LIMIT 500", TEST_INDEX_DATE_TIME);
@@ -367,7 +367,7 @@ public class CursorIT extends SQLIntegTestCase {
     // using the cursor after its cleared, will throw exception
     Response response = null;
     try {
-        executeCursorQuery(cursor);
+      executeCursorQuery(cursor);
     } catch (ResponseException ex) {
       response = ex.getResponse();
     }
@@ -387,7 +387,7 @@ public class CursorIT extends SQLIntegTestCase {
 
     Response response = null;
     try {
-        executeCursorQuery(randomCursor);
+      executeCursorQuery(randomCursor);
     } catch (ResponseException ex) {
       response = ex.getResponse();
     }
@@ -508,7 +508,7 @@ public class CursorIT extends SQLIntegTestCase {
     sqlRequest.setJsonEntity(requestBody);
 
     Response response = client().performRequest(sqlRequest);
-      return getResponseBody(response, true);
+    return getResponseBody(response, true);
   }
 
   private void verifyIsV1Cursor(String cursor) {
