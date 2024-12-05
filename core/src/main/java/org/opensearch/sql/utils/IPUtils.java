@@ -34,7 +34,7 @@ public class IPUtils {
 
   /**
    * Builds and returns the {@link IPAddress} represented by the given IP address range string in
-   * CIDR (classless inter-domain routing) notation. Returns {@link SemanticCheckException} if it
+   * CIDR (classless inter-domain routing) notation. Throws {@link SemanticCheckException} if it
    * does not represent a valid IP address range. Supports both IPv4 and IPv6 address ranges.
    */
   public static IPAddress toRange(String s) throws SemanticCheckException {
