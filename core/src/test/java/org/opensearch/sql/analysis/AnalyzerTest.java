@@ -75,6 +75,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
@@ -83,6 +84,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
@@ -1524,6 +1526,48 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         new LogicalMLCommons(LogicalPlanDSL.relation("schema", table), "kmeans", argumentMap),
         new Kmeans(AstDSL.relation("schema"), argumentMap));
+  }
+
+  @Test
+  public void fillnull_same_value() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.eval(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutablePair.of(
+                DSL.ref("integer_value", INTEGER),
+                DSL.ifnull(DSL.ref("integer_value", INTEGER), DSL.literal(0))),
+            ImmutablePair.of(
+                DSL.ref("int_null_value", INTEGER),
+                DSL.ifnull(DSL.ref("int_null_value", INTEGER), DSL.literal(0)))),
+        new FillNull(
+            AstDSL.relation("schema"),
+            FillNull.ContainNullableFieldFill.ofSameValue(
+                AstDSL.intLiteral(0),
+                ImmutableList.<Field>builder()
+                    .add(AstDSL.field("integer_value"))
+                    .add(AstDSL.field("int_null_value"))
+                    .build())));
+  }
+
+  @Test
+  public void fillnull_various_values() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.eval(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutablePair.of(
+                DSL.ref("integer_value", INTEGER),
+                DSL.ifnull(DSL.ref("integer_value", INTEGER), DSL.literal(0))),
+            ImmutablePair.of(
+                DSL.ref("int_null_value", INTEGER),
+                DSL.ifnull(DSL.ref("int_null_value", INTEGER), DSL.literal(1)))),
+        new FillNull(
+            AstDSL.relation("schema"),
+            FillNull.ContainNullableFieldFill.ofVariousValue(
+                ImmutableList.of(
+                    new FillNull.NullableFieldFill(
+                        AstDSL.field("integer_value"), AstDSL.intLiteral(0)),
+                    new FillNull.NullableFieldFill(
+                        AstDSL.field("int_null_value"), AstDSL.intLiteral(1))))));
   }
 
   @Test

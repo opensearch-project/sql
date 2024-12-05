@@ -50,6 +50,7 @@ commands
    | kmeansCommand
    | adCommand
    | mlCommand
+   | fillnullCommand
    ;
 
 searchCommand
@@ -138,6 +139,23 @@ patternsParameter
 patternsMethod
    : PUNCT
    | REGEX
+   ;
+
+fillnullCommand
+   : FILLNULL (fillNullWithTheSameValue
+   | fillNullWithFieldVariousValues)
+   ;
+
+fillNullWithTheSameValue
+   : WITH nullReplacement = valueExpression IN nullableFieldList = fieldList
+   ;
+
+fillNullWithFieldVariousValues
+   : USING nullReplacementExpression (COMMA nullReplacementExpression)*
+   ;
+
+nullReplacementExpression
+   : nullableField = fieldExpression EQUAL nullReplacement = valueExpression
    ;
 
 kmeansCommand
@@ -857,6 +875,7 @@ keywordsCanBeId
    | LOOKUP
    | SORT
    | EVAL
+   | FILLNULL
    | HEAD
    | TOP
    | RARE

@@ -122,6 +122,19 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testFillNullSameValue() {
+    assertEquals(
+        "source=t | fillnull with 0 in f1, f2", anonymize("source=t | fillnull with 0 in f1, f2"));
+  }
+
+  @Test
+  public void testFillNullVariousValues() {
+    assertEquals(
+        "source=t | fillnull using f1 = 0, f2 = -1",
+        anonymize("source=t | fillnull using f1 = 0, f2 = -1"));
+  }
+
+  @Test
   public void testRareCommandWithGroupBy() {
     assertEquals("source=t | rare 10 a by b", anonymize("source=t | rare a by b"));
   }

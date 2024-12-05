@@ -44,6 +44,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,10 +54,12 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -673,6 +676,35 @@ public class AstBuilderTest {
                 .put("iteration", new Literal(2, DataType.INTEGER))
                 .put("dist_type", new Literal("l1", DataType.STRING))
                 .build()));
+  }
+
+  @Test
+  public void testFillNullCommandSameValue() {
+    assertEqual(
+        "source=t | fillnull with 0 in a, b, c",
+        new FillNull(
+            relation("t"),
+            FillNull.ContainNullableFieldFill.ofSameValue(
+                intLiteral(0),
+                ImmutableList.<Field>builder()
+                    .add(field("a"))
+                    .add(field("b"))
+                    .add(field("c"))
+                    .build())));
+  }
+
+  @Test
+  public void testFillNullCommandVariousValues() {
+    assertEqual(
+        "source=t | fillnull using a = 1, b = 2, c = 3",
+        new FillNull(
+            relation("t"),
+            FillNull.ContainNullableFieldFill.ofVariousValue(
+                ImmutableList.<FillNull.NullableFieldFill>builder()
+                    .add(new FillNull.NullableFieldFill(field("a"), intLiteral(1)))
+                    .add(new FillNull.NullableFieldFill(field("b"), intLiteral(2)))
+                    .add(new FillNull.NullableFieldFill(field("c"), intLiteral(3)))
+                    .build())));
   }
 
   @Test
