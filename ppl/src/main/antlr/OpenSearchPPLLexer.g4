@@ -35,6 +35,7 @@ NEW_FIELD:                          'NEW_FIELD';
 KMEANS:                             'KMEANS';
 AD:                                 'AD';
 ML:                                 'ML';
+FILLNULL:                           'FILLNULL';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -44,6 +45,8 @@ INDEX:                              'INDEX';
 D:                                  'D';
 DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
+USING:                              'USING';
+WITH:                               'WITH';
 
 // CLAUSE KEYWORDS
 SORTBY:                             'SORTBY';
