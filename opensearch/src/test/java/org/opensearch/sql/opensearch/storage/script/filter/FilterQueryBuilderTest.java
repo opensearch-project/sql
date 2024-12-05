@@ -1907,16 +1907,15 @@ class FilterQueryBuilderTest {
   void non_cast_nested_function_should_build_script() {
     mockToStringSerializer();
     assertJsonEquals(
-        """
-                    {
-                      "script" : {
-                        "script" : {
-                          "source" : "=(integer_value, abs(+(1, 0)))",
-                          "lang" : "opensearch_query_expression"
-                        },
-                        "boost" : 1.0
-                      }
-                    }""",
+        "{\n"
+            + "  \"script\" : {\n"
+            + "    \"script\" : {\n"
+            + "      \"source\" : \"=(integer_value, abs(+(1, 0)))\",\n"
+            + "      \"lang\" : \"opensearch_query_expression\"\n"
+            + "    },\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
         buildQuery(
             DSL.equal(ref("integer_value", INTEGER), DSL.abs(DSL.add(literal(1), literal(0))))));
   }
