@@ -51,6 +51,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -390,6 +391,34 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
               builder.put(x.argName.getText(), (Literal) internalVisitExpression(x.argValue));
             });
     return new ML(builder.build());
+  }
+
+  /** fillnull command. */
+  @Override
+  public UnresolvedPlan visitFillNullWithTheSameValue(
+      OpenSearchPPLParser.FillNullWithTheSameValueContext ctx) {
+    return new FillNull(
+        FillNull.ContainNullableFieldFill.ofSameValue(
+            internalVisitExpression(ctx.nullReplacement),
+            ctx.nullableFieldList.fieldExpression().stream()
+                .map(f -> (Field) internalVisitExpression(f))
+                .toList()));
+  }
+
+  /** fillnull command. */
+  @Override
+  public UnresolvedPlan visitFillNullWithFieldVariousValues(
+      OpenSearchPPLParser.FillNullWithFieldVariousValuesContext ctx) {
+    ImmutableList.Builder<FillNull.NullableFieldFill> replacementsBuilder = ImmutableList.builder();
+    for (int i = 0; i < ctx.nullReplacementExpression().size(); i++) {
+      replacementsBuilder.add(
+          new FillNull.NullableFieldFill(
+              (Field) internalVisitExpression(ctx.nullReplacementExpression(i).nullableField),
+              internalVisitExpression(ctx.nullReplacementExpression(i).nullReplacement)));
+    }
+
+    return new FillNull(
+        FillNull.ContainNullableFieldFill.ofVariousValue(replacementsBuilder.build()));
   }
 
   /** Get original text in query. */
