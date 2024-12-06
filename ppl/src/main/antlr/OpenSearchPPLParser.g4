@@ -350,15 +350,7 @@ wcFieldList
    ;
 
 sortField
-   : (PLUS | MINUS)? sortFieldExpression
-   ;
-
-sortFieldExpression
-   : fieldExpression
-   | AUTO LT_PRTHS fieldExpression RT_PRTHS
-   | STR LT_PRTHS fieldExpression RT_PRTHS
-   | IP LT_PRTHS fieldExpression RT_PRTHS
-   | NUM LT_PRTHS fieldExpression RT_PRTHS
+   : (PLUS | MINUS)? fieldExpression
    ;
 
 fieldExpression
@@ -395,6 +387,7 @@ convertedDataType
    | typeName = FLOAT
    | typeName = STRING
    | typeName = BOOLEAN
+   | typeName = IP
    ;
 
 evalFunctionName
@@ -883,10 +876,6 @@ keywordsCanBeId
    | DATASOURCES
    // CLAUSEKEYWORDS
    | SORTBY
-   // FIELDKEYWORDSAUTO
-   | STR
-   | IP
-   | NUM
    // ARGUMENT KEYWORDS
    | KEEPEMPTY
    | CONSECUTIVE
