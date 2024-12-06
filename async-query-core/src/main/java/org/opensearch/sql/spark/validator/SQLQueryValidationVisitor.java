@@ -30,6 +30,8 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropTableColumnsConte
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropTableContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropTablePartitionsContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.DropViewContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ErrorCapturingIdentifierContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ErrorCapturingIdentifierExtraContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ExplainContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.FunctionNameContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.HintContext;
@@ -43,6 +45,7 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.InsertOverwriteTableC
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.JoinRelationContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.JoinTypeContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.LateralViewContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.LiteralTypeContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.LoadDataContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.ManageResourceContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.QueryOrganizationContext;
@@ -77,7 +80,9 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TableNameContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TableValuedFunctionContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TransformClauseContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TruncateTableContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.TypeContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.UncacheTableContext;
+import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.UnsupportedHiveNativeCommandsContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParserBaseVisitor;
 
 /** This visitor validate grammar using GrammarElementValidator */
@@ -583,5 +588,35 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
     if (!grammarElementValidator.isValid(element)) {
       throw new IllegalArgumentException(element + " is not allowed.");
     }
+  }
+
+  @Override
+  public Void visitErrorCapturingIdentifier(ErrorCapturingIdentifierContext ctx) {
+    ErrorCapturingIdentifierExtraContext extra = ctx.errorCapturingIdentifierExtra();
+    if (extra.children != null) {
+      throw new IllegalArgumentException("Invalid identifier: " + ctx.getText());
+    }
+    return super.visitErrorCapturingIdentifier(ctx);
+  }
+
+  @Override
+  public Void visitLiteralType(LiteralTypeContext ctx) {
+    if (ctx.unsupportedType != null) {
+      throw new IllegalArgumentException("Unsupported typed literal: " + ctx.getText());
+    }
+    return super.visitLiteralType(ctx);
+  }
+
+  @Override
+  public Void visitType(TypeContext ctx) {
+    if (ctx.unsupportedType != null) {
+      throw new IllegalArgumentException("Unsupported data type: " + ctx.getText());
+    }
+    return super.visitType(ctx);
+  }
+
+  @Override
+  public Void visitUnsupportedHiveNativeCommands(UnsupportedHiveNativeCommandsContext ctx) {
+    throw new IllegalArgumentException("Unsupported command.");
   }
 }
