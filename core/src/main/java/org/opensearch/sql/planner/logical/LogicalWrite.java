@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.planner.logical;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -26,7 +27,7 @@ public class LogicalWrite extends LogicalPlan {
 
   /** Construct a logical write with given child node, table and column name list. */
   public LogicalWrite(LogicalPlan child, Table table, List<String> columns) {
-    super(Collections.singletonList(child));
+    super(singletonList(child));
     this.table = table;
     this.columns = columns;
   }

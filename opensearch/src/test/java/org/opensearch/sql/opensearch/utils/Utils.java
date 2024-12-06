@@ -5,9 +5,10 @@
 
 package org.opensearch.sql.opensearch.utils;
 
+import static java.util.Collections.singletonList;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import lombok.experimental.UtilityClass;
@@ -24,7 +25,7 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 public class Utils {
 
   public static AvgAggregator avg(Expression expr, ExprCoreType type) {
-    return new AvgAggregator(Collections.singletonList(expr), type);
+    return new AvgAggregator(singletonList(expr), type);
   }
 
   public static List<NamedAggregator> agg(NamedAggregator... exprs) {
@@ -37,7 +38,7 @@ public class Utils {
 
   public static List<Pair<Sort.SortOption, Expression>> sort(
       Expression expr1, Sort.SortOption option1) {
-    return Collections.singletonList(Pair.of(option1, expr1));
+    return singletonList(Pair.of(option1, expr1));
   }
 
   public static List<Pair<Sort.SortOption, Expression>> sort(

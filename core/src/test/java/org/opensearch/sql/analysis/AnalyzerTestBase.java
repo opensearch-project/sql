@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.analysis;
 
+import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
@@ -12,7 +13,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -61,7 +61,7 @@ public class AnalyzerTestBase {
     return new StorageEngine() {
       @Override
       public Collection<FunctionResolver> getFunctions() {
-        return Collections.singletonList(
+        return singletonList(
             new FunctionResolver() {
 
               @Override

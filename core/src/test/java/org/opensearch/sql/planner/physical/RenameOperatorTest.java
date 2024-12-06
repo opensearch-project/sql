@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.planner.physical;
 
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -14,7 +15,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,9 +34,8 @@ public class RenameOperatorTest extends PhysicalPlanTestBase {
         new RenameOperator(
             new AggregationOperator(
                 new TestScan(),
-                Collections.singletonList(
-                    DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
-                Collections.singletonList(DSL.named("action", DSL.ref("action", STRING)))),
+                singletonList(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
+                singletonList(DSL.named("action", DSL.ref("action", STRING)))),
             ImmutableMap.of(DSL.ref("avg(response)", DOUBLE), DSL.ref("avg", DOUBLE)));
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());

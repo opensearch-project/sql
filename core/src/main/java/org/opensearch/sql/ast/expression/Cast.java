@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ast.expression;
 
+import static java.util.Collections.singletonList;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_BOOLEAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_BYTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_DATE;
@@ -19,7 +20,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_TIMESTAMP;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -99,7 +99,7 @@ public class Cast extends UnresolvedExpression {
 
   @Override
   public List<? extends Node> getChild() {
-    return Collections.singletonList(expression);
+    return singletonList(expression);
   }
 
   @Override

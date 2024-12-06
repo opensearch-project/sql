@@ -6,6 +6,7 @@
 package org.opensearch.sql.planner;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -31,7 +32,6 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.values;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.window;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -191,9 +191,8 @@ class DefaultImplementorTest {
     NamedExpression windowFunction = named(new RowNumberFunction());
     WindowDefinition windowDefinition =
         new WindowDefinition(
-            Collections.singletonList(ref("state", STRING)),
-            Collections.singletonList(
-                ImmutablePair.of(Sort.SortOption.DEFAULT_DESC, ref("age", INTEGER))));
+            singletonList(ref("state", STRING)),
+            singletonList(ImmutablePair.of(Sort.SortOption.DEFAULT_DESC, ref("age", INTEGER))));
 
     NamedExpression[] projectList = {
       named("state", ref("state", STRING)), named("row_number", ref("row_number", INTEGER))

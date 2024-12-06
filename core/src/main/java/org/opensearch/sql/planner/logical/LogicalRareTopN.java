@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.planner.logical;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -31,7 +32,7 @@ public class LogicalRareTopN extends LogicalPlan {
       Integer noOfResults,
       List<Expression> fieldList,
       List<Expression> groupByList) {
-    super(Collections.singletonList(child));
+    super(singletonList(child));
     this.commandType = commandType;
     this.noOfResults = noOfResults;
     this.fieldList = fieldList;

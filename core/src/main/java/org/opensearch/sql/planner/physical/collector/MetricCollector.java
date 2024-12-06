@@ -5,8 +5,9 @@
 
 package org.opensearch.sql.planner.physical.collector;
 
+import static java.util.Collections.singletonList;
+
 import java.util.AbstractMap;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,6 @@ public class MetricCollector implements Collector {
   public List<ExprValue> results() {
     LinkedHashMap<String, ExprValue> map = new LinkedHashMap<>();
     aggregators.forEach(agg -> map.put(agg.getKey().getName(), agg.getValue().result()));
-    return Collections.singletonList(ExprTupleValue.fromExprValueMap(map));
+    return singletonList(ExprTupleValue.fromExprValueMap(map));
   }
 }
