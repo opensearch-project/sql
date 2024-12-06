@@ -5,10 +5,10 @@
 
 package org.opensearch.sql.storage.write;
 
+import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,6 +68,6 @@ class TableWriteOperatorTest {
 
   @Test
   void testGetChild() {
-    assertEquals(Collections.singletonList(child), tableWrite.getChild());
+    assertEquals(singletonList(child), tableWrite.getChild());
   }
 }

@@ -6,6 +6,7 @@
 package org.opensearch.sql.analysis;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -62,7 +63,6 @@ import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -491,7 +491,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                                 AstDSL.alias(
                                     "avg(integer_value)",
                                     AstDSL.aggregate("avg", field("integer_value")))),
-                            Collections.emptyList(),
+                            emptyList(),
                             ImmutableList.of(),
                             AstDSL.defaultStatsArgs()),
                         AstDSL.map(
@@ -894,7 +894,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             DSL.ref("double_value", DOUBLE)),
         AstDSL.projectWithArg(
             AstDSL.relation("schema"),
-            Collections.singletonList(argument("exclude", booleanLiteral(true))),
+            singletonList(argument("exclude", booleanLiteral(true))),
             AstDSL.field("integer_value"),
             AstDSL.field("double_value")));
   }
@@ -1041,8 +1041,8 @@ class AnalyzerTest extends AnalyzerTestBase {
                 "window_function",
                 AstDSL.window(
                     AstDSL.function("row_number"),
-                    Collections.singletonList(AstDSL.qualifiedName("string_value")),
-                    Collections.singletonList(
+                    singletonList(AstDSL.qualifiedName("string_value")),
+                    singletonList(
                         ImmutablePair.of(DEFAULT_ASC, AstDSL.qualifiedName("integer_value")))))));
   }
 

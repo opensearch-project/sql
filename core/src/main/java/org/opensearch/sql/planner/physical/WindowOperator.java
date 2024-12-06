@@ -5,10 +5,11 @@
 
 package org.opensearch.sql.planner.physical;
 
+import static java.util.Collections.singletonList;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
-import java.util.Collections;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -62,7 +63,7 @@ public class WindowOperator extends PhysicalPlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return Collections.singletonList(input);
+    return singletonList(input);
   }
 
   @Override

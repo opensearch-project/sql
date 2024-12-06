@@ -5,10 +5,10 @@
 
 package org.opensearch.sql.ppl.utils;
 
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import junit.framework.TestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -47,7 +47,7 @@ public class UnresolvedPlanHelperTest extends TestCase {
     Project project = Mockito.mock(Project.class);
     UnresolvedExpression expression = Mockito.mock(UnresolvedExpression.class);
     when(project.isExcluded()).thenReturn(false);
-    when(project.getProjectList()).thenReturn(Collections.singletonList(expression));
+    when(project.getProjectList()).thenReturn(singletonList(expression));
 
     UnresolvedPlan plan = UnresolvedPlanHelper.addSelectAll(project);
     assertTrue(plan instanceof Project);

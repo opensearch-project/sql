@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.planner.logical;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -19,7 +20,7 @@ public class LogicalLimit extends LogicalPlan {
 
   /** Constructor of LogicalLimit. */
   public LogicalLimit(LogicalPlan input, Integer limit, Integer offset) {
-    super(Collections.singletonList(input));
+    super(singletonList(input));
     this.limit = limit;
     this.offset = offset;
   }

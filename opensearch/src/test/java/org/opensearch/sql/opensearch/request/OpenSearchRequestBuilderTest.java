@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
@@ -14,7 +15,6 @@ import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -349,7 +349,7 @@ class OpenSearchRequestBuilderTest {
   void test_push_down_aggregation() {
     AggregationBuilder aggBuilder =
         AggregationBuilders.composite(
-            "composite_buckets", Collections.singletonList(new TermsValuesSourceBuilder("longA")));
+            "composite_buckets", singletonList(new TermsValuesSourceBuilder("longA")));
     OpenSearchAggregationResponseParser responseParser =
         new CompositeAggregationParser(new SingleValueParser("AVG(intA)"));
     requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser));
@@ -368,7 +368,7 @@ class OpenSearchRequestBuilderTest {
   void test_push_down_percentile_aggregation() {
     AggregationBuilder aggBuilder =
         AggregationBuilders.composite(
-            "composite_buckets", Collections.singletonList(new TermsValuesSourceBuilder("longA")));
+            "composite_buckets", singletonList(new TermsValuesSourceBuilder("longA")));
     OpenSearchAggregationResponseParser responseParser =
         new CompositeAggregationParser(new SinglePercentileParser("PERCENTILE(intA, 50)"));
     requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser));

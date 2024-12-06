@@ -7,7 +7,8 @@
 
 package org.opensearch.sql.common.interceptors;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+
 import lombok.SneakyThrows;
 import okhttp3.Credentials;
 import okhttp3.Interceptor;
@@ -47,7 +48,7 @@ public class BasicAuthenticationInterceptorTest {
     Mockito.verify(chain).proceed(requestArgumentCaptor.capture());
     Request request = requestArgumentCaptor.getValue();
     Assertions.assertEquals(
-        Collections.singletonList(Credentials.basic("testAdmin", "testPassword")),
+        singletonList(Credentials.basic("testAdmin", "testPassword")),
         request.headers("Authorization"));
   }
 }

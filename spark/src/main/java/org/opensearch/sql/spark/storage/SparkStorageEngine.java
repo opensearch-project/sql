@@ -5,8 +5,9 @@
 
 package org.opensearch.sql.spark.storage;
 
+import static java.util.Collections.singletonList;
+
 import java.util.Collection;
-import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.expression.function.FunctionResolver;
@@ -22,7 +23,7 @@ public class SparkStorageEngine implements StorageEngine {
 
   @Override
   public Collection<FunctionResolver> getFunctions() {
-    return Collections.singletonList(new SparkSqlTableFunctionResolver(sparkClient));
+    return singletonList(new SparkSqlTableFunctionResolver(sparkClient));
   }
 
   @Override

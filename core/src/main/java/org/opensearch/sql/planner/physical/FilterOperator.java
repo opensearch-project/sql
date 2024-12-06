@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.planner.physical;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -37,7 +38,7 @@ public class FilterOperator extends PhysicalPlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return Collections.singletonList(input);
+    return singletonList(input);
   }
 
   @Override

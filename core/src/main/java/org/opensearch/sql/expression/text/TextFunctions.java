@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.text;
 
+import static java.util.Collections.singletonList;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -12,7 +13,6 @@ import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -176,7 +176,7 @@ public class TextFunctions {
         concatFuncName,
         funcName ->
             Pair.of(
-                new FunctionSignature(concatFuncName, Collections.singletonList(ARRAY)),
+                new FunctionSignature(concatFuncName, singletonList(ARRAY)),
                 (funcProp, args) ->
                     new FunctionExpression(funcName, args) {
                       @Override

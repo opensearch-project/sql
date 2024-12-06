@@ -5,8 +5,9 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
+import static java.util.Collections.singletonList;
+
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -98,7 +99,7 @@ public class MLOperator extends MLCommonsOperatorActions {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return Collections.singletonList(input);
+    return singletonList(input);
   }
 
   protected Map<String, Object> processArgs(Map<String, Literal> arguments) {

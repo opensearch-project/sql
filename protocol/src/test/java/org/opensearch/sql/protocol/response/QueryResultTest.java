@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.protocol.response;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -15,7 +17,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
-import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.pagination.Cursor;
@@ -46,7 +47,7 @@ class QueryResultTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Collections.singletonList(tupleValue(ImmutableMap.of("name", "John", "age", 20))),
+            singletonList(tupleValue(ImmutableMap.of("name", "John", "age", 20))),
             Cursor.None);
 
     assertEquals(ImmutableMap.of("name", "string", "age", "integer"), response.columnNameTypes());
@@ -59,16 +60,14 @@ class QueryResultTest {
             ImmutableList.of(new ExecutionEngine.Schema.Column("name", "n", STRING)));
     QueryResult response =
         new QueryResult(
-            schema,
-            Collections.singletonList(tupleValue(ImmutableMap.of("n", "John"))),
-            Cursor.None);
+            schema, singletonList(tupleValue(ImmutableMap.of("n", "John"))), Cursor.None);
 
     assertEquals(ImmutableMap.of("n", "string"), response.columnNameTypes());
   }
 
   @Test
   void columnNameTypesFromEmptyExprValues() {
-    QueryResult response = new QueryResult(schema, Collections.emptyList(), Cursor.None);
+    QueryResult response = new QueryResult(schema, emptyList(), Cursor.None);
     assertEquals(ImmutableMap.of("name", "string", "age", "integer"), response.columnNameTypes());
   }
 

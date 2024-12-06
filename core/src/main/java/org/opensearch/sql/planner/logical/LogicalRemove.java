@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.planner.logical;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+
 import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -21,7 +22,7 @@ public class LogicalRemove extends LogicalPlan {
 
   /** Constructor of LogicalRemove. */
   public LogicalRemove(LogicalPlan child, Set<ReferenceExpression> removeList) {
-    super(Collections.singletonList(child));
+    super(singletonList(child));
     this.removeList = removeList;
   }
 

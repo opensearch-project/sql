@@ -5,10 +5,10 @@
 
 package org.opensearch.sql.planner.streaming.windowing.assigner;
 
+import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.planner.streaming.windowing.Window;
 
@@ -19,9 +19,9 @@ class TumblingWindowAssignerTest {
     long windowSize = 1000;
     TumblingWindowAssigner assigner = new TumblingWindowAssigner(windowSize);
 
-    assertEquals(Collections.singletonList(new Window(0, 1000)), assigner.assign(500));
-    assertEquals(Collections.singletonList(new Window(1000, 2000)), assigner.assign(1999));
-    assertEquals(Collections.singletonList(new Window(2000, 3000)), assigner.assign(2000));
+    assertEquals(singletonList(new Window(0, 1000)), assigner.assign(500));
+    assertEquals(singletonList(new Window(1000, 2000)), assigner.assign(1999));
+    assertEquals(singletonList(new Window(2000, 3000)), assigner.assign(2000));
   }
 
   @Test

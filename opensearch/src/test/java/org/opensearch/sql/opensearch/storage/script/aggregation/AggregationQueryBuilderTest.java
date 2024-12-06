@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,7 +32,6 @@ import static org.opensearch.sql.opensearch.utils.Utils.sort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.AbstractMap;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -280,8 +281,7 @@ class AggregationQueryBuilderTest {
             List.of(
                 named(
                     "avg(balance)",
-                    new AvgAggregator(
-                        Collections.singletonList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
+                    new AvgAggregator(singletonList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
             List.of(named("age", DSL.asin(ref("age", INTEGER))))));
   }
 
@@ -339,8 +339,7 @@ class AggregationQueryBuilderTest {
             List.of(
                 named(
                     "avg(balance)",
-                    new AvgAggregator(
-                        Collections.singletonList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
+                    new AvgAggregator(singletonList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
             List.of(named("age", DSL.asin(ref("age", INTEGER))))),
         containsInAnyOrder(
             map("avg(balance)", OpenSearchDataType.of(INTEGER)),
@@ -362,7 +361,7 @@ class AggregationQueryBuilderTest {
             List.of(
                 named(
                     "avg(balance)", new AvgAggregator(List.of(ref("balance", INTEGER)), INTEGER))),
-            Collections.emptyList()));
+            emptyList()));
   }
 
   @Test
@@ -397,7 +396,7 @@ class AggregationQueryBuilderTest {
                     "avg(age) filter(where age > 34)",
                     new AvgAggregator(List.of(ref("age", INTEGER)), INTEGER)
                         .condition(DSL.greater(ref("age", INTEGER), literal(20))))),
-            Collections.emptyList()));
+            emptyList()));
   }
 
   @Test
@@ -459,7 +458,7 @@ class AggregationQueryBuilderTest {
             List.of(
                 named(
                     "avg(balance)", new AvgAggregator(List.of(ref("balance", INTEGER)), INTEGER))),
-            Collections.emptyList()),
+            emptyList()),
         containsInAnyOrder(map("avg(balance)", OpenSearchDataType.of(INTEGER))));
   }
 

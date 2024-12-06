@@ -6,6 +6,7 @@
 package org.opensearch.sql.sql.parser;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FromClauseContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.HavingClauseContext;
@@ -19,7 +20,6 @@ import static org.opensearch.sql.utils.SystemIndexUtils.TABLE_INFO;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Collections;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -60,7 +60,7 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitShowStatement(OpenSearchSQLParser.ShowStatementContext ctx) {
     final UnresolvedExpression tableFilter = visitAstExpression(ctx.tableFilter());
-    return new Project(Collections.singletonList(AllFields.of()))
+    return new Project(singletonList(AllFields.of()))
         .attach(new Filter(tableFilter).attach(new Relation(qualifiedName(TABLE_INFO))));
   }
 
@@ -70,9 +70,9 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
     final String tableName = tableFilter.getFuncArgs().get(1).toString();
     final Relation table = new Relation(qualifiedName(mappingTable(tableName.toString())));
     if (ctx.columnFilter() == null) {
-      return new Project(Collections.singletonList(AllFields.of())).attach(table);
+      return new Project(singletonList(AllFields.of())).attach(table);
     } else {
-      return new Project(Collections.singletonList(AllFields.of()))
+      return new Project(singletonList(AllFields.of()))
           .attach(new Filter(visitAstExpression(ctx.columnFilter())).attach(table));
     }
   }

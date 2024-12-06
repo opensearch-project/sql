@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
+import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -20,7 +21,6 @@ import static org.opensearch.sql.utils.MLCommonsConstants.PREDICT;
 import static org.opensearch.sql.utils.MLCommonsConstants.TRAIN;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -87,7 +87,7 @@ public class MLOperatorTest {
 
     DataFrame dataFrame =
         DataFrameBuilder.load(
-            Collections.singletonList(
+            singletonList(
                 ImmutableMap.<String, Object>builder()
                     .put("result-k1", 2D)
                     .put("result-k2", 1)

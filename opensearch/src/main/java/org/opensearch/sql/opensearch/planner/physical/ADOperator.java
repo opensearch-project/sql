@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
+import static java.util.Collections.singletonList;
 import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_RATE;
 import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_SCORE_THRESHOLD;
 import static org.opensearch.sql.utils.MLCommonsConstants.CATEGORY_FIELD;
@@ -18,7 +19,6 @@ import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_ZONE;
 import static org.opensearch.sql.utils.MLCommonsConstants.TRAINING_DATA_SIZE;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -115,7 +115,7 @@ public class ADOperator extends MLCommonsOperatorActions {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return Collections.singletonList(input);
+    return singletonList(input);
   }
 
   protected MLAlgoParams convertArgumentToMLParameter(Map<String, Literal> arguments) {

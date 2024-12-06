@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy;
 
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -15,7 +16,6 @@ import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -157,7 +157,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 "SELECT _score FROM %s WHERE SCORE(match_phrase(phrase, 'brown fox'))",
                 TestsConstants.TEST_INDEX_PHRASE));
 
-    List<String> fields = Collections.singletonList("_score");
+    List<String> fields = singletonList("_score");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }
@@ -277,7 +277,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
             String.format(
                 Locale.ROOT, "SELECT * FROM %s GROUP BY age", TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = Collections.singletonList("age");
+    List<String> fields = singletonList("age");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }
@@ -398,7 +398,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 Locale.ROOT, "SELECT SUM(age) FROM %s", TestsConstants.TEST_INDEX_ACCOUNT));
 
     String ageSum = "SUM(age)";
-    assertContainsColumns(getSchema(response), Collections.singletonList(ageSum));
+    assertContainsColumns(getSchema(response), singletonList(ageSum));
 
     JSONArray dataRows = getDataRows(response);
     for (int i = 0; i < dataRows.length(); i++) {
@@ -433,7 +433,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
     String ageSum = "gender";
-    assertContainsColumns(getSchema(response), Collections.singletonList(ageSum));
+    assertContainsColumns(getSchema(response), singletonList(ageSum));
 
     JSONArray dataRows = getDataRows(response);
     assertEquals(1, dataRows.length());
@@ -555,7 +555,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 TestsConstants.TEST_INDEX_ACCOUNT,
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = Collections.singletonList("b1.age");
+    List<String> fields = singletonList("b1.age");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }

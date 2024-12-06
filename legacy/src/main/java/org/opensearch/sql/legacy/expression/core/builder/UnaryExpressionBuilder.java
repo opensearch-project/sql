@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.legacy.expression.core.builder;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.legacy.expression.core.Expression;
@@ -31,7 +32,7 @@ public class UnaryExpressionBuilder implements ExpressionBuilder {
     return new Expression() {
       @Override
       public ExprValue valueOf(BindingTuple tuple) {
-        return op.apply(Collections.singletonList(expression.valueOf(tuple)));
+        return op.apply(singletonList(expression.valueOf(tuple)));
       }
 
       @Override

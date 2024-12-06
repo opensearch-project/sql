@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl.utils;
 
+import static java.util.Collections.singletonList;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
@@ -15,7 +16,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.opensearch.sql.ast.expression.Argument;
@@ -33,7 +33,7 @@ public class ArgumentFactory {
    * @return the list of arguments fetched from the fields command
    */
   public static List<Argument> getArgumentList(FieldsCommandContext ctx) {
-    return Collections.singletonList(
+    return singletonList(
         ctx.MINUS() != null
             ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
             : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
@@ -109,7 +109,7 @@ public class ArgumentFactory {
    * @return the list of arguments fetched from the top command
    */
   public static List<Argument> getArgumentList(TopCommandContext ctx) {
-    return Collections.singletonList(
+    return singletonList(
         ctx.number != null
             ? new Argument("noOfResults", getArgumentValue(ctx.number))
             : new Argument("noOfResults", new Literal(10, DataType.INTEGER)));
@@ -122,8 +122,7 @@ public class ArgumentFactory {
    * @return the list of argument with default number of results for the rare command
    */
   public static List<Argument> getArgumentList(RareCommandContext ctx) {
-    return Collections.singletonList(
-        new Argument("noOfResults", new Literal(10, DataType.INTEGER)));
+    return singletonList(new Argument("noOfResults", new Literal(10, DataType.INTEGER)));
   }
 
   /**
