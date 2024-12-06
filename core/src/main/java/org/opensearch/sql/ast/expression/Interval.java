@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.ast.expression;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,7 +30,7 @@ public class Interval extends UnresolvedExpression {
 
   @Override
   public List<UnresolvedExpression> getChild() {
-    return Collections.singletonList(value);
+    return singletonList(value);
   }
 
   @Override

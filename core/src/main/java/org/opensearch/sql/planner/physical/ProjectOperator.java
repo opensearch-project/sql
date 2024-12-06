@@ -5,12 +5,13 @@
 
 package org.opensearch.sql.planner.physical;
 
+import static java.util.Collections.singletonList;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -42,7 +43,7 @@ public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return Collections.singletonList(input);
+    return singletonList(input);
   }
 
   @Override

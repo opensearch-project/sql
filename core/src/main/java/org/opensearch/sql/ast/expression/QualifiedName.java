@@ -5,13 +5,13 @@
 
 package org.opensearch.sql.ast.expression;
 
+import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
@@ -25,7 +25,7 @@ public class QualifiedName extends UnresolvedExpression {
   private final List<String> parts;
 
   public QualifiedName(String name) {
-    this.parts = Collections.singletonList(name);
+    this.parts = singletonList(name);
   }
 
   /** QualifiedName Constructor. */

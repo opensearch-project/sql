@@ -7,9 +7,10 @@
 
 package org.opensearch.sql.prometheus.storage;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.HashMap;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -40,7 +41,7 @@ public class PrometheusStorageFactoryTest {
   @SneakyThrows
   void testGetStorageEngineWithBasicAuth() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(emptyList());
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "http://localhost:9090");
@@ -55,7 +56,7 @@ public class PrometheusStorageFactoryTest {
   @SneakyThrows
   void testGetStorageEngineWithAWSSigV4Auth() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(emptyList());
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "http://localhost:9090");
@@ -127,7 +128,7 @@ public class PrometheusStorageFactoryTest {
   @SneakyThrows
   void testGetStorageEngineWithWrongAuthType() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(emptyList());
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "https://test.com");
@@ -147,7 +148,7 @@ public class PrometheusStorageFactoryTest {
   @SneakyThrows
   void testGetStorageEngineWithNONEAuthType() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(emptyList());
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "https://test.com");
@@ -174,7 +175,7 @@ public class PrometheusStorageFactoryTest {
   @Test
   void createDataSourceSuccess() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(emptyList());
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "http://localhost:9090");
     properties.put("prometheus.auth.type", "basicauth");
@@ -195,7 +196,7 @@ public class PrometheusStorageFactoryTest {
   @Test
   void createDataSourceSuccessWithLocalhost() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(emptyList());
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "http://localhost:9090");
     properties.put("prometheus.auth.type", "basicauth");
@@ -216,7 +217,7 @@ public class PrometheusStorageFactoryTest {
   @Test
   void createDataSourceWithHostnameNotMatchingWithAllowHostsConfig() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
-        .thenReturn(Collections.singletonList("127.0.0.0/8"));
+        .thenReturn(singletonList("127.0.0.0/8"));
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "http://localhost:9090");
     properties.put("prometheus.auth.type", "basicauth");
