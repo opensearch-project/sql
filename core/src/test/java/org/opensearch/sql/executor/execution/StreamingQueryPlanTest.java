@@ -77,7 +77,7 @@ class StreamingQueryPlanTest {
 
   class Helper {
 
-    private StreamingQueryPlan queryPlan;
+    private final StreamingQueryPlan queryPlan;
 
     public Helper() {
       queryPlan =

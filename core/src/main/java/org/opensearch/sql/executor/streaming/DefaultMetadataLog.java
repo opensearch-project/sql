@@ -26,7 +26,7 @@ public class DefaultMetadataLog<T> implements MetadataLog<T> {
 
   private static final long MIN_ACCEPTABLE_ID = 0L;
 
-  private SortedMap<Long, T> metadataMap = new TreeMap<>();
+  private final SortedMap<Long, T> metadataMap = new TreeMap<>();
 
   @Override
   public boolean add(Long batchId, T metadata) {

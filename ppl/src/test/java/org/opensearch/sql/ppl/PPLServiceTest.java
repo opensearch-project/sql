@@ -32,9 +32,9 @@ import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 @RunWith(MockitoJUnitRunner.class)
 public class PPLServiceTest {
 
-  private static String QUERY = "/_plugins/_ppl";
+  private static final String QUERY = "/_plugins/_ppl";
 
-  private static String EXPLAIN = "/_plugins/_ppl/_explain";
+  private static final String EXPLAIN = "/_plugins/_ppl/_explain";
 
   private PPLService pplService;
 

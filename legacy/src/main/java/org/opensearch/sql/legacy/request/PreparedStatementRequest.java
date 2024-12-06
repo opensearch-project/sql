@@ -10,8 +10,8 @@ import org.json.JSONObject;
 
 public class PreparedStatementRequest extends SqlRequest {
 
-  private List<PreparedStatementParameter> parameters;
-  private String sqlTemplate;
+  private final List<PreparedStatementParameter> parameters;
+  private final String sqlTemplate;
 
   public PreparedStatementRequest(
       String sql, JSONObject payloadJson, List<PreparedStatementParameter> parameters) {
@@ -117,7 +117,7 @@ public class PreparedStatementRequest extends SqlRequest {
   }
 
   public static class PreparedStatementParameter<T> {
-    protected T value;
+    protected final T value;
 
     public PreparedStatementParameter(T value) {
       this.value = value;

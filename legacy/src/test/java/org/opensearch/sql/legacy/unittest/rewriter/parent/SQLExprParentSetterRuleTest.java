@@ -19,7 +19,7 @@ public class SQLExprParentSetterRuleTest {
 
   @Mock private SQLQueryExpr queryExpr;
 
-  private SQLExprParentSetterRule rule = new SQLExprParentSetterRule();
+  private final SQLExprParentSetterRule rule = new SQLExprParentSetterRule();
 
   @Test
   public void match() {

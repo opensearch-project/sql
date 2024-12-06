@@ -16,9 +16,10 @@ import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 
 public class MockFlintSparkJob {
   private FlintIndexStateModel stateModel;
-  private FlintIndexStateModelService flintIndexStateModelService;
-  private String datasource;
-  private AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
+  private final FlintIndexStateModelService flintIndexStateModelService;
+  private final String datasource;
+  private final AsyncQueryRequestContext asyncQueryRequestContext =
+      new NullAsyncQueryRequestContext();
 
   public MockFlintSparkJob(
       FlintIndexStateModelService flintIndexStateModelService, String latestId, String datasource) {

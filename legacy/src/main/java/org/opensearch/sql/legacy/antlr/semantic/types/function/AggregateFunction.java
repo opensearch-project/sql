@@ -24,7 +24,7 @@ public enum AggregateFunction implements TypeExpression {
   AVG(func(T(NUMBER)).to(DOUBLE)),
   SUM(func(T(NUMBER)).to(T));
 
-  private TypeExpressionSpec[] specifications;
+  private final TypeExpressionSpec[] specifications;
 
   AggregateFunction(TypeExpressionSpec... specifications) {
     this.specifications = specifications;

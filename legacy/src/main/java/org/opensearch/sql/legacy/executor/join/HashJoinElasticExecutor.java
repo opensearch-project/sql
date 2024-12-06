@@ -34,11 +34,11 @@ import org.opensearch.sql.legacy.query.maker.QueryMaker;
 
 /** Created by Eliran on 22/8/2015. */
 public class HashJoinElasticExecutor extends ElasticJoinExecutor {
-  private HashJoinElasticRequestBuilder requestBuilder;
+  private final HashJoinElasticRequestBuilder requestBuilder;
   private boolean useQueryTermsFilterOptimization = false;
   private final int MAX_RESULTS_FOR_FIRST_TABLE = 100000;
-  HashJoinComparisonStructure hashJoinComparisonStructure;
-  private Set<String> alreadyMatched;
+  final HashJoinComparisonStructure hashJoinComparisonStructure;
+  private final Set<String> alreadyMatched;
 
   public HashJoinElasticExecutor(Client client, HashJoinElasticRequestBuilder requestBuilder) {
     super(client, requestBuilder);

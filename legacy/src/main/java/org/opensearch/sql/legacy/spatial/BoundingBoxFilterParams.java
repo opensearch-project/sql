@@ -7,8 +7,8 @@ package org.opensearch.sql.legacy.spatial;
 
 /** Created by Eliran on 1/8/2015. */
 public class BoundingBoxFilterParams {
-  private Point topLeft;
-  private Point bottomRight;
+  private final Point topLeft;
+  private final Point bottomRight;
 
   public BoundingBoxFilterParams(Point topLeft, Point bottomRight) {
     this.topLeft = topLeft;

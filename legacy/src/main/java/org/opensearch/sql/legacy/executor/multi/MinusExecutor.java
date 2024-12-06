@@ -42,9 +42,9 @@ import org.opensearch.sql.legacy.utils.Util;
 
 /** Created by Eliran on 26/8/2016. */
 public class MinusExecutor extends ElasticHitsExecutor {
-  private MultiQueryRequestBuilder builder;
+  private final MultiQueryRequestBuilder builder;
   private SearchHits minusHits;
-  private boolean useTermsOptimization;
+  private final boolean useTermsOptimization;
   private boolean termsOptimizationWithToLower;
   private boolean useScrolling;
   private int maxDocsToFetchOnFirstTable;
@@ -52,7 +52,7 @@ public class MinusExecutor extends ElasticHitsExecutor {
   private int maxDocsToFetchOnEachScrollShard;
   private String[] fieldsOrderFirstTable;
   private String[] fieldsOrderSecondTable;
-  private String seperator;
+  private final String seperator;
 
   public MinusExecutor(Client client, MultiQueryRequestBuilder builder) {
     this.client = client;

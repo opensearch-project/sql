@@ -40,7 +40,7 @@ public class ScheduledAsyncQueryJobRunner implements ScheduledJobRunner {
       AsyncRestExecutor.SQL_WORKER_THREAD_POOL_NAME;
   private static final Logger LOGGER = LogManager.getLogger(ScheduledAsyncQueryJobRunner.class);
 
-  private static ScheduledAsyncQueryJobRunner INSTANCE = new ScheduledAsyncQueryJobRunner();
+  private static final ScheduledAsyncQueryJobRunner INSTANCE = new ScheduledAsyncQueryJobRunner();
 
   public static ScheduledAsyncQueryJobRunner getJobRunnerInstance() {
     return INSTANCE;

@@ -19,7 +19,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 @Getter
 @ToString
 public class LogicalNested extends LogicalPlan {
-  private List<Map<String, ReferenceExpression>> fields;
+  private final List<Map<String, ReferenceExpression>> fields;
   private final List<NamedExpression> projectList;
 
   /** Constructor of LogicalNested. */

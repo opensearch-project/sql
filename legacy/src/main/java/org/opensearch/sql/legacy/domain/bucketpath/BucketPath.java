@@ -15,7 +15,7 @@ import java.util.Deque;
  * <p>https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-pipeline.html#buckets-path-syntax
  */
 public class BucketPath {
-  private Deque<Path> pathStack = new ArrayDeque<>();
+  private final Deque<Path> pathStack = new ArrayDeque<>();
 
   public BucketPath add(Path path) {
     if (pathStack.isEmpty()) {

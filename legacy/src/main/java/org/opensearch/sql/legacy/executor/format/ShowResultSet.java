@@ -22,8 +22,8 @@ public class ShowResultSet extends ResultSet {
 
   private static final String TABLE_TYPE = "BASE TABLE";
 
-  private IndexStatement statement;
-  private Object queryResult;
+  private final IndexStatement statement;
+  private final Object queryResult;
 
   public ShowResultSet(Client client, IndexStatement statement, Object queryResult) {
     this.client = client;

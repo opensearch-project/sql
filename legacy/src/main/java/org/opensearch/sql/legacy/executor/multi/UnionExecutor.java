@@ -25,7 +25,7 @@ import org.opensearch.sql.legacy.utils.Util;
 /** Created by Eliran on 21/8/2016. */
 public class UnionExecutor extends ElasticHitsExecutor {
 
-  private MultiQueryRequestBuilder multiQueryBuilder;
+  private final MultiQueryRequestBuilder multiQueryBuilder;
   private SearchHits results;
   private int currentId;
 

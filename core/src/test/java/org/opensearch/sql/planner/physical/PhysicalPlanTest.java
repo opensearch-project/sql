@@ -24,7 +24,7 @@ class PhysicalPlanTest {
 
   @Mock PhysicalPlan child;
 
-  private PhysicalPlan testPlan =
+  private final PhysicalPlan testPlan =
       new PhysicalPlan() {
         @Override
         public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {

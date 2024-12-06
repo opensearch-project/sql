@@ -17,7 +17,7 @@ public class SparkSubmitParameters {
   public static final String EQUALS = "=";
 
   @Setter private String className = DEFAULT_CLASS_NAME;
-  private Map<String, String> config = new LinkedHashMap<>();
+  private final Map<String, String> config = new LinkedHashMap<>();
 
   /** Extra parameters to append finally */
   @Setter private String extraParameters;

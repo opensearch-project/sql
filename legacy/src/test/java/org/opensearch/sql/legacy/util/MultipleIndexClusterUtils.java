@@ -33,7 +33,7 @@ public class MultipleIndexClusterUtils {
   public static final String INDEX_ACCOUNT_2 = "account2";
   public static final String INDEX_ACCOUNT_ALL = "account*";
 
-  public static String INDEX_ACCOUNT_1_MAPPING =
+  public static final String INDEX_ACCOUNT_1_MAPPING =
       "{\n"
           + "  \"field_mappings\": {\n"
           + "    \"mappings\": {\n"
@@ -93,7 +93,7 @@ public class MultipleIndexClusterUtils {
    * The difference with account1. 1. missing address. 2. age has different type. 3.
    * projects.started_year has different type.
    */
-  public static String INDEX_ACCOUNT_2_MAPPING =
+  public static final String INDEX_ACCOUNT_2_MAPPING =
       "{\n"
           + "  \"field_mappings\": {\n"
           + "    \"mappings\": {\n"

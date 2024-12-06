@@ -22,7 +22,7 @@ import org.opensearch.sql.correctness.runner.resultset.Type;
 /** Test for {@link TestReport} */
 public class TestReportTest {
 
-  private TestReport report = new TestReport();
+  private final TestReport report = new TestReport();
 
   @Test
   public void testSuccessReport() {

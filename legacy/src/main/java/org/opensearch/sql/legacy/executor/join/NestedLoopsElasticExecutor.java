@@ -378,8 +378,8 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
   }
 
   private class FetchWithScrollResponse {
-    private SearchResponse response;
-    private boolean needScrollForFirstTable;
+    private final SearchResponse response;
+    private final boolean needScrollForFirstTable;
 
     private FetchWithScrollResponse(SearchResponse response, boolean needScrollForFirstTable) {
       this.response = response;

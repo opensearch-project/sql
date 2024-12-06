@@ -18,8 +18,8 @@ public class DataSourceSchemaIdentifierNameResolver {
 
   private String dataSourceName = DEFAULT_DATASOURCE_NAME;
   private String schemaName = DEFAULT_SCHEMA_NAME;
-  private String identifierName;
-  private DataSourceService dataSourceService;
+  private final String identifierName;
+  private final DataSourceService dataSourceService;
 
   private static final String DOT = ".";
 

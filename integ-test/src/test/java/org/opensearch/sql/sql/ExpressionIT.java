@@ -29,7 +29,7 @@ import org.opensearch.sql.legacy.RestIntegTestCase;
 @Ignore
 public class ExpressionIT extends RestIntegTestCase {
 
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Override
   protected void init() throws Exception {

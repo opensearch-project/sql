@@ -65,7 +65,7 @@ import org.opensearch.sql.legacy.utils.Util;
 public class AggMaker {
 
   /** The mapping bettwen group fieldName or Alias to the KVValue. */
-  private Map<String, KVValue> groupMap = new HashMap<>();
+  private final Map<String, KVValue> groupMap = new HashMap<>();
 
   private Where where;
 

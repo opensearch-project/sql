@@ -40,8 +40,8 @@ import org.opensearch.sql.legacy.esdomain.mapping.IndexMappings;
  */
 public class TermFieldRewriter extends MySqlASTVisitorAdapter {
 
-  private Deque<TermFieldScope> environment = new ArrayDeque<>();
-  private TermRewriterFilter filterType;
+  private final Deque<TermFieldScope> environment = new ArrayDeque<>();
+  private final TermRewriterFilter filterType;
 
   public TermFieldRewriter() {
     this.filterType = TermRewriterFilter.COMMA;

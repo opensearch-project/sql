@@ -10,9 +10,9 @@ import org.opensearch.sql.legacy.domain.Select;
 
 /** Created by Eliran on 19/8/2016. */
 public class MultiQuerySelect {
-  private SQLUnionOperator operation;
-  private Select firstSelect;
-  private Select secondSelect;
+  private final SQLUnionOperator operation;
+  private final Select firstSelect;
+  private final Select secondSelect;
 
   public MultiQuerySelect(SQLUnionOperator operation, Select firstSelect, Select secondSelect) {
     this.operation = operation;

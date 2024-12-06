@@ -18,7 +18,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = false)
 @Getter
 public class Filter extends UnresolvedPlan {
-  private UnresolvedExpression condition;
+  private final UnresolvedExpression condition;
   private UnresolvedPlan child;
 
   public Filter(UnresolvedExpression condition) {

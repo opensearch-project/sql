@@ -19,7 +19,7 @@ public class Schema implements Iterable<Schema.Column> {
   private String indexName;
   private List<Column> columns;
 
-  private static Set<String> types;
+  private static final Set<String> types;
 
   static {
     types = getTypes();
@@ -121,10 +121,10 @@ public class Schema implements Iterable<Schema.Column> {
   public static class Column {
 
     private final String name;
-    private String alias;
+    private final String alias;
     private final Type type;
 
-    private boolean identifiedByAlias;
+    private final boolean identifiedByAlias;
 
     public Column(String name, String alias, Type type, boolean identifiedByAlias) {
       this.name = name;

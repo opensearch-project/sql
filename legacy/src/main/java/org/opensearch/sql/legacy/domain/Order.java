@@ -12,7 +12,7 @@ public class Order {
   private String nestedPath;
   private String name;
   private String type;
-  private Field sortField;
+  private final Field sortField;
 
   public boolean isScript() {
     return sortField != null && sortField.isScriptField();

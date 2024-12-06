@@ -193,7 +193,7 @@ public class ElasticSqlExprParser extends SQLExprParser {
     return expr;
   }
 
-  public static String[] AGGREGATE_FUNCTIONS = {
+  public static final String[] AGGREGATE_FUNCTIONS = {
     "AVG", "COUNT", "GROUP_CONCAT", "MAX", "MIN", "STDDEV", "SUM"
   };
 

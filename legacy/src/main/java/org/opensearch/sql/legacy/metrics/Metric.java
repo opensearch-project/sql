@@ -9,7 +9,7 @@ public abstract class Metric<T> implements java.io.Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  private String name;
+  private final String name;
 
   public Metric(String name) {
     this.name = name;

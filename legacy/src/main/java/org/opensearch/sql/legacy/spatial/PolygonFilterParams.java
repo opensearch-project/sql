@@ -9,7 +9,7 @@ import java.util.List;
 
 /** Created by Eliran on 15/8/2015. */
 public class PolygonFilterParams {
-  private List<Point> polygon;
+  private final List<Point> polygon;
 
   public PolygonFilterParams(List<Point> polygon) {
     this.polygon = polygon;

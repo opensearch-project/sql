@@ -22,7 +22,7 @@ import org.opensearch.sql.executor.pagination.Cursor;
 
 class QueryResultTest {
 
-  private ExecutionEngine.Schema schema =
+  private final ExecutionEngine.Schema schema =
       new ExecutionEngine.Schema(
           ImmutableList.of(
               new ExecutionEngine.Schema.Column("name", null, STRING),

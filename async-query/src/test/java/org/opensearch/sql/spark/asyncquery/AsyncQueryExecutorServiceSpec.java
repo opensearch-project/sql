@@ -133,7 +133,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected StatementStorageService statementStorageService;
   protected AsyncQueryScheduler asyncQueryScheduler;
   protected AsyncQueryRequestContext asyncQueryRequestContext;
-  protected SessionIdProvider sessionIdProvider = new DatasourceEmbeddedSessionIdProvider();
+  protected final SessionIdProvider sessionIdProvider = new DatasourceEmbeddedSessionIdProvider();
 
   @Override
   protected Collection<Class<? extends Plugin>> nodePlugins() {

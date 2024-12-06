@@ -51,7 +51,7 @@ public abstract class JoinAlgorithm<T> extends BatchPhysicalOperator<T> {
   private final Set<Row<T>> leftMismatch;
 
   /** Hash table for right table probing */
-  protected HashTable<T> hashTable;
+  protected final HashTable<T> hashTable;
 
   /** Execute params to reset right side for each left block */
   protected ExecuteParams params;
