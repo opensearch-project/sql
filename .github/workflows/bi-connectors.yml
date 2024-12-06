@@ -43,13 +43,13 @@ jobs:
       working-directory: bi-connectors/PowerBIConnector
     - name: Upload Tableau JDBC connector
       if: steps.pack-tableau-jdbc.outcome == 'success'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: TableauConnectors
         path: bi-connectors/TableauConnector/opensearch_sql_jdbc/opensearch_sql_jdbc.taco
     - name: Upload Power BI ODBC connectors
       if: steps.pack-powerbi-odbc-os-proj.outcome == 'success' || (steps.prep-powerbi-odbc-amz-os-svc.outcome == 'success' && steps.pack-powerbi-odbc-amz-os-svc.outcome == 'success')
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: PBIConnectors
         path: 'bi-connectors/PowerBIConnector/*.mez'

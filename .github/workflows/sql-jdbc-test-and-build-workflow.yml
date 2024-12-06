@@ -39,7 +39,7 @@ jobs:
         cp ./build/libs/*.jar sql-jdbc-builds
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: sql-jdbc
         path: sql-jdbc/sql-jdbc-builds
