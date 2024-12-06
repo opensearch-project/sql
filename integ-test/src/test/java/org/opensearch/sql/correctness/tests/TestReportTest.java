@@ -9,6 +9,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static org.junit.Assert.fail;
 
+import java.util.List;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.correctness.report.ErrorTestCase;
@@ -60,11 +61,11 @@ public class TestReportTest {
                 new DBResult(
                     "OpenSearch",
                     singleton(new Type("firstName", "text")),
-                    singleton(new Row(asList("hello")))),
+                    singleton(new Row(List.of("hello")))),
                 new DBResult(
                     "H2",
                     singleton(new Type("firstName", "text")),
-                    singleton(new Row(asList("world"))))),
+                    singleton(new Row(List.of("world"))))),
             "[SQLITE_ERROR] SQL error or missing database;"));
     JSONObject actual = new JSONObject(report);
     JSONObject expected =

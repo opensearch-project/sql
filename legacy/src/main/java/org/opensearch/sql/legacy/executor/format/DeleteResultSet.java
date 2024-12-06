@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.legacy.executor.format;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
+
 import java.util.List;
 import java.util.Map;
 import org.opensearch.client.Client;
@@ -27,14 +29,14 @@ public class DeleteResultSet extends ResultSet {
   }
 
   private List<Schema.Column> loadColumns() {
-    return Collections.singletonList(new Schema.Column(DELETED, null, Schema.Type.LONG));
+    return singletonList(new Schema.Column(DELETED, null, Schema.Type.LONG));
   }
 
   private List<DataRows.Row> loadRows() {
-    return Collections.singletonList(new DataRows.Row(loadDeletedData()));
+    return singletonList(new DataRows.Row(loadDeletedData()));
   }
 
   private Map<String, Object> loadDeletedData() {
-    return Collections.singletonMap(DELETED, ((BulkByScrollResponse) queryResult).getDeleted());
+    return singletonMap(DELETED, ((BulkByScrollResponse) queryResult).getDeleted());
   }
 }

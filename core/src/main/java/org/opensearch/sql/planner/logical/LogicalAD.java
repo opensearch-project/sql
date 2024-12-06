@@ -1,6 +1,7 @@
 package org.opensearch.sql.planner.logical;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -23,7 +24,7 @@ public class LogicalAD extends LogicalPlan {
    * @param arguments arguments of the algorithm
    */
   public LogicalAD(LogicalPlan child, Map<String, Literal> arguments) {
-    super(Collections.singletonList(child));
+    super(singletonList(child));
     this.arguments = arguments;
   }
 

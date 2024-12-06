@@ -126,7 +126,7 @@ public class ExprValueUtilsTest {
             1D,
             "1",
             true,
-            Arrays.asList(integerValue(1)),
+            List.of(integerValue(1)),
             ImmutableMap.of("1", integerValue(1)),
             LocalDate.parse("2012-08-07"),
             LocalTime.parse("18:00:00"),
