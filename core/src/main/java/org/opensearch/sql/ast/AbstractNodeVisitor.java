@@ -50,6 +50,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
@@ -215,6 +216,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitDedupe(Dedupe node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitLookup(Lookup node, C context) {
     return visitChildren(node, context);
   }
 

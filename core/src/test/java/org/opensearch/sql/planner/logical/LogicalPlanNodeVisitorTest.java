@@ -125,6 +125,7 @@ class LogicalPlanNodeVisitorTest {
     LogicalPlan ad = new LogicalAD(relation, Map.of());
     LogicalPlan ml = new LogicalML(relation, Map.of());
     LogicalPlan paginate = new LogicalPaginate(42, List.of(relation));
+    LogicalPlan lookup = new LogicalLookup(relation, "lookup_index", Map.of(), true, Map.of());
 
     List<Map<String, ReferenceExpression>> nestedArgs =
         List.of(
@@ -163,7 +164,8 @@ class LogicalPlanNodeVisitorTest {
             paginate,
             nested,
             cursor,
-            closeCursor)
+            closeCursor,
+            lookup)
         .map(Arguments::of);
   }
 
@@ -208,6 +210,15 @@ class LogicalPlanNodeVisitorTest {
 
     @Override
     public Integer visitRareTopN(LogicalRareTopN plan, Object context) {
+      return 1
+          + plan.getChild().stream()
+              .map(child -> child.accept(this, context))
+              .mapToInt(Integer::intValue)
+              .sum();
+    }
+
+    @Override
+    public Integer visitLookup(LogicalLookup plan, Object context) {
       return 1
           + plan.getChild().stream()
               .map(child -> child.accept(this, context))

@@ -1,0 +1,24 @@
+{
+  "mappings": {
+    "properties": {
+      "device-id": {
+        "type": "long"
+      },
+      "name": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "temperature": {
+        "type": "float"
+      },
+      "timestamp": {
+        "type": "date"
+      }
+    }
+  }
+}

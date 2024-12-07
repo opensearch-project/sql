@@ -90,6 +90,22 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testLookupCommand() {
+    assertEquals(
+        "source=t | lookup index field1 as field1,field2 as field2 overwrite=false",
+        anonymize("source=t | lookup index field1,field2"));
+    assertEquals(
+        "source=t | lookup index field1 as field1,field2 as field2 overwrite=true",
+        anonymize("source=t | lookup index field1,field2 overwrite=true"));
+    assertEquals(
+        "source=t | lookup index field1 as field12,field2 as field22 overwrite=false copyfield1 as"
+            + " copyfield1,copyfield2 as copyfield22",
+        anonymize(
+            "source=t | lookup index field1 as field12, field2 AS field22 copyfield1, copyfield2 as"
+                + " copyfield22"));
+  }
+
+  @Test
   public void testHeadCommandWithNumber() {
     assertEquals("source=t | head 3", anonymize("source=t | head 3"));
   }
