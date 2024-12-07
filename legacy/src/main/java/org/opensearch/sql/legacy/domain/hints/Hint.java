@@ -7,8 +7,8 @@ package org.opensearch.sql.legacy.domain.hints;
 
 /** Created by Eliran on 5/9/2015. */
 public class Hint {
-  private HintType type;
-  private Object[] params;
+  private final HintType type;
+  private final Object[] params;
 
   public Hint(HintType type, Object[] params) {
     this.type = type;

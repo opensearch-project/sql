@@ -19,7 +19,7 @@ import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.request.SqlRequestParam;
 
 public class SqlRequestParamTest {
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void shouldReturnTrueIfPrettyParamsIsTrue() {

@@ -13,14 +13,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @EqualsAndHashCode
 public class DataSourceType {
-  public static DataSourceType PROMETHEUS = new DataSourceType("PROMETHEUS");
-  public static DataSourceType OPENSEARCH = new DataSourceType("OPENSEARCH");
-  public static DataSourceType SPARK = new DataSourceType("SPARK");
-  public static DataSourceType S3GLUE = new DataSourceType("S3GLUE");
-  public static DataSourceType SECURITY_LAKE = new DataSourceType("SECURITY_LAKE");
+  public static final DataSourceType PROMETHEUS = new DataSourceType("PROMETHEUS");
+  public static final DataSourceType OPENSEARCH = new DataSourceType("OPENSEARCH");
+  public static final DataSourceType SPARK = new DataSourceType("SPARK");
+  public static final DataSourceType S3GLUE = new DataSourceType("S3GLUE");
+  public static final DataSourceType SECURITY_LAKE = new DataSourceType("SECURITY_LAKE");
 
   // Map from uppercase DataSourceType name to DataSourceType object
-  private static Map<String, DataSourceType> knownValues = new HashMap<>();
+  private static final Map<String, DataSourceType> knownValues = new HashMap<>();
 
   static {
     register(PROMETHEUS, OPENSEARCH, SPARK, S3GLUE, SECURITY_LAKE);

@@ -11,7 +11,7 @@ import java.util.EnumMap;
 public class ExecuteParams {
 
   /** Mapping from type to parameters */
-  private EnumMap<ExecuteParamType, Object> params = new EnumMap<>(ExecuteParamType.class);
+  private final EnumMap<ExecuteParamType, Object> params = new EnumMap<>(ExecuteParamType.class);
 
   public <T> void add(ExecuteParamType type, T param) {
     params.put(type, param);

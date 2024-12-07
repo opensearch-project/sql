@@ -30,13 +30,13 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
 
   private Cancellable flintIndexRetentionCron;
   private Cancellable flintStreamingJobHouseKeeperCron;
-  private ClusterService clusterService;
-  private ThreadPool threadPool;
-  private Client client;
-  private Clock clock;
-  private DataSourceService dataSourceService;
-  private FlintIndexMetadataService flintIndexMetadataService;
-  private FlintIndexOpFactory flintIndexOpFactory;
+  private final ClusterService clusterService;
+  private final ThreadPool threadPool;
+  private final Client client;
+  private final Clock clock;
+  private final DataSourceService dataSourceService;
+  private final FlintIndexMetadataService flintIndexMetadataService;
+  private final FlintIndexOpFactory flintIndexOpFactory;
   private Duration sessionTtlDuration;
   private Duration resultTtlDuration;
   private TimeValue streamingJobHouseKeepingInterval;

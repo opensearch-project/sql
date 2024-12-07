@@ -63,7 +63,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   private static final int DEFAULT_TAKE_FUNCTION_SIZE_VALUE = 10;
 
   /** The function name mapping between fronted and core engine. */
-  private static Map<String, String> FUNCTION_NAME_MAPPING =
+  private static final Map<String, String> FUNCTION_NAME_MAPPING =
       new ImmutableMap.Builder<String, String>()
           .put("isnull", IS_NULL.getName().getFunctionName())
           .put("isnotnull", IS_NOT_NULL.getName().getFunctionName())

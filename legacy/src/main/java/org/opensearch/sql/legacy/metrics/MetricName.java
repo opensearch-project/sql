@@ -50,7 +50,7 @@ public enum MetricName {
   EMR_BATCH_QUERY_JOBS_CREATION_COUNT("emr_batch_jobs_creation_count"),
   STREAMING_JOB_HOUSEKEEPER_TASK_FAILURE_COUNT("streaming_job_housekeeper_task_failure_count");
 
-  private String name;
+  private final String name;
 
   MetricName(String name) {
     this.name = name;
@@ -64,7 +64,7 @@ public enum MetricName {
     return Arrays.stream(MetricName.values()).map(v -> v.name).collect(Collectors.toList());
   }
 
-  private static Set<MetricName> NUMERICAL_METRIC =
+  private static final Set<MetricName> NUMERICAL_METRIC =
       new ImmutableSet.Builder<MetricName>()
           .add(PPL_REQ_TOTAL)
           .add(PPL_REQ_COUNT_TOTAL)

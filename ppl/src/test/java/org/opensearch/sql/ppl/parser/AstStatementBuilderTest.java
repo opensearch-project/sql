@@ -30,7 +30,7 @@ public class AstStatementBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
-  private PPLSyntaxParser parser = new PPLSyntaxParser();
+  private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   @Test
   public void buildQueryStatement() {

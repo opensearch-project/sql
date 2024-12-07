@@ -18,7 +18,7 @@ import org.opensearch.sql.legacy.expression.model.ExprValueUtils;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ExprValueUtilsTest {
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void getIntegerValueWithIntegerExprValueShouldPass() {

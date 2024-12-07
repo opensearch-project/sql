@@ -60,14 +60,14 @@ class OpenSearchResponseTest {
 
   @Mock private Aggregations aggregations;
 
-  private List<String> includes = List.of();
+  private final List<String> includes = List.of();
 
   @Mock private OpenSearchAggregationResponseParser parser;
 
-  private ExprTupleValue exprTupleValue1 =
+  private final ExprTupleValue exprTupleValue1 =
       ExprTupleValue.fromExprValueMap(ImmutableMap.of("id1", new ExprIntegerValue(1)));
 
-  private ExprTupleValue exprTupleValue2 =
+  private final ExprTupleValue exprTupleValue2 =
       ExprTupleValue.fromExprValueMap(ImmutableMap.of("id2", new ExprIntegerValue(2)));
 
   @Test

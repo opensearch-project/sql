@@ -28,7 +28,8 @@ public class OpenSearchAsyncQueryJobMetadataStorageServiceTest extends OpenSearc
   private static final String MOCK_RESULT_INDEX = "resultIndex";
   private static final String MOCK_QUERY_ID = "00fdo6u94n7abo0q";
   private OpenSearchAsyncQueryJobMetadataStorageService openSearchJobMetadataStorageService;
-  private AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
+  private final AsyncQueryRequestContext asyncQueryRequestContext =
+      new NullAsyncQueryRequestContext();
 
   @Before
   public void setup() {

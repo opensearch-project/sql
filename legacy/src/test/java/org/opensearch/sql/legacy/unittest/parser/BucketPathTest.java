@@ -15,7 +15,7 @@ import org.opensearch.sql.legacy.domain.bucketpath.Path;
 
 public class BucketPathTest {
 
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   private final Path agg1 = Path.getAggPath("projects@NESTED");
   private final Path agg2 = Path.getAggPath("projects@FILTERED");

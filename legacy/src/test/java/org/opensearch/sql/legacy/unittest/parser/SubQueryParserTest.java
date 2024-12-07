@@ -19,7 +19,7 @@ import org.opensearch.sql.legacy.utils.StringUtils;
 
 public class SubQueryParserTest {
 
-  private static SqlParser parser = new SqlParser();
+  private static final SqlParser parser = new SqlParser();
 
   @Test
   public void selectFromSubqueryShouldPass() throws SqlParseException {

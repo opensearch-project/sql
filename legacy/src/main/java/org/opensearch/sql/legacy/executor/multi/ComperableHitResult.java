@@ -15,10 +15,10 @@ import org.opensearch.sql.legacy.utils.Util;
 
 /** Created by Eliran on 9/9/2016. */
 public class ComperableHitResult {
-  private SearchHit hit;
-  private String comperator;
+  private final SearchHit hit;
+  private final String comperator;
   private boolean isAllNull;
-  private Map<String, Object> flattenMap;
+  private final Map<String, Object> flattenMap;
 
   public ComperableHitResult(SearchHit hit, String[] fieldsOrder, String seperator) {
     this.hit = hit;

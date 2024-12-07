@@ -29,8 +29,8 @@ public class DescribeResultSet extends ResultSet {
    */
   public static final String DEFAULT_OBJECT_DATATYPE = "object";
 
-  private IndexStatement statement;
-  private Object queryResult;
+  private final IndexStatement statement;
+  private final Object queryResult;
 
   public DescribeResultSet(Client client, IndexStatement statement, Object queryResult) {
     this.client = client;

@@ -7,7 +7,7 @@ package org.opensearch.sql.legacy.spatial;
 
 /** Created by Eliran on 15/8/2015. */
 public class RangeDistanceFilterParams extends DistanceFilterParams {
-  private String distanceTo;
+  private final String distanceTo;
 
   public RangeDistanceFilterParams(String distanceFrom, String distanceTo, Point from) {
     super(distanceFrom, from);

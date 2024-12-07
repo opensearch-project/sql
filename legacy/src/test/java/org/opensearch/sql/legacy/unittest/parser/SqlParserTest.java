@@ -62,7 +62,7 @@ public class SqlParserTest {
     parser = new SqlParser();
   }
 
-  @Rule public ExpectedException thrown = ExpectedException.none();
+  @Rule public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void whereConditionLeftFunctionRightPropertyGreatTest() throws Exception {

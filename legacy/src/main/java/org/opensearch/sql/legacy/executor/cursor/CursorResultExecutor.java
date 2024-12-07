@@ -41,8 +41,8 @@ import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 
 public class CursorResultExecutor implements CursorRestExecutor {
 
-  private String cursorId;
-  private Format format;
+  private final String cursorId;
+  private final Format format;
 
   private static final Logger LOG = LogManager.getLogger(CursorResultExecutor.class);
 

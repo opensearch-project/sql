@@ -22,7 +22,7 @@ public class Where implements Cloneable {
     return new Where(CONN.AND);
   }
 
-  private LinkedList<Where> wheres = new LinkedList<>();
+  private final LinkedList<Where> wheres = new LinkedList<>();
 
   protected CONN conn;
 

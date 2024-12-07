@@ -18,7 +18,7 @@ public interface BlockSize {
   /** Default implementation with fixed block size */
   class FixedBlockSize implements BlockSize {
 
-    private int blockSize;
+    private final int blockSize;
 
     public FixedBlockSize(int blockSize) {
       this.blockSize = blockSize;

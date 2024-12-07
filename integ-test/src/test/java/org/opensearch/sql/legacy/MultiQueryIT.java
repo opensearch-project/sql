@@ -18,9 +18,9 @@ import org.junit.Test;
 
 public class MultiQueryIT extends SQLIntegTestCase {
 
-  private static String MINUS_SCROLL_DEFAULT_HINT =
+  private static final String MINUS_SCROLL_DEFAULT_HINT =
       " /*! MINUS_SCROLL_FETCH_AND_RESULT_LIMITS(1000, 50, 100) */ ";
-  private static String MINUS_TERMS_OPTIMIZATION_HINT =
+  private static final String MINUS_TERMS_OPTIMIZATION_HINT =
       " /*! MINUS_USE_TERMS_OPTIMIZATION(true) */ ";
 
   @Override

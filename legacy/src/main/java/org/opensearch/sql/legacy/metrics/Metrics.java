@@ -12,8 +12,9 @@ import org.json.JSONObject;
 
 public class Metrics {
 
-  private static Metrics metrics = new Metrics();
-  private ConcurrentHashMap<String, Metric> registeredMetricsByName = new ConcurrentHashMap<>();
+  private static final Metrics metrics = new Metrics();
+  private final ConcurrentHashMap<String, Metric> registeredMetricsByName =
+      new ConcurrentHashMap<>();
 
   public static Metrics getInstance() {
     return metrics;

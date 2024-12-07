@@ -50,9 +50,9 @@ public class DateTimeComparisonIT extends SQLIntegTestCase {
     TimeZone.setDefault(testTz);
   }
 
-  private String functionCall;
-  private String name;
-  private Boolean expectedResult;
+  private final String functionCall;
+  private final String name;
+  private final Boolean expectedResult;
 
   public DateTimeComparisonIT(
       @Name("functionCall") String functionCall,

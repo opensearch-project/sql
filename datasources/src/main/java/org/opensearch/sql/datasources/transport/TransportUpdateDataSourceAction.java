@@ -29,7 +29,7 @@ public class TransportUpdateDataSourceAction
   public static final ActionType<UpdateDataSourceActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, UpdateDataSourceActionResponse::new);
 
-  private DataSourceService dataSourceService;
+  private final DataSourceService dataSourceService;
 
   /**
    * TransportUpdateDataSourceAction action for updating datasource.

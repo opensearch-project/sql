@@ -7,7 +7,7 @@ package org.opensearch.sql.legacy.metrics;
 
 public class NumericMetric<T> extends Metric<T> {
 
-  private Counter<T> counter;
+  private final Counter<T> counter;
 
   public NumericMetric(String name, Counter counter) {
     super(name);

@@ -11,7 +11,7 @@ import org.opensearch.sql.legacy.domain.Select;
 public class SubQueryExpression {
   private Object[] values;
   private Select select;
-  private String returnField;
+  private final String returnField;
 
   public SubQueryExpression(Select innerSelect) {
     this.select = innerSelect;

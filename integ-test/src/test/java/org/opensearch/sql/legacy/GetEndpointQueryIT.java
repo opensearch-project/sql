@@ -16,7 +16,7 @@ import org.opensearch.client.ResponseException;
 /** Tests to cover requests with "?format=csv" parameter */
 public class GetEndpointQueryIT extends SQLIntegTestCase {
 
-  @Rule public ExpectedException rule = ExpectedException.none();
+  @Rule public final ExpectedException rule = ExpectedException.none();
 
   @Override
   protected void init() throws Exception {

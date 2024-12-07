@@ -68,13 +68,13 @@ public class OrdinalRewriterRule implements RewriteRule<SQLQueryExpr> {
     root.accept(
         new MySqlASTVisitorAdapter() {
 
-          private String groupException = "Invalid ordinal [%s] specified in [GROUP BY %s]";
-          private String orderException = "Invalid ordinal [%s] specified in [ORDER BY %s]";
+          private final String groupException = "Invalid ordinal [%s] specified in [GROUP BY %s]";
+          private final String orderException = "Invalid ordinal [%s] specified in [ORDER BY %s]";
 
-          private List<SQLSelectItem> groupSelectList =
+          private final List<SQLSelectItem> groupSelectList =
               ((MySqlSelectQueryBlock) exprGroup.getSubQuery().getQuery()).getSelectList();
 
-          private List<SQLSelectItem> orderSelectList =
+          private final List<SQLSelectItem> orderSelectList =
               ((MySqlSelectQueryBlock) exprOrder.getSubQuery().getQuery()).getSelectList();
 
           @Override

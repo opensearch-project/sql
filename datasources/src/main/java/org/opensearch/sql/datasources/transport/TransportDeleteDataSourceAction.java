@@ -26,7 +26,7 @@ public class TransportDeleteDataSourceAction
   public static final ActionType<DeleteDataSourceActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, DeleteDataSourceActionResponse::new);
 
-  private DataSourceService dataSourceService;
+  private final DataSourceService dataSourceService;
 
   /**
    * TransportDeleteDataSourceAction action for deleting datasource.

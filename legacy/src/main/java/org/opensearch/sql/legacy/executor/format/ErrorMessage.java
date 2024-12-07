@@ -10,12 +10,12 @@ import org.opensearch.core.rest.RestStatus;
 
 public class ErrorMessage<E extends Exception> {
 
-  protected E exception;
+  protected final E exception;
 
-  private int status;
-  private String type;
-  private String reason;
-  private String details;
+  private final int status;
+  private final String type;
+  private final String reason;
+  private final String details;
 
   public ErrorMessage(E exception, int status) {
     this.exception = exception;

@@ -19,7 +19,7 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 class DatasourceEmbeddedQueryIdProviderTest {
   @Mock AsyncQueryRequestContext asyncQueryRequestContext;
 
-  DatasourceEmbeddedQueryIdProvider datasourceEmbeddedQueryIdProvider =
+  final DatasourceEmbeddedQueryIdProvider datasourceEmbeddedQueryIdProvider =
       new DatasourceEmbeddedQueryIdProvider();
 
   @Test

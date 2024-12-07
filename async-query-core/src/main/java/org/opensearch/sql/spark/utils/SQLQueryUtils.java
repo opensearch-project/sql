@@ -90,7 +90,8 @@ public class SQLQueryUtils {
 
   public static class SparkSqlTableNameVisitor extends SqlBaseParserBaseVisitor<Void> {
 
-    @Getter private List<FullyQualifiedTableName> fullyQualifiedTableNames = new LinkedList<>();
+    @Getter
+    private final List<FullyQualifiedTableName> fullyQualifiedTableNames = new LinkedList<>();
 
     public SparkSqlTableNameVisitor() {}
 

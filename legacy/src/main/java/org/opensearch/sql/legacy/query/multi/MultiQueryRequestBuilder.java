@@ -27,10 +27,10 @@ public class MultiQueryRequestBuilder implements SqlElasticRequestBuilder {
 
   private SearchRequestBuilder firstSearchRequest;
   private SearchRequestBuilder secondSearchRequest;
-  private Map<String, String> firstTableFieldToAlias;
-  private Map<String, String> secondTableFieldToAlias;
-  private MultiQuerySelect multiQuerySelect;
-  private SQLUnionOperator relation;
+  private final Map<String, String> firstTableFieldToAlias;
+  private final Map<String, String> secondTableFieldToAlias;
+  private final MultiQuerySelect multiQuerySelect;
+  private final SQLUnionOperator relation;
 
   public MultiQueryRequestBuilder(MultiQuerySelect multiQuerySelect) {
     this.multiQuerySelect = multiQuerySelect;

@@ -30,9 +30,9 @@ class SparkParameterComposerCollectionTest {
   @Mock DispatchQueryRequest dispatchQueryRequest;
   @Mock AsyncQueryRequestContext asyncQueryRequestContext;
 
-  DataSourceType type1 = new DataSourceType("TYPE1");
-  DataSourceType type2 = new DataSourceType("TYPE2");
-  DataSourceType type3 = new DataSourceType("TYPE3");
+  final DataSourceType type1 = new DataSourceType("TYPE1");
+  final DataSourceType type2 = new DataSourceType("TYPE2");
+  final DataSourceType type3 = new DataSourceType("TYPE3");
 
   SparkParameterComposerCollection collection;
 

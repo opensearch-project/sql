@@ -67,9 +67,9 @@ import org.opensearch.sql.spark.flint.FlintIndexStateModel;
  */
 @RequiredArgsConstructor
 public class StateStore {
-  public static String SETTINGS_FILE_NAME = "query_execution_request_settings.yml";
-  public static String MAPPING_FILE_NAME = "query_execution_request_mapping.yml";
-  public static String ALL_DATASOURCE = "*";
+  public static final String SETTINGS_FILE_NAME = "query_execution_request_settings.yml";
+  public static final String MAPPING_FILE_NAME = "query_execution_request_mapping.yml";
+  public static final String ALL_DATASOURCE = "*";
 
   private static final Logger LOG = LogManager.getLogger();
 

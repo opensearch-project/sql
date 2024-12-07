@@ -129,7 +129,7 @@ public class SparkQueryDispatcherTest {
           new GrammarElementValidatorProvider(
               ImmutableMap.of(), new DefaultGrammarElementValidator()));
 
-  private DataSourceSparkParameterComposer dataSourceSparkParameterComposer =
+  private final DataSourceSparkParameterComposer dataSourceSparkParameterComposer =
       (datasourceMetadata, sparkSubmitParameters, dispatchQueryRequest, context) -> {
         sparkSubmitParameters.setConfigItem(FLINT_INDEX_STORE_AUTH_KEY, "basic");
         sparkSubmitParameters.setConfigItem(FLINT_INDEX_STORE_HOST_KEY, "HOST");
@@ -139,7 +139,7 @@ public class SparkQueryDispatcherTest {
             KEY_FROM_DATASOURCE_COMPOSER, VALUE_FROM_DATASOURCE_COMPOSER);
       };
 
-  private GeneralSparkParameterComposer generalSparkParameterComposer =
+  private final GeneralSparkParameterComposer generalSparkParameterComposer =
       (sparkSubmitParameters, dispatchQueryRequest, context) -> {
         sparkSubmitParameters.setConfigItem(KEY_FROM_COMPOSER, VALUE_FROM_COMPOSER);
       };

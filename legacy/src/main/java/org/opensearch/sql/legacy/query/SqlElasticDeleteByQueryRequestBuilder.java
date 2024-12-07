@@ -13,7 +13,7 @@ import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
 
 /** Created by Eliran on 19/8/2015. */
 public class SqlElasticDeleteByQueryRequestBuilder implements SqlElasticRequestBuilder {
-  DeleteByQueryRequestBuilder deleteByQueryRequestBuilder;
+  final DeleteByQueryRequestBuilder deleteByQueryRequestBuilder;
 
   public SqlElasticDeleteByQueryRequestBuilder(
       DeleteByQueryRequestBuilder deleteByQueryRequestBuilder) {

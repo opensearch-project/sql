@@ -17,7 +17,7 @@ import org.opensearch.sql.expression.env.Environment;
  * output column name is bindingName, the value is the ExprValue.
  */
 public abstract class BindingTuple implements Environment<Expression, ExprValue> {
-  public static BindingTuple EMPTY =
+  public static final BindingTuple EMPTY =
       new BindingTuple() {
         @Override
         public ExprValue resolve(ReferenceExpression ref) {
