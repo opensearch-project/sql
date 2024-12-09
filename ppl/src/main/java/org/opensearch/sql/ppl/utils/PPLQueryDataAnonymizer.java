@@ -37,6 +37,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -212,6 +213,40 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format(
         "%s | dedup %s %d keepempty=%b consecutive=%b",
         child, fields, allowedDuplication, keepEmpty, consecutive);
+  }
+
+  @Override
+  public String visitLookup(Lookup node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String lookupIndexName = node.getIndexName();
+    ImmutableMap.Builder<String, String> matchMapBuilder = new ImmutableMap.Builder<>();
+    for (Map matchMap : node.getMatchFieldList()) {
+      matchMapBuilder.put(
+          visitExpression(matchMap.getOrigin()),
+          ((Field) matchMap.getTarget()).getField().toString());
+    }
+    String matches =
+        matchMapBuilder.build().entrySet().stream()
+            .map(entry -> StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
+            .collect(Collectors.joining(","));
+
+    ImmutableMap.Builder<String, String> copyMapBuilder = new ImmutableMap.Builder<>();
+    for (Map copyMap : node.getCopyFieldList()) {
+      copyMapBuilder.put(
+          visitExpression(copyMap.getOrigin()),
+          ((Field) copyMap.getTarget()).getField().toString());
+    }
+    String copies =
+        copyMapBuilder.build().entrySet().stream()
+            .map(entry -> StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
+            .collect(Collectors.joining(","));
+
+    List<Argument> options = node.getOptions();
+    Boolean overwrite = (Boolean) options.get(0).getValue().getValue();
+
+    return StringUtils.format(
+            "%s | lookup %s %s overwrite=%b %s", child, lookupIndexName, matches, overwrite, copies)
+        .trim();
   }
 
   @Override
