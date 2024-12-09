@@ -11,7 +11,6 @@ import static org.junit.Assert.assertNotEquals;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 import org.opensearch.sql.correctness.runner.resultset.DBResult;
@@ -76,12 +75,10 @@ public class DBResultTest {
   public void shouldExplainColumnTypeDifference() {
     DBResult result1 =
         new DBResult(
-            "DB 1",
-            Arrays.asList(new Type("name", "VARCHAR"), new Type("age", "FLOAT")),
-            List.of());
+            "DB 1", List.of(new Type("name", "VARCHAR"), new Type("age", "FLOAT")), List.of());
     DBResult result2 =
         new DBResult(
-            "DB 2", Arrays.asList(new Type("name", "VARCHAR"), new Type("age", "INT")), List.of());
+            "DB 2", List.of(new Type("name", "VARCHAR"), new Type("age", "INT")), List.of());
 
     assertEquals(
         "Schema type at [1] is different: "

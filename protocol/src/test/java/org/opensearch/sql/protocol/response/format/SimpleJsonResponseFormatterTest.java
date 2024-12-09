@@ -16,7 +16,6 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -36,7 +35,7 @@ class SimpleJsonResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 tupleValue(ImmutableMap.of("firstname", "John", "age", 20)),
                 tupleValue(ImmutableMap.of("firstname", "Smith", "age", 30))));
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
@@ -52,7 +51,7 @@ class SimpleJsonResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 tupleValue(ImmutableMap.of("firstname", "John", "age", 20)),
                 tupleValue(ImmutableMap.of("firstname", "Smith", "age", 30))));
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(PRETTY);
@@ -104,7 +103,7 @@ class SimpleJsonResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 ExprTupleValue.fromExprValueMap(
                     ImmutableMap.of("firstname", stringValue("John"), "age", LITERAL_MISSING)),
                 tupleValue(ImmutableMap.of("firstname", "Smith", "age", 30))));
@@ -150,7 +149,7 @@ class SimpleJsonResponseFormatterTest {
                         "name",
                         "Smith",
                         "address",
-                        Arrays.asList(
+                        List.of(
                             ImmutableMap.of("state", "WA"), ImmutableMap.of("state", "NYC"))))));
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
     assertEquals(

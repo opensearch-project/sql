@@ -68,8 +68,6 @@ import static org.opensearch.sql.sql.parser.ParserUtils.createSortOption;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -118,8 +116,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitMathExpressionAtom(MathExpressionAtomContext ctx) {
-    return new Function(
-        ctx.mathOperator.getText(), Arrays.asList(visit(ctx.left), visit(ctx.right)));
+    return new Function(ctx.mathOperator.getText(), List.of(visit(ctx.left), visit(ctx.right)));
   }
 
   @Override
@@ -169,21 +166,21 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   public UnresolvedExpression visitPositionFunction(PositionFunctionContext ctx) {
     return new Function(
         POSITION.getName().getFunctionName(),
-        Arrays.asList(visitFunctionArg(ctx.functionArg(0)), visitFunctionArg(ctx.functionArg(1))));
+        List.of(visitFunctionArg(ctx.functionArg(0)), visitFunctionArg(ctx.functionArg(1))));
   }
 
   @Override
   public UnresolvedExpression visitTableFilter(TableFilterContext ctx) {
     return new Function(
         LIKE.getName().getFunctionName(),
-        Arrays.asList(qualifiedName("TABLE_NAME"), visit(ctx.showDescribePattern())));
+        List.of(qualifiedName("TABLE_NAME"), visit(ctx.showDescribePattern())));
   }
 
   @Override
   public UnresolvedExpression visitColumnFilter(ColumnFilterContext ctx) {
     return new Function(
         LIKE.getName().getFunctionName(),
-        Arrays.asList(qualifiedName("COLUMN_NAME"), visit(ctx.showDescribePattern())));
+        List.of(qualifiedName("COLUMN_NAME"), visit(ctx.showDescribePattern())));
   }
 
   @Override
@@ -202,7 +199,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   public UnresolvedExpression visitWindowFunctionClause(WindowFunctionClauseContext ctx) {
     OverClauseContext overClause = ctx.overClause();
 
-    List<UnresolvedExpression> partitionByList = Collections.emptyList();
+    List<UnresolvedExpression> partitionByList = List.of();
     if (overClause.partitionByClause() != null) {
       partitionByList =
           overClause.partitionByClause().expression().stream()
@@ -210,7 +207,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
               .collect(Collectors.toList());
     }
 
-    List<Pair<SortOption, UnresolvedExpression>> sortList = Collections.emptyList();
+    List<Pair<SortOption, UnresolvedExpression>> sortList = List.of();
     if (overClause.orderByClause() != null) {
       sortList =
           overClause.orderByClause().orderByElement().stream()
@@ -270,13 +267,13 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   public UnresolvedExpression visitLikePredicate(LikePredicateContext ctx) {
     return new Function(
         ctx.NOT() == null ? LIKE.getName().getFunctionName() : NOT_LIKE.getName().getFunctionName(),
-        Arrays.asList(visit(ctx.left), visit(ctx.right)));
+        List.of(visit(ctx.left), visit(ctx.right)));
   }
 
   @Override
   public UnresolvedExpression visitRegexpPredicate(RegexpPredicateContext ctx) {
     return new Function(
-        REGEXP.getName().getFunctionName(), Arrays.asList(visit(ctx.left), visit(ctx.right)));
+        REGEXP.getName().getFunctionName(), List.of(visit(ctx.left), visit(ctx.right)));
   }
 
   @Override
@@ -362,7 +359,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     String functionName = ctx.comparisonOperator().getText();
     return new Function(
         functionName.equals("<>") ? "!=" : functionName,
-        Arrays.asList(visit(ctx.left), visit(ctx.right)));
+        List.of(visit(ctx.left), visit(ctx.right)));
   }
 
   @Override
@@ -577,7 +574,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   private List<UnresolvedExpression> getFormatFunctionArguments(GetFormatFunctionCallContext ctx) {
     List<UnresolvedExpression> args =
-        Arrays.asList(
+        List.of(
             new Literal(ctx.getFormatFunction().getFormatType().getText(), DataType.STRING),
             visitFunctionArg(ctx.getFormatFunction().functionArg()));
     return args;
@@ -585,7 +582,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   private List<UnresolvedExpression> timestampFunctionArguments(TimestampFunctionCallContext ctx) {
     List<UnresolvedExpression> args =
-        Arrays.asList(
+        List.of(
             new Literal(ctx.timestampFunction().simpleDateTimePart().getText(), DataType.STRING),
             visitFunctionArg(ctx.timestampFunction().firstArg),
             visitFunctionArg(ctx.timestampFunction().secondArg));
@@ -660,7 +657,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   private List<UnresolvedExpression> getExtractFunctionArguments(ExtractFunctionCallContext ctx) {
     List<UnresolvedExpression> args =
-        Arrays.asList(
+        List.of(
             new Literal(ctx.extractFunction().datetimePart().getText(), DataType.STRING),
             visitFunctionArg(ctx.extractFunction().functionArg()));
     return args;
