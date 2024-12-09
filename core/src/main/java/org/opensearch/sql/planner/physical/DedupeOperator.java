@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.planner.physical;
 
-import static java.util.Collections.singletonList;
-
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +77,7 @@ public class DedupeOperator extends PhysicalPlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return singletonList(input);
+    return List.of(input);
   }
 
   @Override

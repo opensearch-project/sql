@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.cluster;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -183,7 +182,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
 
   @VisibleForTesting
   public List<Cancellable> getFlintIndexRetentionCron() {
-    return singletonList(flintIndexRetentionCron);
+    return List.of(flintIndexRetentionCron);
   }
 
   private String executorName() {

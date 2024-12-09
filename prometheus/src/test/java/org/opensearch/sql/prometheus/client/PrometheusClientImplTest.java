@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.prometheus.client;
 
-import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -154,13 +153,12 @@ public class PrometheusClientImplTest {
     Map<String, List<MetricMetadata>> expected = new HashMap<>();
     expected.put(
         "go_gc_duration_seconds",
-        singletonList(
+        List.of(
             new MetricMetadata(
                 "summary", "A summary of the pause duration of garbage collection cycles.", "")));
     expected.put(
         "go_goroutines",
-        singletonList(
-            new MetricMetadata("gauge", "Number of goroutines that currently exist.", "")));
+        List.of(new MetricMetadata("gauge", "Number of goroutines that currently exist.", "")));
     assertEquals(expected, response);
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     verifyGetAllMetricsCall(recordedRequest);

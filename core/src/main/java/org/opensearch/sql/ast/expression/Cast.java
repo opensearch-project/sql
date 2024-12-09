@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ast.expression;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_BOOLEAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_BYTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_DATE;
@@ -99,7 +98,7 @@ public class Cast extends UnresolvedExpression {
 
   @Override
   public List<? extends Node> getChild() {
-    return singletonList(expression);
+    return List.of(expression);
   }
 
   @Override

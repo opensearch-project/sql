@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.legacy.antlr.visitor;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static org.opensearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.AggregateWindowedFunctionContext;
 import static org.opensearch.sql.legacy.antlr.parser.OpenSearchLegacySqlParser.AtomTableItemContext;
@@ -377,14 +376,14 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible>
   }
 
   private T reduce(T reducer, ParserRuleContext ctx) {
-    return reduce(reducer, (ctx == null) ? emptyList() : ctx.children);
+    return reduce(reducer, (ctx == null) ? List.of() : ctx.children);
   }
 
   /** Make constructor apply arguments and return result type */
   private <Node extends ParseTree> T reduce(T reducer, List<Node> nodes) {
     List<T> args;
     if (nodes == null) {
-      args = emptyList();
+      args = List.of();
     } else {
       args =
           nodes.stream()

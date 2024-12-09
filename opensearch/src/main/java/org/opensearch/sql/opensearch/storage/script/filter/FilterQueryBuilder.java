@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter;
 
-import static java.util.Collections.emptyMap;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
 import static org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine.EXPRESSION_LANG_NAME;
 
@@ -131,6 +130,6 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
   private ScriptQueryBuilder buildScriptQuery(FunctionExpression node) {
     return new ScriptQueryBuilder(
         new Script(
-            DEFAULT_SCRIPT_TYPE, EXPRESSION_LANG_NAME, serializer.serialize(node), emptyMap()));
+            DEFAULT_SCRIPT_TYPE, EXPRESSION_LANG_NAME, serializer.serialize(node), Map.of()));
   }
 }

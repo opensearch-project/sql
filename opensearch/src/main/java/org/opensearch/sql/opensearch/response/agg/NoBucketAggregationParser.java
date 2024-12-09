@@ -13,8 +13,6 @@
 
 package org.opensearch.sql.opensearch.response.agg;
 
-import static java.util.Collections.singletonList;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +33,6 @@ public class NoBucketAggregationParser implements OpenSearchAggregationResponseP
 
   @Override
   public List<Map<String, Object>> parse(Aggregations aggregations) {
-    return singletonList(metricsParser.parse(aggregations));
+    return List.of(metricsParser.parse(aggregations));
   }
 }

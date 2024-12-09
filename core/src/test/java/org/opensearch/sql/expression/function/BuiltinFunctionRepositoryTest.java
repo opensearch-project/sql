@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.expression.function;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -98,7 +96,7 @@ class BuiltinFunctionRepositoryTest {
 
     repo.compile(
         functionProperties,
-        singletonList(dataSourceFunctionResolver),
+        List.of(dataSourceFunctionResolver),
         mockFunctionName,
         List.of(mockExpression));
     verify(functionExpressionBuilder, times(1)).apply(eq(functionProperties), any());
@@ -116,7 +114,7 @@ class BuiltinFunctionRepositoryTest {
     BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockMap);
     repo.register(mockfunctionResolver);
 
-    assertEquals(functionExpressionBuilder, repo.resolve(emptyList(), functionSignature));
+    assertEquals(functionExpressionBuilder, repo.resolve(List.of(), functionSignature));
   }
 
   @Test
@@ -124,8 +122,7 @@ class BuiltinFunctionRepositoryTest {
     when(mockExpression.toString()).thenReturn("string");
     FunctionImplementation function =
         repo.resolve(
-                emptyList(),
-                registerFunctionResolver(CAST_TO_BOOLEAN.getName(), TIMESTAMP, BOOLEAN))
+                List.of(), registerFunctionResolver(CAST_TO_BOOLEAN.getName(), TIMESTAMP, BOOLEAN))
             .apply(functionProperties, ImmutableList.of(mockExpression));
     assertEquals("cast_to_boolean(string)", function.toString());
   }
@@ -135,7 +132,7 @@ class BuiltinFunctionRepositoryTest {
     when(mockFunctionName.getFunctionName()).thenReturn("mock");
     when(mockExpression.toString()).thenReturn("string");
     FunctionImplementation function =
-        repo.resolve(emptyList(), registerFunctionResolver(mockFunctionName, STRING, STRING))
+        repo.resolve(List.of(), registerFunctionResolver(mockFunctionName, STRING, STRING))
             .apply(functionProperties, ImmutableList.of(mockExpression));
     assertEquals("mock(string)", function.toString());
   }
@@ -145,7 +142,7 @@ class BuiltinFunctionRepositoryTest {
     when(mockFunctionName.getFunctionName()).thenReturn("mock");
     when(mockExpression.toString()).thenReturn("byte");
     FunctionImplementation function =
-        repo.resolve(emptyList(), registerFunctionResolver(mockFunctionName, BYTE, INTEGER))
+        repo.resolve(List.of(), registerFunctionResolver(mockFunctionName, BYTE, INTEGER))
             .apply(functionProperties, ImmutableList.of(mockExpression));
     assertEquals("mock(byte)", function.toString());
   }
@@ -160,7 +157,7 @@ class BuiltinFunctionRepositoryTest {
     registerFunctionResolver(CAST_TO_BOOLEAN.getName(), STRING, STRING);
 
     FunctionImplementation function =
-        repo.resolve(emptyList(), signature)
+        repo.resolve(List.of(), signature)
             .apply(functionProperties, ImmutableList.of(mockExpression));
     assertEquals("mock(cast_to_boolean(string))", function.toString());
   }
@@ -171,7 +168,7 @@ class BuiltinFunctionRepositoryTest {
         assertThrows(
             ExpressionEvaluationException.class,
             () ->
-                repo.resolve(emptyList(), registerFunctionResolver(mockFunctionName, BYTE, STRUCT))
+                repo.resolve(List.of(), registerFunctionResolver(mockFunctionName, BYTE, STRUCT))
                     .apply(functionProperties, ImmutableList.of(mockExpression)));
     assertEquals(error.getMessage(), "Type conversion to type STRUCT is not supported");
   }
@@ -188,7 +185,7 @@ class BuiltinFunctionRepositoryTest {
             ExpressionEvaluationException.class,
             () ->
                 repo.resolve(
-                    emptyList(), new FunctionSignature(FunctionName.of("unknown"), List.of())));
+                    List.of(), new FunctionSignature(FunctionName.of("unknown"), List.of())));
     assertEquals("unsupported function name: unknown", exception.getMessage());
   }
 

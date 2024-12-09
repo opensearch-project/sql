@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -332,10 +330,10 @@ class OpenSearchIndexScanOptimizationTest {
   void test_highlight_push_down() {
     assertEqualsAfterOptimization(
         project(
-            indexScanBuilder(withHighlightPushedDown("*", emptyMap())),
+            indexScanBuilder(withHighlightPushedDown("*", Map.of())),
             DSL.named("highlight(*)", new HighlightExpression(DSL.literal("*")))),
         project(
-            highlight(relation("schema", table), DSL.literal("*"), emptyMap()),
+            highlight(relation("schema", table), DSL.literal("*"), Map.of()),
             DSL.named("highlight(*)", new HighlightExpression(DSL.literal("*")))));
   }
 
@@ -642,7 +640,7 @@ class OpenSearchIndexScanOptimizationTest {
     CompositeAggregationBuilder aggBuilder =
         AggregationBuilders.composite(
                 "composite_buckets",
-                singletonList(
+                List.of(
                     new TermsValuesSourceBuilder(aggregation.groupBy)
                         .field(aggregation.groupBy)
                         .order(aggregation.sortBy.getSortOrder() == ASC ? "asc" : "desc")
@@ -653,7 +651,7 @@ class OpenSearchIndexScanOptimizationTest {
                 AggregationBuilders.avg(aggregation.aggregateName).field(aggregation.aggregateBy))
             .size(AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE);
 
-    List<AggregationBuilder> aggBuilders = singletonList(aggBuilder);
+    List<AggregationBuilder> aggBuilders = List.of(aggBuilder);
     OpenSearchAggregationResponseParser responseParser =
         new CompositeAggregationParser(new SingleValueParser(aggregation.aggregateName));
 

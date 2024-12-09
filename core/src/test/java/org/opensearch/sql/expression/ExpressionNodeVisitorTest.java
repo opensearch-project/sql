@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression;
 
-import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -38,7 +37,7 @@ class ExpressionNodeVisitorTest {
     assertNull(DSL.abs(literal(-10)).accept(visitor, null));
     assertNull(DSL.sum(literal(10)).accept(visitor, null));
     assertNull(
-        named("avg", new AvgAggregator(singletonList(ref("age", INTEGER)), INTEGER))
+        named("avg", new AvgAggregator(List.of(ref("age", INTEGER)), INTEGER))
             .accept(visitor, null));
     assertNull(new CaseClause(ImmutableList.of(), null).accept(visitor, null));
     assertNull(new WhenClause(literal("test"), literal(10)).accept(visitor, null));

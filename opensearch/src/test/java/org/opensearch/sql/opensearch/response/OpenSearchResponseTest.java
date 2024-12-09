@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.response;
 
-import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -94,7 +93,7 @@ class OpenSearchResponseTest {
     assertTrue(response.isEmpty());
 
     when(searchResponse.getHits()).thenReturn(SearchHits.empty());
-    when(searchResponse.getAggregations()).thenReturn(new Aggregations(emptyList()));
+    when(searchResponse.getAggregations()).thenReturn(new Aggregations(List.of()));
 
     response = new OpenSearchResponse(searchResponse, factory, includes);
     assertFalse(response.isEmpty());

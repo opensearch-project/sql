@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.plugin;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 
@@ -276,7 +275,7 @@ public class SQLPlugin extends Plugin
 
   @Override
   public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
-    return singletonList(
+    return List.of(
         new FixedExecutorBuilder(
             settings,
             AsyncRestExecutor.SQL_WORKER_THREAD_POOL_NAME,

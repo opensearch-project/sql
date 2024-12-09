@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.sql.parser;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.sql.ast.dsl.AstDSL.between;
 import static org.opensearch.sql.ast.dsl.AstDSL.not;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
@@ -109,7 +108,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitIdent(IdentContext ctx) {
-    return visitIdentifiers(singletonList(ctx));
+    return visitIdentifiers(List.of(ctx));
   }
 
   @Override
@@ -253,7 +252,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
         ctx.nullNotnull().NOT() == null
             ? IS_NULL.getName().getFunctionName()
             : IS_NOT_NULL.getName().getFunctionName(),
-        singletonList(visit(ctx.predicate())));
+        List.of(visit(ctx.predicate())));
   }
 
   @Override

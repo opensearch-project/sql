@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -281,7 +279,7 @@ class AggregationQueryBuilderTest {
             List.of(
                 named(
                     "avg(balance)",
-                    new AvgAggregator(singletonList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
+                    new AvgAggregator(List.of(DSL.abs(ref("balance", INTEGER))), INTEGER))),
             List.of(named("age", DSL.asin(ref("age", INTEGER))))));
   }
 
@@ -339,7 +337,7 @@ class AggregationQueryBuilderTest {
             List.of(
                 named(
                     "avg(balance)",
-                    new AvgAggregator(singletonList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
+                    new AvgAggregator(List.of(DSL.abs(ref("balance", INTEGER))), INTEGER))),
             List.of(named("age", DSL.asin(ref("age", INTEGER))))),
         containsInAnyOrder(
             map("avg(balance)", OpenSearchDataType.of(INTEGER)),
@@ -361,7 +359,7 @@ class AggregationQueryBuilderTest {
             List.of(
                 named(
                     "avg(balance)", new AvgAggregator(List.of(ref("balance", INTEGER)), INTEGER))),
-            emptyList()));
+            List.of()));
   }
 
   @Test
@@ -396,7 +394,7 @@ class AggregationQueryBuilderTest {
                     "avg(age) filter(where age > 34)",
                     new AvgAggregator(List.of(ref("age", INTEGER)), INTEGER)
                         .condition(DSL.greater(ref("age", INTEGER), literal(20))))),
-            emptyList()));
+            List.of()));
   }
 
   @Test
@@ -458,7 +456,7 @@ class AggregationQueryBuilderTest {
             List.of(
                 named(
                     "avg(balance)", new AvgAggregator(List.of(ref("balance", INTEGER)), INTEGER))),
-            emptyList()),
+            List.of()),
         containsInAnyOrder(map("avg(balance)", OpenSearchDataType.of(INTEGER))));
   }
 

@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.analysis;
 
-import static java.util.Collections.singletonList;
-
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +53,7 @@ public class SelectExpressionAnalyzer
 
   @Override
   public List<NamedExpression> visitField(Field node, AnalysisContext context) {
-    return singletonList(DSL.named(node.accept(expressionAnalyzer, context)));
+    return List.of(DSL.named(node.accept(expressionAnalyzer, context)));
   }
 
   @Override
@@ -66,8 +64,7 @@ public class SelectExpressionAnalyzer
     }
 
     Expression expr = referenceIfSymbolDefined(node, context);
-    return singletonList(
-        DSL.named(unqualifiedNameIfFieldOnly(node, context), expr, node.getAlias()));
+    return List.of(DSL.named(unqualifiedNameIfFieldOnly(node, context), expr, node.getAlias()));
   }
 
   /**

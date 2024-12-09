@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.datasources.storage;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.opensearch.sql.datasource.model.DataSourceStatus.ACTIVE;
 import static org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage.DATASOURCE_INDEX_NAME;
 
@@ -673,7 +671,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
         Optional.empty(), this.openSearchDataSourceMetadataStorage.getDataSourceMetadata("dummy"));
 
     Assertions.assertEquals(
-        emptyList(), this.openSearchDataSourceMetadataStorage.getDataSourceMetadata());
+        List.of(), this.openSearchDataSourceMetadataStorage.getDataSourceMetadata());
 
     Assertions.assertThrows(
         IllegalStateException.class,
@@ -713,7 +711,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
             .setName("testDS")
             .setProperties(properties)
             .setConnector(DataSourceType.PROMETHEUS)
-            .setAllowedRoles(singletonList("prometheus_access"))
+            .setAllowedRoles(List.of("prometheus_access"))
             .build();
     return serialize(dataSourceMetadata);
   }
@@ -733,7 +731,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
             .setName("testDS")
             .setProperties(properties)
             .setConnector(DataSourceType.PROMETHEUS)
-            .setAllowedRoles(singletonList("prometheus_access"))
+            .setAllowedRoles(List.of("prometheus_access"))
             .build();
     return serialize(dataSourceMetadata);
   }
@@ -750,7 +748,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
             .setName("testDS")
             .setProperties(properties)
             .setConnector(DataSourceType.PROMETHEUS)
-            .setAllowedRoles(singletonList("prometheus_access"))
+            .setAllowedRoles(List.of("prometheus_access"))
             .build();
     return serialize(dataSourceMetadata);
   }
@@ -763,7 +761,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
             .setName("testDS")
             .setProperties(properties)
             .setConnector(DataSourceType.PROMETHEUS)
-            .setAllowedRoles(singletonList("prometheus_access"))
+            .setAllowedRoles(List.of("prometheus_access"))
             .build();
     return serialize(dataSourceMetadata);
   }
@@ -778,7 +776,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
         .setName("testDS")
         .setProperties(properties)
         .setConnector(DataSourceType.PROMETHEUS)
-        .setAllowedRoles(singletonList("prometheus_access"))
+        .setAllowedRoles(List.of("prometheus_access"))
         .build();
   }
 
