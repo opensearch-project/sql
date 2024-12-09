@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.planner.physical;
 
-import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,8 +33,8 @@ public class RenameOperatorTest extends PhysicalPlanTestBase {
         new RenameOperator(
             new AggregationOperator(
                 new TestScan(),
-                singletonList(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
-                singletonList(DSL.named("action", DSL.ref("action", STRING)))),
+                List.of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
+                List.of(DSL.named("action", DSL.ref("action", STRING)))),
             ImmutableMap.of(DSL.ref("avg(response)", DOUBLE), DSL.ref("avg", DOUBLE)));
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
-import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
@@ -335,11 +334,10 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            singletonList(
+            List.of(
                 named(
                     "count(distinct name)",
-                    new CountAggregator(singletonList(ref("name", STRING)), INTEGER)
-                        .distinct(true)))));
+                    new CountAggregator(List.of(ref("name", STRING)), INTEGER).distinct(true)))));
   }
 
   @Test
@@ -369,10 +367,10 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            singletonList(
+            List.of(
                 named(
                     "count(distinct name) filter(where age > 30)",
-                    new CountAggregator(singletonList(ref("name", STRING)), INTEGER)
+                    new CountAggregator(List.of(ref("name", STRING)), INTEGER)
                         .condition(DSL.greater(ref("age", INTEGER), literal(30)))
                         .distinct(true)))));
   }
@@ -397,7 +395,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            singletonList(
+            List.of(
                 named(
                     "take(name, 10)",
                     new TakeAggregator(
@@ -439,7 +437,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            singletonList(
+            List.of(
                 named(
                     "take(name, 10) filter(where age > 30)",
                     new TakeAggregator(ImmutableList.of(ref("name", STRING), literal(10)), ARRAY)
@@ -452,11 +450,10 @@ class MetricAggregationBuilderTest {
         IllegalStateException.class,
         () ->
             buildQuery(
-                singletonList(
+                List.of(
                     named(
                         "avg(distinct age)",
-                        new AvgAggregator(singletonList(ref("name", STRING)), STRING)
-                            .distinct(true)))),
+                        new AvgAggregator(List.of(ref("name", STRING)), STRING).distinct(true)))),
         "unsupported distinct aggregator avg");
   }
 

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.correctness.tests;
 
-import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
@@ -24,15 +23,15 @@ public class DBResultTest {
 
   @Test
   public void dbResultFromDifferentDbNameShouldEqual() {
-    DBResult result1 = new DBResult("DB 1", List.of(new Type("name", "VARCHAR")), emptyList());
-    DBResult result2 = new DBResult("DB 2", List.of(new Type("name", "VARCHAR")), emptyList());
+    DBResult result1 = new DBResult("DB 1", List.of(new Type("name", "VARCHAR")), List.of());
+    DBResult result2 = new DBResult("DB 2", List.of(new Type("name", "VARCHAR")), List.of());
     assertEquals(result1, result2);
   }
 
   @Test
   public void dbResultWithDifferentColumnShouldNotEqual() {
-    DBResult result1 = new DBResult("DB 1", List.of(new Type("name", "VARCHAR")), emptyList());
-    DBResult result2 = new DBResult("DB 2", List.of(new Type("age", "INT")), emptyList());
+    DBResult result1 = new DBResult("DB 1", List.of(new Type("name", "VARCHAR")), List.of());
+    DBResult result2 = new DBResult("DB 2", List.of(new Type("age", "INT")), List.of());
     assertNotEquals(result1, result2);
   }
 
@@ -68,8 +67,8 @@ public class DBResultTest {
 
   @Test
   public void dbResultWithDifferentColumnTypeShouldNotEqual() {
-    DBResult result1 = new DBResult("DB 1", List.of(new Type("age", "FLOAT")), emptyList());
-    DBResult result2 = new DBResult("DB 2", List.of(new Type("age", "INT")), emptyList());
+    DBResult result1 = new DBResult("DB 1", List.of(new Type("age", "FLOAT")), List.of());
+    DBResult result2 = new DBResult("DB 2", List.of(new Type("age", "INT")), List.of());
     assertNotEquals(result1, result2);
   }
 
@@ -79,12 +78,10 @@ public class DBResultTest {
         new DBResult(
             "DB 1",
             Arrays.asList(new Type("name", "VARCHAR"), new Type("age", "FLOAT")),
-            emptyList());
+            List.of());
     DBResult result2 =
         new DBResult(
-            "DB 2",
-            Arrays.asList(new Type("name", "VARCHAR"), new Type("age", "INT")),
-            emptyList());
+            "DB 2", Arrays.asList(new Type("name", "VARCHAR"), new Type("age", "INT")), List.of());
 
     assertEquals(
         "Schema type at [1] is different: "

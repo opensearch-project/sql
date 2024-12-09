@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.sql.parser;
 
-import static java.util.Collections.emptyList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
@@ -270,7 +269,7 @@ class AstAggregationBuilderTest {
       Function<Aggregation, List<UnresolvedExpression>> getter,
       UnresolvedExpression... exprs) {
     Matcher<List<UnresolvedExpression>> subMatcher =
-        (exprs.length == 0) ? equalTo(emptyList()) : equalTo(Arrays.asList(exprs));
+        (exprs.length == 0) ? equalTo(List.of()) : equalTo(Arrays.asList(exprs));
     return new FeatureMatcher<UnresolvedPlan, List<UnresolvedExpression>>(subMatcher, name, "") {
       @Override
       protected List<UnresolvedExpression> featureValueOf(UnresolvedPlan agg) {

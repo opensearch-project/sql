@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_RATE;
 import static org.opensearch.sql.utils.MLCommonsConstants.ANOMALY_SCORE_THRESHOLD;
 import static org.opensearch.sql.utils.MLCommonsConstants.CATEGORY_FIELD;
@@ -115,7 +114,7 @@ public class ADOperator extends MLCommonsOperatorActions {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return singletonList(input);
+    return List.of(input);
   }
 
   protected MLAlgoParams convertArgumentToMLParameter(Map<String, Literal> arguments) {

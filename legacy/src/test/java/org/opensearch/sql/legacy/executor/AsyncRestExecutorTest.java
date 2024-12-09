@@ -6,7 +6,6 @@
 package org.opensearch.sql.legacy.executor;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -43,7 +42,7 @@ public class AsyncRestExecutorTest {
 
   @Mock private Client client;
 
-  private final Map<String, String> params = emptyMap();
+  private final Map<String, String> params = Map.of();
 
   @Mock private QueryAction action;
 

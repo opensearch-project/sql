@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.correctness.tests;
 
-import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.emptyString;
@@ -22,7 +21,7 @@ public class TestConfigTest {
 
   @Test
   public void testDefaultConfig() {
-    TestConfig config = new TestConfig(emptyMap());
+    TestConfig config = new TestConfig(Map.of());
     assertThat(config.getOpenSearchHostUrl(), is(emptyString()));
     assertThat(
         config.getOtherDbConnectionNameAndUrls(),

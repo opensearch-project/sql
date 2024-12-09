@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.ml.common.FunctionName.KMEANS;
 import static org.opensearch.sql.utils.MLCommonsConstants.CENTROIDS;
 import static org.opensearch.sql.utils.MLCommonsConstants.DISTANCE_TYPE;
@@ -91,7 +90,7 @@ public class MLCommonsOperator extends MLCommonsOperatorActions {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return singletonList(input);
+    return List.of(input);
   }
 
   protected MLAlgoParams convertArgumentToMLParameter(

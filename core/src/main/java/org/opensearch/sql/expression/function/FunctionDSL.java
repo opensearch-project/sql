@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.expression.function;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -70,10 +67,10 @@ public class FunctionDSL {
       implWithProperties(
           SerializableFunction<FunctionProperties, ExprValue> function, ExprType returnType) {
     return functionName -> {
-      FunctionSignature functionSignature = new FunctionSignature(functionName, emptyList());
+      FunctionSignature functionSignature = new FunctionSignature(functionName, List.of());
       FunctionBuilder functionBuilder =
           (functionProperties, arguments) ->
-              new FunctionExpression(functionName, emptyList()) {
+              new FunctionExpression(functionName, List.of()) {
                 @Override
                 public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
                   return function.apply(functionProperties);
@@ -109,8 +106,7 @@ public class FunctionDSL {
           ExprType argsType) {
 
     return functionName -> {
-      FunctionSignature functionSignature =
-          new FunctionSignature(functionName, singletonList(argsType));
+      FunctionSignature functionSignature = new FunctionSignature(functionName, List.of(argsType));
       FunctionBuilder functionBuilder =
           (functionProperties, arguments) ->
               new FunctionExpression(functionName, arguments) {

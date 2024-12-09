@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.executor.protector;
 
-import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.*;
@@ -184,13 +183,12 @@ class OpenSearchExecutionProtectorTest {
     NamedExpression rank = named(mock(RankFunction.class));
     Pair<Sort.SortOption, Expression> sortItem =
         ImmutablePair.of(DEFAULT_ASC, DSL.ref("age", INTEGER));
-    WindowDefinition windowDefinition =
-        new WindowDefinition(emptyList(), ImmutableList.of(sortItem));
+    WindowDefinition windowDefinition = new WindowDefinition(List.of(), ImmutableList.of(sortItem));
 
     assertEquals(
-        window(resourceMonitor(sort(values(emptyList()), sortItem)), rank, windowDefinition),
+        window(resourceMonitor(sort(values(List.of()), sortItem)), rank, windowDefinition),
         executionProtector.protect(
-            window(sort(values(emptyList()), sortItem), rank, windowDefinition)));
+            window(sort(values(List.of()), sortItem), rank, windowDefinition)));
   }
 
   @Test
@@ -209,13 +207,12 @@ class OpenSearchExecutionProtectorTest {
     NamedExpression avg = named(mock(AggregateWindowFunction.class));
     Pair<Sort.SortOption, Expression> sortItem =
         ImmutablePair.of(DEFAULT_ASC, DSL.ref("age", INTEGER));
-    WindowDefinition windowDefinition =
-        new WindowDefinition(emptyList(), ImmutableList.of(sortItem));
+    WindowDefinition windowDefinition = new WindowDefinition(List.of(), ImmutableList.of(sortItem));
 
     assertEquals(
-        window(resourceMonitor(sort(values(emptyList()), sortItem)), avg, windowDefinition),
+        window(resourceMonitor(sort(values(List.of()), sortItem)), avg, windowDefinition),
         executionProtector.protect(
-            window(sort(values(emptyList()), sortItem), avg, windowDefinition)));
+            window(sort(values(List.of()), sortItem), avg, windowDefinition)));
   }
 
   @Test
@@ -232,7 +229,7 @@ class OpenSearchExecutionProtectorTest {
     NodeClient nodeClient = mock(NodeClient.class);
     MLCommonsOperator mlCommonsOperator =
         new MLCommonsOperator(
-            values(emptyList()),
+            values(List.of()),
             "kmeans",
             new HashMap<String, Literal>() {
               {
@@ -253,7 +250,7 @@ class OpenSearchExecutionProtectorTest {
     NodeClient nodeClient = mock(NodeClient.class);
     ADOperator adOperator =
         new ADOperator(
-            values(emptyList()),
+            values(List.of()),
             new HashMap<String, Literal>() {
               {
                 put("shingle_size", new Literal(8, DataType.INTEGER));
@@ -272,7 +269,7 @@ class OpenSearchExecutionProtectorTest {
     NodeClient nodeClient = mock(NodeClient.class);
     MLOperator mlOperator =
         new MLOperator(
-            values(emptyList()),
+            values(List.of()),
             new HashMap<String, Literal>() {
               {
                 put("action", new Literal("train", DataType.STRING));
@@ -293,11 +290,11 @@ class OpenSearchExecutionProtectorTest {
     Set<String> args = Set.of("message.info");
     Map<String, List<String>> groupedFieldsByPath = Map.of("message", List.of("message.info"));
     NestedOperator nestedOperator =
-        new NestedOperator(values(emptyList()), args, groupedFieldsByPath);
+        new NestedOperator(values(List.of()), args, groupedFieldsByPath);
 
     assertEquals(
         executionProtector.doProtect(nestedOperator),
-        executionProtector.visitNested(nestedOperator, values(emptyList())));
+        executionProtector.visitNested(nestedOperator, values(List.of())));
   }
 
   @Test
@@ -313,7 +310,7 @@ class OpenSearchExecutionProtectorTest {
     Pair<Sort.SortOption, Expression> sort =
         ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("a", INTEGER));
     TakeOrderedOperator takeOrdered =
-        PhysicalPlanDSL.takeOrdered(PhysicalPlanDSL.values(emptyList()), 10, 5, sort);
+        PhysicalPlanDSL.takeOrdered(PhysicalPlanDSL.values(List.of()), 10, 5, sort);
     assertEquals(
         resourceMonitor(takeOrdered), executionProtector.visitTakeOrdered(takeOrdered, null));
   }

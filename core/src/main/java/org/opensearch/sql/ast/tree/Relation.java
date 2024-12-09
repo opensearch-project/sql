@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.ast.tree;
 
-import static java.util.Collections.singletonList;
-
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,7 +31,7 @@ public class Relation extends UnresolvedPlan {
   }
 
   public Relation(UnresolvedExpression tableName, String alias) {
-    this.tableName = singletonList(tableName);
+    this.tableName = List.of(tableName);
     this.alias = alias;
   }
 

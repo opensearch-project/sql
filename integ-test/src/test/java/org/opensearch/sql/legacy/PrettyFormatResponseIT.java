@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.legacy;
 
-import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -157,7 +156,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 "SELECT _score FROM %s WHERE SCORE(match_phrase(phrase, 'brown fox'))",
                 TestsConstants.TEST_INDEX_PHRASE));
 
-    List<String> fields = singletonList("_score");
+    List<String> fields = List.of("_score");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }
@@ -277,7 +276,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
             String.format(
                 Locale.ROOT, "SELECT * FROM %s GROUP BY age", TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = singletonList("age");
+    List<String> fields = List.of("age");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }
@@ -398,7 +397,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 Locale.ROOT, "SELECT SUM(age) FROM %s", TestsConstants.TEST_INDEX_ACCOUNT));
 
     String ageSum = "SUM(age)";
-    assertContainsColumns(getSchema(response), singletonList(ageSum));
+    assertContainsColumns(getSchema(response), List.of(ageSum));
 
     JSONArray dataRows = getDataRows(response);
     for (int i = 0; i < dataRows.length(); i++) {
@@ -433,7 +432,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
     String ageSum = "gender";
-    assertContainsColumns(getSchema(response), singletonList(ageSum));
+    assertContainsColumns(getSchema(response), List.of(ageSum));
 
     JSONArray dataRows = getDataRows(response);
     assertEquals(1, dataRows.length());
@@ -555,7 +554,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 TestsConstants.TEST_INDEX_ACCOUNT,
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = singletonList("b1.age");
+    List<String> fields = List.of("b1.age");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }

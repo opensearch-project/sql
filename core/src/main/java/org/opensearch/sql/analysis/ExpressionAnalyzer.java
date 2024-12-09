@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.analysis;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
 
@@ -83,7 +82,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     final Expression expression = node.getExpression().accept(this, context);
     return (Expression)
         repository.compile(
-            context.getFunctionProperties(), node.convertFunctionName(), singletonList(expression));
+            context.getFunctionProperties(), node.convertFunctionName(), List.of(expression));
   }
 
   public ExpressionAnalyzer(BuiltinFunctionRepository repository) {

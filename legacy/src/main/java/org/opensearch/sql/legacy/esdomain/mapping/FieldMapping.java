@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.legacy.esdomain.mapping;
 
-import static java.util.Collections.emptyMap;
 import static org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse.FieldMappingMetadata;
 
 import java.util.Map;
@@ -31,7 +30,7 @@ public class FieldMapping {
   private final Map<String, Field> specifiedFieldsByName;
 
   public FieldMapping(String fieldName) {
-    this(fieldName, emptyMap(), emptyMap());
+    this(fieldName, Map.of(), Map.of());
   }
 
   public FieldMapping(

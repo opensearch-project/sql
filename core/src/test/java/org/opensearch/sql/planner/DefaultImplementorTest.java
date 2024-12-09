@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.planner;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -127,7 +125,7 @@ class DefaultImplementorTest {
                                     remove(
                                         rename(
                                             aggregation(
-                                                filter(values(emptyList()), filterExpr),
+                                                filter(values(List.of()), filterExpr),
                                                 aggregators,
                                                 groupByExprs),
                                             mappings),
@@ -158,8 +156,7 @@ class DefaultImplementorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 PhysicalPlanDSL.filter(
-                                                    PhysicalPlanDSL.values(emptyList()),
-                                                    filterExpr),
+                                                    PhysicalPlanDSL.values(List.of()), filterExpr),
                                                 aggregators,
                                                 groupByExprs),
                                             mappings),
@@ -191,8 +188,8 @@ class DefaultImplementorTest {
     NamedExpression windowFunction = named(new RowNumberFunction());
     WindowDefinition windowDefinition =
         new WindowDefinition(
-            singletonList(ref("state", STRING)),
-            singletonList(ImmutablePair.of(Sort.SortOption.DEFAULT_DESC, ref("age", INTEGER))));
+            List.of(ref("state", STRING)),
+            List.of(ImmutablePair.of(Sort.SortOption.DEFAULT_DESC, ref("age", INTEGER))));
 
     NamedExpression[] projectList = {
       named("state", ref("state", STRING)), named("row_number", ref("row_number", INTEGER))
@@ -282,11 +279,11 @@ class DefaultImplementorTest {
     // replace SortOperator + LimitOperator with TakeOrderedOperator
     Pair<Sort.SortOption, Expression> sort =
         ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("a", INTEGER));
-    var logicalValues = values(emptyList());
+    var logicalValues = values(List.of());
     var logicalSort = sort(logicalValues, sort);
     var logicalLimit = limit(logicalSort, 10, 5);
     PhysicalPlan physicalPlanTree =
-        PhysicalPlanDSL.takeOrdered(PhysicalPlanDSL.values(emptyList()), 10, 5, sort);
+        PhysicalPlanDSL.takeOrdered(PhysicalPlanDSL.values(List.of()), 10, 5, sort);
     assertEquals(physicalPlanTree, logicalLimit.accept(implementor, null));
 
     // don't replace if LimitOperator's child is not SortOperator
@@ -297,7 +294,7 @@ class DefaultImplementorTest {
     physicalPlanTree =
         PhysicalPlanDSL.limit(
             PhysicalPlanDSL.eval(
-                PhysicalPlanDSL.sort(PhysicalPlanDSL.values(emptyList()), sort), newEvalField),
+                PhysicalPlanDSL.sort(PhysicalPlanDSL.values(List.of()), sort), newEvalField),
             10,
             5);
     assertEquals(physicalPlanTree, logicalLimit.accept(implementor, null));

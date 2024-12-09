@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ast.expression;
 
-import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
@@ -25,7 +24,7 @@ public class QualifiedName extends UnresolvedExpression {
   private final List<String> parts;
 
   public QualifiedName(String name) {
-    this.parts = singletonList(name);
+    this.parts = List.of(name);
   }
 
   /** QualifiedName Constructor. */

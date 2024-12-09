@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.planner.physical;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
 import com.google.common.collect.ImmutableMap;
@@ -49,7 +48,7 @@ public class RemoveOperator extends PhysicalPlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return singletonList(input);
+    return List.of(input);
   }
 
   @Override

@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
-import static java.util.Collections.singletonList;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -78,7 +76,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
     } else {
       GroupSortOrder groupSortOrder = new GroupSortOrder(sortList);
       return Pair.of(
-          singletonList(
+          List.of(
               AggregationBuilders.composite(
                       "composite_buckets",
                       bucketBuilder.build(

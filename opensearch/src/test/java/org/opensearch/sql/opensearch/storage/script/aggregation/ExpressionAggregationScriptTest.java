@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
 import static java.time.temporal.ChronoUnit.MILLIS;
-import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -174,7 +173,7 @@ class ExpressionAggregationScriptTest {
 
     ExprScriptAssertion evaluate(Expression expr) {
       ExpressionAggregationScript script =
-          new ExpressionAggregationScript(expr, lookup, context, emptyMap());
+          new ExpressionAggregationScript(expr, lookup, context, Map.of());
       actual = script.execute();
       return this;
     }

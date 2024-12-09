@@ -7,7 +7,6 @@
 
 package org.opensearch.sql.prometheus.request;
 
-import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.times;
@@ -43,13 +42,12 @@ public class PrometheusListMetricsRequestTest {
     Map<String, List<MetricMetadata>> metricsResult = new HashMap<>();
     metricsResult.put(
         "go_gc_duration_seconds",
-        singletonList(
+        List.of(
             new MetricMetadata(
                 "summary", "A summary of the pause duration of garbage collection cycles.", "")));
     metricsResult.put(
         "go_goroutines",
-        singletonList(
-            new MetricMetadata("gauge", "Number of goroutines that currently exist.", "")));
+        List.of(new MetricMetadata("gauge", "Number of goroutines that currently exist.", "")));
     when(prometheusClient.getAllMetrics()).thenReturn(metricsResult);
     PrometheusListMetricsRequest prometheusListMetricsRequest =
         new PrometheusListMetricsRequest(
