@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.storage.write;
 
-import static java.util.Collections.singletonList;
-
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -30,7 +28,7 @@ public abstract class TableWriteOperator extends PhysicalPlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return singletonList(input);
+    return List.of(input);
   }
 
   /**

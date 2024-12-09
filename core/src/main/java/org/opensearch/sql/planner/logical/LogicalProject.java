@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.planner.logical;
 
-import static java.util.Collections.singletonList;
-
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -26,7 +24,7 @@ public class LogicalProject extends LogicalPlan {
       LogicalPlan child,
       List<NamedExpression> projectList,
       List<NamedExpression> namedParseExpressions) {
-    super(singletonList(child));
+    super(List.of(child));
     this.projectList = projectList;
     this.namedParseExpressions = namedParseExpressions;
   }

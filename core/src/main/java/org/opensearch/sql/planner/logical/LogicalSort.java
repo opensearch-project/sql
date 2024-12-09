@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.planner.logical;
 
-import static java.util.Collections.singletonList;
-
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -25,7 +23,7 @@ public class LogicalSort extends LogicalPlan {
 
   /** Constructor of LogicalSort. */
   public LogicalSort(LogicalPlan child, List<Pair<SortOption, Expression>> sortList) {
-    super(singletonList(child));
+    super(List.of(child));
     this.sortList = sortList;
   }
 
