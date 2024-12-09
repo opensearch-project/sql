@@ -5,7 +5,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 ## Current Maintainers
 
 | Maintainer        | GitHub ID                                           | Affiliation |
-| ----------------- | -------------------------------------------------   | ----------- |
+| ----------------- |-----------------------------------------------------| ----------- |
 | Eric Wei          | [mengweieric](https://github.com/mengweieric)       | Amazon      |
 | Joshua Li         | [joshuali925](https://github.com/joshuali925)       | Amazon      |
 | Shenoy Pratik     | [ps48](https://github.com/ps48)                     | Amazon      |
@@ -16,6 +16,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Peter Fitzgibbons | [pjfitzgibbons](https://github.com/pjfitzgibbons)   | Amazon      |
 | Simeon Widdis     | [swiddis](https://github.com/swiddis)               | Amazon      |
 | Chen Dai          | [dai-chen](https://github.com/dai-chen)             | Amazon      |
+| Vamsi Manohar     | [vmcircuit](https://github.com/vmcircuit)        | Amazon      |
 | Peng Huo          | [penghuo](https://github.com/penghuo)               | Amazon      |
 | Sean Kao          | [seankao-az](https://github.com/seankao-az)         | Amazon      |
 | Anirudha Jadhav   | [anirudha](https://github.com/anirudha)             | Amazon      |
