@@ -64,6 +64,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -419,6 +420,21 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
     return new FillNull(
         FillNull.ContainNullableFieldFill.ofVariousValue(replacementsBuilder.build()));
+  }
+
+  /** trendline command. */
+  @Override
+  public UnresolvedPlan visitTrendlineCommand(OpenSearchPPLParser.TrendlineCommandContext ctx) {
+    List<Trendline.TrendlineComputation> trendlineComputations =
+        ctx.trendlineClause().stream()
+            .map(expressionBuilder::visit)
+            .map(Trendline.TrendlineComputation.class::cast)
+            .collect(Collectors.toList());
+    return Optional.ofNullable(ctx.sortField())
+        .map(this::internalVisitExpression)
+        .map(Field.class::cast)
+        .map(sort -> new Trendline(Optional.of(sort), trendlineComputations))
+        .orElse(new Trendline(Optional.empty(), trendlineComputations));
   }
 
   /** Get original text in query. */
