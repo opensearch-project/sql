@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression.text;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -176,7 +175,7 @@ public class TextFunctions {
         concatFuncName,
         funcName ->
             Pair.of(
-                new FunctionSignature(concatFuncName, singletonList(ARRAY)),
+                new FunctionSignature(concatFuncName, List.of(ARRAY)),
                 (funcProp, args) ->
                     new FunctionExpression(funcName, args) {
                       @Override

@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.planner.logical;
 
-import static java.util.Collections.singletonList;
-
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -26,7 +24,7 @@ public class LogicalAggregation extends LogicalPlan {
   /** Constructor of LogicalAggregation. */
   public LogicalAggregation(
       LogicalPlan child, List<NamedAggregator> aggregatorList, List<NamedExpression> groupByList) {
-    super(singletonList(child));
+    super(List.of(child));
     this.aggregatorList = aggregatorList;
     this.groupByList = groupByList;
   }

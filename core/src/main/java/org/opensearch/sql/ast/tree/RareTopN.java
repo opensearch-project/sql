@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.ast.tree;
 
-import static java.util.Collections.singletonList;
-
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -42,7 +40,7 @@ public class RareTopN extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return singletonList(this.child);
+    return List.of(this.child);
   }
 
   @Override

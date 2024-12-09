@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.analysis;
 
-import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -77,11 +76,11 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
         .when(optimizer)
         .optimize(any(), any());
     return new SelectExpressionAnalyzer(expressionAnalyzer)
-        .analyze(singletonList(unresolvedExpression), analysisContext, optimizer);
+        .analyze(List.of(unresolvedExpression), analysisContext, optimizer);
   }
 
   protected void assertAnalyzeEqual(
       NamedExpression expected, UnresolvedExpression unresolvedExpression) {
-    assertEquals(singletonList(expected), analyze(unresolvedExpression));
+    assertEquals(List.of(expected), analyze(unresolvedExpression));
   }
 }

@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.planner.logical;
 
-import static java.util.Collections.singletonList;
-
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -31,7 +29,7 @@ public class LogicalDedupe extends LogicalPlan {
       Integer allowedDuplication,
       Boolean keepEmpty,
       Boolean consecutive) {
-    super(singletonList(child));
+    super(List.of(child));
     this.dedupeList = dedupeList;
     this.allowedDuplication = allowedDuplication;
     this.keepEmpty = keepEmpty;

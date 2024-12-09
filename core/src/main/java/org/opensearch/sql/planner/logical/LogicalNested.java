@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.planner.logical;
 
-import static java.util.Collections.singletonList;
-
 import java.util.List;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
@@ -28,7 +26,7 @@ public class LogicalNested extends LogicalPlan {
       LogicalPlan childPlan,
       List<Map<String, ReferenceExpression>> fields,
       List<NamedExpression> projectList) {
-    super(singletonList(childPlan));
+    super(List.of(childPlan));
     this.fields = fields;
     this.projectList = projectList;
   }
