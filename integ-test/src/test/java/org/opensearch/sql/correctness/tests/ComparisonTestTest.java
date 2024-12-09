@@ -5,13 +5,11 @@
 
 package org.opensearch.sql.correctness.tests;
 
-import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -83,7 +81,7 @@ public class ComparisonTestTest {
     TestReport expected = new TestReport();
     expected.addTestCase(
         new FailedTestCase(
-            1, "SELECT * FROM accounts", asList(openSearchResult, otherDbResult), ""));
+            1, "SELECT * FROM accounts", List.of(openSearchResult, otherDbResult), ""));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
   }
@@ -147,7 +145,7 @@ public class ComparisonTestTest {
         new FailedTestCase(
             1,
             "SELECT * FROM accounts",
-            asList(openSearchResult, otherDbResult, anotherDbResult),
+            List.of(openSearchResult, otherDbResult, anotherDbResult),
             ""));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
@@ -226,8 +224,7 @@ public class ComparisonTestTest {
             "OpenSearch",
             List.of(new Type("firstname", "text")),
             List.of(new Row(List.of("John"))));
-    DBResult otherResult =
-        new DBResult("Other", List.of(new Type("firstname", "text")), Collections.emptyList());
+    DBResult otherResult = new DBResult("Other", List.of(new Type("firstname", "text")), List.of());
 
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherResult);
@@ -239,7 +236,7 @@ public class ComparisonTestTest {
         new FailedTestCase(
             1,
             "SELECT * FROM accounts",
-            asList(openSearchResult, otherResult),
+            List.of(openSearchResult, otherResult),
             "Unsupported feature;"));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);

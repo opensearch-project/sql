@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.correctness.tests;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singleton;
 import static org.junit.Assert.fail;
 
 import java.util.List;
@@ -57,15 +55,15 @@ public class TestReportTest {
         new FailedTestCase(
             1,
             "SELECT * FROM accounts",
-            asList(
+            List.of(
                 new DBResult(
                     "OpenSearch",
-                    singleton(new Type("firstName", "text")),
-                    singleton(new Row(List.of("hello")))),
+                    List.of(new Type("firstName", "text")),
+                    List.of(new Row(List.of("hello")))),
                 new DBResult(
                     "H2",
-                    singleton(new Type("firstName", "text")),
-                    singleton(new Row(List.of("world"))))),
+                    List.of(new Type("firstName", "text")),
+                    List.of(new Row(List.of("world"))))),
             "[SQLITE_ERROR] SQL error or missing database;"));
     JSONObject actual = new JSONObject(report);
     JSONObject expected =
