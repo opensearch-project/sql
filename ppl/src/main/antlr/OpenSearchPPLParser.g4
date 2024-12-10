@@ -144,6 +144,7 @@ fillNullWithFieldVariousValues
 
 nullReplacementExpression
    : nullableField = fieldExpression EQUAL nullReplacement = valueExpression
+   ;
 
 trendlineCommand
    : TRENDLINE (SORT sortField)? trendlineClause (trendlineClause)*
