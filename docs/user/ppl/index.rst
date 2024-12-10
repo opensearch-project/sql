@@ -74,6 +74,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `stats command <cmd/stats.rst>`_
 
+  - `trendline command <cmd/trendline.rst>`_
+
   - `where command <cmd/where.rst>`_
 
   - `head command <cmd/head.rst>`_
