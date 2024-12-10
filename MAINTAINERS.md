@@ -16,7 +16,6 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Peter Fitzgibbons | [pjfitzgibbons](https://github.com/pjfitzgibbons)   | Amazon      |
 | Simeon Widdis     | [swiddis](https://github.com/swiddis)               | Amazon      |
 | Chen Dai          | [dai-chen](https://github.com/dai-chen)             | Amazon      |
-| Vamsi Manohar     | [vmcircuit](https://github.com/vmcircuit)           | Amazon      |
 | Peng Huo          | [penghuo](https://github.com/penghuo)               | Amazon      |
 | Sean Kao          | [seankao-az](https://github.com/seankao-az)         | Amazon      |
 | Anirudha Jadhav   | [anirudha](https://github.com/anirudha)             | Amazon      |
