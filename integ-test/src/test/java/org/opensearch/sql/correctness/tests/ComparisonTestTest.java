@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,7 +82,7 @@ public class ComparisonTestTest {
     TestReport expected = new TestReport();
     expected.addTestCase(
         new FailedTestCase(
-            1, "SELECT * FROM accounts", List.of(openSearchResult, otherDbResult), ""));
+            1, "SELECT * FROM accounts", Arrays.asList(openSearchResult, otherDbResult), ""));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
   }
@@ -145,7 +146,7 @@ public class ComparisonTestTest {
         new FailedTestCase(
             1,
             "SELECT * FROM accounts",
-            List.of(openSearchResult, otherDbResult, anotherDbResult),
+            Arrays.asList(openSearchResult, otherDbResult, anotherDbResult),
             ""));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
@@ -236,7 +237,7 @@ public class ComparisonTestTest {
         new FailedTestCase(
             1,
             "SELECT * FROM accounts",
-            List.of(openSearchResult, otherResult),
+            Arrays.asList(openSearchResult, otherResult),
             "Unsupported feature;"));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);

@@ -7,6 +7,7 @@ package org.opensearch.sql.correctness.tests;
 
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -55,7 +56,7 @@ public class TestReportTest {
         new FailedTestCase(
             1,
             "SELECT * FROM accounts",
-            List.of(
+            Arrays.asList(
                 new DBResult(
                     "OpenSearch",
                     List.of(new Type("firstName", "text")),
