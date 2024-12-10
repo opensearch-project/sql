@@ -5,10 +5,10 @@
 
 package org.opensearch.sql.correctness.tests;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
 import static org.junit.Assert.fail;
 
-import java.util.Arrays;
-import java.util.List;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.correctness.report.ErrorTestCase;
@@ -56,15 +56,15 @@ public class TestReportTest {
         new FailedTestCase(
             1,
             "SELECT * FROM accounts",
-            Arrays.asList(
+            asList(
                 new DBResult(
                     "OpenSearch",
-                    List.of(new Type("firstName", "text")),
-                    List.of(new Row(List.of("hello")))),
+                    singleton(new Type("firstName", "text")),
+                    singleton(new Row(singleton("hello")))),
                 new DBResult(
                     "H2",
-                    List.of(new Type("firstName", "text")),
-                    List.of(new Row(List.of("world"))))),
+                    singleton(new Type("firstName", "text")),
+                    singleton(new Row(singleton("world"))))),
             "[SQLITE_ERROR] SQL error or missing database;"));
     JSONObject actual = new JSONObject(report);
     JSONObject expected =

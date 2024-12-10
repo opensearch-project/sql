@@ -13,7 +13,6 @@ import static org.opensearch.sql.legacy.util.MatcherUtils.featureValueOf;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.hamcrest.Matcher;
@@ -30,10 +29,10 @@ public class BindingTupleResultSetTest {
   public void buildDataRowsFromBindingTupleShouldPass() {
     assertThat(
         row(
-            Arrays.asList(
+            List.of(
                 ColumnNode.builder().name("age").type(Schema.Type.INTEGER).build(),
                 ColumnNode.builder().name("gender").type(Schema.Type.TEXT).build()),
-            Arrays.asList(
+            List.of(
                 BindingTuple.from(ImmutableMap.of("age", 31, "gender", "m")),
                 BindingTuple.from(ImmutableMap.of("age", 31, "gender", "f")),
                 BindingTuple.from(ImmutableMap.of("age", 39, "gender", "m")),
@@ -49,10 +48,10 @@ public class BindingTupleResultSetTest {
   public void buildDataRowsFromBindingTupleIncludeLongValueShouldPass() {
     assertThat(
         row(
-            Arrays.asList(
+            List.of(
                 ColumnNode.builder().name("longValue").type(Schema.Type.LONG).build(),
                 ColumnNode.builder().name("gender").type(Schema.Type.TEXT).build()),
-            Arrays.asList(
+            List.of(
                 BindingTuple.from(ImmutableMap.of("longValue", Long.MAX_VALUE, "gender", "m")),
                 BindingTuple.from(ImmutableMap.of("longValue", Long.MIN_VALUE, "gender", "f")))),
         containsInAnyOrder(
@@ -66,7 +65,7 @@ public class BindingTupleResultSetTest {
   public void buildDataRowsFromBindingTupleIncludeDateShouldPass() {
     assertThat(
         row(
-            Arrays.asList(
+            List.of(
                 ColumnNode.builder().alias("dateValue").type(Schema.Type.DATE).build(),
                 ColumnNode.builder().alias("gender").type(Schema.Type.TEXT).build()),
             List.of(
