@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.planner.physical;
 
-import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
@@ -110,7 +109,7 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
     PhysicalPlan project = project(plan, named("ref", ref));
 
     PhysicalPlan window =
-        window(plan, named(DSL.rowNumber()), new WindowDefinition(emptyList(), emptyList()));
+        window(plan, named(DSL.rowNumber()), new WindowDefinition(List.of(), List.of()));
 
     PhysicalPlan remove = remove(plan, ref);
 
@@ -122,7 +121,7 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
 
     PhysicalPlan dedupe = dedupe(plan, ref);
 
-    PhysicalPlan values = values(emptyList());
+    PhysicalPlan values = values(List.of());
 
     PhysicalPlan rareTopN = rareTopN(plan, CommandType.TOP, 5, ImmutableList.of(), ref);
 

@@ -12,7 +12,6 @@ import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -176,7 +175,7 @@ public class TextFunctions {
         concatFuncName,
         funcName ->
             Pair.of(
-                new FunctionSignature(concatFuncName, Collections.singletonList(ARRAY)),
+                new FunctionSignature(concatFuncName, List.of(ARRAY)),
                 (funcProp, args) ->
                     new FunctionExpression(funcName, args) {
                       @Override

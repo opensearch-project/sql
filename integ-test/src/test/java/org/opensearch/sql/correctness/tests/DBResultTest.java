@@ -5,14 +5,13 @@
 
 package org.opensearch.sql.correctness.tests;
 
-import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.util.Arrays;
+import java.util.List;
 import org.junit.Test;
 import org.opensearch.sql.correctness.runner.resultset.DBResult;
 import org.opensearch.sql.correctness.runner.resultset.Row;
@@ -23,18 +22,15 @@ public class DBResultTest {
 
   @Test
   public void dbResultFromDifferentDbNameShouldEqual() {
-    DBResult result1 =
-        new DBResult("DB 1", Arrays.asList(new Type("name", "VARCHAR")), emptyList());
-    DBResult result2 =
-        new DBResult("DB 2", Arrays.asList(new Type("name", "VARCHAR")), emptyList());
+    DBResult result1 = new DBResult("DB 1", List.of(new Type("name", "VARCHAR")), List.of());
+    DBResult result2 = new DBResult("DB 2", List.of(new Type("name", "VARCHAR")), List.of());
     assertEquals(result1, result2);
   }
 
   @Test
   public void dbResultWithDifferentColumnShouldNotEqual() {
-    DBResult result1 =
-        new DBResult("DB 1", Arrays.asList(new Type("name", "VARCHAR")), emptyList());
-    DBResult result2 = new DBResult("DB 2", Arrays.asList(new Type("age", "INT")), emptyList());
+    DBResult result1 = new DBResult("DB 1", List.of(new Type("name", "VARCHAR")), List.of());
+    DBResult result2 = new DBResult("DB 2", List.of(new Type("age", "INT")), List.of());
     assertNotEquals(result1, result2);
   }
 
@@ -70,8 +66,8 @@ public class DBResultTest {
 
   @Test
   public void dbResultWithDifferentColumnTypeShouldNotEqual() {
-    DBResult result1 = new DBResult("DB 1", Arrays.asList(new Type("age", "FLOAT")), emptyList());
-    DBResult result2 = new DBResult("DB 2", Arrays.asList(new Type("age", "INT")), emptyList());
+    DBResult result1 = new DBResult("DB 1", List.of(new Type("age", "FLOAT")), List.of());
+    DBResult result2 = new DBResult("DB 2", List.of(new Type("age", "INT")), List.of());
     assertNotEquals(result1, result2);
   }
 
@@ -79,14 +75,10 @@ public class DBResultTest {
   public void shouldExplainColumnTypeDifference() {
     DBResult result1 =
         new DBResult(
-            "DB 1",
-            Arrays.asList(new Type("name", "VARCHAR"), new Type("age", "FLOAT")),
-            emptyList());
+            "DB 1", List.of(new Type("name", "VARCHAR"), new Type("age", "FLOAT")), List.of());
     DBResult result2 =
         new DBResult(
-            "DB 2",
-            Arrays.asList(new Type("name", "VARCHAR"), new Type("age", "INT")),
-            emptyList());
+            "DB 2", List.of(new Type("name", "VARCHAR"), new Type("age", "INT")), List.of());
 
     assertEquals(
         "Schema type at [1] is different: "
@@ -99,19 +91,19 @@ public class DBResultTest {
     DBResult result1 =
         new DBResult(
             "DB 1",
-            Arrays.asList(new Type("name", "VARCHAR")),
+            List.of(new Type("name", "VARCHAR")),
             Sets.newHashSet(
-                new Row(Arrays.asList("hello")),
-                new Row(Arrays.asList("world")),
+                new Row(List.of("hello")),
+                new Row(List.of("world")),
                 new Row(Lists.newArrayList((Object) null))));
     DBResult result2 =
         new DBResult(
             "DB 2",
-            Arrays.asList(new Type("name", "VARCHAR")),
+            List.of(new Type("name", "VARCHAR")),
             Sets.newHashSet(
                 new Row(Lists.newArrayList((Object) null)),
-                new Row(Arrays.asList("hello")),
-                new Row(Arrays.asList("world123"))));
+                new Row(List.of("hello")),
+                new Row(List.of("world123"))));
 
     assertEquals(
         "Data row at [1] is different: this=[Row(values=[world])], other=[Row(values=[world123])]",

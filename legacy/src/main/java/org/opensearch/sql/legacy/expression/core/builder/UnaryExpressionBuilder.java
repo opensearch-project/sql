@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.legacy.expression.core.builder;
 
-import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.legacy.expression.core.Expression;
@@ -31,7 +30,7 @@ public class UnaryExpressionBuilder implements ExpressionBuilder {
     return new Expression() {
       @Override
       public ExprValue valueOf(BindingTuple tuple) {
-        return op.apply(Arrays.asList(expression.valueOf(tuple)));
+        return op.apply(List.of(expression.valueOf(tuple)));
       }
 
       @Override

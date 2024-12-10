@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.expression.window.ranking;
 
-import static java.util.Collections.emptyList;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
@@ -35,7 +33,7 @@ public abstract class RankingWindowFunction extends FunctionExpression
   protected int rank;
 
   public RankingWindowFunction(FunctionName functionName) {
-    super(functionName, emptyList());
+    super(functionName, List.of());
   }
 
   @Override

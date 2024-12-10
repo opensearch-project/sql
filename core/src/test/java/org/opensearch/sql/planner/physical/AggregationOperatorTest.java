@@ -20,7 +20,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -38,9 +37,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             new TestScan(),
-            Collections.singletonList(
-                DSL.named("sum(response)", DSL.sum(DSL.ref("response", INTEGER)))),
-            Collections.emptyList());
+            List.of(DSL.named("sum(response)", DSL.sum(DSL.ref("response", INTEGER)))),
+            List.of());
     List<ExprValue> result = execute(plan);
     assertEquals(1, result.size());
     assertThat(
@@ -53,9 +51,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             new TestScan(),
-            Collections.singletonList(
-                DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
-            Collections.singletonList(DSL.named("action", DSL.ref("action", STRING))));
+            List.of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
+            List.of(DSL.named("action", DSL.ref("action", STRING))));
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());
     assertThat(
@@ -70,8 +67,7 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             new TestScan(),
-            Collections.singletonList(
-                DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
+            List.of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
             Arrays.asList(
                 DSL.named("action", DSL.ref("action", STRING)),
                 DSL.named("ip", DSL.ref("ip", STRING))));
@@ -93,9 +89,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             new TestScan(),
-            Collections.singletonList(
-                DSL.named("sum(response)", DSL.sum(DSL.ref("response", INTEGER)))),
-            Collections.singletonList(DSL.named("action", DSL.ref("action", STRING))));
+            List.of(DSL.named("sum(response)", DSL.sum(DSL.ref("response", INTEGER)))),
+            List.of(DSL.named("action", DSL.ref("action", STRING))));
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());
     assertThat(
@@ -110,8 +105,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(datetimeInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("second", TIMESTAMP)))),
-            Collections.singletonList(
+            List.of(DSL.named("count", DSL.count(DSL.ref("second", TIMESTAMP)))),
+            List.of(
                 DSL.named(
                     "span", DSL.span(DSL.ref("second", TIMESTAMP), DSL.literal(6 * 1000), "ms"))));
     List<ExprValue> result = execute(plan);
@@ -131,8 +126,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(datetimeInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("second", TIMESTAMP)))),
-            Collections.singletonList(
+            List.of(DSL.named("count", DSL.count(DSL.ref("second", TIMESTAMP)))),
+            List.of(
                 DSL.named("span", DSL.span(DSL.ref("second", TIMESTAMP), DSL.literal(6), "s"))));
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());
@@ -151,8 +146,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(datetimeInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("minute", TIMESTAMP)))),
-            Collections.singletonList(
+            List.of(DSL.named("count", DSL.count(DSL.ref("minute", TIMESTAMP)))),
+            List.of(
                 DSL.named("span", DSL.span(DSL.ref("minute", TIMESTAMP), DSL.literal(5), "m"))));
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
@@ -170,9 +165,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan =
         new AggregationOperator(
             testScan(datetimeInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("hour", TIME)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("hour", TIME), DSL.literal(30), "m"))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("hour", TIME)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("hour", TIME), DSL.literal(30), "m"))));
     result = execute(plan);
     assertEquals(4, result.size());
     assertThat(
@@ -193,9 +187,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(datetimeInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("hour", TIME)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("hour", TIME), DSL.literal(1), "h"))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("hour", TIME)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("hour", TIME), DSL.literal(1), "h"))));
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -214,9 +207,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(dateInputs),
-            Collections.singletonList(DSL.named("count(day)", DSL.count(DSL.ref("day", DATE)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("day", DATE), DSL.literal(1), "d"))));
+            List.of(DSL.named("count(day)", DSL.count(DSL.ref("day", DATE)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("day", DATE), DSL.literal(1), "d"))));
     List<ExprValue> result = execute(plan);
     assertEquals(4, result.size());
     assertThat(
@@ -234,9 +226,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan =
         new AggregationOperator(
             testScan(dateInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("month", DATE)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("month", DATE), DSL.literal(30), "d"))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("month", DATE)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("month", DATE), DSL.literal(30), "d"))));
     result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -255,9 +246,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(dateInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("month", DATE)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("month", DATE), DSL.literal(5), "w"))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("month", DATE)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("month", DATE), DSL.literal(5), "w"))));
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -276,9 +266,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(dateInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("month", DATE)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("month", DATE), DSL.literal(1), "M"))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("month", DATE)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("month", DATE), DSL.literal(1), "M"))));
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -294,8 +283,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan =
         new AggregationOperator(
             testScan(dateInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("quarter", TIMESTAMP)))),
-            Collections.singletonList(
+            List.of(DSL.named("count", DSL.count(DSL.ref("quarter", TIMESTAMP)))),
+            List.of(
                 DSL.named("span", DSL.span(DSL.ref("quarter", TIMESTAMP), DSL.literal(2), "M"))));
     result = execute(plan);
     assertEquals(4, result.size());
@@ -315,8 +304,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan =
         new AggregationOperator(
             testScan(dateInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("year", TIMESTAMP)))),
-            Collections.singletonList(
+            List.of(DSL.named("count", DSL.count(DSL.ref("year", TIMESTAMP)))),
+            List.of(
                 DSL.named(
                     "span", DSL.span(DSL.ref("year", TIMESTAMP), DSL.literal(10 * 12), "M"))));
     result = execute(plan);
@@ -338,8 +327,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(dateInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("quarter", TIMESTAMP)))),
-            Collections.singletonList(
+            List.of(DSL.named("count", DSL.count(DSL.ref("quarter", TIMESTAMP)))),
+            List.of(
                 DSL.named("span", DSL.span(DSL.ref("quarter", TIMESTAMP), DSL.literal(2), "q"))));
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());
@@ -355,8 +344,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan =
         new AggregationOperator(
             testScan(dateInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("year", TIMESTAMP)))),
-            Collections.singletonList(
+            List.of(DSL.named("count", DSL.count(DSL.ref("year", TIMESTAMP)))),
+            List.of(
                 DSL.named("span", DSL.span(DSL.ref("year", TIMESTAMP), DSL.literal(10 * 4), "q"))));
     result = execute(plan);
     assertEquals(3, result.size());
@@ -377,9 +366,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(dateInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("year", TIMESTAMP)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("year", TIMESTAMP), DSL.literal(10), "y"))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("year", TIMESTAMP)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("year", TIMESTAMP), DSL.literal(10), "y"))));
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -399,9 +387,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(numericInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("integer", INTEGER)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("integer", INTEGER), DSL.literal(1), ""))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("integer", INTEGER)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("integer", INTEGER), DSL.literal(1), ""))));
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -414,8 +401,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan =
         new AggregationOperator(
             testScan(numericInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("integer", INTEGER)))),
-            Collections.singletonList(
+            List.of(DSL.named("count", DSL.count(DSL.ref("integer", INTEGER)))),
+            List.of(
                 DSL.named("span", DSL.span(DSL.ref("integer", INTEGER), DSL.literal(1.5), ""))));
     result = execute(plan);
     assertEquals(3, result.size());
@@ -432,9 +419,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(numericInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("long", LONG)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("long", LONG), DSL.literal(1), ""))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("long", LONG)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("long", LONG), DSL.literal(1), ""))));
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -447,9 +433,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan =
         new AggregationOperator(
             testScan(numericInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("long", LONG)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("long", LONG), DSL.literal(1.5), ""))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("long", LONG)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("long", LONG), DSL.literal(1.5), ""))));
     result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -465,9 +450,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(numericInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("float", FLOAT)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("float", FLOAT), DSL.literal(1), ""))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("float", FLOAT)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("float", FLOAT), DSL.literal(1), ""))));
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -480,9 +464,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan =
         new AggregationOperator(
             testScan(numericInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("float", FLOAT)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("float", FLOAT), DSL.literal(1.5), ""))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("float", FLOAT)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("float", FLOAT), DSL.literal(1.5), ""))));
     result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -498,9 +481,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(numericInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("double", DOUBLE)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("double", DOUBLE), DSL.literal(1), ""))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("double", DOUBLE)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("double", DOUBLE), DSL.literal(1), ""))));
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -513,9 +495,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan =
         new AggregationOperator(
             testScan(numericInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("double", DOUBLE)))),
-            Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("double", DOUBLE), DSL.literal(1.5), ""))));
+            List.of(DSL.named("count", DSL.count(DSL.ref("double", DOUBLE)))),
+            List.of(DSL.named("span", DSL.span(DSL.ref("double", DOUBLE), DSL.literal(1.5), ""))));
     result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
@@ -531,7 +512,7 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(compoundInputs),
-            Collections.singletonList(DSL.named("max", DSL.max(DSL.ref("errors", INTEGER)))),
+            List.of(DSL.named("max", DSL.max(DSL.ref("errors", INTEGER)))),
             Arrays.asList(
                 DSL.named("span", DSL.span(DSL.ref("day", DATE), DSL.literal(1), "d")),
                 DSL.named("region", DSL.ref("region", STRING))));
@@ -556,7 +537,7 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan =
         new AggregationOperator(
             testScan(compoundInputs),
-            Collections.singletonList(DSL.named("max", DSL.max(DSL.ref("errors", INTEGER)))),
+            List.of(DSL.named("max", DSL.max(DSL.ref("errors", INTEGER)))),
             Arrays.asList(
                 DSL.named("span", DSL.span(DSL.ref("day", DATE), DSL.literal(1), "d")),
                 DSL.named("region", DSL.ref("region", STRING)),
@@ -643,7 +624,7 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(compoundInputs),
-            Collections.singletonList(DSL.named("sum", DSL.sum(DSL.ref("errors", INTEGER)))),
+            List.of(DSL.named("sum", DSL.sum(DSL.ref("errors", INTEGER)))),
             Arrays.asList(
                 DSL.named("host", DSL.ref("host", STRING)),
                 DSL.named("span", DSL.span(DSL.ref("day", DATE), DSL.literal(1), "d"))));
@@ -695,7 +676,7 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(compoundInputs),
-            Collections.singletonList(DSL.named("sum", DSL.sum(DSL.ref("errors", INTEGER)))),
+            List.of(DSL.named("sum", DSL.sum(DSL.ref("errors", INTEGER)))),
             Arrays.asList(
                 DSL.named("host", DSL.ref("host", STRING)),
                 DSL.named("span", DSL.span(DSL.ref("day", DATE), DSL.literal(1), "d")),
@@ -755,8 +736,8 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     AggregationOperator plan =
         new AggregationOperator(
             testScan(datetimeInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("second", TIMESTAMP)))),
-            Collections.singletonList(
+            List.of(DSL.named("count", DSL.count(DSL.ref("second", TIMESTAMP)))),
+            List.of(
                 DSL.named(
                     "span", DSL.span(DSL.ref("second", TIMESTAMP), DSL.literal(6 * 1000), "ms"))));
     AggregationOperator copy =

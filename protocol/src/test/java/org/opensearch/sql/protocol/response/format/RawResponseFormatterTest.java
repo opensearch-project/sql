@@ -17,7 +17,7 @@ import static org.opensearch.sql.protocol.response.format.RawResponseFormatter.C
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -36,7 +36,7 @@ public class RawResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 tupleValue(ImmutableMap.of("name", "John", "age", 20)),
                 tupleValue(ImmutableMap.of("name", "Smith", "age", 30))));
     String expected = "name|age%n" + "John|20%n" + "Smith|30";
@@ -57,7 +57,7 @@ public class RawResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 tupleValue(
                     ImmutableMap.of(
                         "=firstname",
@@ -83,7 +83,7 @@ public class RawResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 tupleValue(ImmutableMap.of("city", "Seattle")),
                 tupleValue(ImmutableMap.of("city", "=Seattle")),
                 tupleValue(ImmutableMap.of("city", "+Seattle")),
@@ -120,7 +120,7 @@ public class RawResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 tupleValue(ImmutableMap.of("na|me", "John|Smith", "||age", "30|||")),
                 tupleValue(ImmutableMap.of("na|me", "Ja\"ne J\"ones", "||age", "\"40\""))));
     String expected =
@@ -152,7 +152,7 @@ public class RawResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 tupleValue(ImmutableMap.of("city", "=Seattle")),
                 tupleValue(ImmutableMap.of("city", "||Seattle"))));
     String expected = "city%n" + "=Seattle%n" + "\"||Seattle\"";
@@ -169,7 +169,7 @@ public class RawResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 tupleValue(ImmutableMap.of("city", "@Seattle")),
                 tupleValue(ImmutableMap.of("city", "++Seattle"))));
     String expected = "city%n" + "@Seattle%n" + "++Seattle";
@@ -186,7 +186,7 @@ public class RawResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 tupleValue(ImmutableMap.of("city", "@Seattle")),
                 tupleValue(ImmutableMap.of("city", "++Seattle|||"))));
     String expected = "city%n" + "@Seattle%n" + "\"++Seattle|||\"";
@@ -205,7 +205,7 @@ public class RawResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(
+            List.of(
                 tupleValue(ImmutableMap.of("name", "John", "city", "Seattle")),
                 ExprTupleValue.fromExprValueMap(
                     ImmutableMap.of("firstname", LITERAL_NULL, "city", stringValue("Seattle"))),

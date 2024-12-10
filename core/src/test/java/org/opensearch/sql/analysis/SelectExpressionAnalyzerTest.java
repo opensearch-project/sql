@@ -11,7 +11,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
-import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -77,11 +76,11 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
         .when(optimizer)
         .optimize(any(), any());
     return new SelectExpressionAnalyzer(expressionAnalyzer)
-        .analyze(Arrays.asList(unresolvedExpression), analysisContext, optimizer);
+        .analyze(List.of(unresolvedExpression), analysisContext, optimizer);
   }
 
   protected void assertAnalyzeEqual(
       NamedExpression expected, UnresolvedExpression unresolvedExpression) {
-    assertEquals(Arrays.asList(expected), analyze(unresolvedExpression));
+    assertEquals(List.of(expected), analyze(unresolvedExpression));
   }
 }

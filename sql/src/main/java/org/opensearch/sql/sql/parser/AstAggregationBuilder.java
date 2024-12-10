@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.sql.parser;
 
-import static java.util.Collections.emptyList;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -77,7 +75,7 @@ public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<Unreso
 
   private UnresolvedPlan buildExplicitAggregation() {
     List<UnresolvedExpression> groupByItems = replaceGroupByItemIfAliasOrOrdinal();
-    return new Aggregation(new ArrayList<>(querySpec.getAggregators()), emptyList(), groupByItems);
+    return new Aggregation(new ArrayList<>(querySpec.getAggregators()), List.of(), groupByItems);
   }
 
   private UnresolvedPlan buildImplicitAggregation() {
@@ -93,7 +91,7 @@ public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<Unreso
     }
 
     return new Aggregation(
-        new ArrayList<>(querySpec.getAggregators()), emptyList(), querySpec.getGroupByItems());
+        new ArrayList<>(querySpec.getAggregators()), List.of(), querySpec.getGroupByItems());
   }
 
   private List<UnresolvedExpression> replaceGroupByItemIfAliasOrOrdinal() {

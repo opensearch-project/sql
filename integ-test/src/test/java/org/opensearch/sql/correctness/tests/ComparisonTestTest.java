@@ -6,12 +6,13 @@
 package org.opensearch.sql.correctness.tests;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,14 +52,14 @@ public class ComparisonTestTest {
         .thenReturn(
             new DBResult(
                 "OpenSearch",
-                asList(new Type("firstname", "text")),
-                asList(new Row(asList("John")))));
+                singletonList(new Type("firstname", "text")),
+                singletonList(new Row(singletonList("John")))));
     when(otherDbConnection.select(anyString()))
         .thenReturn(
             new DBResult(
                 "Other DB",
-                asList(new Type("firstname", "text")),
-                asList(new Row(asList("John")))));
+                singletonList(new Type("firstname", "text")),
+                singletonList(new Row(singletonList("John")))));
 
     TestReport expected = new TestReport();
     expected.addTestCase(new SuccessTestCase(1, "SELECT * FROM accounts"));
@@ -70,10 +71,14 @@ public class ComparisonTestTest {
   public void testFailureDueToInconsistency() {
     DBResult openSearchResult =
         new DBResult(
-            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+            "OpenSearch",
+            singletonList(new Type("firstname", "text")),
+            singletonList(new Row(singletonList("John"))));
     DBResult otherDbResult =
         new DBResult(
-            "Other DB", asList(new Type("firstname", "text")), asList(new Row(asList("JOHN"))));
+            "Other DB",
+            singletonList(new Type("firstname", "text")),
+            singletonList(new Row(singletonList("JOHN"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherDbResult);
 
@@ -95,13 +100,19 @@ public class ComparisonTestTest {
 
     DBResult openSearchResult =
         new DBResult(
-            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+            "OpenSearch",
+            singletonList(new Type("firstname", "text")),
+            singletonList(new Row(singletonList("John"))));
     DBResult otherDbResult =
         new DBResult(
-            "Other DB", asList(new Type("firstname", "text")), asList(new Row(asList("JOHN"))));
+            "Other DB",
+            singletonList(new Type("firstname", "text")),
+            singletonList(new Row(singletonList("JOHN"))));
     DBResult anotherDbResult =
         new DBResult(
-            "Another DB", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+            "Another DB",
+            singletonList(new Type("firstname", "text")),
+            singletonList(new Row(singletonList("John"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(anotherDbConnection.select(anyString())).thenReturn(anotherDbResult);
 
@@ -122,13 +133,19 @@ public class ComparisonTestTest {
 
     DBResult openSearchResult =
         new DBResult(
-            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+            "OpenSearch",
+            singletonList(new Type("firstname", "text")),
+            singletonList(new Row(singletonList("John"))));
     DBResult otherDbResult =
         new DBResult(
-            "Other DB", asList(new Type("firstname", "text")), asList(new Row(asList("JOHN"))));
+            "Other DB",
+            singletonList(new Type("firstname", "text")),
+            singletonList(new Row(singletonList("JOHN"))));
     DBResult anotherDbResult =
         new DBResult(
-            "ZZZ DB", asList(new Type("firstname", "text")), asList(new Row(asList("Hank"))));
+            "ZZZ DB",
+            singletonList(new Type("firstname", "text")),
+            singletonList(new Row(singletonList("Hank"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherDbResult);
     when(anotherDbConnection.select(anyString())).thenReturn(anotherDbResult);
@@ -162,8 +179,8 @@ public class ComparisonTestTest {
         .thenReturn(
             new DBResult(
                 "OpenSearch",
-                asList(new Type("firstname", "text")),
-                asList(new Row(asList("John")))));
+                singletonList(new Type("firstname", "text")),
+                singletonList(new Row(singletonList("John")))));
     when(otherDbConnection.select(anyString()))
         .thenThrow(new RuntimeException("Unsupported feature"));
 
@@ -189,14 +206,14 @@ public class ComparisonTestTest {
         .thenReturn(
             new DBResult(
                 "OpenSearch",
-                asList(new Type("firstname", "text")),
-                asList(new Row(asList("John")))));
+                singletonList(new Type("firstname", "text")),
+                singletonList(new Row(singletonList("John")))));
     when(anotherDbConnection.select(anyString()))
         .thenReturn(
             new DBResult(
                 "Another DB",
-                asList(new Type("firstname", "text")),
-                asList(new Row(asList("John")))));
+                singletonList(new Type("firstname", "text")),
+                singletonList(new Row(singletonList("John")))));
 
     TestReport expected = new TestReport();
     expected.addTestCase(new SuccessTestCase(1, "SELECT * FROM accounts"));
@@ -214,9 +231,11 @@ public class ComparisonTestTest {
 
     DBResult openSearchResult =
         new DBResult(
-            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+            "OpenSearch",
+            singletonList(new Type("firstname", "text")),
+            singletonList(new Row(singletonList("John"))));
     DBResult otherResult =
-        new DBResult("Other", asList(new Type("firstname", "text")), Collections.emptyList());
+        new DBResult("Other", singletonList(new Type("firstname", "text")), emptyList());
 
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherResult);

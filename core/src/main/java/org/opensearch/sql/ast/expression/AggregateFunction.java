@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ast.expression;
 
-import java.util.Collections;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -42,7 +41,7 @@ public class AggregateFunction extends UnresolvedExpression {
   public AggregateFunction(String funcName, UnresolvedExpression field) {
     this.funcName = funcName;
     this.field = field;
-    this.argList = Collections.emptyList();
+    this.argList = List.of();
   }
 
   /**
@@ -55,13 +54,13 @@ public class AggregateFunction extends UnresolvedExpression {
   public AggregateFunction(String funcName, UnresolvedExpression field, Boolean distinct) {
     this.funcName = funcName;
     this.field = field;
-    this.argList = Collections.emptyList();
+    this.argList = List.of();
     this.distinct = distinct;
   }
 
   @Override
   public List<UnresolvedExpression> getChild() {
-    return Collections.singletonList(field);
+    return List.of(field);
   }
 
   @Override
