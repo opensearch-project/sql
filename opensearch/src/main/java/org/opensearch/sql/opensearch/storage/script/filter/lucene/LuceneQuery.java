@@ -215,10 +215,7 @@ public abstract class LuceneQuery {
               .put(
                   BuiltinFunctionName.CAST_TO_IP.getName(),
                   (expr, ref) -> {
-                    ExprValue value = expr.valueOf();
-                    return value.type().equals(ExprCoreType.IP)
-                        ? value
-                        : new ExprIpValue(value.stringValue());
+                    return new ExprIpValue(expr.valueOf().stringValue());
                   })
               .put(
                   BuiltinFunctionName.CAST_TO_DATE.getName(),
