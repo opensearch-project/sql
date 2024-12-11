@@ -45,6 +45,9 @@ public enum ExprCoreType implements ExprType {
   TIMESTAMP(STRING, DATE, TIME),
   INTERVAL(UNDEFINED),
 
+  /** IP Address. */
+  IP(STRING),
+
   /** Struct. */
   STRUCT(UNDEFINED),
 

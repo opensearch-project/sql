@@ -81,21 +81,18 @@ public class ArgumentFactoryTest extends AstBuilderTest {
   }
 
   @Test
-  public void testSortCommandDefaultArgument() {
-    assertEqual("source=t | sort field0", "source=t | sort field0");
-  }
-
-  @Test
-  public void testSortFieldArgument() {
+  public void testSortCommand() {
     assertEqual(
-        "source=t | sort - auto(field0)",
-        sort(
-            relation("t"),
-            field(
-                "field0",
-                exprList(
-                    argument("asc", booleanLiteral(false)),
-                    argument("type", stringLiteral("auto"))))));
+        "source=t | sort field0",
+        sort(relation("t"), field("field0", exprList(argument("asc", booleanLiteral(true))))));
+
+    assertEqual(
+        "source=t | sort + field0",
+        sort(relation("t"), field("field0", exprList(argument("asc", booleanLiteral(true))))));
+
+    assertEqual(
+        "source=t | sort - field0",
+        sort(relation("t"), field("field0", exprList(argument("asc", booleanLiteral(false))))));
   }
 
   @Test
