@@ -49,7 +49,7 @@ public class IPFunctionIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "source=%s | where cidrmatch(host, '1.2.3.0/8') | fields host", TEST_INDEX_WEBLOG));
+                "source=%s | where cidrmatch(host, '1.2.3.0/24') | fields host", TEST_INDEX_WEBLOG));
     verifySchema(result, schema("host", null, "ip"));
     verifyDataRows(result, rows("1.2.3.4"), rows("1.2.3.5"));
   }
