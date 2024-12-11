@@ -31,7 +31,7 @@ public class IPFunctionIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "source=%s | where cidrmatch(host, '199.120.111.0/24') | fields host",
+                "source=%s | where cidrmatch(host, '250.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOG));
     verifySchema(result, schema("host", null, "ip"));
     verifyDataRows(result);
@@ -40,18 +40,17 @@ public class IPFunctionIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "source=%s | where cidrmatch(host, '199.120.110.0/24') | fields host",
+                "source=%s | where cidrmatch(host, '0.0.0.0/24') | fields host",
                 TEST_INDEX_WEBLOG));
     verifySchema(result, schema("host", null, "ip"));
-    verifyDataRows(result, rows("199.120.110.21"));
+    verifyDataRows(result, rows("0.0.0.2"));
 
     // Multiple matches
     result =
         executeQuery(
             String.format(
-                "source=%s | where cidrmatch(host, '199.0.0.0/8') | fields host",
-                TEST_INDEX_WEBLOG));
+                "source=%s | where cidrmatch(host, '1.2.3.0/8') | fields host", TEST_INDEX_WEBLOG));
     verifySchema(result, schema("host", null, "ip"));
-    verifyDataRows(result, rows("199.72.81.55"), rows("199.120.110.21"));
+    verifyDataRows(result, rows("1.2.3.4"), rows("1.2.3.5"));
   }
 }
