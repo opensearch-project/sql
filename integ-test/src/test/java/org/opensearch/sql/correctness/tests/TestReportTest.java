@@ -60,11 +60,11 @@ public class TestReportTest {
                 new DBResult(
                     "OpenSearch",
                     singleton(new Type("firstName", "text")),
-                    singleton(new Row(asList("hello")))),
+                    singleton(new Row(singleton("hello")))),
                 new DBResult(
                     "H2",
                     singleton(new Type("firstName", "text")),
-                    singleton(new Row(asList("world"))))),
+                    singleton(new Row(singleton("world"))))),
             "[SQLITE_ERROR] SQL error or missing database;"));
     JSONObject actual = new JSONObject(report);
     JSONObject expected =

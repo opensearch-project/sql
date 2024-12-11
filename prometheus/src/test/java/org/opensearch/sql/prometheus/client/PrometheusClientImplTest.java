@@ -18,7 +18,6 @@ import static org.opensearch.sql.prometheus.utils.TestUtils.getJson;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -154,13 +153,12 @@ public class PrometheusClientImplTest {
     Map<String, List<MetricMetadata>> expected = new HashMap<>();
     expected.put(
         "go_gc_duration_seconds",
-        Collections.singletonList(
+        List.of(
             new MetricMetadata(
                 "summary", "A summary of the pause duration of garbage collection cycles.", "")));
     expected.put(
         "go_goroutines",
-        Collections.singletonList(
-            new MetricMetadata("gauge", "Number of goroutines that currently exist.", "")));
+        List.of(new MetricMetadata("gauge", "Number of goroutines that currently exist.", "")));
     assertEquals(expected, response);
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     verifyGetAllMetricsCall(recordedRequest);

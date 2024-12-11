@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.planner.logical;
 
-import java.util.Collections;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -27,7 +26,7 @@ public class LogicalEval extends LogicalPlan {
 
   /** Constructor of LogicalEval. */
   public LogicalEval(LogicalPlan child, List<Pair<ReferenceExpression, Expression>> expressions) {
-    super(Collections.singletonList(child));
+    super(List.of(child));
     this.expressions = expressions;
   }
 

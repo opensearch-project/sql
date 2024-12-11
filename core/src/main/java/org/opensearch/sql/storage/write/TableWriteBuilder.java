@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.storage.write;
 
-import java.util.Collections;
+import static java.util.Collections.singletonList;
+
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -20,7 +21,7 @@ public abstract class TableWriteBuilder extends LogicalPlan {
 
   /** Construct table write builder with child node. */
   public TableWriteBuilder(LogicalPlan child) {
-    super(Collections.singletonList(child));
+    super(singletonList(child));
   }
 
   /**

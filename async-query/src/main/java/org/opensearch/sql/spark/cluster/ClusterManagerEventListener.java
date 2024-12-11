@@ -10,7 +10,6 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUE
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.LocalNodeClusterManagerListener;
@@ -183,7 +182,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
 
   @VisibleForTesting
   public List<Cancellable> getFlintIndexRetentionCron() {
-    return Arrays.asList(flintIndexRetentionCron);
+    return List.of(flintIndexRetentionCron);
   }
 
   private String executorName() {

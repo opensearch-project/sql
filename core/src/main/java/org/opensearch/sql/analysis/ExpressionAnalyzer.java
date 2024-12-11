@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -83,9 +82,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     final Expression expression = node.getExpression().accept(this, context);
     return (Expression)
         repository.compile(
-            context.getFunctionProperties(),
-            node.convertFunctionName(),
-            Collections.singletonList(expression));
+            context.getFunctionProperties(), node.convertFunctionName(), List.of(expression));
   }
 
   public ExpressionAnalyzer(BuiltinFunctionRepository repository) {

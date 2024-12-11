@@ -8,7 +8,6 @@ package org.opensearch.sql.opensearch.storage.script.aggregation;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -77,7 +76,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
     } else {
       GroupSortOrder groupSortOrder = new GroupSortOrder(sortList);
       return Pair.of(
-          Collections.singletonList(
+          List.of(
               AggregationBuilders.composite(
                       "composite_buckets",
                       bucketBuilder.build(

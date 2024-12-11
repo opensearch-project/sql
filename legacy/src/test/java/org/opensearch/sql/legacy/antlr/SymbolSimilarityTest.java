@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.legacy.antlr;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Assert;
@@ -19,7 +16,7 @@ public class SymbolSimilarityTest {
   @Test
   public void noneCandidateShouldReturnTargetStringItself() {
     String target = "test";
-    String mostSimilarSymbol = new SimilarSymbols(emptyList()).mostSimilarTo(target);
+    String mostSimilarSymbol = new SimilarSymbols(List.of()).mostSimilarTo(target);
     Assert.assertEquals(target, mostSimilarSymbol);
   }
 
@@ -27,7 +24,7 @@ public class SymbolSimilarityTest {
   public void singleCandidateShouldReturnTheOnlyCandidate() {
     String target = "test";
     String candidate = "hello";
-    String mostSimilarSymbol = new SimilarSymbols(singletonList(candidate)).mostSimilarTo(target);
+    String mostSimilarSymbol = new SimilarSymbols(List.of(candidate)).mostSimilarTo(target);
     Assert.assertEquals(candidate, mostSimilarSymbol);
   }
 

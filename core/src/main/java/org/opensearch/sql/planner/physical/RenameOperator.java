@@ -9,7 +9,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -56,7 +55,7 @@ public class RenameOperator extends PhysicalPlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return Collections.singletonList(input);
+    return List.of(input);
   }
 
   @Override

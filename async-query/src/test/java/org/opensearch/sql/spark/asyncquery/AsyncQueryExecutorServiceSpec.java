@@ -21,7 +21,6 @@ import com.google.common.io.Resources;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -137,7 +136,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
   @Override
   protected Collection<Class<? extends Plugin>> nodePlugins() {
-    return Arrays.asList(TestSettingPlugin.class);
+    return List.of(TestSettingPlugin.class);
   }
 
   public static class TestSettingPlugin extends Plugin {
