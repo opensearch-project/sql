@@ -85,8 +85,8 @@ class RangeQueryTest {
   }
 
   @Test
-  void test_non_date_field_type() {
-    String dateString = "2021-11-08";
+  void test_string_field_type() {
+    String dateString = "STRING";
     OpenSearchDateType dateType = OpenSearchDateType.of(STRING);
     ExprValue literal = ExprValueUtils.stringValue(dateString);
     assertNotNull(new RangeQuery(Comparison.LT).doBuild("string_value", dateType, literal));
