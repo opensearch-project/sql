@@ -135,7 +135,7 @@ public class SortCommandIT extends PPLIntegTestCase {
   @Test
   public void testSortIpField() throws IOException {
     final JSONObject result =
-        executeQuery(String.format("source=%s | sort host | fields host", TEST_INDEX_WEBLOG));
+        executeQuery(String.format("source=%s | fields host | sort host", TEST_INDEX_WEBLOG));
     verifyOrder(
         result,
         rows("::1"),
