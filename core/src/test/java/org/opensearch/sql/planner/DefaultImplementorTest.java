@@ -7,11 +7,13 @@ package org.opensearch.sql.planner;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
@@ -44,8 +46,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
@@ -63,11 +67,13 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.planner.physical.ProjectOperator;
+import org.opensearch.sql.planner.physical.TrendlineOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
@@ -303,5 +309,20 @@ class DefaultImplementorTest {
             10,
             5);
     assertEquals(physicalPlanTree, logicalLimit.accept(implementor, null));
+  }
+
+  @Test
+  public void visitTrendline_should_build_TrendlineOperator() {
+    var logicalChild = mock(LogicalPlan.class);
+    var physicalChild = mock(PhysicalPlan.class);
+    when(logicalChild.accept(implementor, null)).thenReturn(physicalChild);
+    final Trendline.TrendlineComputation computation =
+        AstDSL.computation(1, AstDSL.field("field"), "alias", SMA);
+    var logicalPlan =
+        new LogicalTrendline(
+            logicalChild, Collections.singletonList(Pair.of(computation, ExprCoreType.DOUBLE)));
+    var implemented = logicalPlan.accept(implementor, null);
+    assertInstanceOf(TrendlineOperator.class, implemented);
+    assertSame(physicalChild, implemented.getChild().get(0));
   }
 }

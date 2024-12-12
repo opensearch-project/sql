@@ -7,12 +7,14 @@ package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.computation;
 import static org.opensearch.sql.ast.dsl.AstDSL.dedupe;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultDedupArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
@@ -38,13 +40,16 @@ import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
+import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Optional;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,6 +65,7 @@ import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstBuilderTest {
@@ -690,6 +696,74 @@ public class AstBuilderTest {
                     .add(new FillNull.NullableFieldFill(field("b"), intLiteral(2)))
                     .add(new FillNull.NullableFieldFill(field("c"), intLiteral(3)))
                     .build())));
+  }
+
+  public void testTrendline() {
+    assertEqual(
+        "source=t | trendline sma(5, test_field) as test_field_alias sma(1, test_field_2) as"
+            + " test_field_alias_2",
+        trendline(
+            relation("t"),
+            Optional.empty(),
+            computation(5, field("test_field"), "test_field_alias", SMA),
+            computation(1, field("test_field_2"), "test_field_alias_2", SMA)));
+  }
+
+  @Test
+  public void testTrendlineSort() {
+    assertEqual(
+        "source=t | trendline sort test_field sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(true)),
+                    argument("type", nullLiteral()))),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineSortDesc() {
+    assertEqual(
+        "source=t | trendline sort - test_field sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(false)),
+                    argument("type", nullLiteral()))),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineSortAsc() {
+    assertEqual(
+        "source=t | trendline sort + test_field sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(true)),
+                    argument("type", nullLiteral()))),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineNoAlias() {
+    assertEqual(
+        "source=t | trendline sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.empty(),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineTooFewSamples() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | trendline sma(0, test_field)"));
   }
 
   @Test

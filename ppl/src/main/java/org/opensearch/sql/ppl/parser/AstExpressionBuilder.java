@@ -45,6 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -52,6 +53,8 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
+import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
@@ -73,6 +76,28 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitEvalClause(EvalClauseContext ctx) {
     return new Let((Field) visit(ctx.fieldExpression()), visit(ctx.expression()));
+  }
+
+  /** Trendline clause. */
+  @Override
+  public Trendline.TrendlineComputation visitTrendlineClause(
+      OpenSearchPPLParser.TrendlineClauseContext ctx) {
+    final int numberOfDataPoints = Integer.parseInt(ctx.numberOfDataPoints.getText());
+    if (numberOfDataPoints < 1) {
+      throw new SyntaxCheckException(
+          "Number of trendline data-points must be greater than or equal to 1");
+    }
+
+    final Field dataField = (Field) this.visitFieldExpression(ctx.field);
+    final String alias =
+        ctx.alias != null
+            ? ctx.alias.getText()
+            : dataField.getChild().get(0).toString() + "_trendline";
+
+    final Trendline.TrendlineType computationType =
+        Trendline.TrendlineType.valueOf(ctx.trendlineType().getText().toUpperCase(Locale.ROOT));
+    return new Trendline.TrendlineComputation(
+        numberOfDataPoints, dataField, alias, computationType);
   }
 
   /** Logical expression excluding boolean, comparison. */
