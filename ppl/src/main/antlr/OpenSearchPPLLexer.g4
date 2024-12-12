@@ -36,6 +36,7 @@ KMEANS:                             'KMEANS';
 AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
+TRENDLINE:                          'TRENDLINE';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -56,6 +57,9 @@ AUTO:                               'AUTO';
 STR:                                'STR';
 IP:                                 'IP';
 NUM:                                'NUM';
+
+// TRENDLINE KEYWORDS
+SMA:                                'SMA';
 
 // ARGUMENT KEYWORDS
 KEEPEMPTY:                          'KEEPEMPTY';

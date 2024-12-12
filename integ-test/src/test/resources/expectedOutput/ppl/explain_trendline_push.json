@@ -1,0 +1,32 @@
+{
+  "root": {
+    "name": "ProjectOperator",
+    "description": {
+      "fields": "[ageTrend]"
+    },
+    "children": [
+      {
+        "name": "TrendlineOperator",
+        "description": {
+          "computations": [
+            {
+              "computationType" : "sma",
+              "numberOfDataPoints" : "2",
+              "dataField" : "age",
+              "alias" : "ageTrend"
+            }
+          ]
+        },
+        "children": [
+          {
+            "name": "OpenSearchIndexScan",
+            "description": {
+              "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\"}, needClean\u003dtrue, searchDone\u003dfalse, pitId\u003dnull, cursorKeepAlive\u003dnull, searchAfter\u003dnull, searchResponse\u003dnull)"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

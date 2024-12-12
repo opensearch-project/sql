@@ -9,6 +9,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -43,6 +44,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
@@ -221,14 +223,26 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format("%s | head %d", child, size);
   }
 
+  @Override
+  public String visitTrendline(Trendline node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String computations = visitExpressionList(node.getComputations(), " ");
+    return StringUtils.format("%s | trendline %s", child, computations);
+  }
+
   private String visitFieldList(List<Field> fieldList) {
     return fieldList.stream().map(this::visitExpression).collect(Collectors.joining(","));
   }
 
-  private String visitExpressionList(List<UnresolvedExpression> expressionList) {
+  private String visitExpressionList(List<? extends UnresolvedExpression> expressionList) {
+    return visitExpressionList(expressionList, ",");
+  }
+
+  private String visitExpressionList(
+      List<? extends UnresolvedExpression> expressionList, String delimiter) {
     return expressionList.isEmpty()
         ? ""
-        : expressionList.stream().map(this::visitExpression).collect(Collectors.joining(","));
+        : expressionList.stream().map(this::visitExpression).collect(Collectors.joining(delimiter));
   }
 
   private String visitExpression(UnresolvedExpression expression) {
@@ -343,6 +357,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     public String visitAlias(Alias node, String context) {
       String expr = node.getDelegated().accept(this, context);
       return StringUtils.format("%s", expr);
+    }
+
+    @Override
+    public String visitTrendlineComputation(Trendline.TrendlineComputation node, String context) {
+      final String dataField = node.getDataField().accept(this, context);
+      final String aliasClause = " as " + node.getAlias();
+      final String computationType = node.getComputationType().name().toLowerCase(Locale.ROOT);
+      return StringUtils.format(
+          "%s(%d, %s)%s", computationType, node.getNumberOfDataPoints(), dataField, aliasClause);
     }
   }
 }
