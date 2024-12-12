@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.esdomain.mapping;
 
+import static java.util.Collections.emptyMap;
+
 import java.util.Map;
 import java.util.Objects;
 import org.opensearch.cluster.metadata.MappingMetadata;
@@ -40,7 +42,7 @@ public class IndexMappings implements Mappings<FieldMappings> {
   private final Map<String, FieldMappings> indexMappings;
 
   public IndexMappings() {
-    this.indexMappings = Map.of();
+    this.indexMappings = emptyMap();
   }
 
   public IndexMappings(Metadata metaData) {

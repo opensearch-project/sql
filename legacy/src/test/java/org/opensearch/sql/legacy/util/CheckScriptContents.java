@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.util;
 
+import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -241,7 +242,7 @@ public class CheckScriptContents {
     // Force return empty list to avoid ClusterSettings be invoked which is a final class and hard
     // to mock.
     // In this case, default value in Setting will be returned all the time.
-    doReturn(List.of()).when(settings).getSettings();
+    doReturn(emptyList()).when(settings).getSettings();
     return settings;
   }
 }

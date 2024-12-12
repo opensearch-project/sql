@@ -1,8 +1,6 @@
 package org.opensearch.sql.datasources.utils;
 
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singletonList;
-
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Set;
 import lombok.SneakyThrows;
@@ -23,7 +21,7 @@ public class DatasourceValidationUtilsTest {
             IllegalArgumentException.class,
             () ->
                 DatasourceValidationUtils.validateHost(
-                    "http://localhost:9090", singletonList("127.0.0.0/8")));
+                    "http://localhost:9090", Collections.singletonList("127.0.0.0/8")));
     Assertions.assertEquals(
         "Disallowed hostname in the uri. Validate with plugins.query.datasources.uri.hosts.denylist"
             + " config",
@@ -36,7 +34,7 @@ public class DatasourceValidationUtilsTest {
     Assertions.assertDoesNotThrow(
         () ->
             DatasourceValidationUtils.validateHost(
-                "http://localhost:9090", singletonList("192.168.0.0/8")));
+                "http://localhost:9090", Collections.singletonList("192.168.0.0/8")));
   }
 
   @Test
@@ -75,6 +73,8 @@ public class DatasourceValidationUtilsTest {
     HashMap<String, String> config = new HashMap<>();
     config.put("s3.uri", "test");
     Assertions.assertDoesNotThrow(
-        () -> DatasourceValidationUtils.validateLengthAndRequiredFields(config, emptySet()));
+        () ->
+            DatasourceValidationUtils.validateLengthAndRequiredFields(
+                config, Collections.emptySet()));
   }
 }

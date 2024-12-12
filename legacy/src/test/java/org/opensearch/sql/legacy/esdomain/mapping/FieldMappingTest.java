@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.esdomain.mapping;
 
+import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse.FieldMappingMetadata;
@@ -28,14 +29,14 @@ public class FieldMappingTest {
   @Test
   public void testFieldMatchesWildcardPatternSpecifiedInQuery() {
     assertThat(
-        new FieldMapping("employee.first", Map.of(), fieldsSpecifiedInQuery("employee.*")),
+        new FieldMapping("employee.first", emptyMap(), fieldsSpecifiedInQuery("employee.*")),
         isWildcardSpecified(true));
   }
 
   @Test
   public void testFieldMismatchesWildcardPatternSpecifiedInQuery() {
     assertThat(
-        new FieldMapping("employee.first", Map.of(), fieldsSpecifiedInQuery("manager.*")),
+        new FieldMapping("employee.first", emptyMap(), fieldsSpecifiedInQuery("manager.*")),
         isWildcardSpecified(false));
   }
 
@@ -75,7 +76,7 @@ public class FieldMappingTest {
                     "employee.location.city",
                     new BytesArray(
                         "{\n" + "  \"city\" : {\n" + "    \"type\" : \"text\"\n" + "  }\n" + "}"))),
-            Map.of()),
+            emptyMap()),
         hasType("text"));
   }
 

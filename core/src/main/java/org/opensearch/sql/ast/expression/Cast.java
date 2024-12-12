@@ -19,6 +19,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_TIMESTAMP;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -98,7 +99,7 @@ public class Cast extends UnresolvedExpression {
 
   @Override
   public List<? extends Node> getChild() {
-    return List.of(expression);
+    return Collections.singletonList(expression);
   }
 
   @Override

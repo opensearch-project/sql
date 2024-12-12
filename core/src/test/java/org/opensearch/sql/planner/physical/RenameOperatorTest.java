@@ -14,6 +14,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,8 +34,9 @@ public class RenameOperatorTest extends PhysicalPlanTestBase {
         new RenameOperator(
             new AggregationOperator(
                 new TestScan(),
-                List.of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
-                List.of(DSL.named("action", DSL.ref("action", STRING)))),
+                Collections.singletonList(
+                    DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
+                Collections.singletonList(DSL.named("action", DSL.ref("action", STRING)))),
             ImmutableMap.of(DSL.ref("avg(response)", DOUBLE), DSL.ref("avg", DOUBLE)));
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());

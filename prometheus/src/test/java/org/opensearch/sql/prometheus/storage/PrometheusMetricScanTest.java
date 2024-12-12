@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.prometheus.storage;
 
-import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +22,7 @@ import static org.opensearch.sql.prometheus.utils.TestUtils.getJson;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import lombok.SneakyThrows;
 import org.json.JSONObject;
@@ -187,7 +187,7 @@ public class PrometheusMetricScanTest {
     prometheusResponseFieldNames.setValueType(LONG);
     prometheusResponseFieldNames.setTimestampFieldName(TIMESTAMP);
     prometheusResponseFieldNames.setGroupByList(
-        singletonList(DSL.named("`instance`", DSL.ref("instance", STRING))));
+        Collections.singletonList(DSL.named("`instance`", DSL.ref("instance", STRING))));
     PrometheusMetricScan prometheusMetricScan = new PrometheusMetricScan(prometheusClient);
     prometheusMetricScan.setPrometheusResponseFieldNames(prometheusResponseFieldNames);
     prometheusMetricScan.getRequest().setPromQl(QUERY);

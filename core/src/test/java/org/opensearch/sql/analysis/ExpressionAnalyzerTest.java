@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.analysis;
 
+import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -172,7 +173,8 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
 
   @Test
   public void scalar_window_function() {
-    assertAnalyzeEqual(DSL.rank(), AstDSL.window(AstDSL.function("rank"), List.of(), List.of()));
+    assertAnalyzeEqual(
+        DSL.rank(), AstDSL.window(AstDSL.function("rank"), emptyList(), emptyList()));
   }
 
   @SuppressWarnings("unchecked")
@@ -181,7 +183,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         new AggregateWindowFunction(DSL.avg(DSL.ref("integer_value", INTEGER))),
         AstDSL.window(
-            AstDSL.aggregate("avg", qualifiedName("integer_value")), List.of(), List.of()));
+            AstDSL.aggregate("avg", qualifiedName("integer_value")), emptyList(), emptyList()));
   }
 
   @Test

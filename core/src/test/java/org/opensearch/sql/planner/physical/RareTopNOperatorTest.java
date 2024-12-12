@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -26,8 +27,8 @@ public class RareTopNOperatorTest extends PhysicalPlanTestBase {
         new RareTopNOperator(
             new TestScan(),
             CommandType.RARE,
-            List.of(DSL.ref("action", ExprCoreType.STRING)),
-            List.of());
+            Collections.singletonList(DSL.ref("action", ExprCoreType.STRING)),
+            Collections.emptyList());
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());
     assertThat(
@@ -43,8 +44,8 @@ public class RareTopNOperatorTest extends PhysicalPlanTestBase {
         new RareTopNOperator(
             new TestScan(),
             CommandType.RARE,
-            List.of(DSL.ref("response", ExprCoreType.INTEGER)),
-            List.of(DSL.ref("action", ExprCoreType.STRING)));
+            Collections.singletonList(DSL.ref("response", ExprCoreType.INTEGER)),
+            Collections.singletonList(DSL.ref("action", ExprCoreType.STRING)));
     List<ExprValue> result = execute(plan);
     assertEquals(4, result.size());
     assertThat(
@@ -62,8 +63,8 @@ public class RareTopNOperatorTest extends PhysicalPlanTestBase {
         new RareTopNOperator(
             new TestScan(),
             CommandType.TOP,
-            List.of(DSL.ref("action", ExprCoreType.STRING)),
-            List.of());
+            Collections.singletonList(DSL.ref("action", ExprCoreType.STRING)),
+            Collections.emptyList());
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());
     assertThat(
@@ -80,8 +81,8 @@ public class RareTopNOperatorTest extends PhysicalPlanTestBase {
             new TestScan(),
             CommandType.TOP,
             1,
-            List.of(DSL.ref("action", ExprCoreType.STRING)),
-            List.of());
+            Collections.singletonList(DSL.ref("action", ExprCoreType.STRING)),
+            Collections.emptyList());
     List<ExprValue> result = execute(plan);
     assertEquals(1, result.size());
     assertThat(
@@ -95,8 +96,8 @@ public class RareTopNOperatorTest extends PhysicalPlanTestBase {
             new TestScan(),
             CommandType.TOP,
             1,
-            List.of(DSL.ref("response", ExprCoreType.INTEGER)),
-            List.of(DSL.ref("action", ExprCoreType.STRING)));
+            Collections.singletonList(DSL.ref("response", ExprCoreType.INTEGER)),
+            Collections.singletonList(DSL.ref("action", ExprCoreType.STRING)));
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());
     assertThat(

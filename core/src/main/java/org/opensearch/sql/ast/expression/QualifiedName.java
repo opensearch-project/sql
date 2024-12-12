@@ -11,6 +11,7 @@ import static java.util.stream.Collectors.toList;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
@@ -24,7 +25,7 @@ public class QualifiedName extends UnresolvedExpression {
   private final List<String> parts;
 
   public QualifiedName(String name) {
-    this.parts = List.of(name);
+    this.parts = Collections.singletonList(name);
   }
 
   /** QualifiedName Constructor. */

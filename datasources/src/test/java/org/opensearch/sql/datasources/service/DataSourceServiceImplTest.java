@@ -22,6 +22,7 @@ import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -103,7 +104,7 @@ class DataSourceServiceImplTest {
   @Test
   void testGetDataSourceSuccessCase() {
     DataSourceMetadata dataSourceMetadata =
-        metadata("test", DataSourceType.OPENSEARCH, List.of(), ImmutableMap.of());
+        metadata("test", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
     doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
     when(dataSourceMetadataStorage.getDataSourceMetadata("test"))
         .thenReturn(Optional.of(dataSourceMetadata));
@@ -118,7 +119,10 @@ class DataSourceServiceImplTest {
   void testGetDataSourceWithAuthorizationFailure() {
     DataSourceMetadata dataSourceMetadata =
         metadata(
-            "test", DataSourceType.OPENSEARCH, List.of("prometheus_access"), ImmutableMap.of());
+            "test",
+            DataSourceType.OPENSEARCH,
+            Collections.singletonList("prometheus_access"),
+            ImmutableMap.of());
     doThrow(
             new SecurityException(
                 "User is not authorized to access datasource test. User should be mapped to any of"
@@ -144,7 +148,7 @@ class DataSourceServiceImplTest {
   void testCreateDataSourceSuccessCase() {
 
     DataSourceMetadata dataSourceMetadata =
-        metadata("testDS", DataSourceType.OPENSEARCH, List.of(), ImmutableMap.of());
+        metadata("testDS", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
     dataSourceService.createDataSource(dataSourceMetadata);
     verify(dataSourceMetadataStorage, times(1)).createDataSourceMetadata(dataSourceMetadata);
     verify(dataSourceFactory, times(1)).createDataSource(dataSourceMetadata);
@@ -152,7 +156,11 @@ class DataSourceServiceImplTest {
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
         .thenReturn(
             Optional.ofNullable(
-                metadata("testDS", DataSourceType.OPENSEARCH, List.of(), ImmutableMap.of())));
+                metadata(
+                    "testDS",
+                    DataSourceType.OPENSEARCH,
+                    Collections.emptyList(),
+                    ImmutableMap.of())));
     DataSource dataSource = dataSourceService.getDataSource("testDS");
     assertEquals("testDS", dataSource.getName());
     assertEquals(storageEngine, dataSource.getStorageEngine());
@@ -170,7 +178,9 @@ class DataSourceServiceImplTest {
         .thenReturn(
             new ArrayList<>() {
               {
-                add(metadata("testDS", DataSourceType.PROMETHEUS, List.of(), properties));
+                add(
+                    metadata(
+                        "testDS", DataSourceType.PROMETHEUS, Collections.emptyList(), properties));
               }
             });
     Set<DataSourceMetadata> dataSourceMetadataSet = dataSourceService.getDataSourceMetadata(false);
@@ -191,7 +201,12 @@ class DataSourceServiceImplTest {
         .thenReturn(
             new ArrayList<>() {
               {
-                add(metadata("testDS", DataSourceType.PROMETHEUS, List.of(), ImmutableMap.of()));
+                add(
+                    metadata(
+                        "testDS",
+                        DataSourceType.PROMETHEUS,
+                        Collections.emptyList(),
+                        ImmutableMap.of()));
               }
             });
     Set<DataSourceMetadata> dataSourceMetadataSet = dataSourceService.getDataSourceMetadata(true);
@@ -204,7 +219,7 @@ class DataSourceServiceImplTest {
   @Test
   void testUpdateDataSourceSuccessCase() {
     DataSourceMetadata dataSourceMetadata =
-        metadata("testDS", DataSourceType.OPENSEARCH, List.of(), ImmutableMap.of());
+        metadata("testDS", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
     dataSourceService.updateDataSource(dataSourceMetadata);
     verify(dataSourceMetadataStorage, times(1)).updateDataSourceMetadata(dataSourceMetadata);
     verify(dataSourceFactory, times(1)).createDataSource(dataSourceMetadata);
@@ -213,7 +228,11 @@ class DataSourceServiceImplTest {
   @Test
   void testUpdateDefaultDataSource() {
     DataSourceMetadata dataSourceMetadata =
-        metadata(DEFAULT_DATASOURCE_NAME, DataSourceType.OPENSEARCH, List.of(), ImmutableMap.of());
+        metadata(
+            DEFAULT_DATASOURCE_NAME,
+            DataSourceType.OPENSEARCH,
+            Collections.emptyList(),
+            ImmutableMap.of());
     UnsupportedOperationException unsupportedOperationException =
         assertThrows(
             UnsupportedOperationException.class,
@@ -257,7 +276,7 @@ class DataSourceServiceImplTest {
                 STATUS_FIELD,
                 DataSourceStatus.DISABLED));
     DataSourceMetadata getData =
-        metadata("testDS", DataSourceType.OPENSEARCH, List.of(), ImmutableMap.of());
+        metadata("testDS", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
         .thenReturn(Optional.ofNullable(getData));
 
@@ -320,7 +339,7 @@ class DataSourceServiceImplTest {
             .setName("testDS")
             .setProperties(properties)
             .setConnector(DataSourceType.PROMETHEUS)
-            .setAllowedRoles(List.of("prometheus_access"))
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
             .build();
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
         .thenReturn(Optional.of(dataSourceMetadata));
@@ -345,7 +364,7 @@ class DataSourceServiceImplTest {
             .setName("testDS")
             .setProperties(properties)
             .setConnector(DataSourceType.PROMETHEUS)
-            .setAllowedRoles(List.of("prometheus_access"))
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
             .build();
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
         .thenReturn(Optional.of(dataSourceMetadata));
@@ -372,7 +391,7 @@ class DataSourceServiceImplTest {
             .setName("testGlue")
             .setProperties(properties)
             .setConnector(DataSourceType.S3GLUE)
-            .setAllowedRoles(List.of("glue_access"))
+            .setAllowedRoles(Collections.singletonList("glue_access"))
             .build();
     when(dataSourceMetadataStorage.getDataSourceMetadata("testGlue"))
         .thenReturn(Optional.of(dataSourceMetadata));
@@ -414,7 +433,8 @@ class DataSourceServiceImplTest {
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
         .thenReturn(
             Optional.ofNullable(
-                metadata("testDS", DataSourceType.PROMETHEUS, List.of(), properties)));
+                metadata(
+                    "testDS", DataSourceType.PROMETHEUS, Collections.emptyList(), properties)));
     DataSourceMetadata dataSourceMetadata = this.dataSourceService.getDataSourceMetadata("testDS");
     assertTrue(dataSourceMetadata.getProperties().containsKey("prometheus.uri"));
     assertTrue(dataSourceMetadata.getProperties().containsKey("prometheus.auth.type"));
@@ -435,7 +455,7 @@ class DataSourceServiceImplTest {
             .setName("testDS")
             .setProperties(properties)
             .setConnector(DataSourceType.PROMETHEUS)
-            .setAllowedRoles(List.of("prometheus_access"))
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
             .setDataSourceStatus(DataSourceStatus.DISABLED)
             .build();
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
@@ -462,7 +482,7 @@ class DataSourceServiceImplTest {
             .setName("testDS")
             .setProperties(properties)
             .setConnector(DataSourceType.PROMETHEUS)
-            .setAllowedRoles(List.of("prometheus_access"))
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
             .setDataSourceStatus(DataSourceStatus.ACTIVE)
             .build();
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))

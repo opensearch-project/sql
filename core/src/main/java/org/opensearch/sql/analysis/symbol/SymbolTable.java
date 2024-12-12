@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.analysis.symbol;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptyNavigableMap;
 
 import java.util.EnumMap;
@@ -87,7 +88,7 @@ public class SymbolTable {
     if (table != null) {
       return table.subMap(prefix.getName(), prefix.getName() + Character.MAX_VALUE);
     }
-    return Map.of();
+    return emptyMap();
   }
 
   /**

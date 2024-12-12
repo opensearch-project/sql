@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,12 +43,13 @@ public class PrometheusListMetricsRequestTest {
     Map<String, List<MetricMetadata>> metricsResult = new HashMap<>();
     metricsResult.put(
         "go_gc_duration_seconds",
-        List.of(
+        Collections.singletonList(
             new MetricMetadata(
                 "summary", "A summary of the pause duration of garbage collection cycles.", "")));
     metricsResult.put(
         "go_goroutines",
-        List.of(new MetricMetadata("gauge", "Number of goroutines that currently exist.", "")));
+        Collections.singletonList(
+            new MetricMetadata("gauge", "Number of goroutines that currently exist.", "")));
     when(prometheusClient.getAllMetrics()).thenReturn(metricsResult);
     PrometheusListMetricsRequest prometheusListMetricsRequest =
         new PrometheusListMetricsRequest(

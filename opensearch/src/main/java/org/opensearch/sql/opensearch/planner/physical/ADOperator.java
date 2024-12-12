@@ -18,6 +18,7 @@ import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_ZONE;
 import static org.opensearch.sql.utils.MLCommonsConstants.TRAINING_DATA_SIZE;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -114,7 +115,7 @@ public class ADOperator extends MLCommonsOperatorActions {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return List.of(input);
+    return Collections.singletonList(input);
   }
 
   protected MLAlgoParams convertArgumentToMLParameter(Map<String, Literal> arguments) {

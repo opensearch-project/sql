@@ -7,7 +7,6 @@
 
 package org.opensearch.sql.prometheus.functions.scan;
 
-import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,6 +23,7 @@ import static org.opensearch.sql.prometheus.utils.TestUtils.getJson;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import lombok.SneakyThrows;
 import org.json.JSONObject;
@@ -80,9 +80,11 @@ class QueryRangeFunctionTableScanOperatorTest {
                 put(
                     TIMESTAMP,
                     new ExprCollectionValue(
-                        singletonList(
+                        Collections.singletonList(
                             new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)))));
-                put(VALUE, new ExprCollectionValue(singletonList(new ExprDoubleValue(1))));
+                put(
+                    VALUE,
+                    new ExprCollectionValue(Collections.singletonList(new ExprDoubleValue(1))));
               }
             });
 
@@ -105,9 +107,11 @@ class QueryRangeFunctionTableScanOperatorTest {
                 put(
                     TIMESTAMP,
                     new ExprCollectionValue(
-                        singletonList(
+                        Collections.singletonList(
                             new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)))));
-                put(VALUE, new ExprCollectionValue(singletonList(new ExprDoubleValue(0))));
+                put(
+                    VALUE,
+                    new ExprCollectionValue(Collections.singletonList(new ExprDoubleValue(0))));
               }
             });
     assertEquals(secondRow, queryRangeFunctionTableScanOperator.next());

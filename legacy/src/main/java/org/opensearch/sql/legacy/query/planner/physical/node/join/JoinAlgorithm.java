@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.query.planner.physical.node.join;
 
+import static java.util.Collections.emptyList;
+
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -128,7 +130,7 @@ public abstract class JoinAlgorithm<T> extends BatchPhysicalOperator<T> {
       // 4.Clean up and close right
       cleanUpAndCloseRight();
     }
-    return List.of();
+    return emptyList();
   }
 
   /** Probe right by hash table built from left. Handle matched and mismatched rows. */

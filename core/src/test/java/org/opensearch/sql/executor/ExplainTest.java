@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.executor;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.ast.tree.RareTopN.CommandType.TOP;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
@@ -76,11 +78,11 @@ class ExplainTest extends ExpressionTestBase {
             new ExplainResponseNode(
                 "ProjectOperator",
                 Map.of("fields", "[name, age]"),
-                List.of(
+                singletonList(
                     new ExplainResponseNode(
                         "FilterOperator",
                         Map.of("conditions", "and(=(balance, 10000), >(age, 30))"),
-                        List.of(tableScan.explainNode()))))),
+                        singletonList(tableScan.explainNode()))))),
         explain.apply(plan));
   }
 
@@ -99,7 +101,7 @@ class ExplainTest extends ExpressionTestBase {
                 Map.of(
                     "aggregators", "[avg(balance)]",
                     "groupBy", "[state]"),
-                List.of(tableScan.explainNode()))),
+                singletonList(tableScan.explainNode()))),
         explain.apply(plan));
   }
 
@@ -107,13 +109,13 @@ class ExplainTest extends ExpressionTestBase {
   void can_explain_rare_top_n() {
     Expression field = ref("state", STRING);
 
-    PhysicalPlan plan = rareTopN(tableScan, TOP, List.of(), field);
+    PhysicalPlan plan = rareTopN(tableScan, TOP, emptyList(), field);
     assertEquals(
         new ExplainResponse(
             new ExplainResponseNode(
                 "RareTopNOperator",
                 Map.of("commandType", TOP, "noOfResults", 10, "fields", "[state]", "groupBy", "[]"),
-                List.of(tableScan.explainNode()))),
+                singletonList(tableScan.explainNode()))),
         explain.apply(plan));
   }
 
@@ -143,7 +145,7 @@ class ExplainTest extends ExpressionTestBase {
                             Map.of(
                                 "sortOrder", "ASC",
                                 "nullOrder", "NULL_FIRST")))),
-                List.of(tableScan.explainNode()))),
+                singletonList(tableScan.explainNode()))),
         explain.apply(plan));
   }
 
@@ -169,15 +171,15 @@ class ExplainTest extends ExpressionTestBase {
             new ExplainResponseNode(
                 "RemoveOperator",
                 Map.of("removeList", "[state]"),
-                List.of(
+                singletonList(
                     new ExplainResponseNode(
                         "RenameOperator",
                         Map.of("mapping", Map.of("state", "s")),
-                        List.of(
+                        singletonList(
                             new ExplainResponseNode(
                                 "EvalOperator",
                                 Map.of("expressions", Map.of("age", "+(age, 2)")),
-                                List.of(
+                                singletonList(
                                     new ExplainResponseNode(
                                         "DedupeOperator",
                                         Map.of(
@@ -189,7 +191,7 @@ class ExplainTest extends ExpressionTestBase {
                                             false,
                                             "consecutive",
                                             false),
-                                        List.of(
+                                        singletonList(
                                             new ExplainResponseNode(
                                                 "SortOperator",
                                                 Map.of(
@@ -199,11 +201,11 @@ class ExplainTest extends ExpressionTestBase {
                                                         Map.of(
                                                             "sortOrder", "ASC",
                                                             "nullOrder", "NULL_FIRST"))),
-                                                List.of(
+                                                singletonList(
                                                     new ExplainResponseNode(
                                                         "ValuesOperator",
                                                         Map.of("values", List.of(values)),
-                                                        List.of())))))))))))),
+                                                        emptyList())))))))))))),
         explain.apply(plan));
   }
 
@@ -215,7 +217,7 @@ class ExplainTest extends ExpressionTestBase {
             new ExplainResponseNode(
                 "LimitOperator",
                 Map.of("limit", 10, "offset", 5),
-                List.of(tableScan.explainNode()))),
+                singletonList(tableScan.explainNode()))),
         explain.apply(plan));
   }
 
@@ -235,7 +237,7 @@ class ExplainTest extends ExpressionTestBase {
                     5,
                     "sortList",
                     Map.of("a", Map.of("sortOrder", "ASC", "nullOrder", "NULL_FIRST"))),
-                List.of(tableScan.explainNode()))),
+                singletonList(tableScan.explainNode()))),
         explain.apply(plan));
   }
 
@@ -250,7 +252,7 @@ class ExplainTest extends ExpressionTestBase {
             new ExplainResponseNode(
                 "NestedOperator",
                 Map.of("nested", Set.of("message.info", "message")),
-                List.of(tableScan.explainNode()))),
+                singletonList(tableScan.explainNode()))),
         explain.apply(plan));
   }
 
@@ -273,7 +275,7 @@ class ExplainTest extends ExpressionTestBase {
     /** Used to ignore table scan which is duplicate but required for each operator test. */
     public ExplainResponseNode explainNode() {
       return new ExplainResponseNode(
-          "FakeTableScan", Map.of("request", "Fake DSL request"), List.of());
+          "FakeTableScan", Map.of("request", "Fake DSL request"), emptyList());
     }
 
     public String explain() {

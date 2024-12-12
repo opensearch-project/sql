@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.query.planner.physical.node.sort;
 
+import static java.util.Collections.emptyList;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,7 +67,7 @@ public class QuickSort<T> extends BatchPhysicalOperator<T> {
   @Override
   protected Collection<Row<T>> prefetch() {
     if (isDone) {
-      return List.of();
+      return emptyList();
     }
 
     List<Row<T>> allRowsSorted = new ArrayList<>();

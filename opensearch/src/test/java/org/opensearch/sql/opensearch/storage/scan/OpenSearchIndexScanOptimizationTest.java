@@ -39,6 +39,7 @@ import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.P
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -330,10 +331,10 @@ class OpenSearchIndexScanOptimizationTest {
   void test_highlight_push_down() {
     assertEqualsAfterOptimization(
         project(
-            indexScanBuilder(withHighlightPushedDown("*", Map.of())),
+            indexScanBuilder(withHighlightPushedDown("*", Collections.emptyMap())),
             DSL.named("highlight(*)", new HighlightExpression(DSL.literal("*")))),
         project(
-            highlight(relation("schema", table), DSL.literal("*"), Map.of()),
+            highlight(relation("schema", table), DSL.literal("*"), Collections.emptyMap()),
             DSL.named("highlight(*)", new HighlightExpression(DSL.literal("*")))));
   }
 
@@ -640,7 +641,7 @@ class OpenSearchIndexScanOptimizationTest {
     CompositeAggregationBuilder aggBuilder =
         AggregationBuilders.composite(
                 "composite_buckets",
-                List.of(
+                Collections.singletonList(
                     new TermsValuesSourceBuilder(aggregation.groupBy)
                         .field(aggregation.groupBy)
                         .order(aggregation.sortBy.getSortOrder() == ASC ? "asc" : "desc")
@@ -651,7 +652,7 @@ class OpenSearchIndexScanOptimizationTest {
                 AggregationBuilders.avg(aggregation.aggregateName).field(aggregation.aggregateBy))
             .size(AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE);
 
-    List<AggregationBuilder> aggBuilders = List.of(aggBuilder);
+    List<AggregationBuilder> aggBuilders = Collections.singletonList(aggBuilder);
     OpenSearchAggregationResponseParser responseParser =
         new CompositeAggregationParser(new SingleValueParser(aggregation.aggregateName));
 

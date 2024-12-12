@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertFalse;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
@@ -393,7 +394,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("avg(a)", aggregate("avg", field("a")))),
-            List.of(),
+            emptyList(),
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
@@ -405,7 +406,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("var_samp(a)", aggregate("var_samp", field("a")))),
-            List.of(),
+            emptyList(),
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
@@ -417,7 +418,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("var_pop(a)", aggregate("var_pop", field("a")))),
-            List.of(),
+            emptyList(),
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
@@ -429,7 +430,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("stddev_samp(a)", aggregate("stddev_samp", field("a")))),
-            List.of(),
+            emptyList(),
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
@@ -441,7 +442,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("stddev_pop(a)", aggregate("stddev_pop", field("a")))),
-            List.of(),
+            emptyList(),
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
@@ -456,8 +457,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 alias(
                     "percentile(a, 1)",
                     aggregate("percentile", field("a"), unresolvedArg("percent", intLiteral(1))))),
-            List.of(),
-            List.of(),
+            emptyList(),
+            emptyList(),
             defaultStatsArgs()));
     assertEqual(
         "source=t | stats percentile(a, 1.0)",
@@ -468,8 +469,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     "percentile(a, 1.0)",
                     aggregate(
                         "percentile", field("a"), unresolvedArg("percent", doubleLiteral(1D))))),
-            List.of(),
-            List.of(),
+            emptyList(),
+            emptyList(),
             defaultStatsArgs()));
     assertEqual(
         "source=t | stats percentile(a, 1.0, 100)",
@@ -483,8 +484,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                         field("a"),
                         unresolvedArg("percent", doubleLiteral(1D)),
                         unresolvedArg("compression", intLiteral(100))))),
-            List.of(),
-            List.of(),
+            emptyList(),
+            emptyList(),
             defaultStatsArgs()));
   }
 
@@ -495,7 +496,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("count()", aggregate("count", AllFields.of()))),
-            List.of(),
+            emptyList(),
             exprList(alias("b", field("b"))),
             defaultStatsArgs()));
   }
@@ -507,8 +508,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         agg(
             relation("t"),
             exprList(alias("distinct_count(a)", distinctAggregate("count", field("a")))),
-            List.of(),
-            List.of(),
+            emptyList(),
+            emptyList(),
             defaultStatsArgs()));
   }
 
@@ -522,8 +523,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 alias(
                     "take(a)",
                     aggregate("take", field("a"), unresolvedArg("size", intLiteral(10))))),
-            List.of(),
-            List.of(),
+            emptyList(),
+            emptyList(),
             defaultStatsArgs()));
   }
 
@@ -537,8 +538,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 alias(
                     "take(a, 5)",
                     aggregate("take", field("a"), unresolvedArg("size", intLiteral(5))))),
-            List.of(),
-            List.of(),
+            emptyList(),
+            emptyList(),
             defaultStatsArgs()));
   }
 
@@ -761,7 +762,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         agg(
             relation("index"),
             exprList(alias("count()", aggregate("count", AllFields.of()))),
-            List.of(),
+            emptyList(),
             exprList(alias("index", field("index"))),
             defaultStatsArgs()));
   }

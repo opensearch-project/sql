@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.analysis;
 
+import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -61,6 +62,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -406,9 +408,9 @@ class AnalyzerTest extends AnalyzerTestBase {
                 ImmutableList.of(
                     alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value"))),
                     alias("MIN(integer_value)", aggregate("MIN", qualifiedName("integer_value")))),
-                List.of(),
+                emptyList(),
                 ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
-                List.of()),
+                emptyList()),
             compare(">", aggregate("MIN", qualifiedName("integer_value")), intLiteral(10))));
   }
 
@@ -489,7 +491,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                                 AstDSL.alias(
                                     "avg(integer_value)",
                                     AstDSL.aggregate("avg", field("integer_value")))),
-                            List.of(),
+                            Collections.emptyList(),
                             ImmutableList.of(),
                             AstDSL.defaultStatsArgs()),
                         AstDSL.map(
@@ -892,7 +894,7 @@ class AnalyzerTest extends AnalyzerTestBase {
             DSL.ref("double_value", DOUBLE)),
         AstDSL.projectWithArg(
             AstDSL.relation("schema"),
-            List.of(argument("exclude", booleanLiteral(true))),
+            Collections.singletonList(argument("exclude", booleanLiteral(true))),
             AstDSL.field("integer_value"),
             AstDSL.field("double_value")));
   }
@@ -954,9 +956,9 @@ class AnalyzerTest extends AnalyzerTestBase {
                     ImmutableList.of(
                         AstDSL.alias(
                             "avg(integer_value)", function("avg", qualifiedName("integer_value")))),
-                    List.of(),
+                    emptyList(),
                     ImmutableList.of(AstDSL.alias("string_value", qualifiedName("string_value"))),
-                    List.of()),
+                    emptyList()),
                 field(
                     function("avg", qualifiedName("integer_value")),
                     argument("asc", booleanLiteral(true)))),
@@ -1039,8 +1041,8 @@ class AnalyzerTest extends AnalyzerTestBase {
                 "window_function",
                 AstDSL.window(
                     AstDSL.function("row_number"),
-                    List.of(AstDSL.qualifiedName("string_value")),
-                    List.of(
+                    Collections.singletonList(AstDSL.qualifiedName("string_value")),
+                    Collections.singletonList(
                         ImmutablePair.of(DEFAULT_ASC, AstDSL.qualifiedName("integer_value")))))));
   }
 
@@ -1096,13 +1098,13 @@ class AnalyzerTest extends AnalyzerTestBase {
                     AstDSL.project(
                         AstDSL.agg(
                             AstDSL.relation("schema"),
-                            List.of(),
-                            List.of(),
+                            emptyList(),
+                            emptyList(),
                             ImmutableList.of(
                                 alias(
                                     "nested(message.info)",
                                     function("nested", qualifiedName("message", "info")))),
-                            List.of()))));
+                            emptyList()))));
     assertEquals(
         "Falling back to legacy engine. Nested function is not supported in WHERE,"
             + " GROUP BY, and HAVING clauses.",
@@ -1126,9 +1128,9 @@ class AnalyzerTest extends AnalyzerTestBase {
                 AstDSL.relation("schema"),
                 ImmutableList.of(
                     alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value")))),
-                List.of(),
+                emptyList(),
                 ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
-                List.of()),
+                emptyList()),
             AstDSL.alias("string_value", qualifiedName("string_value")),
             AstDSL.alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value")))));
   }
@@ -1151,10 +1153,10 @@ class AnalyzerTest extends AnalyzerTestBase {
                 AstDSL.relation("schema"),
                 ImmutableList.of(
                     alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value")))),
-                List.of(),
+                emptyList(),
                 ImmutableList.of(
                     alias("abs(long_value)", function("abs", qualifiedName("long_value")))),
-                List.of()),
+                emptyList()),
             AstDSL.alias("abs(long_value)", function("abs", qualifiedName("long_value"))),
             AstDSL.alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value")))));
   }
@@ -1177,10 +1179,10 @@ class AnalyzerTest extends AnalyzerTestBase {
                 AstDSL.relation("schema"),
                 ImmutableList.of(
                     alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value")))),
-                List.of(),
+                emptyList(),
                 ImmutableList.of(
                     alias("ABS(long_value)", function("ABS", qualifiedName("long_value")))),
-                List.of()),
+                emptyList()),
             AstDSL.alias("abs(long_value)", function("abs", qualifiedName("long_value"))),
             AstDSL.alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value")))));
   }
@@ -1203,10 +1205,10 @@ class AnalyzerTest extends AnalyzerTestBase {
                 AstDSL.relation("schema"),
                 ImmutableList.of(
                     alias("avg(integer_value)", aggregate("avg", qualifiedName("integer_value")))),
-                List.of(),
+                emptyList(),
                 ImmutableList.of(
                     alias("abs(long_value)", function("abs", qualifiedName("long_value")))),
-                List.of()),
+                emptyList()),
             AstDSL.alias("abs(long_value)", function("abs", qualifiedName("long_value"))),
             AstDSL.alias(
                 "abs(avg(integer_value)",
@@ -1237,10 +1239,10 @@ class AnalyzerTest extends AnalyzerTestBase {
                 ImmutableList.of(
                     alias("sum(integer_value)", aggregate("sum", qualifiedName("integer_value"))),
                     alias("avg(integer_value)", aggregate("avg", qualifiedName("integer_value")))),
-                List.of(),
+                emptyList(),
                 ImmutableList.of(
                     alias("abs(long_value)", function("abs", qualifiedName("long_value")))),
-                List.of()),
+                emptyList()),
             AstDSL.alias("abs(long_value)", function("abs", qualifiedName("long_value"))),
             AstDSL.alias(
                 "sum(integer_value)-avg(integer_value)",
@@ -1278,7 +1280,7 @@ class AnalyzerTest extends AnalyzerTestBase {
                         DSL.count(DSL.ref("string_value", STRING))
                             .condition(
                                 DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))))),
-                List.of()),
+                emptyList()),
             DSL.named(
                 "count(string_value) filter(where integer_value > 1)",
                 DSL.ref("count(string_value) filter(where integer_value > 1)", INTEGER))),
@@ -1292,9 +1294,9 @@ class AnalyzerTest extends AnalyzerTestBase {
                             "count",
                             qualifiedName("string_value"),
                             function(">", qualifiedName("integer_value"), intLiteral(1))))),
-                List.of(),
-                List.of(),
-                List.of()),
+                emptyList(),
+                emptyList(),
+                emptyList()),
             AstDSL.alias(
                 "count(string_value) filter(where integer_value > 1)",
                 filteredAggregate(
@@ -1318,10 +1320,10 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.relation("schema"),
             ImmutableList.of(
                 alias("AVG(integer_value)", aggregate("AVG", qualifiedName("integer_value")))),
-            List.of(),
+            emptyList(),
             ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
             alias("span", span(field("long_value"), intLiteral(10), SpanUnit.NONE)),
-            List.of()));
+            emptyList()));
   }
 
   @Test

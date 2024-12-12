@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -137,7 +140,7 @@ class ExpressionFilterScriptTest {
 
   @Test
   void can_execute_expression_with_empty_doc_value() {
-    assertThat().docValues("name", List.of()).filterBy(ref("name", STRING)).shouldNotMatch();
+    assertThat().docValues("name", emptyList()).filterBy(ref("name", STRING)).shouldNotMatch();
   }
 
   @Test
@@ -209,7 +212,7 @@ class ExpressionFilterScriptTest {
     }
 
     ExprScriptAssertion filterBy(Expression expr) {
-      ExpressionFilterScript script = new ExpressionFilterScript(expr, lookup, context, Map.of());
+      ExpressionFilterScript script = new ExpressionFilterScript(expr, lookup, context, emptyMap());
       isMatched = script.execute();
       return this;
     }
@@ -235,7 +238,7 @@ class ExpressionFilterScriptTest {
 
     @SuppressWarnings("unchecked")
     public FakeScriptDocValues(T value) {
-      this.values = (value instanceof List) ? (List<T>) value : List.of(value);
+      this.values = (value instanceof List) ? (List<T>) value : singletonList(value);
     }
 
     @Override

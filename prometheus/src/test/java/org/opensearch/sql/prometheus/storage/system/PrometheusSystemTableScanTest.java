@@ -7,12 +7,12 @@
 
 package org.opensearch.sql.prometheus.storage.system;
 
-import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -26,7 +26,7 @@ public class PrometheusSystemTableScanTest {
 
   @Test
   public void queryData() {
-    when(request.search()).thenReturn(singletonList(stringValue("text")));
+    when(request.search()).thenReturn(Collections.singletonList(stringValue("text")));
     final PrometheusSystemTableScan systemIndexScan = new PrometheusSystemTableScan(request);
 
     systemIndexScan.open();

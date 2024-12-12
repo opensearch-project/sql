@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.unittest.planner;
 
+import static java.util.Collections.emptyList;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -103,7 +104,7 @@ public abstract class QueryPlannerTest {
     // Force return empty list to avoid ClusterSettings be invoked which is a final class and hard
     // to mock.
     // In this case, default value in Setting will be returned all the time.
-    doReturn(List.of()).when(settings).getSettings();
+    doReturn(emptyList()).when(settings).getSettings();
     doReturn(false).when(settings).getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER);
     LocalClusterState.state().setPluginSettings(settings);
 

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.antlr.semantic.scope;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptyNavigableMap;
 
 import java.util.EnumMap;
@@ -66,7 +67,7 @@ public class SymbolTable {
           .filter(entry -> null != entry.getValue().get())
           .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().get()));
     }
-    return Map.of();
+    return emptyMap();
   }
 
   /**
