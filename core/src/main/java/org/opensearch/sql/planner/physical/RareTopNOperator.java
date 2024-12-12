@@ -9,6 +9,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.AbstractMap;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -83,7 +84,7 @@ public class RareTopNOperator extends PhysicalPlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return List.of(input);
+    return Collections.singletonList(input);
   }
 
   @Override

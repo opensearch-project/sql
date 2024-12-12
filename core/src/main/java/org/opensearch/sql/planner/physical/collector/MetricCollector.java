@@ -6,6 +6,7 @@
 package org.opensearch.sql.planner.physical.collector;
 
 import java.util.AbstractMap;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,6 @@ public class MetricCollector implements Collector {
   public List<ExprValue> results() {
     LinkedHashMap<String, ExprValue> map = new LinkedHashMap<>();
     aggregators.forEach(agg -> map.put(agg.getKey().getName(), agg.getValue().result()));
-    return List.of(ExprTupleValue.fromExprValueMap(map));
+    return Collections.singletonList(ExprTupleValue.fromExprValueMap(map));
   }
 }

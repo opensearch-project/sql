@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.planner.physical;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import lombok.EqualsAndHashCode;
@@ -58,7 +59,7 @@ public class AggregationOperator extends PhysicalPlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return List.of(input);
+    return Collections.singletonList(input);
   }
 
   @Override

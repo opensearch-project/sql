@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression.aggregation;
 
-import static java.util.Collections.singletonList;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
@@ -22,6 +21,7 @@ import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varia
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -66,16 +66,16 @@ public class AggregatorFunctions {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(
-                new FunctionSignature(functionName, singletonList(DOUBLE)),
+                new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
                 (functionProperties, arguments) -> new AvgAggregator(arguments, DOUBLE))
             .put(
-                new FunctionSignature(functionName, singletonList(DATE)),
+                new FunctionSignature(functionName, Collections.singletonList(DATE)),
                 (functionProperties, arguments) -> new AvgAggregator(arguments, DATE))
             .put(
-                new FunctionSignature(functionName, singletonList(TIME)),
+                new FunctionSignature(functionName, Collections.singletonList(TIME)),
                 (functionProperties, arguments) -> new AvgAggregator(arguments, TIME))
             .put(
-                new FunctionSignature(functionName, singletonList(TIMESTAMP)),
+                new FunctionSignature(functionName, Collections.singletonList(TIMESTAMP)),
                 (functionProperties, arguments) -> new AvgAggregator(arguments, TIMESTAMP))
             .build());
   }
@@ -88,7 +88,8 @@ public class AggregatorFunctions {
             ExprCoreType.coreTypes().stream()
                 .collect(
                     Collectors.toMap(
-                        type -> new FunctionSignature(functionName, singletonList(type)),
+                        type ->
+                            new FunctionSignature(functionName, Collections.singletonList(type)),
                         type ->
                             (functionProperties, arguments) ->
                                 new CountAggregator(arguments, INTEGER))));
@@ -101,16 +102,16 @@ public class AggregatorFunctions {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(
-                new FunctionSignature(functionName, singletonList(INTEGER)),
+                new FunctionSignature(functionName, Collections.singletonList(INTEGER)),
                 (functionProperties, arguments) -> new SumAggregator(arguments, INTEGER))
             .put(
-                new FunctionSignature(functionName, singletonList(LONG)),
+                new FunctionSignature(functionName, Collections.singletonList(LONG)),
                 (functionProperties, arguments) -> new SumAggregator(arguments, LONG))
             .put(
-                new FunctionSignature(functionName, singletonList(FLOAT)),
+                new FunctionSignature(functionName, Collections.singletonList(FLOAT)),
                 (functionProperties, arguments) -> new SumAggregator(arguments, FLOAT))
             .put(
-                new FunctionSignature(functionName, singletonList(DOUBLE)),
+                new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
                 (functionProperties, arguments) -> new SumAggregator(arguments, DOUBLE))
             .build());
   }
@@ -121,28 +122,28 @@ public class AggregatorFunctions {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(
-                new FunctionSignature(functionName, singletonList(INTEGER)),
+                new FunctionSignature(functionName, Collections.singletonList(INTEGER)),
                 (functionProperties, arguments) -> new MinAggregator(arguments, INTEGER))
             .put(
-                new FunctionSignature(functionName, singletonList(LONG)),
+                new FunctionSignature(functionName, Collections.singletonList(LONG)),
                 (functionProperties, arguments) -> new MinAggregator(arguments, LONG))
             .put(
-                new FunctionSignature(functionName, singletonList(FLOAT)),
+                new FunctionSignature(functionName, Collections.singletonList(FLOAT)),
                 (functionProperties, arguments) -> new MinAggregator(arguments, FLOAT))
             .put(
-                new FunctionSignature(functionName, singletonList(DOUBLE)),
+                new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
                 (functionProperties, arguments) -> new MinAggregator(arguments, DOUBLE))
             .put(
-                new FunctionSignature(functionName, singletonList(STRING)),
+                new FunctionSignature(functionName, Collections.singletonList(STRING)),
                 (functionProperties, arguments) -> new MinAggregator(arguments, STRING))
             .put(
-                new FunctionSignature(functionName, singletonList(DATE)),
+                new FunctionSignature(functionName, Collections.singletonList(DATE)),
                 (functionProperties, arguments) -> new MinAggregator(arguments, DATE))
             .put(
-                new FunctionSignature(functionName, singletonList(TIME)),
+                new FunctionSignature(functionName, Collections.singletonList(TIME)),
                 (functionProperties, arguments) -> new MinAggregator(arguments, TIME))
             .put(
-                new FunctionSignature(functionName, singletonList(TIMESTAMP)),
+                new FunctionSignature(functionName, Collections.singletonList(TIMESTAMP)),
                 (functionProperties, arguments) -> new MinAggregator(arguments, TIMESTAMP))
             .build());
   }
@@ -153,28 +154,28 @@ public class AggregatorFunctions {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(
-                new FunctionSignature(functionName, singletonList(INTEGER)),
+                new FunctionSignature(functionName, Collections.singletonList(INTEGER)),
                 (functionProperties, arguments) -> new MaxAggregator(arguments, INTEGER))
             .put(
-                new FunctionSignature(functionName, singletonList(LONG)),
+                new FunctionSignature(functionName, Collections.singletonList(LONG)),
                 (functionProperties, arguments) -> new MaxAggregator(arguments, LONG))
             .put(
-                new FunctionSignature(functionName, singletonList(FLOAT)),
+                new FunctionSignature(functionName, Collections.singletonList(FLOAT)),
                 (functionProperties, arguments) -> new MaxAggregator(arguments, FLOAT))
             .put(
-                new FunctionSignature(functionName, singletonList(DOUBLE)),
+                new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
                 (functionProperties, arguments) -> new MaxAggregator(arguments, DOUBLE))
             .put(
-                new FunctionSignature(functionName, singletonList(STRING)),
+                new FunctionSignature(functionName, Collections.singletonList(STRING)),
                 (functionProperties, arguments) -> new MaxAggregator(arguments, STRING))
             .put(
-                new FunctionSignature(functionName, singletonList(DATE)),
+                new FunctionSignature(functionName, Collections.singletonList(DATE)),
                 (functionProperties, arguments) -> new MaxAggregator(arguments, DATE))
             .put(
-                new FunctionSignature(functionName, singletonList(TIME)),
+                new FunctionSignature(functionName, Collections.singletonList(TIME)),
                 (functionProperties, arguments) -> new MaxAggregator(arguments, TIME))
             .put(
-                new FunctionSignature(functionName, singletonList(TIMESTAMP)),
+                new FunctionSignature(functionName, Collections.singletonList(TIMESTAMP)),
                 (functionProperties, arguments) -> new MaxAggregator(arguments, TIMESTAMP))
             .build());
   }
@@ -185,7 +186,7 @@ public class AggregatorFunctions {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(
-                new FunctionSignature(functionName, singletonList(DOUBLE)),
+                new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
                 (functionProperties, arguments) -> varianceSample(arguments, DOUBLE))
             .build());
   }
@@ -196,7 +197,7 @@ public class AggregatorFunctions {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(
-                new FunctionSignature(functionName, singletonList(DOUBLE)),
+                new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
                 (functionProperties, arguments) -> variancePopulation(arguments, DOUBLE))
             .build());
   }
@@ -207,7 +208,7 @@ public class AggregatorFunctions {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(
-                new FunctionSignature(functionName, singletonList(DOUBLE)),
+                new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
                 (functionProperties, arguments) -> stddevSample(arguments, DOUBLE))
             .build());
   }
@@ -218,7 +219,7 @@ public class AggregatorFunctions {
         functionName,
         new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
             .put(
-                new FunctionSignature(functionName, singletonList(DOUBLE)),
+                new FunctionSignature(functionName, Collections.singletonList(DOUBLE)),
                 (functionProperties, arguments) -> stddevPopulation(arguments, DOUBLE))
             .build());
   }

@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.planner.logical;
 
-import static java.util.Collections.singletonList;
-
+import java.util.Collections;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -28,7 +27,7 @@ public class LogicalWindow extends LogicalPlan {
   /** Constructor of logical window. */
   public LogicalWindow(
       LogicalPlan child, NamedExpression windowFunction, WindowDefinition windowDefinition) {
-    super(singletonList(child));
+    super(Collections.singletonList(child));
     this.windowFunction = windowFunction;
     this.windowDefinition = windowDefinition;
   }

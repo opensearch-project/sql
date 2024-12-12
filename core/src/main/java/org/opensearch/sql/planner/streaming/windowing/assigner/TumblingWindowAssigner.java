@@ -6,6 +6,7 @@
 package org.opensearch.sql.planner.streaming.windowing.assigner;
 
 import com.google.common.base.Preconditions;
+import java.util.Collections;
 import java.util.List;
 import org.opensearch.sql.planner.streaming.windowing.Window;
 import org.opensearch.sql.utils.DateTimeUtils;
@@ -30,6 +31,6 @@ public class TumblingWindowAssigner implements WindowAssigner {
   @Override
   public List<Window> assign(long timestamp) {
     long startTime = DateTimeUtils.getWindowStartTime(timestamp, windowSize);
-    return List.of(new Window(startTime, startTime + windowSize));
+    return Collections.singletonList(new Window(startTime, startTime + windowSize));
   }
 }

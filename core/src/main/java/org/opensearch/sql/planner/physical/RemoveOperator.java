@@ -9,6 +9,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -48,7 +49,7 @@ public class RemoveOperator extends PhysicalPlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return List.of(input);
+    return Collections.singletonList(input);
   }
 
   @Override

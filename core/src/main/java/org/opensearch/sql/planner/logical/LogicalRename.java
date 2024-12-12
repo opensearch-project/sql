@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.planner.logical;
 
-import static java.util.Collections.singletonList;
-
+import java.util.Collections;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -22,7 +21,7 @@ public class LogicalRename extends LogicalPlan {
 
   /** Constructor of LogicalRename. */
   public LogicalRename(LogicalPlan child, Map<ReferenceExpression, ReferenceExpression> renameMap) {
-    super(singletonList(child));
+    super(Collections.singletonList(child));
     this.renameMap = renameMap;
   }
 

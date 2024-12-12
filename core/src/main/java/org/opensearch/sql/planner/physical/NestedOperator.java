@@ -5,11 +5,11 @@
 
 package org.opensearch.sql.planner.physical;
 
-import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -80,7 +80,7 @@ public class NestedOperator extends PhysicalPlan {
 
   @Override
   public List<PhysicalPlan> getChild() {
-    return singletonList(input);
+    return Collections.singletonList(input);
   }
 
   @Override

@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.planner.logical;
 
-import static java.util.Collections.singletonList;
-
+import java.util.Collections;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -24,7 +23,7 @@ public class LogicalHighlight extends LogicalPlan {
   /** Constructor of LogicalHighlight. */
   public LogicalHighlight(
       LogicalPlan childPlan, Expression highlightField, Map<String, Literal> arguments) {
-    super(singletonList(childPlan));
+    super(Collections.singletonList(childPlan));
     this.highlightField = highlightField;
     this.arguments = arguments;
   }
