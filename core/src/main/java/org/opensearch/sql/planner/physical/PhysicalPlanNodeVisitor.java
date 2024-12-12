@@ -100,6 +100,10 @@ public abstract class PhysicalPlanNodeVisitor<R, C> {
     return visitNode(node, context);
   }
 
+  public R visitTrendline(TrendlineOperator node, C context) {
+    return visitNode(node, context);
+  }
+
   public R visitCursorClose(CursorCloseOperator node, C context) {
     return visitNode(node, context);
   }

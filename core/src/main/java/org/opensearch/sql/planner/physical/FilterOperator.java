@@ -28,6 +28,7 @@ public class FilterOperator extends PhysicalPlan {
   @Getter private final PhysicalPlan input;
   @Getter private final Expression conditions;
   @ToString.Exclude private ExprValue next = null;
+  @ToString.Exclude private boolean nextPrepared = false;
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
@@ -41,19 +42,34 @@ public class FilterOperator extends PhysicalPlan {
 
   @Override
   public boolean hasNext() {
-    while (input.hasNext()) {
-      ExprValue inputValue = input.next();
-      ExprValue exprValue = conditions.valueOf(inputValue.bindingTuples());
-      if (!(exprValue.isNull() || exprValue.isMissing()) && (exprValue.booleanValue())) {
-        next = inputValue;
-        return true;
-      }
+    if (!nextPrepared) {
+      prepareNext();
     }
-    return false;
+    return next != null;
   }
 
   @Override
   public ExprValue next() {
-    return next;
+    if (!nextPrepared) {
+      prepareNext();
+    }
+    ExprValue result = next;
+    next = null;
+    nextPrepared = false;
+    return result;
+  }
+
+  private void prepareNext() {
+    while (input.hasNext()) {
+      ExprValue inputValue = input.next();
+      ExprValue exprValue = conditions.valueOf(inputValue.bindingTuples());
+      if (!(exprValue.isNull() || exprValue.isMissing()) && exprValue.booleanValue()) {
+        next = inputValue;
+        nextPrepared = true;
+        return;
+      }
+    }
+    next = null;
+    nextPrepared = true;
   }
 }

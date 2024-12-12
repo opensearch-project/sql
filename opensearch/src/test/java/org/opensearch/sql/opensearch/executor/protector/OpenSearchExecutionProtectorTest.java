@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.*;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -23,6 +24,7 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.window;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,10 +40,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.expression.DSL;
@@ -68,6 +72,7 @@ import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.planner.physical.TakeOrderedOperator;
+import org.opensearch.sql.planner.physical.TrendlineOperator;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -331,6 +336,22 @@ class OpenSearchExecutionProtectorTest {
         PhysicalPlanDSL.takeOrdered(PhysicalPlanDSL.values(emptyList()), 10, 5, sort);
     assertEquals(
         resourceMonitor(takeOrdered), executionProtector.visitTakeOrdered(takeOrdered, null));
+  }
+
+  @Test
+  public void test_visitTrendline() {
+    final TrendlineOperator trendlineOperator =
+        new TrendlineOperator(
+            PhysicalPlanDSL.values(emptyList()),
+            Collections.singletonList(
+                Pair.of(
+                    new Trendline.TrendlineComputation(
+                        1, AstDSL.field("dummy"), "dummy_alias", SMA),
+                    DOUBLE)));
+
+    assertEquals(
+        resourceMonitor(trendlineOperator),
+        executionProtector.visitTrendline(trendlineOperator, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

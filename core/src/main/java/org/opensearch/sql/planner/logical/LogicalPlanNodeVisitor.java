@@ -108,6 +108,10 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return visitNode(plan, context);
   }
 
+  public R visitTrendline(LogicalTrendline plan, C context) {
+    return visitNode(plan, context);
+  }
+
   public R visitPaginate(LogicalPaginate plan, C context) {
     return visitNode(plan, context);
   }

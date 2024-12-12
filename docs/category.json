@@ -26,6 +26,7 @@
     "user/ppl/cmd/sort.rst",
     "user/ppl/cmd/stats.rst",
     "user/ppl/cmd/syntax.rst",
+    "user/ppl/cmd/trendline.rst",
     "user/ppl/cmd/top.rst",
     "user/ppl/cmd/where.rst",
     "user/ppl/general/identifiers.rst",

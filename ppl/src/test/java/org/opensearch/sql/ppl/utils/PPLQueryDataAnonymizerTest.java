@@ -90,6 +90,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testTrendlineCommand() {
+    assertEquals(
+        "source=t | trendline sma(2, date) as date_alias sma(3, time) as time_alias",
+        anonymize("source=t | trendline sma(2, date) as date_alias sma(3, time) as time_alias"));
+  }
+
+  @Test
   public void testLookupCommand() {
     assertEquals(
         "source=t | lookup index field1 as field1,field2 as field2 overwrite=false",

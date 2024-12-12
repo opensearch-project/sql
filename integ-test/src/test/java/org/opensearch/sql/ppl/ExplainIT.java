@@ -100,6 +100,32 @@ public class ExplainIT extends PPLIntegTestCase {
                 + " | fillnull with -1 in age,balance | fields age, balance"));
   }
 
+  @Test
+  public void testTrendlinePushDownExplain() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_trendline_push.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| trendline sma(2, age) as ageTrend "
+                + "| fields ageTrend"));
+  }
+
+  @Test
+  public void testTrendlineWithSortPushDownExplain() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_trendline_sort_push.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| trendline sort age sma(2, age) as ageTrend "
+                + "| fields ageTrend"));
+  }
+
   String loadFromFile(String filename) throws Exception {
     URI uri = Resources.getResource(filename).toURI();
     return new String(Files.readAllBytes(Paths.get(uri)));

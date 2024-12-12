@@ -8,12 +8,14 @@ package org.opensearch.sql.executor;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.expression.Expression;
@@ -32,6 +34,7 @@ import org.opensearch.sql.planner.physical.RemoveOperator;
 import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
 import org.opensearch.sql.planner.physical.TakeOrderedOperator;
+import org.opensearch.sql.planner.physical.TrendlineOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -226,6 +229,21 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
         explanNode -> explanNode.setDescription(ImmutableMap.of("nested", node.getFields())));
   }
 
+  @Override
+  public ExplainResponseNode visitTrendline(TrendlineOperator node, Object context) {
+    return explain(
+        node,
+        context,
+        explainNode ->
+            explainNode.setDescription(
+                ImmutableMap.of(
+                    "computations",
+                    describeTrendlineComputations(
+                        node.getComputations().stream()
+                            .map(Pair::getKey)
+                            .collect(Collectors.toList())))));
+  }
+
   protected ExplainResponseNode explain(
       PhysicalPlan node, Object context, Consumer<ExplainResponseNode> doExplain) {
     ExplainResponseNode explainNode = new ExplainResponseNode(getOperatorName(node));
@@ -259,5 +277,19 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
                     ImmutableMap.of(
                         "sortOrder", p.getLeft().getSortOrder().toString(),
                         "nullOrder", p.getLeft().getNullOrder().toString())));
+  }
+
+  private List<Map<String, String>> describeTrendlineComputations(
+      List<Trendline.TrendlineComputation> computations) {
+    return computations.stream()
+        .map(
+            computation ->
+                ImmutableMap.of(
+                    "computationType",
+                        computation.getComputationType().name().toLowerCase(Locale.ROOT),
+                    "numberOfDataPoints", computation.getNumberOfDataPoints().toString(),
+                    "dataField", computation.getDataField().getChild().get(0).toString(),
+                    "alias", computation.getAlias()))
+        .collect(Collectors.toList());
   }
 }
