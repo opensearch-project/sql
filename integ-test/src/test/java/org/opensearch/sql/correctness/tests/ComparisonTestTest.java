@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.correctness.tests;
 
+import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -82,7 +83,7 @@ public class ComparisonTestTest {
     TestReport expected = new TestReport();
     expected.addTestCase(
         new FailedTestCase(
-            1, "SELECT * FROM accounts", List.of(openSearchResult, otherDbResult), ""));
+            1, "SELECT * FROM accounts", asList(openSearchResult, otherDbResult), ""));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
   }
@@ -146,7 +147,7 @@ public class ComparisonTestTest {
         new FailedTestCase(
             1,
             "SELECT * FROM accounts",
-            List.of(openSearchResult, otherDbResult, anotherDbResult),
+            asList(openSearchResult, otherDbResult, anotherDbResult),
             ""));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
@@ -238,7 +239,7 @@ public class ComparisonTestTest {
         new FailedTestCase(
             1,
             "SELECT * FROM accounts",
-            List.of(openSearchResult, otherResult),
+            asList(openSearchResult, otherResult),
             "Unsupported feature;"));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
