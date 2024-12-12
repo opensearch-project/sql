@@ -13,8 +13,8 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -70,7 +70,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
 
   private static final Set<String> commentFields = Sets.newHashSet("comment.data", "comment.likes");
 
-  private static final List<String> nameFields = Arrays.asList("firstname", "lastname");
+  private static final List<String> nameFields = List.of("firstname", "lastname");
 
   private final int RESPONSE_DEFAULT_MAX_SIZE = 200;
 
@@ -156,7 +156,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 "SELECT _score FROM %s WHERE SCORE(match_phrase(phrase, 'brown fox'))",
                 TestsConstants.TEST_INDEX_PHRASE));
 
-    List<String> fields = List.of("_score");
+    List<String> fields = Collections.singletonList("_score");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }
@@ -221,7 +221,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 "SELECT nested(message.info), someField FROM %s",
                 TestsConstants.TEST_INDEX_NESTED_TYPE));
 
-    List<String> fields = Arrays.asList("nested(message.info)", "someField");
+    List<String> fields = List.of("nested(message.info)", "someField");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
 
@@ -276,7 +276,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
             String.format(
                 Locale.ROOT, "SELECT * FROM %s GROUP BY age", TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = List.of("age");
+    List<String> fields = Collections.singletonList("age");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }
@@ -290,7 +290,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 "SELECT * FROM %s GROUP BY age, balance",
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = Arrays.asList("age", "balance");
+    List<String> fields = List.of("age", "balance");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }
@@ -397,7 +397,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 Locale.ROOT, "SELECT SUM(age) FROM %s", TestsConstants.TEST_INDEX_ACCOUNT));
 
     String ageSum = "SUM(age)";
-    assertContainsColumns(getSchema(response), List.of(ageSum));
+    assertContainsColumns(getSchema(response), Collections.singletonList(ageSum));
 
     JSONArray dataRows = getDataRows(response);
     for (int i = 0; i < dataRows.length(); i++) {
@@ -417,7 +417,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 "SELECT COUNT(*), AVG(age) FROM %s GROUP BY age",
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = Arrays.asList("COUNT(*)", "AVG(age)");
+    List<String> fields = List.of("COUNT(*)", "AVG(age)");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }
@@ -432,7 +432,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
     String ageSum = "gender";
-    assertContainsColumns(getSchema(response), List.of(ageSum));
+    assertContainsColumns(getSchema(response), Collections.singletonList(ageSum));
 
     JSONArray dataRows = getDataRows(response);
     assertEquals(1, dataRows.length());
@@ -495,7 +495,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 TestsConstants.TEST_INDEX_ACCOUNT,
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = Arrays.asList("b1.balance", "b1.age", "b2.firstname");
+    List<String> fields = List.of("b1.balance", "b1.age", "b2.firstname");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }
@@ -517,7 +517,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
     aliases.put("b2.firstname", "name");
 
     assertContainsAliases(getSchema(response), aliases);
-    assertContainsData(getDataRows(response), Arrays.asList("bal", "age", "name"));
+    assertContainsData(getDataRows(response), List.of("bal", "age", "name"));
   }
 
   @Test
@@ -531,7 +531,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 TestsConstants.TEST_INDEX_GAME_OF_THRONES,
                 TestsConstants.TEST_INDEX_GAME_OF_THRONES));
 
-    List<String> fields = Arrays.asList("c.name.firstname", "d.name.lastname");
+    List<String> fields = List.of("c.name.firstname", "d.name.lastname");
     assertContainsColumns(getSchema(response), fields);
 
     // d.name.lastname is null here since entries with hname don't have a name.lastname entry, so
@@ -554,7 +554,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
                 TestsConstants.TEST_INDEX_ACCOUNT,
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
-    List<String> fields = List.of("b1.age");
+    List<String> fields = Collections.singletonList("b1.age");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
   }

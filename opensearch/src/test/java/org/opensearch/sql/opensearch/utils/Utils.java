@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.utils;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import lombok.experimental.UtilityClass;
@@ -36,7 +37,7 @@ public class Utils {
 
   public static List<Pair<Sort.SortOption, Expression>> sort(
       Expression expr1, Sort.SortOption option1) {
-    return List.of(Pair.of(option1, expr1));
+    return Collections.singletonList(Pair.of(option1, expr1));
   }
 
   public static List<Pair<Sort.SortOption, Expression>> sort(

@@ -5,14 +5,13 @@
 
 package org.opensearch.sql.correctness.tests;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,14 +51,14 @@ public class ComparisonTestTest {
         .thenReturn(
             new DBResult(
                 "OpenSearch",
-                singletonList(new Type("firstname", "text")),
-                singletonList(new Row(singletonList("John")))));
+                List.of(new Type("firstname", "text")),
+                List.of(new Row(List.of("John")))));
     when(otherDbConnection.select(anyString()))
         .thenReturn(
             new DBResult(
                 "Other DB",
-                singletonList(new Type("firstname", "text")),
-                singletonList(new Row(singletonList("John")))));
+                List.of(new Type("firstname", "text")),
+                List.of(new Row(List.of("John")))));
 
     TestReport expected = new TestReport();
     expected.addTestCase(new SuccessTestCase(1, "SELECT * FROM accounts"));
@@ -72,20 +71,18 @@ public class ComparisonTestTest {
     DBResult openSearchResult =
         new DBResult(
             "OpenSearch",
-            singletonList(new Type("firstname", "text")),
-            singletonList(new Row(singletonList("John"))));
+            List.of(new Type("firstname", "text")),
+            List.of(new Row(List.of("John"))));
     DBResult otherDbResult =
         new DBResult(
-            "Other DB",
-            singletonList(new Type("firstname", "text")),
-            singletonList(new Row(singletonList("JOHN"))));
+            "Other DB", List.of(new Type("firstname", "text")), List.of(new Row(List.of("JOHN"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherDbResult);
 
     TestReport expected = new TestReport();
     expected.addTestCase(
         new FailedTestCase(
-            1, "SELECT * FROM accounts", asList(openSearchResult, otherDbResult), ""));
+            1, "SELECT * FROM accounts", List.of(openSearchResult, otherDbResult), ""));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
   }
@@ -101,18 +98,16 @@ public class ComparisonTestTest {
     DBResult openSearchResult =
         new DBResult(
             "OpenSearch",
-            singletonList(new Type("firstname", "text")),
-            singletonList(new Row(singletonList("John"))));
+            List.of(new Type("firstname", "text")),
+            List.of(new Row(List.of("John"))));
     DBResult otherDbResult =
         new DBResult(
-            "Other DB",
-            singletonList(new Type("firstname", "text")),
-            singletonList(new Row(singletonList("JOHN"))));
+            "Other DB", List.of(new Type("firstname", "text")), List.of(new Row(List.of("JOHN"))));
     DBResult anotherDbResult =
         new DBResult(
             "Another DB",
-            singletonList(new Type("firstname", "text")),
-            singletonList(new Row(singletonList("John"))));
+            List.of(new Type("firstname", "text")),
+            List.of(new Row(List.of("John"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(anotherDbConnection.select(anyString())).thenReturn(anotherDbResult);
 
@@ -134,18 +129,14 @@ public class ComparisonTestTest {
     DBResult openSearchResult =
         new DBResult(
             "OpenSearch",
-            singletonList(new Type("firstname", "text")),
-            singletonList(new Row(singletonList("John"))));
+            List.of(new Type("firstname", "text")),
+            List.of(new Row(List.of("John"))));
     DBResult otherDbResult =
         new DBResult(
-            "Other DB",
-            singletonList(new Type("firstname", "text")),
-            singletonList(new Row(singletonList("JOHN"))));
+            "Other DB", List.of(new Type("firstname", "text")), List.of(new Row(List.of("JOHN"))));
     DBResult anotherDbResult =
         new DBResult(
-            "ZZZ DB",
-            singletonList(new Type("firstname", "text")),
-            singletonList(new Row(singletonList("Hank"))));
+            "ZZZ DB", List.of(new Type("firstname", "text")), List.of(new Row(List.of("Hank"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherDbResult);
     when(anotherDbConnection.select(anyString())).thenReturn(anotherDbResult);
@@ -155,7 +146,7 @@ public class ComparisonTestTest {
         new FailedTestCase(
             1,
             "SELECT * FROM accounts",
-            asList(openSearchResult, otherDbResult, anotherDbResult),
+            List.of(openSearchResult, otherDbResult, anotherDbResult),
             ""));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
@@ -179,8 +170,8 @@ public class ComparisonTestTest {
         .thenReturn(
             new DBResult(
                 "OpenSearch",
-                singletonList(new Type("firstname", "text")),
-                singletonList(new Row(singletonList("John")))));
+                List.of(new Type("firstname", "text")),
+                List.of(new Row(List.of("John")))));
     when(otherDbConnection.select(anyString()))
         .thenThrow(new RuntimeException("Unsupported feature"));
 
@@ -206,14 +197,14 @@ public class ComparisonTestTest {
         .thenReturn(
             new DBResult(
                 "OpenSearch",
-                singletonList(new Type("firstname", "text")),
-                singletonList(new Row(singletonList("John")))));
+                List.of(new Type("firstname", "text")),
+                List.of(new Row(List.of("John")))));
     when(anotherDbConnection.select(anyString()))
         .thenReturn(
             new DBResult(
                 "Another DB",
-                singletonList(new Type("firstname", "text")),
-                singletonList(new Row(singletonList("John")))));
+                List.of(new Type("firstname", "text")),
+                List.of(new Row(List.of("John")))));
 
     TestReport expected = new TestReport();
     expected.addTestCase(new SuccessTestCase(1, "SELECT * FROM accounts"));
@@ -232,10 +223,10 @@ public class ComparisonTestTest {
     DBResult openSearchResult =
         new DBResult(
             "OpenSearch",
-            singletonList(new Type("firstname", "text")),
-            singletonList(new Row(singletonList("John"))));
+            List.of(new Type("firstname", "text")),
+            List.of(new Row(List.of("John"))));
     DBResult otherResult =
-        new DBResult("Other", singletonList(new Type("firstname", "text")), emptyList());
+        new DBResult("Other", List.of(new Type("firstname", "text")), Collections.emptyList());
 
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherResult);
@@ -247,7 +238,7 @@ public class ComparisonTestTest {
         new FailedTestCase(
             1,
             "SELECT * FROM accounts",
-            asList(openSearchResult, otherResult),
+            List.of(openSearchResult, otherResult),
             "Unsupported feature;"));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);

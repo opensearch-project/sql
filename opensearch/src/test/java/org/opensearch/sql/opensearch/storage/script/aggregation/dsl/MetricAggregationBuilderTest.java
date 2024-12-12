@@ -23,7 +23,7 @@ import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varia
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -220,7 +220,7 @@ class MetricAggregationBuilderTest {
                 named(
                     "percentile(age, 50)",
                     new PercentileApproximateAggregator(
-                        Arrays.asList(ref("age", INTEGER), literal(50)), DOUBLE)))));
+                        List.of(ref("age", INTEGER), literal(50)), DOUBLE)))));
   }
 
   @Test
@@ -244,7 +244,7 @@ class MetricAggregationBuilderTest {
                 named(
                     "percentile(age, 50)",
                     new PercentileApproximateAggregator(
-                        Arrays.asList(ref("age", INTEGER), literal(50), literal(0.1)), DOUBLE)))));
+                        List.of(ref("age", INTEGER), literal(50), literal(0.1)), DOUBLE)))));
   }
 
   @Test
@@ -283,7 +283,7 @@ class MetricAggregationBuilderTest {
                 named(
                     "percentile(age, 50)",
                     new PercentileApproximateAggregator(
-                            Arrays.asList(ref("age", INTEGER), literal(50)), DOUBLE)
+                            List.of(ref("age", INTEGER), literal(50)), DOUBLE)
                         .condition(DSL.greater(ref("age", INTEGER), literal(30)))))));
   }
 
@@ -334,10 +334,11 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            List.of(
+            Collections.singletonList(
                 named(
                     "count(distinct name)",
-                    new CountAggregator(List.of(ref("name", STRING)), INTEGER).distinct(true)))));
+                    new CountAggregator(Collections.singletonList(ref("name", STRING)), INTEGER)
+                        .distinct(true)))));
   }
 
   @Test
@@ -367,10 +368,10 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            List.of(
+            Collections.singletonList(
                 named(
                     "count(distinct name) filter(where age > 30)",
-                    new CountAggregator(List.of(ref("name", STRING)), INTEGER)
+                    new CountAggregator(Collections.singletonList(ref("name", STRING)), INTEGER)
                         .condition(DSL.greater(ref("age", INTEGER), literal(30)))
                         .distinct(true)))));
   }
@@ -395,7 +396,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            List.of(
+            Collections.singletonList(
                 named(
                     "take(name, 10)",
                     new TakeAggregator(
@@ -437,7 +438,7 @@ class MetricAggregationBuilderTest {
                 + "  }%n"
                 + "}"),
         buildQuery(
-            List.of(
+            Collections.singletonList(
                 named(
                     "take(name, 10) filter(where age > 30)",
                     new TakeAggregator(ImmutableList.of(ref("name", STRING), literal(10)), ARRAY)
@@ -450,10 +451,11 @@ class MetricAggregationBuilderTest {
         IllegalStateException.class,
         () ->
             buildQuery(
-                List.of(
+                Collections.singletonList(
                     named(
                         "avg(distinct age)",
-                        new AvgAggregator(List.of(ref("name", STRING)), STRING).distinct(true)))),
+                        new AvgAggregator(Collections.singletonList(ref("name", STRING)), STRING)
+                            .distinct(true)))),
         "unsupported distinct aggregator avg");
   }
 
