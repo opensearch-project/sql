@@ -715,8 +715,7 @@ public class AstBuilderTest {
             Optional.of(
                 field(
                     "test_field",
-                    argument("asc", booleanLiteral(true)),
-                    argument("type", nullLiteral()))),
+                    argument("asc", booleanLiteral(true)))),
             computation(5, field("test_field"), "test_field_trendline", SMA)));
   }
 
@@ -729,8 +728,7 @@ public class AstBuilderTest {
             Optional.of(
                 field(
                     "test_field",
-                    argument("asc", booleanLiteral(false)),
-                    argument("type", nullLiteral()))),
+                    argument("asc", booleanLiteral(false)))),
             computation(5, field("test_field"), "test_field_trendline", SMA)));
   }
 
@@ -743,8 +741,7 @@ public class AstBuilderTest {
             Optional.of(
                 field(
                     "test_field",
-                    argument("asc", booleanLiteral(true)),
-                    argument("type", nullLiteral()))),
+                    argument("asc", booleanLiteral(true)))),
             computation(5, field("test_field"), "test_field_trendline", SMA)));
   }
 
