@@ -7,6 +7,6 @@
 {"index":{}}
 {"host": "::FFFF:1.2.3.4", "method": "GET", "url": "/history/voyager1/", "response": "200", "bytes": "1234"}
 {"index":{}}
-{"host": "1.2.3.4", "method": "GET", "url": "/history/voyager2/", "response": "200", "bytes": "4321"}
+{"host": "1.2.3.5", "method": "GET", "url": "/history/voyager2/", "response": "200", "bytes": "4321"}
 {"index":{}}
 {"host": "::FFFF:1234", "method": "GET", "url": "/history/artemis/", "response": "200", "bytes": "9876"}

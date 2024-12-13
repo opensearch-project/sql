@@ -22,14 +22,14 @@ Return type: BOOLEAN
 
 Example:
 
-    os> source=weblogs | where cidrmatch(host, '1.2.3.0/24') | fields host, url
+    os> source=weblogs | where cidrmatch(host, '1.2.3.0/24') | fields host
     fetched rows / total rows = 2/2
-    +----------------+--------------------|
-    | host           | url                |
-    +----------------+--------------------+
-    | 1.2.3.4        | /history/voyager1/ |
-    | 1.2.3.5        | /history/voyager2/ |
-    +----------------+--------------------|
+    +---------+--------------------|
+    | host    | url                |
+    +---------+--------------------+
+    | 1.2.3.4 | /history/voyager1/ |
+    | 1.2.3.5 | /history/voyager2/ |
+    +---------+--------------------|
 
 Note:
  - `ip` can be an IPv4 or an IPv6 address
