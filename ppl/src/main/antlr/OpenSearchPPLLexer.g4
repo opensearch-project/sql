@@ -64,6 +64,7 @@ SMA:                                'SMA';
 // ARGUMENT KEYWORDS
 KEEPEMPTY:                          'KEEPEMPTY';
 CONSECUTIVE:                        'CONSECUTIVE';
+OVERWRITE:                          'OVERWRITE';
 DEDUP_SPLITVALUES:                  'DEDUP_SPLITVALUES';
 PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';

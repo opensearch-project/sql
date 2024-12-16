@@ -9,6 +9,7 @@
   "ppl_cli": [
     "user/ppl/cmd/ad.rst",
     "user/ppl/cmd/dedup.rst",
+    "user/ppl/cmd/lookup.rst",
     "user/ppl/cmd/describe.rst",
     "user/ppl/cmd/showdatasources.rst",
     "user/ppl/cmd/information_schema.rst",

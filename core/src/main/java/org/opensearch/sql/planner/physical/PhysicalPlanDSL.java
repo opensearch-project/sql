@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -81,6 +82,17 @@ public class PhysicalPlanDSL {
       Expression... expressions) {
     return new DedupeOperator(
         input, Arrays.asList(expressions), allowedDuplication, keepEmpty, consecutive);
+  }
+
+  public static LookupOperator lookup(
+      PhysicalPlan input,
+      String indexName,
+      Map<ReferenceExpression, ReferenceExpression> matchFieldMap,
+      Boolean overwrite,
+      Map<ReferenceExpression, ReferenceExpression> copyFieldMap,
+      BiFunction<String, Map<String, Object>, Map<String, Object>> lookupFunction) {
+    return new LookupOperator(
+        input, indexName, matchFieldMap, overwrite, copyFieldMap, lookupFunction);
   }
 
   public WindowOperator window(
