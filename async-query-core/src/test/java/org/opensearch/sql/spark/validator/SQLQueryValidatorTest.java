@@ -571,6 +571,56 @@ class SQLQueryValidatorTest {
                 UUID.randomUUID().toString(), DataSourceType.SECURITY_LAKE));
   }
 
+  @Test
+  void testInvalidIdentifier() {
+    when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    v.ng("SELECT a.b.c as a-b-c FROM abc");
+    v.ok("SELECT a.b.c as `a-b-c` FROM abc");
+    v.ok("SELECT a.b.c as a_b_c FROM abc");
+
+    v.ng("SELECT a.b.c FROM a-b-c");
+    v.ng("SELECT a.b.c FROM a.b-c");
+    v.ok("SELECT a.b.c FROM b.c.`a-b-c`");
+    v.ok("SELECT a.b.c FROM `a-b-c`");
+  }
+
+  @Test
+  void testUnsupportedType() {
+    when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+
+    v.ng("SELECT cast ( a as DateTime ) FROM tbl");
+    v.ok("SELECT cast ( a as DATE ) FROM tbl");
+    v.ok("SELECT cast ( a as Date ) FROM tbl");
+    v.ok("SELECT cast ( a as Timestamp ) FROM tbl");
+  }
+
+  @Test
+  void testUnsupportedTypedLiteral() {
+    when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+
+    v.ng("SELECT DATETIME '2024-10-11'");
+    v.ok("SELECT DATE '2024-10-11'");
+    v.ok("SELECT TIMESTAMP '2024-10-11'");
+  }
+
+  @Test
+  void testUnsupportedHiveNativeCommand() {
+    when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+
+    v.ng("CREATE ROLE aaa");
+    v.ng("SHOW GRANT");
+    v.ng("EXPORT TABLE");
+    v.ng("ALTER TABLE aaa NOT CLUSTERED");
+    v.ng("START TRANSACTION");
+    v.ng("COMMIT");
+    v.ng("ROLLBACK");
+    v.ng("DFS");
+  }
+
   @AllArgsConstructor
   private static class VerifyValidator {
     private final SQLQueryValidator validator;
@@ -580,10 +630,18 @@ class SQLQueryValidatorTest {
       runValidate(query.getQueries());
     }
 
+    public void ok(String query) {
+      runValidate(query);
+    }
+
     public void ng(TestElement query) {
+      Arrays.stream(query.getQueries()).forEach(this::ng);
+    }
+
+    public void ng(String query) {
       assertThrows(
           IllegalArgumentException.class,
-          () -> runValidate(query.getQueries()),
+          () -> runValidate(query),
           "The query should throw: query=`" + query.toString() + "`");
     }
 
