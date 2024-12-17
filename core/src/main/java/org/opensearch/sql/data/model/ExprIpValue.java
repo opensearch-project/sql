@@ -14,8 +14,8 @@ import org.opensearch.sql.utils.IPUtils;
 public class ExprIpValue extends AbstractExprValue {
   private final IPAddress value;
 
-  public ExprIpValue(String s) {
-    value = IPUtils.toAddress(s);
+  public ExprIpValue(String addressString) {
+    value = IPUtils.toAddress(addressString);
   }
 
   @Override

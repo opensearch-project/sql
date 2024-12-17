@@ -120,10 +120,9 @@ class OpenSearchExprValueFactoryTest {
           .put("geoV", OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))
           .put("binaryV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary))
           .build();
-
+  private static final double TOLERANCE = 1E-5;
   private final OpenSearchExprValueFactory exprValueFactory =
       new OpenSearchExprValueFactory(MAPPING, true);
-
   private final OpenSearchExprValueFactory exprValueFactoryNoArrays =
       new OpenSearchExprValueFactory(MAPPING, false);
 
@@ -760,8 +759,6 @@ class OpenSearchExprValueFactoryTest {
         new ExprIpValue(ipString),
         tupleValue(String.format("{\"%s\":\"%s\"}", fieldIp, ipString)).get(fieldIp));
   }
-
-  private static final double TOLERANCE = 1E-5;
 
   @Test
   public void constructGeoPoint() {

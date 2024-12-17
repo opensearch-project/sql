@@ -52,14 +52,9 @@ public class IPFunctions {
     IPAddress address = addressExprValue.ipValue();
     IPAddress range = IPUtils.toRange(rangeExprValue.stringValue());
 
-    if (IPUtils.compare(address, range.getLower()) < 0) {
-      return ExprValueUtils.LITERAL_FALSE;
-    }
-
-    if (IPUtils.compare(address, range.getUpper()) > 0) {
-      return ExprValueUtils.LITERAL_FALSE;
-    }
-
-    return ExprValueUtils.LITERAL_TRUE;
+    return (IPUtils.compare(address, range.getLower()) < 0)
+            || (IPUtils.compare(address, range.getUpper()) > 0)
+        ? ExprValueUtils.LITERAL_FALSE
+        : ExprValueUtils.LITERAL_TRUE;
   }
 }

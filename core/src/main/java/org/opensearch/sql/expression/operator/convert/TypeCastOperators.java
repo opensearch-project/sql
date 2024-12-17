@@ -179,8 +179,8 @@ public class TypeCastOperators {
   private static DefaultFunctionResolver castToIp() {
     return FunctionDSL.define(
         BuiltinFunctionName.CAST_TO_IP.getName(),
-        impl(nullMissingHandling((v) -> v), IP, IP),
-        impl(nullMissingHandling((v) -> new ExprIpValue(v.stringValue())), IP, STRING));
+        impl(nullMissingHandling((v) -> new ExprIpValue(v.stringValue())), IP, STRING),
+        impl(nullMissingHandling((v) -> v), IP, IP));
   }
 
   private static DefaultFunctionResolver castToDate() {
