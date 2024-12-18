@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.data.model;
 
+import inet.ipaddr.IPAddress;
 import java.io.Serializable;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -100,6 +101,11 @@ public interface ExprValue extends Serializable, Comparable<ExprValue> {
   default Double doubleValue() {
     throw new ExpressionEvaluationException(
         "invalid to get doubleValue from value of type " + type());
+  }
+
+  /** Get IP address value. */
+  default IPAddress ipValue() {
+    throw new ExpressionEvaluationException("invalid to get ipValue from value of type " + type());
   }
 
   /** Get string value. */

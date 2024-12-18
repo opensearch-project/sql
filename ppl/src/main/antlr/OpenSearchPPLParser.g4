@@ -408,6 +408,7 @@ convertedDataType
    | typeName = FLOAT
    | typeName = STRING
    | typeName = BOOLEAN
+   | typeName = IP
    ;
 
 evalFunctionName
@@ -897,7 +898,8 @@ keywordsCanBeId
    | DATASOURCES
    // CLAUSEKEYWORDS
    | SORTBY
-   // FIELDKEYWORDSAUTO
+   // SORT FIELD KEYWORDS
+   | AUTO
    | STR
    | IP
    | NUM

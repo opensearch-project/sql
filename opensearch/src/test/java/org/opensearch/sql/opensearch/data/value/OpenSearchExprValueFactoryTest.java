@@ -16,6 +16,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.floatValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.ipValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.shortValue;
@@ -51,6 +52,7 @@ import org.opensearch.OpenSearchParseException;
 import org.opensearch.geometry.utils.Geohash;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -213,6 +215,16 @@ class OpenSearchExprValueFactoryTest {
         () ->
             assertEquals(stringValue("text"), tupleValue("{\"stringV\":\"text\"}").get("stringV")),
         () -> assertEquals(stringValue("text"), constructFromObject("stringV", "text")));
+  }
+
+  @Test
+  public void constructIp() {
+    assertAll(
+        () -> assertEquals(ipValue("1.2.3.4"), tupleValue("{\"ipV\":\"1.2.3.4\"}").get("ipV")),
+        () ->
+            assertEquals(
+                ipValue("2001:db7::ff00:42:8329"),
+                constructFromObject("ipV", "2001:db7::ff00:42:8329")));
   }
 
   @Test
@@ -660,17 +672,6 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void constructArrayOfIPsReturnsAll() {
-    final String ip1 = "192.168.0.1";
-    final String ip2 = "192.168.0.2";
-
-    assertEquals(
-        new ExprCollectionValue(
-            List.of(new OpenSearchExprIpValue(ip1), new OpenSearchExprIpValue(ip2))),
-        tupleValue(String.format("{\"%s\":[\"%s\",\"%s\"]}", fieldIp, ip1, ip2)).get(fieldIp));
-  }
-
-  @Test
   public void constructBinaryArrayReturnsAll() {
     assertEquals(
         new ExprCollectionValue(
@@ -679,6 +680,17 @@ class OpenSearchExprValueFactoryTest {
                 new OpenSearchExprBinaryValue("U987yuhjjiy8jhk9vY+98jjdf"))),
         tupleValue("{\"binaryV\":[\"U29tZSBiaWsdfsdfgYmxvYg==\",\"U987yuhjjiy8jhk9vY+98jjdf\"]}")
             .get("binaryV"));
+  }
+
+  @Test
+  public void constructArrayOfIPsReturnsAll() {
+    final String ipv4String = "1.2.3.4";
+    final String ipv6String = "2001:db7::ff00:42:8329";
+
+    assertEquals(
+        new ExprCollectionValue(List.of(ipValue(ipv4String), ipValue(ipv6String))),
+        tupleValue(String.format("{\"%s\":[\"%s\",\"%s\"]}", fieldIp, ipv4String, ipv6String))
+            .get(fieldIp));
   }
 
   @Test
@@ -743,10 +755,10 @@ class OpenSearchExprValueFactoryTest {
 
   @Test
   public void constructIP() {
-    final String valueIp = "192.168.0.1";
+    final String ipString = "192.168.0.1";
     assertEquals(
-        new OpenSearchExprIpValue(valueIp),
-        tupleValue(String.format("{\"%s\":\"%s\"}", fieldIp, valueIp)).get(fieldIp));
+        new ExprIpValue(ipString),
+        tupleValue(String.format("{\"%s\":\"%s\"}", fieldIp, ipString)).get(fieldIp));
   }
 
   @Test

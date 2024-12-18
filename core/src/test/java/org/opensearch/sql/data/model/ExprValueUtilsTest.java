@@ -14,6 +14,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
@@ -47,6 +48,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
+import org.opensearch.sql.utils.IPUtils;
 
 @DisplayName("Test Expression Value Utils")
 public class ExprValueUtilsTest {
@@ -63,6 +65,7 @@ public class ExprValueUtilsTest {
 
   private static final List<ExprValue> nonNumberValues =
       Arrays.asList(
+          new ExprIpValue("1.2.3.4"),
           new ExprStringValue("1"),
           ExprBooleanValue.of(true),
           new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1))),
@@ -85,6 +88,7 @@ public class ExprValueUtilsTest {
           ExprValueUtils::getDoubleValue);
   private static final List<Function<ExprValue, Object>> nonNumberValueExtractor =
       Arrays.asList(
+          ExprValueUtils::getIpValue,
           ExprValueUtils::getStringValue,
           ExprValueUtils::getBooleanValue,
           ExprValueUtils::getCollectionValue,
@@ -109,7 +113,7 @@ public class ExprValueUtilsTest {
           ExprCoreType.FLOAT,
           ExprCoreType.DOUBLE);
   private static final List<ExprCoreType> nonNumberTypes =
-      Arrays.asList(STRING, BOOLEAN, ARRAY, STRUCT);
+      Arrays.asList(IP, STRING, BOOLEAN, ARRAY, STRUCT);
   private static final List<ExprCoreType> dateAndTimeTypes =
       Arrays.asList(DATE, TIME, TIMESTAMP, INTERVAL);
   private static final List<ExprCoreType> allTypes =
@@ -124,6 +128,7 @@ public class ExprValueUtilsTest {
             1L,
             1f,
             1D,
+            IPUtils.toAddress("1.2.3.4"),
             "1",
             true,
             Arrays.asList(integerValue(1)),
