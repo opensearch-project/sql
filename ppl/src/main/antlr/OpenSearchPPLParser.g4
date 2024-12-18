@@ -363,7 +363,15 @@ wcFieldList
    ;
 
 sortField
-   : (PLUS | MINUS)? fieldExpression
+   : (PLUS | MINUS)? sortFieldExpression
+   ;
+
+sortFieldExpression
+   : fieldExpression
+   | AUTO LT_PRTHS fieldExpression RT_PRTHS
+   | STR LT_PRTHS fieldExpression RT_PRTHS
+   | IP LT_PRTHS fieldExpression RT_PRTHS
+   | NUM LT_PRTHS fieldExpression RT_PRTHS
    ;
 
 fieldExpression
@@ -890,6 +898,11 @@ keywordsCanBeId
    | DATASOURCES
    // CLAUSEKEYWORDS
    | SORTBY
+   // SORT FIELD KEYWORDS
+   | AUTO
+   | STR
+   | IP
+   | NUM
    // ARGUMENT KEYWORDS
    | KEEPEMPTY
    | CONSECUTIVE

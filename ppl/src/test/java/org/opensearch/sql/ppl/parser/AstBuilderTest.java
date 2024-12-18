@@ -29,6 +29,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.head;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
+import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.parse;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
@@ -432,7 +433,9 @@ public class AstBuilderTest {
         "source=t | sort - f1, + f2",
         sort(
             relation("t"),
-            field("f1", exprList(argument("asc", booleanLiteral(false)))),
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
             field("f2", defaultSortFieldArgs())));
   }
 
@@ -712,7 +715,11 @@ public class AstBuilderTest {
         "source=t | trendline sort test_field sma(5, test_field)",
         trendline(
             relation("t"),
-            Optional.of(field("test_field", argument("asc", booleanLiteral(true)))),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(true)),
+                    argument("type", nullLiteral()))),
             computation(5, field("test_field"), "test_field_trendline", SMA)));
   }
 
@@ -722,7 +729,11 @@ public class AstBuilderTest {
         "source=t | trendline sort - test_field sma(5, test_field)",
         trendline(
             relation("t"),
-            Optional.of(field("test_field", argument("asc", booleanLiteral(false)))),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(false)),
+                    argument("type", nullLiteral()))),
             computation(5, field("test_field"), "test_field_trendline", SMA)));
   }
 
@@ -732,7 +743,11 @@ public class AstBuilderTest {
         "source=t | trendline sort + test_field sma(5, test_field)",
         trendline(
             relation("t"),
-            Optional.of(field("test_field", argument("asc", booleanLiteral(true)))),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(true)),
+                    argument("type", nullLiteral()))),
             computation(5, field("test_field"), "test_field_trendline", SMA)));
   }
 

@@ -52,6 +52,12 @@ WITH:                               'WITH';
 // CLAUSE KEYWORDS
 SORTBY:                             'SORTBY';
 
+// SORT FIELD KEYWORDS
+// TODO #3180: Fix broken sort functionality
+AUTO:                               'AUTO';
+STR:                                'STR';
+NUM:                                'NUM';
+
 // TRENDLINE KEYWORDS
 SMA:                                'SMA';
 

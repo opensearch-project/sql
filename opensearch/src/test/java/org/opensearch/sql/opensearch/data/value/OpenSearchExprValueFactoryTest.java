@@ -688,8 +688,9 @@ class OpenSearchExprValueFactoryTest {
     final String ipv6String = "2001:db7::ff00:42:8329";
 
     assertEquals(
-        new ExprCollectionValue(List.of(ipValue("1.2.3.4"), ipValue("2001:db7::ff00:42:8329"))),
-        tupleValue("{\"ipV\":[" + "\"1.2.3.4\"," + "\"2001:db7::ff00:42:8329\"" + "]}").get("ipV"));
+        new ExprCollectionValue(List.of(ipValue(ipv4String), ipValue(ipv6String))),
+        tupleValue(String.format("{\"%s\":[\"%s\",\"%s\"]}", fieldIp, ipv4String, ipv6String))
+            .get(fieldIp));
   }
 
   @Test
