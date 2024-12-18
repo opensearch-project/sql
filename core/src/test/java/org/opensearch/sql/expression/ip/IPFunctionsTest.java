@@ -25,7 +25,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 
 @ExtendWith(MockitoExtension.class)
-public class IPFunctionTest {
+public class IPFunctionsTest {
 
   // IP range and address constants for testing.
   private static final ExprValue IPv4Range = ExprValueUtils.stringValue("198.51.100.0/24");
