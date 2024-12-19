@@ -17,6 +17,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -60,6 +61,10 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class FilterQueryBuilderTest {
+
+  private static Stream<LiteralExpression> ipCastSource() {
+    return Stream.of(literal("1.2.3.4"), literal("2001:db7::ff00:42:8329"));
+  }
 
   private static Stream<LiteralExpression> numericCastSource() {
     return Stream.of(
@@ -1715,6 +1720,25 @@ class FilterQueryBuilderTest {
 
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("boolean_value", BOOLEAN), DSL.castBoolean(expr))));
+  }
+
+  @ParameterizedTest(name = "castIp({0})")
+  @MethodSource({"ipCastSource"})
+  void cast_to_ip_in_filter(LiteralExpression expr) {
+    String json =
+        String.format(
+            """
+                        {
+                          "term" : {
+                            "ip_value" : {
+                              "value" : "%s",
+                              "boost" : 1.0
+                            }
+                          }
+                        }""",
+            expr.valueOf().stringValue());
+
+    assertJsonEquals(json, buildQuery(DSL.equal(ref("ip_value", IP), DSL.castIp(expr))));
   }
 
   @Test

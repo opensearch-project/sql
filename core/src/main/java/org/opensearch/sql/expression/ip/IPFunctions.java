@@ -6,14 +6,13 @@
 package org.opensearch.sql.expression.ip;
 
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
-import inet.ipaddr.AddressStringException;
-import inet.ipaddr.IPAddressString;
-import inet.ipaddr.IPAddressStringParameters;
+import inet.ipaddr.IPAddress;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -21,6 +20,7 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.utils.IPUtils;
 
 /** Utility class that defines and registers IP functions. */
 @UtilityClass
@@ -31,20 +31,17 @@ public class IPFunctions {
   }
 
   private DefaultFunctionResolver cidrmatch() {
-
-    // TODO #3145: Add support for IP address data type.
     return define(
         BuiltinFunctionName.CIDRMATCH.getName(),
-        impl(nullMissingHandling(IPFunctions::exprCidrMatch), BOOLEAN, STRING, STRING));
+        impl(nullMissingHandling(IPFunctions::exprCidrMatch), BOOLEAN, IP, STRING));
   }
 
   /**
    * Returns whether the given IP address is within the specified inclusive CIDR IP address range.
    * Supports both IPv4 and IPv6 addresses.
    *
-   * @param addressExprValue IP address as a string (e.g. "198.51.100.14" or
-   *     "2001:0db8::ff00:42:8329").
-   * @param rangeExprValue IP address range in CIDR notation as a string (e.g. "198.51.100.0/24" or
+   * @param addressExprValue IP address (e.g. "198.51.100.14" or "2001:0db8::ff00:42:8329").
+   * @param rangeExprValue IP address range string in CIDR notation (e.g. "198.51.100.0/24" or
    *     "2001:0db8::/32")
    * @return true if the address is in the range; otherwise false.
    * @throws SemanticCheckException if the address or range is not valid, or if they do not use the
@@ -52,54 +49,12 @@ public class IPFunctions {
    */
   private ExprValue exprCidrMatch(ExprValue addressExprValue, ExprValue rangeExprValue) {
 
-    // TODO #3145: Update to support IP address data type.
-    String addressString = addressExprValue.stringValue();
-    String rangeString = rangeExprValue.stringValue();
+    IPAddress address = addressExprValue.ipValue();
+    IPAddress range = IPUtils.toRange(rangeExprValue.stringValue());
 
-    final IPAddressStringParameters validationOptions =
-        new IPAddressStringParameters.Builder()
-            .allowEmpty(false)
-            .setEmptyAsLoopback(false)
-            .allow_inet_aton(false)
-            .allowSingleSegment(false)
-            .toParams();
-
-    // Get and validate IP address.
-    IPAddressString address =
-        new IPAddressString(addressExprValue.stringValue(), validationOptions);
-
-    try {
-      address.validate();
-    } catch (AddressStringException e) {
-      String msg =
-          String.format(
-              "IP address '%s' is not valid. Error details: %s", addressString, e.getMessage());
-      throw new SemanticCheckException(msg, e);
-    }
-
-    // Get and validate CIDR IP address range.
-    IPAddressString range = new IPAddressString(rangeExprValue.stringValue(), validationOptions);
-
-    try {
-      range.validate();
-    } catch (AddressStringException e) {
-      String msg =
-          String.format(
-              "CIDR IP address range '%s' is not valid. Error details: %s",
-              rangeString, e.getMessage());
-      throw new SemanticCheckException(msg, e);
-    }
-
-    // Address and range must use the same IP version (IPv4 or IPv6).
-    if (address.isIPv4() ^ range.isIPv4()) {
-      String msg =
-          String.format(
-              "IP address '%s' and CIDR IP address range '%s' are not compatible. Both must be"
-                  + " either IPv4 or IPv6.",
-              addressString, rangeString);
-      throw new SemanticCheckException(msg);
-    }
-
-    return ExprValueUtils.booleanValue(range.contains(address));
+    return (IPUtils.compare(address, range.getLower()) < 0)
+            || (IPUtils.compare(address, range.getUpper()) > 0)
+        ? ExprValueUtils.LITERAL_FALSE
+        : ExprValueUtils.LITERAL_TRUE;
   }
 }

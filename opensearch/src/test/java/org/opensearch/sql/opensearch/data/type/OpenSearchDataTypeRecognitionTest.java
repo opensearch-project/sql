@@ -17,7 +17,6 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprBinaryValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
-import org.opensearch.sql.opensearch.data.value.OpenSearchExprIpValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprTextValue;
 
 public class OpenSearchDataTypeRecognitionTest {
@@ -33,7 +32,6 @@ public class OpenSearchDataTypeRecognitionTest {
     return Stream.of(
         Arguments.of("TEXT", new OpenSearchExprTextValue("A"), "text without fields"),
         Arguments.of("BINARY", new OpenSearchExprBinaryValue("A"), "binary"),
-        Arguments.of("IP", new OpenSearchExprIpValue("A"), "ip"),
         Arguments.of("TEXT", new TestTextWithFieldValue("Hello World"), "text with fields"),
         Arguments.of("GEO_POINT", new OpenSearchExprGeoPointValue(0d, 0d), "geo point"));
   }

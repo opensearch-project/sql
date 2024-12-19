@@ -43,7 +43,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_BANK_CSV_SANITIZE = TEST_INDEX_BANK + "_csv_sanitize";
   public static final String TEST_INDEX_BANK_RAW_SANITIZE = TEST_INDEX_BANK + "_raw_sanitize";
   public static final String TEST_INDEX_ORDER = TEST_INDEX + "_order";
-  public static final String TEST_INDEX_WEBLOG = TEST_INDEX + "_weblog";
+  public static final String TEST_INDEX_WEBLOGS = TEST_INDEX + "_weblogs";
   public static final String TEST_INDEX_DATE = TEST_INDEX + "_date";
   public static final String TEST_INDEX_DATE_TIME = TEST_INDEX + "_datetime";
   public static final String TEST_INDEX_DEEP_NESTED = TEST_INDEX + "_deep_nested";

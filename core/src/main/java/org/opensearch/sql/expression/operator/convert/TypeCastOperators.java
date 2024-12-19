@@ -12,6 +12,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -33,6 +34,7 @@ import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -56,6 +58,7 @@ public class TypeCastOperators {
     repository.register(castToFloat());
     repository.register(castToDouble());
     repository.register(castToBoolean());
+    repository.register(castToIp());
     repository.register(castToDate());
     repository.register(castToTime());
     repository.register(castToTimestamp());
@@ -175,6 +178,13 @@ public class TypeCastOperators {
         impl(
             nullMissingHandling((v) -> ExprBooleanValue.of(v.doubleValue() != 0)), BOOLEAN, DOUBLE),
         impl(nullMissingHandling((v) -> v), BOOLEAN, BOOLEAN));
+  }
+
+  private static DefaultFunctionResolver castToIp() {
+    return FunctionDSL.define(
+        BuiltinFunctionName.CAST_TO_IP.getName(),
+        impl(nullMissingHandling((v) -> new ExprIpValue(v.stringValue())), IP, STRING),
+        impl(nullMissingHandling((v) -> v), IP, IP));
   }
 
   private static DefaultFunctionResolver castToDate() {
