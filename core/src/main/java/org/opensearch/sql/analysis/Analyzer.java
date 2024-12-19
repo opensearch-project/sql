@@ -55,6 +55,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
@@ -72,6 +73,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -95,6 +97,7 @@ import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalLookup;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
@@ -496,6 +499,113 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         allowedDuplication,
         keepEmpty,
         consecutive);
+  }
+
+  /** Build {@link LogicalLookup}. */
+  @Override
+  public LogicalPlan visitLookup(Lookup node, AnalysisContext queryContext) {
+    LogicalPlan child = node.getChild().get(0).accept(this, queryContext);
+    List<Argument> options = node.getOptions();
+    // Todo, refactor the option.
+    Boolean overwrite = (Boolean) options.get(0).getValue().getValue();
+
+    Table table =
+        dataSourceService
+            .getDataSource(DEFAULT_DATASOURCE_NAME)
+            .getStorageEngine()
+            .getTable(null, node.getIndexName());
+
+    if (table == null || !table.exists()) {
+      throw new SemanticCheckException(
+          String.format("no such lookup index %s", node.getIndexName()));
+    }
+
+    AnalysisContext lookupTableContext = new AnalysisContext();
+    TypeEnvironment lookupTableEnvironment = lookupTableContext.peek();
+    table
+        .getFieldTypes()
+        .forEach(
+            (name, type) ->
+                lookupTableEnvironment.define(new Symbol(Namespace.FIELD_NAME, name), type));
+    ImmutableMap<ReferenceExpression, ReferenceExpression> matchFieldMap =
+        analyzeLookupMatchFields(node.getMatchFieldList(), queryContext, lookupTableContext);
+
+    return new LogicalLookup(
+        child,
+        node.getIndexName(),
+        matchFieldMap,
+        overwrite,
+        analyzeLookupCopyFields(node.getCopyFieldList(), queryContext, table));
+  }
+
+  private ImmutableMap<ReferenceExpression, ReferenceExpression> analyzeLookupMatchFields(
+      List<Map> inputMap, AnalysisContext queryContext, AnalysisContext lookupTableContext) {
+    ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> copyMapBuilder =
+        new ImmutableMap.Builder<>();
+    for (Map resultMap : inputMap) {
+      Expression origin = expressionAnalyzer.analyze(resultMap.getOrigin(), lookupTableContext);
+      if (resultMap.getTarget() instanceof Field) {
+        Expression targetExpression =
+            expressionAnalyzer.analyze(resultMap.getTarget(), queryContext);
+        ReferenceExpression targetReference =
+            DSL.ref(targetExpression.toString(), targetExpression.type());
+        ReferenceExpression originReference = DSL.ref(origin.toString(), origin.type());
+        TypeEnvironment curEnv = queryContext.peek();
+        curEnv.remove(originReference);
+        curEnv.define(targetReference);
+        copyMapBuilder.put(originReference, targetReference);
+      } else {
+        throw new SemanticCheckException(
+            String.format("the target expected to be field, but is %s", resultMap.getTarget()));
+      }
+    }
+
+    return copyMapBuilder.build();
+  }
+
+  private ImmutableMap<ReferenceExpression, ReferenceExpression> analyzeLookupCopyFields(
+      List<Map> inputMap, AnalysisContext context, Table table) {
+
+    TypeEnvironment curEnv = context.peek();
+    java.util.Map<String, ExprType> fieldTypes = table.getFieldTypes();
+
+    if (inputMap.isEmpty()) {
+      fieldTypes.forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
+      return ImmutableMap.<ReferenceExpression, ReferenceExpression>builder().build();
+    }
+
+    ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> copyMapBuilder =
+        new ImmutableMap.Builder<>();
+    for (Map resultMap : inputMap) {
+      if (resultMap.getOrigin() instanceof Field && resultMap.getTarget() instanceof Field) {
+        String fieldName = ((Field) resultMap.getOrigin()).getField().toString();
+        ExprType ex = fieldTypes.get(fieldName);
+
+        if (ex == null) {
+          throw new SemanticCheckException(String.format("no such field %s", fieldName));
+        }
+
+        ReferenceExpression origin = new ReferenceExpression(fieldName, ex);
+
+        if (resultMap.getTarget().equals(resultMap.getOrigin())) {
+
+          curEnv.define(origin);
+          copyMapBuilder.put(origin, origin);
+        } else {
+          ReferenceExpression target =
+              new ReferenceExpression(((Field) resultMap.getTarget()).getField().toString(), ex);
+          curEnv.define(target);
+          copyMapBuilder.put(origin, target);
+        }
+      } else {
+        throw new SemanticCheckException(
+            String.format(
+                "the origin and target expected to be field, but is %s/%s",
+                resultMap.getOrigin(), resultMap.getTarget()));
+      }
+    }
+
+    return copyMapBuilder.build();
   }
 
   /** Logical head is identical to {@link LogicalLimit}. */
