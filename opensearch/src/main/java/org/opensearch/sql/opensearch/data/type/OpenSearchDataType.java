@@ -26,7 +26,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     Invalid(null, ExprCoreType.UNKNOWN),
     Text("text", ExprCoreType.UNKNOWN),
     Keyword("keyword", ExprCoreType.STRING),
-    Ip("ip", ExprCoreType.UNKNOWN),
+    Ip("ip", ExprCoreType.IP),
     GeoPoint("geo_point", ExprCoreType.UNKNOWN),
     Binary("binary", ExprCoreType.UNKNOWN),
     Date("date", ExprCoreType.TIMESTAMP),
@@ -160,8 +160,6 @@ public class OpenSearchDataType implements ExprType, Serializable {
         return OpenSearchGeoPointType.of();
       case Binary:
         return OpenSearchBinaryType.of();
-      case Ip:
-        return OpenSearchIpType.of();
       case Date:
       case DateNanos:
         // Default date formatter is used when "" is passed as the second parameter

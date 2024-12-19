@@ -72,6 +72,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -604,20 +605,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
           if (ExprCoreType.numberTypes().contains(resolvedField.type())) {
             averageType = ExprCoreType.DOUBLE;
           } else {
-            switch (resolvedField.type()) {
-              case DATE:
-              case TIME:
-              case TIMESTAMP:
-                averageType = (ExprCoreType) resolvedField.type();
-                break;
-              default:
-                throw new SemanticCheckException(
-                    String.format(
-                        "Invalid field used for trendline computation %s. Source field %s had type"
-                            + " %s but must be a numerical or datetime field.",
-                        computation.getAlias(),
-                        computation.getDataField().getChild().get(0),
-                        resolvedField.type().typeName()));
+            ExprType type = resolvedField.type();
+            if (type == ExprCoreType.DATE
+                    || type == ExprCoreType.TIME
+                    || type == ExprCoreType.TIMESTAMP) {
+              averageType = (ExprCoreType) type;
+            } else {
+              throw new SemanticCheckException(
+                      String.format(
+                              "Invalid field used for trendline computation %s. Source field %s had type %s but must be a numerical or datetime field.",
+                              computation.getAlias(),
+                              computation.getDataField().getChild().get(0),
+                              type.typeName()));
             }
           }
           currEnv.define(new Symbol(Namespace.FIELD_NAME, computation.getAlias()), averageType);

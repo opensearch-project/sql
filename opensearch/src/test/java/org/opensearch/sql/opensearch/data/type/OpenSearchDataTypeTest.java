@@ -22,6 +22,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -108,9 +109,9 @@ class OpenSearchDataTypeTest {
         Arguments.of(MappingType.DateNanos, "timestamp", TIMESTAMP),
         Arguments.of(MappingType.Object, "object", STRUCT),
         Arguments.of(MappingType.Nested, "nested", ARRAY),
+        Arguments.of(MappingType.Ip, "ip", IP),
         Arguments.of(MappingType.GeoPoint, "geo_point", OpenSearchGeoPointType.of()),
-        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()),
-        Arguments.of(MappingType.Ip, "ip", OpenSearchIpType.of()));
+        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()));
   }
 
   @ParameterizedTest(name = "{1}")
@@ -188,13 +189,13 @@ class OpenSearchDataTypeTest {
         () -> assertSame(OpenSearchDataType.of(MappingType.Text), OpenSearchTextType.of()),
         () -> assertSame(OpenSearchDataType.of(MappingType.Binary), OpenSearchBinaryType.of()),
         () -> assertSame(OpenSearchDataType.of(MappingType.GeoPoint), OpenSearchGeoPointType.of()),
-        () -> assertSame(OpenSearchDataType.of(MappingType.Ip), OpenSearchIpType.of()),
         () ->
             assertNotSame(
                 OpenSearchTextType.of(),
                 OpenSearchTextType.of(Map.of("properties", OpenSearchDataType.of(INTEGER)))),
         () -> assertSame(OpenSearchDataType.of(INTEGER), OpenSearchDataType.of(INTEGER)),
         () -> assertSame(OpenSearchDataType.of(STRING), OpenSearchDataType.of(STRING)),
+        () -> assertSame(OpenSearchDataType.of(IP), OpenSearchDataType.of(IP)),
         () -> assertSame(OpenSearchDataType.of(STRUCT), OpenSearchDataType.of(STRUCT)),
         () ->
             assertNotSame(

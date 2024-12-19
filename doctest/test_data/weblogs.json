@@ -1,6 +1,6 @@
-{"index":{}}
-{"host": "199.72.81.55", "method": "GET", "url": "/history/apollo/", "response": "200", "bytes": "6245"}
-{"index":{}}
-{"host": "199.120.110.21", "method": "GET", "url": "/shuttle/missions/sts-73/mission-sts-73.html", "response": "200", "bytes": "4085"}
-{"index":{}}
-{"host": "205.212.115.106", "method": "GET", "url": "/shuttle/countdown/countdown.html", "response": "200", "bytes": "3985"}
+{"host":"::1","method":"GET","url":"/history/apollo/","response":"200","bytes":"6245"}
+{"host":"0.0.0.2","method":"GET","url":"/shuttle/missions/sts-73/mission-sts-73.html","response":"200","bytes":"4085"}
+{"host":"::3","method":"GET","url":"/shuttle/countdown/countdown.html","response":"200","bytes":"3985"}
+{"host":"::FFFF:1.2.3.4","method":"GET","url":"/history/voyager1/","response":"200","bytes":"1234"}
+{"host":"1.2.3.5","method":"GET","url":"/history/voyager2/","response": "200","bytes":"4321"}
+{"host":"::FFFF:1234","method":"GET","url":"/history/artemis/","response":"200","bytes": "9876"}

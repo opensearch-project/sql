@@ -52,10 +52,10 @@ WITH:                               'WITH';
 // CLAUSE KEYWORDS
 SORTBY:                             'SORTBY';
 
-// FIELD KEYWORDS
+// SORT FIELD KEYWORDS
+// TODO #3180: Fix broken sort functionality
 AUTO:                               'AUTO';
 STR:                                'STR';
-IP:                                 'IP';
 NUM:                                'NUM';
 
 // TRENDLINE KEYWORDS
@@ -142,6 +142,7 @@ LONG:                               'LONG';
 FLOAT:                              'FLOAT';
 STRING:                             'STRING';
 BOOLEAN:                            'BOOLEAN';
+IP:                                 'IP';
 
 // SPECIAL CHARACTERS AND OPERATORS
 PIPE:                               '|';
