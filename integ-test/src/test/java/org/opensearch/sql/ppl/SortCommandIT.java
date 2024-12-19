@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
 
@@ -28,6 +29,7 @@ public class SortCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.DOG);
+    loadIndex(Index.WEBLOG);
   }
 
   @Test
@@ -128,6 +130,20 @@ public class SortCommandIT extends PPLIntegTestCase {
         rows("Duke Willmington"),
         rows("Mcpherson"),
         rows("Ratliff"));
+  }
+
+  @Test
+  public void testSortIpField() throws IOException {
+    final JSONObject result =
+        executeQuery(String.format("source=%s | fields host | sort host", TEST_INDEX_WEBLOGS));
+    verifyOrder(
+        result,
+        rows("::1"),
+        rows("::3"),
+        rows("::ffff:1234"),
+        rows("0.0.0.2"),
+        rows("1.2.3.4"),
+        rows("1.2.3.5"));
   }
 
   @Test

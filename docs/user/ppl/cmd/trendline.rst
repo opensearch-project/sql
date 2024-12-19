@@ -23,7 +23,7 @@ Syntax
 * field: mandatory. The name of the field the moving average should be calculated for.
 * alias: optional. The name of the resulting column containing the moving average (defaults to the field name with "_trendline").
 
-And the moment only the Simple Moving Average (SMA) type is supported.
+At the moment only the Simple Moving Average (SMA) type is supported.
 
 It is calculated like
 

@@ -661,8 +661,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         getOrderIndexMapping(),
         "src/test/resources/order.json"),
     WEBLOG(
-        TestsConstants.TEST_INDEX_WEBLOG,
-        "weblog",
+        TestsConstants.TEST_INDEX_WEBLOGS,
+        "weblogs",
         getWeblogsIndexMapping(),
         "src/test/resources/weblogs.json"),
     DATE(

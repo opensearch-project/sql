@@ -11,6 +11,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
@@ -50,6 +51,7 @@ import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprShortValue;
@@ -63,7 +65,6 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchIpType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
@@ -133,8 +134,8 @@ public class OpenSearchExprValueFactory {
               OpenSearchDateType.of(TIMESTAMP),
               OpenSearchExprValueFactory::createOpenSearchDateType)
           .put(
-              OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip),
-              (c, dt) -> new OpenSearchExprIpValue(c.stringValue()))
+              OpenSearchDateType.of(OpenSearchDataType.MappingType.Ip),
+              (c, dt) -> new ExprIpValue(c.stringValue()))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),
               (c, dt) -> new OpenSearchExprBinaryValue(c.stringValue()))
@@ -202,14 +203,12 @@ public class OpenSearchExprValueFactory {
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
         || type == STRUCT) {
       return parseStruct(content, field, supportArrays);
+    } else if (typeActionMap.containsKey(type)) {
+      return typeActionMap.get(type).apply(content, type);
     } else {
-      if (typeActionMap.containsKey(type)) {
-        return typeActionMap.get(type).apply(content, type);
-      } else {
-        throw new IllegalStateException(
-            String.format(
-                "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
-      }
+      throw new IllegalStateException(
+          String.format(
+              "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
     }
   }
 
@@ -418,10 +417,10 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseInnerArrayValue(
       Content content, String prefix, ExprType type, boolean supportArrays) {
-    if (type instanceof OpenSearchIpType
-        || type instanceof OpenSearchBinaryType
-        || type instanceof OpenSearchDateType) {
+    if (type instanceof OpenSearchBinaryType || type instanceof OpenSearchDateType) {
       return parse(content, prefix, Optional.of(type), supportArrays);
+    } else if (content.isString() && type.equals(OpenSearchDataType.of(IP))) {
+      return parse(content, prefix, Optional.of(OpenSearchDataType.of(IP)), supportArrays);
     } else if (content.isString()) {
       return parse(content, prefix, Optional.of(OpenSearchDataType.of(STRING)), supportArrays);
     } else if (content.isLong()) {
