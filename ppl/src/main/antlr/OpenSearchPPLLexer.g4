@@ -337,6 +337,9 @@ NULLIF:                             'NULLIF';
 IF:                                 'IF';
 TYPEOF:                             'TYPEOF';
 
+// GEOLOCATION FUNCTIONS
+GEOIP:                              'GEOIP';
+
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';
 MATCH_PHRASE:                       'MATCH_PHRASE';
