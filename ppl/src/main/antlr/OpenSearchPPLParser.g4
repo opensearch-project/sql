@@ -419,6 +419,7 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
+   | goeipFunctionName
    ;
 
 functionArgs
@@ -519,6 +520,11 @@ mathematicalFunctionName
    | TRUNCATE
    | trigonometricFunctionName
    ;
+
+goeipFunctionName
+   : GEOIP
+   ;
+
 
 trigonometricFunctionName
    : ACOS
@@ -864,6 +870,7 @@ keywordsCanBeId
    | mathematicalFunctionName
    | positionFunctionName
    | conditionFunctionName
+   | goeipFunctionName
    // commands
    | SEARCH
    | DESCRIBE

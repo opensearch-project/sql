@@ -973,6 +973,11 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.UTC_TIMESTAMP, args);
   }
 
+  public static FunctionExpression geoip(
+          FunctionProperties functionProperties, Expression... args) {
+    return compile(functionProperties, BuiltinFunctionName.GEOIP, args);
+  }
+
   @SuppressWarnings("unchecked")
   private static <T extends FunctionImplementation> T compile(
       FunctionProperties functionProperties, BuiltinFunctionName bfn, Expression... args) {

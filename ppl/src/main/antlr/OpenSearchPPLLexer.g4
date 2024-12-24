@@ -87,6 +87,9 @@ ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 CASE:                               'CASE';
 IN:                                 'IN';
 
+// Geo IP eval function
+GEOIP:                              'GEOIP';
+
 // LOGICAL KEYWORDS
 NOT:                                'NOT';
 OR:                                 'OR';
