@@ -28,6 +28,7 @@ import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -208,6 +209,12 @@ public class OpenSearchIndex implements Table {
     @Override
     public PhysicalPlan visitML(LogicalML node, OpenSearchIndexScan context) {
       return new MLOperator(visitChild(node, context), node.getArguments(), client.getNodeClient());
+    }
+
+    @Override
+    public PhysicalPlan visitEval(LogicalEval node, OpenSearchIndexScan context) {
+      System.out.println("Visiting: " + node);
+      return super.visitEval(node, context);
     }
   }
 }
