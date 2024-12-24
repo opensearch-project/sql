@@ -21,6 +21,7 @@ import lombok.Getter;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
@@ -99,6 +100,11 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   @Override
   public Expression visitUnresolvedAttribute(UnresolvedAttribute node, AnalysisContext context) {
     return visitIdentifier(node.getAttr(), context);
+  }
+
+  @Override
+  public Expression visitGeoIp(Node node, AnalysisContext context) {
+    return super.visitGeoIp(node, context);
   }
 
   @Override
