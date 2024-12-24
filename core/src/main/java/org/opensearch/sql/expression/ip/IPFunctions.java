@@ -41,7 +41,7 @@ public class IPFunctions {
   private DefaultFunctionResolver geoIp() {
     return define(
             BuiltinFunctionName.GEOIP.getName(),
-            impl(nullMissingHandling(IPFunctions::exprCidrMatch), BOOLEAN, STRING, STRING));
+            impl(nullMissingHandling(IPFunctions::exprGeoIp), BOOLEAN, STRING, STRING));
   }
 
   /**
@@ -64,5 +64,9 @@ public class IPFunctions {
             || (IPUtils.compare(address, range.getUpper()) > 0)
         ? ExprValueUtils.LITERAL_FALSE
         : ExprValueUtils.LITERAL_TRUE;
+  }
+
+  private ExprValue exprGeoIp(ExprValue addressExprValue, ExprValue rangeExprValue) {
+    return ExprValueUtils.booleanValue(true);
   }
 }
