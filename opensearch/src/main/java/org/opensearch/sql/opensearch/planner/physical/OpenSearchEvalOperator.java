@@ -91,7 +91,7 @@ public class OpenSearchEvalOperator extends EvalOperator {
                 IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);
                 try {
                       Map<String, Object> geoLocationData = ipClient.getGeoLocationData("50.68.18.229",
-                              ".geospatial-ip2geo-data.my-datasource.8ee3a96f-9034-4dc5-891e-dbd8ef59c602/5C-QYVTWTAe2sTTW5bk-Ig");
+                              "my-datasource");
                       geoLocationData.forEach((k,v) -> System.out.println(k + " " + v));
                 } catch (Exception e) {
                         throw new RuntimeException(e);
