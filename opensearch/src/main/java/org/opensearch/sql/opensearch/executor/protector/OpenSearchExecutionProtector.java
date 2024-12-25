@@ -10,6 +10,7 @@ import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
+import org.opensearch.sql.opensearch.planner.physical.OpenSearchEvalOperator;
 import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
@@ -96,7 +97,14 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   @Override
   public PhysicalPlan visitEval(EvalOperator node, Object context) {
-    return new EvalOperator(visitInput(node.getInput(), context), node.getExpressionList());
+    OpenSearchEvalOperator evalOperator = (OpenSearchEvalOperator) node;
+    return doProtect(
+            new OpenSearchEvalOperator(
+                    visitInput(evalOperator.getInput(), context),
+                    evalOperator.getExpressionList(),
+                    evalOperator.getNodeClient()
+            )
+    );
   }
 
   @Override
