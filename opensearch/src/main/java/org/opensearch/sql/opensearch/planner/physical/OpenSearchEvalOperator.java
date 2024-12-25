@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableMap;
 import lombok.Getter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.geospatial.action.IpEnrichmentActionClient;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -86,6 +87,16 @@ public class OpenSearchEvalOperator extends EvalOperator {
             ExprValue value;
             if (valueExpr instanceof FunctionExpression &&
                 "geoip".equals(((FunctionExpression) valueExpr).getFunctionName().getFunctionName())) {
+
+                IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);
+                try {
+                      Map<String, Object> geoLocationData = ipClient.getGeoLocationData("50.68.18.229",
+                              ".geospatial-ip2geo-data.my-datasource.8ee3a96f-9034-4dc5-891e-dbd8ef59c602/5C-QYVTWTAe2sTTW5bk-Ig");
+                      geoLocationData.forEach((k,v) -> System.out.println(k + " " + v));
+                } catch (Exception e) {
+                        throw new RuntimeException(e);
+                }
+
                 String str = ((FunctionExpression) valueExpr).getArguments().get(0).toString();
 
                 if (str.equals("123")) {
