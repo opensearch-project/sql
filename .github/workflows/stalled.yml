@@ -24,5 +24,5 @@ jobs:
           stale-pr-message: 'This PR is stalled because it has been open for 30 days with no activity.'
           days-before-pr-stale: 30
           days-before-issue-stale: -1
-          days-before-pr-close: -1
+          days-before-pr-close: 60
           days-before-issue-close: -1
