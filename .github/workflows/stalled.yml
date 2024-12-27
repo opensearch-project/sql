@@ -21,7 +21,7 @@ jobs:
         with:
           repo-token: ${{ steps.github_app_token.outputs.token }}
           stale-pr-label: 'stalled'
-          stale-pr-message: 'This PR is stalled because it has been open for 30 days with no activity.'
+          stale-pr-message: 'This PR is stalled because it has been open for 30 days with no activity. It will be automatically closed after 60 days of inactivity.'
           days-before-pr-stale: 30
           days-before-issue-stale: -1
           days-before-pr-close: 60
