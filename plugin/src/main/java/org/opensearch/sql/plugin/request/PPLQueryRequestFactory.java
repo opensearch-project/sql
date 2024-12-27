@@ -16,7 +16,7 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
 /** Factory of {@link PPLQueryRequest}. */
 public class PPLQueryRequestFactory {
-  private static final String PPL_URL_PARAM_KEY = "ppl";
+  public static final String PPL_URL_PARAM_KEY = "ppl";
   private static final String PPL_FIELD_NAME = "query";
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
@@ -43,7 +43,6 @@ public class PPLQueryRequestFactory {
 
   private static PPLQueryRequest parsePPLRequestFromUrl(RestRequest restRequest) {
     String ppl;
-
     ppl = restRequest.param(PPL_URL_PARAM_KEY);
     if (ppl == null) {
       throw new IllegalArgumentException("Cannot find ppl parameter from the URL");
