@@ -21,33 +21,7 @@ import lombok.Getter;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.expression.AggregateFunction;
-import org.opensearch.sql.ast.expression.AllFields;
-import org.opensearch.sql.ast.expression.And;
-import org.opensearch.sql.ast.expression.Between;
-import org.opensearch.sql.ast.expression.Case;
-import org.opensearch.sql.ast.expression.Cast;
-import org.opensearch.sql.ast.expression.Compare;
-import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.EqualTo;
-import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.Function;
-import org.opensearch.sql.ast.expression.HighlightFunction;
-import org.opensearch.sql.ast.expression.In;
-import org.opensearch.sql.ast.expression.Interval;
-import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.Not;
-import org.opensearch.sql.ast.expression.Or;
-import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.RelevanceFieldList;
-import org.opensearch.sql.ast.expression.ScoreFunction;
-import org.opensearch.sql.ast.expression.Span;
-import org.opensearch.sql.ast.expression.UnresolvedArgument;
-import org.opensearch.sql.ast.expression.UnresolvedAttribute;
-import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.ast.expression.When;
-import org.opensearch.sql.ast.expression.WindowFunction;
-import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -67,6 +41,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
+import org.opensearch.sql.expression.ip.GeoipExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
@@ -201,6 +176,14 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
             .collect(Collectors.toList());
     return (Expression)
         repository.compile(context.getFunctionProperties(), functionName, arguments);
+  }
+
+  @Override
+  public Expression visitGeoip(Geoip node, AnalysisContext context) {
+    return new GeoipExpression(
+            node.getDatasource().accept(this, context),
+            node.getIpAddress().accept(this ,context),
+            node.getProperties());
   }
 
   @SuppressWarnings("unchecked")
