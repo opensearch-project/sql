@@ -173,7 +173,7 @@ class DateTimeFormatterUtil {
           .put("%T", "HH:mm:ss") // %T => HH:mm:ss
           .put("%W", "EEEE") // %W => EEEE - Weekday name (Sunday..Saturday)
           .put("%Y", "u") // %Y => yyyy - Year, numeric, 4 digits
-          .put("%y", "u") // %y => yy - Year, numeric, 2 digits
+          .put("%y", "uu") // %y => yy - Year, numeric, 2 digits
           .put("%f", "n") // %f => n - Nanoseconds
           // The following have been implemented but cannot be aligned with
           // MySQL due to the limitations of the DatetimeFormatter
