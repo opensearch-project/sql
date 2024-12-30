@@ -21,6 +21,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
@@ -31,6 +32,7 @@ import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.expression.env.Environment.extendEnv;
@@ -89,25 +91,37 @@ public class OpenSearchEvalOperator extends EvalOperator {
                 "geoip".equals(((FunctionExpression) valueExpr).getFunctionName().getFunctionName())) {
 
                 IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);
+
+                String dataSource = ((FunctionExpression) valueExpr).getArguments().get(0).toString();
+                dataSource = dataSource.substring(1, dataSource.length() - 1);
+                String ipAddress = ((FunctionExpression) valueExpr).getArguments().get(1).toString();
+                ipAddress = ipAddress.substring(1, ipAddress.length() - 1);
                 try {
-                      Map<String, Object> geoLocationData = ipClient.getGeoLocationData("50.68.18.229",
-                              "my-datasource");
-                      geoLocationData.forEach((k,v) -> System.out.println(k + " " + v));
+                    Map<String, Object> geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);
+
+                    geoLocationData.forEach((k,v) -> System.out.println(k + " " + v));
+                    // Transform above into <String, ExprValue> , then do ExprTupleValue.fromExprValueMap
+
+                    Map<String, ExprValue> collect = geoLocationData.entrySet().stream()
+                            .collect(Collectors.toMap(
+                                    Map.Entry::getKey,
+                                    v -> new ExprStringValue(v.toString())
+                            ));
+
+                    value = ExprTupleValue.fromExprValueMap(collect);
+
                 } catch (Exception e) {
-                        throw new RuntimeException(e);
+                    throw new RuntimeException(e);
                 }
-
-                String str = ((FunctionExpression) valueExpr).getArguments().get(0).toString();
-
-                if (str.equals("123")) {
-                    value = new ExprStringValue("custom logic");
-                } else {
-                    Map<String, ExprValue> stringImmutableMap = ImmutableMap.of(
-                            "key1", new ExprStringValue("value1"),
-                            "key2", new ExprStringValue("value2"));
-                    value = ExprTupleValue.fromExprValueMap(stringImmutableMap);
-                }
-                System.out.println("Custom logic");
+//                if (ipAddress.equals("123")) {
+//                    value = new ExprStringValue("custom logic");
+//                } else {
+//                    Map<String, ExprValue> stringImmutableMap = ImmutableMap.of(
+//                            "key1", new ExprStringValue("value1"),
+//                            "key2", new ExprStringValue("value2"));
+//                    value = ExprTupleValue.fromExprValueMap(stringImmutableMap);
+//                }
+//                System.out.println("Custom logic");
             } else {
                 value = pair.getValue().valueOf(env);
             }
