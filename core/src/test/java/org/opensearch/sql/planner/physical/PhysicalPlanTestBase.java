@@ -93,7 +93,7 @@ public class PhysicalPlanTestBase {
                   ImmutableMap.of("ip", "74.125.19.106", "action", "POST", "response", 500)))
           .build();
 
-  private static Map<String, ExprCoreType> typeMapping =
+  private static final Map<String, ExprCoreType> typeMapping =
       new ImmutableMap.Builder<String, ExprCoreType>()
           .put("ip", ExprCoreType.STRING)
           .put("action", ExprCoreType.STRING)

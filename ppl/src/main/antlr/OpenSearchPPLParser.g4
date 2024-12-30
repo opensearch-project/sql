@@ -49,6 +49,8 @@ commands
    | kmeansCommand
    | adCommand
    | mlCommand
+   | fillnullCommand
+   | trendlineCommand
    ;
 
 searchCommand
@@ -127,6 +129,35 @@ patternsMethod
    | REGEX
    ;
 
+fillnullCommand
+   : FILLNULL (fillNullWithTheSameValue
+   | fillNullWithFieldVariousValues)
+   ;
+
+fillNullWithTheSameValue
+   : WITH nullReplacement = valueExpression IN nullableFieldList = fieldList
+   ;
+
+fillNullWithFieldVariousValues
+   : USING nullReplacementExpression (COMMA nullReplacementExpression)*
+   ;
+
+nullReplacementExpression
+   : nullableField = fieldExpression EQUAL nullReplacement = valueExpression
+   ;
+
+trendlineCommand
+   : TRENDLINE (SORT sortField)? trendlineClause (trendlineClause)*
+   ;
+
+trendlineClause
+   : trendlineType LT_PRTHS numberOfDataPoints = integerLiteral COMMA field = fieldExpression RT_PRTHS (AS alias = qualifiedName)?
+   ;
+
+trendlineType
+   : SMA
+   ;
+
 kmeansCommand
    : KMEANS (kmeansParameter)*
    ;
@@ -188,6 +219,7 @@ statsByClause
    : BY fieldList
    | BY bySpanClause
    | BY bySpanClause COMMA fieldList
+   | BY fieldList COMMA bySpanClause
    ;
 
 bySpanClause
@@ -254,6 +286,7 @@ expression
    | valueExpression
    ;
 
+// predicates
 logicalExpression
    : comparisonExpression                                       # comparsion
    | NOT logicalExpression                                      # logicalNot
@@ -361,7 +394,7 @@ dataTypeFunctionCall
 
 // boolean functions
 booleanFunctionCall
-   : conditionFunctionBase LT_PRTHS functionArgs RT_PRTHS
+   : conditionFunctionName LT_PRTHS functionArgs RT_PRTHS
    ;
 
 convertedDataType
@@ -375,13 +408,15 @@ convertedDataType
    | typeName = FLOAT
    | typeName = STRING
    | typeName = BOOLEAN
+   | typeName = IP
    ;
 
 evalFunctionName
    : mathematicalFunctionName
    | dateTimeFunctionName
    | textFunctionName
-   | conditionFunctionBase
+   | conditionFunctionName
+   | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
    ;
@@ -391,7 +426,7 @@ functionArgs
    ;
 
 functionArg
-   : (ident EQUAL)? valueExpression
+   : (ident EQUAL)? expression
    ;
 
 relevanceArg
@@ -622,11 +657,16 @@ timestampFunctionName
    ;
 
 // condition function return boolean value
-conditionFunctionBase
+conditionFunctionName
    : LIKE
-   | IF
    | ISNULL
    | ISNOTNULL
+   | CIDRMATCH
+   ;
+
+// flow control function return non-boolean value
+flowControlFunctionName
+   : IF
    | IFNULL
    | NULLIF
    ;
@@ -822,6 +862,7 @@ keywordsCanBeId
    | textFunctionName
    | mathematicalFunctionName
    | positionFunctionName
+   | conditionFunctionName
    // commands
    | SEARCH
    | DESCRIBE
@@ -834,6 +875,7 @@ keywordsCanBeId
    | DEDUP
    | SORT
    | EVAL
+   | FILLNULL
    | HEAD
    | TOP
    | RARE
@@ -848,6 +890,7 @@ keywordsCanBeId
    | KMEANS
    | AD
    | ML
+   | TRENDLINE
    // commands assist keywords
    | SOURCE
    | INDEX
@@ -855,7 +898,8 @@ keywordsCanBeId
    | DATASOURCES
    // CLAUSEKEYWORDS
    | SORTBY
-   // FIELDKEYWORDSAUTO
+   // SORT FIELD KEYWORDS
+   | AUTO
    | STR
    | IP
    | NUM

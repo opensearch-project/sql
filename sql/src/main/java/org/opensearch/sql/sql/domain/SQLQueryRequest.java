@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,6 +30,7 @@ public class SQLQueryRequest {
       Set.of("query", "fetch_size", "parameters", QUERY_FIELD_CURSOR);
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
+  private static final String QUERY_PARAMS_PRETTY = "pretty";
 
   /** JSON payload in REST request. */
   private final JSONObject jsonContent;
@@ -49,6 +51,10 @@ public class SQLQueryRequest {
   @Accessors(fluent = true)
   private boolean sanitize = true;
 
+  @Getter
+  @Accessors(fluent = true)
+  private boolean pretty = false;
+
   private String cursor;
 
   /** Constructor of SQLQueryRequest that passes request params. */
@@ -64,6 +70,7 @@ public class SQLQueryRequest {
     this.params = params;
     this.format = getFormat(params);
     this.sanitize = shouldSanitize(params);
+    this.pretty = shouldPretty(params);
     this.cursor = cursor;
   }
 
@@ -79,19 +86,21 @@ public class SQLQueryRequest {
    * @return true if supported.
    */
   public boolean isSupported() {
-    var noCursor = !isCursor();
-    var noQuery = query == null;
-    var noUnsupportedParams =
-        params.isEmpty() || (params.size() == 1 && params.containsKey(QUERY_PARAMS_FORMAT));
-    var noContent = jsonContent == null || jsonContent.isEmpty();
+    boolean hasCursor = isCursor();
+    boolean hasQuery = query != null;
+    boolean hasContent = jsonContent != null && !jsonContent.isEmpty();
 
-    return ((!noCursor
-                && noQuery
-                && noUnsupportedParams
-                && noContent) // if cursor is given, but other things
-            || (noCursor && !noQuery)) // or if cursor is not given, but query
-        && isOnlySupportedFieldInPayload() // and request has supported fields only
-        && isSupportedFormat(); // and request is in supported format
+    Predicate<String> supportedParams = Set.of(QUERY_PARAMS_FORMAT, QUERY_PARAMS_PRETTY)::contains;
+    boolean hasUnsupportedParams =
+        (!params.isEmpty())
+            && params.keySet().stream().dropWhile(supportedParams).findAny().isPresent();
+
+    boolean validCursor = hasCursor && !hasQuery && !hasUnsupportedParams && !hasContent;
+    boolean validQuery = !hasCursor && hasQuery;
+
+    return (validCursor || validQuery) // It's a valid cursor or a valid query
+        && isOnlySupportedFieldInPayload() // and request must contain supported fields only
+        && isSupportedFormat(); // and request must be a supported format
   }
 
   private boolean isCursor() {
@@ -147,5 +156,12 @@ public class SQLQueryRequest {
       return Boolean.parseBoolean(params.get(QUERY_PARAMS_SANITIZE));
     }
     return true;
+  }
+
+  private boolean shouldPretty(Map<String, String> params) {
+    if (params.containsKey(QUERY_PARAMS_PRETTY)) {
+      return Boolean.parseBoolean(params.get(QUERY_PARAMS_PRETTY));
+    }
+    return false;
   }
 }

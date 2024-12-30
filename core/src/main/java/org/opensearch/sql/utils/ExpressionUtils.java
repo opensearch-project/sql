@@ -14,7 +14,7 @@ import org.opensearch.sql.expression.Expression;
 @UtilityClass
 public class ExpressionUtils {
 
-  public static String PATH_SEP = ".";
+  public static final String PATH_SEP = ".";
 
   /** Format the list of {@link Expression}. */
   public static String format(List<Expression> expressionList) {

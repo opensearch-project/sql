@@ -12,7 +12,7 @@ import java.util.List;
 public abstract class Query implements QueryStatement {
 
   private Where where = null;
-  private List<From> from = new ArrayList<>();
+  private final List<From> from = new ArrayList<>();
 
   public Where getWhere() {
     return this.where;

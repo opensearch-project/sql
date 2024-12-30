@@ -76,6 +76,56 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| fields age"));
   }
 
+  @Test
+  public void testLimitPushDownExplain() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_limit_push.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| eval ageMinus = age - 30 "
+                + "| head 5 "
+                + "| fields ageMinus"));
+  }
+
+  @Test
+  public void testFillNullPushDownExplain() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + " | fillnull with -1 in age,balance | fields age, balance"));
+  }
+
+  @Test
+  public void testTrendlinePushDownExplain() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_trendline_push.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| trendline sma(2, age) as ageTrend "
+                + "| fields ageTrend"));
+  }
+
+  @Test
+  public void testTrendlineWithSortPushDownExplain() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_trendline_sort_push.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| trendline sort age sma(2, age) as ageTrend "
+                + "| fields ageTrend"));
+  }
+
   String loadFromFile(String filename) throws Exception {
     URI uri = Resources.getResource(filename).toURI();
     return new String(Files.readAllBytes(Paths.get(uri)));

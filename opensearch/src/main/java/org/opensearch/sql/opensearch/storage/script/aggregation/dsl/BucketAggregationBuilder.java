@@ -23,6 +23,7 @@ import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 /** Bucket Aggregation Builder. */
@@ -65,7 +66,10 @@ public class BucketAggregationBuilder {
               .missingOrder(missingOrder)
               .order(sortOrder);
       // Time types values are converted to LONG in ExpressionAggregationScript::execute
-      if (List.of(TIMESTAMP, TIME, DATE).contains(expr.getDelegated().type())) {
+      if ((expr.getDelegated().type() instanceof OpenSearchDateType
+              && List.of(TIMESTAMP, TIME, DATE)
+                  .contains(((OpenSearchDateType) expr.getDelegated().type()).getExprCoreType()))
+          || List.of(TIMESTAMP, TIME, DATE).contains(expr.getDelegated().type())) {
         sourceBuilder.userValuetypeHint(ValueType.LONG);
       }
       return helper.build(expr.getDelegated(), sourceBuilder::field, sourceBuilder::script);

@@ -24,7 +24,7 @@ import org.opensearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
 /** Created by Eliran on 6/10/2015. */
 public class GetIndexRequestRestListener extends RestBuilderListener<GetIndexResponse> {
 
-  private GetIndexRequest getIndexRequest;
+  private final GetIndexRequest getIndexRequest;
 
   public GetIndexRequestRestListener(RestChannel channel, GetIndexRequest getIndexRequest) {
     super(channel);

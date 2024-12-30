@@ -22,6 +22,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -70,7 +71,7 @@ class OpenSearchDataTypeTest {
     assertEquals("STRING", textType.typeName());
     assertEquals("STRING", textKeywordType.typeName());
     assertEquals("OBJECT", OpenSearchDataType.of(MappingType.Object).typeName());
-    assertEquals("DATE", OpenSearchDataType.of(MappingType.Date).typeName());
+    assertEquals("TIMESTAMP", OpenSearchDataType.of(MappingType.Date).typeName());
     assertEquals("DOUBLE", OpenSearchDataType.of(MappingType.Double).typeName());
     assertEquals("KEYWORD", OpenSearchDataType.of(MappingType.Keyword).typeName());
   }
@@ -80,7 +81,7 @@ class OpenSearchDataTypeTest {
     assertEquals("TEXT", textType.legacyTypeName());
     assertEquals("TEXT", textKeywordType.legacyTypeName());
     assertEquals("OBJECT", OpenSearchDataType.of(MappingType.Object).legacyTypeName());
-    assertEquals("DATE", OpenSearchDataType.of(MappingType.Date).legacyTypeName());
+    assertEquals("TIMESTAMP", OpenSearchDataType.of(MappingType.Date).legacyTypeName());
     assertEquals("DOUBLE", OpenSearchDataType.of(MappingType.Double).legacyTypeName());
     assertEquals("KEYWORD", OpenSearchDataType.of(MappingType.Keyword).legacyTypeName());
   }
@@ -104,13 +105,13 @@ class OpenSearchDataTypeTest {
         Arguments.of(MappingType.ScaledFloat, "scaled_float", DOUBLE),
         Arguments.of(MappingType.Double, "double", DOUBLE),
         Arguments.of(MappingType.Boolean, "boolean", BOOLEAN),
-        Arguments.of(MappingType.Date, "date", TIMESTAMP),
-        Arguments.of(MappingType.DateNanos, "date", TIMESTAMP),
+        Arguments.of(MappingType.Date, "timestamp", TIMESTAMP),
+        Arguments.of(MappingType.DateNanos, "timestamp", TIMESTAMP),
         Arguments.of(MappingType.Object, "object", STRUCT),
         Arguments.of(MappingType.Nested, "nested", ARRAY),
+        Arguments.of(MappingType.Ip, "ip", IP),
         Arguments.of(MappingType.GeoPoint, "geo_point", OpenSearchGeoPointType.of()),
-        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()),
-        Arguments.of(MappingType.Ip, "ip", OpenSearchIpType.of()));
+        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()));
   }
 
   @ParameterizedTest(name = "{1}")
@@ -124,7 +125,15 @@ class OpenSearchDataTypeTest {
     assertAll(
         () -> assertEquals(nameForPPL, type.typeName()),
         () -> assertEquals(nameForSQL, type.legacyTypeName()),
-        () -> assertEquals(dataType, type.getExprType()));
+        () -> {
+          if (dataType == ExprCoreType.TIMESTAMP
+              || dataType == ExprCoreType.DATE
+              || dataType == ExprCoreType.TIME) {
+            assertEquals(dataType, type.getExprCoreType());
+          } else {
+            assertEquals(dataType, type.getExprType());
+          }
+        });
   }
 
   @ParameterizedTest(name = "{0}")
@@ -133,7 +142,7 @@ class OpenSearchDataTypeTest {
     assumeFalse(coreType == UNKNOWN);
     var type = OpenSearchDataType.of(coreType);
     if (type instanceof OpenSearchDateType) {
-      assertEquals(coreType, type.getExprType());
+      assertEquals(coreType, type.getExprCoreType());
     } else {
       assertEquals(coreType.toString(), type.typeName());
       assertEquals(coreType.toString(), type.legacyTypeName());
@@ -180,13 +189,13 @@ class OpenSearchDataTypeTest {
         () -> assertSame(OpenSearchDataType.of(MappingType.Text), OpenSearchTextType.of()),
         () -> assertSame(OpenSearchDataType.of(MappingType.Binary), OpenSearchBinaryType.of()),
         () -> assertSame(OpenSearchDataType.of(MappingType.GeoPoint), OpenSearchGeoPointType.of()),
-        () -> assertSame(OpenSearchDataType.of(MappingType.Ip), OpenSearchIpType.of()),
         () ->
             assertNotSame(
                 OpenSearchTextType.of(),
                 OpenSearchTextType.of(Map.of("properties", OpenSearchDataType.of(INTEGER)))),
         () -> assertSame(OpenSearchDataType.of(INTEGER), OpenSearchDataType.of(INTEGER)),
         () -> assertSame(OpenSearchDataType.of(STRING), OpenSearchDataType.of(STRING)),
+        () -> assertSame(OpenSearchDataType.of(IP), OpenSearchDataType.of(IP)),
         () -> assertSame(OpenSearchDataType.of(STRUCT), OpenSearchDataType.of(STRUCT)),
         () ->
             assertNotSame(
@@ -416,7 +425,7 @@ class OpenSearchDataTypeTest {
     assertEquals(FLOAT, OpenSearchDataType.of(MappingType.HalfFloat).getExprType());
     assertEquals(DOUBLE, OpenSearchDataType.of(MappingType.Double).getExprType());
     assertEquals(DOUBLE, OpenSearchDataType.of(MappingType.ScaledFloat).getExprType());
-    assertEquals(TIMESTAMP, OpenSearchDataType.of(MappingType.Date).getExprType());
+    assertEquals(TIMESTAMP, OpenSearchDataType.of(MappingType.Date).getExprCoreType());
   }
 
   @Test

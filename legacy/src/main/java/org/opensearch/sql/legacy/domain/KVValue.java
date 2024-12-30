@@ -7,7 +7,7 @@ package org.opensearch.sql.legacy.domain;
 
 public class KVValue implements Cloneable {
   public String key;
-  public Object value;
+  public final Object value;
 
   public KVValue(Object value) {
     this.value = value;

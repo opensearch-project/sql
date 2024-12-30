@@ -41,7 +41,7 @@ import org.opensearch.sql.legacy.query.maker.QueryMaker;
 public class AggregationQueryAction extends QueryAction {
 
   private final Select select;
-  private AggMaker aggMaker = new AggMaker();
+  private final AggMaker aggMaker = new AggMaker();
   private SearchRequestBuilder request;
 
   public AggregationQueryAction(Client client, Select select) {

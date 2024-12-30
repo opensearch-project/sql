@@ -18,6 +18,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.computation;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.filteredAggregate;
@@ -33,6 +34,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -66,6 +68,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Disabled;
@@ -73,6 +76,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
@@ -81,12 +85,14 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -157,8 +163,8 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertEquals(
         "= function expected {[BYTE,BYTE],[SHORT,SHORT],[INTEGER,INTEGER],[LONG,LONG],"
             + "[FLOAT,FLOAT],[DOUBLE,DOUBLE],[STRING,STRING],[BOOLEAN,BOOLEAN],[DATE,DATE],"
-            + "[TIME,TIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],"
-            + "[STRUCT,STRUCT],[ARRAY,ARRAY]}, but get [STRING,INTEGER]",
+            + "[TIME,TIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],[IP,IP],"
+            + "[STRUCT,STRUCT],[ARRAY,ARRAY]}, but got [STRING,INTEGER]",
         exception.getMessage());
   }
 
@@ -1435,6 +1441,104 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         new LogicalMLCommons(LogicalPlanDSL.relation("schema", table), "kmeans", argumentMap),
         new Kmeans(AstDSL.relation("schema"), argumentMap));
+  }
+
+  @Test
+  public void fillnull_same_value() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.eval(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutablePair.of(
+                DSL.ref("integer_value", INTEGER),
+                DSL.ifnull(DSL.ref("integer_value", INTEGER), DSL.literal(0))),
+            ImmutablePair.of(
+                DSL.ref("int_null_value", INTEGER),
+                DSL.ifnull(DSL.ref("int_null_value", INTEGER), DSL.literal(0)))),
+        new FillNull(
+            AstDSL.relation("schema"),
+            FillNull.ContainNullableFieldFill.ofSameValue(
+                AstDSL.intLiteral(0),
+                ImmutableList.<Field>builder()
+                    .add(AstDSL.field("integer_value"))
+                    .add(AstDSL.field("int_null_value"))
+                    .build())));
+  }
+
+  @Test
+  public void fillnull_various_values() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.eval(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutablePair.of(
+                DSL.ref("integer_value", INTEGER),
+                DSL.ifnull(DSL.ref("integer_value", INTEGER), DSL.literal(0))),
+            ImmutablePair.of(
+                DSL.ref("int_null_value", INTEGER),
+                DSL.ifnull(DSL.ref("int_null_value", INTEGER), DSL.literal(1)))),
+        new FillNull(
+            AstDSL.relation("schema"),
+            FillNull.ContainNullableFieldFill.ofVariousValue(
+                ImmutableList.of(
+                    new FillNull.NullableFieldFill(
+                        AstDSL.field("integer_value"), AstDSL.intLiteral(0)),
+                    new FillNull.NullableFieldFill(
+                        AstDSL.field("int_null_value"), AstDSL.intLiteral(1))))));
+  }
+
+  @Test
+  public void trendline() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.relation("schema", table),
+            Pair.of(computation(5, field("float_value"), "test_field_alias", SMA), DOUBLE),
+            Pair.of(computation(1, field("double_value"), "test_field_alias_2", SMA), DOUBLE)),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            Optional.empty(),
+            computation(5, field("float_value"), "test_field_alias", SMA),
+            computation(1, field("double_value"), "test_field_alias_2", SMA)));
+  }
+
+  @Test
+  public void trendline_datetime_types() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.relation("schema", table),
+            Pair.of(computation(5, field("timestamp_value"), "test_field_alias", SMA), TIMESTAMP)),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            Optional.empty(),
+            computation(5, field("timestamp_value"), "test_field_alias", SMA)));
+  }
+
+  @Test
+  public void trendline_illegal_type() {
+    assertThrows(
+        SemanticCheckException.class,
+        () ->
+            analyze(
+                AstDSL.trendline(
+                    AstDSL.relation("schema"),
+                    Optional.empty(),
+                    computation(5, field("array_value"), "test_field_alias", SMA))));
+  }
+
+  @Test
+  public void trendline_with_sort() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.trendline(
+            LogicalPlanDSL.sort(
+                LogicalPlanDSL.relation("schema", table),
+                Pair.of(
+                    new SortOption(SortOrder.ASC, NullOrder.NULL_FIRST),
+                    DSL.ref("float_value", ExprCoreType.FLOAT))),
+            Pair.of(computation(5, field("float_value"), "test_field_alias", SMA), DOUBLE),
+            Pair.of(computation(1, field("double_value"), "test_field_alias_2", SMA), DOUBLE)),
+        AstDSL.trendline(
+            AstDSL.relation("schema"),
+            Optional.of(field("float_value", argument("asc", booleanLiteral(true)))),
+            computation(5, field("float_value"), "test_field_alias", SMA),
+            computation(1, field("double_value"), "test_field_alias_2", SMA)));
   }
 
   @Test

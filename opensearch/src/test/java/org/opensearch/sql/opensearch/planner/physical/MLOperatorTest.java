@@ -65,7 +65,7 @@ public class MLOperatorTest {
   private NodeClient nodeClient;
 
   private MLOperator mlOperator;
-  Map<String, Literal> arguments = new HashMap<>();
+  final Map<String, Literal> arguments = new HashMap<>();
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private MachineLearningNodeClient machineLearningNodeClient;

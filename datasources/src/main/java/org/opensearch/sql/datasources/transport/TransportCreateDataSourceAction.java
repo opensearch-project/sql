@@ -30,8 +30,8 @@ public class TransportCreateDataSourceAction
   public static final ActionType<CreateDataSourceActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, CreateDataSourceActionResponse::new);
 
-  private DataSourceService dataSourceService;
-  private org.opensearch.sql.opensearch.setting.OpenSearchSettings settings;
+  private final DataSourceService dataSourceService;
+  private final org.opensearch.sql.opensearch.setting.OpenSearchSettings settings;
 
   /**
    * TransportCreateDataSourceAction action for creating datasource.

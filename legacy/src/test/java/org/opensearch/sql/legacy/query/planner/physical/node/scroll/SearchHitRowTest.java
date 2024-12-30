@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.search.SearchHit;
+import org.opensearch.sql.legacy.query.planner.physical.node.SearchHitRow;
 
 public class SearchHitRowTest {
 

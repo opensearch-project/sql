@@ -43,7 +43,7 @@ public class AsyncRestExecutorTest {
 
   @Mock private Client client;
 
-  private Map<String, String> params = emptyMap();
+  private final Map<String, String> params = emptyMap();
 
   @Mock private QueryAction action;
 

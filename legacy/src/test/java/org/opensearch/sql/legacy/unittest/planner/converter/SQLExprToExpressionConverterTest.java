@@ -33,7 +33,7 @@ import org.opensearch.sql.legacy.query.planner.converter.SQLExprToExpressionConv
 
 @RunWith(MockitoJUnitRunner.class)
 public class SQLExprToExpressionConverterTest {
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   private SQLExprToExpressionConverter converter;
   private SQLAggregationParser.Context context;

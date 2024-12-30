@@ -90,6 +90,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testTrendlineCommand() {
+    assertEquals(
+        "source=t | trendline sma(2, date) as date_alias sma(3, time) as time_alias",
+        anonymize("source=t | trendline sma(2, date) as date_alias sma(3, time) as time_alias"));
+  }
+
+  @Test
   public void testHeadCommandWithNumber() {
     assertEquals("source=t | head 3", anonymize("source=t | head 3"));
   }
@@ -103,6 +110,19 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testEvalCommand() {
     assertEquals("source=t | eval r=abs(f)", anonymize("source=t | eval r=abs(f)"));
+  }
+
+  @Test
+  public void testFillNullSameValue() {
+    assertEquals(
+        "source=t | fillnull with 0 in f1, f2", anonymize("source=t | fillnull with 0 in f1, f2"));
+  }
+
+  @Test
+  public void testFillNullVariousValues() {
+    assertEquals(
+        "source=t | fillnull using f1 = 0, f2 = -1",
+        anonymize("source=t | fillnull using f1 = 0, f2 = -1"));
   }
 
   @Test

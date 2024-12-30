@@ -13,7 +13,7 @@ import org.opensearch.sql.legacy.rewriter.subquery.utils.FindSubQuery;
 
 /** Subquery Rewriter Rule. */
 public class SubQueryRewriteRule implements RewriteRule<SQLQueryExpr> {
-  private FindSubQuery findAllSubQuery = new FindSubQuery();
+  private final FindSubQuery findAllSubQuery = new FindSubQuery();
 
   @Override
   public boolean match(SQLQueryExpr expr) throws SQLFeatureNotSupportedException {

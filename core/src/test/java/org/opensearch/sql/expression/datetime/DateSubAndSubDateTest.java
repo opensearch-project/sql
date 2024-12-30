@@ -139,7 +139,7 @@ public class DateSubAndSubDateTest extends DateTimeTestBase {
             ExpressionEvaluationException.class,
             () -> date_sub(LocalDateTime.of(1961, 4, 12, 9, 7), 100500));
     assertEquals(
-        "date_sub function expected {[DATE,INTERVAL],[TIMESTAMP,INTERVAL],[TIME,INTERVAL]}, but get"
+        "date_sub function expected {[DATE,INTERVAL],[TIMESTAMP,INTERVAL],[TIME,INTERVAL]}, but got"
             + " [TIMESTAMP,INTEGER]",
         exception.getMessage());
   }

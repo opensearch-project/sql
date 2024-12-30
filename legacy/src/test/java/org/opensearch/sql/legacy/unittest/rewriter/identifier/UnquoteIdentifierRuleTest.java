@@ -65,8 +65,8 @@ public class UnquoteIdentifierRuleTest {
 
   private static class QueryAssertion {
 
-    private UnquoteIdentifierRule rule = new UnquoteIdentifierRule();
-    private SQLQueryExpr expr;
+    private final UnquoteIdentifierRule rule = new UnquoteIdentifierRule();
+    private final SQLQueryExpr expr;
 
     QueryAssertion(String sql) {
       this.expr = SqlParserUtils.parse(sql);

@@ -5,23 +5,32 @@
 
 package org.opensearch.sql.legacy.executor.format;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+
 import java.util.Map;
+import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
+import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
+import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.sql.legacy.cursor.Cursor;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.QueryActionElasticExecutor;
 import org.opensearch.sql.legacy.executor.RestExecutor;
+import org.opensearch.sql.legacy.pit.PointInTimeHandler;
+import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
+import org.opensearch.sql.legacy.query.SqlOpenSearchRequestBuilder;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
 
 public class PrettyFormatRestExecutor implements RestExecutor {
@@ -90,20 +99,47 @@ public class PrettyFormatRestExecutor implements RestExecutor {
   private Protocol buildProtocolForDefaultQuery(Client client, DefaultQueryAction queryAction)
       throws SqlParseException {
 
-    SearchResponse response = (SearchResponse) queryAction.explain().get();
-    String scrollId = response.getScrollId();
+    PointInTimeHandler pit = null;
+    SearchResponse response;
+    SqlOpenSearchRequestBuilder sqlOpenSearchRequestBuilder = queryAction.explain();
+    if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+      pit = new PointInTimeHandlerImpl(client, queryAction.getSelect().getIndexArr());
+      pit.create();
+      SearchRequestBuilder searchRequest = queryAction.getRequestBuilder();
+      searchRequest.setPointInTime(new PointInTimeBuilder(pit.getPitId()));
+      response = searchRequest.get();
+    } else {
+      response = (SearchResponse) sqlOpenSearchRequestBuilder.get();
+    }
 
     Protocol protocol;
-    if (!Strings.isNullOrEmpty(scrollId)) {
+    if (isDefaultCursor(response, queryAction)) {
       DefaultCursor defaultCursor = new DefaultCursor();
-      defaultCursor.setScrollId(scrollId);
       defaultCursor.setLimit(queryAction.getSelect().getRowCount());
       defaultCursor.setFetchSize(queryAction.getSqlRequest().fetchSize());
+      if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+        defaultCursor.setPitId(pit.getPitId());
+        defaultCursor.setSearchSourceBuilder(queryAction.getRequestBuilder().request().source());
+        defaultCursor.setSortFields(
+            response.getHits().getAt(response.getHits().getHits().length - 1).getSortValues());
+      } else {
+        defaultCursor.setScrollId(response.getScrollId());
+      }
       protocol = new Protocol(client, queryAction, response.getHits(), format, defaultCursor);
     } else {
       protocol = new Protocol(client, queryAction, response.getHits(), format, Cursor.NULL_CURSOR);
     }
 
     return protocol;
+  }
+
+  protected boolean isDefaultCursor(SearchResponse searchResponse, DefaultQueryAction queryAction) {
+    if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+      return queryAction.getSqlRequest().fetchSize() != 0
+          && Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value
+              >= queryAction.getSqlRequest().fetchSize();
+    } else {
+      return !Strings.isNullOrEmpty(searchResponse.getScrollId());
+    }
   }
 }

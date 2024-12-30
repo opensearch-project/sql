@@ -27,8 +27,8 @@ class FunctionSignatureTest {
   @Mock private FunctionSignature funcSignature;
   @Mock private List<ExprType> funcParamTypeList;
 
-  private FunctionName unresolvedFuncName = FunctionName.of("add");
-  private List<ExprType> unresolvedParamTypeList =
+  private final FunctionName unresolvedFuncName = FunctionName.of("add");
+  private final List<ExprType> unresolvedParamTypeList =
       Arrays.asList(ExprCoreType.INTEGER, ExprCoreType.FLOAT);
 
   @Test

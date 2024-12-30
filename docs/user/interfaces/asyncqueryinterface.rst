@@ -68,6 +68,8 @@ Async Query Creation API
 ======================================
 If security plugin is enabled, this API can only be invoked by users with permission ``cluster:admin/opensearch/ql/async_query/create``.
 
+Limitation: Spark SQL queries that create User-Defined Functions (UDFs) are not allowed.
+
 HTTP URI: ``_plugins/_async_query``
 
 HTTP VERB: ``POST``

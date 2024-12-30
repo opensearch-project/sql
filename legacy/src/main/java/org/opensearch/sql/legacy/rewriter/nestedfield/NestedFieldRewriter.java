@@ -57,7 +57,7 @@ public class NestedFieldRewriter extends MySqlASTVisitorAdapter {
    * Scope stack to record the state (nested field names etc) for current query. In the case of
    * subquery, the active scope of current query is the top element of the stack.
    */
-  private Deque<Scope> environment = new ArrayDeque<>();
+  private final Deque<Scope> environment = new ArrayDeque<>();
 
   /**
    * Rewrite FROM here to make sure FROM statement always be visited before other statement in

@@ -36,9 +36,9 @@ import org.opensearch.sql.sql.domain.SQLQueryRequest;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SQLServiceTest {
 
-  private static String QUERY = "/_plugins/_sql";
+  private static final String QUERY = "/_plugins/_sql";
 
-  private static String EXPLAIN = "/_plugins/_sql/_explain";
+  private static final String EXPLAIN = "/_plugins/_sql/_explain";
 
   private SQLService sqlService;
 
@@ -114,6 +114,45 @@ class SQLServiceTest {
   public void can_execute_csv_format_request() {
     sqlService.execute(
         new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "csv"),
+        new ResponseListener<QueryResponse>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            assertNotNull(response);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail(e);
+          }
+        });
+  }
+
+  @Test
+  public void can_execute_raw_format_request() {
+    sqlService.execute(
+        new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "raw"),
+        new ResponseListener<QueryResponse>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            assertNotNull(response);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail(e);
+          }
+        });
+  }
+
+  @Test
+  public void can_execute_pretty_raw_format_request() {
+    sqlService.execute(
+        new SQLQueryRequest(
+            new JSONObject(),
+            "SELECT 123",
+            QUERY,
+            Map.of("format", "jdbc", "pretty", "true"),
+            "n:cursor"),
         new ResponseListener<QueryResponse>() {
           @Override
           public void onResponse(QueryResponse response) {

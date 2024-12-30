@@ -6,18 +6,9 @@
 package org.opensearch.sql.legacy.unittest.query;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.*;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -27,6 +18,8 @@ import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.script.Script;
+import org.opensearch.search.sort.FieldSortBuilder;
+import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.KVValue;
@@ -149,6 +142,12 @@ public class DefaultQueryActionTest {
     queryAction.setFormat(Format.JDBC);
     queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setSize(settingFetchSize);
+    Mockito.verify(mockRequestBuilder).addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+    Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
+
+    // Verify setScroll when SQL_PAGINATION_API_SEARCH_AFTER is set to false
+    mockLocalClusterStateAndIntializeMetricsForScroll(timeValue);
+    queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setScroll(timeValue);
   }
 
@@ -168,6 +167,12 @@ public class DefaultQueryActionTest {
     mockLocalClusterStateAndInitializeMetrics(timeValue);
     queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setSize(settingFetchSize);
+    Mockito.verify(mockRequestBuilder).addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+    Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
+
+    // Verify setScroll when SQL_PAGINATION_API_SEARCH_AFTER is set to false
+    mockLocalClusterStateAndIntializeMetricsForScroll(timeValue);
+    queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setScroll(timeValue);
   }
 
@@ -195,6 +200,12 @@ public class DefaultQueryActionTest {
     doReturn(mockRequestBuilder).when(mockRequestBuilder).setSize(userFetchSize);
     queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setSize(20);
+    Mockito.verify(mockRequestBuilder).addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+    Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
+
+    // Verify setScroll when SQL_PAGINATION_API_SEARCH_AFTER is set to false
+    mockLocalClusterStateAndIntializeMetricsForScroll(timeValue);
+    queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setScroll(timeValue);
   }
 
@@ -216,7 +227,9 @@ public class DefaultQueryActionTest {
 
     queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setSize(userFetchSize);
-    Mockito.verify(mockRequestBuilder).setScroll(timeValue);
+    Mockito.verify(mockRequestBuilder).addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+    // Skip setScroll when SQL_PAGINATION_API_SEARCH_AFTER is set to false
+    Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
 
     /** fetchSize > LIMIT - no scroll */
     userFetchSize = 5000;
@@ -226,6 +239,14 @@ public class DefaultQueryActionTest {
     queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setSize(limit);
     Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
+
+    // Verify setScroll when SQL_PAGINATION_API_SEARCH_AFTER is set to false
+    mockLocalClusterStateAndIntializeMetricsForScroll(timeValue);
+    /** fetchSize <= LIMIT - open scroll */
+    userFetchSize = 1500;
+    doReturn(userFetchSize).when(mockSqlRequest).fetchSize();
+    queryAction.checkAndSetScroll();
+    Mockito.verify(mockRequestBuilder).setScroll(timeValue);
   }
 
   private void mockLocalClusterStateAndInitializeMetrics(TimeValue time) {
@@ -236,6 +257,24 @@ public class DefaultQueryActionTest {
         .when(mockLocalClusterState)
         .getSettingValue(Settings.Key.METRICS_ROLLING_WINDOW);
     doReturn(2L).when(mockLocalClusterState).getSettingValue(Settings.Key.METRICS_ROLLING_INTERVAL);
+    doReturn(true)
+        .when(mockLocalClusterState)
+        .getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER);
+
+    Metrics.getInstance().registerDefaultMetrics();
+  }
+
+  private void mockLocalClusterStateAndIntializeMetricsForScroll(TimeValue time) {
+    LocalClusterState mockLocalClusterState = mock(LocalClusterState.class);
+    LocalClusterState.state(mockLocalClusterState);
+    doReturn(time).when(mockLocalClusterState).getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
+    doReturn(3600L)
+        .when(mockLocalClusterState)
+        .getSettingValue(Settings.Key.METRICS_ROLLING_WINDOW);
+    doReturn(2L).when(mockLocalClusterState).getSettingValue(Settings.Key.METRICS_ROLLING_INTERVAL);
+    doReturn(false)
+        .when(mockLocalClusterState)
+        .getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER);
 
     Metrics.getInstance().registerDefaultMetrics();
   }

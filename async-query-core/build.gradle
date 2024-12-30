@@ -21,14 +21,18 @@ tasks.register('downloadG4Files', Exec) {
 
     executable 'curl'
 
-    args '-o', 'src/main/antlr/FlintSparkSqlExtensions.g4', 'https://raw.githubusercontent.com/opensearch-project/opensearch-spark/main/flint-spark-integration/src/main/antlr4/FlintSparkSqlExtensions.g4'
-    args '-o', 'src/main/antlr/SparkSqlBase.g4', 'https://raw.githubusercontent.com/opensearch-project/opensearch-spark/main/flint-spark-integration/src/main/antlr4/SparkSqlBase.g4'
-    args '-o', 'src/main/antlr/SqlBaseParser.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseParser.g4'
-    args '-o', 'src/main/antlr/SqlBaseLexer.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseLexer.g4'
+    def opensearchSparkBranch = "0.6"
+    def apacheSparkVersionTag = "v3.5.1"
+    args '-o', 'src/main/antlr/FlintSparkSqlExtensions.g4', "https://raw.githubusercontent.com/opensearch-project/opensearch-spark/${opensearchSparkBranch}/flint-spark-integration/src/main/antlr4/FlintSparkSqlExtensions.g4"
+    args '-o', 'src/main/antlr/SparkSqlBase.g4', "https://raw.githubusercontent.com/opensearch-project/opensearch-spark/${opensearchSparkBranch}/flint-spark-integration/src/main/antlr4/SparkSqlBase.g4"
+    args '-o', 'src/main/antlr/SqlBaseParser.g4', "https://raw.githubusercontent.com/apache/spark/${apacheSparkVersionTag}/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseParser.g4"
+    args '-o', 'src/main/antlr/SqlBaseLexer.g4', "https://raw.githubusercontent.com/apache/spark/${apacheSparkVersionTag}/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseLexer.g4"
+    args '-o', 'src/main/antlr/OpenSearchPPLParser.g4', "https://raw.githubusercontent.com/opensearch-project/opensearch-spark/${opensearchSparkBranch}/ppl-spark-integration/src/main/antlr4/OpenSearchPPLParser.g4"
+    args '-o', 'src/main/antlr/OpenSearchPPLLexer.g4', "https://raw.githubusercontent.com/opensearch-project/opensearch-spark/${opensearchSparkBranch}/ppl-spark-integration/src/main/antlr4/OpenSearchPPLLexer.g4"
 }
 
 generateGrammarSource {
-    arguments += ['-visitor', '-package', 'org.opensearch.sql.asyncquery.antlr.parser']
+    arguments += ['-visitor', '-package', 'org.opensearch.sql.spark.antlr.parser']
     source = sourceSets.main.antlr
     outputDirectory = file("build/generated-src/antlr/main/org/opensearch/sql/asyncquery/antlr/parser")
 }
@@ -38,23 +42,20 @@ configurations {
     }
 }
 
-// Make sure the downloadG4File task runs before the generateGrammarSource task
-generateGrammarSource.dependsOn downloadG4Files
-
 dependencies {
     antlr "org.antlr:antlr4:4.7.1"
 
-    implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
+    implementation project(':core')
+    implementation project(':spark') // TODO: dependency to spark should be eliminated
+    implementation project(':datasources') // TODO: dependency to datasources should be eliminated
+    implementation 'org.json:json:20231013'
     implementation 'com.google.code.gson:gson:2.8.9'
 
     testImplementation(platform("org.junit:junit-bom:5.9.3"))
 
     testCompileOnly('org.junit.jupiter:junit-jupiter')
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.7.0'
+    testImplementation 'org.mockito:mockito-core:5.7.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.7.0'
 
     testCompileOnly('junit:junit:4.13.1') {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
@@ -108,7 +109,20 @@ jacocoTestCoverageVerification {
     violationRules {
         rule {
             element = 'CLASS'
-            excludes = []
+            //　TODO: Add unit tests in async-query-core and remove exclusions
+            excludes = [
+                    'org.opensearch.sql.spark.asyncquery.model.*',
+                    'org.opensearch.sql.spark.data.constants.*',
+                    'org.opensearch.sql.spark.dispatcher.model.*',
+                    'org.opensearch.sql.spark.dispatcher.*',
+                    'org.opensearch.sql.spark.execution.session.*',
+                    'org.opensearch.sql.spark.execution.statement.*',
+                    'org.opensearch.sql.spark.flint.*',
+                    'org.opensearch.sql.spark.flint.operation.*',
+                    'org.opensearch.sql.spark.rest.*',
+                    'org.opensearch.sql.spark.utils.SQLQueryUtils.*',
+                    'org.opensearch.sql.spark.validator.SQLQueryValidationVisitor'
+            ]
             limit {
                 counter = 'LINE'
                 minimum = 1.0

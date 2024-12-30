@@ -20,7 +20,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 
 public class TransportPPLQueryRequestTest {
 
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void testValidate() {

@@ -35,7 +35,7 @@ import org.opensearch.sql.legacy.query.planner.core.ColumnNode;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SQLAggregationParserTest {
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void parseAggWithoutExpressionShouldPass() {

@@ -21,7 +21,7 @@ import org.opensearch.sql.legacy.util.MatcherUtils;
 import org.opensearch.sql.legacy.util.SqlParserUtils;
 
 public class TermFieldRewriterTest {
-  @Rule public ExpectedException exception = ExpectedException.none();
+  @Rule public final ExpectedException exception = ExpectedException.none();
 
   @Before
   public void setup() {

@@ -24,9 +24,9 @@ import org.apache.logging.log4j.Logger;
 
 public class AwsSigningInterceptor implements Interceptor {
 
-  private OkHttpAwsV4Signer okHttpAwsV4Signer;
+  private final OkHttpAwsV4Signer okHttpAwsV4Signer;
 
-  private AWSCredentialsProvider awsCredentialsProvider;
+  private final AWSCredentialsProvider awsCredentialsProvider;
 
   private static final Logger LOG = LogManager.getLogger();
 

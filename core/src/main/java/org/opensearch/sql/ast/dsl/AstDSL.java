@@ -5,10 +5,13 @@
 
 package org.opensearch.sql.ast.dsl;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -46,6 +49,7 @@ import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
@@ -59,6 +63,7 @@ import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 
@@ -463,6 +468,18 @@ public class AstDSL {
     return new Limit(limit, offset).attach(input);
   }
 
+  public static Trendline trendline(
+      UnresolvedPlan input,
+      Optional<Field> sortField,
+      Trendline.TrendlineComputation... computations) {
+    return new Trendline(sortField, Arrays.asList(computations)).attach(input);
+  }
+
+  public static Trendline.TrendlineComputation computation(
+      Integer numDataPoints, Field dataField, String alias, Trendline.TrendlineType type) {
+    return new Trendline.TrendlineComputation(numDataPoints, dataField, alias, type);
+  }
+
   public static Parse parse(
       UnresolvedPlan input,
       ParseMethod parseMethod,
@@ -470,5 +487,23 @@ public class AstDSL {
       Literal pattern,
       java.util.Map<String, Literal> arguments) {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
+  }
+
+  public static FillNull fillNull(UnresolvedExpression replaceNullWithMe, Field... fields) {
+    return new FillNull(
+        FillNull.ContainNullableFieldFill.ofSameValue(
+            replaceNullWithMe, ImmutableList.copyOf(fields)));
+  }
+
+  public static FillNull fillNull(
+      List<ImmutablePair<Field, UnresolvedExpression>> fieldAndReplacements) {
+    ImmutableList.Builder<FillNull.NullableFieldFill> replacementsBuilder = ImmutableList.builder();
+    for (ImmutablePair<Field, UnresolvedExpression> fieldAndReplacement : fieldAndReplacements) {
+      replacementsBuilder.add(
+          new FillNull.NullableFieldFill(
+              fieldAndReplacement.getLeft(), fieldAndReplacement.getRight()));
+    }
+    return new FillNull(
+        FillNull.ContainNullableFieldFill.ofVariousValue(replacementsBuilder.build()));
   }
 }

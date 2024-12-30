@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -689,13 +690,18 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
             String.format(
                 Locale.ROOT, "SELECT firstname, lastname FROM %s", TEST_INDEX_BANK_CSV_SANITIZE),
             false);
-    List<String> lines = csvResult.getLines();
-    assertEquals(5, lines.size());
-    assertEquals(lines.get(0), "'+Amber JOHnny,Duke Willmington+");
-    assertEquals(lines.get(1), "'-Hattie,Bond-");
-    assertEquals(lines.get(2), "'=Nanette,Bates=");
-    assertEquals(lines.get(3), "'@Dale,Adams@");
-    assertEquals(lines.get(4), "\",Elinor\",\"Ratliff,,,\"");
+    List<String> actualLines = csvResult.getLines();
+    assertEquals(5, actualLines.size());
+
+    List<String> expectedLines =
+        Arrays.asList(
+            "'+Amber JOHnny,Duke Willmington+",
+            "'-Hattie,Bond-",
+            "'=Nanette,Bates=",
+            "'@Dale,Adams@",
+            "\",Elinor\",\"Ratliff,,,\"");
+
+    assertContainsSameItems(expectedLines, actualLines);
   }
 
   @Test
@@ -717,6 +723,15 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
             TEST_INDEX_ACCOUNT);
 
     verifyFieldOrder(expectedFields, query);
+  }
+
+  private void assertContainsSameItems(List<String> expectedLines, List<String> actualLines) {
+    Collections.sort(expectedLines);
+    Collections.sort(actualLines);
+    assertEquals(expectedLines.size(), actualLines.size());
+    for (int i = 0; i < expectedLines.size(); i++) {
+      assertEquals(expectedLines.get(i), actualLines.get(i));
+    }
   }
 
   private void verifyFieldOrder(final String[] expectedFields, final String query)

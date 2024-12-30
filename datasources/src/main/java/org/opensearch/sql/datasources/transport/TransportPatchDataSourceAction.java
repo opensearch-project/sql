@@ -30,7 +30,7 @@ public class TransportPatchDataSourceAction
   public static final ActionType<PatchDataSourceActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, PatchDataSourceActionResponse::new);
 
-  private DataSourceService dataSourceService;
+  private final DataSourceService dataSourceService;
 
   /**
    * TransportPatchDataSourceAction action for updating datasource.

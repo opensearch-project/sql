@@ -21,9 +21,9 @@ import org.opensearch.sql.legacy.utils.Util;
 /** Created by allwefantasy on 9/3/16. */
 public class CaseWhenParser {
 
-  private SQLCaseExpr caseExpr;
-  private String alias;
-  private String tableAlias;
+  private final SQLCaseExpr caseExpr;
+  private final String alias;
+  private final String tableAlias;
 
   public CaseWhenParser(SQLCaseExpr caseExpr, String alias, String tableAlias) {
     this.alias = alias;

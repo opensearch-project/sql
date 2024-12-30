@@ -163,13 +163,13 @@ public class OpenSearchIndex implements Table {
     final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
 
     final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    var builder = new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory());
+    var builder = new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory(), settings);
     Function<OpenSearchRequestBuilder, OpenSearchIndexScan> createScanOperator =
         requestBuilder ->
             new OpenSearchIndexScan(
                 client,
                 requestBuilder.getMaxResponseSize(),
-                requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive));
+                requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
     return new OpenSearchIndexScanBuilder(builder, createScanOperator);
   }
 
@@ -177,7 +177,12 @@ public class OpenSearchIndex implements Table {
     Map<String, OpenSearchDataType> allFields = new HashMap<>();
     getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
     allFields.putAll(getFieldOpenSearchTypes());
-    return new OpenSearchExprValueFactory(allFields);
+    return new OpenSearchExprValueFactory(
+        allFields, settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE));
+  }
+
+  public boolean isFieldTypeTolerance() {
+    return settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE);
   }
 
   @VisibleForTesting

@@ -196,13 +196,57 @@ Result set::
 
 Note: the legacy settings of ``opendistro.sql.cursor.keep_alive`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
+plugins.sql.pagination.api
+================================
+
+Description
+-----------
+
+This setting controls whether the SQL search queries in OpenSearch use Point-In-Time (PIT) with search_after or the traditional scroll mechanism for fetching paginated results.
+
+1. Default Value: true
+2. Possible Values: true or false
+3. When set to true, the search query in the background uses PIT with search_after instead of scroll to retrieve paginated results. The Cursor Id returned to the user will encode relevant pagination query-related information, which will be used to fetch the subsequent pages of results.
+4. This setting is node-level.
+5. This setting can be updated dynamically.
+
+
+Example
+-------
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.sql.pagination.api" : "true"
+	  }
+	}'
+
+Result set::
+
+	{
+	  "acknowledged" : true,
+	  "persistent" : { },
+	  "transient" : {
+	    "plugins" : {
+	      "sql" : {
+	        "pagination" : {
+	          "api" : "true"
+	        }
+	      }
+	    }
+	  }
+	}
+
 plugins.query.size_limit
 ===========================
 
 Description
 -----------
 
-The new engine fetches a default size of index from OpenSearch set by this setting, the default value is 200. You can change the value to any value not greater than the max result window value in index level (10000 by default), here is an example::
+The new engine fetches a default size of index from OpenSearch set by this setting, the default value equals to max result window in index level (10000 by default). You can change the value to any value not greater than the max result window value in index level (`index.max_result_window`), here is an example::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
@@ -595,6 +639,75 @@ Request::
         }
     }
 
+plugins.query.executionengine.async_query.external_scheduler.enabled
+=====================================================================
+
+Description
+-----------
+This setting controls whether the external scheduler is enabled for async queries.
+
+* Default Value: true
+* Scope: Node-level
+* Dynamic Update: Yes, this setting can be updated dynamically. 
+
+To disable the external scheduler, use the following command:
+
+Request ::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.async_query.external_scheduler.enabled":"false"}}'
+    {
+        "acknowledged": true,
+        "persistent": {},
+        "transient": {
+            "plugins": {
+                "query": {
+                    "executionengine": {
+                        "async_query": {
+                            "external_scheduler": {
+                                "enabled": "false"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+plugins.query.executionengine.async_query.external_scheduler.interval
+=====================================================================
+
+Description
+-----------
+This setting defines the interval at which the external scheduler applies for auto refresh queries. It optimizes Spark applications by allowing them to automatically decide whether to use the Spark scheduler or the external scheduler.
+
+* Default Value: None (must be explicitly set)
+* Format: A string representing a time duration follows Spark `CalendarInterval <https://spark.apache.org/docs/latest/api/java/org/apache/spark/unsafe/types/CalendarInterval.html>`__ format (e.g., ``10 minutes`` for 10 minutes, ``1 hour`` for 1 hour).
+
+To modify the interval to 10 minutes for example, use this command:
+
+Request ::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.async_query.external_scheduler.interval":"10 minutes"}}'
+    {
+        "acknowledged": true,
+        "persistent": {},
+        "transient": {
+            "plugins": {
+                "query": {
+                    "executionengine": {
+                        "async_query": {
+                            "external_scheduler": {
+                                "interval": "10 minutes"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 plugins.query.executionengine.spark.streamingjobs.housekeeper.interval
 ======================================================================
 
@@ -630,3 +743,142 @@ Request ::
         }
       }
     }
+
+plugins.query.datasources.enabled
+=================================
+
+Description
+-----------
+
+This setting controls whether datasources are enabled.
+
+1. The default value is true
+2. This setting is node scope
+3. This setting can be updated dynamically
+
+Update Settings Request::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT 'localhost:9200/_cluster/settings?pretty' \
+    ... -d '{"transient":{"plugins.query.datasources.enabled":"false"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "query": {
+            "datasources": {
+              "enabled": "false"
+            }
+          }
+        }
+      }
+    }
+
+When Attempting to Call Data Source APIs::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X GET 'localhost:9200/_plugins/_query/_datasources'
+    {
+      "status": 400,
+      "error": {
+        "type": "OpenSearchStatusException",
+        "reason": "Invalid Request",
+        "details": "plugins.query.datasources.enabled setting is false"
+      }
+    }
+
+When Attempting to List Data Source::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X POST 'localhost:9200/_plugins/_ppl' \
+    ... -d '{"query":"show datasources"}'
+    {
+      "schema": [
+        {
+          "name": "DATASOURCE_NAME",
+          "type": "string"
+        },
+        {
+          "name": "CONNECTOR_TYPE",
+          "type": "string"
+        }
+      ],
+      "datarows": [],
+      "total": 0,
+      "size": 0
+    }
+
+To Re-enable Data Sources:::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT 'localhost:9200/_cluster/settings?pretty' \
+    ... -d '{"transient":{"plugins.query.datasources.enabled":"true"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "query": {
+            "datasources": {
+              "enabled": "true"
+            }
+          }
+        }
+      }
+    }
+
+plugins.query.field_type_tolerance
+==================================
+
+Description
+-----------
+
+This setting controls whether preserve arrays. If this setting is set to false, then an array is reduced
+to the first non array value of any level of nesting.
+
+1. The default value is true (preserve arrays)
+2. This setting is node scope
+3. This setting can be updated dynamically
+
+Querying a field containing array values will return the full array values::
+
+    os> SELECT accounts FROM people;
+    fetched rows / total rows = 1/1
+    +-----------------------+
+    | accounts              |
+    +-----------------------+
+    | [{'id': 1},{'id': 2}] |
+    +-----------------------+
+
+Disable field type tolerance::
+
+    >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	    "transient" : {
+	      "plugins.query.field_type_tolerance" : false
+	    }
+	  }'
+
+When field type tolerance is disabled, arrays are collapsed to the first non array value::
+
+    os> SELECT accounts FROM people;
+    fetched rows / total rows = 1/1
+    +-----------+
+    | accounts  |
+    +-----------+
+    | {'id': 1} |
+    +-----------+
+
+Reenable field type tolerance::
+
+    >> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	    "transient" : {
+	      "plugins.query.field_type_tolerance" : true
+	    }
+	  }'
+
+Limitations:
+------------
+OpenSearch does not natively support the ARRAY data type but does allow multi-value fields implicitly. The
+SQL/PPL plugin adheres strictly to the data type semantics defined in index mappings. When parsing OpenSearch
+responses, it expects data to match the declared type and does not account for data in array format. If the
+plugins.query.field_type_tolerance setting is enabled, the SQL/PPL plugin will handle array datasets by returning
+scalar data types, allowing basic queries (e.g., SELECT * FROM tbl WHERE condition). However, using multi-value
+fields in expressions or functions will result in exceptions. If this setting is disabled or absent, only the
+first element of an array is returned, preserving the default behavior.

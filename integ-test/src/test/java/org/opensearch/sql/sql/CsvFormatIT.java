@@ -6,7 +6,8 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_CSV_SANITIZE;
-import static org.opensearch.sql.protocol.response.format.FlatResponseFormatter.CONTENT_TYPE;
+import static org.opensearch.sql.protocol.response.format.CsvResponseFormatter.CONTENT_TYPE;
+import static org.opensearch.sql.util.TestUtils.assertRowsEqual;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -30,7 +31,7 @@ public class CsvFormatIT extends SQLIntegTestCase {
             String.format(
                 Locale.ROOT, "SELECT firstname, lastname FROM %s", TEST_INDEX_BANK_CSV_SANITIZE),
             "csv");
-    assertEquals(
+    assertRowsEqual(
         StringUtils.format(
             "firstname,lastname%n"
                 + "'+Amber JOHnny,Duke Willmington+%n"
@@ -48,7 +49,7 @@ public class CsvFormatIT extends SQLIntegTestCase {
             String.format(
                 Locale.ROOT, "SELECT firstname, lastname FROM %s", TEST_INDEX_BANK_CSV_SANITIZE),
             "csv&sanitize=false");
-    assertEquals(
+    assertRowsEqual(
         StringUtils.format(
             "firstname,lastname%n"
                 + "+Amber JOHnny,Duke Willmington+%n"

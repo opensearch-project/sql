@@ -12,7 +12,7 @@ import org.opensearch.core.rest.RestStatus;
 /** Error Message. */
 public class ErrorMessage {
 
-  protected Throwable exception;
+  protected final Throwable exception;
 
   private final int status;
 

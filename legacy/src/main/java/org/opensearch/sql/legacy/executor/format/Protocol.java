@@ -36,7 +36,7 @@ public class Protocol {
   static final int ERROR_STATUS = 500;
 
   private final String formatType;
-  private int status;
+  private final int status;
   private long size;
   private long total;
   private ResultSet resultSet;

@@ -16,6 +16,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -58,6 +59,10 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class FilterQueryBuilderTest {
+
+  private static Stream<LiteralExpression> ipCastSource() {
+    return Stream.of(literal("1.2.3.4"), literal("2001:db7::ff00:42:8329"));
+  }
 
   private static Stream<LiteralExpression> numericCastSource() {
     return Stream.of(
@@ -1715,6 +1720,25 @@ class FilterQueryBuilderTest {
         json, buildQuery(DSL.equal(ref("boolean_value", BOOLEAN), DSL.castBoolean(expr))));
   }
 
+  @ParameterizedTest(name = "castIp({0})")
+  @MethodSource({"ipCastSource"})
+  void cast_to_ip_in_filter(LiteralExpression expr) {
+    String json =
+        String.format(
+            """
+                        {
+                          "term" : {
+                            "ip_value" : {
+                              "value" : "%s",
+                              "boost" : 1.0
+                            }
+                          }
+                        }""",
+            expr.valueOf().stringValue());
+
+    assertJsonEquals(json, buildQuery(DSL.equal(ref("ip_value", IP), DSL.castIp(expr))));
+  }
+
   @Test
   void cast_from_boolean() {
     Expression booleanExpr = literal(false);
@@ -1772,9 +1796,9 @@ class FilterQueryBuilderTest {
             + "    }\n"
             + "  }\n"
             + "}";
-
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("date_value", DATE), DSL.castDate(literal("2021-11-08")))));
+
     assertJsonEquals(
         json,
         buildQuery(
@@ -1821,7 +1845,7 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"term\" : {\n"
             + "    \"timestamp_value\" : {\n"
-            + "      \"value\" : 1636390800000,\n"
+            + "      \"value\" : \"2021-11-08 17:00:00\",\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
             + "  }\n"
@@ -1847,7 +1871,7 @@ class FilterQueryBuilderTest {
         "{\n"
             + "  \"range\" : {\n"
             + "    \"timestamp_value\" : {\n"
-            + "      \"from\" : 1636390800000,\n"
+            + "      \"from\" : \"2021-11-08 17:00:00\",\n"
             + "      \"to\" : null,"
             + "      \"include_lower\" : false,"
             + "      \"include_upper\" : true,"

@@ -8,8 +8,8 @@ package org.opensearch.sql.legacy.domain;
 /** Class used to differentiate SHOW and DESCRIBE statements */
 public class IndexStatement implements QueryStatement {
 
-  private StatementType statementType;
-  private String query;
+  private final StatementType statementType;
+  private final String query;
   private String indexPattern;
   private String columnPattern;
 

@@ -13,9 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -31,6 +29,7 @@ import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -51,15 +50,16 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
-import org.opensearch.action.search.ClearScrollRequestBuilder;
-import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.search.*;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
@@ -74,6 +74,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -169,7 +170,7 @@ class OpenSearchNodeClientTest {
         () -> assertEquals(OpenSearchTextType.of(MappingType.Double), parsedTypes.get("balance")),
         () -> assertEquals("KEYWORD", mapping.get("city").legacyTypeName()),
         () -> assertEquals(OpenSearchTextType.of(MappingType.Keyword), parsedTypes.get("city")),
-        () -> assertEquals("DATE", mapping.get("birthday").legacyTypeName()),
+        () -> assertEquals("TIMESTAMP", mapping.get("birthday").legacyTypeName()),
         () -> assertEquals(OpenSearchTextType.of(MappingType.Date), parsedTypes.get("birthday")),
         () -> assertEquals("GEO_POINT", mapping.get("location").legacyTypeName()),
         () ->
@@ -295,7 +296,6 @@ class OpenSearchNodeClientTest {
             new SearchHits(
                 new SearchHit[] {searchHit}, new TotalHits(1L, TotalHits.Relation.EQUAL_TO), 1.0F));
     when(searchHit.getSourceAsString()).thenReturn("{\"id\", 1}");
-    when(searchHit.getInnerHits()).thenReturn(null);
     when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleValue);
 
     // Mock second scroll request followed
@@ -391,6 +391,65 @@ class OpenSearchNodeClientTest {
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
     assertThrows(IllegalStateException.class, () -> client.cleanup(request));
+  }
+
+  @Test
+  @SneakyThrows
+  void cleanup_pit_request() {
+    OpenSearchQueryRequest request =
+        new OpenSearchQueryRequest(
+            new OpenSearchRequest.IndexName("test"),
+            new SearchSourceBuilder(),
+            factory,
+            List.of(),
+            TimeValue.timeValueMinutes(1L),
+            "samplePitId");
+    // Enforce cleaning by setting a private field.
+    FieldUtils.writeField(request, "needClean", true, true);
+    client.cleanup(request);
+    verify(nodeClient).execute(any(), any());
+  }
+
+  @Test
+  @SneakyThrows
+  void cleanup_pit_request_throw_exception() {
+    DeletePitRequest deletePitRequest = new DeletePitRequest("samplePitId");
+    ActionFuture<DeletePitResponse> actionFuture = mock(ActionFuture.class);
+    when(actionFuture.get()).thenThrow(new ExecutionException("Execution failed", new Throwable()));
+    when(nodeClient.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
+        .thenReturn(actionFuture);
+    assertThrows(RuntimeException.class, () -> client.deletePit(deletePitRequest));
+  }
+
+  @Test
+  @SneakyThrows
+  void create_pit() {
+    CreatePitRequest createPitRequest =
+        new CreatePitRequest(TimeValue.timeValueMinutes(5), false, Strings.EMPTY_ARRAY);
+    ActionFuture<CreatePitResponse> actionFuture = mock(ActionFuture.class);
+    CreatePitResponse createPitResponse = mock(CreatePitResponse.class);
+    when(createPitResponse.getId()).thenReturn("samplePitId");
+    when(actionFuture.get()).thenReturn(createPitResponse);
+    when(nodeClient.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
+        .thenReturn(actionFuture);
+
+    String pitId = client.createPit(createPitRequest);
+    assertEquals("samplePitId", pitId);
+
+    verify(nodeClient).execute(CreatePitAction.INSTANCE, createPitRequest);
+    verify(actionFuture).get();
+  }
+
+  @Test
+  @SneakyThrows
+  void create_pit_request_throw_exception() {
+    CreatePitRequest createPitRequest =
+        new CreatePitRequest(TimeValue.timeValueMinutes(5), false, Strings.EMPTY_ARRAY);
+    ActionFuture<CreatePitResponse> actionFuture = mock(ActionFuture.class);
+    when(actionFuture.get()).thenThrow(new ExecutionException("Execution failed", new Throwable()));
+    when(nodeClient.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
+        .thenReturn(actionFuture);
+    assertThrows(RuntimeException.class, () -> client.createPit(createPitRequest));
   }
 
   @Test

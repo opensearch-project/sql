@@ -44,12 +44,12 @@ import org.opensearch.sql.legacy.utils.Util;
 
 /** Created by allwefantasy on 9/2/16. */
 public class WhereParser {
-  private FieldMaker fieldMaker;
+  private final FieldMaker fieldMaker;
 
   private MySqlSelectQueryBlock query;
   private SQLDeleteStatement delete;
   private SQLExpr where;
-  private SqlParser sqlParser;
+  private final SqlParser sqlParser;
 
   public WhereParser(SqlParser sqlParser, MySqlSelectQueryBlock query, FieldMaker fieldMaker) {
     this.sqlParser = sqlParser;
