@@ -9,9 +9,21 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.Nullable;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.MatchQueryBuilder;
+import org.opensearch.index.query.TermQueryBuilder;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -28,9 +40,11 @@ import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalLookup;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.physical.LookupOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
@@ -208,6 +222,83 @@ public class OpenSearchIndex implements Table {
     @Override
     public PhysicalPlan visitML(LogicalML node, OpenSearchIndexScan context) {
       return new MLOperator(visitChild(node, context), node.getArguments(), client.getNodeClient());
+    }
+
+    @Override
+    public PhysicalPlan visitLookup(LogicalLookup node, OpenSearchIndexScan context) {
+      SingleRowQuery singleRowQuery = new SingleRowQuery(client);
+      return new LookupOperator(
+          visitChild(node, context),
+          node.getIndexName(),
+          node.getMatchFieldMap(),
+          node.getOverwrite(),
+          node.getCopyFieldMap(),
+          lookup(singleRowQuery));
+    }
+
+    BiFunction<String, Map<String, Object>, Map<String, Object>> lookup(
+        SingleRowQuery singleRowQuery) {
+      Objects.requireNonNull(singleRowQuery, "SingleRowQuery is required to perform lookup");
+      return (indexName, inputMap) -> {
+        Map<String, Object> matchMap = (Map<String, Object>) inputMap.get("_match");
+        Set<String> copySet = (Set<String>) inputMap.get("_copy");
+        return singleRowQuery.executeQuery(indexName, matchMap, copySet);
+      };
+    }
+  }
+
+  static class SingleRowQuery {
+
+    private final NodeClient nodeClient;
+
+    public SingleRowQuery(OpenSearchClient openSearchClient) {
+      Objects.requireNonNull(openSearchClient, "Opensearch client is required to perform lookup");
+      this.nodeClient =
+          Objects.requireNonNull(
+              openSearchClient.getNodeClient(),
+              "Can not perform lookup because openSearchClient was null. This is likely a bug.");
+    }
+
+    public @Nullable Map<String, Object> executeQuery(
+        String indexName, Map<String, Object> matchMap, Set<String> copySet) {
+      BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
+
+      for (Map.Entry<String, Object> f : matchMap.entrySet()) {
+        BoolQueryBuilder orQueryBuilder = new BoolQueryBuilder();
+
+        // Todo: Search with term and a match query? Or terms only?
+        orQueryBuilder.should(new TermQueryBuilder(f.getKey(), f.getValue().toString()));
+        orQueryBuilder.should(new MatchQueryBuilder(f.getKey(), f.getValue().toString()));
+        orQueryBuilder.minimumShouldMatch(1);
+
+        // filter is the same as "must" but ignores scoring
+        boolQueryBuilder.filter(orQueryBuilder);
+      }
+
+      SearchResponse result =
+          nodeClient
+              .search(
+                  new SearchRequest(indexName)
+                      .source(
+                          SearchSourceBuilder.searchSource()
+                              .fetchSource(
+                                  copySet == null ? null : copySet.toArray(new String[0]), null)
+                              .query(boolQueryBuilder)
+                              .size(2)))
+              .actionGet();
+
+      SearchHit[] searchHits = result.getHits().getHits();
+      int hits = searchHits.length;
+      if (hits == 0) {
+        // null indicates no hits for the lookup found
+        return null;
+      }
+
+      if (hits != 1) {
+        throw new RuntimeException("too many hits for " + indexName + " (" + hits + ")");
+      }
+
+      return searchHits[0].getSourceAsMap();
     }
   }
 }
