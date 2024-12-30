@@ -96,12 +96,17 @@ public class OpenSearchEvalOperator extends EvalOperator {
                 dataSource = dataSource.substring(1, dataSource.length() - 1);
                 String ipAddress = ((FunctionExpression) valueExpr).getArguments().get(1).toString();
                 ipAddress = ipAddress.substring(1, ipAddress.length() - 1);
+                if (((FunctionExpression) valueExpr).getArguments().size() > 2) {
+                    String option = ((FunctionExpression) valueExpr).getArguments().get(2).toString();
+                    option = option.substring(1, option.length() - 1);
+                    System.out.println("Option: " + option);
+                }
+
                 try {
                     Map<String, Object> geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);
 
-                    geoLocationData.forEach((k,v) -> System.out.println(k + " " + v));
+//                    geoLocationData.forEach((k,v) -> System.out.println(k + " " + v));
                     // Transform above into <String, ExprValue> , then do ExprTupleValue.fromExprValueMap
-
                     Map<String, ExprValue> collect = geoLocationData.entrySet().stream()
                             .collect(Collectors.toMap(
                                     Map.Entry::getKey,
@@ -113,15 +118,7 @@ public class OpenSearchEvalOperator extends EvalOperator {
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-//                if (ipAddress.equals("123")) {
-//                    value = new ExprStringValue("custom logic");
-//                } else {
-//                    Map<String, ExprValue> stringImmutableMap = ImmutableMap.of(
-//                            "key1", new ExprStringValue("value1"),
-//                            "key2", new ExprStringValue("value2"));
-//                    value = ExprTupleValue.fromExprValueMap(stringImmutableMap);
-//                }
-//                System.out.println("Custom logic");
+
             } else {
                 value = pair.getValue().valueOf(env);
             }
