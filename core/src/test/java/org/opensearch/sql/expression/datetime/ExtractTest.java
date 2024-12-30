@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.expression.datetime;
 
-import static java.time.temporal.ChronoField.ALIGNED_WEEK_OF_YEAR;
+import static java.time.temporal.ChronoField.DAY_OF_WEEK;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 
@@ -98,7 +98,7 @@ class ExtractTest extends ExpressionTestBase {
     datePartWithTimeArgQuery(
         "WEEK",
         timeInput,
-        LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR));
+        LocalDate.now(functionProperties.getQueryStartClock()).get(DAY_OF_WEEK));
 
     datePartWithTimeArgQuery(
         "MONTH", timeInput, LocalDate.now(functionProperties.getQueryStartClock()).getMonthValue());
