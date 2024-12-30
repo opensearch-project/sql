@@ -1944,11 +1944,11 @@ The format specifiers found in this table are the same as those found in the `DA
    * - DAY
      - %d
    * - WEEK
-     - %W
+     - %v
    * - MONTH
      - %m
    * - YEAR
-     - %V
+     - %Y
    * - SECOND_MICROSECOND
      - %s%f
    * - MINUTE_MICROSECOND
