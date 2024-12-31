@@ -132,6 +132,9 @@ public enum BuiltinFunctionName {
   /** Text Functions. */
   TOSTRING(FunctionName.of("tostring")),
 
+  /** IP Functions. */
+  CIDRMATCH(FunctionName.of("cidrmatch")),
+
   /** Arithmetic Operators. */
   ADD(FunctionName.of("+")),
   ADDFUNCTION(FunctionName.of("add")),
@@ -228,6 +231,7 @@ public enum BuiltinFunctionName {
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
   CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
   CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
+  CAST_TO_IP(FunctionName.of("cast_to_ip")),
   TYPEOF(FunctionName.of("typeof")),
 
   /** Relevance Function. */

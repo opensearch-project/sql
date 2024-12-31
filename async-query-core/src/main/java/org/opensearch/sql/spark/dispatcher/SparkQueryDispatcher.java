@@ -23,6 +23,8 @@ import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.utils.SQLQueryUtils;
+import org.opensearch.sql.spark.validator.PPLQueryValidator;
+import org.opensearch.sql.spark.validator.SQLQueryValidator;
 
 /** This class takes care of understanding query and dispatching job query to emr serverless. */
 @AllArgsConstructor
@@ -37,41 +39,70 @@ public class SparkQueryDispatcher {
   private final SessionManager sessionManager;
   private final QueryHandlerFactory queryHandlerFactory;
   private final QueryIdProvider queryIdProvider;
+  private final SQLQueryValidator sqlQueryValidator;
+  private final PPLQueryValidator pplQueryValidator;
 
   public DispatchQueryResponse dispatch(
       DispatchQueryRequest dispatchQueryRequest,
       AsyncQueryRequestContext asyncQueryRequestContext) {
     DataSourceMetadata dataSourceMetadata =
         this.dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
-            dispatchQueryRequest.getDatasource());
+            dispatchQueryRequest.getDatasource(), asyncQueryRequestContext);
 
-    if (LangType.SQL.equals(dispatchQueryRequest.getLangType())
-        && SQLQueryUtils.isFlintExtensionQuery(dispatchQueryRequest.getQuery())) {
-      IndexQueryDetails indexQueryDetails = getIndexQueryDetails(dispatchQueryRequest);
-      DispatchQueryContext context =
-          getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
-              .indexQueryDetails(indexQueryDetails)
-              .asyncQueryRequestContext(asyncQueryRequestContext)
-              .build();
+    String query = dispatchQueryRequest.getQuery();
+    if (LangType.SQL.equals(dispatchQueryRequest.getLangType())) {
+      if (SQLQueryUtils.isFlintExtensionQuery(query)) {
+        sqlQueryValidator.validateFlintExtensionQuery(query, dataSourceMetadata.getConnector());
+        return handleFlintExtensionQuery(
+            dispatchQueryRequest, asyncQueryRequestContext, dataSourceMetadata);
+      }
 
-      return getQueryHandlerForFlintExtensionQuery(dispatchQueryRequest, indexQueryDetails)
-          .submit(dispatchQueryRequest, context);
-    } else {
-      DispatchQueryContext context =
-          getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
-              .asyncQueryRequestContext(asyncQueryRequestContext)
-              .build();
-      return getDefaultAsyncQueryHandler(dispatchQueryRequest.getAccountId())
-          .submit(dispatchQueryRequest, context);
+      sqlQueryValidator.validate(query, dataSourceMetadata.getConnector());
+    } else if (LangType.PPL.equals(dispatchQueryRequest.getLangType())) {
+      pplQueryValidator.validate(query, dataSourceMetadata.getConnector());
     }
+    return handleDefaultQuery(dispatchQueryRequest, asyncQueryRequestContext, dataSourceMetadata);
+  }
+
+  private DispatchQueryResponse handleFlintExtensionQuery(
+      DispatchQueryRequest dispatchQueryRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext,
+      DataSourceMetadata dataSourceMetadata) {
+    IndexQueryDetails indexQueryDetails = getIndexQueryDetails(dispatchQueryRequest);
+    DispatchQueryContext context =
+        getDefaultDispatchContextBuilder(
+                dispatchQueryRequest, dataSourceMetadata, asyncQueryRequestContext)
+            .indexQueryDetails(indexQueryDetails)
+            .asyncQueryRequestContext(asyncQueryRequestContext)
+            .build();
+
+    return getQueryHandlerForFlintExtensionQuery(dispatchQueryRequest, indexQueryDetails)
+        .submit(dispatchQueryRequest, context);
+  }
+
+  private DispatchQueryResponse handleDefaultQuery(
+      DispatchQueryRequest dispatchQueryRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext,
+      DataSourceMetadata dataSourceMetadata) {
+
+    DispatchQueryContext context =
+        getDefaultDispatchContextBuilder(
+                dispatchQueryRequest, dataSourceMetadata, asyncQueryRequestContext)
+            .asyncQueryRequestContext(asyncQueryRequestContext)
+            .build();
+
+    return getDefaultAsyncQueryHandler(dispatchQueryRequest.getAccountId())
+        .submit(dispatchQueryRequest, context);
   }
 
   private DispatchQueryContext.DispatchQueryContextBuilder getDefaultDispatchContextBuilder(
-      DispatchQueryRequest dispatchQueryRequest, DataSourceMetadata dataSourceMetadata) {
+      DispatchQueryRequest dispatchQueryRequest,
+      DataSourceMetadata dataSourceMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     return DispatchQueryContext.builder()
         .dataSourceMetadata(dataSourceMetadata)
         .tags(getDefaultTagsForJobSubmission(dispatchQueryRequest))
-        .queryId(queryIdProvider.getQueryId(dispatchQueryRequest));
+        .queryId(queryIdProvider.getQueryId(dispatchQueryRequest, asyncQueryRequestContext));
   }
 
   private AsyncQueryHandler getQueryHandlerForFlintExtensionQuery(
@@ -87,6 +118,9 @@ public class SparkQueryDispatcher {
     } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
       // Manual refresh should be handled by batch handler
       return queryHandlerFactory.getRefreshQueryHandler(dispatchQueryRequest.getAccountId());
+    } else if (IndexQueryActionType.RECOVER.equals(indexQueryDetails.getIndexQueryActionType())) {
+      // RECOVER INDEX JOB should not be executed from async-query-core
+      throw new IllegalArgumentException("RECOVER INDEX JOB is not allowed.");
     } else {
       return getDefaultAsyncQueryHandler(dispatchQueryRequest.getAccountId());
     }
@@ -118,7 +152,6 @@ public class SparkQueryDispatcher {
 
   private boolean isEligibleForIndexDMLHandling(IndexQueryDetails indexQueryDetails) {
     return IndexQueryActionType.DROP.equals(indexQueryDetails.getIndexQueryActionType())
-        || IndexQueryActionType.VACUUM.equals(indexQueryDetails.getIndexQueryActionType())
         || (IndexQueryActionType.ALTER.equals(indexQueryDetails.getIndexQueryActionType())
             && (indexQueryDetails
                     .getFlintIndexOptions()
@@ -127,14 +160,18 @@ public class SparkQueryDispatcher {
                 && !indexQueryDetails.getFlintIndexOptions().autoRefresh()));
   }
 
-  public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  public JSONObject getQueryResponse(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     return getAsyncQueryHandlerForExistingQuery(asyncQueryJobMetadata)
-        .getQueryResponse(asyncQueryJobMetadata);
+        .getQueryResponse(asyncQueryJobMetadata, asyncQueryRequestContext);
   }
 
-  public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  public String cancelJob(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     return getAsyncQueryHandlerForExistingQuery(asyncQueryJobMetadata)
-        .cancelJob(asyncQueryJobMetadata);
+        .cancelJob(asyncQueryJobMetadata, asyncQueryRequestContext);
   }
 
   private AsyncQueryHandler getAsyncQueryHandlerForExistingQuery(
@@ -143,7 +180,7 @@ public class SparkQueryDispatcher {
       return queryHandlerFactory.getInteractiveQueryHandler();
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       return queryHandlerFactory.getIndexDMLHandler();
-    } else if (asyncQueryJobMetadata.getJobType() == JobType.BATCH) {
+    } else if (asyncQueryJobMetadata.getJobType() == JobType.REFRESH) {
       return queryHandlerFactory.getRefreshQueryHandler(asyncQueryJobMetadata.getAccountId());
     } else if (asyncQueryJobMetadata.getJobType() == JobType.STREAMING) {
       return queryHandlerFactory.getStreamingQueryHandler(asyncQueryJobMetadata.getAccountId());

@@ -42,7 +42,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 @EqualsAndHashCode
 class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
 
-  OpenSearchRequestBuilder requestBuilder;
+  final OpenSearchRequestBuilder requestBuilder;
 
   public OpenSearchIndexScanQueryBuilder(OpenSearchRequestBuilder requestBuilder) {
     this.requestBuilder = requestBuilder;

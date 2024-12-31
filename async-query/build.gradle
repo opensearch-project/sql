@@ -16,6 +16,8 @@ repositories {
 
 
 dependencies {
+    implementation "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
+
     api project(':core')
     api project(':async-query-core')
     implementation project(':protocol')
@@ -26,7 +28,7 @@ dependencies {
     implementation group: 'org.json', name: 'json', version: '20231013'
     api group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: "${aws_java_sdk_version}"
     api group: 'com.amazonaws', name: 'aws-java-sdk-emrserverless', version: "${aws_java_sdk_version}"
-    implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
+    implementation group: 'commons-io', name: 'commons-io', version: '2.14.0'
 
     testImplementation(platform("org.junit:junit-bom:5.9.3"))
 
@@ -97,6 +99,7 @@ jacocoTestCoverageVerification {
                     // ignore because XContext IOException
                     'org.opensearch.sql.spark.execution.statestore.StateStore',
                     'org.opensearch.sql.spark.rest.*',
+                    'org.opensearch.sql.spark.scheduler.parser.OpenSearchScheduleQueryJobRequestParser',
                     'org.opensearch.sql.spark.transport.model.*'
             ]
             limit {

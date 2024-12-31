@@ -45,6 +45,7 @@ import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -59,6 +60,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Values;
 
 /** AST nodes visitor Defines the traverse path. */
@@ -106,6 +108,14 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitFilter(Filter node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitTrendline(Trendline node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitTrendlineComputation(Trendline.TrendlineComputation node, C context) {
     return visitChildren(node, context);
   }
 
@@ -311,5 +321,9 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitCloseCursor(CloseCursor closeCursor, C context) {
     return visitChildren(closeCursor, context);
+  }
+
+  public T visitFillNull(FillNull fillNull, C context) {
+    return visitChildren(fillNull, context);
   }
 }

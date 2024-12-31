@@ -29,6 +29,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
@@ -38,6 +39,8 @@ import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 public class FlintIndexMetadataServiceImplTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private Client client;
+
+  @Mock private AsyncQueryRequestContext asyncQueryRequestContext;
 
   @SneakyThrows
   @Test
@@ -56,8 +59,11 @@ public class FlintIndexMetadataServiceImplTest {
             .indexQueryActionType(IndexQueryActionType.DROP)
             .indexType(FlintIndexType.SKIPPING)
             .build();
+
     Map<String, FlintIndexMetadata> indexMetadataMap =
-        flintIndexMetadataService.getFlintIndexMetadata(indexQueryDetails.openSearchIndexName());
+        flintIndexMetadataService.getFlintIndexMetadata(
+            indexQueryDetails.openSearchIndexName(), asyncQueryRequestContext);
+
     Assertions.assertEquals(
         "00fhelvq7peuao0",
         indexMetadataMap.get(indexQueryDetails.openSearchIndexName()).getJobId());
@@ -80,8 +86,11 @@ public class FlintIndexMetadataServiceImplTest {
             .indexQueryActionType(IndexQueryActionType.DROP)
             .indexType(FlintIndexType.SKIPPING)
             .build();
+
     Map<String, FlintIndexMetadata> indexMetadataMap =
-        flintIndexMetadataService.getFlintIndexMetadata(indexQueryDetails.openSearchIndexName());
+        flintIndexMetadataService.getFlintIndexMetadata(
+            indexQueryDetails.openSearchIndexName(), asyncQueryRequestContext);
+
     FlintIndexMetadata metadata = indexMetadataMap.get(indexQueryDetails.openSearchIndexName());
     Assertions.assertEquals("00fhelvq7peuao0", metadata.getJobId());
   }
@@ -103,8 +112,11 @@ public class FlintIndexMetadataServiceImplTest {
             .indexType(FlintIndexType.COVERING)
             .build();
     FlintIndexMetadataService flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
+
     Map<String, FlintIndexMetadata> indexMetadataMap =
-        flintIndexMetadataService.getFlintIndexMetadata(indexQueryDetails.openSearchIndexName());
+        flintIndexMetadataService.getFlintIndexMetadata(
+            indexQueryDetails.openSearchIndexName(), asyncQueryRequestContext);
+
     Assertions.assertEquals(
         "00fdmvv9hp8u0o0q",
         indexMetadataMap.get(indexQueryDetails.openSearchIndexName()).getJobId());
@@ -126,8 +138,11 @@ public class FlintIndexMetadataServiceImplTest {
             .indexQueryActionType(IndexQueryActionType.DROP)
             .indexType(FlintIndexType.COVERING)
             .build();
+
     Map<String, FlintIndexMetadata> flintIndexMetadataMap =
-        flintIndexMetadataService.getFlintIndexMetadata(indexQueryDetails.openSearchIndexName());
+        flintIndexMetadataService.getFlintIndexMetadata(
+            indexQueryDetails.openSearchIndexName(), asyncQueryRequestContext);
+
     Assertions.assertFalse(
         flintIndexMetadataMap.containsKey("flint_mys3_default_http_logs_cv1_index"));
   }
@@ -148,8 +163,10 @@ public class FlintIndexMetadataServiceImplTest {
     indexMappingsMap.put(indexName, mappings);
     mockNodeClientIndicesMappings("flint_mys3*", indexMappingsMap);
     FlintIndexMetadataService flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
+
     Map<String, FlintIndexMetadata> flintIndexMetadataMap =
-        flintIndexMetadataService.getFlintIndexMetadata("flint_mys3*");
+        flintIndexMetadataService.getFlintIndexMetadata("flint_mys3*", asyncQueryRequestContext);
+
     Assertions.assertFalse(
         flintIndexMetadataMap.containsKey("flint_mys3_default_http_logs_cv1_index"));
     Assertions.assertTrue(

@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
@@ -33,30 +34,33 @@ public abstract class FlintIndexOp {
   private final EMRServerlessClientFactory emrServerlessClientFactory;
 
   /** Apply operation on {@link FlintIndexMetadata} */
-  public void apply(FlintIndexMetadata metadata) {
+  public void apply(
+      FlintIndexMetadata metadata, AsyncQueryRequestContext asyncQueryRequestContext) {
     // todo, remove this logic after IndexState feature is enabled in Flint.
     Optional<String> latestId = metadata.getLatestId();
     if (latestId.isEmpty()) {
-      takeActionWithoutOCC(metadata);
+      takeActionWithoutOCC(metadata, asyncQueryRequestContext);
     } else {
-      FlintIndexStateModel initialFlintIndexStateModel = getFlintIndexStateModel(latestId.get());
+      FlintIndexStateModel initialFlintIndexStateModel =
+          getFlintIndexStateModel(latestId.get(), asyncQueryRequestContext);
       // 1.validate state.
       validFlintIndexInitialState(initialFlintIndexStateModel);
 
       // 2.begin, move to transitioning state
       FlintIndexStateModel transitionedFlintIndexStateModel =
-          moveToTransitioningState(initialFlintIndexStateModel);
+          moveToTransitioningState(initialFlintIndexStateModel, asyncQueryRequestContext);
       // 3.runOp
       try {
-        runOp(metadata, transitionedFlintIndexStateModel);
-        commit(transitionedFlintIndexStateModel);
+        runOp(metadata, transitionedFlintIndexStateModel, asyncQueryRequestContext);
+        commit(transitionedFlintIndexStateModel, asyncQueryRequestContext);
       } catch (Throwable e) {
         LOG.error("Rolling back transient log due to transaction operation failure", e);
         try {
           flintIndexStateModelService.updateFlintIndexState(
               transitionedFlintIndexStateModel,
               initialFlintIndexStateModel.getIndexState(),
-              datasourceName);
+              datasourceName,
+              asyncQueryRequestContext);
         } catch (Exception ex) {
           LOG.error("Failed to rollback transient log", ex);
         }
@@ -66,9 +70,11 @@ public abstract class FlintIndexOp {
   }
 
   @NotNull
-  private FlintIndexStateModel getFlintIndexStateModel(String latestId) {
+  private FlintIndexStateModel getFlintIndexStateModel(
+      String latestId, AsyncQueryRequestContext asyncQueryRequestContext) {
     Optional<FlintIndexStateModel> flintIndexOptional =
-        flintIndexStateModelService.getFlintIndexStateModel(latestId, datasourceName);
+        flintIndexStateModelService.getFlintIndexStateModel(
+            latestId, datasourceName, asyncQueryRequestContext);
     if (flintIndexOptional.isEmpty()) {
       String errorMsg = String.format(Locale.ROOT, "no state found. docId: %s", latestId);
       LOG.error(errorMsg);
@@ -77,7 +83,8 @@ public abstract class FlintIndexOp {
     return flintIndexOptional.get();
   }
 
-  private void takeActionWithoutOCC(FlintIndexMetadata metadata) {
+  private void takeActionWithoutOCC(
+      FlintIndexMetadata metadata, AsyncQueryRequestContext asyncQueryRequestContext) {
     // take action without occ.
     FlintIndexStateModel fakeModel =
         FlintIndexStateModel.builder()
@@ -89,7 +96,7 @@ public abstract class FlintIndexOp {
             .lastUpdateTime(System.currentTimeMillis())
             .error("")
             .build();
-    runOp(metadata, fakeModel);
+    runOp(metadata, fakeModel, asyncQueryRequestContext);
   }
 
   private void validFlintIndexInitialState(FlintIndexStateModel flintIndex) {
@@ -103,13 +110,14 @@ public abstract class FlintIndexOp {
     }
   }
 
-  private FlintIndexStateModel moveToTransitioningState(FlintIndexStateModel flintIndex) {
+  private FlintIndexStateModel moveToTransitioningState(
+      FlintIndexStateModel flintIndex, AsyncQueryRequestContext asyncQueryRequestContext) {
     LOG.debug("Moving to transitioning state before committing.");
     FlintIndexState transitioningState = transitioningState();
     try {
       flintIndex =
           flintIndexStateModelService.updateFlintIndexState(
-              flintIndex, transitioningState(), datasourceName);
+              flintIndex, transitioningState(), datasourceName, asyncQueryRequestContext);
     } catch (Exception e) {
       String errorMsg =
           String.format(Locale.ROOT, "Moving to transition state:%s failed.", transitioningState);
@@ -119,16 +127,18 @@ public abstract class FlintIndexOp {
     return flintIndex;
   }
 
-  private void commit(FlintIndexStateModel flintIndex) {
+  private void commit(
+      FlintIndexStateModel flintIndex, AsyncQueryRequestContext asyncQueryRequestContext) {
     LOG.debug("Committing the transaction and moving to stable state.");
     FlintIndexState stableState = stableState();
     try {
       if (stableState == FlintIndexState.NONE) {
         LOG.info("Deleting index state with docId: " + flintIndex.getLatestId());
         flintIndexStateModelService.deleteFlintIndexStateModel(
-            flintIndex.getLatestId(), datasourceName);
+            flintIndex.getLatestId(), datasourceName, asyncQueryRequestContext);
       } else {
-        flintIndexStateModelService.updateFlintIndexState(flintIndex, stableState, datasourceName);
+        flintIndexStateModelService.updateFlintIndexState(
+            flintIndex, stableState, datasourceName, asyncQueryRequestContext);
       }
     } catch (Exception e) {
       String errorMsg =
@@ -192,7 +202,10 @@ public abstract class FlintIndexOp {
   /** get transitioningState */
   abstract FlintIndexState transitioningState();
 
-  abstract void runOp(FlintIndexMetadata flintIndexMetadata, FlintIndexStateModel flintIndex);
+  abstract void runOp(
+      FlintIndexMetadata flintIndexMetadata,
+      FlintIndexStateModel flintIndex,
+      AsyncQueryRequestContext asyncQueryRequestContext);
 
   /** get stableState */
   abstract FlintIndexState stableState();

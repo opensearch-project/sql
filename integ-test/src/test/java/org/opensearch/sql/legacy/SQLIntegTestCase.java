@@ -20,6 +20,7 @@ import static org.opensearch.sql.legacy.TestUtils.getDogs2IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
@@ -461,6 +462,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return String.format("{ \"fetch_size\": \"%s\", \"query\": \"%s\" }", fetch_size, query);
   }
 
+  protected String makeRequest(String query, int fetch_size, String filterQuery) {
+    return String.format(
+        "{ \"fetch_size\": \"%s\", \"query\": \"%s\", \"filter\" :  %s }",
+        fetch_size, query, filterQuery);
+  }
+
   protected String makeFetchLessRequest(String query) {
     return String.format("{\n" + "  \"query\": \"%s\"\n" + "}", query);
   }
@@ -654,8 +661,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         getOrderIndexMapping(),
         "src/test/resources/order.json"),
     WEBLOG(
-        TestsConstants.TEST_INDEX_WEBLOG,
-        "weblog",
+        TestsConstants.TEST_INDEX_WEBLOGS,
+        "weblogs",
         getWeblogsIndexMapping(),
         "src/test/resources/weblogs.json"),
     DATE(
@@ -700,6 +707,15 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "calcs",
         getMappingFile("calcs_index_mappings.json"),
         "src/test/resources/calcs.json"),
+    // Calcs has enough records for shards to be interesting, but updating the existing mapping with
+    // shards in-place
+    // breaks existing tests. Aside from introducing a primary shard setting > 1, this index is
+    // identical to CALCS.
+    CALCS_WITH_SHARDS(
+        TestsConstants.TEST_INDEX_CALCS,
+        "calcs",
+        getMappingFile("calcs_with_shards_index_mappings.json"),
+        "src/test/resources/calcs.json"),
     DATE_FORMATS(
         TestsConstants.TEST_INDEX_DATE_FORMATS,
         "date_formats",
@@ -724,7 +740,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_NESTED_WITH_NULLS,
         "multi_nested",
         getNestedTypeIndexMapping(),
-        "src/test/resources/nested_with_nulls.json");
+        "src/test/resources/nested_with_nulls.json"),
+    GEOPOINTS(
+        TestsConstants.TEST_INDEX_GEOPOINT,
+        "dates",
+        getGeopointIndexMapping(),
+        "src/test/resources/geopoints.json");
 
     private final String name;
     private final String type;

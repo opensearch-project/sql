@@ -43,7 +43,7 @@ public class QueryPlannerBatchTest extends QueryPlannerTest {
 
   private static final String TEST_SQL3 = "ON d.id = e.departmentId " + "  WHERE e.age <= 50";
 
-  private SearchHit[] employees = {
+  private final SearchHit[] employees = {
     employee(1, "People 1", "A"),
     employee(2, "People 2", "A"),
     employee(3, "People 3", "A"),
@@ -56,7 +56,7 @@ public class QueryPlannerBatchTest extends QueryPlannerTest {
     employee(10, "People 10", "F")
   };
 
-  private SearchHit[] departments = {
+  private final SearchHit[] departments = {
     department(1, "A", "AWS"),
     department(2, "C", "Capital One"),
     department(3, "D", "Dell"),
@@ -66,7 +66,7 @@ public class QueryPlannerBatchTest extends QueryPlannerTest {
     department(7, "U", "Uber"),
   };
 
-  private Matcher[] matched = {
+  private final Matcher[] matched = {
     hit(kv("name", "People 1"), kv("id", "A"), kv("dep", "AWS")),
     hit(kv("name", "People 2"), kv("id", "A"), kv("dep", "AWS")),
     hit(kv("name", "People 3"), kv("id", "A"), kv("dep", "AWS")),
@@ -76,25 +76,27 @@ public class QueryPlannerBatchTest extends QueryPlannerTest {
     hit(kv("name", "People 10"), kv("id", "F"), kv("dep", "Facebook"))
   };
 
-  private Matcher[] mismatched1 = {
+  private final Matcher[] mismatched1 = {
     hit(kv("name", null), kv("id", "G"), kv("dep", "Google")),
     hit(kv("name", null), kv("id", "M"), kv("dep", "Microsoft")),
     hit(kv("name", null), kv("id", "U"), kv("dep", "Uber"))
   };
 
-  private Matcher[] mismatched2 = {
+  private final Matcher[] mismatched2 = {
     hit(kv("name", "People 4"), kv("id", null), kv("dep", null)),
     hit(kv("name", "People 5"), kv("id", null), kv("dep", null)),
     hit(kv("name", "People 9"), kv("id", null), kv("dep", null))
   };
 
-  private Matcher<SearchHits> expectedInnerJoinResult = hits(matched);
+  private final Matcher<SearchHits> expectedInnerJoinResult = hits(matched);
 
   /** Department left join Employee */
-  private Matcher<SearchHits> expectedLeftOuterJoinResult1 = hits(concat(matched, mismatched1));
+  private final Matcher<SearchHits> expectedLeftOuterJoinResult1 =
+      hits(concat(matched, mismatched1));
 
   /** Employee left join Department */
-  private Matcher<SearchHits> expectedLeftOuterJoinResult2 = hits(concat(matched, mismatched2));
+  private final Matcher<SearchHits> expectedLeftOuterJoinResult2 =
+      hits(concat(matched, mismatched2));
 
   /** Parameterized test cases */
   private final int blockSize;

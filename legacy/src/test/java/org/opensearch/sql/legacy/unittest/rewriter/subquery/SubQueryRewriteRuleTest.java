@@ -19,7 +19,7 @@ public class SubQueryRewriteRuleTest {
 
   final SubQueryRewriteRule rewriteRule = new SubQueryRewriteRule();
 
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void isInMatch() throws SQLFeatureNotSupportedException {

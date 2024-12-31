@@ -32,7 +32,7 @@ public class IntervalTriggerExecutionTest {
 
   class Helper implements Runnable {
 
-    private StreamingQueryPlan.IntervalTriggerExecution executionStrategy;
+    private final StreamingQueryPlan.IntervalTriggerExecution executionStrategy;
 
     private static final int START = 0;
 
@@ -42,7 +42,7 @@ public class IntervalTriggerExecutionTest {
 
     private int state = START;
 
-    private long interval;
+    private final long interval;
 
     private long taskExecutionTime;
 

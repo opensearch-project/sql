@@ -15,7 +15,7 @@ import org.opensearch.sql.protocol.response.format.Format;
 
 public class PPLQueryRequestTest {
 
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void getRequestShouldPass() {

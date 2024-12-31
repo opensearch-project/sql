@@ -22,7 +22,7 @@ import org.opensearch.sql.legacy.query.planner.core.Config;
 /** Created by Eliran on 15/9/2015. */
 public abstract class OpenSearchJoinQueryAction extends QueryAction {
 
-  protected JoinSelect joinSelect;
+  protected final JoinSelect joinSelect;
 
   public OpenSearchJoinQueryAction(Client client, JoinSelect joinSelect) {
     super(client, joinSelect);

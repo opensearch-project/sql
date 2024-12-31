@@ -29,7 +29,7 @@ public class TransportGetDataSourceAction
   public static final ActionType<GetDataSourceActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, GetDataSourceActionResponse::new);
 
-  private DataSourceService dataSourceService;
+  private final DataSourceService dataSourceService;
 
   /**
    * TransportGetDataSourceAction action for getting datasource.

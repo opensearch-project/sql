@@ -39,7 +39,7 @@ import org.opensearch.sql.legacy.query.planner.core.ColumnNode;
 public class SQLAggregationParser {
   private final ColumnTypeProvider columnTypeProvider;
   private Context context;
-  @Getter private List<ColumnNode> columnNodes = new ArrayList<>();
+  @Getter private final List<ColumnNode> columnNodes = new ArrayList<>();
 
   public void parse(MySqlSelectQueryBlock queryBlock) {
     context = new Context(constructSQLExprAliasMapFromSelect(queryBlock));

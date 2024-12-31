@@ -20,7 +20,7 @@ import org.opensearch.sql.legacy.expression.core.operator.ScalarOperation;
 @RunWith(MockitoJUnitRunner.class)
 public class UnaryExpressionTest extends ExpressionTest {
 
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void absShouldPass() {

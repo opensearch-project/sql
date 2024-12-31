@@ -21,9 +21,9 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
  * be registered during initialization such as in Guice Module.
  */
 public class SparkParameterComposerCollection {
-  private Collection<GeneralSparkParameterComposer> generalComposers = new ArrayList<>();
-  private Map<DataSourceType, Collection<DataSourceSparkParameterComposer>> datasourceComposers =
-      new HashMap<>();
+  private final Collection<GeneralSparkParameterComposer> generalComposers = new ArrayList<>();
+  private final Map<DataSourceType, Collection<DataSourceSparkParameterComposer>>
+      datasourceComposers = new HashMap<>();
 
   /**
    * Register composers for specific DataSourceType. The registered composer is called only if the

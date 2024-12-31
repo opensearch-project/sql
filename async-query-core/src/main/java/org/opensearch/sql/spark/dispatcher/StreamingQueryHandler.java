@@ -12,6 +12,8 @@ import static org.opensearch.sql.spark.metrics.EmrMetrics.EMR_STREAMING_QUERY_JO
 import java.util.Map;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
@@ -46,7 +48,9 @@ public class StreamingQueryHandler extends BatchQueryHandler {
   }
 
   @Override
-  public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  public String cancelJob(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     throw new IllegalArgumentException(
         "can't cancel index DML query, using ALTER auto_refresh=off statement to stop job, using"
             + " VACUUM statement to stop job and delete data");
@@ -79,6 +83,7 @@ public class StreamingQueryHandler extends BatchQueryHandler {
             sparkSubmitParametersBuilderProvider
                 .getSparkSubmitParametersBuilder()
                 .clusterName(clusterName)
+                .queryId(context.getQueryId())
                 .query(dispatchQueryRequest.getQuery())
                 .structuredStreaming(true)
                 .dataSource(
@@ -98,6 +103,7 @@ public class StreamingQueryHandler extends BatchQueryHandler {
         .datasourceName(dataSourceMetadata.getName())
         .jobType(JobType.STREAMING)
         .indexName(indexQueryDetails.openSearchIndexName())
+        .status(QueryState.WAITING)
         .build();
   }
 }

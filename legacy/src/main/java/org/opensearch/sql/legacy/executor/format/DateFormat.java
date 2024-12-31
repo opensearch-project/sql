@@ -14,7 +14,7 @@ import java.util.Map;
 
 public class DateFormat {
 
-  private static Map<String, String> formatMap = new HashMap<>();
+  private static final Map<String, String> formatMap = new HashMap<>();
 
   static {
     // Special cases that are parsed separately
@@ -104,31 +104,31 @@ public class DateFormat {
   }
 
   private static class Date {
-    static String BASIC_DATE = "yyyyMMdd";
-    static String BASIC_ORDINAL_DATE = "yyyyDDD";
-    static String BASIC_WEEK_DATE = "YYYY'W'wwu";
+    static final String BASIC_DATE = "yyyyMMdd";
+    static final String BASIC_ORDINAL_DATE = "yyyyDDD";
+    static final String BASIC_WEEK_DATE = "YYYY'W'wwu";
 
-    static String DATE = "yyyy-MM-dd";
-    static String ORDINAL_DATE = "yyyy-DDD";
+    static final String DATE = "yyyy-MM-dd";
+    static final String ORDINAL_DATE = "yyyy-DDD";
 
-    static String YEAR = "yyyy";
-    static String YEAR_MONTH = "yyyy-MM";
+    static final String YEAR = "yyyy";
+    static final String YEAR_MONTH = "yyyy-MM";
 
-    static String WEEK_DATE = "YYYY-'W'ww-u";
-    static String WEEKYEAR = "YYYY";
-    static String WEEKYEAR_WEEK = "YYYY-'W'ww";
+    static final String WEEK_DATE = "YYYY-'W'ww-u";
+    static final String WEEKYEAR = "YYYY";
+    static final String WEEKYEAR_WEEK = "YYYY-'W'ww";
   }
 
   private static class Time {
-    static String T = "'T'";
-    static String BASIC_TIME = "HHmmss";
-    static String TIME = "HH:mm:ss";
+    static final String T = "'T'";
+    static final String BASIC_TIME = "HHmmss";
+    static final String TIME = "HH:mm:ss";
 
-    static String HOUR = "HH";
-    static String HOUR_MINUTE = "HH:mm";
+    static final String HOUR = "HH";
+    static final String HOUR_MINUTE = "HH:mm";
 
-    static String MILLIS = ".SSS";
-    static String TZ = "Z";
-    static String TZZ = "XX";
+    static final String MILLIS = ".SSS";
+    static final String TZ = "Z";
+    static final String TZZ = "XX";
   }
 }

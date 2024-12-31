@@ -19,7 +19,7 @@ import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 /** Test cases for semantic analysis configuration */
 public class SemanticAnalyzerConfigTest extends SemanticAnalyzerTestBase {
 
-  @Rule public ExpectedException exceptionWithoutSuggestion = ExpectedException.none();
+  @Rule public final ExpectedException exceptionWithoutSuggestion = ExpectedException.none();
 
   @Test
   public void noAnalysisShouldPerformForNonSelectStatement() {

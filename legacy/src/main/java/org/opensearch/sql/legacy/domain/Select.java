@@ -36,11 +36,11 @@ public class Select extends Query {
           "PERCENTILES",
           "SCRIPTED_METRIC");
 
-  private List<Hint> hints = new ArrayList<>();
-  private List<Field> fields = new ArrayList<>();
-  private List<List<Field>> groupBys = new ArrayList<>();
+  private final List<Hint> hints = new ArrayList<>();
+  private final List<Field> fields = new ArrayList<>();
+  private final List<List<Field>> groupBys = new ArrayList<>();
   private Having having;
-  private List<Order> orderBys = new ArrayList<>();
+  private final List<Order> orderBys = new ArrayList<>();
   private int offset;
   private Integer rowCount;
   private boolean containsSubQueries;

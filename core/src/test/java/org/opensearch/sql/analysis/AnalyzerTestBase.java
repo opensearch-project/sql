@@ -28,6 +28,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.RequestContext;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -147,15 +148,15 @@ public class AnalyzerTestBase {
     };
   }
 
-  protected AnalysisContext analysisContext = analysisContext(typeEnvironment(symbolTable()));
+  protected final AnalysisContext analysisContext = analysisContext(typeEnvironment(symbolTable()));
 
-  protected ExpressionAnalyzer expressionAnalyzer = expressionAnalyzer();
+  protected final ExpressionAnalyzer expressionAnalyzer = expressionAnalyzer();
 
-  protected Table table = table();
+  protected final Table table = table();
 
-  protected DataSourceService dataSourceService = dataSourceService();
+  protected final DataSourceService dataSourceService = dataSourceService();
 
-  protected Analyzer analyzer = analyzer(expressionAnalyzer(), dataSourceService);
+  protected final Analyzer analyzer = analyzer(expressionAnalyzer(), dataSourceService);
 
   protected Analyzer analyzer(
       ExpressionAnalyzer expressionAnalyzer, DataSourceService dataSourceService) {
@@ -236,18 +237,19 @@ public class AnalyzerTestBase {
     }
 
     @Override
-    public DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(String dataSourceName) {
+    public DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(
+        String dataSourceName, RequestContext requestContext) {
       return null;
     }
   }
 
   private class TestTableFunctionImplementation implements TableFunctionImplementation {
 
-    private FunctionName functionName;
+    private final FunctionName functionName;
 
-    private List<Expression> arguments;
+    private final List<Expression> arguments;
 
-    private Table table;
+    private final Table table;
 
     public TestTableFunctionImplementation(
         FunctionName functionName, List<Expression> arguments, Table table) {

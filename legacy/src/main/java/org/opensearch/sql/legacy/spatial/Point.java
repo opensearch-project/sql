@@ -7,8 +7,8 @@ package org.opensearch.sql.legacy.spatial;
 
 /** Created by Eliran on 1/8/2015. */
 public class Point {
-  private double lon;
-  private double lat;
+  private final double lon;
+  private final double lat;
 
   public Point(double lon, double lat) {
     this.lon = lon;

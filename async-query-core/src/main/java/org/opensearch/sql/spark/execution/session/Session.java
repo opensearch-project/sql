@@ -35,7 +35,7 @@ public interface Session {
    * @param stID {@link StatementId}
    * @return {@link Statement}
    */
-  Optional<Statement> get(StatementId stID);
+  Optional<Statement> get(StatementId stID, AsyncQueryRequestContext asyncQueryRequestContext);
 
   SessionModel getSessionModel();
 

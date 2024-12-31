@@ -26,7 +26,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     Invalid(null, ExprCoreType.UNKNOWN),
     Text("text", ExprCoreType.UNKNOWN),
     Keyword("keyword", ExprCoreType.STRING),
-    Ip("ip", ExprCoreType.UNKNOWN),
+    Ip("ip", ExprCoreType.IP),
     GeoPoint("geo_point", ExprCoreType.UNKNOWN),
     Binary("binary", ExprCoreType.UNKNOWN),
     Date("date", ExprCoreType.TIMESTAMP),
@@ -62,19 +62,23 @@ public class OpenSearchDataType implements ExprType, Serializable {
   @EqualsAndHashCode.Exclude @Getter protected MappingType mappingType;
 
   // resolved ExprCoreType
-  protected ExprCoreType exprCoreType;
+  @Getter protected ExprCoreType exprCoreType;
 
   /**
    * Get a simplified type {@link ExprCoreType} if possible. To avoid returning `UNKNOWN` for
-   * `OpenSearch*Type`s, e.g. for IP, returns itself.
+   * `OpenSearch*Type`s, e.g. for IP, returns itself. If the `exprCoreType` is {@link
+   * ExprCoreType#DATE}, {@link ExprCoreType#TIMESTAMP}, {@link ExprCoreType#TIME}, or {@link
+   * ExprCoreType#UNKNOWN}, it returns the current instance; otherwise, it returns `exprCoreType`.
    *
    * @return An {@link ExprType}.
    */
   public ExprType getExprType() {
-    if (exprCoreType != ExprCoreType.UNKNOWN) {
-      return exprCoreType;
-    }
-    return this;
+    return (exprCoreType == ExprCoreType.DATE
+            || exprCoreType == ExprCoreType.TIMESTAMP
+            || exprCoreType == ExprCoreType.TIME
+            || exprCoreType == ExprCoreType.UNKNOWN)
+        ? this
+        : exprCoreType;
   }
 
   /**
@@ -156,8 +160,6 @@ public class OpenSearchDataType implements ExprType, Serializable {
         return OpenSearchGeoPointType.of();
       case Binary:
         return OpenSearchBinaryType.of();
-      case Ip:
-        return OpenSearchIpType.of();
       case Date:
       case DateNanos:
         // Default date formatter is used when "" is passed as the second parameter
@@ -228,6 +230,9 @@ public class OpenSearchDataType implements ExprType, Serializable {
   // Called when serializing SQL response
   public String legacyTypeName() {
     if (mappingType == null) {
+      return exprCoreType.typeName();
+    }
+    if (mappingType.toString().equalsIgnoreCase("DATE")) {
       return exprCoreType.typeName();
     }
     return mappingType.toString().toUpperCase();

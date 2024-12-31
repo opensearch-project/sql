@@ -31,9 +31,9 @@ public class BackOffRetryStrategy {
 
   private static final int threshold = 85;
 
-  private static IdentityHashMap<Object, Tuple<Long, Long>> memUse = new IdentityHashMap<>();
+  private static final IdentityHashMap<Object, Tuple<Long, Long>> memUse = new IdentityHashMap<>();
 
-  private static AtomicLong mem = new AtomicLong(0L);
+  private static final AtomicLong mem = new AtomicLong(0L);
 
   private static long lastTimeoutCleanTime = System.currentTimeMillis();
 

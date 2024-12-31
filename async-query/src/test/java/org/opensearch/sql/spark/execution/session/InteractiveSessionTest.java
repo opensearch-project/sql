@@ -44,10 +44,11 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   private StartJobRequest startJobRequest;
   private SessionStorageService sessionStorageService;
   private StatementStorageService statementStorageService;
-  private SessionConfigSupplier sessionConfigSupplier = () -> 600000L;
+  private final SessionConfigSupplier sessionConfigSupplier = () -> 600000L;
   private SessionManager sessionManager;
-  private AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
-  private SessionIdProvider sessionIdProvider = new DatasourceEmbeddedSessionIdProvider();
+  private final AsyncQueryRequestContext asyncQueryRequestContext =
+      new NullAsyncQueryRequestContext();
+  private final SessionIdProvider sessionIdProvider = new DatasourceEmbeddedSessionIdProvider();
 
   @Before
   public void setup() {

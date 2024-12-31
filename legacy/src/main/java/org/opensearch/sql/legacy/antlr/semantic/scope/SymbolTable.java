@@ -20,7 +20,7 @@ import org.opensearch.sql.legacy.antlr.semantic.types.Type;
 public class SymbolTable {
 
   /** Two-dimension hash table to manage symbols with type in different namespace */
-  private Map<Namespace, NavigableMap<String, TypeSupplier>> tableByNamespace =
+  private final Map<Namespace, NavigableMap<String, TypeSupplier>> tableByNamespace =
       new EnumMap<>(Namespace.class);
 
   /**

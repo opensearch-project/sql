@@ -1,0 +1,47 @@
+---
+##
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+##
+
+# Schema file for the .async-query-scheduler index
+# Also "dynamic" is set to "false" so that other fields cannot be added.
+dynamic: false
+properties:
+  accountId:
+    type: keyword
+  jobId:
+    type: keyword
+  dataSource:
+    type: keyword
+  scheduledQuery:
+    type: text
+  queryLang:
+    type: keyword
+  lastUpdateTime:
+    type: date
+    format: epoch_millis
+  enabledTime:
+    type: date
+    format: epoch_millis
+  schedule:
+    properties:
+      initialDelay:
+        type: long
+      interval:
+        properties:
+          start_time:
+            type: date
+            format: "strict_date_time||epoch_millis"
+          period:
+            type: integer
+          unit:
+            type: keyword
+  enabled:
+    type: boolean
+  lockDurationSeconds:
+    type: long
+    null_value: -1
+  jitter:
+    type: double
+    null_value: 0.0

@@ -35,6 +35,8 @@ NEW_FIELD:                          'NEW_FIELD';
 KMEANS:                             'KMEANS';
 AD:                                 'AD';
 ML:                                 'ML';
+FILLNULL:                           'FILLNULL';
+TRENDLINE:                          'TRENDLINE';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -44,15 +46,20 @@ INDEX:                              'INDEX';
 D:                                  'D';
 DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
+USING:                              'USING';
+WITH:                               'WITH';
 
 // CLAUSE KEYWORDS
 SORTBY:                             'SORTBY';
 
-// FIELD KEYWORDS
+// SORT FIELD KEYWORDS
+// TODO #3180: Fix broken sort functionality
 AUTO:                               'AUTO';
 STR:                                'STR';
-IP:                                 'IP';
 NUM:                                'NUM';
+
+// TRENDLINE KEYWORDS
+SMA:                                'SMA';
 
 // ARGUMENT KEYWORDS
 KEEPEMPTY:                          'KEEPEMPTY';
@@ -135,6 +142,7 @@ LONG:                               'LONG';
 FLOAT:                              'FLOAT';
 STRING:                             'STRING';
 BOOLEAN:                            'BOOLEAN';
+IP:                                 'IP';
 
 // SPECIAL CHARACTERS AND OPERATORS
 PIPE:                               '|';
@@ -322,6 +330,7 @@ CAST:                               'CAST';
 LIKE:                               'LIKE';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
+CIDRMATCH:                          'CIDRMATCH';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';

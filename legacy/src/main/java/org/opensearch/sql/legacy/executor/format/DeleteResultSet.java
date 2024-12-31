@@ -13,8 +13,8 @@ import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.sql.legacy.domain.Delete;
 
 public class DeleteResultSet extends ResultSet {
-  private Delete query;
-  private Object queryResult;
+  private final Delete query;
+  private final Object queryResult;
 
   public static final String DELETED = "deleted_rows";
 

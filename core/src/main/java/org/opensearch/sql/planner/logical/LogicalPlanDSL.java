@@ -15,6 +15,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
@@ -128,6 +130,11 @@ public class LogicalPlanDSL {
       List<Expression> groupByList,
       Expression... fields) {
     return new LogicalRareTopN(input, commandType, noOfResults, Arrays.asList(fields), groupByList);
+  }
+
+  public static LogicalTrendline trendline(
+      LogicalPlan input, Pair<Trendline.TrendlineComputation, ExprCoreType>... computations) {
+    return new LogicalTrendline(input, Arrays.asList(computations));
   }
 
   @SafeVarargs

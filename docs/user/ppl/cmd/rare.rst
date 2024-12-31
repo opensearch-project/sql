@@ -32,12 +32,12 @@ PPL query::
 
     os> source=accounts | rare gender;
     fetched rows / total rows = 2/2
-    +----------+
-    | gender   |
-    |----------|
-    | F        |
-    | M        |
-    +----------+
+    +--------+
+    | gender |
+    |--------|
+    | F      |
+    | M      |
+    +--------+
 
 
 Example 2: Find the least common values organized by gender
@@ -49,14 +49,14 @@ PPL query::
 
     os> source=accounts | rare age by gender;
     fetched rows / total rows = 4/4
-    +----------+-------+
-    | gender   | age   |
-    |----------+-------|
-    | F        | 28    |
-    | M        | 32    |
-    | M        | 33    |
-    | M        | 36    |
-    +----------+-------+
+    +--------+-----+
+    | gender | age |
+    |--------+-----|
+    | F      | 28  |
+    | M      | 32  |
+    | M      | 33  |
+    | M      | 36  |
+    +--------+-----+
 
 Limitation
 ==========

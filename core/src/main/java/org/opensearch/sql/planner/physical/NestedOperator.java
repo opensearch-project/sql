@@ -37,7 +37,7 @@ public class NestedOperator extends PhysicalPlan {
   @Getter private final Set<String> fields; // Needs to be a Set to match legacy implementation
   @Getter private final Map<String, List<String>> groupedPathsAndFields;
   @EqualsAndHashCode.Exclude private List<Map<String, ExprValue>> result = new ArrayList<>();
-  @EqualsAndHashCode.Exclude private List<String> nonNestedFields = new ArrayList<>();
+  @EqualsAndHashCode.Exclude private final List<String> nonNestedFields = new ArrayList<>();
 
   @EqualsAndHashCode.Exclude
   private ListIterator<Map<String, ExprValue>> flattenedResult = result.listIterator();

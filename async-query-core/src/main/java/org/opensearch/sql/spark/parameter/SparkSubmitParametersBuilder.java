@@ -20,6 +20,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_PORT_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_SCHEME_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_QUERY;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_QUERY_ID;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_REQUEST_INDEX;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_SESSION_ID;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_PPL_EXTENSION;
@@ -27,20 +28,13 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_SQL_E
 import static org.opensearch.sql.spark.data.constants.SparkConstants.GLUE_HIVE_CATALOG_FACTORY_CLASS;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.HADOOP_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.HIVE_METASTORE_CLASS_KEY;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.ICEBERG_GLUE_CATALOG;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.ICEBERG_SESSION_CATALOG;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.ICEBERG_SPARK_EXTENSION;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.ICEBERG_SPARK_RUNTIME_PACKAGE;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.JAVA_HOME_LOCATION;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.PPL_STANDALONE_PACKAGE;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.S3_AWS_CREDENTIALS_PROVIDER_KEY;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_CATALOG;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_CATALOG_CATALOG_IMPL;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_DRIVER_ENV_FLINT_CLUSTER_NAME_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_DRIVER_ENV_JAVA_HOME_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_EXECUTOR_ENV_FLINT_CLUSTER_NAME_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_EXECUTOR_ENV_JAVA_HOME_KEY;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_JARS_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_JAR_PACKAGES_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_JAR_REPOSITORIES_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_LAUNCHER_PACKAGE;
@@ -71,7 +65,6 @@ public class SparkSubmitParametersBuilder {
     setConfigItem(
         HADOOP_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY,
         DEFAULT_GLUE_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY);
-    setConfigItem(SPARK_JARS_KEY, ICEBERG_SPARK_RUNTIME_PACKAGE);
     setConfigItem(
         SPARK_JAR_PACKAGES_KEY,
         SPARK_STANDALONE_PACKAGE + "," + SPARK_LAUNCHER_PACKAGE + "," + PPL_STANDALONE_PACKAGE);
@@ -85,12 +78,8 @@ public class SparkSubmitParametersBuilder {
     setConfigItem(FLINT_INDEX_STORE_SCHEME_KEY, FLINT_DEFAULT_SCHEME);
     setConfigItem(FLINT_INDEX_STORE_AUTH_KEY, FLINT_DEFAULT_AUTH);
     setConfigItem(FLINT_CREDENTIALS_PROVIDER_KEY, EMR_ASSUME_ROLE_CREDENTIALS_PROVIDER);
-    setConfigItem(
-        SPARK_SQL_EXTENSIONS_KEY,
-        ICEBERG_SPARK_EXTENSION + "," + FLINT_SQL_EXTENSION + "," + FLINT_PPL_EXTENSION);
+    setConfigItem(SPARK_SQL_EXTENSIONS_KEY, FLINT_SQL_EXTENSION + "," + FLINT_PPL_EXTENSION);
     setConfigItem(HIVE_METASTORE_CLASS_KEY, GLUE_HIVE_CATALOG_FACTORY_CLASS);
-    setConfigItem(SPARK_CATALOG, ICEBERG_SESSION_CATALOG);
-    setConfigItem(SPARK_CATALOG_CATALOG_IMPL, ICEBERG_GLUE_CATALOG);
   }
 
   private void setConfigItem(String key, String value) {
@@ -117,6 +106,11 @@ public class SparkSubmitParametersBuilder {
     String escapedQuery = StringEscapeUtils.escapeJava(query);
     String wrappedQuery = "\"" + escapedQuery + "\"";
     setConfigItem(FLINT_JOB_QUERY, wrappedQuery);
+    return this;
+  }
+
+  public SparkSubmitParametersBuilder queryId(String queryId) {
+    setConfigItem(FLINT_JOB_QUERY_ID, queryId);
     return this;
   }
 
@@ -154,7 +148,9 @@ public class SparkSubmitParametersBuilder {
   }
 
   public SparkSubmitParametersBuilder acceptModifier(SparkSubmitParameterModifier modifier) {
-    modifier.modifyParameters(this);
+    if (modifier != null) {
+      modifier.modifyParameters(this);
+    }
     return this;
   }
 

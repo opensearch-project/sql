@@ -34,7 +34,7 @@ public class EmrClientImpl implements SparkClient {
   private final FlintHelper flint;
   private final String sparkApplicationJar;
   private static final Logger logger = LogManager.getLogger(EmrClientImpl.class);
-  private SparkResponse sparkResponse;
+  private final SparkResponse sparkResponse;
 
   /**
    * Constructor for EMR Client Implementation.

@@ -6,8 +6,7 @@
 package org.opensearch.sql.util;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.opensearch.sql.executor.pagination.PlanSerializer.CURSOR_PREFIX;
 
 import java.io.BufferedReader;
@@ -17,23 +16,30 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
+import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Assert;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.sql.legacy.cursor.CursorType;
@@ -123,8 +129,73 @@ public class TestUtils {
       }
       return response;
     } catch (IOException e) {
+      if (isRefreshPolicyError(e)) {
+        try {
+          return retryWithoutRefreshPolicy(request, client);
+        } catch (IOException ex) {
+          throw new IllegalStateException("Failed to perform request without refresh policy.", ex);
+        }
+      }
       throw new IllegalStateException("Failed to perform request", e);
     }
+  }
+
+  /**
+   * Checks if the IOException is due to an unsupported refresh policy.
+   *
+   * @param e The IOException to check.
+   * @return true if the exception is due to a refresh policy error, false otherwise.
+   */
+  private static boolean isRefreshPolicyError(IOException e) {
+    return e instanceof ResponseException
+        && ((ResponseException) e).getResponse().getStatusLine().getStatusCode() == 400
+        && e.getMessage().contains("true refresh policy is not supported.");
+  }
+
+  /**
+   * Attempts to perform the request without the refresh policy.
+   *
+   * @param request The original request.
+   * @param client client connection
+   * @return The response after retrying the request.
+   * @throws IOException If the request fails.
+   */
+  private static Response retryWithoutRefreshPolicy(Request request, RestClient client)
+      throws IOException {
+    Request req =
+        new Request(request.getMethod(), request.getEndpoint().replaceAll("refresh=true", ""));
+    req.setEntity(request.getEntity());
+    return client.performRequest(req);
+  }
+
+  /**
+   * Compares two multiline strings representing rows of addresses to ensure they are equivalent.
+   * This method checks if the entire content of the expected and actual strings are the same. If
+   * they differ, it breaks down the strings into lines and performs a step-by-step comparison:
+   *
+   * @param expected The expected string representing rows of data.
+   * @param actual The actual string to compare against the expected.
+   */
+  public static void assertRowsEqual(String expected, String actual) {
+    if (expected.equals(actual)) {
+      return;
+    }
+
+    List<String> expectedLines = List.of(expected.split("\n"));
+    List<String> actualLines = List.of(actual.split("\n"));
+
+    if (expectedLines.size() != actualLines.size()) {
+      Assert.fail("Line count is different. expected=" + expected + ", actual=" + actual);
+    }
+
+    if (!expectedLines.get(0).equals(actualLines.get(0))) {
+      Assert.fail("Header is different. expected=" + expected + ", actual=" + actual);
+    }
+
+    Set<String> expectedItems = new HashSet<>(expectedLines.subList(1, expectedLines.size()));
+    Set<String> actualItems = new HashSet<>(actualLines.subList(1, actualLines.size()));
+
+    assertEquals(expectedItems, actualItems);
   }
 
   public static String getAccountIndexMapping() {
@@ -770,6 +841,29 @@ public class TestUtils {
       }
     }
     return sb.toString();
+  }
+
+  // TODO: this is temporary fix for fixing serverless tests to pass with 2 digit precision value
+  public static JSONArray roundOfResponse(JSONArray array) {
+    JSONArray responseJSON = new JSONArray();
+    array
+        .iterator()
+        .forEachRemaining(
+            o -> {
+              JSONArray jsonArray = new JSONArray();
+              ((JSONArray) o)
+                  .iterator()
+                  .forEachRemaining(
+                      i -> {
+                        if (i instanceof BigDecimal) {
+                          jsonArray.put(((BigDecimal) i).setScale(2, RoundingMode.HALF_UP));
+                        } else {
+                          jsonArray.put(i);
+                        }
+                      });
+              responseJSON.put(jsonArray);
+            });
+    return responseJSON;
   }
 
   public static String fileToString(

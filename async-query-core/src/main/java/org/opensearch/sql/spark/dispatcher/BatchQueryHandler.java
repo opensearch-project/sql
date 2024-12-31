@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
@@ -23,6 +25,7 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
+import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.metrics.MetricsService;
 import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilderProvider;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
@@ -40,15 +43,19 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   protected final SparkSubmitParametersBuilderProvider sparkSubmitParametersBuilderProvider;
 
   @Override
-  protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  protected JSONObject getResponseFromResultIndex(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     // either empty json when the result is not available or data with status
     // Fetch from Result Index
-    return jobExecutionResponseReader.getResultWithJobId(
-        asyncQueryJobMetadata.getJobId(), asyncQueryJobMetadata.getResultIndex());
+    return jobExecutionResponseReader.getResultFromResultIndex(
+        asyncQueryJobMetadata, asyncQueryRequestContext);
   }
 
   @Override
-  protected JSONObject getResponseFromExecutor(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  protected JSONObject getResponseFromExecutor(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     JSONObject result = new JSONObject();
     // make call to EMR Serverless when related result index documents are not available
     GetJobRunResult getJobRunResult =
@@ -61,10 +68,20 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   }
 
   @Override
-  public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+  public String cancelJob(
+      AsyncQueryJobMetadata asyncQueryJobMetadata,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     emrServerlessClient.cancelJobRun(
         asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId(), false);
     return asyncQueryJobMetadata.getQueryId();
+  }
+
+  /**
+   * This method allows RefreshQueryHandler to override the job type when calling
+   * leaseManager.borrow.
+   */
+  protected void borrow(String datasource) {
+    leaseManager.borrow(new LeaseRequest(JobType.BATCH, datasource));
   }
 
   @Override
@@ -73,6 +90,8 @@ public class BatchQueryHandler extends AsyncQueryHandler {
     String clusterName = dispatchQueryRequest.getClusterName();
     Map<String, String> tags = context.getTags();
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
+
+    this.borrow(dispatchQueryRequest.getDatasource());
 
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     StartJobRequest startJobRequest =
@@ -84,6 +103,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
             sparkSubmitParametersBuilderProvider
                 .getSparkSubmitParametersBuilder()
                 .clusterName(clusterName)
+                .queryId(context.getQueryId())
                 .query(dispatchQueryRequest.getQuery())
                 .dataSource(
                     context.getDataSourceMetadata(),
@@ -102,7 +122,15 @@ public class BatchQueryHandler extends AsyncQueryHandler {
         .jobId(jobId)
         .resultIndex(dataSourceMetadata.getResultIndex())
         .datasourceName(dataSourceMetadata.getName())
-        .jobType(JobType.INTERACTIVE)
+        .jobType(JobType.BATCH)
+        .status(QueryState.WAITING)
+        .indexName(getIndexName(context))
         .build();
+  }
+
+  private static String getIndexName(DispatchQueryContext context) {
+    return context.getIndexQueryDetails() != null
+        ? context.getIndexQueryDetails().openSearchIndexName()
+        : null;
   }
 }

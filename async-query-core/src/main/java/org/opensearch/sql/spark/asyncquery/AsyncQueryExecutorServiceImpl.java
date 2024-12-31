@@ -19,6 +19,7 @@ import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundExceptio
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.QueryState;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
@@ -67,6 +68,10 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
             .datasourceName(dispatchQueryResponse.getDatasourceName())
             .jobType(dispatchQueryResponse.getJobType())
             .indexName(dispatchQueryResponse.getIndexName())
+            .query(createAsyncQueryRequest.getQuery())
+            .langType(createAsyncQueryRequest.getLang())
+            .state(dispatchQueryResponse.getStatus())
+            .error(dispatchQueryResponse.getError())
             .build(),
         asyncQueryRequestContext);
     return new CreateAsyncQueryResponse(
@@ -74,12 +79,14 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
   }
 
   @Override
-  public AsyncQueryExecutionResponse getAsyncQueryResults(String queryId) {
+  public AsyncQueryExecutionResponse getAsyncQueryResults(
+      String queryId, AsyncQueryRequestContext asyncQueryRequestContext) {
     Optional<AsyncQueryJobMetadata> jobMetadata =
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
     if (jobMetadata.isPresent()) {
       String sessionId = jobMetadata.get().getSessionId();
-      JSONObject jsonObject = sparkQueryDispatcher.getQueryResponse(jobMetadata.get());
+      JSONObject jsonObject =
+          sparkQueryDispatcher.getQueryResponse(jobMetadata.get(), asyncQueryRequestContext);
       if (JobRunState.SUCCESS.toString().equals(jsonObject.getString(STATUS_FIELD))) {
         DefaultSparkSqlFunctionResponseHandle sparkSqlFunctionResponseHandle =
             new DefaultSparkSqlFunctionResponseHandle(jsonObject);
@@ -106,11 +113,15 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
   }
 
   @Override
-  public String cancelQuery(String queryId) {
+  public String cancelQuery(String queryId, AsyncQueryRequestContext asyncQueryRequestContext) {
     Optional<AsyncQueryJobMetadata> asyncQueryJobMetadata =
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
     if (asyncQueryJobMetadata.isPresent()) {
-      return sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata.get());
+      String result =
+          sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata.get(), asyncQueryRequestContext);
+      asyncQueryJobMetadataStorageService.updateState(
+          asyncQueryJobMetadata.get(), QueryState.CANCELLED, asyncQueryRequestContext);
+      return result;
     }
     throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));
   }

@@ -21,8 +21,8 @@ import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 public class JoinRequestBuilder implements SqlElasticRequestBuilder {
 
   private MultiSearchRequest multi;
-  private TableInJoinRequestBuilder firstTable;
-  private TableInJoinRequestBuilder secondTable;
+  private final TableInJoinRequestBuilder firstTable;
+  private final TableInJoinRequestBuilder secondTable;
   private SQLJoinTableSource.JoinType joinType;
   private int totalLimit;
 

@@ -14,7 +14,7 @@ import java.util.List;
 /** Test query set including SQL queries for comparison testing. */
 public class TestQuerySet implements Iterable<String> {
 
-  private List<String> queries;
+  private final List<String> queries;
 
   /**
    * Construct by a test query file.

@@ -36,9 +36,9 @@ import org.opensearch.sql.sql.domain.SQLQueryRequest;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SQLServiceTest {
 
-  private static String QUERY = "/_plugins/_sql";
+  private static final String QUERY = "/_plugins/_sql";
 
-  private static String EXPLAIN = "/_plugins/_sql/_explain";
+  private static final String EXPLAIN = "/_plugins/_sql/_explain";
 
   private SQLService sqlService;
 

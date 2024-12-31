@@ -36,7 +36,7 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class ExpressionTestBase {
 
-  protected FunctionProperties functionProperties = new FunctionProperties();
+  protected final FunctionProperties functionProperties = new FunctionProperties();
 
   protected Environment<Expression, ExprType> typeEnv;
 

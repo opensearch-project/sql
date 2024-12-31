@@ -92,7 +92,8 @@ public class DefaultLeaseManager implements LeaseManager {
 
     @Override
     public boolean test(LeaseRequest leaseRequest) {
-      if (leaseRequest.getJobType() == JobType.INTERACTIVE) {
+      if (leaseRequest.getJobType() != JobType.REFRESH
+          && leaseRequest.getJobType() != JobType.STREAMING) {
         return true;
       }
       return activeRefreshJobCount(stateStore, ALL_DATASOURCE).get() < refreshJobLimit();

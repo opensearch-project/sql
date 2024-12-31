@@ -563,6 +563,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.REGEXP, expressions);
   }
 
+  public static FunctionExpression cidrmatch(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.CIDRMATCH, expressions);
+  }
+
   public static FunctionExpression concat(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.CONCAT, expressions);
   }
@@ -829,6 +833,10 @@ public class DSL {
 
   public static FunctionExpression castTimestamp(Expression value) {
     return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_TIMESTAMP, value);
+  }
+
+  public static FunctionExpression castIp(Expression value) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_IP, value);
   }
 
   public static FunctionExpression typeof(Expression value) {

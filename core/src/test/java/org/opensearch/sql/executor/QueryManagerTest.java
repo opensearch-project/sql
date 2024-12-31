@@ -17,7 +17,7 @@ class QueryManagerTest {
 
   @Mock private QueryId queryId;
 
-  private QueryManager queryManager =
+  private final QueryManager queryManager =
       id -> {
         throw new UnsupportedOperationException();
       };

@@ -1,3 +1,5 @@
+import java.util.concurrent.Callable
+
 /*
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
@@ -48,6 +50,7 @@ opensearchplugin {
     name 'opensearch-sql'
     description 'OpenSearch SQL'
     classname 'org.opensearch.sql.plugin.SQLPlugin'
+    extendedPlugins = ['opensearch-job-scheduler']
     licenseFile rootProject.file("LICENSE.txt")
     noticeFile rootProject.file("NOTICE")
 }
@@ -98,7 +101,8 @@ configurations.all {
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     // enforce 1.1.3, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
-    resolutionStrategy.force 'com.google.guava:guava:32.0.1-jre'
+    resolutionStrategy.force "com.google.guava:guava:${guava_version}"
+    resolutionStrategy.force 'com.google.guava:failureaccess:1.0.2'
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"
@@ -112,6 +116,11 @@ configurations.all {
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.10"
 }
+
+configurations {
+    zipArchive
+}
+
 compileJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
 }
@@ -139,6 +148,10 @@ spotless {
 }
 
 dependencies {
+    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
+    compileOnly "com.google.guava:guava:${guava_version}"
+    compileOnly 'com.google.guava:failureaccess:1.0.2'
+
     api "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     api "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     api "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
@@ -156,6 +169,8 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${versions.mockito}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${versions.mockito}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
 }
 
 test {
@@ -204,10 +219,9 @@ dependencyLicenses.enabled = false
 // enable testingConventions check will cause errors like:  "Classes ending with [Tests] must subclass [LuceneTestCase]"
 testingConventions.enabled = false
 
-// TODO: need to verify the thirdPartyAudi
+// TODO: need to verify the thirdPartyAudit
 // currently it complains missing classes like ibatis, mysql etc, should not be a problem
 thirdPartyAudit.enabled = false
-
 
 apply plugin: 'com.netflix.nebula.ospackage'
 validateNebulaPom.enabled = false
@@ -271,7 +285,24 @@ afterEvaluate {
     }
 }
 
+def getJobSchedulerPlugin() {
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-job-scheduler*'
+                    }.singleFile
+                }
+            }
+        }
+    })
+}
+
 testClusters.integTest {
+    plugin(getJobSchedulerPlugin())
     plugin(project.tasks.bundlePlugin.archiveFile)
     testDistribution = "ARCHIVE"
 

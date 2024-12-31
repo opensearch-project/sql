@@ -34,7 +34,7 @@ public class QueryPlannerMonitorTest extends QueryPlannerTest {
   private static final long[] PERCENT_USAGE_24 = freeAndTotalMem(76, 100);
   private static final long[] PERCENT_USAGE_50 = freeAndTotalMem(50, 100);
 
-  @Spy private Stats stats = new Stats(client);
+  @Spy private final Stats stats = new Stats(client);
 
   @Test
   public void reachedLimitAndRecoverAt1stAttempt() {

@@ -57,7 +57,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 
 class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
-  private static List<StringPatternPair> STRING_PATTERN_PAIRS =
+  private static final List<StringPatternPair> STRING_PATTERN_PAIRS =
       ImmutableList.of(
           new StringPatternPair("Michael!", ".*"),
           new StringPatternPair("new*\\n*line", "new\\\\*.\\\\*line"),
@@ -584,7 +584,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     assertEquals(stringPatternPair.regExpTest(), expression.valueOf(valueEnv()).integerValue());
   }
 
-  /** Todo. remove this test cases after script serilization implemented. */
+  /** Todo. remove this test cases after script serialization implemented. */
   @Test
   public void serializationTest() throws Exception {
     Expression expression = DSL.equal(DSL.literal("v1"), DSL.literal("v2"));

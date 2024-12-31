@@ -10,7 +10,10 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
@@ -22,6 +25,7 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -46,6 +50,7 @@ import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -61,6 +66,7 @@ import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -99,6 +105,7 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.opensearch.sql.storage.Table;
@@ -468,23 +475,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitSort(Sort node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    ExpressionReferenceOptimizer optimizer =
-        new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
-
-    List<Pair<SortOption, Expression>> sortList =
-        node.getSortList().stream()
-            .map(
-                sortField -> {
-                  var analyzed = expressionAnalyzer.analyze(sortField.getField(), context);
-                  if (analyzed == null) {
-                    throw new UnsupportedOperationException(
-                        String.format("Invalid use of expression %s", sortField.getField()));
-                  }
-                  Expression expression = optimizer.optimize(analyzed, context);
-                  return ImmutablePair.of(analyzeSortOption(sortField.getFieldArgs()), expression);
-                })
-            .collect(Collectors.toList());
-    return new LogicalSort(child, sortList);
+    return buildSort(child, context, node.getSortList());
   }
 
   /** Build {@link LogicalDedupe}. */
@@ -558,6 +549,29 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalAD(child, options);
   }
 
+  /** Build {@link LogicalEval} for fillnull command. */
+  @Override
+  public LogicalPlan visitFillNull(final FillNull node, final AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+
+    ImmutableList.Builder<Pair<ReferenceExpression, Expression>> expressionsBuilder =
+        new Builder<>();
+    for (FillNull.NullableFieldFill fieldFill : node.getNullableFieldFills()) {
+      Expression fieldExpr =
+          expressionAnalyzer.analyze(fieldFill.getNullableFieldReference(), context);
+      ReferenceExpression ref =
+          DSL.ref(fieldFill.getNullableFieldReference().getField().toString(), fieldExpr.type());
+      FunctionExpression ifNullFunction =
+          DSL.ifnull(ref, expressionAnalyzer.analyze(fieldFill.getReplaceNullWithMe(), context));
+      expressionsBuilder.add(new ImmutablePair<>(ref, ifNullFunction));
+      TypeEnvironment typeEnvironment = context.peek();
+      // define the new reference in type env.
+      typeEnvironment.define(ref);
+    }
+
+    return new LogicalEval(child, expressionsBuilder.build());
+  }
+
   /** Build {@link LogicalML} for ml command. */
   @Override
   public LogicalPlan visitML(ML node, AnalysisContext context) {
@@ -568,6 +582,55 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             v -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, v.getKey()), v.getValue()));
 
     return new LogicalML(child, node.getArguments());
+  }
+
+  /** Build {@link LogicalTrendline} for Trendline command. */
+  @Override
+  public LogicalPlan visitTrendline(Trendline node, AnalysisContext context) {
+    final LogicalPlan child = node.getChild().get(0).accept(this, context);
+
+    final TypeEnvironment currEnv = context.peek();
+    final List<Trendline.TrendlineComputation> computations = node.getComputations();
+    final ImmutableList.Builder<Pair<Trendline.TrendlineComputation, ExprCoreType>>
+        computationsAndTypes = ImmutableList.builder();
+    computations.forEach(
+        computation -> {
+          final Expression resolvedField =
+              expressionAnalyzer.analyze(computation.getDataField(), context);
+          final ExprCoreType averageType;
+          // Duplicate the semantics of AvgAggregator#create():
+          // - All numerical types have the DOUBLE type for the moving average.
+          // - All datetime types have the same datetime type for the moving average.
+          if (ExprCoreType.numberTypes().contains(resolvedField.type())) {
+            averageType = ExprCoreType.DOUBLE;
+          } else {
+            switch (resolvedField.type()) {
+              case DATE:
+              case TIME:
+              case TIMESTAMP:
+                averageType = (ExprCoreType) resolvedField.type();
+                break;
+              default:
+                throw new SemanticCheckException(
+                    String.format(
+                        "Invalid field used for trendline computation %s. Source field %s had type"
+                            + " %s but must be a numerical or datetime field.",
+                        computation.getAlias(),
+                        computation.getDataField().getChild().get(0),
+                        resolvedField.type().typeName()));
+            }
+          }
+          currEnv.define(new Symbol(Namespace.FIELD_NAME, computation.getAlias()), averageType);
+          computationsAndTypes.add(Pair.of(computation, averageType));
+        });
+
+    if (node.getSortByField().isEmpty()) {
+      return new LogicalTrendline(child, computationsAndTypes.build());
+    }
+
+    return new LogicalTrendline(
+        buildSort(child, context, Collections.singletonList(node.getSortByField().get())),
+        computationsAndTypes.build());
   }
 
   @Override
@@ -586,6 +649,27 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitCloseCursor(CloseCursor closeCursor, AnalysisContext context) {
     return new LogicalCloseCursor(closeCursor.getChild().get(0).accept(this, context));
+  }
+
+  private LogicalSort buildSort(
+      LogicalPlan child, AnalysisContext context, List<Field> sortFields) {
+    ExpressionReferenceOptimizer optimizer =
+        new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
+
+    List<Pair<SortOption, Expression>> sortList =
+        sortFields.stream()
+            .map(
+                sortField -> {
+                  var analyzed = expressionAnalyzer.analyze(sortField.getField(), context);
+                  if (analyzed == null) {
+                    throw new UnsupportedOperationException(
+                        String.format("Invalid use of expression %s", sortField.getField()));
+                  }
+                  Expression expression = optimizer.optimize(analyzed, context);
+                  return ImmutablePair.of(analyzeSortOption(sortField.getFieldArgs()), expression);
+                })
+            .collect(Collectors.toList());
+    return new LogicalSort(child, sortList);
   }
 
   /**

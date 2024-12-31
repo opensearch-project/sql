@@ -13,7 +13,7 @@ import java.util.Set;
 
 /** Created by Eliran on 1/8/2015. */
 public class SpatialParamsFactory {
-  public static Set<String> allowedMethods;
+  public static final Set<String> allowedMethods;
 
   static {
     allowedMethods = new HashSet<>();
