@@ -33,7 +33,6 @@ import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
-import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
@@ -215,7 +214,8 @@ public class OpenSearchIndex implements Table {
 
     @Override
     public PhysicalPlan visitEval(LogicalEval node, OpenSearchIndexScan context) {
-      return new OpenSearchEvalOperator(visitChild(node, context), node.getExpressions(),  client.getNodeClient());
+      return new OpenSearchEvalOperator(
+          visitChild(node, context), node.getExpressions(), client.getNodeClient());
     }
   }
 }

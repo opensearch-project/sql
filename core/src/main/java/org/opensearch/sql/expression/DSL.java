@@ -970,7 +970,7 @@ public class DSL {
   }
 
   public static FunctionExpression geoip(
-          FunctionProperties functionProperties, Expression... args) {
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.GEOIP, args);
   }
 

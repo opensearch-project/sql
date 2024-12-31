@@ -99,12 +99,10 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   public PhysicalPlan visitEval(EvalOperator node, Object context) {
     OpenSearchEvalOperator evalOperator = (OpenSearchEvalOperator) node;
     return doProtect(
-            new OpenSearchEvalOperator(
-                    visitInput(evalOperator.getInput(), context),
-                    evalOperator.getExpressionList(),
-                    evalOperator.getNodeClient()
-            )
-    );
+        new OpenSearchEvalOperator(
+            visitInput(evalOperator.getInput(), context),
+            evalOperator.getExpressionList(),
+            evalOperator.getNodeClient()));
   }
 
   @Override
