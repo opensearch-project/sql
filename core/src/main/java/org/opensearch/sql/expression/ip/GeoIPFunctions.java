@@ -22,7 +22,11 @@ import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.SerializableFunction;
 
-/** Utility class that defines and registers IP functions. */
+/**
+ * Utility class to register the method signature for geoip( ) expression,
+ * concreted reallocated to `opensearch` module, as this Ip location require
+ * GeoSpatial Plugin runtime support.
+ */
 @UtilityClass
 public class GeoIPFunctions {
 
@@ -30,6 +34,10 @@ public class GeoIPFunctions {
     repository.register(geoIp());
   }
 
+  /**
+   * To register all method signatures related to geoip( ) expression under eval.
+   * @return Resolver for geoip( ) expression.
+   */
   private DefaultFunctionResolver geoIp() {
     return define(
         BuiltinFunctionName.GEOIP.getName(),
@@ -38,8 +46,8 @@ public class GeoIPFunctions {
   }
 
   /**
-   * Triple Function Implementation.
-   *
+   * Util method to generate probe implementation with given list of argument types,
+   * with marker class `OpenSearchFunctionExpression` to annotate this is an OpenSearch specific expression.
    * @param returnType return type.
    * @return Binary Function Implementation.
    */
