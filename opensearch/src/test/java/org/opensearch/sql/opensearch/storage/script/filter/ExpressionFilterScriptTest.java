@@ -22,6 +22,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.ref;
+import static org.opensearch.sql.expression.DSL.regexp;
 
 import com.google.common.collect.ImmutableMap;
 import java.time.ZonedDateTime;
@@ -162,6 +163,19 @@ class ExpressionFilterScriptTest {
             "Expression has wrong result type instead of boolean: expression [10], result [10]")
         .docValues()
         .filterBy(literal(10));
+  }
+
+  @Test
+  void can_execute_regexp_expression() {
+    assertThat()
+        .docValues("text", "test search")
+        .filterBy(regexp(ref("text", STRING), literal("test.*")))
+        .shouldMatch();
+
+    assertThat()
+        .docValues("text", "test search")
+        .filterBy(regexp(ref("text", STRING), literal("search.*")))
+        .shouldNotMatch();
   }
 
   private ExprScriptAssertion assertThat() {
