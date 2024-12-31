@@ -140,9 +140,8 @@ public class OpenSearchEvalOperator extends EvalOperator {
                 .filter(entry -> options.isEmpty() || options.contains(entry.getKey()))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        v -> new ExprStringValue(v.toString())
+                        v -> new ExprStringValue(v.getValue().toString())
                 ));
-
         return ExprTupleValue.fromExprValueMap(enrichmentResult);
     }
 
