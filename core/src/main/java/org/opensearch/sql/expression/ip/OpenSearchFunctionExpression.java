@@ -16,8 +16,8 @@ import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
 
 /**
- * Marker class to identify functions only compatible with OpenSearch storage engine.
- * Any attempt to invoke the method different from OpenSearch will result in UnsupportedOperationException.
+ * Marker class to identify functions only compatible with OpenSearch storage engine. Any attempt to
+ * invoke the method different from OpenSearch will result in UnsupportedOperationException.
  */
 public class OpenSearchFunctionExpression extends FunctionExpression {
 
