@@ -32,9 +32,13 @@ import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -114,21 +118,32 @@ public class OpenSearchEvalOperator extends EvalOperator {
 
     private ExprValue fetchIpEnrichment(List<Expression> arguments) throws ExecutionException, InterruptedException {
 
+        final Set<String> PERMITTED_OPTIONS = Set.of("country_iso_code", "country_name", "continent_name",
+                "region_iso_code", "region_name", "city_name",
+                "time_zone", "location");
         IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);
         String dataSource = StringUtils.unquoteText(arguments.get(0).toString());
         String ipAddress = StringUtils.unquoteText(arguments.get(1).toString());
+        final Set<String> options = new HashSet<>();
         if (arguments.size() > 2) {
             String option = StringUtils.unquoteText(arguments.get(2).toString());
-            System.out.println("Option: " + option);
+            // Convert the option into a set.
+            options.addAll(Arrays.stream(option.split(","))
+                    .filter(PERMITTED_OPTIONS::contains)
+                    .collect(Collectors.toSet()));
         }
 
+        System.out.println("Option set to filter: " + options);
+
         Map<String, Object> geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);
-        Map<String, ExprValue> collect = geoLocationData.entrySet().stream()
+        Map<String, ExprValue> enrichmentResult = geoLocationData.entrySet().stream()
+                .filter(entry -> options.isEmpty() || options.contains(entry.getKey()))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         v -> new ExprStringValue(v.toString())
                 ));
 
-        return ExprTupleValue.fromExprValueMap(collect);
+        return ExprTupleValue.fromExprValueMap(enrichmentResult);
     }
+
 }
