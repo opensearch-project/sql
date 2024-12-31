@@ -12,6 +12,7 @@ import lombok.Getter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.geospatial.action.IpEnrichmentActionClient;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -24,7 +25,9 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.ip.OpenSearchFunctionExpression;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
@@ -32,6 +35,7 @@ import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
@@ -87,38 +91,18 @@ public class OpenSearchEvalOperator extends EvalOperator {
             ReferenceExpression var = pair.getKey();
             Expression valueExpr = pair.getValue();
             ExprValue value;
-            if (valueExpr instanceof FunctionExpression &&
-                "geoip".equals(((FunctionExpression) valueExpr).getFunctionName().getFunctionName())) {
-
-                IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);
-
-                String dataSource = ((FunctionExpression) valueExpr).getArguments().get(0).toString();
-                dataSource = dataSource.substring(1, dataSource.length() - 1);
-                String ipAddress = ((FunctionExpression) valueExpr).getArguments().get(1).toString();
-                ipAddress = ipAddress.substring(1, ipAddress.length() - 1);
-                if (((FunctionExpression) valueExpr).getArguments().size() > 2) {
-                    String option = ((FunctionExpression) valueExpr).getArguments().get(2).toString();
-                    option = option.substring(1, option.length() - 1);
-                    System.out.println("Option: " + option);
+            if (valueExpr instanceof OpenSearchFunctionExpression openSearchFuncExpression) {
+                if ("geoip".equals(openSearchFuncExpression.getFunctionName().getFunctionName())) {
+                    try {
+                        // Rewrite to encapsulate the try catch.
+                        value = fetchIpEnrichment(openSearchFuncExpression.getArguments());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        value = null;
+                    }
+                } else {
+                    return null;
                 }
-
-                try {
-                    Map<String, Object> geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);
-
-//                    geoLocationData.forEach((k,v) -> System.out.println(k + " " + v));
-                    // Transform above into <String, ExprValue> , then do ExprTupleValue.fromExprValueMap
-                    Map<String, ExprValue> collect = geoLocationData.entrySet().stream()
-                            .collect(Collectors.toMap(
-                                    Map.Entry::getKey,
-                                    v -> new ExprStringValue(v.toString())
-                            ));
-
-                    value = ExprTupleValue.fromExprValueMap(collect);
-
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-
             } else {
                 value = pair.getValue().valueOf(env);
             }
@@ -128,6 +112,23 @@ public class OpenSearchEvalOperator extends EvalOperator {
         return evalResultMap;
     }
 
+    private ExprValue fetchIpEnrichment(List<Expression> arguments) throws ExecutionException, InterruptedException {
 
+        IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);
+        String dataSource = StringUtils.unquoteText(arguments.get(0).toString());
+        String ipAddress = StringUtils.unquoteText(arguments.get(1).toString());
+        if (arguments.size() > 2) {
+            String option = StringUtils.unquoteText(arguments.get(2).toString());
+            System.out.println("Option: " + option);
+        }
 
+        Map<String, Object> geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);
+        Map<String, ExprValue> collect = geoLocationData.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        v -> new ExprStringValue(v.toString())
+                ));
+
+        return ExprTupleValue.fromExprValueMap(collect);
+    }
 }
