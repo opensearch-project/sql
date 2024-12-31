@@ -973,9 +973,8 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.UTC_TIMESTAMP, args);
   }
 
-  public static FunctionExpression geoip(
-      FunctionProperties functionProperties, Expression... args) {
-    return compile(functionProperties, BuiltinFunctionName.GEOIP, args);
+  public static FunctionExpression geoip(Expression... args) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.GEOIP, args);
   }
 
   @SuppressWarnings("unchecked")
