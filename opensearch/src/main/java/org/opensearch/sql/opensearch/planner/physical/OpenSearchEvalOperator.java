@@ -64,7 +64,6 @@ public class OpenSearchEvalOperator extends EvalOperator {
     public ExprValue next() {
         ExprValue inputValue = this.getInput().next();
         Map<String, ExprValue> evalMap = eval(inputValue.bindingTuples());
-
         if (STRUCT == inputValue.type()) {
             ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
             Map<String, ExprValue> tupleValue = ExprValueUtils.getTupleValue(inputValue);
@@ -97,13 +96,8 @@ public class OpenSearchEvalOperator extends EvalOperator {
             ExprValue value;
             if (valueExpr instanceof OpenSearchFunctionExpression openSearchFuncExpression) {
                 if ("geoip".equals(openSearchFuncExpression.getFunctionName().getFunctionName())) {
-                    try {
-                        // Rewrite to encapsulate the try catch.
-                        value = fetchIpEnrichment(openSearchFuncExpression.getArguments());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        value = null;
-                    }
+                    // Rewrite to encapsulate the try catch.
+                    value = fetchIpEnrichment(openSearchFuncExpression.getArguments());
                 } else {
                     return null;
                 }
@@ -116,7 +110,7 @@ public class OpenSearchEvalOperator extends EvalOperator {
         return evalResultMap;
     }
 
-    private ExprValue fetchIpEnrichment(List<Expression> arguments) throws ExecutionException, InterruptedException {
+    private ExprValue fetchIpEnrichment(List<Expression> arguments) {
 
         final Set<String> PERMITTED_OPTIONS = Set.of("country_iso_code", "country_name", "continent_name",
                 "region_iso_code", "region_name", "city_name",
@@ -132,17 +126,18 @@ public class OpenSearchEvalOperator extends EvalOperator {
                     .filter(PERMITTED_OPTIONS::contains)
                     .collect(Collectors.toSet()));
         }
-
-        System.out.println("Option set to filter: " + options);
-
-        Map<String, Object> geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);
-        Map<String, ExprValue> enrichmentResult = geoLocationData.entrySet().stream()
-                .filter(entry -> options.isEmpty() || options.contains(entry.getKey()))
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        v -> new ExprStringValue(v.getValue().toString())
-                ));
-        return ExprTupleValue.fromExprValueMap(enrichmentResult);
+        try {
+            Map<String, Object> geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);
+            Map<String, ExprValue> enrichmentResult = geoLocationData.entrySet().stream()
+                    .filter(entry -> options.isEmpty() || options.contains(entry.getKey()))
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            v -> new ExprStringValue(v.getValue().toString())
+                    ));
+            return ExprTupleValue.fromExprValueMap(enrichmentResult);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

@@ -215,7 +215,6 @@ public class OpenSearchIndex implements Table {
 
     @Override
     public PhysicalPlan visitEval(LogicalEval node, OpenSearchIndexScan context) {
-      System.out.println("Visiting: " + node);
       return new OpenSearchEvalOperator(visitChild(node, context), node.getExpressions(),  client.getNodeClient());
     }
   }

@@ -525,7 +525,6 @@ goeipFunctionName
    : GEOIP
    ;
 
-
 trigonometricFunctionName
    : ACOS
    | ASIN
