@@ -35,8 +35,8 @@ import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 /**
- * OpenSearch version of eval operator, which contains nodeClient, in order to
- * perform OpenSearch related operation during the eval process.
+ * OpenSearch version of eval operator, which contains nodeClient, in order to perform OpenSearch
+ * related operation during the eval process.
  */
 public class OpenSearchEvalOperator extends EvalOperator {
 
