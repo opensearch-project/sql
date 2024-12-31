@@ -37,7 +37,7 @@ public class GeoIPFunctionTest {
         assertThrows(
             UnsupportedOperationException.class,
             () -> DSL.geoip(
-                    DSL.literal("HARDCODED_DS"),
+                    DSL.literal("HARDCODED_DATASOURCE_NAME"),
                     DSL.ref("ip_address", STRING)).valueOf(env));
     assertTrue(
         exception.getMessage().matches(".*no default implementation available"));
