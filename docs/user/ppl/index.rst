@@ -106,6 +106,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `IP Address Functions <functions/ip.rst>`_
 
+  - `Geo IP Address Functions <functions/geoip.rst>`_
+
 * **Optimization**
 
   - `Optimization <../../user/optimization/optimization.rst>`_
