@@ -101,7 +101,6 @@ public class OpenSearchEvalOperator extends EvalOperator {
   }
 
   private ExprValue fetchIpEnrichment(List<Expression> arguments) {
-
     final Set<String> PERMITTED_OPTIONS =
         Set.of(
             "country_iso_code",
