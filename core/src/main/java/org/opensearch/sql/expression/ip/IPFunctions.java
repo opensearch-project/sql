@@ -28,12 +28,21 @@ public class IPFunctions {
 
   public void register(BuiltinFunctionRepository repository) {
     repository.register(cidrmatch());
+    repository.register(geoIp());
+
   }
 
   private DefaultFunctionResolver cidrmatch() {
     return define(
         BuiltinFunctionName.CIDRMATCH.getName(),
         impl(nullMissingHandling(IPFunctions::exprCidrMatch), BOOLEAN, IP, STRING));
+  }
+
+  private DefaultFunctionResolver geoIp() {
+    return define(
+            BuiltinFunctionName.GEOIP.getName(),
+            impl(nullMissingHandling(IPFunctions::exprGeoIp), BOOLEAN, STRING, STRING),
+            impl(nullMissingHandling(IPFunctions::exprGeoIpWithOption), BOOLEAN, STRING, STRING, STRING));
   }
 
   /**
@@ -57,4 +66,13 @@ public class IPFunctions {
         ? ExprValueUtils.LITERAL_FALSE
         : ExprValueUtils.LITERAL_TRUE;
   }
+
+  private ExprValue exprGeoIpWithOption(ExprValue dataSource, ExprValue ipAddress, ExprValue option) {
+    return ExprValueUtils.booleanValue(true);
+  }
+
+  private ExprValue exprGeoIp(ExprValue dataSource, ExprValue ipAddress) {
+    return ExprValueUtils.booleanValue(true);
+  }
+
 }

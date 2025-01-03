@@ -1,0 +1,38 @@
+====================
+Geo IP Address Functions
+====================
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+   :depth: 1
+
+CIDRMATCH
+---------
+
+Description
+>>>>>>>>>>>
+
+Usage: `geoip(dataSourceName, ipAddress, options)` to lookup location information from given IP addresses via OpenSearch GeoSpatial plugin API.
+
+Argument type: STRING, STRING, STRING
+
+Return type: Tuple
+
+Example:
+
+    os> source=weblogs | eval LookupResult = geoip("dataSourceName", "50.68.18.229", "country_iso_code,city_name")
+    fetched rows / total rows = 1/1
+    +-------------------------------------------------------------+
+    | LookupResult                                                        |
+    |-------------------------------------------------------------|
+    | {'city_name': 'Vancouver', 'country_iso_code': 'CA'}        |
+    +-------------------------------------------------------------+
+
+
+Note:
+ - `dataSourceName` must be an established dataSource on OpenSearch GeoSpatial plugin, detail of configuration can be found: https://opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/
+ - `ip` can be an IPv4 or an IPv6 address
+ - `options` is a comma separated String for user to specify fields to output, the selection of fields subject to dataSourceProvider's schema, the list of geolite2-city dataset provide fields: "country_iso_code", "country_name", "continent_name", "region_iso_code", "region_name", "city_name", "time_zone", "location"
+
