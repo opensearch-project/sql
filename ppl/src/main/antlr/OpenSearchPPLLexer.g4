@@ -332,6 +332,9 @@ ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
 
+// JSON FUNCTIONS
+JSON_VALID:                         'JSON_VALID';
+
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';
 NULLIF:                             'NULLIF';
