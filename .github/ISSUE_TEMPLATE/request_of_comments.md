@@ -12,17 +12,25 @@ Describes the issue or challenge that needs to be addressed.
 **Current State**
 Explains the existing setup or context and its shortcomings.
 
+**Long-Term Goals**
+* Describe the ideal outcome or future state you aim to achieve.
+* What are the primary objectives of this solution should fulfill in the long run?
+* How will this solution ensure sustainability or scalability over time?
+* Consider whether the solution addresses the root problem and aligns with the overall goals.
+
+-[ ] Does the solution solve the problem?
+
 **Proposal**
 Summarizes the suggested solution or improvement.
 
 **Approach**
 Details the steps or strategy to implement the proposal.
 
-**API Design**
-Outlines the interface specifications for any involved APIs.
-
-**Known Limitation**
-Lists constraints or challenges anticipated in the solution.
+**Alternative**
+Alternative that can serve as workarounds to partially or temporarily solve the problem.
 
 **Do you have any additional context?**
 Add any other context about the problem.
+
+**Implementation Discussion**
+Outlines point the discussion regarding the proposed implementation.
