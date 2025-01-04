@@ -87,7 +87,7 @@ public class OpenSearchEvalOperator extends EvalOperator {
       if (valueExpr instanceof OpenSearchFunctionExpression openSearchFuncExpression) {
         if ("geoip".equals(openSearchFuncExpression.getFunctionName().getFunctionName())) {
           // Rewrite to encapsulate the try catch.
-          value = fetchIpEnrichment(openSearchFuncExpression.getArguments());
+          value = fetchIpEnrichment(openSearchFuncExpression.getArguments(), env);
         } else {
           return null;
         }
@@ -100,7 +100,7 @@ public class OpenSearchEvalOperator extends EvalOperator {
     return evalResultMap;
   }
 
-  private ExprValue fetchIpEnrichment(List<Expression> arguments) {
+  private ExprValue fetchIpEnrichment(List<Expression> arguments, Environment<Expression, ExprValue> env) {
     final Set<String> PERMITTED_OPTIONS =
         Set.of(
             "country_iso_code",
@@ -113,7 +113,7 @@ public class OpenSearchEvalOperator extends EvalOperator {
             "location");
     IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);
     String dataSource = StringUtils.unquoteText(arguments.get(0).toString());
-    String ipAddress = StringUtils.unquoteText(arguments.get(1).toString());
+    String ipAddress = arguments.get(1).valueOf(env).stringValue();
     final Set<String> options = new HashSet<>();
     if (arguments.size() > 2) {
       String option = StringUtils.unquoteText(arguments.get(2).toString());
