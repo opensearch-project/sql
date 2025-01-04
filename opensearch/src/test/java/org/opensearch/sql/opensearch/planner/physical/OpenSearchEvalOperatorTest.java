@@ -62,6 +62,12 @@ public class OpenSearchEvalOperatorTest {
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private ActionFuture<ActionResponse> actionFuture;
 
+  private final ExprTupleValue DATE_ROW = new ExprTupleValue(new LinkedHashMap<>(Map.of(
+          "firstname", new OpenSearchExprTextValue("Amber"),
+            "age", new ExprLongValue(32),
+            "email", new OpenSearchExprTextValue("amberduke@pyrami.com"),
+            "ipInStr", new OpenSearchExprTextValue("192.168.1.1"))));
+
   /**
    * The test-case aim to assert OpenSearchEvalOperator behaviour when evaluating generic expression,
    * which is not OpenSearch Engine specific. (Ex: ABS(age) )
@@ -70,12 +76,7 @@ public class OpenSearchEvalOperatorTest {
   public void testEvalOperatorOnGenericOperations() {
 
     // The input dataset
-    when(input.next()).thenReturn(
-            new ExprTupleValue(new LinkedHashMap<>(Map.of(
-            "firstname", new OpenSearchExprTextValue("Amber"),
-            "age", new ExprLongValue(32),
-            "email", new OpenSearchExprTextValue("amberduke@pyrami.com"),
-            "ipInStr", new OpenSearchExprTextValue("192.168.1.1")))));
+    when(input.next()).thenReturn(DATE_ROW);
 
     // Expression to be evaluated
     List<Pair<ReferenceExpression, Expression>> ipAddress = List.of(
@@ -99,23 +100,14 @@ public class OpenSearchEvalOperatorTest {
   public void testEvalOperatorOnGeoIpExpression() {
 
     // The input dataset
-    when(input.next()).thenReturn(
-            new ExprTupleValue(new LinkedHashMap<>(Map.of(
-                    "firstname", new OpenSearchExprTextValue("Amber"),
-                    "age", new ExprLongValue(32),
-                    "email", new OpenSearchExprTextValue("amberduke@pyrami.com"),
-                    "ipInStr", new OpenSearchExprTextValue("192.168.1.1")))));
-
-    Map<String, Object> dummyPayload = Map.of("country_name", "Canada");
-
+    when(input.next()).thenReturn(DATE_ROW);
     when(nodeClient.execute(eq(IpEnrichmentAction.INSTANCE),
             argThat( request ->
                     request instanceof IpEnrichmentRequest &&
                     "192.168.1.1".equals(((IpEnrichmentRequest) request).getIpString()))))
             .thenReturn(actionFuture);
-
     when(actionFuture.get())
-            .thenReturn(new IpEnrichmentResponse(dummyPayload));
+            .thenReturn(new IpEnrichmentResponse(Map.of("country_name", "Canada")));
 
     // Expression to be evaluated
     List<Pair<ReferenceExpression, Expression>> ipAddress = List.of(
