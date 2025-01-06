@@ -22,6 +22,7 @@ import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapp
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getJsonTestIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getNestedSimpleIndexMapping;
@@ -745,7 +746,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_GEOPOINT,
         "dates",
         getGeopointIndexMapping(),
-        "src/test/resources/geopoints.json");
+        "src/test/resources/geopoints.json"),
+    JSON_TEST(
+        TestsConstants.TEST_INDEX_JSON_TEST,
+        "json",
+        getJsonTestIndexMapping(),
+        "src/test/resources/json_test.json");
 
     private final String name;
     private final String type;
