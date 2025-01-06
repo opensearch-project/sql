@@ -1,0 +1,65 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.ppl;
+
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import org.json.JSONObject;
+
+import javax.json.Json;
+
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_JSON_TEST;
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+
+public class JsonFunctionIT extends PPLIntegTestCase {
+    @Override
+    public void init() throws IOException {
+        loadIndex(Index.JSON_TEST);
+    }
+
+    @Test
+    public void test_json_valid() throws IOException {
+        JSONObject result;
+
+        result =
+            executeQuery(
+                String.format(
+                    "source=%s | where json_valid(json_string) | fields test_name",
+                    TEST_INDEX_JSON_TEST
+                )
+            );
+        verifySchema(result, schema("test_name", null,  "string"));
+        verifyDataRows(
+                result,
+                rows("json object"),
+                rows("json array"),
+                rows("json scalar string"),
+                rows("json empty string")
+        );
+    }
+
+    @Test
+    public void test_not_json_valid() throws IOException {
+        JSONObject result;
+
+        result =
+                executeQuery(
+                        String.format(
+                                "source=%s | where not json_valid(json_string) | fields test_name",
+                                TEST_INDEX_JSON_TEST
+                        )
+                );
+        verifySchema(result, schema("test_name", null,  "string"));
+        verifyDataRows(
+                result,
+                rows("json invalid object")
+        );
+    }
+}
