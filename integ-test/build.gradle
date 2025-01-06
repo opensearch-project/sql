@@ -69,7 +69,7 @@ ext {
 
     getSecurityPluginDownloadLink = { ->
         var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
-                   "opensearch-security/$opensearch_build_snapshot/"
+                "opensearch-security/$opensearch_build_snapshot/"
         var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
         download.run {
             src repo + "maven-metadata.xml"
@@ -115,25 +115,25 @@ ext {
             cluster.extraConfigFile file, local
         }
         [
-            // config copied from security plugin demo configuration
-            'plugins.security.ssl.transport.pemcert_filepath' : 'esnode.pem',
-            'plugins.security.ssl.transport.pemkey_filepath' : 'esnode-key.pem',
-            'plugins.security.ssl.transport.pemtrustedcas_filepath' : 'root-ca.pem',
-            'plugins.security.ssl.transport.enforce_hostname_verification' : 'false',
-            // https is disabled to simplify test debugging
-            'plugins.security.ssl.http.enabled' : 'false',
-            'plugins.security.ssl.http.pemcert_filepath' : 'esnode.pem',
-            'plugins.security.ssl.http.pemkey_filepath' : 'esnode-key.pem',
-            'plugins.security.ssl.http.pemtrustedcas_filepath' : 'root-ca.pem',
-            'plugins.security.allow_unsafe_democertificates' : 'true',
+                // config copied from security plugin demo configuration
+                'plugins.security.ssl.transport.pemcert_filepath' : 'esnode.pem',
+                'plugins.security.ssl.transport.pemkey_filepath' : 'esnode-key.pem',
+                'plugins.security.ssl.transport.pemtrustedcas_filepath' : 'root-ca.pem',
+                'plugins.security.ssl.transport.enforce_hostname_verification' : 'false',
+                // https is disabled to simplify test debugging
+                'plugins.security.ssl.http.enabled' : 'false',
+                'plugins.security.ssl.http.pemcert_filepath' : 'esnode.pem',
+                'plugins.security.ssl.http.pemkey_filepath' : 'esnode-key.pem',
+                'plugins.security.ssl.http.pemtrustedcas_filepath' : 'root-ca.pem',
+                'plugins.security.allow_unsafe_democertificates' : 'true',
 
-            'plugins.security.allow_default_init_securityindex' : 'true',
-            'plugins.security.authcz.admin_dn' : 'CN=kirk,OU=client,O=client,L=test,C=de',
-            'plugins.security.audit.type' : 'internal_opensearch',
-            'plugins.security.enable_snapshot_restore_privilege' : 'true',
-            'plugins.security.check_snapshot_restore_write_privileges' : 'true',
-            'plugins.security.restapi.roles_enabled' : '["all_access", "security_rest_api_access"]',
-            'plugins.security.system_indices.enabled' : 'true'
+                'plugins.security.allow_default_init_securityindex' : 'true',
+                'plugins.security.authcz.admin_dn' : 'CN=kirk,OU=client,O=client,L=test,C=de',
+                'plugins.security.audit.type' : 'internal_opensearch',
+                'plugins.security.enable_snapshot_restore_privilege' : 'true',
+                'plugins.security.check_snapshot_restore_write_privileges' : 'true',
+                'plugins.security.restapi.roles_enabled' : '["all_access", "security_rest_api_access"]',
+                'plugins.security.system_indices.enabled' : 'true'
         ].forEach { name, value ->
             cluster.setting name, value
         }
@@ -273,6 +273,18 @@ testClusters {
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
     }
+    integTestWithGeo {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+    }
+
+    remoteIntegTestWithGeo {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+    }
+
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -314,7 +326,7 @@ stopPrometheus.mustRunAfter startPrometheus
 
 task integJdbcTest(type: RestIntegTestTask) {
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().
-        plugin ":opensearch-sql-plugin"
+            plugin ":opensearch-sql-plugin"
 
     useJUnitPlatform()
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
@@ -361,10 +373,76 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     useCluster testClusters.remoteIntegTestWithSecurity
 
     systemProperty "cluster.names",
-        getClusters().stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
+            getClusters().stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
 
     getClusters().forEach { cluster ->
         configureSecurityPlugin(cluster)
+    }
+
+    useJUnitPlatform()
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    afterTest { desc, result ->
+        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+    }
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+
+    // Set default query size limit
+    systemProperty 'defaultQuerySizeLimit', '10000'
+
+    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
+    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
+    doFirst {
+        systemProperty 'cluster.debug', getDebug()
+        getClusters().forEach { cluster ->
+
+            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllTransportPortURI().stream()
+            }.collect(Collectors.joining(","))
+            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllHttpSocketURI().stream()
+            }.collect(Collectors.joining(","))
+
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
+        }
+
+        systemProperty "https", "false"
+        systemProperty "user", "admin"
+        systemProperty "password", "admin"
+    }
+
+    if (System.getProperty("test.debug") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
+
+    // NOTE: this IT config discovers only junit5 (jupiter) tests.
+    // https://github.com/opensearch-project/sql/issues/1974
+    filter {
+        includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
+    }
+}
+
+
+task integTestWithGeo(type: RestIntegTestTask) {
+    println("Starting cluster with Geo")
+    useCluster testClusters.integTestWithGeo
+    useCluster testClusters.remoteIntegTestWithGeo
+
+    systemProperty "cluster.names",
+            getClusters().stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
+
+//    getClusters().forEach { cluster ->
+//        configureSecurityPlugin(cluster)
+//    }
+
+    getClusters().forEach { cluster ->
+        configureSecurityPlugin(cluster)
+        println("Configuring cluster: $cluster")
     }
 
     useJUnitPlatform()
