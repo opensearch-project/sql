@@ -17,8 +17,7 @@ Explains the existing setup or context and its shortcomings.
 * What are the primary objectives of this solution should fulfill in the long run?
 * How will this solution ensure sustainability or scalability over time?
 * Consider whether the solution addresses the root problem and aligns with the overall goals.
-
--[ ] Does the solution solve the problem?
+* How confident are we that this solution solves the problem?
 
 **Proposal**
 Summarizes the suggested solution or improvement.
@@ -28,9 +27,6 @@ Details the steps or strategy to implement the proposal.
 
 **Alternative**
 Alternative that can serve as workarounds to partially or temporarily solve the problem.
-
-**Do you have any additional context?**
-Add any other context about the problem.
 
 **Implementation Discussion**
 Outlines point the discussion regarding the proposed implementation.
