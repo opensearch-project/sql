@@ -29,6 +29,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -1231,6 +1232,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   }
 
   @Test
+  @Disabled("Test is disabled because of issue https://github.com/opensearch-project/sql/issues/2477")
   public void testWeekOfYearWithTimeType() {
     LocalDate today = LocalDate.now(functionProperties.getQueryStartClock());
 
