@@ -81,11 +81,30 @@ ext {
         return repo + "opensearch-security-${securitySnapshotVersion}.zip"
     }
 
+    getGeoPluginDownloadLink = { ->
+        var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
+                "geospatial/$opensearch_build_snapshot/"
+        var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
+        download.run {
+            src repo + "maven-metadata.xml"
+            dest metadataFile
+        }
+        def metadata = new XmlParser().parse(metadataFile)
+        def GeoSnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
+
+        println("-----Downloading: " + repo + "geospatial-${GeoSnapshotVersion}.zip")
+
+        return repo + "geospatial-${GeoSnapshotVersion}.zip"
+    }
+
     var projectAbsPath = projectDir.getAbsolutePath()
     File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
+    File downloadedGeoPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-geospatial-snapshot.zip').toFile()
     configureSecurityPlugin = { OpenSearchCluster cluster ->
 
+        println("---------Stpe: configureSecurityPlugin")
         cluster.getNodes().forEach { node ->
+            println("---------Step: Runtime node: $node")
             var creds = node.getCredentials()
             if (creds.isEmpty()) {
                 creds.add(Map.of('useradd', 'admin', '-p', 'admin'))
@@ -102,6 +121,15 @@ ext {
             }
         } else {
             println "Security Plugin File Already Exists"
+        }
+
+        if (!downloadedGeoPlugin.exists()) {
+            download.run {
+                src getGeoPluginDownloadLink()
+                dest downloadedGeoPlugin
+            }
+        } else {
+            println "----------Geo Plugin File Already Exists"
         }
 
         // Config below including files are copied from security demo configuration
@@ -138,6 +166,7 @@ ext {
             cluster.setting name, value
         }
 
+        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedGeoPlugin)))
         cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
     }
 
@@ -268,11 +297,18 @@ testClusters {
         plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
     }
-    integTestWithSecurity {
-        testDistribution = 'archive'
-        plugin(getJobSchedulerPlugin())
-        plugin ":opensearch-sql-plugin"
-    }
+//    integTestWithSecurity {
+//        testDistribution = 'archive'
+//        plugin(getJobSchedulerPlugin())
+//        plugin ":opensearch-sql-plugin"
+//    }
+//
+//    remoteIntegTestWithSecurity {
+//        testDistribution = 'archive'
+//        plugin(getJobSchedulerPlugin())
+//        plugin ":opensearch-sql-plugin"
+//    }
+
     integTestWithGeo {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -285,11 +321,6 @@ testClusters {
         plugin ":opensearch-sql-plugin"
     }
 
-    remoteIntegTestWithSecurity {
-        testDistribution = 'archive'
-        plugin(getJobSchedulerPlugin())
-        plugin ":opensearch-sql-plugin"
-    }
 }
 
 task startPrometheus(type: SpawnProcessTask) {
@@ -369,6 +400,8 @@ task integJdbcTest(type: RestIntegTestTask) {
 }
 
 task integTestWithSecurity(type: RestIntegTestTask) {
+    println("----------Starting cluster with Security")
+
     useCluster testClusters.integTestWithSecurity
     useCluster testClusters.remoteIntegTestWithSecurity
 
@@ -429,7 +462,7 @@ task integTestWithSecurity(type: RestIntegTestTask) {
 
 
 task integTestWithGeo(type: RestIntegTestTask) {
-    println("Starting cluster with Geo")
+    println("----------Starting cluster with Geo")
     useCluster testClusters.integTestWithGeo
     useCluster testClusters.remoteIntegTestWithGeo
 
@@ -442,7 +475,7 @@ task integTestWithGeo(type: RestIntegTestTask) {
 
     getClusters().forEach { cluster ->
         configureSecurityPlugin(cluster)
-        println("Configuring cluster: $cluster")
+        println("---------Configuring cluster: $cluster")
     }
 
     useJUnitPlatform()
@@ -450,6 +483,7 @@ task integTestWithGeo(type: RestIntegTestTask) {
     testLogging {
         events "passed", "skipped", "failed"
     }
+    println("---------- After test")
     afterTest { desc, result ->
         logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
     }
@@ -463,15 +497,23 @@ task integTestWithGeo(type: RestIntegTestTask) {
     // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
     // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
     doFirst {
+        println("---------- Do first")
         systemProperty 'cluster.debug', getDebug()
         getClusters().forEach { cluster ->
 
+            println("---------Runtime area: ")
             String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
                 node.getAllTransportPortURI().stream()
             }.collect(Collectors.joining(","))
             String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
                 node.getAllHttpSocketURI().stream()
             }.collect(Collectors.joining(","))
+            println("-----------Cluster detail: ")
+            println(allHttpSocketURI)
+            println(allTransportSocketURI)
+            cluster.nodes.forEach {
+                println(it)
+            }
 
             systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
             systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
@@ -482,6 +524,7 @@ task integTestWithGeo(type: RestIntegTestTask) {
         systemProperty "password", "admin"
     }
 
+    println("----------Before debug")
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
@@ -489,6 +532,7 @@ task integTestWithGeo(type: RestIntegTestTask) {
     // NOTE: this IT config discovers only junit5 (jupiter) tests.
     // https://github.com/opensearch-project/sql/issues/1974
     filter {
+        println("----------Inside filter")
         includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
     }
 }
