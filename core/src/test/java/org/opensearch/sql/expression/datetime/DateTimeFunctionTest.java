@@ -1230,7 +1230,8 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   }
 
   @Test
-  @Disabled("Test is disabled because of issue https://github.com/opensearch-project/sql/issues/2477")
+  @Disabled(
+      "Test is disabled because of issue https://github.com/opensearch-project/sql/issues/2477")
   public void testWeekOfYearWithTimeType() {
     assertAll(
         () ->

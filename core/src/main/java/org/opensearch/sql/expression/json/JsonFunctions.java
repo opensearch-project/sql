@@ -5,27 +5,27 @@
 
 package org.opensearch.sql.expression.json;
 
-import lombok.experimental.UtilityClass;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
-import org.opensearch.sql.expression.function.DefaultFunctionResolver;
-import org.opensearch.sql.utils.JsonUtils;
-
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
+import lombok.experimental.UtilityClass;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.utils.JsonUtils;
+
 @UtilityClass
 public class JsonFunctions {
-    public void register(BuiltinFunctionRepository repository) {
-        repository.register(jsonValid());
-    }
+  public void register(BuiltinFunctionRepository repository) {
+    repository.register(jsonValid());
+  }
 
-    private DefaultFunctionResolver jsonValid() {
-        return define(
-                BuiltinFunctionName.JSON_VALID.getName(),
-                impl(nullMissingHandling(JsonUtils::isValidJson), BOOLEAN, STRING));
-    }
+  private DefaultFunctionResolver jsonValid() {
+    return define(
+        BuiltinFunctionName.JSON_VALID.getName(),
+        impl(nullMissingHandling(JsonUtils::isValidJson), BOOLEAN, STRING));
+  }
 }

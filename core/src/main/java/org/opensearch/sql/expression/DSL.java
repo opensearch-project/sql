@@ -683,7 +683,7 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.NOT_LIKE, expressions);
   }
 
-  public static FunctionExpression jsonValid(Expression... expressions){
+  public static FunctionExpression jsonValid(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.JSON_VALID, expressions);
   }
 
