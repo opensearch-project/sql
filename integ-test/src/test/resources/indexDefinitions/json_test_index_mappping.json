@@ -2,7 +2,7 @@
   "mappings": {
     "properties": {
       "test_name": {
-        "type": "text"
+        "type": "keyword"
       },
       "json_string": {
         "type": "text"
