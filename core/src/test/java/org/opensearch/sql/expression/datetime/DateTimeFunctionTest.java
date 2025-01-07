@@ -27,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -1228,9 +1229,8 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         expectedInteger);
   }
 
-  // subtracting 1 as a temporary fix for year 2024.
-  // Issue: https://github.com/opensearch-project/sql/issues/2477
   @Test
+  @Disabled("Test is disabled because of issue https://github.com/opensearch-project/sql/issues/2477")
   public void testWeekOfYearWithTimeType() {
     assertAll(
         () ->

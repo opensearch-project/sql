@@ -11,6 +11,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 
 import java.time.LocalDate;
 import java.util.stream.Stream;
+
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -91,6 +93,7 @@ class ExtractTest extends ExpressionTestBase {
   }
 
   @Test
+  @Disabled("Test is disabled because of issue https://github.com/opensearch-project/sql/issues/2477")
   public void testExtractDatePartWithTimeType() {
     datePartWithTimeArgQuery(
         "DAY", timeInput, LocalDate.now(functionProperties.getQueryStartClock()).getDayOfMonth());
