@@ -16,7 +16,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -102,7 +101,8 @@ class YearweekTest extends ExpressionTestBase {
   }
 
   @Test
-  @Disabled("Test is disabled because of issue https://github.com/opensearch-project/sql/issues/2477")
+  @Disabled(
+      "Test is disabled because of issue https://github.com/opensearch-project/sql/issues/2477")
   public void testYearweekWithTimeType() {
     int expected = getYearWeekBeforeSunday(LocalDate.now(functionProperties.getQueryStartClock()));
 
