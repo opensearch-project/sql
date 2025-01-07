@@ -29,13 +29,13 @@ public class JsonFunctionsTest {
     private static final ExprValue JsonInvalidScalar = ExprValueUtils.stringValue("abc");
 
     @Test
-    public void json_valid_invalid_json_string() {
+    public void json_valid_returns_false() {
         assertEquals(LITERAL_FALSE, execute(JsonInvalidObject));
         assertEquals(LITERAL_FALSE, execute(JsonInvalidScalar));
     }
 
     @Test
-    public void json_valid_valid_json_string() {
+    public void json_valid_returns_true() {
         assertEquals(LITERAL_TRUE, execute(JsonObject));
         assertEquals(LITERAL_TRUE, execute(JsonArray));
         assertEquals(LITERAL_TRUE, execute(JsonScalarString));

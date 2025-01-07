@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.json;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprValue;
@@ -43,7 +44,7 @@ public class JsonFunctions {
         try {
             objectMapper.readTree(jsonExprValue.stringValue());
             return ExprValueUtils.LITERAL_TRUE;
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             return ExprValueUtils.LITERAL_FALSE;
         }
     }
