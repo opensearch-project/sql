@@ -22,13 +22,14 @@ Return type: BOOLEAN
 
 Example::
 
-    > source=json_test | where json_valid(json_string) | fields test_name, json_string
+    > source=json_test | eval is_valid = json_valid(json_string) | fields test_name, json_string, is_valid
     fetched rows / total rows = 4/4
-    +--------------------+--------------------+
-    | test_name          | json_string        |
-    |--------------------|--------------------|
-    | json object        | {"a":"1","b":"2"}  |
-    | json array         | [1, 2, 3, 4]       |
-    | json scalar string | [1, 2, 3, 4]       |
-    | json empty string  | [1, 2, 3, 4]       |
-    +--------------------+--------------------+
+    +---------------------+------------------------------+----------+
+    | test_name           | json_string                  | is_valid |
+    |---------------------|------------------------------|----------|
+    | json object         | {"a":"1","b":"2"}            | True     |
+    | json array          | [1, 2, 3, 4]                 | True     |
+    | json scalar string  | "abc"                        | True     |
+    | json empty string   |                              | True     |
+    | json invalid object | {"invalid":"json", "string"} | True     |
+    +---------------------+------------------------------+----------+

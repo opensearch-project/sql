@@ -23,7 +23,6 @@ import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHand
 @UtilityClass
 public class JsonFunctions {
     public void register(BuiltinFunctionRepository repository) {
-
         repository.register(jsonValid());
     }
 
