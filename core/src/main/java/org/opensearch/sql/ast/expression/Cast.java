@@ -13,6 +13,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_FLOAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_INT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_IP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_JSON;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_LONG;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_SHORT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_STRING;
@@ -56,6 +57,7 @@ public class Cast extends UnresolvedExpression {
           .put("timestamp", CAST_TO_TIMESTAMP.getName())
           .put("datetime", CAST_TO_DATETIME.getName())
           .put("ip", CAST_TO_IP.getName())
+          .put("json", CAST_TO_JSON.getName())
           .build();
 
   /** The source expression cast from. */

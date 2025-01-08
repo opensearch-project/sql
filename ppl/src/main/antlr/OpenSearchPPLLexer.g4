@@ -143,6 +143,7 @@ FLOAT:                              'FLOAT';
 STRING:                             'STRING';
 BOOLEAN:                            'BOOLEAN';
 IP:                                 'IP';
+JSON:                               'JSON';
 
 // SPECIAL CHARACTERS AND OPERATORS
 PIPE:                               '|';

@@ -235,6 +235,7 @@ public enum BuiltinFunctionName {
   CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
   CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
   CAST_TO_IP(FunctionName.of("cast_to_ip")),
+  CAST_TO_JSON(FunctionName.of("cast_to_json")),
   TYPEOF(FunctionName.of("typeof")),
 
   /** Relevance Function. */
@@ -259,7 +260,10 @@ public enum BuiltinFunctionName {
   MULTIMATCH(FunctionName.of("multimatch")),
   MULTIMATCHQUERY(FunctionName.of("multimatchquery")),
   WILDCARDQUERY(FunctionName.of("wildcardquery")),
-  WILDCARD_QUERY(FunctionName.of("wildcard_query"));
+  WILDCARD_QUERY(FunctionName.of("wildcard_query")),
+
+  /* Json Functions. */
+  JSON(FunctionName.of("json"));
 
   private final FunctionName name;
 
