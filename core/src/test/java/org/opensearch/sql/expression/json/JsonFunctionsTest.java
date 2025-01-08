@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 
 import java.util.LinkedHashMap;
@@ -217,4 +219,93 @@ public class JsonFunctionsTest {
                     () -> DSL.castJson(expr).valueOf(),
                     "Expected to throw SemanticCheckException when calling castJson with " + expr));
   }
+
+    @Test
+    void json_returnsJsonObject() {
+        FunctionExpression exp;
+
+        // Setup
+        final String objectJson =
+            "{\"foo\": \"foo\", \"fuzz\": true, \"bar\": 1234, \"bar2\": 12.34, \"baz\": null, "
+                + "\"obj\": {\"internal\": \"value\"}, \"arr\": [\"string\", true, null]}";
+
+        LinkedHashMap<String, ExprValue> objectMap = new LinkedHashMap<>();
+        objectMap.put("foo", new ExprStringValue("foo"));
+        objectMap.put("fuzz", ExprBooleanValue.of(true));
+        objectMap.put("bar", new ExprLongValue(1234));
+        objectMap.put("bar2", new ExprDoubleValue(12.34));
+        objectMap.put("baz", ExprNullValue.of());
+        objectMap.put(
+            "obj", ExprTupleValue.fromExprValueMap(Map.of("internal", new ExprStringValue("value"))));
+        objectMap.put(
+            "arr",
+            new ExprCollectionValue(
+                List.of(new ExprStringValue("string"), ExprBooleanValue.of(true), ExprNullValue.of())));
+        ExprValue expectedTupleExpr = ExprTupleValue.fromExprValueMap(objectMap);
+
+        // exercise
+        exp = DSL.json_function(DSL.literal(objectJson));
+
+        // Verify
+        var value = exp.valueOf();
+        assertTrue(value instanceof ExprTupleValue);
+        assertEquals(expectedTupleExpr, value);
+    }
+
+    @Test
+    void json_returnsJsonArray() {
+        FunctionExpression exp;
+
+        // Setup
+        final String arrayJson = "[\"foo\", \"fuzz\", true, \"bar\", 1234, 12.34, null]";
+        ExprValue expectedArrayExpr =
+            new ExprCollectionValue(
+                List.of(
+                    new ExprStringValue("foo"),
+                    new ExprStringValue("fuzz"),
+                    LITERAL_TRUE,
+                    new ExprStringValue("bar"),
+                    new ExprIntegerValue(1234),
+                    new ExprDoubleValue(12.34),
+                    LITERAL_NULL));
+
+        // exercise
+        exp = DSL.json_function(DSL.literal(arrayJson));
+
+        // Verify
+        var value = exp.valueOf();
+        assertTrue(value instanceof ExprCollectionValue);
+        assertEquals(expectedArrayExpr, value);
+    }
+
+    @Test
+    void json_returnsScalar() {
+        assertEquals(
+            new ExprStringValue("foobar"), DSL.json_function(DSL.literal("\"foobar\"")).valueOf());
+
+        assertEquals(new ExprIntegerValue(1234), DSL.json_function(DSL.literal("1234")).valueOf());
+
+        assertEquals(LITERAL_TRUE, DSL.json_function(DSL.literal("true")).valueOf());
+
+        assertEquals(LITERAL_NULL, DSL.json_function(DSL.literal("null")).valueOf());
+
+        assertEquals(LITERAL_NULL, DSL.json_function(DSL.literal("")).valueOf());
+
+        assertEquals(
+            ExprTupleValue.fromExprValueMap(Map.of()), DSL.json_function(DSL.literal("{}")).valueOf());
+    }
+
+    @Test
+    void json_returnsSemanticCheckException() {
+        // invalid type
+        assertThrows(
+            SemanticCheckException.class, () -> DSL.castJson(DSL.literal("invalid")).valueOf());
+
+        // missing bracket
+        assertThrows(SemanticCheckException.class, () -> DSL.castJson(DSL.literal("{{[}}")).valueOf());
+
+        // mnissing quote
+        assertThrows(
+            SemanticCheckException.class, () -> DSL.castJson(DSL.literal("\"missing quote")).valueOf());
+    }
 }

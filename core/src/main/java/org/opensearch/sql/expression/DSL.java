@@ -985,6 +985,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.GEOIP, args);
   }
 
+  public static FunctionExpression json_function(Expression value) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.JSON, value);
+  }
+
   @SuppressWarnings("unchecked")
   private static <T extends FunctionImplementation> T compile(
       FunctionProperties functionProperties, BuiltinFunctionName bfn, Expression... args) {

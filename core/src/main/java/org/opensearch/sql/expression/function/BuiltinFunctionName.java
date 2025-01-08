@@ -264,7 +264,10 @@ public enum BuiltinFunctionName {
   MULTIMATCH(FunctionName.of("multimatch")),
   MULTIMATCHQUERY(FunctionName.of("multimatchquery")),
   WILDCARDQUERY(FunctionName.of("wildcardquery")),
-  WILDCARD_QUERY(FunctionName.of("wildcard_query"));
+  WILDCARD_QUERY(FunctionName.of("wildcard_query")),
+
+  /* Json Functions. */
+  JSON(FunctionName.of("json"));
 
   private final FunctionName name;
 

@@ -972,4 +972,6 @@ keywordsCanBeId
    | SPARKLINE
    | C
    | DC
+   // JSON
+   | JSON
    ;

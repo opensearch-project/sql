@@ -22,6 +22,7 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
+import static org.opensearch.sql.utils.JsonUtils.castJson;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
