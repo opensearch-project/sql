@@ -870,6 +870,7 @@ keywordsCanBeId
    | mathematicalFunctionName
    | positionFunctionName
    | conditionFunctionName
+   | jsonFunctionName
    // commands
    | SEARCH
    | DESCRIBE
@@ -969,6 +970,4 @@ keywordsCanBeId
    | SPARKLINE
    | C
    | DC
-   // JSON
-   | JSON
    ;

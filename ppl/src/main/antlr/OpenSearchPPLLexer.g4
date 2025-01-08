@@ -143,7 +143,6 @@ FLOAT:                              'FLOAT';
 STRING:                             'STRING';
 BOOLEAN:                            'BOOLEAN';
 IP:                                 'IP';
-JSON:                               'JSON';
 
 // SPECIAL CHARACTERS AND OPERATORS
 PIPE:                               '|';
@@ -335,6 +334,7 @@ CIDRMATCH:                          'CIDRMATCH';
 
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
+JSON:                               'JSON';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';
