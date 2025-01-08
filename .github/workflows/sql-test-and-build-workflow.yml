@@ -55,7 +55,7 @@ jobs:
     - name: Build with Gradle
       run: |
         chown -R 1000:1000 `pwd`
-        su `id -un 1000` -c "./gradlew --continue build"
+        su `id -un 1000` -c "./gradlew --continue --parallel build"
 
     - name: Run backward compatibility tests
       run: |
@@ -122,7 +122,7 @@ jobs:
         java-version: ${{ matrix.entry.java }}
 
     - name: Build with Gradle
-      run: ./gradlew --continue build ${{ matrix.entry.os_build_args }}
+      run: ./gradlew --continue --parallel build ${{ matrix.entry.os_build_args }}
 
     - name: Create Artifact Path
       run: |
