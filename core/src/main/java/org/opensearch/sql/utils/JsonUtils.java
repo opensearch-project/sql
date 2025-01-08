@@ -11,7 +11,7 @@ public class JsonUtils {
   /**
    * Checks if given JSON string can be parsed as valid JSON.
    *
-   * @param jsonExprValue JSON string (e.g. "198.51.100.14" or "2001:0db8::ff00:42:8329").
+   * @param jsonExprValue JSON string (e.g. "{\"hello\": \"world\"}").
    * @return true if the string can be parsed as valid JSON, else false.
    */
   public static ExprValue isValidJson(ExprValue jsonExprValue) {

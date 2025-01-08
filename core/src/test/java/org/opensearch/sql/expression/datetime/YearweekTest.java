@@ -98,9 +98,9 @@ class YearweekTest extends ExpressionTestBase {
     assertEquals(eval(expression), eval(expressionWithoutMode));
   }
 
+  // subtracting 1 as a temporary fix for year 2024.
+  // Issue: https://github.com/opensearch-project/sql/issues/2477
   @Test
-  @Disabled(
-      "Test is disabled because of issue https://github.com/opensearch-project/sql/issues/2477")
   public void testYearweekWithTimeType() {
     int week = LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR) - 1;
     int year = LocalDate.now(functionProperties.getQueryStartClock()).getYear();

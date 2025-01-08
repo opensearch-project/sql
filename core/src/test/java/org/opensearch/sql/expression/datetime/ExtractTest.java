@@ -92,8 +92,6 @@ class ExtractTest extends ExpressionTestBase {
   }
 
   @Test
-  @Disabled(
-      "Test is disabled because of issue https://github.com/opensearch-project/sql/issues/2477")
   public void testExtractDatePartWithTimeType() {
     datePartWithTimeArgQuery(
         "DAY", timeInput, LocalDate.now(functionProperties.getQueryStartClock()).getDayOfMonth());
