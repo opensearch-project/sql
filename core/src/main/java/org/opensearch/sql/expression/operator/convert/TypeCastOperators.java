@@ -17,10 +17,12 @@ import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
+import static org.opensearch.sql.utils.JsonUtils.castJson;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -57,6 +59,7 @@ public class TypeCastOperators {
     repository.register(castToDouble());
     repository.register(castToBoolean());
     repository.register(castToIp());
+    repository.register(castToJson());
     repository.register(castToDate());
     repository.register(castToTime());
     repository.register(castToTimestamp());
@@ -181,6 +184,12 @@ public class TypeCastOperators {
         BuiltinFunctionName.CAST_TO_IP.getName(),
         impl(nullMissingHandling((v) -> new ExprIpValue(v.stringValue())), IP, STRING),
         impl(nullMissingHandling((v) -> v), IP, IP));
+  }
+
+  private static DefaultFunctionResolver castToJson() {
+    return FunctionDSL.define(
+        BuiltinFunctionName.CAST_TO_JSON.getName(),
+        impl(nullMissingHandling((v) -> castJson(v.stringValue())), UNDEFINED, STRING));
   }
 
   private static DefaultFunctionResolver castToDate() {

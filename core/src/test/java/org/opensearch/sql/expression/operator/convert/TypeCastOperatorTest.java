@@ -8,6 +8,8 @@ package org.opensearch.sql.expression.operator.convert;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
@@ -21,12 +23,16 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprByteValue;
+import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
@@ -39,6 +45,7 @@ import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -388,5 +395,101 @@ class TypeCastOperatorTest {
     exp = DSL.castIp(DSL.literal(ExprMissingValue.of()));
     assertEquals(IP, exp.type());
     assertTrue(exp.valueOf().isMissing());
+  }
+
+  @Test
+  void castJson_returnsJsonObject() {
+    FunctionExpression exp;
+
+    // Setup
+    String objectJson =
+        "{\"foo\": \"foo\", \"fuzz\": true, \"bar\": 1234, \"bar2\": 12.34, \"baz\": null, "
+            + "\"obj\": {\"internal\": \"value\"}, \"arr\": [\"string\", true, null]}";
+
+    LinkedHashMap<String, ExprValue> objectMap = new LinkedHashMap<>();
+    objectMap.put("foo", new ExprStringValue("foo"));
+    objectMap.put("fuzz", ExprBooleanValue.of(true));
+    objectMap.put("bar", new ExprLongValue(1234));
+    objectMap.put("bar2", new ExprDoubleValue(12.34));
+    objectMap.put("baz", ExprNullValue.of());
+    objectMap.put(
+        "obj", ExprTupleValue.fromExprValueMap(Map.of("internal", new ExprStringValue("value"))));
+    objectMap.put(
+        "arr",
+        new ExprCollectionValue(
+            List.of(new ExprStringValue("string"), ExprBooleanValue.of(true), ExprNullValue.of())));
+    ExprValue expectedTupleExpr = ExprTupleValue.fromExprValueMap(objectMap);
+
+    // exercise
+    exp = DSL.castJson(DSL.literal(objectJson));
+
+    // Verify
+    var value = exp.valueOf();
+    assertTrue(value instanceof ExprTupleValue);
+    assertEquals(expectedTupleExpr, value);
+  }
+
+  @Test
+  void castJson_returnsJsonArray() {
+    FunctionExpression exp;
+
+    // Setup
+    String arrayJson = "[\"foo\", \"fuzz\", true, \"bar\", 1234, 12.34, null]";
+    ExprValue expectedArrayExpr =
+        new ExprCollectionValue(
+            List.of(
+                new ExprStringValue("foo"),
+                new ExprStringValue("fuzz"),
+                LITERAL_TRUE,
+                new ExprStringValue("bar"),
+                new ExprIntegerValue(1234),
+                new ExprDoubleValue(12.34),
+                LITERAL_NULL));
+
+    // exercise
+    exp = DSL.castJson(DSL.literal(arrayJson));
+
+    // Verify
+    var value = exp.valueOf();
+    assertTrue(value instanceof ExprCollectionValue);
+    assertEquals(expectedArrayExpr, value);
+  }
+
+  @Test
+  void castJson_returnsScalar() {
+    String scalarStringJson = "\"foobar\"";
+    assertEquals(
+        new ExprStringValue("foobar"), DSL.castJson(DSL.literal(scalarStringJson)).valueOf());
+
+    String scalarNumberJson = "1234";
+    assertEquals(new ExprIntegerValue(1234), DSL.castJson(DSL.literal(scalarNumberJson)).valueOf());
+
+    String scalarBooleanJson = "true";
+    assertEquals(LITERAL_TRUE, DSL.castJson(DSL.literal(scalarBooleanJson)).valueOf());
+
+    String scalarNullJson = "null";
+    assertEquals(LITERAL_NULL, DSL.castJson(DSL.literal(scalarNullJson)).valueOf());
+
+    String empty = "";
+    assertEquals(LITERAL_NULL, DSL.castJson(DSL.literal(empty)).valueOf());
+
+    String emptyObject = "{}";
+    assertEquals(
+        ExprTupleValue.fromExprValueMap(Map.of()),
+        DSL.castJson(DSL.literal(emptyObject)).valueOf());
+  }
+
+  @Test
+  void castJson_returnsSemanticCheckException() {
+    // invalid type
+    assertThrows(
+        SemanticCheckException.class, () -> DSL.castJson(DSL.literal("invalid")).valueOf());
+
+    // missing bracket
+    assertThrows(SemanticCheckException.class, () -> DSL.castJson(DSL.literal("{{[}}")).valueOf());
+
+    // mnissing quote
+    assertThrows(
+        SemanticCheckException.class, () -> DSL.castJson(DSL.literal("\"missing quote")).valueOf());
   }
 }
