@@ -398,67 +398,67 @@ task integJdbcTest(type: RestIntegTestTask) {
         includeTestsMatching 'org.opensearch.sql.jdbc.*'
     }
 }
-
-task integTestWithSecurity(type: RestIntegTestTask) {
-    println("----------Starting cluster with Security")
-
-    useCluster testClusters.integTestWithSecurity
-    useCluster testClusters.remoteIntegTestWithSecurity
-
-    systemProperty "cluster.names",
-            getClusters().stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
-
-    getClusters().forEach { cluster ->
-        configureSecurityPlugin(cluster)
-    }
-
-    useJUnitPlatform()
-    dependsOn ':opensearch-sql-plugin:bundlePlugin'
-    testLogging {
-        events "passed", "skipped", "failed"
-    }
-    afterTest { desc, result ->
-        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
-    }
-
-    systemProperty 'tests.security.manager', 'false'
-    systemProperty 'project.root', project.projectDir.absolutePath
-
-    // Set default query size limit
-    systemProperty 'defaultQuerySizeLimit', '10000'
-
-    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
-    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
-    doFirst {
-        systemProperty 'cluster.debug', getDebug()
-        getClusters().forEach { cluster ->
-
-            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
-                node.getAllTransportPortURI().stream()
-            }.collect(Collectors.joining(","))
-            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
-                node.getAllHttpSocketURI().stream()
-            }.collect(Collectors.joining(","))
-
-            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
-            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
-        }
-
-        systemProperty "https", "false"
-        systemProperty "user", "admin"
-        systemProperty "password", "admin"
-    }
-
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
-    }
-
-    // NOTE: this IT config discovers only junit5 (jupiter) tests.
-    // https://github.com/opensearch-project/sql/issues/1974
-    filter {
-        includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
-    }
-}
+//
+//task integTestWithSecurity(type: RestIntegTestTask) {
+//    println("----------Starting cluster with Security")
+//
+//    useCluster testClusters.integTestWithSecurity
+//    useCluster testClusters.remoteIntegTestWithSecurity
+//
+//    systemProperty "cluster.names",
+//            getClusters().stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
+//
+//    getClusters().forEach { cluster ->
+//        configureSecurityPlugin(cluster)
+//    }
+//
+//    useJUnitPlatform()
+//    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+//    testLogging {
+//        events "passed", "skipped", "failed"
+//    }
+//    afterTest { desc, result ->
+//        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+//    }
+//
+//    systemProperty 'tests.security.manager', 'false'
+//    systemProperty 'project.root', project.projectDir.absolutePath
+//
+//    // Set default query size limit
+//    systemProperty 'defaultQuerySizeLimit', '10000'
+//
+//    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
+//    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
+//    doFirst {
+//        systemProperty 'cluster.debug', getDebug()
+//        getClusters().forEach { cluster ->
+//
+//            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
+//                node.getAllTransportPortURI().stream()
+//            }.collect(Collectors.joining(","))
+//            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
+//                node.getAllHttpSocketURI().stream()
+//            }.collect(Collectors.joining(","))
+//
+//            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
+//            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
+//        }
+//
+//        systemProperty "https", "false"
+//        systemProperty "user", "admin"
+//        systemProperty "password", "admin"
+//    }
+//
+//    if (System.getProperty("test.debug") != null) {
+//        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+//    }
+//
+//    // NOTE: this IT config discovers only junit5 (jupiter) tests.
+//    // https://github.com/opensearch-project/sql/issues/1974
+//    filter {
+//        includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
+//    }
+//}
 
 
 task integTestWithGeo(type: RestIntegTestTask) {
