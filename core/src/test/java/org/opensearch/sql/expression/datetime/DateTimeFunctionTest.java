@@ -1231,9 +1231,9 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         expectedInteger);
   }
 
+  // subtracting 1 as a temporary fix for year 2024.
+  // Issue: https://github.com/opensearch-project/sql/issues/2477
   @Test
-  @Disabled(
-      "Test is disabled because of issue https://github.com/opensearch-project/sql/issues/2477")
   public void testWeekOfYearWithTimeType() {
     LocalDate today = LocalDate.now(functionProperties.getQueryStartClock());
 
