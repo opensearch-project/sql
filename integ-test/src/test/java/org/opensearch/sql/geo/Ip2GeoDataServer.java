@@ -1,9 +1,11 @@
 /*
+ *
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
-package org.opensearch.sql.security;
+package org.opensearch.sql.geo;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;

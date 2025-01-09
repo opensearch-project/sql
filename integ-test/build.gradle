@@ -72,8 +72,24 @@ def getPluginDownloadLink(pluginName) {
         dest metadataFile
     }
     def metadata = new XmlParser().parse(metadataFile)
-    def GeoSnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
-    return repo + pluginName +"-${GeoSnapshotVersion}.zip"
+    def PluginSnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
+    return repo + pluginName +"-${PluginSnapshotVersion}.zip"
+}
+
+static def getAllHttpSocketURI(cluster) {
+    return cluster.nodes.stream()
+            .flatMap { node -> node.getAllHttpSocketURI().stream() }
+            .collect(Collectors.joining(","))
+}
+
+static def getAllTransportSocketURI(cluster) {
+    return cluster.nodes.stream()
+            .flatMap { node -> node.getAllTransportPortURI().stream() }
+            .collect(Collectors.joining(","))
+}
+
+static def getConcatClusterName(clusters) {
+    return clusters.stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
 }
 
 
@@ -156,6 +172,74 @@ ext {
             'plugins.security.check_snapshot_restore_write_privileges' : 'true',
             'plugins.security.restapi.roles_enabled' : '["all_access", "security_rest_api_access"]',
             'plugins.security.system_indices.enabled' : 'true'
+        ].forEach { name, value ->
+            cluster.setting name, value
+        }
+
+        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedGeoPlugin)))
+        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
+    }
+
+    configureGeoPlugin = { OpenSearchCluster cluster ->
+
+        cluster.getNodes().forEach { node ->
+            var creds = node.getCredentials()
+            if (creds.isEmpty()) {
+                creds.add(Map.of('useradd', 'admin', '-p', 'admin'))
+            } else {
+                creds.get(0).putAll(Map.of('useradd', 'admin', '-p', 'admin'))
+            }
+        }
+
+        // add a check to avoid re-downloading multiple times during single test run
+        if (!downloadedSecurityPlugin.exists()) {
+            download.run {
+                src getPluginDownloadLink("opensearch-security")
+                dest downloadedSecurityPlugin
+            }
+        } else {
+            println "Security Plugin File Already Exists"
+        }
+
+        if (!downloadedGeoPlugin.exists()) {
+            download.run {
+                src getPluginDownloadLink("geospatial")
+                dest downloadedGeoPlugin
+            }
+        } else {
+            println "----------Geo Plugin File Already Exists"
+        }
+
+        // Config below including files are copied from security demo configuration
+        ['esnode.pem', 'esnode-key.pem', 'root-ca.pem'].forEach { file ->
+            File local = Paths.get(projectAbsPath, 'bin', file).toFile()
+            download.run {
+                src "https://raw.githubusercontent.com/opensearch-project/security/main/bwc-test/src/test/resources/security/" + file
+                dest local
+                overwrite false
+            }
+            cluster.extraConfigFile file, local
+        }
+        [
+                // config copied from security plugin demo configuration
+                'plugins.security.ssl.transport.pemcert_filepath' : 'esnode.pem',
+                'plugins.security.ssl.transport.pemkey_filepath' : 'esnode-key.pem',
+                'plugins.security.ssl.transport.pemtrustedcas_filepath' : 'root-ca.pem',
+                'plugins.security.ssl.transport.enforce_hostname_verification' : 'false',
+                // https is disabled to simplify test debugging
+                'plugins.security.ssl.http.enabled' : 'false',
+                'plugins.security.ssl.http.pemcert_filepath' : 'esnode.pem',
+                'plugins.security.ssl.http.pemkey_filepath' : 'esnode-key.pem',
+                'plugins.security.ssl.http.pemtrustedcas_filepath' : 'root-ca.pem',
+                'plugins.security.allow_unsafe_democertificates' : 'true',
+
+                'plugins.security.allow_default_init_securityindex' : 'true',
+                'plugins.security.authcz.admin_dn' : 'CN=kirk,OU=client,O=client,L=test,C=de',
+                'plugins.security.audit.type' : 'internal_opensearch',
+                'plugins.security.enable_snapshot_restore_privilege' : 'true',
+                'plugins.security.check_snapshot_restore_write_privileges' : 'true',
+                'plugins.security.restapi.roles_enabled' : '["all_access", "security_rest_api_access"]',
+                'plugins.security.system_indices.enabled' : 'true'
         ].forEach { name, value ->
             cluster.setting name, value
         }
@@ -444,35 +528,17 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     }
 }
 
-static def getAllHttpSocketURI(cluster) {
-    return cluster.nodes.stream()
-            .flatMap { node -> node.getAllHttpSocketURI().stream() }
-            .collect(Collectors.joining(","))
-}
-
-static def getAllTransportSocketURI(cluster) {
-    return cluster.nodes.stream()
-            .flatMap { node -> node.getAllTransportPortURI().stream() }
-            .collect(Collectors.joining(","))
-}
-
-static def getConcatClusterName(clusters) {
-    return clusters.stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
-}
-
-
-
 task integTestWithGeo(type: RestIntegTestTask) {
 
     println("-----From Geo")
 
     useCluster testClusters.integTestWithGeo
-    useCluster testClusters.remoteIntegTestWithGeo
+//    useCluster testClusters.remoteIntegTestWithGeo
 
     systemProperty "cluster.names", getConcatClusterName(getClusters())
 
     getClusters().forEach { cluster ->
-        configureSecurityPlugin(cluster)
+        configureGeoPlugin(cluster)
         println("---------Configuring cluster: $cluster")
     }
 
@@ -508,7 +574,7 @@ task integTestWithGeo(type: RestIntegTestTask) {
     // NOTE: this IT config discovers only junit5 (jupiter) tests.
     // https://github.com/opensearch-project/sql/issues/1974
     filter {
-        includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
+        includeTestsMatching 'org.opensearch.sql.geo.PplIpEnrichmentIT'
     }
 }
 
@@ -550,7 +616,6 @@ integTest {
         systemProperty 'cluster.debug', getDebug()
     }
 
-
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5006'
     }
@@ -587,6 +652,9 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
+
+    // Exclude this IT, because they executed in another task (:integTestWithGeo)
+    exclude 'org/opensearch/sql/geo/**'
 }
 
 
