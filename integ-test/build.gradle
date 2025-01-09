@@ -133,15 +133,6 @@ ext {
             println "Security Plugin File Already Exists"
         }
 
-        if (!downloadedGeoPlugin.exists()) {
-            download.run {
-                src getPluginDownloadLink("geospatial")
-                dest downloadedGeoPlugin
-            }
-        } else {
-            println "----------Geo Plugin File Already Exists"
-        }
-
         // Config below including files are copied from security demo configuration
         ['esnode.pem', 'esnode-key.pem', 'root-ca.pem'].forEach { file ->
             File local = Paths.get(projectAbsPath, 'bin', file).toFile()
@@ -176,7 +167,6 @@ ext {
             cluster.setting name, value
         }
 
-        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedGeoPlugin)))
         cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
     }
 
@@ -393,11 +383,11 @@ testClusters {
         plugin ":opensearch-sql-plugin"
     }
 
-    remoteIntegTestWithGeo {
-        testDistribution = 'archive'
-        plugin(getJobSchedulerPlugin())
-        plugin ":opensearch-sql-plugin"
-    }
+//    remoteIntegTestWithGeo {
+//        testDistribution = 'archive'
+//        plugin(getJobSchedulerPlugin())
+//        plugin ":opensearch-sql-plugin"
+//    }
 
 }
 
@@ -436,7 +426,6 @@ task stopPrometheus(type: KillProcessTask) {
 stopPrometheus.mustRunAfter startPrometheus
 
 task integJdbcTest(type: RestIntegTestTask) {
-    println ("-----IntegJdbcTest")
 
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().
         plugin ":opensearch-sql-plugin"

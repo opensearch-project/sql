@@ -43,23 +43,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 /** Cross Cluster Search tests to be executed with security plugin. */
 public class PplIpEnrichmentIT extends PPLIntegTestCase {
 
-  static {
-    // find a remote cluster
-    String[] clusterNames = System.getProperty("cluster.names").split(",");
-    var remote = "remoteCluster";
-    for (var cluster : clusterNames) {
-      if (cluster.startsWith("remote")) {
-        remote = cluster;
-        break;
-      }
-    }
-    REMOTE_CLUSTER = remote;
-  }
-
-  public static final String REMOTE_CLUSTER;
-
-//  private static final String TEST_INDEX_GEOIP_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_GEOIP;
-
   private static boolean initialized = false;
 
   @SneakyThrows
@@ -74,7 +57,6 @@ public class PplIpEnrichmentIT extends PPLIntegTestCase {
   @Override
   protected void init() throws Exception {
     loadIndex(Index.GEOIP);
-//    loadIndex(Index.GEOIP, remoteClient());
   }
 
 
