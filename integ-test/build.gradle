@@ -52,21 +52,16 @@ String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 
-Map localhostHttpLoginConfiguration = [
+Map dummyLoginConfig = [
         https: "false",
         user: "admin",
         password: "admin"
 ]
-
-repositories {
-    mavenCentral()
-    maven { url 'https://jitpack.io' }
-
-    // Add extra repository for the JDBC driver if given by user
-    if (System.getProperty("jdbcRepo") != null && new File(System.getProperty("jdbcRepo")).isDirectory()) {
-        maven { url new File(System.getProperty("jdbcRepo")) }
-    }
-}
+Map dynamicLoginConfig = [
+        https: System.getProperty("https"),
+        user: System.getProperty("user"),
+        password: System.getProperty("password")
+]
 
 def getPluginDownloadLink(pluginName) {
     var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
@@ -78,9 +73,20 @@ def getPluginDownloadLink(pluginName) {
     }
     def metadata = new XmlParser().parse(metadataFile)
     def GeoSnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
-
     return repo + pluginName +"-${GeoSnapshotVersion}.zip"
 }
+
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+
+    // Add extra repository for the JDBC driver if given by user
+    if (System.getProperty("jdbcRepo") != null && new File(System.getProperty("jdbcRepo")).isDirectory()) {
+        maven { url new File(System.getProperty("jdbcRepo")) }
+    }
+}
+
 
 ext {
     projectSubstitutions = [:]
@@ -371,9 +377,7 @@ task integJdbcTest(type: RestIntegTestTask) {
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
 
-    systemProperty "https", System.getProperty("https")
-    systemProperty "user", System.getProperty("user")
-    systemProperty "password", System.getProperty("password")
+    systemProperties dynamicLoginConfig
 
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
@@ -426,7 +430,7 @@ task integTestWithSecurity(type: RestIntegTestTask) {
             systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> getAllHttpSocketURI(cluster)}"
             systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> getAllTransportSocketURI(cluster)}"
         }
-        systemProperties localhostHttpLoginConfiguration
+        systemProperties dummyLoginConfig
     }
 
     if (System.getProperty("test.debug") != null) {
@@ -494,7 +498,7 @@ task integTestWithGeo(type: RestIntegTestTask) {
             systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> getAllHttpSocketURI(cluster)}"
             systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> getAllTransportSocketURI(cluster)}"
         }
-        systemProperties localhostHttpLoginConfiguration
+        systemProperties dummyLoginConfig
     }
 
     if (System.getProperty("test.debug") != null) {
@@ -532,9 +536,7 @@ integTest {
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
 
-    systemProperty "https", System.getProperty("https")
-    systemProperty "user", System.getProperty("user")
-    systemProperty "password", System.getProperty("password")
+    systemProperties dynamicLoginConfig
 
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
@@ -813,10 +815,7 @@ task integTestRemote(type: RestIntegTestTask) {
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
     systemProperty 'java.io.tmpdir', opensearch_tmp_dir.absolutePath
-
-    systemProperty "https", System.getProperty("https")
-    systemProperty "user", System.getProperty("user")
-    systemProperty "password", System.getProperty("password")
+    systemProperties dynamicLoginConfig
 
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
