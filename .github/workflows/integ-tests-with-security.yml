@@ -48,7 +48,7 @@ jobs:
         su `id -un 1000` -c "./gradlew integTestWithSecurity"
 
     - name: Upload test reports
-      if: always()
+      if: ${{ always() }}
       uses: actions/upload-artifact@v4
       continue-on-error: true
       with:
@@ -80,7 +80,7 @@ jobs:
       run: ./gradlew integTestWithSecurity
 
     - name: Upload test reports
-      if: always()
+      if: ${{ always() }}
       uses: actions/upload-artifact@v4
       continue-on-error: true
       with:

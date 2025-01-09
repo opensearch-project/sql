@@ -71,14 +71,12 @@ jobs:
     - name: Upload SQL Coverage Report
       if: always()
       uses: codecov/codecov-action@v4
-      continue-on-error: true
       with:
         flags: sql-engine
         token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
-      continue-on-error: true
       with:
         name: opensearch-sql-ubuntu-latest
         path: opensearch-sql-builds
@@ -133,7 +131,6 @@ jobs:
 
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
-      continue-on-error: true
       with:
         name: opensearch-sql-${{ matrix.entry.os }}
         path: opensearch-sql-builds
