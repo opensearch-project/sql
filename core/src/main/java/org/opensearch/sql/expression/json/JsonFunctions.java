@@ -41,4 +41,10 @@ public class JsonFunctions {
         BuiltinFunctionName.JSON.getName(),
         impl(nullMissingHandling(JsonUtils::castJson), UNDEFINED, STRING));
   }
+
+  private DefaultFunctionResolver jsonFunction() {
+    return define(
+        BuiltinFunctionName.JSON.getName(),
+        impl(nullMissingHandling(JsonUtils::castJson), UNDEFINED, STRING));
+  }
 }
