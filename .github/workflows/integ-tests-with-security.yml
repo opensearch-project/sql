@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches-ignore:
+      - 'backport/**'
       - 'dependabot/**'
     paths:
       - 'integ-test/**'
