@@ -52,6 +52,12 @@ String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 
+Map localhostHttpLoginConfiguration = [
+        https: "false",
+        user: "admin",
+        password: "admin"
+]
+
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
@@ -293,17 +299,17 @@ testClusters {
         plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
     }
-//    integTestWithSecurity {
-//        testDistribution = 'archive'
-//        plugin(getJobSchedulerPlugin())
-//        plugin ":opensearch-sql-plugin"
-//    }
-//
-//    remoteIntegTestWithSecurity {
-//        testDistribution = 'archive'
-//        plugin(getJobSchedulerPlugin())
-//        plugin ":opensearch-sql-plugin"
-//    }
+    integTestWithSecurity {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+    }
+
+    remoteIntegTestWithSecurity {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+    }
 
     integTestWithGeo {
         testDistribution = 'archive'
@@ -320,6 +326,7 @@ testClusters {
 }
 
 task startPrometheus(type: SpawnProcessTask) {
+    println ("-----Start Prometheus")
     mustRunAfter ':doctest:doctest'
 
     doFirst {
@@ -343,6 +350,7 @@ task startPrometheus(type: SpawnProcessTask) {
 }
 
 task stopPrometheus(type: KillProcessTask) {
+    println ("-----Stop Prometheus")
     doLast {
         file("$projectDir/bin/prometheus").deleteDir()
         file("$projectDir/bin/prometheus.tar.gz").delete()
@@ -352,6 +360,8 @@ task stopPrometheus(type: KillProcessTask) {
 stopPrometheus.mustRunAfter startPrometheus
 
 task integJdbcTest(type: RestIntegTestTask) {
+    println ("-----IntegJdbcTest")
+
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().
         plugin ":opensearch-sql-plugin"
 
@@ -394,83 +404,17 @@ task integJdbcTest(type: RestIntegTestTask) {
         includeTestsMatching 'org.opensearch.sql.jdbc.*'
     }
 }
-//
-//task integTestWithSecurity(type: RestIntegTestTask) {
-//    println("----------Starting cluster with Security")
-//
-//    useCluster testClusters.integTestWithSecurity
-//    useCluster testClusters.remoteIntegTestWithSecurity
-//
-//    systemProperty "cluster.names",
-//            getClusters().stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
-//
-//    getClusters().forEach { cluster ->
-//        configureSecurityPlugin(cluster)
-//    }
-//
-//    useJUnitPlatform()
-//    dependsOn ':opensearch-sql-plugin:bundlePlugin'
-//    testLogging {
-//        events "passed", "skipped", "failed"
-//    }
-//    afterTest { desc, result ->
-//        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
-//    }
-//
-//    systemProperty 'tests.security.manager', 'false'
-//    systemProperty 'project.root', project.projectDir.absolutePath
-//
-//    // Set default query size limit
-//    systemProperty 'defaultQuerySizeLimit', '10000'
-//
-//    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
-//    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
-//    doFirst {
-//        systemProperty 'cluster.debug', getDebug()
-//        getClusters().forEach { cluster ->
-//
-//            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
-//                node.getAllTransportPortURI().stream()
-//            }.collect(Collectors.joining(","))
-//            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
-//                node.getAllHttpSocketURI().stream()
-//            }.collect(Collectors.joining(","))
-//
-//            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
-//            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
-//        }
-//
-//        systemProperty "https", "false"
-//        systemProperty "user", "admin"
-//        systemProperty "password", "admin"
-//    }
-//
-//    if (System.getProperty("test.debug") != null) {
-//        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
-//    }
-//
-//    // NOTE: this IT config discovers only junit5 (jupiter) tests.
-//    // https://github.com/opensearch-project/sql/issues/1974
-//    filter {
-//        includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
-//    }
-//}
 
+task integTestWithSecurity(type: RestIntegTestTask) {
+    println("------ From security")
 
-task integTestWithGeo(type: RestIntegTestTask) {
-    useCluster testClusters.integTestWithGeo
-    useCluster testClusters.remoteIntegTestWithGeo
+    useCluster testClusters.integTestWithSecurity
+    useCluster testClusters.remoteIntegTestWithSecurity
 
-    systemProperty "cluster.names",
-            getClusters().stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
-
-//    getClusters().forEach { cluster ->
-//        configureSecurityPlugin(cluster)
-//    }
+    systemProperty "cluster.names", getConcatClusterName(getClusters())
 
     getClusters().forEach { cluster ->
         configureSecurityPlugin(cluster)
-        println("---------Configuring cluster: $cluster")
     }
 
     useJUnitPlatform()
@@ -493,21 +437,78 @@ task integTestWithGeo(type: RestIntegTestTask) {
     doFirst {
         systemProperty 'cluster.debug', getDebug()
         getClusters().forEach { cluster ->
-
-            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
-                node.getAllTransportPortURI().stream()
-            }.collect(Collectors.joining(","))
-            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
-                node.getAllHttpSocketURI().stream()
-            }.collect(Collectors.joining(","))
-
-            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
-            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> getAllHttpSocketURI(cluster)}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> getAllTransportSocketURI(cluster)}"
         }
+        systemProperties localhostHttpLoginConfiguration
+    }
 
-        systemProperty "https", "false"
-        systemProperty "user", "admin"
-        systemProperty "password", "admin"
+    if (System.getProperty("test.debug") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
+
+    // NOTE: this IT config discovers only junit5 (jupiter) tests.
+    // https://github.com/opensearch-project/sql/issues/1974
+    filter {
+        includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
+    }
+}
+
+static def getAllHttpSocketURI(cluster) {
+    return cluster.nodes.stream()
+            .flatMap { node -> node.getAllHttpSocketURI().stream() }
+            .collect(Collectors.joining(","))
+}
+
+static def getAllTransportSocketURI(cluster) {
+    return cluster.nodes.stream()
+            .flatMap { node -> node.getAllTransportPortURI().stream() }
+            .collect(Collectors.joining(","))
+}
+
+static def getConcatClusterName(clusters) {
+    return clusters.stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
+}
+
+
+
+task integTestWithGeo(type: RestIntegTestTask) {
+
+    println("-----From Geo")
+
+    useCluster testClusters.integTestWithGeo
+    useCluster testClusters.remoteIntegTestWithGeo
+
+    systemProperty "cluster.names", getConcatClusterName(getClusters())
+
+    getClusters().forEach { cluster ->
+        configureSecurityPlugin(cluster)
+        println("---------Configuring cluster: $cluster")
+    }
+
+    useJUnitPlatform()
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    afterTest { desc, result ->
+        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+    }
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+    // Set default query size limit
+    systemProperty 'defaultQuerySizeLimit', '10000'
+
+    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
+    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
+    doFirst {
+        systemProperty 'cluster.debug', getDebug()
+        getClusters().forEach { cluster ->
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> getAllHttpSocketURI(cluster)}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> getAllTransportSocketURI(cluster)}"
+        }
+        systemProperties localhostHttpLoginConfiguration
     }
 
     if (System.getProperty("test.debug") != null) {
@@ -528,15 +529,8 @@ integTest {
     // Set properties for connection to clusters and between clusters
     doFirst {
         getClusters().forEach { cluster ->
-            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
-                node.getAllTransportPortURI().stream()
-            }.collect(Collectors.joining(","))
-            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
-                node.getAllHttpSocketURI().stream()
-            }.collect(Collectors.joining(","))
-
-            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
-            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> getAllHttpSocketURI(cluster)}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> getAllTransportSocketURI(cluster)}"
         }
     }
 
@@ -857,3 +851,9 @@ task integTestRemote(type: RestIntegTestTask) {
     exclude 'org/opensearch/sql/legacy/OrderIT.class'
     exclude 'org/opensearch/sql/jdbc/**'
 }
+
+
+
+
+
+
