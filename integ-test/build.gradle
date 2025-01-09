@@ -68,38 +68,24 @@ repositories {
     }
 }
 
+def getPluginDownloadLink(pluginName) {
+    var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
+            pluginName + "/$opensearch_build_snapshot/"
+    var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
+    download.run {
+        src repo + "maven-metadata.xml"
+        dest metadataFile
+    }
+    def metadata = new XmlParser().parse(metadataFile)
+    def GeoSnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
+
+    return repo + pluginName +"-${GeoSnapshotVersion}.zip"
+}
+
 ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.TXT')
     noticeFile = rootProject.file('NOTICE')
-
-    getSecurityPluginDownloadLink = { ->
-        var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
-                   "opensearch-security/$opensearch_build_snapshot/"
-        var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
-        download.run {
-            src repo + "maven-metadata.xml"
-            dest metadataFile
-        }
-        def metadata = new XmlParser().parse(metadataFile)
-        def securitySnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
-
-        return repo + "opensearch-security-${securitySnapshotVersion}.zip"
-    }
-
-    getGeoPluginDownloadLink = { ->
-        var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
-                "geospatial/$opensearch_build_snapshot/"
-        var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
-        download.run {
-            src repo + "maven-metadata.xml"
-            dest metadataFile
-        }
-        def metadata = new XmlParser().parse(metadataFile)
-        def GeoSnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
-
-        return repo + "geospatial-${GeoSnapshotVersion}.zip"
-    }
 
     var projectAbsPath = projectDir.getAbsolutePath()
     File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
@@ -118,7 +104,7 @@ ext {
         // add a check to avoid re-downloading multiple times during single test run
         if (!downloadedSecurityPlugin.exists()) {
             download.run {
-                src getSecurityPluginDownloadLink()
+                src getPluginDownloadLink("opensearch-security")
                 dest downloadedSecurityPlugin
             }
         } else {
@@ -127,7 +113,7 @@ ext {
 
         if (!downloadedGeoPlugin.exists()) {
             download.run {
-                src getGeoPluginDownloadLink()
+                src getPluginDownloadLink("geospatial")
                 dest downloadedGeoPlugin
             }
         } else {
