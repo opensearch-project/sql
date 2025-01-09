@@ -1944,11 +1944,11 @@ The format specifiers found in this table are the same as those found in the `DA
    * - DAY
      - %d
    * - WEEK
-     - %X
+     - %v
    * - MONTH
      - %m
    * - YEAR
-     - %V
+     - %Y
    * - SECOND_MICROSECOND
      - %s%f
    * - MINUTE_MICROSECOND
@@ -1983,6 +1983,10 @@ Example::
     |------------------------------------------------|
     | 202302                                         |
     +------------------------------------------------+
+
+Notice:
+
+Function `extract(WEEK FROM ...)` returns the number of the ISO 8601 week-of-week-based-year. ISO week-numbering is considered to start on a Monday and week 1 is the first week with >3 days. In the ISO week-numbering system, it is possible for early-January dates to be part of the 52nd or 53rd week of the previous year, and for late-December dates to be part of the first week of the next year. For example, 2005-01-02 is part of the 53rd week of year 2004, while 2012-12-31 is part of the first week of 2013. Ref https://en.wikipedia.org/wiki/ISO_week_date
 
 
 FROM_DAYS
