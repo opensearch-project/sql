@@ -22,7 +22,6 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
-import static org.opensearch.sql.utils.JsonUtils.castJson;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -44,6 +43,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionDSL;
+import org.opensearch.sql.utils.JsonUtils;
 
 @UtilityClass
 public class TypeCastOperators {
@@ -189,7 +189,7 @@ public class TypeCastOperators {
   private static DefaultFunctionResolver castToJson() {
     return FunctionDSL.define(
         BuiltinFunctionName.CAST_TO_JSON.getName(),
-        impl(nullMissingHandling((v) -> castJson(v.stringValue())), UNDEFINED, STRING));
+        impl(nullMissingHandling(JsonUtils::castJson), UNDEFINED, STRING));
   }
 
   private static DefaultFunctionResolver castToDate() {
