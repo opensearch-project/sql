@@ -5,7 +5,7 @@
         "type": "keyword"
       },
       "json_string": {
-        "type": "text"
+        "type": "keyword"
       }
     }
   }
