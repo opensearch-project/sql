@@ -136,8 +136,6 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
             rows("Test user - USA", "10.1.1.1", Map.of("country", "USA", "city", "Seattle")),
             rows("Test user - Canada", "127.1.1.1", Map.of("country", "Canada", "city", "Vancouver")));
 
-//    Expected: iterable with items [[Test user - USA, 10.1.1.1, x], [Test user - Canada, 127.1.1.1, x]] in any order
-//         but: not matched: <["Test user - USA","10.1.1.1",{"country":"USA","city":"Seattle"}]>
   }
 
 

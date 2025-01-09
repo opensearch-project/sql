@@ -69,7 +69,7 @@ ext {
 
     getSecurityPluginDownloadLink = { ->
         var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
-                "opensearch-security/$opensearch_build_snapshot/"
+                   "opensearch-security/$opensearch_build_snapshot/"
         var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
         download.run {
             src repo + "maven-metadata.xml"
@@ -92,8 +92,6 @@ ext {
         def metadata = new XmlParser().parse(metadataFile)
         def GeoSnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
 
-        println("-----Downloading: " + repo + "geospatial-${GeoSnapshotVersion}.zip")
-
         return repo + "geospatial-${GeoSnapshotVersion}.zip"
     }
 
@@ -102,9 +100,7 @@ ext {
     File downloadedGeoPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-geospatial-snapshot.zip').toFile()
     configureSecurityPlugin = { OpenSearchCluster cluster ->
 
-        println("---------Stpe: configureSecurityPlugin")
         cluster.getNodes().forEach { node ->
-            println("---------Step: Runtime node: $node")
             var creds = node.getCredentials()
             if (creds.isEmpty()) {
                 creds.add(Map.of('useradd', 'admin', '-p', 'admin'))
@@ -143,25 +139,25 @@ ext {
             cluster.extraConfigFile file, local
         }
         [
-                // config copied from security plugin demo configuration
-                'plugins.security.ssl.transport.pemcert_filepath' : 'esnode.pem',
-                'plugins.security.ssl.transport.pemkey_filepath' : 'esnode-key.pem',
-                'plugins.security.ssl.transport.pemtrustedcas_filepath' : 'root-ca.pem',
-                'plugins.security.ssl.transport.enforce_hostname_verification' : 'false',
-                // https is disabled to simplify test debugging
-                'plugins.security.ssl.http.enabled' : 'false',
-                'plugins.security.ssl.http.pemcert_filepath' : 'esnode.pem',
-                'plugins.security.ssl.http.pemkey_filepath' : 'esnode-key.pem',
-                'plugins.security.ssl.http.pemtrustedcas_filepath' : 'root-ca.pem',
-                'plugins.security.allow_unsafe_democertificates' : 'true',
+            // config copied from security plugin demo configuration
+            'plugins.security.ssl.transport.pemcert_filepath' : 'esnode.pem',
+            'plugins.security.ssl.transport.pemkey_filepath' : 'esnode-key.pem',
+            'plugins.security.ssl.transport.pemtrustedcas_filepath' : 'root-ca.pem',
+            'plugins.security.ssl.transport.enforce_hostname_verification' : 'false',
+            // https is disabled to simplify test debugging
+            'plugins.security.ssl.http.enabled' : 'false',
+            'plugins.security.ssl.http.pemcert_filepath' : 'esnode.pem',
+            'plugins.security.ssl.http.pemkey_filepath' : 'esnode-key.pem',
+            'plugins.security.ssl.http.pemtrustedcas_filepath' : 'root-ca.pem',
+            'plugins.security.allow_unsafe_democertificates' : 'true',
 
-                'plugins.security.allow_default_init_securityindex' : 'true',
-                'plugins.security.authcz.admin_dn' : 'CN=kirk,OU=client,O=client,L=test,C=de',
-                'plugins.security.audit.type' : 'internal_opensearch',
-                'plugins.security.enable_snapshot_restore_privilege' : 'true',
-                'plugins.security.check_snapshot_restore_write_privileges' : 'true',
-                'plugins.security.restapi.roles_enabled' : '["all_access", "security_rest_api_access"]',
-                'plugins.security.system_indices.enabled' : 'true'
+            'plugins.security.allow_default_init_securityindex' : 'true',
+            'plugins.security.authcz.admin_dn' : 'CN=kirk,OU=client,O=client,L=test,C=de',
+            'plugins.security.audit.type' : 'internal_opensearch',
+            'plugins.security.enable_snapshot_restore_privilege' : 'true',
+            'plugins.security.check_snapshot_restore_write_privileges' : 'true',
+            'plugins.security.restapi.roles_enabled' : '["all_access", "security_rest_api_access"]',
+            'plugins.security.system_indices.enabled' : 'true'
         ].forEach { name, value ->
             cluster.setting name, value
         }
@@ -357,7 +353,7 @@ stopPrometheus.mustRunAfter startPrometheus
 
 task integJdbcTest(type: RestIntegTestTask) {
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().
-            plugin ":opensearch-sql-plugin"
+        plugin ":opensearch-sql-plugin"
 
     useJUnitPlatform()
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
@@ -462,7 +458,6 @@ task integJdbcTest(type: RestIntegTestTask) {
 
 
 task integTestWithGeo(type: RestIntegTestTask) {
-    println("----------Starting cluster with Geo")
     useCluster testClusters.integTestWithGeo
     useCluster testClusters.remoteIntegTestWithGeo
 
@@ -483,7 +478,6 @@ task integTestWithGeo(type: RestIntegTestTask) {
     testLogging {
         events "passed", "skipped", "failed"
     }
-    println("---------- After test")
     afterTest { desc, result ->
         logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
     }
@@ -497,23 +491,15 @@ task integTestWithGeo(type: RestIntegTestTask) {
     // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
     // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
     doFirst {
-        println("---------- Do first")
         systemProperty 'cluster.debug', getDebug()
         getClusters().forEach { cluster ->
 
-            println("---------Runtime area: ")
             String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
                 node.getAllTransportPortURI().stream()
             }.collect(Collectors.joining(","))
             String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
                 node.getAllHttpSocketURI().stream()
             }.collect(Collectors.joining(","))
-            println("-----------Cluster detail: ")
-            println(allHttpSocketURI)
-            println(allTransportSocketURI)
-            cluster.nodes.forEach {
-                println(it)
-            }
 
             systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
             systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
@@ -524,7 +510,6 @@ task integTestWithGeo(type: RestIntegTestTask) {
         systemProperty "password", "admin"
     }
 
-    println("----------Before debug")
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
@@ -532,7 +517,6 @@ task integTestWithGeo(type: RestIntegTestTask) {
     // NOTE: this IT config discovers only junit5 (jupiter) tests.
     // https://github.com/opensearch-project/sql/issues/1974
     filter {
-        println("----------Inside filter")
         includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
     }
 }
