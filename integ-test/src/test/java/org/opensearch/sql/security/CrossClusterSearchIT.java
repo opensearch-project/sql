@@ -9,13 +9,18 @@ import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GEOIP;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
@@ -58,6 +63,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   private static final String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
   private static final String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
+  private static final String TEST_INDEX_GEOIP_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_GEOIP;
   private static final String TEST_INDEX_DOG_MATCH_ALL_REMOTE =
       MATCH_ALL_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
   private static final String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
@@ -81,6 +87,8 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.GEOIP);
+    loadIndex(Index.GEOIP, remoteClient());
   }
 
 
@@ -96,42 +104,28 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     Assert.assertTrue(getResponseBody(response, true).contains("opensearch-geospatial"));
   }
 
-//
-//  @Test
-//  public void testGeoIpEnrichment() throws IOException {
-//
-//    updateClusterSetting(Map.of("plugins.geospatial.ip2geo.datasource.endpoint.denylist", Collections.emptyList()));
-//    Request request = new Request("GET", "/_cat/plugins?v");
-//    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-//    restOptionsBuilder.addHeader("Content-Type", "application/json");
-//    request.setOptions(restOptionsBuilder);
-//    Response response = client().performRequest(request);
-//    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-//    Assert.assertTrue(getResponseBody(response, true).contains("opensearch-geospatial"));
-//
-//    Ip2GeoDataServer.start();
-//
-//    updateClusterSetting(Map.of("plugins.geospatial.ip2geo.datasource.endpoint.denylist", Collections.emptyList()));
-//    Map<String, Object> datasourceProperties = Map.of(
-//            "endpoint",
-//            Ip2GeoDataServer.getEndpointCountry()
-//    );
-//
-//    // Create datasource and wait for it to be available
-//    createDatasource("test", datasourceProperties);
-//
-//
-//    Ip2GeoDataServer.stop();
-//
-//    // Create a new dataSource
-//    // Create Wait till it setup.
-//
-//
-//
-//
-//
-//
-//  }
+
+  @SneakyThrows
+  @Test
+  public void testGeoIpEnrichment() {
+    // Disable the denyList
+    updateClusterSetting(Map.of("plugins.geospatial.ip2geo.datasource.endpoint.denylist", Collections.emptyList()));
+    Map<String, Object> datasourceProperties = Map.of(
+            "endpoint",
+            "https://raw.githubusercontent.com/opensearch-project/geospatial/main/src/test/resources/ip2geo/server/city/manifest.json"
+    );
+
+    // Create a new dataSource
+    createDatasource("dummycityindex", datasourceProperties);
+    // Create Wait till setup is completed
+    waitForDatasourceToBeAvailable("dummycityindex", Duration.ofSeconds(10));
+
+    // Make sure test-data loaded correctly.
+    JSONObject result = executeQuery(String.format("search source=%s", TEST_INDEX_GEOIP_REMOTE));
+    verifyColumn(result, columnName("name"), columnName("ip"));
+
+    //
+  }
 
 
   @Test

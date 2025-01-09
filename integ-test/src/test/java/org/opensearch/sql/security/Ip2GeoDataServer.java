@@ -10,6 +10,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
+import org.junit.Assert;
 import org.opensearch.common.SuppressForbidden;
 
 import java.io.IOException;
@@ -26,7 +27,7 @@ import java.nio.file.Paths;
 public class Ip2GeoDataServer {
     private static final String SYS_PROPERTY_KEY_CLUSTER_ENDPOINT = "tests.rest.cluster";
     private static final String LOCAL_CLUSTER_ENDPOINT = "127.0.0.1";
-    private static final String ROOT = "ip2geo/server";
+    private static final String ROOT = "ip2geo";
     private static final int PORT = 8001;
     private static final String EXTERNAL_ENDPOINT_PREFIX =
         "https://raw.githubusercontent.com/opensearch-project/geospatial/main/src/test/resources/ip2geo/server";
@@ -108,7 +109,10 @@ public class Ip2GeoDataServer {
     private static class Ip2GeoHttpHandler implements HttpHandler {
         @Override
         public void handle(final HttpExchange exchange) throws IOException {
+            Assert.assertEquals("xxx", exchange.toString());
+            log.error("Logging path: " + exchange);
             try {
+                log.error("-----Log with try: " + exchange);
                 byte[] data = Files.readAllBytes(
                     Paths.get(this.getClass().getClassLoader().getResource(ROOT + exchange.getRequestURI().getPath()).toURI())
                 );
