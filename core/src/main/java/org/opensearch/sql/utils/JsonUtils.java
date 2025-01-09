@@ -44,11 +44,11 @@ public class JsonUtils {
   }
 
   /** Converts a JSON encoded string to an Expression object. */
-  public static ExprValue castJson(String json) {
+  public static ExprValue castJson(ExprValue json) {
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode jsonNode;
     try {
-      jsonNode = objectMapper.readTree(json);
+      jsonNode = objectMapper.readTree(json.stringValue());
     } catch (JsonProcessingException e) {
       final String errorFormat = "JSON string '%s' is not valid. Error details: %s";
       throw new SemanticCheckException(String.format(errorFormat, json, e.getMessage()), e);
