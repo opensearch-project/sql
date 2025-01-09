@@ -60,13 +60,14 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | where json_valid(json_string) | eval casted=cast(json_string as json) | fields test_name, casted",
+                "source=%s | where json_valid(json_string) | eval casted=cast(json_string as json)"
+                    + " | fields test_name, casted",
                 TEST_INDEX_JSON_TEST));
     verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "undefined"));
     verifyDataRows(
         result,
         rows("json object", Map.of("a", "1", "b", "2")),
-        rows("json array", List.of(1,2,3,4)),
+        rows("json array", List.of(1, 2, 3, 4)),
         rows("json scalar string", "abc"),
         rows("json empty string", null));
   }
@@ -78,12 +79,14 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "source=%s | where json_valid(json_string) | eval casted=json(json_string) | fields test_name, casted", TEST_INDEX_JSON_TEST));
+                "source=%s | where json_valid(json_string) | eval casted=json(json_string) | fields"
+                    + " test_name, casted",
+                TEST_INDEX_JSON_TEST));
     verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "undefined"));
     verifyDataRows(
         result,
         rows("json object", Map.of("a", "1", "b", "2")),
-        rows("json array", List.of(1,2,3,4)),
+        rows("json array", List.of(1, 2, 3, 4)),
         rows("json scalar string", "abc"),
         rows("json empty string", null));
   }
