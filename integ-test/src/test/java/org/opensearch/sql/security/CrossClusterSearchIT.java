@@ -123,8 +123,13 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     // Make sure test-data loaded correctly.
     JSONObject result = executeQuery(String.format("search source=%s", TEST_INDEX_GEOIP_REMOTE));
     verifyColumn(result, columnName("name"), columnName("ip"));
+    verifyDataRows(result,
+            rows("Test user - USA", "10.1.1.1"),
+            rows("Test user - Canada", "127.1.1.1"));
 
-    //
+//    JSONObject resultGeoIp = executeQuery(String.format("search source=%s", TEST_INDEX_GEOIP_REMOTE));
+
+
   }
 
 
