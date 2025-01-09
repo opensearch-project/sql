@@ -31,5 +31,5 @@ Example::
     | json array          | [1, 2, 3, 4]                 | True     |
     | json scalar string  | "abc"                        | True     |
     | json empty string   |                              | True     |
-    | json invalid object | {"invalid":"json", "string"} | True     |
+    | json invalid object | {"invalid":"json", "string"} | False    |
     +---------------------+------------------------------+----------+

@@ -15,7 +15,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
-public class JsonFunctionIT extends PPLIntegTestCase {
+public class JsonFunctionsIT extends PPLIntegTestCase {
   @Override
   public void init() throws IOException {
     loadIndex(Index.JSON_TEST);
