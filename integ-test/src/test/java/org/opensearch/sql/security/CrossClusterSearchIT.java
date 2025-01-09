@@ -127,9 +127,17 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
             rows("Test user - USA", "10.1.1.1"),
             rows("Test user - Canada", "127.1.1.1"));
 
-//    JSONObject resultGeoIp = executeQuery(String.format("search source=%s", TEST_INDEX_GEOIP_REMOTE));
+    JSONObject resultGeoIp = executeQuery(
+            String.format("search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s)",
+                    TEST_INDEX_GEOIP_REMOTE, "dummycityindex", "ip"));
 
+    verifyColumn(resultGeoIp, columnName("name"), columnName("ip"), columnName("enrichmentResult"));
+    verifyDataRows(resultGeoIp,
+            rows("Test user - USA", "10.1.1.1", Map.of("country", "USA", "city", "Seattle")),
+            rows("Test user - Canada", "127.1.1.1", Map.of("country", "Canada", "city", "Vancouver")));
 
+//    Expected: iterable with items [[Test user - USA, 10.1.1.1, x], [Test user - Canada, 127.1.1.1, x]] in any order
+//         but: not matched: <["Test user - USA","10.1.1.1",{"country":"USA","city":"Seattle"}]>
   }
 
 
