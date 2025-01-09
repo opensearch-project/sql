@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.expression.datetime;
 
-import static java.time.DayOfWeek.SUNDAY;
-import static java.time.temporal.TemporalAdjusters.nextOrSame;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -25,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
@@ -1230,23 +1227,10 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         expectedInteger);
   }
 
-  // subtracting 1 as a temporary fix for year 2024.
-  // Issue: https://github.com/opensearch-project/sql/issues/2477
   @Test
   public void testWeekOfYearWithTimeType() {
-    // The following calculation is needed to correct the discrepancy in how ISO 8601
-    // and our implementation calculates. ISO 8601 calculates weeks using the following criteria:
-    //   - Weeks start on Monday
-    //   - The first week of a year is any week containing 4 or more days in the new year.
-    // Whereas we only count full weeks, where weeks start on Sunday. To fix the discrepancy we find
-    // the first
-    // Sunday of the year and start counting weeks from that date.
     LocalDate today = LocalDate.now(functionProperties.getQueryStartClock());
-    LocalDate firstSundayOfYear = today.withDayOfYear(1).with(nextOrSame(SUNDAY));
-    int week =
-        today.isBefore(firstSundayOfYear)
-            ? 52
-            : (int) ChronoUnit.WEEKS.between(firstSundayOfYear, today) + 1;
+    int week = DateTimeTestBase.getYearWeek(today);
 
     assertAll(
         () ->
