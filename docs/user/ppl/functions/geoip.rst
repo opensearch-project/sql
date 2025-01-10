@@ -8,7 +8,7 @@ Geo IP Address Functions
    :local:
    :depth: 1
 
-CIDRMATCH
+GEOIP
 ---------
 
 Description
