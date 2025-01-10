@@ -1541,7 +1541,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = str_to_date('1-May-13', '%s') | fields f",
                 TEST_INDEX_DATE, "%d-%b-%y"));
-    verifySchema(result, schema("f", null, "timestamp"));
+    verifySchema(result, schema("f", null, "datetime"));
     verifySome(result.getJSONArray("datarows"), rows("2013-05-01 00:00:00"));
   }
 
