@@ -166,12 +166,10 @@ ext {
         ].forEach { name, value ->
             cluster.setting name, value
         }
-
-        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
+        cluster.plugin provider {(RegularFile) (() -> downloadedSecurityPlugin)}
     }
 
     configureGeoPlugin = { OpenSearchCluster cluster ->
-
         File downloadedGeoPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-geospatial-snapshot.zip').toFile()
         if (!downloadedGeoPlugin.exists()) {
             download.run {
@@ -181,7 +179,7 @@ ext {
         } else {
             println "Geo-spatial Plugin File Already Exists"
         }
-        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedGeoPlugin)))
+        cluster.plugin provider {(RegularFile) (() -> downloadedGeoPlugin)}
     }
 
     bwcOpenSearchJSDownload = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + baseVersion + '/latest/linux/x64/tar/builds/' +
