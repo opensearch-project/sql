@@ -5,42 +5,21 @@
 
 package org.opensearch.sql.security;
 
-import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GEOIP;
-import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
 import lombok.SneakyThrows;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.json.JSONObject;
-import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.opensearch.client.Request;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /** Cross Cluster Search tests to be executed with security plugin. */

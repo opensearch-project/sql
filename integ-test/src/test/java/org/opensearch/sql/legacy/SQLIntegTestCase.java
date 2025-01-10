@@ -629,10 +629,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         getUnexpandedObjectIndexMapping(),
         "src/test/resources/unexpanded_objects.json"),
     GEOIP(
-            TestsConstants.TEST_INDEX_GEOIP,
-            "geoip",
-            getGeoIpIndexMapping(),
-            "src/test/resources/geoip.json"),
+        TestsConstants.TEST_INDEX_GEOIP,
+        "geoip",
+        getGeoIpIndexMapping(),
+        "src/test/resources/geoip.json"),
     BANK(
         TestsConstants.TEST_INDEX_BANK,
         "account",
