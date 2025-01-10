@@ -271,13 +271,10 @@ testClusters.all {
 }
 
 def getJobSchedulerPlugin() {
-    provider { new RegularFile() {
-            @Override
-            File getAsFile() {
-                configurations.zipArchive.asFileTree.matching {
-                    include '**/opensearch-job-scheduler*'
-                }.singleFile}
-        }
+    provider { (RegularFile) (() ->
+            configurations.zipArchive.asFileTree.matching {
+                include '**/opensearch-job-scheduler*'
+            }.singleFile )
     }
 }
 
@@ -607,9 +604,7 @@ task comparisonTest(type: RestIntegTestTask) {
             testDistribution = "ARCHIVE"
             versions = [baseVersion, opensearch_version]
             numberOfNodes = 3
-            plugin(provider { new RegularFile() {
-                @Override
-                File getAsFile() {
+            plugin(provider { (RegularFile) ({
                     if (new File("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion").exists()) {
                         project.delete(files("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion"))
                     }
@@ -617,17 +612,14 @@ task comparisonTest(type: RestIntegTestTask) {
                     ant.get(src: bwcOpenSearchJSDownload,
                             dest: bwcJobSchedulerPath + bwcVersion,
                             httpusecaches: false)
-                    return fileTree(bwcJobSchedulerPath + bwcVersion).getSingleFile()
-                }
-            }})
-            plugin(provider { new RegularFile() {
-                @Override
-                File getAsFile() {
-                    return configurations.zipArchive.asFileTree.matching {
-                        include '**/opensearch-sql-plugin*'
-                    }.singleFile
-                }
-            }})
+                    fileTree(bwcJobSchedulerPath + bwcVersion).getSingleFile()
+                })
+            })
+            plugin(provider { (RegularFile) (
+                configurations.zipArchive.asFileTree.matching {
+                    include '**/opensearch-sql-plugin*'
+                }.singleFile )
+            })
             setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
             setting 'http.content_type.required', 'true'
         }
@@ -636,12 +628,8 @@ task comparisonTest(type: RestIntegTestTask) {
 
 List<Provider<RegularFile>> plugins = [
         getJobSchedulerPlugin(),
-        provider{ new RegularFile() {
-            @Override
-            File getAsFile() {
-                return fileTree(bwcFilePath + project.version).getSingleFile()
-            }
-        }
+        provider{ (RegularFile) (
+                fileTree(bwcFilePath + project.version).getSingleFile())
     }
 ]
 
