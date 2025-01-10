@@ -123,13 +123,7 @@ public class PplIpEnrichmentIT extends PPLIntegTestCase {
    */
   private void waitForDatasourceToBeAvailable(final String name, final Duration timeout) throws Exception {
     Instant start = Instant.now();
-    Request request = new Request("GET", GEO_SPATIAL_DATASOURCE_PATH + name);
-    Response response = client().performRequest(request);
-    var responseInMap = createParser(XContentType.JSON.xContent(), EntityUtils.toString(response.getEntity())).map();
-    var datasources = (List<Map<String, Object>>) responseInMap.get("datasources");
-    String state = (String) datasources.getFirst().get("state");
-
-    while (!"AVAILABLE".equals(state)) {
+    while (!"AVAILABLE".equals(getDatasourceState(name))) {
       if (Duration.between(start, Instant.now()).compareTo(timeout) > 0) {
         throw new RuntimeException(
                 String.format(
@@ -142,5 +136,19 @@ public class PplIpEnrichmentIT extends PPLIntegTestCase {
       }
       Thread.sleep(1000);
     }
+  }
+
+  /**
+   * Helper method to fetch the DataSource creation status via REST client.
+   * @param name dataSource name
+   * @return Status in String
+   * @throws Exception IO.
+   */
+  private String getDatasourceState(final String name) throws Exception {
+    Request request = new Request("GET", GEO_SPATIAL_DATASOURCE_PATH + name);
+    Response response = client().performRequest(request);
+    var responseInMap = createParser(XContentType.JSON.xContent(), EntityUtils.toString(response.getEntity())).map();
+    var datasources = (List<Map<String, Object>>) responseInMap.get("datasources");
+    return (String) datasources.get(0).get("state");
   }
 }
