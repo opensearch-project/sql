@@ -19,6 +19,8 @@ import org.opensearch.sql.expression.FunctionExpression;
 
 @ExtendWith(MockitoExtension.class)
 public class JsonFunctionsTest {
+  private static final ExprValue JsonNestedObject =
+      ExprValueUtils.stringValue("{\"a\":\"1\",\"b\":{\"c\":\"2\",\"d\":\"3\"}}");
   private static final ExprValue JsonObject =
       ExprValueUtils.stringValue("{\"a\":\"1\",\"b\":\"2\"}");
   private static final ExprValue JsonArray = ExprValueUtils.stringValue("[1, 2, 3, 4]");
@@ -36,6 +38,7 @@ public class JsonFunctionsTest {
 
   @Test
   public void json_valid_returns_true() {
+    assertEquals(LITERAL_TRUE, execute(JsonNestedObject));
     assertEquals(LITERAL_TRUE, execute(JsonObject));
     assertEquals(LITERAL_TRUE, execute(JsonArray));
     assertEquals(LITERAL_TRUE, execute(JsonScalarString));

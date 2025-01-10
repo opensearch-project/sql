@@ -1,3 +1,4 @@
+{"test_name":"json nested object", "json_string":"{\"a\":\"1\",\"b\":{\"c\":\"2\",\"d\":\"3\"}}"}
 {"test_name":"json object", "json_string":"{\"a\":\"1\",\"b\":\"2\"}"}
 {"test_name":"json array", "json_string":"[1, 2, 3, 4]"}
 {"test_name":"json scalar string", "json_string":"\"abc\""}

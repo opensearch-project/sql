@@ -33,6 +33,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     verifySchema(result, schema("test_name", null, "string"));
     verifyDataRows(
         result,
+        rows("json nested object"),
         rows("json object"),
         rows("json array"),
         rows("json scalar string"),
