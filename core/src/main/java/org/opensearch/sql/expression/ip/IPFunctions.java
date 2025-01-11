@@ -57,5 +57,4 @@ public class IPFunctions {
         ? ExprValueUtils.LITERAL_FALSE
         : ExprValueUtils.LITERAL_TRUE;
   }
-
 }

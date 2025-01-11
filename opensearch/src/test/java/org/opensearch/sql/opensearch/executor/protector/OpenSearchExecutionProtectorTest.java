@@ -346,20 +346,19 @@ class OpenSearchExecutionProtectorTest {
   void test_visitOpenSearchEval() {
     NodeClient nodeClient = mock(NodeClient.class);
     OpenSearchEvalOperator evalOperator =
-//    ADOperator adOperator =
-            new OpenSearchEvalOperator(
-                    values(emptyList()),
-                    List.of(
-                            ImmutablePair.of(
-                                    new ReferenceExpression("ageInAbs", OpenSearchTextType.of()),
-                                    DSL.abs(DSL.abs(new ReferenceExpression("age", ExprCoreType.LONG))))
-                    ),
-                    nodeClient);
+        //    ADOperator adOperator =
+        new OpenSearchEvalOperator(
+            values(emptyList()),
+            List.of(
+                ImmutablePair.of(
+                    new ReferenceExpression("ageInAbs", OpenSearchTextType.of()),
+                    DSL.abs(DSL.abs(new ReferenceExpression("age", ExprCoreType.LONG))))),
+            nodeClient);
 
     assertEquals(
-            executionProtector.doProtect(evalOperator), executionProtector.visitEval(evalOperator, null));
+        executionProtector.doProtect(evalOperator),
+        executionProtector.visitEval(evalOperator, null));
   }
-
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {
     return new ResourceMonitorPlan(input, resourceMonitor);
