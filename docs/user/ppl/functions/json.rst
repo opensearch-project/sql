@@ -23,7 +23,7 @@ Return type: BOOLEAN
 Example::
 
     > source=json_test | eval is_valid = json_valid(json_string) | fields test_name, json_string, is_valid
-    fetched rows / total rows = 4/4
+    fetched rows / total rows = 6/6
     +---------------------+---------------------------------+----------+
     | test_name           | json_string                     | is_valid |
     |---------------------|---------------------------------|----------|
