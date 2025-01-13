@@ -50,7 +50,7 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 
-class  ExpressionAnalyzerTest extends AnalyzerTestBase {
+class ExpressionAnalyzerTest extends AnalyzerTestBase {
 
   @Test
   public void equal() {

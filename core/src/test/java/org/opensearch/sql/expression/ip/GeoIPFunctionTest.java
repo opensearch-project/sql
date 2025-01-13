@@ -44,13 +44,10 @@ public class GeoIPFunctionTest {
     assertEquals(BOOLEAN, geoip.type());
   }
 
-  /**
-   * To make sure no logic being evaluated when no environment being passed.
-   */
+  /** To make sure no logic being evaluated when no environment being passed. */
   @Test
   public void testDefaultValueOf() {
     var geoip = DSL.geoip(DSL.literal("HARDCODED_DATASOURCE_NAME"), DSL.ref("ip_address", STRING));
     assertNull(geoip.valueOf());
-
   }
 }
