@@ -177,12 +177,12 @@ Query metadata fields::
 
     os> source=accounts | fields firstname, lastname, _index, _sort;
     fetched rows / total rows = 4/4
-    +-------------+------------+----------+---------+
-    | firstname   | lastname   | _index   | _sort   |
-    |-------------+------------+----------+---------|
-    | Amber       | Duke       | accounts | -2      |
-    | Hattie      | Bond       | accounts | -2      |
-    | Nanette     | Bates      | accounts | -2      |
-    | Dale        | Adams      | accounts | -2      |
-    +-------------+------------+----------+---------+
+    +-----------+----------+----------+-------+
+    | firstname | lastname | _index   | _sort |
+    |-----------+----------+----------+-------|
+    | Amber     | Duke     | accounts | -2    |
+    | Hattie    | Bond     | accounts | -2    |
+    | Nanette   | Bates    | accounts | -2    |
+    | Dale      | Adams    | accounts | -2    |
+    +-----------+----------+----------+-------+
 
