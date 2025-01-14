@@ -16,6 +16,11 @@ public class JsonUtils {
    */
   public static ExprValue isValidJson(ExprValue jsonExprValue) {
     ObjectMapper objectMapper = new ObjectMapper();
+
+    if (jsonExprValue.isNull() || jsonExprValue.isMissing()) {
+      return ExprValueUtils.LITERAL_FALSE;
+    }
+
     try {
       objectMapper.readTree(jsonExprValue.stringValue());
       return ExprValueUtils.LITERAL_TRUE;

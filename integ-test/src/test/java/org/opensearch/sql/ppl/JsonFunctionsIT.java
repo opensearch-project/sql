@@ -50,6 +50,6 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
                 "source=%s | where not json_valid(json_string) | fields test_name",
                 TEST_INDEX_JSON_TEST));
     verifySchema(result, schema("test_name", null, "string"));
-    verifyDataRows(result, rows("json invalid object"));
+    verifyDataRows(result, rows("json invalid object"), rows("json null"));
   }
 }
