@@ -78,7 +78,7 @@ jobs:
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: opensearch-sql-ubuntu-latest
+        name: opensearch-sql-ubuntu-latest-${{ matrix.java }}
         path: opensearch-sql-builds
 
     - name: Upload test reports
@@ -86,7 +86,7 @@ jobs:
       uses: actions/upload-artifact@v4
       continue-on-error: true
       with:
-        name: test-reports
+        name: test-reports-ubuntu-latest-${{ matrix.java }}
         path: |
           sql/build/reports/**
           ppl/build/reports/**
@@ -132,5 +132,5 @@ jobs:
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: opensearch-sql-${{ matrix.entry.os }}
+        name: opensearch-sql-${{ matrix.entry.os }}-${{ matrix.entry.java }}
         path: opensearch-sql-builds
