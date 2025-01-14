@@ -2169,7 +2169,7 @@ YEARWEEK
 Description
 >>>>>>>>>>>
 
-Usage: yearweek(date) returns the year and week for date as an integer. It accepts and optional mode arguments aligned with those available for the `WEEK`_ function.
+Usage: yearweek(date[, mode]) returns the year and week for date as an integer. It accepts and optional mode arguments aligned with those available for the `WEEK`_ function.
 
 Argument type: STRING/DATE/TIME/TIMESTAMP
 
@@ -2179,10 +2179,17 @@ Example::
 
     os> source=people | eval `YEARWEEK('2020-08-26')` = YEARWEEK('2020-08-26') | eval `YEARWEEK('2019-01-05', 1)` = YEARWEEK('2019-01-05', 1) | fields `YEARWEEK('2020-08-26')`, `YEARWEEK('2019-01-05', 1)`
     fetched rows / total rows = 1/1
-    +------------------------+---------------------------+
-    | YEARWEEK('2020-08-26') | YEARWEEK('2019-01-05', 1) |
-    |------------------------+---------------------------|
-    | 202034                 | 201901                    |
-    +------------------------+---------------------------+
+    +------------------------+---------------------------+---------------------------+
+    | YEARWEEK('2020-08-26') | YEARWEEK('2019-01-05', 1) | YEARWEEK('2025-01-04', 1) |
+    |------------------------+---------------------------+---------------------------|
+    | 202034                 | 201901                    | 202452                    |
+    +------------------------+---------------------------+---------------------------+
 
+    os> source=people | eval `YEARWEEK('2025-01-04')` = YEARWEEK('2025-01-04') | eval `YEARWEEK('2019-01-05', 1)` = YEARWEEK('2019-01-05', 1) | fields `YEARWEEK('2020-08-26')`, `YEARWEEK('2019-01-05', 1)`
+    fetched rows / total rows = 1/1
+    +------------------------+---------------------------+---------------------------+
+    | YEARWEEK('2020-08-26') | YEARWEEK('2019-01-05', 1) | YEARWEEK('2025-01-04', 1) |
+    |------------------------+---------------------------+---------------------------|
+    | 202034                 | 201901                    | 202452                    |
+    +------------------------+---------------------------+---------------------------+
 

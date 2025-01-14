@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.expression.datetime;
 
-import static java.time.DayOfWeek.SUNDAY;
-import static java.time.temporal.TemporalAdjusters.nextOrSame;
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 
 import java.time.Instant;
@@ -14,7 +12,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
 import java.util.List;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -233,20 +230,5 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected Double unixTimeStampOf(Instant value) {
     return unixTimeStampOf(DSL.literal(new ExprTimestampValue(value))).valueOf().doubleValue();
-  }
-
-  // The following calculation is needed to correct the discrepancy in how ISO 860 and our
-  // implementation of YEARWEEK calculates. ISO 8601 calculates weeks using the following criteria:
-  //   - Weeks start on Monday
-  //   - The first week of a year is any week containing 4 or more days in the new year.
-  // Whereas YEARWEEK counts only full weeks, where weeks start on Sunday. To fix the discrepancy
-  // we find the first Sunday of the year and start counting weeks from that date.
-  protected static int getYearWeek(LocalDate date) {
-    LocalDate firstSundayOfYear = date.withDayOfYear(1).with(nextOrSame(SUNDAY));
-    int week =
-        date.isBefore(firstSundayOfYear)
-            ? 52
-            : (int) ChronoUnit.WEEKS.between(firstSundayOfYear, date) + 1;
-    return week;
   }
 }

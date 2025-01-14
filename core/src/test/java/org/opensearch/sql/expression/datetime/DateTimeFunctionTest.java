@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.expression.datetime;
 
+import static java.time.DayOfWeek.SUNDAY;
+import static java.time.temporal.TemporalAdjusters.nextOrSame;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
@@ -1230,7 +1233,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @Test
   public void testWeekOfYearWithTimeType() {
     LocalDate today = LocalDate.now(functionProperties.getQueryStartClock());
-    int week = DateTimeTestBase.getYearWeek(today);
+    int week = getWeekOfYearBeforeSunday(today);
 
     assertAll(
         () ->
@@ -1249,6 +1252,15 @@ class DateTimeFunctionTest extends ExpressionTestBase {
                 DSL.weekofyear(functionProperties, DSL.literal(new ExprTimeValue("12:23:34"))),
                 "weekofyear(TIME '12:23:34')",
                 week));
+  }
+
+  private int getWeekOfYearBeforeSunday(LocalDate date) {
+    LocalDate firstSundayOfYear = date.withDayOfYear(1).with(nextOrSame(SUNDAY));
+    if (date.isBefore(firstSundayOfYear)) {
+      return 0;
+    }
+
+    return (int) ChronoUnit.WEEKS.between(firstSundayOfYear, date) + 1;
   }
 
   @Test
