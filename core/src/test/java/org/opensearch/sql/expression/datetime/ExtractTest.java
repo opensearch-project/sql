@@ -92,10 +92,10 @@ class ExtractTest extends ExpressionTestBase {
 
   @Test
   public void testExtractDatePartWithTimeType() {
-    // run this for 4 years worth to get at least one leap year:
     LocalDate now = LocalDate.now(functionProperties.getQueryStartClock());
 
     datePartWithTimeArgQuery("DAY", timeInput, now.getDayOfMonth());
+
     // To avoid flaky test, skip the testing in December and January because the WEEK is ISO 8601
     // week-of-week-based-year which is considered to start on a Monday and week 1 is the first week
     // with >3 days. it is possible for early-January dates to be part of the 52nd or 53rd week of
@@ -105,7 +105,9 @@ class ExtractTest extends ExpressionTestBase {
     if (now.getMonthValue() != 1 && now.getMonthValue() != 12) {
       datePartWithTimeArgQuery("WEEK", datetimeInput, now.get(ALIGNED_WEEK_OF_YEAR));
     }
+
     datePartWithTimeArgQuery("MONTH", timeInput, now.getMonthValue());
+
     datePartWithTimeArgQuery("YEAR", timeInput, now.getYear());
   }
 

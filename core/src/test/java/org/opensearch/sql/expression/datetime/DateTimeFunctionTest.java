@@ -1233,7 +1233,13 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @Test
   public void testWeekOfYearWithTimeType() {
     LocalDate today = LocalDate.now(functionProperties.getQueryStartClock());
-    int week = getWeekOfYearBeforeSunday(today);
+
+    // week is based on the first sunday of the year
+    LocalDate firstSundayOfYear = today.withDayOfYear(1).with(nextOrSame(SUNDAY));
+    int week =
+        today.isBefore(firstSundayOfYear)
+            ? 0
+            : (int) ChronoUnit.WEEKS.between(firstSundayOfYear, today) + 1;
 
     assertAll(
         () ->
@@ -1254,14 +1260,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
                 week));
   }
 
-  private int getWeekOfYearBeforeSunday(LocalDate date) {
-    LocalDate firstSundayOfYear = date.withDayOfYear(1).with(nextOrSame(SUNDAY));
-    if (date.isBefore(firstSundayOfYear)) {
-      return 0;
-    }
-
-    return (int) ChronoUnit.WEEKS.between(firstSundayOfYear, date) + 1;
-  }
+  private int getWeekOfYearBeforeSunday(LocalDate date) {}
 
   @Test
   public void modeInUnsupportedFormat() {
