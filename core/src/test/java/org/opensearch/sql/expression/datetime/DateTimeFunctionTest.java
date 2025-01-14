@@ -1260,8 +1260,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
                 week));
   }
 
-  private int getWeekOfYearBeforeSunday(LocalDate date) {}
-
   @Test
   public void modeInUnsupportedFormat() {
     FunctionExpression expression1 =
