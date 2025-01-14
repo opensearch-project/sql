@@ -1535,6 +1535,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_DATE, "%d,%m,%Y"));
     verifySchema(result, schema("f", null, "datetime"));
     verifySome(result.getJSONArray("datarows"), rows("2013-05-01 00:00:00"));
+    // two digits year case
+    result =
+        executeQuery(
+            String.format(
+                "source=%s | eval f = str_to_date('1-May-13', '%s') | fields f",
+                TEST_INDEX_DATE, "%d-%b-%y"));
+    verifySchema(result, schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2013-05-01 00:00:00"));
   }
 
   @Test
