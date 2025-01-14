@@ -12,7 +12,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.json.JSONArray;
@@ -68,7 +67,9 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "undefined"));
     verifyDataRows(
         result,
-        rows("json nested object", new JSONObject(Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(1, 2, 3)))),
+        rows(
+            "json nested object",
+            new JSONObject(Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(1, 2, 3)))),
         rows("json object", new JSONObject(Map.of("a", "1", "b", "2"))),
         rows("json array", new JSONArray(List.of(1, 2, 3, 4))),
         rows("json scalar string", "abc"),
@@ -89,7 +90,9 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     JSONObject firstRow = new JSONObject(Map.of("c", 2));
     verifyDataRows(
         result,
-        rows("json nested object", new JSONObject(Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(1, 2, 3)))),
+        rows(
+            "json nested object",
+            new JSONObject(Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(1, 2, 3)))),
         rows("json object", new JSONObject(Map.of("a", "1", "b", "2"))),
         rows("json array", new JSONArray(List.of(1, 2, 3, 4))),
         rows("json scalar string", "abc"),
