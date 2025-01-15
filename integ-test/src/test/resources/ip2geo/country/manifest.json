@@ -1,0 +1,8 @@
+{
+  "url": "https://github.com/opensearch-project/geospatial/raw/main/src/test/resources/ip2geo/server/country/country.zip",
+  "db_name": "data.csv",
+  "sha256_hash": "oDPgEv+4+kNov7bdQQiLrhr8jQeEPdLnuJ11Hz5npvk=",
+  "valid_for_in_days": 30,
+  "updated_at_in_epoch_milli": 1683590400000,
+  "provider": "opensearch"
+}

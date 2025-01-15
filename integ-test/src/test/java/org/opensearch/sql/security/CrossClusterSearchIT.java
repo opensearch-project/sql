@@ -8,6 +8,7 @@ package org.opensearch.sql.security;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GEOIP;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
@@ -41,6 +42,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   private static final String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
   private static final String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
+  private static final String TEST_INDEX_GEOIP_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_GEOIP;
   private static final String TEST_INDEX_DOG_MATCH_ALL_REMOTE =
       MATCH_ALL_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
   private static final String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
