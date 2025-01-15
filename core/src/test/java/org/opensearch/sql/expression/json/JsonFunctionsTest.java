@@ -6,7 +6,9 @@
 package org.opensearch.sql.expression.json;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.FunctionExpression;
 
@@ -34,6 +37,15 @@ public class JsonFunctionsTest {
   public void json_valid_returns_false() {
     assertEquals(LITERAL_FALSE, execute(JsonInvalidObject));
     assertEquals(LITERAL_FALSE, execute(JsonInvalidScalar));
+
+    // caught by nullMissingHandling and returns null
+    assertEquals(LITERAL_NULL, execute(LITERAL_NULL));
+  }
+
+  @Test
+  public void json_valid_throws_ExpressionEvaluationException() {
+    assertThrows(
+        ExpressionEvaluationException.class, () -> execute(ExprValueUtils.booleanValue(true)));
   }
 
   @Test
