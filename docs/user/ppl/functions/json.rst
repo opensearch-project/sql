@@ -14,7 +14,7 @@ JSON_VALID
 Description
 >>>>>>>>>>>
 
-Usage: `json_valid(json_string)` checks if `json_string` is a valid STRING string.
+Usage: `json_valid(json_string)` checks if `json_string` is a valid JSON-encoded string.
 
 Argument type: STRING
 
