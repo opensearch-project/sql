@@ -144,7 +144,7 @@ public class ExpressionReferenceOptimizer
               groupBy ->
                   expressionMap.put(
                       groupBy.getDelegated(),
-                      new ReferenceExpression(groupBy.getNameOrAlias(), groupBy.type())));
+                      new ReferenceExpression(groupBy.getName(), groupBy.type())));
       return null;
     }
 

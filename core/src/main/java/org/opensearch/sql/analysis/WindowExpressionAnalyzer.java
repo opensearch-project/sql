@@ -65,8 +65,7 @@ public class WindowExpressionAnalyzer extends AbstractNodeVisitor<LogicalPlan, A
     List<Pair<SortOption, Expression>> sortList = analyzeSortList(unresolved, context);
 
     WindowDefinition windowDefinition = new WindowDefinition(partitionByList, sortList);
-    NamedExpression namedWindowFunction =
-        new NamedExpression(node.getName(), windowFunction, node.getAlias());
+    NamedExpression namedWindowFunction = new NamedExpression(node.getName(), windowFunction);
     List<Pair<SortOption, Expression>> allSortItems = windowDefinition.getAllSortItems();
 
     if (allSortItems.isEmpty()) {

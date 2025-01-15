@@ -18,7 +18,6 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
-import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -185,7 +184,7 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   private String anonymize(String query) {
-    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), query);
+    AstBuilder astBuilder = new AstBuilder(query);
     return anonymize(astBuilder.visit(parser.parse(query)));
   }
 
@@ -197,7 +196,7 @@ public class PPLQueryDataAnonymizerTest {
   private String anonymizeStatement(String query, boolean isExplain) {
     AstStatementBuilder builder =
         new AstStatementBuilder(
-            new AstBuilder(new AstExpressionBuilder(), query),
+            new AstBuilder(query),
             AstStatementBuilder.StatementBuilderContext.builder().isExplain(isExplain).build());
     Statement statement = builder.visit(parser.parse(query));
     PPLQueryDataAnonymizer anonymize = new PPLQueryDataAnonymizer();

@@ -118,7 +118,7 @@ class QueryServiceTest {
                 return null;
               })
           .when(executionEngine)
-          .execute(any(), any(), any());
+          .execute(any(PhysicalPlan.class), any(), any());
       lenient().when(planContext.getSplit()).thenReturn(this.split);
 
       return this;
@@ -133,7 +133,7 @@ class QueryServiceTest {
     Helper executeFail() {
       doThrow(new IllegalStateException("illegal state exception"))
           .when(executionEngine)
-          .execute(any(), any(), any());
+          .execute(any(PhysicalPlan.class), any(), any());
 
       return this;
     }

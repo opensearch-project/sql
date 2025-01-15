@@ -118,8 +118,7 @@ class DefaultImplementorTest {
                 "field", new ReferenceExpression("message.info", STRING),
                 "path", new ReferenceExpression("message", STRING)));
     List<NamedExpression> nestedProjectList =
-        List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
+        List.of(new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING))));
     Set<String> nestedOperatorArgs = Set.of("message.info");
     Map<String, List<String>> groupedFieldsByPath = Map.of("message", List.of("message.info"));
 

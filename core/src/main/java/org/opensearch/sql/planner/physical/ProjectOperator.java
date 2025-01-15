@@ -61,10 +61,10 @@ public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
       ExprValue exprValue = expr.valueOf(inputValue.bindingTuples());
       Optional<NamedExpression> optionalParseExpression =
           namedParseExpressions.stream()
-              .filter(parseExpr -> parseExpr.getNameOrAlias().equals(expr.getNameOrAlias()))
+              .filter(parseExpr -> parseExpr.getName().equals(expr.getName()))
               .findFirst();
       if (optionalParseExpression.isEmpty()) {
-        mapBuilder.put(expr.getNameOrAlias(), exprValue);
+        mapBuilder.put(expr.getName(), exprValue);
         continue;
       }
 
@@ -77,13 +77,13 @@ public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
         // source field will be missing after stats command, read from inputValue if it exists
         // otherwise do nothing since it should not appear as a field
         ExprValue tupleValue =
-            ExprValueUtils.getTupleValue(inputValue).get(parseExpression.getNameOrAlias());
+            ExprValueUtils.getTupleValue(inputValue).get(parseExpression.getName());
         if (tupleValue != null) {
-          mapBuilder.put(parseExpression.getNameOrAlias(), tupleValue);
+          mapBuilder.put(parseExpression.getName(), tupleValue);
         }
       } else {
         ExprValue parsedValue = parseExpression.valueOf(inputValue.bindingTuples());
-        mapBuilder.put(parseExpression.getNameOrAlias(), parsedValue);
+        mapBuilder.put(parseExpression.getName(), parsedValue);
       }
     }
     return ExprTupleValue.fromExprValueMap(mapBuilder.build());
@@ -94,8 +94,9 @@ public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
     return new ExecutionEngine.Schema(
         getProjectList().stream()
             .map(
-                expr ->
-                    new ExecutionEngine.Schema.Column(expr.getName(), expr.getAlias(), expr.type()))
+                expr -> // the column name is the delegated expression string from NamedExpression
+                new ExecutionEngine.Schema.Column(
+                        expr.getDelegated().toString(), expr.getName(), expr.type()))
             .collect(Collectors.toList()));
   }
 

@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -50,6 +49,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
@@ -76,7 +76,6 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
-@RequiredArgsConstructor
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   private final AstExpressionBuilder expressionBuilder;
@@ -86,6 +85,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    * without whitespaces or other characters discarded by lexer.
    */
   private final String query;
+
+  public AstBuilder(String query) {
+    this.expressionBuilder = new AstExpressionBuilder(this);
+    this.query = query;
+  }
 
   @Override
   public UnresolvedPlan visitQueryStatement(OpenSearchPPLParser.QueryStatementContext ctx) {
@@ -124,14 +128,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     QualifiedName tableQualifiedName = table.getTableQualifiedName();
     ArrayList<String> parts = new ArrayList<>(tableQualifiedName.getParts());
     parts.set(parts.size() - 1, mappingTable(parts.get(parts.size() - 1)));
-    return new Relation(new QualifiedName(parts));
+    return new DescribeRelation(new QualifiedName(parts));
   }
 
   /** Show command. */
   @Override
   public UnresolvedPlan visitShowDataSourcesCommand(
       OpenSearchPPLParser.ShowDataSourcesCommandContext ctx) {
-    return new Relation(qualifiedName(DATASOURCES_TABLE_NAME));
+    return new DescribeRelation(qualifiedName(DATASOURCES_TABLE_NAME));
   }
 
   /** Where command. */
