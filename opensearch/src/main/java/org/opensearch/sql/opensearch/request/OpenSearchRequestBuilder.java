@@ -281,7 +281,7 @@ public class OpenSearchRequestBuilder {
   /** Push down project list to DSL requests. */
   public void pushDownProjects(Set<ReferenceExpression> projects) {
     sourceBuilder.fetchSource(
-        projects.stream().map(ReferenceExpression::getAttr).distinct().toArray(String[]::new),
+        projects.stream().map(ReferenceExpression::getRawPath).distinct().toArray(String[]::new),
         new String[0]);
   }
 
