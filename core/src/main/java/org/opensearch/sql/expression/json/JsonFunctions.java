@@ -9,7 +9,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
-import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -25,7 +24,6 @@ public class JsonFunctions {
 
   private DefaultFunctionResolver jsonValid() {
     return define(
-        BuiltinFunctionName.JSON_VALID.getName(),
-        impl(nullMissingHandling(JsonUtils::isValidJson), BOOLEAN, STRING));
+        BuiltinFunctionName.JSON_VALID.getName(), impl(JsonUtils::isValidJson, BOOLEAN, STRING));
   }
 }

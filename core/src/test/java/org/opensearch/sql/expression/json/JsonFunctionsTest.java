@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.json;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
+import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 
@@ -37,9 +38,8 @@ public class JsonFunctionsTest {
   public void json_valid_returns_false() {
     assertEquals(LITERAL_FALSE, execute(JsonInvalidObject));
     assertEquals(LITERAL_FALSE, execute(JsonInvalidScalar));
-
-    // caught by nullMissingHandling and returns null
-    assertEquals(LITERAL_NULL, execute(LITERAL_NULL));
+    assertEquals(LITERAL_FALSE, execute(LITERAL_NULL));
+    assertEquals(LITERAL_FALSE, execute(LITERAL_MISSING));
   }
 
   @Test
