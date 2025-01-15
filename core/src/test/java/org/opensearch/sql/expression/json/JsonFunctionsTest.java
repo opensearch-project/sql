@@ -11,8 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 
 import java.util.LinkedHashMap;
