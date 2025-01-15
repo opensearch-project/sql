@@ -10,6 +10,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
