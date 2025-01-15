@@ -46,6 +46,9 @@ public class JsonFunctionsTest {
   public void json_valid_throws_ExpressionEvaluationException() {
     assertThrows(
         ExpressionEvaluationException.class, () -> execute(ExprValueUtils.booleanValue(true)));
+
+    // caught by nullMissingHandling and returns null
+    assertEquals(LITERAL_NULL, execute(LITERAL_NULL));
   }
 
   @Test
