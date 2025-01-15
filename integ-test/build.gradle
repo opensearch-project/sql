@@ -606,7 +606,7 @@ task comparisonTest(type: RestIntegTestTask) {
                     fileTree(bwcJobSchedulerPath + bwcVersion).getSingleFile()
                 })
             })
-            plugin(provider { (RegularFile) (
+            plugin(provider { (RegularFile) ( () ->
                 configurations.zipArchive.asFileTree.matching {
                     include '**/opensearch-sql-plugin*'
                 }.singleFile )
