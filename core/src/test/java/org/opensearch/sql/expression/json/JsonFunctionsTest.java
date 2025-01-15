@@ -36,23 +36,16 @@ import org.opensearch.sql.expression.FunctionExpression;
 
 @ExtendWith(MockitoExtension.class)
 public class JsonFunctionsTest {
-  private static final ExprValue JsonNestedObject =
-      ExprValueUtils.stringValue("{\"a\":\"1\",\"b\":{\"c\":\"2\",\"d\":\"3\"}}");
-  private static final ExprValue JsonObject =
-      ExprValueUtils.stringValue("{\"a\":\"1\",\"b\":\"2\"}");
-  private static final ExprValue JsonArray = ExprValueUtils.stringValue("[1, 2, 3, 4]");
-  private static final ExprValue JsonScalarString = ExprValueUtils.stringValue("\"abc\"");
-  private static final ExprValue JsonEmptyString = ExprValueUtils.stringValue("");
-  private static final ExprValue JsonInvalidObject =
-      ExprValueUtils.stringValue("{\"invalid\":\"json\", \"string\"}");
-  private static final ExprValue JsonInvalidScalar = ExprValueUtils.stringValue("abc");
-
   @Test
   public void json_valid_returns_false() {
-    assertEquals(LITERAL_FALSE, execute(JsonInvalidObject));
-    assertEquals(LITERAL_FALSE, execute(JsonInvalidScalar));
-    assertEquals(LITERAL_FALSE, execute(LITERAL_NULL));
-    assertEquals(LITERAL_FALSE, execute(LITERAL_MISSING));
+    assertEquals(
+        LITERAL_FALSE,
+        DSL.jsonValid(DSL.literal(ExprValueUtils.stringValue("{\"invalid\":\"json\", \"string\"}")))
+            .valueOf());
+    assertEquals(
+        LITERAL_FALSE, DSL.jsonValid(DSL.literal((ExprValueUtils.stringValue("abc")))).valueOf());
+    assertEquals(LITERAL_FALSE, DSL.jsonValid(DSL.literal((LITERAL_NULL))).valueOf());
+    assertEquals(LITERAL_FALSE, DSL.jsonValid(DSL.literal((LITERAL_MISSING))).valueOf());
   }
 
   @Test
@@ -66,16 +59,35 @@ public class JsonFunctionsTest {
 
   @Test
   public void json_valid_returns_true() {
-    assertEquals(LITERAL_TRUE, execute(JsonNestedObject));
-    assertEquals(LITERAL_TRUE, execute(JsonObject));
-    assertEquals(LITERAL_TRUE, execute(JsonArray));
-    assertEquals(LITERAL_TRUE, execute(JsonScalarString));
-    assertEquals(LITERAL_TRUE, execute(JsonEmptyString));
-  }
 
-  private ExprValue execute(ExprValue jsonString) {
-    FunctionExpression exp = DSL.jsonValid(DSL.literal(jsonString));
-    return exp.valueOf();
+    List<String> validJsonStrings =
+        List.of(
+            // test json objects are valid
+            "{\"a\":\"1\",\"b\":\"2\"}",
+            "{\"a\":1,\"b\":{\"c\":2,\"d\":3}}",
+            "{\"arr1\": [1,2,3], \"arr2\": [4,5,6]}",
+
+            // test json arrays are valid
+            "[1, 2, 3, 4]",
+            "[{\"a\":1,\"b\":2}, {\"c\":3,\"d\":2}]",
+
+            // test json scalars are valid
+            "\"abc\"",
+            "1234",
+            "true",
+            "false",
+            "null",
+
+            // test empty string is valid
+            "");
+
+    validJsonStrings.stream()
+        .forEach(
+            str ->
+                assertEquals(
+                    LITERAL_TRUE,
+                    DSL.jsonValid(DSL.literal((ExprValueUtils.stringValue(str)))).valueOf(),
+                    String.format("String %s must be valid json", str)));
   }
 
   @Test
