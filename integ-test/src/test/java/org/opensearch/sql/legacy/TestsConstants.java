@@ -58,6 +58,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_MULTI_NESTED_TYPE = TEST_INDEX + "_multi_nested";
   public static final String TEST_INDEX_NESTED_WITH_NULLS = TEST_INDEX + "_nested_with_nulls";
   public static final String TEST_INDEX_GEOPOINT = TEST_INDEX + "_geopoint";
+  public static final String TEST_INDEX_JSON_TEST = TEST_INDEX + "_json_test";
   public static final String DATASOURCES = ".ql-datasources";
 
   public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";

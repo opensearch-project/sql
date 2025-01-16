@@ -662,6 +662,7 @@ conditionFunctionName
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
+   | JSON_VALID
    ;
 
 // flow control function return non-boolean value
