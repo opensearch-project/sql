@@ -283,9 +283,15 @@ public class JsonFunctionsTest {
 
     assertEquals(new ExprIntegerValue(1234), DSL.json_function(DSL.literal("1234")).valueOf());
 
+    assertEquals(new ExprDoubleValue(12.34), DSL.json_function(DSL.literal("12.34")).valueOf());
+
     assertEquals(LITERAL_TRUE, DSL.json_function(DSL.literal("true")).valueOf());
 
     assertEquals(LITERAL_NULL, DSL.json_function(DSL.literal("null")).valueOf());
+
+    assertEquals(LITERAL_NULL, DSL.json_function(DSL.literal(LITERAL_NULL)).valueOf());
+
+    assertEquals(LITERAL_MISSING, DSL.json_function(DSL.literal(LITERAL_MISSING)).valueOf());
 
     assertEquals(LITERAL_NULL, DSL.json_function(DSL.literal("")).valueOf());
 
