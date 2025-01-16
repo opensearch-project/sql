@@ -24,6 +24,7 @@ import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getHobbiesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getJsonTestIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getNestedSimpleIndexMapping;
@@ -789,7 +790,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE,
         "duplication_nullable",
         getDuplicationNullableIndexMapping(),
-        "src/test/resources/duplication_nullable.json");
+        "src/test/resources/duplication_nullable.json"),
+    JSON_TEST(
+        TestsConstants.TEST_INDEX_JSON_TEST,
+        "json",
+        getJsonTestIndexMapping(),
+        "src/test/resources/json_test.json");
 
     private final String name;
     private final String type;

@@ -343,6 +343,9 @@ ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
 BETWEEN:                            'BETWEEN';
 
+// JSON FUNCTIONS
+JSON_VALID:                         'JSON_VALID';
+
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';
 NULLIF:                             'NULLIF';
