@@ -355,6 +355,14 @@ class TypeCastOperatorTest {
   }
 
   @Test
+  void castUndefinedToBoolean() {
+    // json cast is an UNDEFINED type expression
+    FunctionExpression expression = DSL.castBoolean(DSL.castJson(DSL.literal("true")));
+    assertEquals(BOOLEAN, expression.type());
+    assertEquals(ExprBooleanValue.of(true), expression.valueOf());
+  }
+
+  @Test
   void castToDate() {
     FunctionExpression expression = DSL.castDate(DSL.literal("2012-08-07"));
     assertEquals(DATE, expression.type());

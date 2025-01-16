@@ -92,9 +92,8 @@ public class TypeCastOperators {
             STRING),
         impl(nullMissingHandling((v) -> new ExprByteValue(v.byteValue())), BYTE, DOUBLE),
         impl(
-            nullMissingHandling((v) -> new ExprByteValue(v.booleanValue() ? 1 : 0)),
-            BYTE,
-            BOOLEAN));
+            nullMissingHandling((v) -> new ExprByteValue(v.booleanValue() ? 1 : 0)), BYTE, BOOLEAN),
+        impl(nullMissingHandling((v) -> v), BYTE, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToShort() {
