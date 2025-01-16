@@ -92,9 +92,8 @@ public class TypeCastOperators {
             STRING),
         impl(nullMissingHandling((v) -> new ExprByteValue(v.byteValue())), BYTE, DOUBLE),
         impl(
-            nullMissingHandling((v) -> new ExprByteValue(v.booleanValue() ? 1 : 0)),
-            BYTE,
-            BOOLEAN));
+            nullMissingHandling((v) -> new ExprByteValue(v.booleanValue() ? 1 : 0)), BYTE, BOOLEAN),
+        impl(nullMissingHandling((v) -> v), BYTE, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToShort() {
@@ -108,7 +107,8 @@ public class TypeCastOperators {
         impl(
             nullMissingHandling((v) -> new ExprShortValue(v.booleanValue() ? 1 : 0)),
             SHORT,
-            BOOLEAN));
+            BOOLEAN),
+        impl(nullMissingHandling((v) -> v), SHORT, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToInt() {
@@ -123,8 +123,7 @@ public class TypeCastOperators {
             nullMissingHandling((v) -> new ExprIntegerValue(v.booleanValue() ? 1 : 0)),
             INTEGER,
             BOOLEAN),
-        impl(nullMissingHandling((v) -> v), INTEGER, UNDEFINED)
-        );
+        impl(nullMissingHandling((v) -> v), INTEGER, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToLong() {
@@ -139,8 +138,7 @@ public class TypeCastOperators {
             nullMissingHandling((v) -> new ExprLongValue(v.booleanValue() ? 1L : 0L)),
             LONG,
             BOOLEAN),
-        impl(nullMissingHandling((v) -> v), LONG, UNDEFINED)
-    );
+        impl(nullMissingHandling((v) -> v), LONG, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToFloat() {
@@ -155,8 +153,7 @@ public class TypeCastOperators {
             nullMissingHandling((v) -> new ExprFloatValue(v.booleanValue() ? 1f : 0f)),
             FLOAT,
             BOOLEAN),
-        impl(nullMissingHandling((v) -> v), FLOAT, UNDEFINED)
-    );
+        impl(nullMissingHandling((v) -> v), FLOAT, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToDouble() {
@@ -171,8 +168,7 @@ public class TypeCastOperators {
             nullMissingHandling((v) -> new ExprDoubleValue(v.booleanValue() ? 1D : 0D)),
             DOUBLE,
             BOOLEAN),
-        impl(nullMissingHandling((v) -> v), DOUBLE, UNDEFINED)
-    );
+        impl(nullMissingHandling((v) -> v), DOUBLE, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToBoolean() {
@@ -185,8 +181,7 @@ public class TypeCastOperators {
         impl(
             nullMissingHandling((v) -> ExprBooleanValue.of(v.doubleValue() != 0)), BOOLEAN, DOUBLE),
         impl(nullMissingHandling((v) -> v), BOOLEAN, BOOLEAN),
-        impl(nullMissingHandling((v) -> v), BOOLEAN, UNDEFINED)
-    );
+        impl(nullMissingHandling((v) -> v), BOOLEAN, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToIp() {
