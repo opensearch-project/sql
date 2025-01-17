@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.geo;
+package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 
@@ -17,10 +17,9 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
-import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /** IP enrichment PPL request with OpenSearch Geo-sptial plugin */
-public class PplIpEnrichmentIT extends PPLIntegTestCase {
+public class GeoIpFunctionsIT extends PPLIntegTestCase {
 
   private static boolean initialized = false;
 
