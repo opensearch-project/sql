@@ -75,36 +75,33 @@ public class JsonUtils {
   }
 
   private static ExprValue processJsonNode(JsonNode jsonNode) {
-    if (jsonNode.isFloatingPointNumber()) {
-      return new ExprDoubleValue(jsonNode.asDouble());
+    switch (jsonNode.getNodeType()) {
+      case ARRAY:
+        List<ExprValue> elements = new LinkedList<>();
+        for (var iter = jsonNode.iterator(); iter.hasNext(); ) {
+          jsonNode = iter.next();
+          elements.add(processJsonNode(jsonNode));
+        }
+        return new ExprCollectionValue(elements);
+      case OBJECT:
+        Map<String, ExprValue> values = new LinkedHashMap<>();
+        for (var iter = jsonNode.fields(); iter.hasNext(); ) {
+          Map.Entry<String, JsonNode> entry = iter.next();
+          values.put(entry.getKey(), processJsonNode(entry.getValue()));
+        }
+        return ExprTupleValue.fromExprValueMap(values);
+      case STRING:
+        return new ExprStringValue(jsonNode.asText());
+      case NUMBER:
+        if (jsonNode.isFloatingPointNumber()) {
+          return new ExprDoubleValue(jsonNode.asDouble());
+        }
+        return new ExprIntegerValue(jsonNode.asLong());
+      case BOOLEAN:
+        return jsonNode.asBoolean() ? LITERAL_TRUE : LITERAL_FALSE;
+      default:
+        // in all other cases, return null
+        return LITERAL_NULL;
     }
-    if (jsonNode.isIntegralNumber()) {
-      return new ExprIntegerValue(jsonNode.asLong());
-    }
-    if (jsonNode.isBoolean()) {
-      return jsonNode.asBoolean() ? LITERAL_TRUE : LITERAL_FALSE;
-    }
-    if (jsonNode.isTextual()) {
-      return new ExprStringValue(jsonNode.asText());
-    }
-    if (jsonNode.isArray()) {
-      List<ExprValue> elements = new LinkedList<>();
-      for (var iter = jsonNode.iterator(); iter.hasNext(); ) {
-        jsonNode = iter.next();
-        elements.add(processJsonNode(jsonNode));
-      }
-      return new ExprCollectionValue(elements);
-    }
-    if (jsonNode.isObject()) {
-      Map<String, ExprValue> values = new LinkedHashMap<>();
-      for (var iter = jsonNode.fields(); iter.hasNext(); ) {
-        Map.Entry<String, JsonNode> entry = iter.next();
-        values.put(entry.getKey(), processJsonNode(entry.getValue()));
-      }
-      return ExprTupleValue.fromExprValueMap(values);
-    }
-
-    // in all other cases, return null
-    return LITERAL_NULL;
   }
 }
