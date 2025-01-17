@@ -951,10 +951,6 @@ keywordsCanBeId
    | LAST
    | LIST
    | VALUES
-   | EARLIEST
-   | EARLIEST_TIME
-   | LATEST
-   | LATEST_TIME
    | PER_DAY
    | PER_HOUR
    | PER_MINUTE
