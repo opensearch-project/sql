@@ -414,6 +414,8 @@ integTest {
         dependsOn startPrometheus
         finalizedBy stopPrometheus
     }
+
+    systemProperty 'java.security.manager', 'disallow'
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
 

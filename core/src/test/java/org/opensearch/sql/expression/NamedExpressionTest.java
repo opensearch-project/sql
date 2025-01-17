@@ -23,7 +23,7 @@ class NamedExpressionTest extends ExpressionTestBase {
     LiteralExpression delegated = DSL.literal(10);
     NamedExpression namedExpression = DSL.named("10", delegated);
 
-    assertEquals("10", namedExpression.getNameOrAlias());
+    assertEquals("10", namedExpression.getName());
     assertEquals(delegated.type(), namedExpression.type());
     assertEquals(delegated.valueOf(valueEnv()), namedExpression.valueOf(valueEnv()));
   }
@@ -31,17 +31,17 @@ class NamedExpressionTest extends ExpressionTestBase {
   @Test
   void name_an_expression_with_alias() {
     LiteralExpression delegated = DSL.literal(10);
-    NamedExpression namedExpression = DSL.named("10", delegated, "ten");
-    assertEquals("ten", namedExpression.getNameOrAlias());
+    NamedExpression namedExpression = DSL.named("ten", delegated);
+    assertEquals("ten", namedExpression.getName());
   }
 
   @Test
   void name_an_named_expression() {
     LiteralExpression delegated = DSL.literal(10);
-    Expression expression = DSL.named("10", delegated, "ten");
+    Expression expression = DSL.named("ten", delegated);
 
     NamedExpression namedExpression = DSL.named(expression);
-    assertEquals("ten", namedExpression.getNameOrAlias());
+    assertEquals("ten", namedExpression.getName());
   }
 
   @Test

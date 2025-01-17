@@ -72,6 +72,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
           .put("isnotnull", IS_NOT_NULL.getName().getFunctionName())
           .build();
 
+  private AstBuilder astBuilder;
+
+  public AstExpressionBuilder(AstBuilder astBuilder) {
+    this.astBuilder = astBuilder;
+  }
+
   /** Eval clause. */
   @Override
   public UnresolvedExpression visitEvalClause(EvalClauseContext ctx) {
@@ -379,8 +385,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitBySpanClause(BySpanClauseContext ctx) {
     String name = ctx.spanClause().getText();
     return ctx.alias != null
-        ? new Alias(
-            name, visit(ctx.spanClause()), StringUtils.unquoteIdentifier(ctx.alias.getText()))
+        ? new Alias(StringUtils.unquoteIdentifier(ctx.alias.getText()), visit(ctx.spanClause()))
         : new Alias(name, visit(ctx.spanClause()));
   }
 

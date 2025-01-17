@@ -39,15 +39,15 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
   @Test
   public void named_expression_with_alias() {
     assertAnalyzeEqual(
-        DSL.named("integer_value", DSL.ref("integer_value", INTEGER), "int"),
-        AstDSL.alias("integer_value", AstDSL.qualifiedName("integer_value"), "int"));
+        DSL.named("int", DSL.ref("integer_value", INTEGER)),
+        AstDSL.alias("int", AstDSL.qualifiedName("integer_value")));
   }
 
   @Test
   public void field_name_with_qualifier() {
     analysisContext.peek().define(new Symbol(Namespace.INDEX_NAME, "index_alias"), STRUCT);
     assertAnalyzeEqual(
-        DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
+        DSL.named("integer_alias.integer_value", DSL.ref("integer_value", INTEGER)),
         AstDSL.alias(
             "integer_alias.integer_value", AstDSL.qualifiedName("index_alias", "integer_value")));
   }
@@ -56,7 +56,7 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
   public void field_name_with_qualifier_quoted() {
     analysisContext.peek().define(new Symbol(Namespace.INDEX_NAME, "index_alias"), STRUCT);
     assertAnalyzeEqual(
-        DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
+        DSL.named("`integer_alias`.integer_value", DSL.ref("integer_value", INTEGER)),
         AstDSL.alias(
             "`integer_alias`.integer_value", // qualifier in SELECT is quoted originally
             AstDSL.qualifiedName("index_alias", "integer_value")));
@@ -82,6 +82,7 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
 
   protected void assertAnalyzeEqual(
       NamedExpression expected, UnresolvedExpression unresolvedExpression) {
-    assertEquals(Arrays.asList(expected), analyze(unresolvedExpression));
+    List<NamedExpression> actual = analyze(unresolvedExpression);
+    assertEquals(Arrays.asList(expected), actual);
   }
 }

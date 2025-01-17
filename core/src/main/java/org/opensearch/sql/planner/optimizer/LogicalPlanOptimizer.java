@@ -11,6 +11,7 @@ import com.facebook.presto.matching.Match;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.calcite.rel.RelNode;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.rule.EvalPushDown;
 import org.opensearch.sql.planner.optimizer.rule.MergeFilterAndFilter;
@@ -69,6 +70,11 @@ public class LogicalPlanOptimizer {
     optimized.replaceChildPlans(
         optimized.getChild().stream().map(this::optimize).collect(Collectors.toList()));
     return internalOptimize(optimized);
+  }
+
+  public RelNode customOptimize(RelNode plan) {
+    // TODO
+    return plan;
   }
 
   private LogicalPlan internalOptimize(LogicalPlan plan) {

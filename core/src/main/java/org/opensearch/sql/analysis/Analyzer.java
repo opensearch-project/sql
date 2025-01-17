@@ -65,6 +65,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -145,6 +146,27 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitSubqueryAlias(SubqueryAlias node, AnalysisContext context) {
+    LogicalPlan child = analyze(node.getChild().get(0), context);
+    if (child instanceof LogicalRelation) {
+      // Put index name or its alias in index namespace on type environment so qualifier
+      // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
+      TypeEnvironment curEnv = context.peek();
+      curEnv.define(
+          new Symbol(
+              Namespace.INDEX_NAME,
+              (node.getAlias() == null)
+                  ? ((LogicalRelation) child).getRelationName()
+                  : node.getAlias()),
+          STRUCT);
+      return child;
+    } else {
+      // TODO
+      throw new UnsupportedOperationException("SubqueryAlias is only supported in table alias");
+    }
+  }
+
+  @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getTableQualifiedName();
     DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver =
@@ -170,12 +192,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     table
         .getReservedFieldTypes()
         .forEach((k, v) -> curEnv.define(new Symbol(Namespace.HIDDEN_FIELD_NAME, k), v));
-
-    // Put index name or its alias in index namespace on type environment so qualifier
-    // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
-    curEnv.define(
-        new Symbol(Namespace.INDEX_NAME, (node.getAlias() == null) ? tableName : node.getAlias()),
-        STRUCT);
 
     return new LogicalRelation(tableName, table);
   }
@@ -307,7 +323,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     for (UnresolvedExpression expr : node.getAggExprList()) {
       NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
       aggregatorBuilder.add(
-          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
+          new NamedAggregator(aggExpr.getName(), (Aggregator) aggExpr.getDelegated()));
     }
 
     ImmutableList.Builder<NamedExpression> groupbyBuilder = new ImmutableList.Builder<>();
@@ -332,8 +348,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             newEnv.define(
                 new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));
     groupBys.forEach(
-        group ->
-            newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
+        group -> newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getName()), group.type()));
     return new LogicalAggregation(child, aggregators, groupBys);
   }
 
@@ -426,8 +441,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     context.push();
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(
-        expr ->
-            newEnv.define(new Symbol(Namespace.FIELD_NAME, expr.getNameOrAlias()), expr.type()));
+        expr -> newEnv.define(new Symbol(Namespace.FIELD_NAME, expr.getName()), expr.type()));
     List<NamedExpression> namedParseExpressions = context.getNamedParseExpressions();
     return new LogicalProject(child, namedExpressions, namedParseExpressions);
   }

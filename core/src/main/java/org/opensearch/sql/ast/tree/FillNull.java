@@ -42,8 +42,7 @@ public class FillNull extends UnresolvedPlan {
   }
 
   private static class SameValueNullFill implements ContainNullableFieldFill {
-    @Getter(onMethod_ = @Override)
-    private final List<NullableFieldFill> nullFieldFill;
+    @Getter private final List<NullableFieldFill> nullFieldFill;
 
     public SameValueNullFill(
         UnresolvedExpression replaceNullWithMe, List<Field> nullableFieldReferences) {
@@ -58,9 +57,7 @@ public class FillNull extends UnresolvedPlan {
 
   @RequiredArgsConstructor
   private static class VariousValueNullFill implements ContainNullableFieldFill {
-    @NonNull
-    @Getter(onMethod_ = @Override)
-    private final List<NullableFieldFill> nullFieldFill;
+    @NonNull @Getter private final List<NullableFieldFill> nullFieldFill;
   }
 
   private UnresolvedPlan child;
