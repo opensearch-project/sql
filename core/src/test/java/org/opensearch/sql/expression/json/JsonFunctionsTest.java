@@ -293,6 +293,7 @@ public class JsonFunctionsTest {
     assertEquals(new ExprDoubleValue(12.34), DSL.stringToJson(DSL.literal("12.34")).valueOf());
 
     assertEquals(LITERAL_TRUE, DSL.stringToJson(DSL.literal("true")).valueOf());
+    assertEquals(LITERAL_FALSE, DSL.stringToJson(DSL.literal("false")).valueOf());
 
     assertEquals(LITERAL_NULL, DSL.stringToJson(DSL.literal("null")).valueOf());
 
