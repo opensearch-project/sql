@@ -40,6 +40,11 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json object"),
         rows("json array"),
         rows("json scalar string"),
+        rows("json scalar int"),
+        rows("json scalar float"),
+        rows("json scalar double"),
+        rows("json scalar boolean true"),
+        rows("json scalar boolean false"),
         rows("json empty string"));
   }
 
@@ -102,7 +107,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json array", new JSONArray(List.of(1, 2, 3, 4))),
         rows("json scalar string", "abc"),
         rows("json scalar int", 1234),
-        rows("json scalar long", 42),
+        rows("json scalar float", 12.34),
         rows("json scalar double", 2.99792458e8),
         rows("json scalar boolean true", true),
         rows("json scalar boolean false", false),

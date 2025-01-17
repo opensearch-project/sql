@@ -687,6 +687,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.JSON_VALID, expressions);
   }
 
+  public static FunctionExpression stringToJson(Expression value) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.JSON, value);
+  }
+
   public static Aggregator avg(Expression... expressions) {
     return aggregate(BuiltinFunctionName.AVG, expressions);
   }
@@ -975,10 +979,6 @@ public class DSL {
   public static FunctionExpression utc_timestamp(
       FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.UTC_TIMESTAMP, args);
-  }
-
-  public static FunctionExpression json_function(Expression value) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.JSON, value);
   }
 
   @SuppressWarnings("unchecked")

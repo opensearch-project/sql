@@ -51,10 +51,8 @@ public class JsonFunctionsTest {
   @Test
   public void json_valid_throws_ExpressionEvaluationException() {
     assertThrows(
-        ExpressionEvaluationException.class, () -> execute(ExprValueUtils.booleanValue(true)));
-
-    // caught by nullMissingHandling and returns null
-    assertEquals(LITERAL_NULL, execute(LITERAL_NULL));
+        ExpressionEvaluationException.class,
+        () -> DSL.jsonValid(DSL.literal((ExprValueUtils.booleanValue(true)))).valueOf());
   }
 
   @Test
@@ -115,12 +113,16 @@ public class JsonFunctionsTest {
     ExprValue expectedTupleExpr = ExprTupleValue.fromExprValueMap(objectMap);
 
     // exercise
-    exp = DSL.json_function(DSL.literal(objectJson));
+    exp = DSL.stringToJson(DSL.literal(objectJson));
 
     // Verify
     var value = exp.valueOf();
     assertTrue(value instanceof ExprTupleValue);
     assertEquals(expectedTupleExpr, value);
+
+    // also test the empty object case
+    assertEquals(
+        ExprTupleValue.fromExprValueMap(Map.of()), DSL.stringToJson(DSL.literal("{}")).valueOf());
   }
 
   @Test
@@ -141,35 +143,35 @@ public class JsonFunctionsTest {
                 LITERAL_NULL));
 
     // exercise
-    exp = DSL.json_function(DSL.literal(arrayJson));
+    exp = DSL.stringToJson(DSL.literal(arrayJson));
 
     // Verify
     var value = exp.valueOf();
     assertTrue(value instanceof ExprCollectionValue);
     assertEquals(expectedArrayExpr, value);
+
+    // also test the empty-array case
+    assertEquals(new ExprCollectionValue(List.of()), DSL.stringToJson(DSL.literal("[]")).valueOf());
   }
 
   @Test
   void json_returnsScalar() {
     assertEquals(
-        new ExprStringValue("foobar"), DSL.json_function(DSL.literal("\"foobar\"")).valueOf());
+        new ExprStringValue("foobar"), DSL.stringToJson(DSL.literal("\"foobar\"")).valueOf());
 
-    assertEquals(new ExprIntegerValue(1234), DSL.json_function(DSL.literal("1234")).valueOf());
+    assertEquals(new ExprIntegerValue(1234), DSL.stringToJson(DSL.literal("1234")).valueOf());
 
-    assertEquals(new ExprDoubleValue(12.34), DSL.json_function(DSL.literal("12.34")).valueOf());
+    assertEquals(new ExprDoubleValue(12.34), DSL.stringToJson(DSL.literal("12.34")).valueOf());
 
-    assertEquals(LITERAL_TRUE, DSL.json_function(DSL.literal("true")).valueOf());
+    assertEquals(LITERAL_TRUE, DSL.stringToJson(DSL.literal("true")).valueOf());
 
-    assertEquals(LITERAL_NULL, DSL.json_function(DSL.literal("null")).valueOf());
+    assertEquals(LITERAL_NULL, DSL.stringToJson(DSL.literal("null")).valueOf());
 
-    assertEquals(LITERAL_NULL, DSL.json_function(DSL.literal(LITERAL_NULL)).valueOf());
+    assertEquals(LITERAL_NULL, DSL.stringToJson(DSL.literal(LITERAL_NULL)).valueOf());
 
-    assertEquals(LITERAL_MISSING, DSL.json_function(DSL.literal(LITERAL_MISSING)).valueOf());
+    assertEquals(LITERAL_MISSING, DSL.stringToJson(DSL.literal(LITERAL_MISSING)).valueOf());
 
-    assertEquals(LITERAL_NULL, DSL.json_function(DSL.literal("")).valueOf());
-
-    assertEquals(
-        ExprTupleValue.fromExprValueMap(Map.of()), DSL.json_function(DSL.literal("{}")).valueOf());
+    assertEquals(LITERAL_NULL, DSL.stringToJson(DSL.literal("")).valueOf());
   }
 
   @Test
@@ -181,7 +183,7 @@ public class JsonFunctionsTest {
     // missing bracket
     assertThrows(SemanticCheckException.class, () -> DSL.castJson(DSL.literal("{{[}}")).valueOf());
 
-    // mnissing quote
+    // missing quote
     assertThrows(
         SemanticCheckException.class, () -> DSL.castJson(DSL.literal("\"missing quote")).valueOf());
   }

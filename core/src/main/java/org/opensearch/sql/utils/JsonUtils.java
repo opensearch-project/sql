@@ -12,9 +12,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
+import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -27,7 +29,7 @@ public class JsonUtils {
    * Checks if given JSON string can be parsed as valid JSON.
    *
    * @param jsonExprValue JSON string (e.g. "{\"hello\": \"world\"}").
-   * @return true if the string can be parsed as valid JSON, else false.
+   * @return true if the string can be parsed as valid JSON, else false (including null or missing).
    */
   public static ExprValue isValidJson(ExprValue jsonExprValue) {
     ObjectMapper objectMapper = new ObjectMapper();
@@ -44,7 +46,21 @@ public class JsonUtils {
     }
   }
 
-  /** Converts a JSON encoded string to an Expression object. */
+  /**
+   * Converts a JSON encoded string to a {@link ExprValue}. Expression type will be UNDEFINED.
+   *
+   * @param json JSON string (e.g. "{\"hello\": \"world\"}").
+   * @return ExprValue returns an expression that best represents the provided JSON-encoded string.
+   *     <ol>
+   *       <li>{@link ExprTupleValue} if the JSON is an object
+   *       <li>{@link ExprCollectionValue} if the JSON is an array
+   *       <li>{@link ExprDoubleValue} if the JSON is a floating-point number scalar
+   *       <li>{@link ExprIntegerValue} if the JSON is an integral number scalar
+   *       <li>{@link ExprStringValue} if the JSON is a string scalar
+   *       <li>{@link ExprBooleanValue} if the JSON is a boolean scalar
+   *       <li>{@link ExprNullValue} if the JSON is null, empty, or invalid
+   *     </ol>
+   */
   public static ExprValue castJson(ExprValue json) {
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode jsonNode;

@@ -312,7 +312,7 @@ class TypeCastOperatorTest {
   void castUndefinedToDouble() {
     Double value = 23.45e5;
     // json cast is an UNDEFINED type expression
-    FunctionExpression expression = DSL.castDouble(DSL.castJson(DSL.literal(value)));
+    FunctionExpression expression = DSL.castDouble(DSL.castJson(DSL.literal(value.toString())));
     assertEquals(DOUBLE, expression.type());
     assertEquals(new ExprDoubleValue(value), expression.valueOf());
   }
@@ -480,6 +480,10 @@ class TypeCastOperatorTest {
     var value = exp.valueOf();
     assertTrue(value instanceof ExprTupleValue);
     assertEquals(expectedTupleExpr, value);
+
+    // also test the empty-object case
+    assertEquals(
+        ExprTupleValue.fromExprValueMap(Map.of()), DSL.castJson(DSL.literal("{}")).valueOf());
   }
 
   @Test
@@ -506,6 +510,9 @@ class TypeCastOperatorTest {
     var value = exp.valueOf();
     assertTrue(value instanceof ExprCollectionValue);
     assertEquals(expectedArrayExpr, value);
+
+    // also test the empty-array case
+    assertEquals(new ExprCollectionValue(List.of()), DSL.castJson(DSL.literal("[]")).valueOf());
   }
 
   @Test
@@ -525,11 +532,6 @@ class TypeCastOperatorTest {
 
     String empty = "";
     assertEquals(LITERAL_NULL, DSL.castJson(DSL.literal(empty)).valueOf());
-
-    String emptyObject = "{}";
-    assertEquals(
-        ExprTupleValue.fromExprValueMap(Map.of()),
-        DSL.castJson(DSL.literal(emptyObject)).valueOf());
   }
 
   @Test
