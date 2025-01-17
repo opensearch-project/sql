@@ -5,10 +5,19 @@
 
 package org.opensearch.sql.opensearch.executor;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.tools.RelRunners;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionContext;
@@ -88,5 +97,41 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             listener.onFailure(e);
           }
         });
+  }
+
+  @Override
+  public void execute(
+      RelNode rel, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
+    try (PreparedStatement statement = RelRunners.run(rel)) {
+      ResultSet result = statement.executeQuery();
+      printResultSet(result);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  // for testing only
+  private void printResultSet(ResultSet resultSet) throws SQLException {
+    // Get the ResultSet metadata to know about columns
+    ResultSetMetaData metaData = resultSet.getMetaData();
+    int columnCount = metaData.getColumnCount();
+
+    // Iterate through the ResultSet
+    while (resultSet.next()) {
+      // Loop through each column
+      for (int i = 1; i <= columnCount; i++) {
+        String columnName = metaData.getColumnName(i);
+        String value = resultSet.getString(i);
+        System.out.println(columnName + ": " + value);
+      }
+      System.out.println("-------------------"); // Separator between rows
+    }
+  }
+
+  private RelDataType makeStruct(RelDataTypeFactory typeFactory, RelDataType type) {
+    if (type.isStruct()) {
+      return type;
+    }
+    return typeFactory.builder().add("$0", type).build();
   }
 }

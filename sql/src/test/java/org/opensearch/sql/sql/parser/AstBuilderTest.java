@@ -13,6 +13,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.describe;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
@@ -473,7 +474,7 @@ class AstBuilderTest extends AstBuilderTestBase {
     assertEquals(
         project(
             filter(
-                relation(TABLE_INFO),
+                describe(TABLE_INFO),
                 function("like", qualifiedName("TABLE_NAME"), stringLiteral("%"))),
             AllFields.of()),
         buildAST("SHOW TABLES LIKE '%'"));
@@ -484,7 +485,7 @@ class AstBuilderTest extends AstBuilderTestBase {
     assertEquals(
         project(
             filter(
-                relation(TABLE_INFO),
+                describe(TABLE_INFO),
                 function("like", qualifiedName("TABLE_NAME"), stringLiteral("a_c%"))),
             AllFields.of()),
         buildAST("SHOW TABLES LIKE 'a_c%'"));
@@ -499,7 +500,7 @@ class AstBuilderTest extends AstBuilderTestBase {
     assertEquals(
         project(
             filter(
-                relation(TABLE_INFO),
+                describe(TABLE_INFO),
                 function("like", qualifiedName("TABLE_NAME"), stringLiteral("%"))),
             AllFields.of()),
         buildAST("SHOW TABLES LIKE %"));
@@ -515,7 +516,7 @@ class AstBuilderTest extends AstBuilderTestBase {
   @Test
   public void can_build_describe_selected_tables() {
     assertEquals(
-        project(relation(mappingTable("a_c%")), AllFields.of()),
+        project(describe(mappingTable("a_c%")), AllFields.of()),
         buildAST("DESCRIBE TABLES LIKE 'a_c%'"));
   }
 
@@ -524,7 +525,7 @@ class AstBuilderTest extends AstBuilderTestBase {
     assertEquals(
         project(
             filter(
-                relation(mappingTable("a_c%")),
+                describe(mappingTable("a_c%")),
                 function("like", qualifiedName("COLUMN_NAME"), stringLiteral("name%"))),
             AllFields.of()),
         buildAST("DESCRIBE TABLES LIKE 'a_c%' COLUMNS LIKE 'name%'"));

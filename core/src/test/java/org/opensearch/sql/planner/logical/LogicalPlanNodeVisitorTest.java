@@ -135,8 +135,7 @@ class LogicalPlanNodeVisitorTest {
                 "field", new ReferenceExpression("message.info", STRING),
                 "path", new ReferenceExpression("message", STRING)));
     List<NamedExpression> projectList =
-        List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
+        List.of(new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING))));
 
     LogicalNested nested = new LogicalNested(null, nestedArgs, projectList);
 

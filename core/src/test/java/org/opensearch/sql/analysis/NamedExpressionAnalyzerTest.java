@@ -24,7 +24,7 @@ class NamedExpressionAnalyzerTest extends AnalyzerTestBase {
     NamedExpressionAnalyzer analyzer = new NamedExpressionAnalyzer(expressionAnalyzer);
 
     NamedExpression analyze = analyzer.analyze(alias, analysisContext);
-    assertEquals("integer_value", analyze.getNameOrAlias());
+    assertEquals("integer_value", analyze.getName());
   }
 
   @Test
@@ -36,6 +36,6 @@ class NamedExpressionAnalyzerTest extends AnalyzerTestBase {
     NamedExpressionAnalyzer analyzer = new NamedExpressionAnalyzer(expressionAnalyzer);
 
     NamedExpression analyze = analyzer.analyze(alias, analysisContext);
-    assertEquals("highlight(fieldA)", analyze.getNameOrAlias());
+    assertEquals("highlight(fieldA)", analyze.getName());
   }
 }
