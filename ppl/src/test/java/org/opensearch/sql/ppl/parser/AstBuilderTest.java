@@ -20,6 +20,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.defaultDedupArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
+import static org.opensearch.sql.ast.dsl.AstDSL.describe;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
@@ -451,34 +452,34 @@ public class AstBuilderTest {
     assertEqual(
         "source=`log.2020.04.20.` a=1",
         filter(relation("log.2020.04.20."), compare("=", field("a"), intLiteral(1))));
-    assertEqual("describe `log.2020.04.20.`", relation(mappingTable("log.2020.04.20.")));
+    assertEqual("describe `log.2020.04.20.`", describe(mappingTable("log.2020.04.20.")));
   }
 
   @Test
   public void testIdentifierAsIndexNameStartWithDot() {
     assertEqual("source=.opensearch_dashboards", relation(".opensearch_dashboards"));
     assertEqual(
-        "describe .opensearch_dashboards", relation(mappingTable(".opensearch_dashboards")));
+        "describe .opensearch_dashboards", describe(mappingTable(".opensearch_dashboards")));
   }
 
   @Test
   public void testIdentifierAsIndexNameWithDotInTheMiddle() {
     assertEqual("source=log.2020.10.10", relation("log.2020.10.10"));
     assertEqual("source=log-7.10-2020.10.10", relation("log-7.10-2020.10.10"));
-    assertEqual("describe log.2020.10.10", relation(mappingTable("log.2020.10.10")));
-    assertEqual("describe log-7.10-2020.10.10", relation(mappingTable("log-7.10-2020.10.10")));
+    assertEqual("describe log.2020.10.10", describe(mappingTable("log.2020.10.10")));
+    assertEqual("describe log-7.10-2020.10.10", describe(mappingTable("log-7.10-2020.10.10")));
   }
 
   @Test
   public void testIdentifierAsIndexNameWithSlashInTheMiddle() {
     assertEqual("source=log-2020", relation("log-2020"));
-    assertEqual("describe log-2020", relation(mappingTable("log-2020")));
+    assertEqual("describe log-2020", describe(mappingTable("log-2020")));
   }
 
   @Test
   public void testIdentifierAsIndexNameContainStar() {
     assertEqual("source=log-2020-10-*", relation("log-2020-10-*"));
-    assertEqual("describe log-2020-10-*", relation(mappingTable("log-2020-10-*")));
+    assertEqual("describe log-2020-10-*", describe(mappingTable("log-2020-10-*")));
   }
 
   @Test
@@ -486,9 +487,9 @@ public class AstBuilderTest {
     assertEqual("source=log-2020.10.*", relation("log-2020.10.*"));
     assertEqual("source=log-2020.*.01", relation("log-2020.*.01"));
     assertEqual("source=log-2020.*.*", relation("log-2020.*.*"));
-    assertEqual("describe log-2020.10.*", relation(mappingTable("log-2020.10.*")));
-    assertEqual("describe log-2020.*.01", relation(mappingTable("log-2020.*.01")));
-    assertEqual("describe log-2020.*.*", relation(mappingTable("log-2020.*.*")));
+    assertEqual("describe log-2020.10.*", describe(mappingTable("log-2020.10.*")));
+    assertEqual("describe log-2020.*.01", describe(mappingTable("log-2020.*.01")));
+    assertEqual("describe log-2020.*.*", describe(mappingTable("log-2020.*.*")));
   }
 
   @Test
@@ -768,27 +769,27 @@ public class AstBuilderTest {
 
   @Test
   public void testDescribeCommand() {
-    assertEqual("describe t", relation(mappingTable("t")));
+    assertEqual("describe t", describe(mappingTable("t")));
   }
 
   @Test
   public void testDescribeMatchAllCrossClusterSearchCommand() {
-    assertEqual("describe *:t", relation(mappingTable("*:t")));
+    assertEqual("describe *:t", describe(mappingTable("*:t")));
   }
 
   @Test
   public void testDescribeCommandWithMultipleIndices() {
-    assertEqual("describe t,u", relation(mappingTable("t,u")));
+    assertEqual("describe t,u", describe(mappingTable("t,u")));
   }
 
   @Test
   public void testDescribeCommandWithFullyQualifiedTableName() {
     assertEqual(
         "describe prometheus.http_metric",
-        relation(qualifiedName("prometheus", mappingTable("http_metric"))));
+        describe(qualifiedName("prometheus", mappingTable("http_metric")).toString()));
     assertEqual(
         "describe prometheus.schema.http_metric",
-        relation(qualifiedName("prometheus", "schema", mappingTable("http_metric"))));
+        describe(qualifiedName("prometheus", "schema", mappingTable("http_metric")).toString()));
   }
 
   @Test
@@ -845,7 +846,7 @@ public class AstBuilderTest {
 
   @Test
   public void testShowDataSourcesCommand() {
-    assertEqual("show datasources", relation(DATASOURCES_TABLE_NAME));
+    assertEqual("show datasources", describe(DATASOURCES_TABLE_NAME));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {
@@ -859,7 +860,7 @@ public class AstBuilderTest {
   }
 
   private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), query);
+    AstBuilder astBuilder = new AstBuilder(query);
     return astBuilder.visit(parser.parse(query));
   }
 }

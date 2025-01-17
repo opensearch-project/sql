@@ -11,8 +11,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.sql.calcite.plan.OpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -24,6 +29,7 @@ import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexEnumerator;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
 import org.opensearch.sql.planner.DefaultImplementor;
@@ -32,11 +38,10 @@ import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
-import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /** OpenSearch table (index) implementation. */
-public class OpenSearchIndex implements Table {
+public class OpenSearchIndex extends OpenSearchTable {
 
   public static final String METADATA_FIELD_ID = "_id";
   public static final String METADATA_FIELD_INDEX = "_index";
@@ -209,5 +214,24 @@ public class OpenSearchIndex implements Table {
     public PhysicalPlan visitML(LogicalML node, OpenSearchIndexScan context) {
       return new MLOperator(visitChild(node, context), node.getArguments(), client.getNodeClient());
     }
+  }
+
+  @Override
+  public Enumerable<ExprValue> search() {
+    return new AbstractEnumerable<ExprValue>() {
+      @Override
+      public Enumerator<ExprValue> enumerator() {
+        final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
+
+        final TimeValue cursorKeepAlive =
+            settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
+        var builder =
+            new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory(), settings);
+        return new OpenSearchIndexEnumerator(
+            client,
+            builder.getMaxResponseSize(),
+            builder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
+      }
+    };
   }
 }

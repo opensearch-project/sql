@@ -65,7 +65,7 @@ public class AstStatementBuilderTest {
   private Node plan(String query, boolean isExplain) {
     final AstStatementBuilder builder =
         new AstStatementBuilder(
-            new AstBuilder(new AstExpressionBuilder(), query),
+            new AstBuilder(query),
             AstStatementBuilder.StatementBuilderContext.builder().isExplain(isExplain).build());
     return builder.visit(parser.parse(query));
   }

@@ -76,7 +76,7 @@ public class BucketCollector implements Collector {
       ImmutableList.Builder<ExprValue> builder = new ImmutableList.Builder<>();
       for (ExprValue tuple : entry.getValue().results()) {
         LinkedHashMap<String, ExprValue> tmp = new LinkedHashMap<>();
-        tmp.put(bucketExpr.getNameOrAlias(), entry.getKey());
+        tmp.put(bucketExpr.getName(), entry.getKey());
         tmp.putAll(tuple.tupleValue());
         builder.add(ExprTupleValue.fromExprValueMap(tmp));
       }

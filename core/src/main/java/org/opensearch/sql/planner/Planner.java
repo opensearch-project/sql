@@ -7,6 +7,7 @@ package org.opensearch.sql.planner;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.rel.RelNode;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -59,5 +60,9 @@ public class Planner {
 
   private LogicalPlan optimize(LogicalPlan plan) {
     return logicalOptimizer.optimize(plan);
+  }
+
+  public RelNode customOptimize(RelNode plan) {
+    return logicalOptimizer.customOptimize(plan);
   }
 }

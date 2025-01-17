@@ -107,8 +107,9 @@ public class DSL {
     return new NamedExpression(name, expression);
   }
 
+  @Deprecated
   public static NamedExpression named(String name, Expression expression, String alias) {
-    return new NamedExpression(name, expression, alias);
+    return new NamedExpression(alias, expression);
   }
 
   public static NamedAggregator named(String name, Aggregator aggregator) {

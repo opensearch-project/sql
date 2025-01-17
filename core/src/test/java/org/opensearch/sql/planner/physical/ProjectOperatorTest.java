@@ -107,12 +107,12 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
         project(
             inputPlan,
             DSL.named("response", DSL.ref("response", INTEGER)),
-            DSL.named("action", DSL.ref("action", STRING), "act"));
+            DSL.named("act", DSL.ref("action", STRING)));
 
     assertThat(
         project.schema().getColumns(),
         contains(
-            new ExecutionEngine.Schema.Column("response", null, INTEGER),
+            new ExecutionEngine.Schema.Column("response", "response", INTEGER),
             new ExecutionEngine.Schema.Column("action", "act", STRING)));
   }
 

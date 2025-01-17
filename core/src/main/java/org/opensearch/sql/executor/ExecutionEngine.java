@@ -10,6 +10,8 @@ import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.rel.RelNode;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
@@ -41,6 +43,10 @@ public interface ExecutionEngine {
    * @param listener response listener
    */
   void explain(PhysicalPlan plan, ResponseListener<ExplainResponse> listener);
+
+  /** Execute calcite RelNode plan with {@link ExecutionContext} and call back response listener. */
+  default void execute(
+      RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {}
 
   /** Data class that encapsulates ExprValue. */
   @Data
