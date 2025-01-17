@@ -199,6 +199,9 @@ dependencies {
     // Needed for BWC tests
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-sql-plugin', version: "${bwcVersion}-SNAPSHOT"
+
+    // For GeoIP PPL functions
+    zipArchive group: 'org.opensearch.plugin', name:'geospatial', version: "${opensearch_build}"
 }
 
 java {
