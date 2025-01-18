@@ -44,7 +44,9 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
-String baseVersion = "2.17.0"
+// The next major version is only API compat w/ the last minor of the previous major.
+// baseVersion need to roll-froward accordingly, as new 2.x of OpenSearch being released.
+String baseVersion = "2.19.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
