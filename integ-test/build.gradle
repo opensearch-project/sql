@@ -46,6 +46,7 @@ apply plugin: 'com.wiredforcode.spawn'
 
 // The next major version is only API compat w/ the last minor of the previous major.
 // baseVersion need to roll-froward accordingly, as new 2.x of OpenSearch being released.
+// See: https://github.com/opensearch-project/OpenSearch/issues/3615
 String baseVersion = "2.19.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
