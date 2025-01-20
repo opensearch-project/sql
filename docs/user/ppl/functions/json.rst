@@ -60,3 +60,43 @@ Example::
     | json scalar string  | "abc"                           | "abc"                   |
     | json empty string   |                                 | null                    |
     +---------------------+---------------------------------+-------------------------+
+
+JSON_OBJECT
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: `json_object(<key>, <value>[, <key>, <value>]...)` returns a JSON object from key-value pairs.
+
+Argument type:
+- A \<key\> must be STRING.
+- A \<value\> can be a scalar, another json object, or json array type.  Note: scalar fields will be treated as single-value.  Use `json_array` to construct an array value from a multi-value.
+
+Return type: STRUCT
+
+Example:
+
+    os> source=people | eval result = json_object('key', 123.45) | fields result
+    fetched rows / total rows = 1/1
+    +------------------+
+    | result           |
+    +------------------+
+    | {"key":123.45}   |
+    +------------------+
+
+    os> source=people | eval result = json_object('outer', json_object('inner', 123.45)) | fields result
+    fetched rows / total rows = 1/1
+    +------------------------------+
+    | result                       |
+    +------------------------------+
+    | {"outer":{"inner":123.45}}   |
+    +------------------------------+
+
+    os> source=people | eval result = json_object('array_doc', json_array(123.45, "string", true, null)) | fields result
+    fetched rows / total rows = 1/1
+    +------------------------------------------------+
+    | result                                         |
+    +------------------------------------------------+
+    | {"array_doc":[123.45, "string", true, null]}   |
+    +------------------------------------------------+

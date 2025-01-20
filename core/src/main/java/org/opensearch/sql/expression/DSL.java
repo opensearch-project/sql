@@ -691,6 +691,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.JSON, value);
   }
 
+  public static FunctionExpression jsonObject(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.JSON_OBJECT, expressions);
+  }
+
   public static Aggregator avg(Expression... expressions) {
     return aggregate(BuiltinFunctionName.AVG, expressions);
   }
