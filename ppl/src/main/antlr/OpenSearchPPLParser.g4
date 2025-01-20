@@ -310,6 +310,7 @@ valueExpression
    | extractFunction                                                                            # extractFunctionCall
    | getFormatFunction                                                                          # getFormatFunctionCall
    | timestampFunction                                                                          # timestampFunctionCall
+   | jsonObjectFunction                                                                         # jsonObjectFunctionCall
    | LT_PRTHS valueExpression RT_PRTHS                                                          # parentheticValueExpr
    ;
 
@@ -322,6 +323,10 @@ primaryExpression
 
 positionFunction
    : positionFunctionName LT_PRTHS functionArg IN functionArg RT_PRTHS
+   ;
+
+jsonObjectFunction
+   : jsonObjectFunctionName LT_PRTHS (functionArg COMMA functionArg (COMMA functionArg COMMA functionArg)*)? RT_PRTHS
    ;
 
 booleanExpression
@@ -409,6 +414,7 @@ convertedDataType
    | typeName = STRING
    | typeName = BOOLEAN
    | typeName = IP
+   | typeName = JSON
    ;
 
 evalFunctionName
@@ -419,6 +425,8 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
+   | jsonObjectFunctionName
+   | jsonFunctionName
    ;
 
 functionArgs
@@ -700,6 +708,14 @@ positionFunctionName
    : POSITION
    ;
 
+jsonObjectFunctionName
+  : JSON_OBJECT
+  ;
+
+jsonFunctionName
+   : JSON
+   ;
+
 // operators
  comparisonOperator
    : EQUAL
@@ -864,6 +880,7 @@ keywordsCanBeId
    | mathematicalFunctionName
    | positionFunctionName
    | conditionFunctionName
+   | jsonFunctionName
    // commands
    | SEARCH
    | DESCRIBE
