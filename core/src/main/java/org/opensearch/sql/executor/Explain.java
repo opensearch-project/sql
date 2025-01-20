@@ -163,9 +163,12 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
 
   @Override
   public ExplainResponseNode visitFlatten(FlattenOperator node, Object context) {
-
-    // TODO #3030: Implement
-    return null;
+    return explain(
+            node,
+            context,
+            explainNode ->
+                    explainNode.setDescription(
+                            ImmutableMap.of("flattenField", node.getField())));
   }
 
   @Override

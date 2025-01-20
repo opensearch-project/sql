@@ -5,19 +5,22 @@
 
 package org.opensearch.sql.planner.logical;
 
-import java.util.List;
+import java.util.Collections;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.ToString;
+import org.opensearch.sql.expression.ReferenceExpression;
 
 /** Logical plan that represent the flatten command. */
+@Getter
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public class LogicalFlatten extends LogicalPlan {
+  private final ReferenceExpression field;
 
-  // TODO #3030: Implement
-
-  public LogicalFlatten(List<LogicalPlan> childPlans) {
-    super(childPlans);
+  public LogicalFlatten(LogicalPlan child, ReferenceExpression field) {
+    super(Collections.singletonList(child));
+    this.field = field;
   }
 
   @Override

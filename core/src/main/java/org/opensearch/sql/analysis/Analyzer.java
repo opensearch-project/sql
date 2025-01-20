@@ -95,6 +95,7 @@ import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalFlatten;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
@@ -455,9 +456,13 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    */
   @Override
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
 
-    // TODO #3030: Implement
-    return null;
+    Field field = node.getField();
+    Expression expression = expressionAnalyzer.analyze(field, context);
+    ReferenceExpression ref = DSL.ref(field.getField().toString(), expression.type());
+
+    return new LogicalFlatten(child, ref);
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */

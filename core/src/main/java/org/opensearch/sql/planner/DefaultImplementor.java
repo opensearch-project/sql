@@ -32,6 +32,7 @@ import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
+import org.opensearch.sql.planner.physical.FlattenOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
 import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -101,10 +102,8 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   }
 
   @Override
-  public PhysicalPlan visitFlatten(LogicalFlatten plan, C context) {
-
-    // TODO #3030: Implement
-    return null;
+  public PhysicalPlan visitFlatten(LogicalFlatten node, C context) {
+    return new FlattenOperator(visitChild(node, context), node.getField());
   }
 
   @Override

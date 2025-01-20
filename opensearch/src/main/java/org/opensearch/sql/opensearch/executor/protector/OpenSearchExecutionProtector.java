@@ -110,9 +110,7 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   @Override
   public PhysicalPlan visitFlatten(FlattenOperator node, Object context) {
-
-    // TODO #3030: Implement
-    return doProtect(new FlattenOperator());
+    return doProtect(new FlattenOperator(visitInput(node.getInput(), context), node.getField()));
   }
 
   @Override

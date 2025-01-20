@@ -69,6 +69,7 @@ public class ExprTupleValue extends AbstractExprValue {
    *
    * @return true for equal, otherwise false.
    */
+  @Override
   public boolean equal(ExprValue o) {
     if (!(o instanceof ExprTupleValue)) {
       return false;
