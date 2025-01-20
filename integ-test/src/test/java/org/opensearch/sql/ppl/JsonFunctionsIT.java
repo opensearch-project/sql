@@ -175,10 +175,9 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "source=%s | " +
-                    "where test_name='json scalar boolean true' OR test_name='json scalar boolean false' | " +
-                    "eval casted=cast(json(json_string) as boolean) | " +
-                    "fields test_name, casted",
+                "source=%s | where test_name='json scalar boolean true' OR test_name='json scalar"
+                    + " boolean false' | eval casted=cast(json(json_string) as boolean) | fields"
+                    + " test_name, casted",
                 TEST_INDEX_JSON_TEST));
     verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "boolean"));
     verifyDataRows(
@@ -192,16 +191,17 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "source=%s | where json_valid(json_string) | " +
-                    "eval obj=json_object('key', json(json_string)) | " +
-                    "fields test_name, obj",
+                "source=%s | where json_valid(json_string) | "
+                    + "eval obj=json_object('key', json(json_string)) | "
+                    + "fields test_name, obj",
                 TEST_INDEX_JSON_TEST));
     verifySchema(result, schema("test_name", null, "string"), schema("obj", null, "struct"));
     verifyDataRows(
         result,
         rows(
             "json nested object",
-            new JSONObject(Map.of("key", Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(1, 2, 3))))),
+            new JSONObject(
+                Map.of("key", Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(1, 2, 3))))),
         rows("json object", new JSONObject(Map.of("key", Map.of("a", "1", "b", "2")))),
         rows("json array", new JSONObject(Map.of("key", List.of(1, 2, 3, 4)))),
         rows("json scalar string", Map.of("key", "abc")),
@@ -210,7 +210,6 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json scalar double", Map.of("key", 2.99792458e8)),
         rows("json scalar boolean true", Map.of("key", true)),
         rows("json scalar boolean false", Map.of("key", false)),
-        rows("json empty string", Map.of())
-    );
+        rows("json empty string", Map.of()));
   }
 }
