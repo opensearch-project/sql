@@ -687,6 +687,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.JSON_VALID, expressions);
   }
 
+  public static FunctionExpression jsonExtract(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.JSON_EXTRACT, expressions);
+  }
+
   public static Aggregator avg(Expression... expressions) {
     return aggregate(BuiltinFunctionName.AVG, expressions);
   }

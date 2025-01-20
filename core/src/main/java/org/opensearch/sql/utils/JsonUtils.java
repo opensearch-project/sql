@@ -7,10 +7,22 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.JsonPath;
+
+import java.io.ObjectInputFilter;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import com.jayway.jsonpath.Option;
+import com.jayway.jsonpath.PathNotFoundException;
+import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
+import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
@@ -46,16 +58,59 @@ public class JsonUtils {
 
   /** Converts a JSON encoded string to an Expression object. */
   public static ExprValue castJson(ExprValue json) {
-    ObjectMapper objectMapper = new ObjectMapper();
-    JsonNode jsonNode;
+    JsonNode jsonNode = jsonToNode(json);
+    return processJsonNode(jsonNode);
+  }
+
+  public static ExprValue extractJson(ExprValue json, ExprValue path) {
+    String jsonString = json.stringValue();
+    String jsonPath = path.stringValue();
+
     try {
-      jsonNode = objectMapper.readTree(json.stringValue());
-    } catch (JsonProcessingException e) {
+      Configuration config = Configuration.builder()
+              .options(Option.AS_PATH_LIST)
+              .build();
+      List<String> resultPaths = JsonPath.using(config).parse(jsonString).read(jsonPath);
+
+      List<ExprValue> elements = new LinkedList<>();
+
+      for (String resultPath : resultPaths) {
+        Object result = JsonPath.parse(jsonString).read(resultPath);
+        String resultJsonString = new ObjectMapper().writeValueAsString(result);
+        try {
+          elements.add(processJsonNode(jsonStringToNode(resultJsonString)));
+        } catch (SemanticCheckException e) {
+          elements.add(new ExprStringValue(resultJsonString));
+        }
+      }
+
+      if (elements.size() == 1) {
+        return elements.get(0);
+      } else {
+        return new ExprCollectionValue(elements);
+      }
+    } catch (PathNotFoundException e) {
+      return LITERAL_NULL;
+    } catch (InvalidJsonException | JsonProcessingException e) {
       final String errorFormat = "JSON string '%s' is not valid. Error details: %s";
       throw new SemanticCheckException(String.format(errorFormat, json, e.getMessage()), e);
     }
+  }
 
-    return processJsonNode(jsonNode);
+  private static JsonNode jsonToNode(ExprValue json) {
+    return jsonStringToNode(json.stringValue());
+  }
+
+  private static JsonNode jsonStringToNode(String jsonString) {
+    ObjectMapper objectMapper = new ObjectMapper();
+    JsonNode jsonNode;
+    try {
+      jsonNode = objectMapper.readTree(jsonString);
+    } catch (JsonProcessingException e) {
+      final String errorFormat = "JSON string '%s' is not valid. Error details: %s";
+      throw new SemanticCheckException(String.format(errorFormat, jsonString, e.getMessage()), e);
+    }
+    return jsonNode;
   }
 
   private static ExprValue processJsonNode(JsonNode jsonNode) {

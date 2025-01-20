@@ -54,6 +54,7 @@ dependencies {
     api "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     api "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     api "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
+    api group: 'com.jayway.jsonpath', name: 'json-path', version: '2.9.0'
     api group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
     api group: 'com.tdunning', name: 't-digest', version: '3.3'
     api project(':common')

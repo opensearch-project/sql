@@ -23,6 +23,7 @@ public class JsonFunctions {
   public void register(BuiltinFunctionRepository repository) {
     repository.register(jsonValid());
     repository.register(jsonFunction());
+    repository.register(jsonExtract());
   }
 
   private DefaultFunctionResolver jsonValid() {
@@ -34,5 +35,11 @@ public class JsonFunctions {
     return define(
         BuiltinFunctionName.JSON.getName(),
         impl(nullMissingHandling(JsonUtils::castJson), UNDEFINED, STRING));
+  }
+
+  private DefaultFunctionResolver jsonExtract() {
+    return define(
+        BuiltinFunctionName.JSON_EXTRACT.getName(),
+        impl(nullMissingHandling(JsonUtils::extractJson), UNDEFINED, STRING, STRING));
   }
 }
