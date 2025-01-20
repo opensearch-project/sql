@@ -687,6 +687,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.JSON_VALID, expressions);
   }
 
+  public static FunctionExpression stringToJson(Expression value) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.JSON, value);
+  }
+
   public static Aggregator avg(Expression... expressions) {
     return aggregate(BuiltinFunctionName.AVG, expressions);
   }
@@ -841,6 +845,10 @@ public class DSL {
 
   public static FunctionExpression castIp(Expression value) {
     return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_IP, value);
+  }
+
+  public static FunctionExpression castJson(Expression value) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_JSON, value);
   }
 
   public static FunctionExpression typeof(Expression value) {
