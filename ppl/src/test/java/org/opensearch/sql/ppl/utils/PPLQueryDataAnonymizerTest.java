@@ -97,6 +97,12 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testFlattenCommand() {
+
+    // TODO #3030: Test
+  }
+
+  @Test
   public void testHeadCommandWithNumber() {
     assertEquals("source=t | head 3", anonymize("source=t | head 3"));
   }

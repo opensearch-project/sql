@@ -253,6 +253,12 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testFlattenExpr() {
+
+    // TODO #3030: Test
+  }
+
+  @Test
   public void testPositionFunctionExpr() {
     assertEqual(
         "source=t | eval f=position('substr' IN 'str')",

@@ -12,6 +12,7 @@ import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalFlatten;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
@@ -97,6 +98,13 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   @Override
   public PhysicalPlan visitEval(LogicalEval node, C context) {
     return new EvalOperator(visitChild(node, context), node.getExpressions());
+  }
+
+  @Override
+  public PhysicalPlan visitFlatten(LogicalFlatten plan, C context) {
+
+    // TODO #3030: Implement
+    return null;
   }
 
   @Override

@@ -23,6 +23,7 @@ import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
+import org.opensearch.sql.planner.physical.FlattenOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
 import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -158,6 +159,13 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
         explainNode ->
             explainNode.setDescription(
                 ImmutableMap.of("expressions", convertPairListToMap(node.getExpressionList()))));
+  }
+
+  @Override
+  public ExplainResponseNode visitFlatten(FlattenOperator node, Object context) {
+
+    // TODO #3030: Implement
+    return null;
   }
 
   @Override

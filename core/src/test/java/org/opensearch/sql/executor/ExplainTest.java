@@ -299,6 +299,12 @@ class ExplainTest extends ExpressionTestBase {
         explain.apply(plan));
   }
 
+  @Test
+  void can_explain_flatten() {
+
+    // TODO #3030: Test
+  }
+
   private static class FakeTableScan extends TableScanOperator {
     @Override
     public boolean hasNext() {

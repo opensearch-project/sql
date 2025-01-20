@@ -50,15 +50,19 @@ The query start with search command and then flowing a set of command delimited 
 
   - `describe command <cmd/describe.rst>`_
 
-  - `show datasources command <cmd/showdatasources.rst>`_
-
   - `eval command <cmd/eval.rst>`_
 
   - `fields command <cmd/fields.rst>`_
 
+  - `flatten command <cmd/flatten.rst>`_
+
   - `grok command <cmd/grok.rst>`_
 
+  - `head command <cmd/head.rst>`_
+
   - `kmeans command <cmd/kmeans.rst>`_
+
+  - `metadata commands <cmd/information_schema.rst>`_
 
   - `ml command <cmd/ml.rst>`_
 
@@ -66,25 +70,23 @@ The query start with search command and then flowing a set of command delimited 
 
   - `patterns command <cmd/patterns.rst>`_
 
+  - `rare command <cmd/rare.rst>`_
+
   - `rename command <cmd/rename.rst>`_
 
   - `search command <cmd/search.rst>`_
+
+  - `show datasources command <cmd/showdatasources.rst>`_
 
   - `sort command <cmd/sort.rst>`_
 
   - `stats command <cmd/stats.rst>`_
 
+  - `top command <cmd/top.rst>`_
+
   - `trendline command <cmd/trendline.rst>`_
 
   - `where command <cmd/where.rst>`_
-
-  - `head command <cmd/head.rst>`_
-  
-  - `rare command <cmd/rare.rst>`_
-
-  - `top command <cmd/top.rst>`_
-
-  - `metadata commands <cmd/information_schema.rst>`_
 
 * **Functions**
 

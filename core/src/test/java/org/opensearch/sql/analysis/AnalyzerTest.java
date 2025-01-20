@@ -1486,6 +1486,12 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  void flatten() {
+
+    // TODO #3030: Test
+  }
+
+  @Test
   public void trendline() {
     assertAnalyzeEqual(
         LogicalPlanDSL.trendline(

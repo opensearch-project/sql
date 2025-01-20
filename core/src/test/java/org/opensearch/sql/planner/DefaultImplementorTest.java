@@ -325,4 +325,10 @@ class DefaultImplementorTest {
     assertInstanceOf(TrendlineOperator.class, implemented);
     assertSame(physicalChild, implemented.getChild().get(0));
   }
+
+  @Test
+  void visitFlatten_should_build_FlattenOperator() {
+
+    // TODO #3030: Test
+  }
 }

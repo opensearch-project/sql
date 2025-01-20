@@ -363,6 +363,12 @@ class OpenSearchExecutionProtectorTest {
         executionProtector.visitEval(evalOperator, null));
   }
 
+  @Test
+  void test_visitFlatten() {
+
+    // TODO #3030: Test
+  }
+
   PhysicalPlan resourceMonitor(PhysicalPlan input) {
     return new ResourceMonitorPlan(input, resourceMonitor);
   }

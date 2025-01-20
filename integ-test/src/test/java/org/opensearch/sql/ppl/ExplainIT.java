@@ -126,7 +126,14 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| fields ageTrend"));
   }
 
-  String loadFromFile(String filename) throws Exception {
+  @Test
+  void testFlatten() {
+
+    // TODO #3030: Test
+  }
+
+  private static String loadFromFile(String filename)
+      throws java.net.URISyntaxException, IOException {
     URI uri = Resources.getResource(filename).toURI();
     return new String(Files.readAllBytes(Paths.get(uri)));
   }

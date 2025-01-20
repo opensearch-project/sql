@@ -52,6 +52,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
@@ -446,6 +447,17 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       typeEnvironment.define(ref);
     }
     return new LogicalEval(child, expressionsBuilder.build());
+  }
+
+  /**
+   * Builds and returns a {@link org.opensearch.sql.planner.logical.LogicalFlatten} corresponding to
+   * the given flatten node.
+   */
+  @Override
+  public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
+
+    // TODO #3030: Implement
+    return null;
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */

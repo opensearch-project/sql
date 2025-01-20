@@ -447,6 +447,12 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testFlattenCommand() {
+
+    // TODO #3030: Test
+  }
+
+  @Test
   public void testIndexName() {
     assertEqual(
         "source=`log.2020.04.20.` a=1",

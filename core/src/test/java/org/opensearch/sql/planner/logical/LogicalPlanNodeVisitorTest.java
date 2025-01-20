@@ -152,6 +152,7 @@ class LogicalPlanNodeVisitorTest {
                     AstDSL.computation(1, AstDSL.field("testField"), "dummy", SMA),
                     ExprCoreType.DOUBLE)));
 
+    // TODO #3030: Test
     return Stream.of(
             relation,
             tableScanBuilder,
