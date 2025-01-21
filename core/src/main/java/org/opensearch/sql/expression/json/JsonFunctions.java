@@ -5,8 +5,14 @@
 
 package org.opensearch.sql.expression.json;
 
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
@@ -50,7 +56,14 @@ public class JsonFunctions {
   private DefaultFunctionResolver jsonSet() {
     return define(
             BuiltinFunctionName.JSON_SET.getName(),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRING));
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRING),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, LONG),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, SHORT),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, INTEGER),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, DOUBLE),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BOOLEAN),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, ARRAY),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRUCT));
   }
 
 }
