@@ -2180,7 +2180,7 @@ YEARWEEK
 Description
 >>>>>>>>>>>
 
-Usage: yearweek(date) returns the year and week for date as an integer. It accepts and optional mode arguments aligned with those available for the `WEEK`_ function.
+Usage: yearweek(date[, mode]) returns the year and week for date as an integer. It accepts and optional mode arguments aligned with those available for the `WEEK`_ function.
 
 Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
@@ -2195,5 +2195,4 @@ Example::
     |------------------------+---------------------------|
     | 202034                 | 201901                    |
     +------------------------+---------------------------+
-
 
