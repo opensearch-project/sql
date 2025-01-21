@@ -79,21 +79,21 @@ Example:
 
     os> source=people | eval result = json_object('key', 123.45) | fields result
     fetched rows / total rows = 1/1
-    +------------------+
-    | result           |
-    +------------------+
-    | {"key":123.45}   |
-    +------------------+
+    +-----------------+
+    | result          |
+    |-----------------|
+    | {'key': 123.45} |
+    +-----------------+
 
     os> source=people | eval result = json_object('outer', json_object('inner', 123.45)) | fields result
     fetched rows / total rows = 1/1
     +------------------------------+
     | result                       |
-    +------------------------------+
-    | {"outer":{"inner":123.45}}   |
+    |------------------------------|
+    | {'outer': {'inner': 123.45}} |
     +------------------------------+
 
-    os> source=people | eval result = json_object('array_doc', json_array(123.45, "string", true, null)) | fields result
+    source=people | eval result = json_object('array_doc', json_array(123.45, "string", true, null)) | fields result
     fetched rows / total rows = 1/1
     +------------------------------------------------+
     | result                                         |
