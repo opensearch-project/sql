@@ -11,9 +11,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.plan.OpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
@@ -79,6 +81,7 @@ public class OpenSearchIndex extends OpenSearchTable {
 
   /** Constructor. */
   public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
+    super(null);
     this.client = client;
     this.settings = settings;
     this.indexName = new OpenSearchRequest.IndexName(indexName);
@@ -190,6 +193,16 @@ public class OpenSearchIndex extends OpenSearchTable {
     return settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE);
   }
 
+  //@Override
+  public Enumerable<Object[]> scan(DataContext root) {
+    return new AbstractEnumerable<@Nullable Object[]>() {
+      @Override public Enumerator<@Nullable Object[]> enumerator() {
+        return null;
+        // return search().toMap(v -> new Object[] {v});
+      }
+    };
+  }
+
   @VisibleForTesting
   @RequiredArgsConstructor
   public static class OpenSearchDefaultImplementor extends DefaultImplementor<OpenSearchIndexScan> {
@@ -217,10 +230,10 @@ public class OpenSearchIndex extends OpenSearchTable {
   }
 
   @Override
-  public Enumerable<ExprValue> search() {
-    return new AbstractEnumerable<ExprValue>() {
+  public Enumerable<Object> search() {
+    return new AbstractEnumerable<Object>() {
       @Override
-      public Enumerator<ExprValue> enumerator() {
+      public Enumerator<Object> enumerator() {
         final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
 
         final TimeValue cursorKeepAlive =

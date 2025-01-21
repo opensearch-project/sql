@@ -5,16 +5,37 @@
 
 package org.opensearch.sql.calcite;
 
+import java.sql.DriverManager;
 import java.util.function.BiFunction;
 import lombok.Getter;
+import org.apache.calcite.jdbc.CalciteConnection;
+import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptSchema;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 public class CalcitePlanContext {
 
+  public static class OSRelBuilder extends RelBuilder {
+
+    protected OSRelBuilder(
+        @Nullable Context context,
+        RelOptCluster cluster,
+        @Nullable RelOptSchema relOptSchema) {
+      super(context, cluster, relOptSchema);
+    }
+  }
+
   public FrameworkConfig config;
+  public CalciteConnection connection;
+  public CalciteServerStatement statement;
+  public final CalcitePrepareImpl prepare;
   public final RelBuilder relBuilder;
   public final ExtendedRexBuilder rexBuilder;
 
@@ -22,7 +43,16 @@ public class CalcitePlanContext {
 
   public CalcitePlanContext(FrameworkConfig config) {
     this.config = config;
-    this.relBuilder = RelBuilder.create(config);
+    try {
+      this.connection = DriverManager.getConnection("jdbc:calcite:").unwrap(CalciteConnection.class);
+      connection.getRootSchema().add(
+          OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME, config.getDefaultSchema().unwrap(OpenSearchSchema.class));
+      this.statement = connection.createStatement().unwrap(CalciteServerStatement.class);
+    } catch (Exception ignored) {}
+    this.prepare = new CalcitePrepareImpl();
+    this.relBuilder = prepare.perform(statement, config,
+        (cluster, relOptSchema, rootSchema, statement) -> new OSRelBuilder(config.getContext(),
+            cluster, relOptSchema));
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
   }
 
