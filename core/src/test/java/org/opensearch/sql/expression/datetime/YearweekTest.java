@@ -99,8 +99,6 @@ class YearweekTest extends ExpressionTestBase {
     assertEquals(eval(expression), eval(expressionWithoutMode));
   }
 
-  // subtracting 1 as a temporary fix for year 2024.
-  // Issue: https://github.com/opensearch-project/sql/issues/2477
   @Test
   public void testYearweekWithTimeType() {
     int expected = getYearWeekBeforeSunday(LocalDate.now(functionProperties.getQueryStartClock()));
