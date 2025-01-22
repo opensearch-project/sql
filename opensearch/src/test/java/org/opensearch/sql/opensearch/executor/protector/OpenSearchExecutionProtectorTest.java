@@ -342,11 +342,13 @@ class OpenSearchExecutionProtectorTest {
         executionProtector.visitTrendline(trendlineOperator, null));
   }
 
+  /**
+   * To ensure the original Eval functionality continue to work after the OpenSearchEvalOperator wrapper.
+   */
   @Test
   void test_visitOpenSearchEval() {
     NodeClient nodeClient = mock(NodeClient.class);
     OpenSearchEvalOperator evalOperator =
-        //    ADOperator adOperator =
         new OpenSearchEvalOperator(
             values(emptyList()),
             List.of(

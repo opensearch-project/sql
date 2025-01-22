@@ -59,12 +59,6 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
     }
   }
 
-  @Override
-  protected void init() throws Exception {
-
-
-  }
-
   @Test
   public void testGeoPluginInstallation() throws IOException {
 
