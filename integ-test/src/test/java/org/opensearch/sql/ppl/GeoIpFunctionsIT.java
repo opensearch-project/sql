@@ -24,6 +24,7 @@ import lombok.SneakyThrows;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -49,11 +50,16 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
 
   private static String GEO_SPATIAL_DATASOURCE_PATH = "/_plugins/geospatial/ip2geo/datasource/";
 
+  private static int CREATE_DATASOURCE_TIMEOUT = 10;
+
   @SneakyThrows
-  @BeforeEach
-  public void initialize() {
+  @Override
+  public void init() throws IOException {
+    loadIndex(Index.GEOIP);
     if (!initialized) {
-      setUpIndices();
+      // Create a new dataSource
+      createDatasource();
+      waitForDatasourceToBeAvailable(DATASOURCE_NAME, Duration.ofSeconds(CREATE_DATASOURCE_TIMEOUT));
       initialized = true;
     }
   }
@@ -73,10 +79,6 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
   @SneakyThrows
   @Test
   public void testGeoIpEnrichment() {
-    loadIndex(Index.GEOIP);
-    // Create a new dataSource
-    createDatasource(DATASOURCE_NAME, MANIFEST_LOCATION);
-    waitForDatasourceToBeAvailable(DATASOURCE_NAME, Duration.ofSeconds(10));
 
     JSONObject resultGeoIp =
         executeQuery(
@@ -95,19 +97,17 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
    * Helper method to send a PUT request to create a dummy dataSource with provided endpoint for
    * integration test.
    *
-   * @param name Name of the dataSource
-   * @param properties Request payload in Json format
    * @return Response for the create dataSource request.
    * @throws IOException In case of network failure
    */
-  private Response createDatasource(final String name, Map<String, Object> properties)
+  private Response createDatasource()
       throws IOException {
     XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
-    for (Map.Entry<String, Object> config : properties.entrySet()) {
+    for (Map.Entry<String, Object> config : MANIFEST_LOCATION.entrySet()) {
       builder.field(config.getKey(), config.getValue());
     }
     builder.endObject();
-    Request request = new Request("PUT", GEO_SPATIAL_DATASOURCE_PATH + name);
+    Request request = new Request("PUT", GEO_SPATIAL_DATASOURCE_PATH + DATASOURCE_NAME);
     request.setJsonEntity(builder.toString());
     return client().performRequest(request);
   }
