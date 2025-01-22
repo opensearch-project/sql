@@ -14,11 +14,11 @@ GEOIP
 Description
 >>>>>>>>>>>
 
-Usage: `geoip(dataSourceName, ipAddress, options)` to lookup location information from given IP addresses via OpenSearch GeoSpatial plugin API.
+Usage: `geoip(dataSourceName, ipAddress[, options])` to lookup location information from given IP addresses via OpenSearch GeoSpatial plugin API.
 
 Argument type: STRING, STRING, STRING
 
-Return type: Tuple
+Return type: OBJECT
 
 Example:
 
@@ -34,5 +34,5 @@ Example:
 Note:
  - `dataSourceName` must be an established dataSource on OpenSearch GeoSpatial plugin, detail of configuration can be found: https://opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/
  - `ip` can be an IPv4 or an IPv6 address
- - `options` is a comma separated String for user to specify fields to output, the selection of fields subject to dataSourceProvider's schema, the list of geolite2-city dataset provide fields: "country_iso_code", "country_name", "continent_name", "region_iso_code", "region_name", "city_name", "time_zone", "location"
+ - `options` is a comma separated String of fields to output: the selection of fields is subject to dataSourceProvider's schema.  For example, the list of fields in the provided `geolite2-city` dataset includes: "country_iso_code", "country_name", "continent_name", "region_iso_code", "region_name", "city_name", "time_zone", "location"
 
