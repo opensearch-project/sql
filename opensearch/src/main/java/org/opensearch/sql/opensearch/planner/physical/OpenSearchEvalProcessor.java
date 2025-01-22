@@ -42,7 +42,6 @@ public class OpenSearchEvalProcessor {
       NodeClient nodeClient) {
 
     if (BuiltinFunctionName.GEOIP.getName().equals(funcExpression.getFunctionName())) {
-      // Rewrite to encapsulate the try catch.
       return fetchIpEnrichment(funcExpression.getArguments(), env, nodeClient);
     } else {
       throw new IllegalArgumentException("Unsupported OpenSearch specific expression.");
