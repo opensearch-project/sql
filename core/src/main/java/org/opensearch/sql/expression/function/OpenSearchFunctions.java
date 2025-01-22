@@ -130,8 +130,17 @@ public class OpenSearchFunctions {
   public static class OpenSearchFunction extends FunctionExpression {
     private final FunctionName functionName;
     private final List<Expression> arguments;
+    private final ExprType returnType;
 
     @Getter @Setter private boolean isScoreTracked;
+
+    public OpenSearchFunction(FunctionName functionName, List<Expression> arguments, ExprType returnType) {
+      super(functionName, arguments);
+      this.functionName = functionName;
+      this.arguments = arguments;
+      this.returnType = returnType;
+      this.isScoreTracked = false;
+    }
 
     /**
      * Required argument constructor.
@@ -140,23 +149,20 @@ public class OpenSearchFunctions {
      * @param arguments a list of expressions
      */
     public OpenSearchFunction(FunctionName functionName, List<Expression> arguments) {
-      super(functionName, arguments);
-      this.functionName = functionName;
-      this.arguments = arguments;
-      this.isScoreTracked = false;
+      this(functionName, arguments, BOOLEAN);
     }
 
     @Override
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
       throw new UnsupportedOperationException(
           String.format(
-              "OpenSearch defined function [%s] is only supported in WHERE and HAVING clause.",
+              "OpenSearch defined function [%s] is only supported in WHERE clause, HAVING clause and Eval operation.",
               functionName));
     }
 
     @Override
     public ExprType type() {
-      return BOOLEAN;
+      return returnType;
     }
 
     @Override

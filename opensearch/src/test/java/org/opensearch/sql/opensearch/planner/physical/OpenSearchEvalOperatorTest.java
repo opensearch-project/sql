@@ -40,7 +40,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.expression.ip.OpenSearchFunctionExpression;
+import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprTextValue;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -120,12 +120,12 @@ public class OpenSearchEvalOperatorTest {
         List.of(
             ImmutablePair.of(
                 new ReferenceExpression("ipEnrichmentResult", OpenSearchTextType.of()),
-                new OpenSearchFunctionExpression(
-                    BuiltinFunctionName.GEOIP.getName(),
-                    List.of(
-                        DSL.literal("my-datasource"),
-                        new ReferenceExpression("ipInStr", OpenSearchTextType.of())),
-                    BOOLEAN)));
+                new OpenSearchFunctions.OpenSearchFunction(
+                        BuiltinFunctionName.GEOIP.getName(),
+                        List.of(
+                                DSL.literal("my-datasource"),
+                                new ReferenceExpression("ipInStr", OpenSearchTextType.of())),
+                        BOOLEAN)));
 
     OpenSearchEvalOperator evalOperator = new OpenSearchEvalOperator(input, ipAddress, nodeClient);
 

@@ -30,7 +30,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.expression.ip.OpenSearchFunctionExpression;
+import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
@@ -84,7 +84,7 @@ public class OpenSearchEvalOperator extends EvalOperator {
       ReferenceExpression var = pair.getKey();
       Expression valueExpr = pair.getValue();
       ExprValue value;
-      if (valueExpr instanceof OpenSearchFunctionExpression openSearchFuncExpression) {
+      if (valueExpr instanceof OpenSearchFunctions.OpenSearchFunction openSearchFuncExpression) {
         if ("geoip".equals(openSearchFuncExpression.getFunctionName().getFunctionName())) {
           // Rewrite to encapsulate the try catch.
           value = fetchIpEnrichment(openSearchFuncExpression.getArguments(), env);

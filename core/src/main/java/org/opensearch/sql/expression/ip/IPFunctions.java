@@ -25,6 +25,7 @@ import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.function.SerializableFunction;
 import org.opensearch.sql.utils.IPUtils;
 
@@ -82,7 +83,7 @@ public class IPFunctions {
 
   /**
    * Util method to generate probe implementation with given list of argument types, with marker
-   * class `OpenSearchFunctionExpression` to annotate this is an OpenSearch specific expression.
+   * class `OpenSearchFunction` to annotate this is an OpenSearch specific expression.
    *
    * @param returnType return type.
    * @return Binary Function Implementation.
@@ -93,7 +94,7 @@ public class IPFunctions {
       FunctionSignature functionSignature = new FunctionSignature(functionName, args);
       FunctionBuilder functionBuilder =
               (functionProperties, arguments) ->
-                      new OpenSearchFunctionExpression(functionName, arguments, returnType);
+                      new OpenSearchFunctions.OpenSearchFunction(functionName, arguments, returnType);
       return Pair.of(functionSignature, functionBuilder);
     };
   }
