@@ -419,7 +419,7 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
-   | goeipFunctionName
+   | geoipFunctionName
    ;
 
 functionArgs
@@ -521,7 +521,7 @@ mathematicalFunctionName
    | trigonometricFunctionName
    ;
 
-goeipFunctionName
+geoipFunctionName
    : GEOIP
    ;
 
@@ -869,7 +869,7 @@ keywordsCanBeId
    | mathematicalFunctionName
    | positionFunctionName
    | conditionFunctionName
-   | goeipFunctionName
+   | geoipFunctionName
    // commands
    | SEARCH
    | DESCRIBE
