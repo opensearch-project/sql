@@ -30,6 +30,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -60,60 +61,18 @@ public class OpenSearchEvalOperator extends EvalOperator {
   protected Map<String, ExprValue> eval(Environment<Expression, ExprValue> env) {
     Map<String, ExprValue> evalResultMap = new LinkedHashMap<>();
     for (Pair<ReferenceExpression, Expression> pair : this.getExpressionList()) {
-      ReferenceExpression var = pair.getKey();
-      Expression valueExpr = pair.getValue();
       ExprValue value;
-      if (valueExpr instanceof OpenSearchFunctions.OpenSearchFunction openSearchFuncExpression) {
-        if ("geoip".equals(openSearchFuncExpression.getFunctionName().getFunctionName())) {
-          // Rewrite to encapsulate the try catch.
-          value = fetchIpEnrichment(openSearchFuncExpression.getArguments(), env);
-        } else {
-          return null;
-        }
+      if (pair.getValue() instanceof OpenSearchFunctions.OpenSearchFunction openSearchExpr) {
+        value = OpenSearchEvalProcessor.process(openSearchExpr, env, nodeClient);
       } else {
         value = pair.getValue().valueOf(env);
       }
+      ReferenceExpression var = pair.getKey();
       env = extendEnv(env, var, value);
       evalResultMap.put(var.toString(), value);
     }
     return evalResultMap;
   }
 
-  private ExprValue fetchIpEnrichment(
-      List<Expression> arguments, Environment<Expression, ExprValue> env) {
-    final Set<String> PERMITTED_OPTIONS =
-        Set.of(
-            "country_iso_code",
-            "country_name",
-            "continent_name",
-            "region_iso_code",
-            "region_name",
-            "city_name",
-            "time_zone",
-            "location");
-    IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);
-    String dataSource = StringUtils.unquoteText(arguments.get(0).toString());
-    String ipAddress = arguments.get(1).valueOf(env).stringValue();
-    final Set<String> options = new HashSet<>();
-    if (arguments.size() > 2) {
-      String option = StringUtils.unquoteText(arguments.get(2).toString());
-      // Convert the option into a set.
-      options.addAll(
-          Arrays.stream(option.split(","))
-              .filter(PERMITTED_OPTIONS::contains)
-              .collect(Collectors.toSet()));
-    }
-    try {
-      Map<String, Object> geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);
-      Map<String, ExprValue> enrichmentResult =
-          geoLocationData.entrySet().stream()
-              .filter(entry -> options.isEmpty() || options.contains(entry.getKey()))
-              .collect(
-                  Collectors.toMap(
-                      Map.Entry::getKey, v -> new ExprStringValue(v.getValue().toString())));
-      return ExprTupleValue.fromExprValueMap(enrichmentResult);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
+
 }
