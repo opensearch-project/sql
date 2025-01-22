@@ -7,30 +7,18 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
-import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.expression.env.Environment.extendEnv;
 
-import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.Getter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.geospatial.action.IpEnrichmentActionClient;
-import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.data.model.ExprStringValue;
-import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -73,6 +61,4 @@ public class OpenSearchEvalOperator extends EvalOperator {
     }
     return evalResultMap;
   }
-
-
 }

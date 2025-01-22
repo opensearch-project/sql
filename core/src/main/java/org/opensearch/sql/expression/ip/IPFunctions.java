@@ -13,6 +13,8 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import inet.ipaddr.IPAddress;
+import java.util.Arrays;
+import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprValue;
@@ -28,9 +30,6 @@ import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.function.SerializableFunction;
 import org.opensearch.sql.utils.IPUtils;
-
-import java.util.Arrays;
-import java.util.List;
 
 /** Utility class that defines and registers IP functions. */
 @UtilityClass
@@ -76,9 +75,9 @@ public class IPFunctions {
    */
   private DefaultFunctionResolver geoIp() {
     return define(
-            BuiltinFunctionName.GEOIP.getName(),
-            openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING)),
-            openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING, STRING)));
+        BuiltinFunctionName.GEOIP.getName(),
+        openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING)),
+        openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING, STRING)));
   }
 
   /**
@@ -89,12 +88,12 @@ public class IPFunctions {
    * @return Binary Function Implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
-  openSearchImpl(ExprType returnType, List<ExprType> args) {
+      openSearchImpl(ExprType returnType, List<ExprType> args) {
     return functionName -> {
       FunctionSignature functionSignature = new FunctionSignature(functionName, args);
       FunctionBuilder functionBuilder =
-              (functionProperties, arguments) ->
-                      new OpenSearchFunctions.OpenSearchFunction(functionName, arguments, returnType);
+          (functionProperties, arguments) ->
+              new OpenSearchFunctions.OpenSearchFunction(functionName, arguments, returnType);
       return Pair.of(functionSignature, functionBuilder);
     };
   }

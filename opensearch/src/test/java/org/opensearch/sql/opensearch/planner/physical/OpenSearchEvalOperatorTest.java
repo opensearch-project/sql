@@ -121,11 +121,11 @@ public class OpenSearchEvalOperatorTest {
             ImmutablePair.of(
                 new ReferenceExpression("ipEnrichmentResult", OpenSearchTextType.of()),
                 new OpenSearchFunctions.OpenSearchFunction(
-                        BuiltinFunctionName.GEOIP.getName(),
-                        List.of(
-                                DSL.literal("my-datasource"),
-                                new ReferenceExpression("ipInStr", OpenSearchTextType.of())),
-                        BOOLEAN)));
+                    BuiltinFunctionName.GEOIP.getName(),
+                    List.of(
+                        DSL.literal("my-datasource"),
+                        new ReferenceExpression("ipInStr", OpenSearchTextType.of())),
+                    BOOLEAN)));
 
     OpenSearchEvalOperator evalOperator = new OpenSearchEvalOperator(input, ipAddress, nodeClient);
 

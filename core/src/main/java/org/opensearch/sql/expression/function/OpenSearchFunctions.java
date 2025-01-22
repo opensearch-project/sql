@@ -134,7 +134,8 @@ public class OpenSearchFunctions {
 
     @Getter @Setter private boolean isScoreTracked;
 
-    public OpenSearchFunction(FunctionName functionName, List<Expression> arguments, ExprType returnType) {
+    public OpenSearchFunction(
+        FunctionName functionName, List<Expression> arguments, ExprType returnType) {
       super(functionName, arguments);
       this.functionName = functionName;
       this.arguments = arguments;
@@ -156,7 +157,8 @@ public class OpenSearchFunctions {
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
       throw new UnsupportedOperationException(
           String.format(
-              "OpenSearch defined function [%s] is only supported in WHERE clause, HAVING clause and Eval operation.",
+              "OpenSearch defined function [%s] is only supported in WHERE clause, HAVING clause"
+                  + " and Eval operation.",
               functionName));
     }
 
