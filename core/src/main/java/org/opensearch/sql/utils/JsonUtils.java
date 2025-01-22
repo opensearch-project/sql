@@ -8,21 +8,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 
-import java.io.ObjectInputFilter;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.PathNotFoundException;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
-import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
@@ -65,6 +60,10 @@ public class JsonUtils {
   public static ExprValue extractJson(ExprValue json, ExprValue path) {
     String jsonString = json.stringValue();
     String jsonPath = path.stringValue();
+
+    if (jsonString.equals("")) {
+      return LITERAL_NULL;
+    }
 
     try {
       Configuration config = Configuration.builder()
