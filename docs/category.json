@@ -35,7 +35,6 @@
     "user/ppl/functions/expressions.rst",
     "user/ppl/functions/ip.rst",
     "user/ppl/functions/json.rst",
-    "user/ppl/functions/geoip.rst",
     "user/ppl/functions/math.rst",
     "user/ppl/functions/relevance.rst",
     "user/ppl/functions/string.rst"
