@@ -343,7 +343,8 @@ class OpenSearchExecutionProtectorTest {
   }
 
   /**
-   * To ensure the original Eval functionality continue to work after the OpenSearchEvalOperator wrapper.
+   * To ensure the original Eval functionality continue to work after the OpenSearchEvalOperator
+   * wrapper.
    */
   @Test
   void test_visitOpenSearchEval() {
