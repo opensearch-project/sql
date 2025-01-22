@@ -52,47 +52,6 @@ String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
 
-Map dummyLoginConfig = [
-        https: "false",
-        user: "admin",
-        password: "admin"
-]
-Map dynamicLoginConfig = [
-        https: System.getProperty("https"),
-        user: System.getProperty("user"),
-        password: System.getProperty("password")
-]
-
-def getPluginDownloadLink(pluginName) {
-    var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
-            pluginName + "/$opensearch_build_snapshot/"
-    var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
-    download.run {
-        src repo + "maven-metadata.xml"
-        dest metadataFile
-    }
-    def metadata = new XmlParser().parse(metadataFile)
-    def PluginSnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
-    return repo + pluginName +"-${PluginSnapshotVersion}.zip"
-}
-
-static def getAllHttpSocketURI(cluster) {
-    return cluster.nodes.stream()
-            .flatMap { node -> node.getAllHttpSocketURI().stream() }
-            .collect(Collectors.joining(","))
-}
-
-static def getAllTransportSocketURI(cluster) {
-    return cluster.nodes.stream()
-            .flatMap { node -> node.getAllTransportPortURI().stream() }
-            .collect(Collectors.joining(","))
-}
-
-static def getConcatClusterName(clusters) {
-    return clusters.stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
-}
-
-
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
@@ -103,16 +62,28 @@ repositories {
     }
 }
 
-
 ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.TXT')
     noticeFile = rootProject.file('NOTICE')
 
-    var projectAbsPath = projectDir.getAbsolutePath()
-    configureSecurityPlugin = { OpenSearchCluster cluster ->
+    getSecurityPluginDownloadLink = { ->
+        var repo = "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/" +
+                   "opensearch-security/$opensearch_build_snapshot/"
+        var metadataFile = Paths.get(projectDir.toString(), "build", "maven-metadata.xml").toAbsolutePath().toFile()
+        download.run {
+            src repo + "maven-metadata.xml"
+            dest metadataFile
+        }
+        def metadata = new XmlParser().parse(metadataFile)
+        def securitySnapshotVersion = metadata.versioning.snapshotVersions[0].snapshotVersion[0].value[0].text()
 
-        File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
+        return repo + "opensearch-security-${securitySnapshotVersion}.zip"
+    }
+
+    var projectAbsPath = projectDir.getAbsolutePath()
+    File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
+    configureSecurityPlugin = { OpenSearchCluster cluster ->
 
         cluster.getNodes().forEach { node ->
             var creds = node.getCredentials()
@@ -126,7 +97,7 @@ ext {
         // add a check to avoid re-downloading multiple times during single test run
         if (!downloadedSecurityPlugin.exists()) {
             download.run {
-                src getPluginDownloadLink("opensearch-security")
+                src getSecurityPluginDownloadLink()
                 dest downloadedSecurityPlugin
             }
         } else {
@@ -166,20 +137,8 @@ ext {
         ].forEach { name, value ->
             cluster.setting name, value
         }
-        cluster.plugin provider {(RegularFile) (() -> downloadedSecurityPlugin)}
-    }
 
-    configureGeoPlugin = { OpenSearchCluster cluster ->
-        File downloadedGeoPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-geospatial-snapshot.zip').toFile()
-        if (!downloadedGeoPlugin.exists()) {
-            download.run {
-                src getPluginDownloadLink("geospatial")
-                dest downloadedGeoPlugin
-            }
-        } else {
-            println "Geo-spatial Plugin File Already Exists"
-        }
-        cluster.plugin provider {(RegularFile) (() -> downloadedGeoPlugin)}
+        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
     }
 
     bwcOpenSearchJSDownload = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + baseVersion + '/latest/linux/x64/tar/builds/' +
@@ -271,11 +230,19 @@ testClusters.all {
 }
 
 def getJobSchedulerPlugin() {
-    provider { (RegularFile) (() ->
-            configurations.zipArchive.asFileTree.matching {
-                include '**/opensearch-job-scheduler*'
-            }.singleFile )
-    }
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-job-scheduler*'
+                    }.singleFile
+                }
+            }
+        }
+    })
 }
 
 def getGeoSpatialPlugin() {
@@ -291,14 +258,14 @@ testClusters {
     integTest {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
-//        plugin(getGeoSpatialPlugin())
+        plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
     remoteCluster {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
-//        plugin(getGeoSpatialPlugin())
+        plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
     }
     integTestWithSecurity {
@@ -306,14 +273,7 @@ testClusters {
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
     }
-
     remoteIntegTestWithSecurity {
-        testDistribution = 'archive'
-        plugin(getJobSchedulerPlugin())
-        plugin ":opensearch-sql-plugin"
-    }
-
-    integTestWithGeo {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
@@ -353,7 +313,6 @@ task stopPrometheus(type: KillProcessTask) {
 stopPrometheus.mustRunAfter startPrometheus
 
 task integJdbcTest(type: RestIntegTestTask) {
-
     testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().
         plugin ":opensearch-sql-plugin"
 
@@ -377,7 +336,9 @@ task integJdbcTest(type: RestIntegTestTask) {
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
 
-    systemProperties dynamicLoginConfig
+    systemProperty "https", System.getProperty("https")
+    systemProperty "user", System.getProperty("user")
+    systemProperty "password", System.getProperty("password")
 
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
@@ -396,11 +357,11 @@ task integJdbcTest(type: RestIntegTestTask) {
 }
 
 task integTestWithSecurity(type: RestIntegTestTask) {
-
     useCluster testClusters.integTestWithSecurity
     useCluster testClusters.remoteIntegTestWithSecurity
 
-    systemProperty "cluster.names", getConcatClusterName(getClusters())
+    systemProperty "cluster.names",
+        getClusters().stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
 
     getClusters().forEach { cluster ->
         configureSecurityPlugin(cluster)
@@ -426,10 +387,21 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     doFirst {
         systemProperty 'cluster.debug', getDebug()
         getClusters().forEach { cluster ->
-            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> getAllHttpSocketURI(cluster)}"
-            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> getAllTransportSocketURI(cluster)}"
+
+            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllTransportPortURI().stream()
+            }.collect(Collectors.joining(","))
+            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllHttpSocketURI().stream()
+            }.collect(Collectors.joining(","))
+
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
         }
-        systemProperties dummyLoginConfig
+
+        systemProperty "https", "false"
+        systemProperty "user", "admin"
+        systemProperty "password", "admin"
     }
 
     if (System.getProperty("test.debug") != null) {
@@ -443,46 +415,6 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     }
 }
 
-task integTestWithGeo(type: RestIntegTestTask) {
-    useCluster testClusters.remoteCluster
-
-    getClusters().forEach { cluster ->
-        configureGeoPlugin(cluster)
-    }
-
-    useJUnitPlatform()
-    dependsOn ':opensearch-sql-plugin:bundlePlugin'
-    testLogging {
-        events "passed", "skipped", "failed"
-    }
-
-    systemProperty 'tests.security.manager', 'false'
-    systemProperty 'project.root', project.projectDir.absolutePath
-    // Set default query size limit
-    systemProperty 'defaultQuerySizeLimit', '10000'
-
-    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
-    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
-    doFirst {
-        systemProperty 'cluster.debug', getDebug()
-        getClusters().forEach { cluster ->
-            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> getAllHttpSocketURI(cluster)}"
-            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> getAllTransportSocketURI(cluster)}"
-        }
-        systemProperties dummyLoginConfig
-    }
-
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
-    }
-
-    // NOTE: this IT config discovers only junit5 (jupiter) tests.
-    // https://github.com/opensearch-project/sql/issues/1974
-    filter {
-        includeTestsMatching 'org.opensearch.sql.geo.PplIpEnrichmentIT'
-    }
-}
-
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
     useCluster testClusters.remoteCluster
@@ -490,8 +422,15 @@ integTest {
     // Set properties for connection to clusters and between clusters
     doFirst {
         getClusters().forEach { cluster ->
-            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> getAllHttpSocketURI(cluster)}"
-            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> getAllTransportSocketURI(cluster)}"
+            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllTransportPortURI().stream()
+            }.collect(Collectors.joining(","))
+            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllHttpSocketURI().stream()
+            }.collect(Collectors.joining(","))
+
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
         }
     }
 
@@ -507,7 +446,9 @@ integTest {
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
 
-    systemProperties dynamicLoginConfig
+    systemProperty "https", System.getProperty("https")
+    systemProperty "user", System.getProperty("user")
+    systemProperty "password", System.getProperty("password")
 
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
@@ -520,6 +461,7 @@ integTest {
         }
         systemProperty 'cluster.debug', getDebug()
     }
+
 
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5006'
@@ -557,9 +499,6 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
-
-    // Exclude this IT, because they executed in another task (:integTestWithGeo)
-    exclude 'org/opensearch/sql/geo/**'
 }
 
 
@@ -604,22 +543,37 @@ task comparisonTest(type: RestIntegTestTask) {
             testDistribution = "ARCHIVE"
             versions = [baseVersion, opensearch_version]
             numberOfNodes = 3
-            plugin(provider { (RegularFile) ({
-                    if (new File("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion").exists()) {
-                        project.delete(files("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion"))
+            plugin(provider(new Callable<RegularFile>(){
+                @Override
+                RegularFile call() throws Exception {
+                    return new RegularFile() {
+                        @Override
+                        File getAsFile() {
+                            if (new File("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion").exists()) {
+                                project.delete(files("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion"))
+                            }
+                            project.mkdir bwcJobSchedulerPath + bwcVersion
+                            ant.get(src: bwcOpenSearchJSDownload,
+                                    dest: bwcJobSchedulerPath + bwcVersion,
+                                    httpusecaches: false)
+                            return fileTree(bwcJobSchedulerPath + bwcVersion).getSingleFile()
+                        }
                     }
-                    project.mkdir bwcJobSchedulerPath + bwcVersion
-                    ant.get(src: bwcOpenSearchJSDownload,
-                            dest: bwcJobSchedulerPath + bwcVersion,
-                            httpusecaches: false)
-                    fileTree(bwcJobSchedulerPath + bwcVersion).getSingleFile()
-                })
-            })
-            plugin(provider { (RegularFile) (
-                configurations.zipArchive.asFileTree.matching {
-                    include '**/opensearch-sql-plugin*'
-                }.singleFile )
-            })
+                }
+            }))
+            plugin(provider(new Callable<RegularFile>(){
+                @Override
+                RegularFile call() throws Exception {
+                    return new RegularFile() {
+                        @Override
+                        File getAsFile() {
+                            return configurations.zipArchive.asFileTree.matching {
+                                include '**/opensearch-sql-plugin*'
+                            }.singleFile
+                        }
+                    }
+                }
+            }))
             setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
             setting 'http.content_type.required', 'true'
         }
@@ -628,12 +582,18 @@ task comparisonTest(type: RestIntegTestTask) {
 
 List<Provider<RegularFile>> plugins = [
         getJobSchedulerPlugin(),
-        provider{ (RegularFile) (
-                fileTree(bwcFilePath + project.version).getSingleFile())
-    }
+        provider(new Callable<RegularFile>() {
+            @Override
+            RegularFile call() throws Exception {
+                return new RegularFile() {
+                    @Override
+                    File getAsFile() {
+                        return fileTree(bwcFilePath + project.version).getSingleFile()
+                    }
+                }
+            }
+        })
 ]
-
-
 
 // Creates 2 test clusters with 3 nodes of the old version.
 2.times { i ->
@@ -767,7 +727,10 @@ task integTestRemote(type: RestIntegTestTask) {
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
     systemProperty 'java.io.tmpdir', opensearch_tmp_dir.absolutePath
-    systemProperties dynamicLoginConfig
+
+    systemProperty "https", System.getProperty("https")
+    systemProperty "user", System.getProperty("user")
+    systemProperty "password", System.getProperty("password")
 
     // Set default query size limit
     systemProperty 'defaultQuerySizeLimit', '10000'
@@ -788,9 +751,3 @@ task integTestRemote(type: RestIntegTestTask) {
     exclude 'org/opensearch/sql/legacy/OrderIT.class'
     exclude 'org/opensearch/sql/jdbc/**'
 }
-
-
-
-
-
-

@@ -61,10 +61,8 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
 
   @Override
   protected void init() throws Exception {
-    loadIndex(Index.GEOIP);
-    // Create a new dataSource
-    createDatasource(DATASOURCE_NAME, MANIFEST_LOCATION);
-    waitForDatasourceToBeAvailable(DATASOURCE_NAME, Duration.ofSeconds(10));
+
+
   }
 
   @Test
@@ -82,6 +80,11 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
   @SneakyThrows
   @Test
   public void testGeoIpEnrichment() {
+    loadIndex(Index.GEOIP);
+    // Create a new dataSource
+    createDatasource(DATASOURCE_NAME, MANIFEST_LOCATION);
+    waitForDatasourceToBeAvailable(DATASOURCE_NAME, Duration.ofSeconds(10));
+
     JSONObject resultGeoIp =
             executeQuery(
                     String.format(
