@@ -14,13 +14,22 @@ import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHand
 
 import inet.ipaddr.IPAddress;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
+import org.opensearch.sql.expression.function.FunctionBuilder;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.function.SerializableFunction;
 import org.opensearch.sql.utils.IPUtils;
+
+import java.util.Arrays;
+import java.util.List;
 
 /** Utility class that defines and registers IP functions. */
 @UtilityClass
@@ -28,6 +37,7 @@ public class IPFunctions {
 
   public void register(BuiltinFunctionRepository repository) {
     repository.register(cidrmatch());
+    repository.register(geoIp());
   }
 
   private DefaultFunctionResolver cidrmatch() {
@@ -56,5 +66,35 @@ public class IPFunctions {
             || (IPUtils.compare(address, range.getUpper()) > 0)
         ? ExprValueUtils.LITERAL_FALSE
         : ExprValueUtils.LITERAL_TRUE;
+  }
+
+  /**
+   * To register all method signatures related to geoip( ) expression under eval.
+   *
+   * @return Resolver for geoip( ) expression.
+   */
+  private DefaultFunctionResolver geoIp() {
+    return define(
+            BuiltinFunctionName.GEOIP.getName(),
+            openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING)),
+            openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING, STRING)));
+  }
+
+  /**
+   * Util method to generate probe implementation with given list of argument types, with marker
+   * class `OpenSearchFunctionExpression` to annotate this is an OpenSearch specific expression.
+   *
+   * @param returnType return type.
+   * @return Binary Function Implementation.
+   */
+  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
+  openSearchImpl(ExprType returnType, List<ExprType> args) {
+    return functionName -> {
+      FunctionSignature functionSignature = new FunctionSignature(functionName, args);
+      FunctionBuilder functionBuilder =
+              (functionProperties, arguments) ->
+                      new OpenSearchFunctionExpression(functionName, arguments, returnType);
+      return Pair.of(functionSignature, functionBuilder);
+    };
   }
 }

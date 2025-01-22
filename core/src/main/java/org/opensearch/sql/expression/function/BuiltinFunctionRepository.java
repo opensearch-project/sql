@@ -27,7 +27,6 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.aggregation.AggregatorFunctions;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.datetime.IntervalClause;
-import org.opensearch.sql.expression.ip.GeoIPFunctions;
 import org.opensearch.sql.expression.ip.IPFunctions;
 import org.opensearch.sql.expression.json.JsonFunctions;
 import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunctions;
@@ -86,7 +85,6 @@ public class BuiltinFunctionRepository {
       OpenSearchFunctions.register(instance);
       IPFunctions.register(instance);
       JsonFunctions.register(instance);
-      GeoIPFunctions.register(instance);
     }
     return instance;
   }
