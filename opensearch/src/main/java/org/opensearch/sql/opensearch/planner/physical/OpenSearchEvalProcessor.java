@@ -24,14 +24,12 @@ import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 
-/**
- * Class to centralise all OpenSearch specific eval operations.
- */
+/** Class to centralise all OpenSearch specific eval operations. */
 public class OpenSearchEvalProcessor {
 
   /**
-   * Static method to read an incoming OpenSearchFunction evaluation instruction,
-   * process it accordingly with nodeClient and return the result.
+   * Static method to read an incoming OpenSearchFunction evaluation instruction, process it
+   * accordingly with nodeClient and return the result.
    *
    * @param funcExpression Eval operation which is OpenSearch storage engine specific.
    * @param env {@link Environment}

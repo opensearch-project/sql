@@ -8,7 +8,6 @@ package org.opensearch.sql.security;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GEOIP;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;

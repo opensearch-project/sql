@@ -24,8 +24,6 @@ import lombok.SneakyThrows;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.json.JSONObject;
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
@@ -59,7 +57,8 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
     if (!initialized) {
       // Create a new dataSource
       createDatasource();
-      waitForDatasourceToBeAvailable(DATASOURCE_NAME, Duration.ofSeconds(CREATE_DATASOURCE_TIMEOUT));
+      waitForDatasourceToBeAvailable(
+          DATASOURCE_NAME, Duration.ofSeconds(CREATE_DATASOURCE_TIMEOUT));
       initialized = true;
     }
   }
@@ -100,8 +99,7 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
    * @return Response for the create dataSource request.
    * @throws IOException In case of network failure
    */
-  private Response createDatasource()
-      throws IOException {
+  private Response createDatasource() throws IOException {
     XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
     for (Map.Entry<String, Object> config : MANIFEST_LOCATION.entrySet()) {
       builder.field(config.getKey(), config.getValue());
