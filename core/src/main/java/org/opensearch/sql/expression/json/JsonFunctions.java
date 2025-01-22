@@ -40,6 +40,6 @@ public class JsonFunctions {
   private DefaultFunctionResolver jsonExtract() {
     return define(
         BuiltinFunctionName.JSON_EXTRACT.getName(),
-        impl(nullMissingHandling(JsonUtils::extractJson), UNDEFINED, STRING, STRING));
+        impl(JsonUtils::extractJson, UNDEFINED, STRING, STRING));
   }
 }

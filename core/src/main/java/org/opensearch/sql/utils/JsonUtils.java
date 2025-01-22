@@ -72,15 +72,9 @@ public class JsonUtils {
       List<String> resultPaths = JsonPath.using(config).parse(jsonString).read(jsonPath);
 
       List<ExprValue> elements = new LinkedList<>();
-
       for (String resultPath : resultPaths) {
         Object result = JsonPath.parse(jsonString).read(resultPath);
-        String resultJsonString = new ObjectMapper().writeValueAsString(result);
-        try {
-          elements.add(processJsonNode(jsonStringToNode(resultJsonString)));
-        } catch (SemanticCheckException e) {
-          elements.add(new ExprStringValue(resultJsonString));
-        }
+        elements.add(ExprValueUtils.fromObjectValue(result));
       }
 
       if (elements.size() == 1) {
@@ -90,7 +84,7 @@ public class JsonUtils {
       }
     } catch (PathNotFoundException e) {
       return LITERAL_NULL;
-    } catch (InvalidJsonException | JsonProcessingException e) {
+    } catch (InvalidJsonException e) {
       final String errorFormat = "JSON string '%s' is not valid. Error details: %s";
       throw new SemanticCheckException(String.format(errorFormat, json, e.getMessage()), e);
     }

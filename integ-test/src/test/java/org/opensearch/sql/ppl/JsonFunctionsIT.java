@@ -110,14 +110,12 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
   @Test
   public void test_json_extract() throws IOException {
     JSONObject result;
-
     result =
         executeQuery(
             String.format(
-                "source=%s | where json_valid(json_string) | eval json_extract=json_extract(json_string, '$.b') | fields"
-                    + " test_name, json_extract",
+                "source=%s | where json_valid(json_string) | eval extracted=json_extract(json_string, '$.b') | fields test_name, extracted",
                 TEST_INDEX_JSON_TEST));
-    verifySchema(result, schema("test_name", null, "string"), schema("json_extract", null, "undefined"));
+    verifySchema(result, schema("test_name", null, "string"), schema("extracted", null, "undefined"));
     verifyDataRows(
         result,
         rows("json nested object", new JSONObject(Map.of("c", "3"))),
