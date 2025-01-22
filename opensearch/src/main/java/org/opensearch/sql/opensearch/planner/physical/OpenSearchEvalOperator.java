@@ -50,35 +50,14 @@ public class OpenSearchEvalOperator extends EvalOperator {
     this.nodeClient = nodeClient;
   }
 
-  @Override
-  public ExprValue next() {
-    ExprValue inputValue = this.getInput().next();
-    Map<String, ExprValue> evalMap = eval(inputValue.bindingTuples());
-    if (STRUCT == inputValue.type()) {
-      ImmutableMap.Builder<String, ExprValue> resultBuilder = new ImmutableMap.Builder<>();
-      Map<String, ExprValue> tupleValue = ExprValueUtils.getTupleValue(inputValue);
-      for (Map.Entry<String, ExprValue> valueEntry : tupleValue.entrySet()) {
-        if (evalMap.containsKey(valueEntry.getKey())) {
-          resultBuilder.put(valueEntry.getKey(), evalMap.get(valueEntry.getKey()));
-          evalMap.remove(valueEntry.getKey());
-        } else {
-          resultBuilder.put(valueEntry);
-        }
-      }
-      resultBuilder.putAll(evalMap);
-      return ExprTupleValue.fromExprValueMap(resultBuilder.build());
-    } else {
-      return inputValue;
-    }
-  }
-
   /**
    * Evaluate the expression in the {@link EvalOperator} with {@link Environment}.
    *
    * @param env {@link Environment}
    * @return The mapping of reference and {@link ExprValue} for each expression.
    */
-  private Map<String, ExprValue> eval(Environment<Expression, ExprValue> env) {
+  @Override
+  protected Map<String, ExprValue> eval(Environment<Expression, ExprValue> env) {
     Map<String, ExprValue> evalResultMap = new LinkedHashMap<>();
     for (Pair<ReferenceExpression, Expression> pair : this.getExpressionList()) {
       ReferenceExpression var = pair.getKey();
