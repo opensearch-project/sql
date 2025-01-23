@@ -16,12 +16,14 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
+import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
@@ -32,6 +34,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 
 @ExtendWith(MockitoExtension.class)
@@ -159,8 +162,107 @@ public class JsonFunctionsTest {
     // missing bracket
     assertThrows(SemanticCheckException.class, () -> DSL.castJson(DSL.literal("{{[}}")).valueOf());
 
-    // mnissing quote
+    // missing quote
     assertThrows(
         SemanticCheckException.class, () -> DSL.castJson(DSL.literal("\"missing quote")).valueOf());
+  }
+
+  @Test
+  void json_extract_return_object() {
+    List<String> validJsonStrings =
+        List.of(
+            // test json objects are valid
+            "{\"a\":\"1\",\"b\":\"2\"}",
+            "{\"a\":1,\"b\":{\"c\":2,\"d\":3}}",
+            "{\"arr1\": [1,2,3], \"arr2\": [4,5,6]}",
+
+            // test json arrays are valid
+            "[1, 2, 3, 4]",
+            "[{\"a\":1,\"b\":2}, {\"c\":3,\"d\":2}]",
+
+            // test json scalars are valid
+            "\"abc\"",
+            "1234",
+            "12.34",
+            "true",
+            "false",
+            "null",
+
+            // test empty string is valid
+            "");
+
+    validJsonStrings.stream()
+        .forEach(
+            str ->
+                assertEquals(
+                    LITERAL_TRUE,
+                    DSL.jsonValid(DSL.literal((ExprValueUtils.stringValue(str)))).valueOf(),
+                    String.format("String %s must be valid json", str)));
+  }
+
+  @Test
+  void json_extract_search_arrays() {
+    Expression jsonArray = DSL.literal(ExprValueUtils.stringValue("{\"a\":[1,2.3,\"abc\",true,null,{\"c\":1},[1,2,3]]}"));
+    List<ExprValue> expectedExprValue = List.of(
+        new ExprIntegerValue(1),
+        new ExprFloatValue(2.3),
+        new ExprStringValue("abc"),
+        LITERAL_TRUE,
+        LITERAL_NULL,
+        ExprTupleValue.fromExprValueMap(Map.of("c", new ExprIntegerValue(1))),
+        new ExprCollectionValue(List.of(new ExprIntegerValue(1), new ExprIntegerValue(2), new ExprIntegerValue(3)))
+    );
+
+    // extract specific index from JSON list
+    for (int i = 0 ; i < expectedExprValue.size() ; i++ ) {
+      String path = String.format("$.a[%d]", i);
+      Expression pathExpr = DSL.literal(ExprValueUtils.stringValue(path));
+      FunctionExpression expression = DSL.jsonExtract(jsonArray, pathExpr);
+      assertEquals(expectedExprValue.get(i), expression.valueOf());
+    }
+
+    // extract * from JSON list
+    Expression starPath = DSL.literal(ExprValueUtils.stringValue("$.a[*]"));
+    FunctionExpression starExpression = DSL.castInt(DSL.jsonExtract(jsonArray, starPath));
+    assertEquals(
+            new ExprCollectionValue(expectedExprValue), starExpression.valueOf());
+  }
+
+  @Test
+  void json_extract_returns_null() {
+    List<String> jsonStrings =
+        List.of(
+            "{\"a\":\"1\",\"b\":\"2\"}",
+            "{\"a\":1,\"b\":{\"c\":2,\"d\":3}}",
+            "{\"arr1\": [1,2,3], \"arr2\": [4,5,6]}",
+            "[1, 2, 3, 4]",
+            "[{\"a\":1,\"b\":2}, {\"c\":3,\"d\":2}]",
+            "\"abc\"",
+            "1234",
+            "12.34",
+            "true",
+            "false",
+            "null",
+            "");
+
+    jsonStrings.stream()
+        .forEach(
+            str ->
+                assertEquals(
+                    LITERAL_NULL,
+                    DSL.jsonExtract(
+                        DSL.literal((ExprValueUtils.stringValue(str))),
+                        DSL.literal("$.a.path_not_found_key")).valueOf(),
+                    String.format("JSON string %s should return null", str)));
+  }
+
+  @Test
+  void json_returns_SemanticCheckException() {
+    // invalid path
+    assertThrows(
+            SemanticCheckException.class, () -> DSL.jsonExtract(DSL.literal("invalid"), DSL.literal("invalid")).valueOf());
+
+    // invalid json
+    assertThrows(SemanticCheckException.class, () -> DSL.jsonExtract(DSL.literal("{\"invalid\":\"json\", \"string\"}"), DSL.literal("invalid")).valueOf());
   }
 }

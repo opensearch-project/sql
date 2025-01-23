@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
 
 import java.util.LinkedHashMap;
@@ -84,6 +85,9 @@ public class JsonUtils {
       }
     } catch (PathNotFoundException e) {
       return LITERAL_NULL;
+    } catch (InvalidPathException e) {
+      final String errorFormat = "JSON path '%s' is not valid. Error details: %s";
+      throw new SemanticCheckException(String.format(errorFormat, path, e.getMessage()), e);
     } catch (InvalidJsonException e) {
       final String errorFormat = "JSON string '%s' is not valid. Error details: %s";
       throw new SemanticCheckException(String.format(errorFormat, json, e.getMessage()), e);
