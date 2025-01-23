@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getAliasIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankWithNullValuesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNonnumericIndexMapping;
@@ -742,7 +743,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_GEOPOINT,
         "dates",
         getGeopointIndexMapping(),
-        "src/test/resources/geopoints.json");
+        "src/test/resources/geopoints.json"),
+    DATA_TYPE_ALIAS(
+        TestsConstants.TEST_INDEX_ALIAS,
+        "alias",
+        getAliasIndexMapping(),
+        "src/test/resources/alias.json");
 
     private final String name;
     private final String type;
