@@ -284,9 +284,14 @@ task startPrometheus(type: SpawnProcessTask) {
     mustRunAfter ':doctest:doctest'
 
     doFirst {
-        download.run {
-            src getPrometheusBinaryLocation()
-            dest new File("$projectDir/bin", 'prometheus.tar.gz')
+        File downloadedPrometheus = Paths.get("$projectDir/bin", 'prometheus.tar.gz').toFile()
+        if (!downloadedPrometheus.exists()) {
+            download.run {
+                src getPrometheusBinaryLocation()
+                dest new File("$projectDir/bin", 'prometheus.tar.gz')
+            }
+        } else {
+            println "Prometheus File Already Exists"
         }
         copy {
             from tarTree("$projectDir/bin/prometheus.tar.gz")
