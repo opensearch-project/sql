@@ -11,14 +11,12 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
-
+import com.jayway.jsonpath.Option;
+import com.jayway.jsonpath.PathNotFoundException;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import com.jayway.jsonpath.Option;
-import com.jayway.jsonpath.PathNotFoundException;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
@@ -67,9 +65,7 @@ public class JsonUtils {
     }
 
     try {
-      Configuration config = Configuration.builder()
-              .options(Option.AS_PATH_LIST)
-              .build();
+      Configuration config = Configuration.builder().options(Option.AS_PATH_LIST).build();
       List<String> resultPaths = JsonPath.using(config).parse(jsonString).read(jsonPath);
 
       List<ExprValue> elements = new LinkedList<>();

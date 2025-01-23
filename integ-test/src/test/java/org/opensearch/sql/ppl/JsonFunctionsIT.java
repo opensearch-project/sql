@@ -41,8 +41,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json array"),
         rows("json scalar string"),
         rows("json empty string"),
-        rows("json nested list")
-    );
+        rows("json nested list"));
   }
 
   @Test
@@ -76,9 +75,9 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json array", new JSONArray(List.of(1, 2, 3, 4))),
         rows("json scalar string", "abc"),
         rows("json empty string", null),
-        rows("json nested list",
-                new JSONObject(Map.of("a", "1", "b", List.of(Map.of("c", "2"), Map.of("c", "3")))))
-    );
+        rows(
+            "json nested list",
+            new JSONObject(Map.of("a", "1", "b", List.of(Map.of("c", "2"), Map.of("c", "3"))))));
   }
 
   @Test
@@ -102,9 +101,9 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json array", new JSONArray(List.of(1, 2, 3, 4))),
         rows("json scalar string", "abc"),
         rows("json empty string", null),
-        rows("json nested list",
-                new JSONObject(Map.of("a", "1", "b", List.of(Map.of("c", "2"), Map.of("c", "3")))))
-    );
+        rows(
+            "json nested list",
+            new JSONObject(Map.of("a", "1", "b", List.of(Map.of("c", "2"), Map.of("c", "3"))))));
   }
 
   @Test
@@ -113,9 +112,11 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "source=%s | where json_valid(json_string) | eval extracted=json_extract(json_string, '$.b') | fields test_name, extracted",
+                "source=%s | where json_valid(json_string) | eval"
+                    + " extracted=json_extract(json_string, '$.b') | fields test_name, extracted",
                 TEST_INDEX_JSON_TEST));
-    verifySchema(result, schema("test_name", null, "string"), schema("extracted", null, "undefined"));
+    verifySchema(
+        result, schema("test_name", null, "string"), schema("extracted", null, "undefined"));
     verifyDataRows(
         result,
         rows("json nested object", new JSONObject(Map.of("c", "3"))),
@@ -123,7 +124,6 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json array", null),
         rows("json scalar string", null),
         rows("json empty string", null),
-        rows("json nested list", new JSONArray(List.of(Map.of("c","2"), Map.of("c","3"))))
-    );
+        rows("json nested list", new JSONArray(List.of(Map.of("c", "2"), Map.of("c", "3")))));
   }
 }
