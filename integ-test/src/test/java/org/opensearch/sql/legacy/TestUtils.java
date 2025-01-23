@@ -250,6 +250,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getJsonTestIndexMapping() {
+    String mappingFile = "json_test_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getAliasIndexMapping() {
     String mappingFile = "alias_index_mapping.json";
     return getMappingFile(mappingFile);
