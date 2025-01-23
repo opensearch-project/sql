@@ -6,7 +6,6 @@
 package org.opensearch.sql.expression.ip;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -37,11 +36,16 @@ public class GeoIPFunctionTest {
   @Test
   public void testDefaultValueOf() {
     UnsupportedOperationException exception =
-            assertThrows(
-                    UnsupportedOperationException.class,
-                    () ->
-                            DSL.geoip(DSL.literal("HARDCODED_DATASOURCE_NAME"), DSL.ref("ip_address", STRING))
-                                    .valueOf(env));
-    assertTrue(exception.getMessage().contains("OpenSearch defined function [geoip] is only supported in WHERE clause, HAVING clause and Eval operation."));
+        assertThrows(
+            UnsupportedOperationException.class,
+            () ->
+                DSL.geoip(DSL.literal("HARDCODED_DATASOURCE_NAME"), DSL.ref("ip_address", STRING))
+                    .valueOf(env));
+    assertTrue(
+        exception
+            .getMessage()
+            .contains(
+                "OpenSearch defined function [geoip] is only supported in WHERE clause, HAVING"
+                    + " clause and Eval operation."));
   }
 }
