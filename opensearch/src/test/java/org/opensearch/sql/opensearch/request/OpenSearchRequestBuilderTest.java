@@ -52,7 +52,9 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.data.type.OpenSearchAliasType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -624,6 +626,35 @@ class OpenSearchRequestBuilderTest {
             .size(DEFAULT_LIMIT)
             .timeout(DEFAULT_QUERY_TIMEOUT),
         requestBuilder);
+  }
+
+  @Test
+  void test_push_down_project_with_alias_type() {
+    Set<ReferenceExpression> references =
+        Set.of(
+            DSL.ref("intA", OpenSearchTextType.of()),
+            DSL.ref("intB", new OpenSearchAliasType("intA", OpenSearchTextType.of())));
+    requestBuilder.pushDownProjects(references);
+
+    assertSearchSourceBuilder(
+        new SearchSourceBuilder()
+            .from(DEFAULT_OFFSET)
+            .size(DEFAULT_LIMIT)
+            .timeout(DEFAULT_QUERY_TIMEOUT)
+            .fetchSource(new String[] {"intA"}, new String[0]),
+        requestBuilder);
+
+    assertEquals(
+        new OpenSearchQueryRequest(
+            new OpenSearchRequest.IndexName("test"),
+            new SearchSourceBuilder()
+                .from(DEFAULT_OFFSET)
+                .size(DEFAULT_LIMIT)
+                .timeout(DEFAULT_QUERY_TIMEOUT)
+                .fetchSource("intA", null),
+            exprValueFactory,
+            List.of("intA")),
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT, client));
   }
 
   @Test

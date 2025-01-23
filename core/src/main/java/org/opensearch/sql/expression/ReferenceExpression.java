@@ -21,6 +21,8 @@ import org.opensearch.sql.expression.env.Environment;
 public class ReferenceExpression implements Expression {
   @Getter private final String attr;
 
+  @Getter private final String rawPath;
+
   @Getter private final List<String> paths;
 
   private final ExprType type;
@@ -34,8 +36,11 @@ public class ReferenceExpression implements Expression {
   public ReferenceExpression(String ref, ExprType type) {
     this.attr = ref;
     // Todo. the define of paths need to be redefined after adding multiple index/variable support.
-    this.paths = Arrays.asList(ref.split("\\."));
-    this.type = type;
+    // For AliasType, the actual path is set in the property of `path` and the type is derived
+    // from the type of field on that path; Otherwise, use ref itself as the path
+    this.rawPath = type.getOriginalPath().orElse(ref);
+    this.paths = Arrays.asList(rawPath.split("\\."));
+    this.type = type.getOriginalExprType();
   }
 
   @Override

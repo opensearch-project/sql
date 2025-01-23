@@ -109,6 +109,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
       return result;
     }
 
+    Map<String, String> aliasMapping = new LinkedHashMap<>();
     indexMapping.forEach(
         (k, v) -> {
           var innerMap = (Map<String, Object>) v;
@@ -116,7 +117,11 @@ public class OpenSearchDataType implements ExprType, Serializable {
           var type = ((String) innerMap.getOrDefault("type", "object")).replace("_", "");
           if (!EnumUtils.isValidEnumIgnoreCase(OpenSearchDataType.MappingType.class, type)) {
             // unknown type, e.g. `alias`
-            // TODO resolve alias reference
+            // Record fields of the alias type and resolve them later in case their references have
+            // not been resolved.
+            if (OpenSearchAliasType.typeName.equals(type)) {
+              aliasMapping.put(k, (String) innerMap.get(OpenSearchAliasType.pathPropertyName));
+            }
             return;
           }
           // create OpenSearchDataType
@@ -126,6 +131,18 @@ public class OpenSearchDataType implements ExprType, Serializable {
                   EnumUtils.getEnumIgnoreCase(OpenSearchDataType.MappingType.class, type),
                   innerMap));
         });
+
+    // Begin to parse alias type fields
+    aliasMapping.forEach(
+        (k, v) -> {
+          if (result.containsKey(v)) {
+            result.put(k, new OpenSearchAliasType(v, result.get(v)));
+          } else {
+            throw new IllegalStateException(
+                String.format("Cannot find the path [%s] for alias type field [%s]", v, k));
+          }
+        });
+
     return result;
   }
 
