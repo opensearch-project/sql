@@ -311,7 +311,6 @@ task startPrometheus(type: SpawnProcessTask) {
 task stopPrometheus(type: KillProcessTask) {
     doLast {
         file("$projectDir/bin/prometheus").deleteDir()
-        file("$projectDir/bin/prometheus.tar.gz").delete()
     }
 }
 
