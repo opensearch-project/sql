@@ -5,8 +5,10 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_ALIAS;
 import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -23,6 +25,7 @@ public class DataTypeIT extends PPLIntegTestCase {
     super.init();
     loadIndex(DATA_TYPE_NUMERIC);
     loadIndex(DATA_TYPE_NONNUMERIC);
+    loadIndex(DATA_TYPE_ALIAS);
   }
 
   @Test
@@ -85,5 +88,15 @@ public class DataTypeIT extends PPLIntegTestCase {
                 "source=%s | where alias_col > 1 " + "| fields original_col, alias_col ",
                 TEST_INDEX_ALIAS));
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
+  }
+
+  @Test
+  public void test_alias_data_type() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where alias_col > 1 " + "| fields original_col, alias_col ",
+                TEST_INDEX_ALIAS));
+    verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
   }
 }
