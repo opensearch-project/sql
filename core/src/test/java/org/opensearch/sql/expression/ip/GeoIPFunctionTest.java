@@ -28,18 +28,7 @@ public class GeoIPFunctionTest {
   @Mock private Environment<Expression, ExprValue> env;
 
   @Test
-  public void geoIpDefaultImplementation() {
-    UnsupportedOperationException exception =
-        assertThrows(
-            UnsupportedOperationException.class,
-            () ->
-                DSL.geoip(DSL.literal("HARDCODED_DATASOURCE_NAME"), DSL.ref("ip_address", STRING))
-                    .valueOf(env));
-    assertTrue(exception.getMessage().matches(".*no default implementation available"));
-  }
-
-  @Test
-  public void testGeoipFnctionSignature() {
+  public void testGeoipFunctionSignature() {
     var geoip = DSL.geoip(DSL.literal("HARDCODED_DATASOURCE_NAME"), DSL.ref("ip_address", STRING));
     assertEquals(BOOLEAN, geoip.type());
   }
@@ -47,7 +36,12 @@ public class GeoIPFunctionTest {
   /** To make sure no logic being evaluated when no environment being passed. */
   @Test
   public void testDefaultValueOf() {
-    var geoip = DSL.geoip(DSL.literal("HARDCODED_DATASOURCE_NAME"), DSL.ref("ip_address", STRING));
-    assertNull(geoip.valueOf());
+    UnsupportedOperationException exception =
+            assertThrows(
+                    UnsupportedOperationException.class,
+                    () ->
+                            DSL.geoip(DSL.literal("HARDCODED_DATASOURCE_NAME"), DSL.ref("ip_address", STRING))
+                                    .valueOf(env));
+    assertTrue(exception.getMessage().contains("OpenSearch defined function [geoip] is only supported in WHERE clause, HAVING clause and Eval operation."));
   }
 }
