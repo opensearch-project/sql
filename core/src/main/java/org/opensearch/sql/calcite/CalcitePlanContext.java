@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite;
 
-import java.sql.DriverManager;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -41,14 +40,14 @@ public class CalcitePlanContext {
 
   @Getter private boolean isResolvingJoinCondition = false;
 
-  public CalcitePlanContext(FrameworkConfig config) {
+  public CalcitePlanContext(FrameworkConfig config, CalciteConnection connection) {
     this.config = config;
+    this.connection = connection;
     try {
-      this.connection = DriverManager.getConnection("jdbc:calcite:").unwrap(CalciteConnection.class);
-      connection.getRootSchema().add(
-          OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME, config.getDefaultSchema().unwrap(OpenSearchSchema.class));
       this.statement = connection.createStatement().unwrap(CalciteServerStatement.class);
-    } catch (Exception ignored) {}
+    } catch (Exception e) {
+      throw new RuntimeException("create statement failed", e);
+    }
     this.prepare = new CalcitePrepareImpl();
     this.relBuilder = prepare.perform(statement, config,
         (cluster, relOptSchema, rootSchema, statement) -> new OSRelBuilder(config.getContext(),
@@ -66,6 +65,6 @@ public class CalcitePlanContext {
   }
 
   public static CalcitePlanContext create(FrameworkConfig config) {
-    return new CalcitePlanContext(config);
+    return new CalcitePlanContext(config, null);
   }
 }

@@ -63,10 +63,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitRelation(Relation node, CalcitePlanContext context) {
     for (QualifiedName qualifiedName : node.getQualifiedNames()) {
-      SchemaPlus schema = context.config.getDefaultSchema();
-      if (schema != null && schema.getName().equals(OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME)) {
-        schema.unwrap(OpenSearchSchema.class).registerTable(qualifiedName);
-      }
       context.relBuilder.scan(qualifiedName.getParts());
     }
     if (node.getQualifiedNames().size() > 1) {

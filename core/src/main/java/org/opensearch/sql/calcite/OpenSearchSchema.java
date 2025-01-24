@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,7 +14,6 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver;
-import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.datasource.DataSourceService;
 
 @Getter
@@ -23,11 +23,19 @@ public class OpenSearchSchema extends AbstractSchema {
 
   private final DataSourceService dataSourceService;
 
-  private final Map<String, Table> tableMap = new HashMap<>();
+  private final Map<String, Table> tableMap = new HashMap<>() {
+    @Override
+    public Table get(Object key) {
+      if (!super.containsKey(key)) {
+        registerTable((String) key);
+      }
+      return super.get(key);
+    }
+  };
 
-  public void registerTable(QualifiedName qualifiedName) {
+  public void registerTable(String name) {
     DataSourceSchemaIdentifierNameResolver nameResolver =
-        new DataSourceSchemaIdentifierNameResolver(dataSourceService, qualifiedName.getParts());
+        new DataSourceSchemaIdentifierNameResolver(dataSourceService, List.of(name.split("\\.")));
     org.opensearch.sql.storage.Table table =
         dataSourceService
             .getDataSource(nameResolver.getDataSourceName())
@@ -36,6 +44,6 @@ public class OpenSearchSchema extends AbstractSchema {
                 new DataSourceSchemaName(
                     nameResolver.getDataSourceName(), nameResolver.getSchemaName()),
                 nameResolver.getIdentifierName());
-    tableMap.put(qualifiedName.toString(), (org.apache.calcite.schema.Table) table);
+    tableMap.put(name, (org.apache.calcite.schema.Table) table);
   }
 }
