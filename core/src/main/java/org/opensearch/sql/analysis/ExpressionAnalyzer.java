@@ -356,8 +356,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitField(Field node, AnalysisContext context) {
-    String attr = node.getField().toString();
-    return visitIdentifier(attr, context);
+    return visitQualifiedName((QualifiedName) node.getField(), context);
   }
 
   @Override
