@@ -36,6 +36,7 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -58,6 +59,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Pattern;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -107,6 +109,7 @@ import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
+import org.opensearch.sql.planner.logical.LogicalWindow;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
@@ -468,6 +471,31 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
               curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
               context.getNamedParseExpressions().add(new NamedExpression(group, expr));
             });
+    return child;
+  }
+
+  @Override
+  public LogicalPlan visitPattern(Pattern node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    WindowExpressionAnalyzer windowAnalyzer =
+        new WindowExpressionAnalyzer(expressionAnalyzer, child);
+    child = windowAnalyzer.analyze(node.getPatternWindowFunction(), context);
+    java.util.Map<String, Literal> arguments = node.getArguments();
+    Literal alias = arguments.getOrDefault("new_field", AstDSL.stringLiteral("patterns_field"));
+
+    TypeEnvironment curEnv = context.peek();
+    if (child instanceof LogicalWindow patternWindow) {
+      NamedExpression namedExpression =
+          new NamedExpression(
+              patternWindow.getWindowFunction().getNameOrAlias(),
+              new ReferenceExpression(
+                  patternWindow.getWindowFunction().getNameOrAlias(),
+                  patternWindow.getWindowFunction().getDelegated().type()));
+      curEnv.define(
+          new Symbol(Namespace.FIELD_NAME, namedExpression.getNameOrAlias()),
+          namedExpression.type());
+    }
+
     return child;
   }
 

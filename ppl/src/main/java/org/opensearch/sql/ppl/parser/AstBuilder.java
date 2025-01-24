@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +40,9 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -47,6 +50,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -57,6 +61,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Pattern;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -67,6 +72,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
@@ -283,6 +289,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitPatternsCommand(OpenSearchPPLParser.PatternsCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+    List<UnresolvedExpression> unresolvedArguments = new ArrayList<>();
+    unresolvedArguments.add(sourceField);
     ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
     ctx.patternsParameter()
         .forEach(
@@ -290,11 +298,26 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
               builder.put(
                   x.children.get(0).toString(),
                   (Literal) internalVisitExpression(x.children.get(2)));
+              unresolvedArguments.add(
+                  new Argument(
+                      x.children.get(0).toString(),
+                      (Literal) internalVisitExpression(x.children.get(2))));
             });
     java.util.Map<String, Literal> arguments = builder.build();
-    Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
-
-    return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
+    Literal alias = arguments.getOrDefault("new_field", AstDSL.stringLiteral("patterns_field"));
+    return new Pattern(
+        new Alias(
+            "patterns_field",
+            new WindowFunction(
+                new Function(
+                    ctx.pattern_method != null
+                        ? ctx.pattern_method.getText().toLowerCase(Locale.ROOT)
+                        : BuiltinFunctionName.BRAIN.name(), // By default, use new algorithm
+                    unresolvedArguments),
+                List.of(), // ignore partition by list for now as we haven't seen such requirement
+                List.of()), // ignore sort by list for now as we haven't seen such requirement
+            (String) alias.getValue()),
+        arguments);
   }
 
   /** Top command. */

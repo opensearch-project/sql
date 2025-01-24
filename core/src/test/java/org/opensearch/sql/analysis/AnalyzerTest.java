@@ -1377,58 +1377,6 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void parse_relation_with_patterns_expression() {
-    Map<String, Literal> arguments =
-        ImmutableMap.<String, Literal>builder()
-            .put("new_field", AstDSL.stringLiteral("custom_field"))
-            .put("pattern", AstDSL.stringLiteral("custom_pattern"))
-            .build();
-
-    assertAnalyzeEqual(
-        LogicalPlanDSL.project(
-            LogicalPlanDSL.relation("schema", table),
-            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
-            ImmutableList.of(
-                DSL.named(
-                    "custom_field",
-                    DSL.patterns(
-                        DSL.ref("string_value", STRING),
-                        DSL.literal("custom_pattern"),
-                        DSL.literal("custom_field"))))),
-        AstDSL.project(
-            AstDSL.parse(
-                AstDSL.relation("schema"),
-                ParseMethod.PATTERNS,
-                AstDSL.field("string_value"),
-                AstDSL.stringLiteral("custom_pattern"),
-                arguments),
-            AstDSL.alias("string_value", qualifiedName("string_value"))));
-  }
-
-  @Test
-  public void parse_relation_with_patterns_expression_no_args() {
-    assertAnalyzeEqual(
-        LogicalPlanDSL.project(
-            LogicalPlanDSL.relation("schema", table),
-            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
-            ImmutableList.of(
-                DSL.named(
-                    "patterns_field",
-                    DSL.patterns(
-                        DSL.ref("string_value", STRING),
-                        DSL.literal(""),
-                        DSL.literal("patterns_field"))))),
-        AstDSL.project(
-            AstDSL.parse(
-                AstDSL.relation("schema"),
-                ParseMethod.PATTERNS,
-                AstDSL.field("string_value"),
-                AstDSL.stringLiteral(""),
-                ImmutableMap.of()),
-            AstDSL.alias("string_value", qualifiedName("string_value"))));
-  }
-
-  @Test
   public void kmeanns_relation() {
     Map<String, Literal> argumentMap =
         new HashMap<String, Literal>() {

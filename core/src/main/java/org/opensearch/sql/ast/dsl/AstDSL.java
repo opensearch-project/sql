@@ -36,6 +36,7 @@ import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.Span;
@@ -54,6 +55,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Pattern;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -487,6 +489,22 @@ public class AstDSL {
       Literal pattern,
       java.util.Map<String, Literal> arguments) {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
+  }
+
+  public static Pattern pattern(
+      UnresolvedPlan input,
+      PatternMethod patternMethod,
+      UnresolvedExpression sourceField,
+      String alias,
+      java.util.Map<String, Literal> arguments) {
+    return new Pattern(
+        new Alias(
+            "patterns_field",
+            new WindowFunction(
+                new Function(patternMethod.getName(), List.of(sourceField)), List.of(), List.of()),
+            alias),
+        arguments,
+        input);
   }
 
   public static FillNull fillNull(UnresolvedExpression replaceNullWithMe, Field... fields) {

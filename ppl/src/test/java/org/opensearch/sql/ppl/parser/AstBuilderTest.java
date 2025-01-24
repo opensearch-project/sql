@@ -609,33 +609,6 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testPatternsCommand() {
-    assertEqual(
-        "source=t | patterns new_field=\"custom_field\" " + "pattern=\"custom_pattern\" raw",
-        parse(
-            relation("t"),
-            ParseMethod.PATTERNS,
-            field("raw"),
-            stringLiteral("custom_pattern"),
-            ImmutableMap.<String, Literal>builder()
-                .put("new_field", stringLiteral("custom_field"))
-                .put("pattern", stringLiteral("custom_pattern"))
-                .build()));
-  }
-
-  @Test
-  public void testPatternsCommandWithoutArguments() {
-    assertEqual(
-        "source=t | patterns raw",
-        parse(
-            relation("t"),
-            ParseMethod.PATTERNS,
-            field("raw"),
-            stringLiteral(""),
-            ImmutableMap.of()));
-  }
-
-  @Test
   public void testKmeansCommand() {
     assertEqual(
         "source=t | kmeans centroids=3 iterations=2 distance_type='l1'",

@@ -31,13 +31,13 @@ public class PeerRowsWindowFrame implements WindowFrame {
    * All peer rows (peer means rows in a partition that share same sort key based on sort list in
    * window definition.
    */
-  private final List<ExprValue> peers = new ArrayList<>();
+  protected final List<ExprValue> peers = new ArrayList<>();
 
   /** Which row in the peer is currently being enriched by window function. */
-  private int position;
+  protected int position;
 
   /** Does row at current position represents a new partition. */
-  private boolean isNewPartition = true;
+  protected boolean isNewPartition = true;
 
   /** If any more pre-fetched rows not returned to window operator yet. */
   @Override
@@ -92,6 +92,15 @@ public class PeerRowsWindowFrame implements WindowFrame {
       return;
     }
 
+    loadAllRows(it);
+  }
+
+  @Override
+  public boolean isNewPartition() {
+    return isNewPartition;
+  }
+
+  protected void loadAllRows(PeekingIterator<ExprValue> it) {
     // Reset state: reset new partition before clearing peers
     isNewPartition = !isSamePartition(it.peek());
     position = 0;
@@ -109,12 +118,7 @@ public class PeerRowsWindowFrame implements WindowFrame {
     }
   }
 
-  @Override
-  public boolean isNewPartition() {
-    return isNewPartition;
-  }
-
-  private boolean isPeer(ExprValue next) {
+  protected boolean isPeer(ExprValue next) {
     List<Expression> sortFields =
         windowDefinition.getSortList().stream().map(Pair::getRight).collect(Collectors.toList());
 
@@ -122,7 +126,7 @@ public class PeerRowsWindowFrame implements WindowFrame {
     return resolve(sortFields, last).equals(resolve(sortFields, next));
   }
 
-  private boolean isSamePartition(ExprValue next) {
+  protected boolean isSamePartition(ExprValue next) {
     if (peers.isEmpty()) {
       return false;
     }

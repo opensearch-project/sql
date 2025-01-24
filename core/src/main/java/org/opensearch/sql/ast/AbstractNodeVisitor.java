@@ -53,6 +53,7 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Pattern;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -212,6 +213,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitParse(Parse node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitPattern(Pattern node, C context) {
     return visitChildren(node, context);
   }
 

@@ -969,6 +969,14 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.UTC_TIMESTAMP, args);
   }
 
+  public static FunctionExpression brain() {
+    return compile(FunctionProperties.None, BuiltinFunctionName.BRAIN);
+  }
+
+  public static FunctionExpression simple_pattern() {
+    return compile(FunctionProperties.None, BuiltinFunctionName.SIMPLE_PATTERN);
+  }
+
   @SuppressWarnings("unchecked")
   private static <T extends FunctionImplementation> T compile(
       FunctionProperties functionProperties, BuiltinFunctionName bfn, Expression... args) {
