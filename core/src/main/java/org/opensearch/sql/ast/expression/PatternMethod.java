@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public enum PatternMethod {
-  SIMPLE("simple"),
+  SIMPLE("simple_pattern"),
   BRAIN("brain");
 
   @Getter final String name;
