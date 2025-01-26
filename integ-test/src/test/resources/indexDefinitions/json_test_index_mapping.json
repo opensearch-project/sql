@@ -1,0 +1,12 @@
+{
+  "mappings": {
+    "properties": {
+      "test_name": {
+        "type": "keyword"
+      },
+      "json_string": {
+        "type": "keyword"
+      }
+    }
+  }
+}

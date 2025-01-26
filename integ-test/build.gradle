@@ -44,7 +44,10 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
-String baseVersion = "2.17.0"
+// The next major version is only API compat w/ the last minor of the previous major.
+// baseVersion need to roll-froward accordingly, as new 2.x of OpenSearch being released.
+// See: https://github.com/opensearch-project/OpenSearch/issues/3615
+String baseVersion = "2.19.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
@@ -196,6 +199,9 @@ dependencies {
     // Needed for BWC tests
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-sql-plugin', version: "${bwcVersion}-SNAPSHOT"
+
+    // For GeoIP PPL functions
+    zipArchive group: 'org.opensearch.plugin', name:'geospatial', version: "${opensearch_build}"
 }
 
 java {
@@ -239,16 +245,27 @@ def getJobSchedulerPlugin() {
     })
 }
 
+def getGeoSpatialPlugin() {
+    provider { (RegularFile) (() ->
+            configurations.zipArchive.asFileTree.matching {
+                include '**/geospatia*'
+            }.singleFile )
+    }
+}
+
+
 testClusters {
     integTest {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
     remoteCluster {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
     }
     integTestWithSecurity {

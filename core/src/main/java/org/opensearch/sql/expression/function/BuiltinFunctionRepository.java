@@ -28,6 +28,7 @@ import org.opensearch.sql.expression.aggregation.AggregatorFunctions;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.datetime.IntervalClause;
 import org.opensearch.sql.expression.ip.IPFunctions;
+import org.opensearch.sql.expression.json.JsonFunctions;
 import org.opensearch.sql.expression.operator.arthmetic.ArithmeticFunctions;
 import org.opensearch.sql.expression.operator.arthmetic.MathematicalFunctions;
 import org.opensearch.sql.expression.operator.convert.TypeCastOperators;
@@ -83,6 +84,7 @@ public class BuiltinFunctionRepository {
       SystemFunctions.register(instance);
       OpenSearchFunctions.register(instance);
       IPFunctions.register(instance);
+      JsonFunctions.register(instance);
     }
     return instance;
   }
