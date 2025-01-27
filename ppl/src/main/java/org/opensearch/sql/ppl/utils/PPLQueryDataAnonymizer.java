@@ -196,7 +196,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitFlatten(Flatten node, String context) {
     String child = node.getChild().getFirst().accept(this, context);
-    Field field = node.getField();
+    String field = visitExpression(node.getField());
 
     return StringUtils.format("%s | flatten %s", child, field);
   }

@@ -99,9 +99,9 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testFlattenCommand() {
     assertEquals(
+        "Flatten command is not modified by anonymizer",
         "source=t | flatten field_name",
-        anonymize("source=t | flatten field_name"),
-        "Flatten command is not modified by anonymizer");
+        anonymize("source=t | flatten field_name"));
   }
 
   @Test

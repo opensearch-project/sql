@@ -468,8 +468,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment env = context.peek();
 
     // Verify that the field type is valid.
-    ReferenceExpression fieldExpr =
-        (ReferenceExpression) expressionAnalyzer.analyze(node.getField(), context);
+    ReferenceExpression fieldExpr;
+    try {
+      fieldExpr = (ReferenceExpression) expressionAnalyzer.analyze(node.getField(), context);
+    } catch (SemanticCheckException e) {
+      throw new IllegalArgumentException("Invalid field name for flatten command", e);
+    }
 
     ExprType fieldType = fieldExpr.type();
     if (fieldType != STRUCT) {
