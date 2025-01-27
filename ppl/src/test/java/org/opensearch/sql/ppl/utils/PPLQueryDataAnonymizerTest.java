@@ -98,8 +98,10 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testFlattenCommand() {
-
-    // TODO #3030: Test
+    assertEquals(
+        "source=t | flatten field_name",
+        anonymize("source=t | flatten field_name"),
+        "Flatten command is not modified by anonymizer");
   }
 
   @Test

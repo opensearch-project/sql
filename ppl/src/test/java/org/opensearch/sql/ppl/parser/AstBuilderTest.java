@@ -24,6 +24,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
+import static org.opensearch.sql.ast.dsl.AstDSL.flatten;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.head;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
@@ -448,8 +449,10 @@ public class AstBuilderTest {
 
   @Test
   public void testFlattenCommand() {
-
-    // TODO #3030: Test
+    String fieldName = "field_name";
+    assertEqual(
+        String.format("source=t | flatten %s", fieldName),
+        flatten(relation("t"), field(fieldName)));
   }
 
   @Test

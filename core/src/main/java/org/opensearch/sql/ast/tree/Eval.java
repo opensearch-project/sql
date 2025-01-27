@@ -10,14 +10,12 @@ import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Let;
 
 /** AST node represent Eval operation. */
 @Getter
-@Setter
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor

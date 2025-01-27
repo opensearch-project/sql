@@ -60,6 +60,10 @@ public class PhysicalPlanDSL {
     return new EvalOperator(input, Arrays.asList(expressions));
   }
 
+  public FlattenOperator flatten(PhysicalPlan input, ReferenceExpression field) {
+    return new FlattenOperator(input, field);
+  }
+
   public static SortOperator sort(PhysicalPlan input, Pair<SortOption, Expression>... sorts) {
     return new SortOperator(input, Arrays.asList(sorts));
   }

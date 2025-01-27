@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.data.model;
 
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -70,23 +69,13 @@ public class ExprTupleValue extends AbstractExprValue {
    * @return true for equal, otherwise false.
    */
   @Override
-  public boolean equal(ExprValue o) {
-    if (!(o instanceof ExprTupleValue)) {
+  public boolean equal(ExprValue other) {
+
+    if (!(other instanceof ExprTupleValue)) {
       return false;
-    } else {
-      ExprTupleValue other = (ExprTupleValue) o;
-      Iterator<Entry<String, ExprValue>> thisIterator = this.valueMap.entrySet().iterator();
-      Iterator<Entry<String, ExprValue>> otherIterator = other.valueMap.entrySet().iterator();
-      while (thisIterator.hasNext() && otherIterator.hasNext()) {
-        Entry<String, ExprValue> thisEntry = thisIterator.next();
-        Entry<String, ExprValue> otherEntry = otherIterator.next();
-        if (!(thisEntry.getKey().equals(otherEntry.getKey())
-            && thisEntry.getValue().equals(otherEntry.getValue()))) {
-          return false;
-        }
-      }
-      return !(thisIterator.hasNext() || otherIterator.hasNext());
     }
+
+    return valueMap.equals(other.tupleValue());
   }
 
   /** Only compare the size of the map. */

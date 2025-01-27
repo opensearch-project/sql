@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
@@ -62,6 +63,7 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
+import org.opensearch.sql.planner.logical.LogicalFlatten;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
@@ -70,6 +72,7 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
+import org.opensearch.sql.planner.physical.FlattenOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.planner.physical.ProjectOperator;
@@ -329,6 +332,23 @@ class DefaultImplementorTest {
   @Test
   void visitFlatten_should_build_FlattenOperator() {
 
-    // TODO #3030: Test
+    // Mock physical and logical plan children.
+    var logicalChild = mock(LogicalPlan.class);
+    var physicalChild = mock(PhysicalPlan.class);
+    when(logicalChild.accept(implementor, null)).thenReturn(physicalChild);
+
+    // Build physical plan from logical plan.
+    var fieldName = "field_name";
+    var logicalPlan = new LogicalFlatten(logicalChild, ref(fieldName, STRUCT));
+    var implemented = logicalPlan.accept(implementor, null);
+
+    assertInstanceOf(
+        FlattenOperator.class, implemented, "Visiting logical flatten builds physical flatten");
+    assertEquals(
+        fieldName,
+        ((FlattenOperator) implemented).getField().getAttr(),
+        "Physical flatten has expected field");
+    assertSame(
+        physicalChild, implemented.getChild().getFirst(), "Physical flatten has expected child");
   }
 }

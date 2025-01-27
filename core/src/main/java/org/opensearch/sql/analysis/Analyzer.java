@@ -25,10 +25,13 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -73,6 +76,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -128,6 +132,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   private final DataSourceService dataSourceService;
 
   private final BuiltinFunctionRepository repository;
+
+  private static final String PATH_SEPARATOR = ".";
+  private static final Pattern PATH_COMPONENT_PATTERN =
+      Pattern.compile(PATH_SEPARATOR, Pattern.LITERAL);
 
   /** Constructor. */
   public Analyzer(
@@ -457,12 +465,58 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
     LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    TypeEnvironment env = context.peek();
 
-    Field field = node.getField();
-    Expression expression = expressionAnalyzer.analyze(field, context);
-    ReferenceExpression ref = DSL.ref(field.getField().toString(), expression.type());
+    // Verify that the field type is valid.
+    ReferenceExpression fieldExpr =
+        (ReferenceExpression) expressionAnalyzer.analyze(node.getField(), context);
 
-    return new LogicalFlatten(child, ref);
+    ExprType fieldType = fieldExpr.type();
+    if (fieldType != STRUCT) {
+      throw new IllegalArgumentException(
+          String.format("Invalid field type '%s' for flatten command", fieldType));
+    }
+
+    // Get fields to add and remove.
+    String fieldName = fieldExpr.getAttr();
+    java.util.Map<String, ExprType> fieldsMap = env.lookupAllTupleFields(Namespace.FIELD_NAME);
+
+    java.util.Map<String, ExprType> addFieldsMap = new HashMap<>();
+    java.util.Map<String, ExprType> removeFieldsMap = new HashMap<>();
+
+    for (java.util.Map.Entry<String, ExprType> entry : fieldsMap.entrySet()) {
+      String path = entry.getKey();
+      List<String> pathComponents = Arrays.stream(PATH_COMPONENT_PATTERN.split(path)).toList();
+
+      // Verify that path starts with the field name.
+      if (!pathComponents.getFirst().equals(fieldName)) {
+        continue;
+      }
+
+      // Remove non-leaf nodes.
+      ExprType type = entry.getValue();
+      if (type == STRUCT) {
+        removeFieldsMap.put(path, STRUCT);
+        continue;
+      }
+
+      String newFieldName = pathComponents.getLast();
+
+      // Verify that new field does not overwrite an existing field.
+      if (fieldsMap.containsKey(newFieldName)) {
+        throw new IllegalArgumentException(
+            String.format("Flatten command cannot overwrite field '%s'", newFieldName));
+      }
+
+      addFieldsMap.put(newFieldName, type);
+      removeFieldsMap.put(path, type);
+    }
+
+    // Update environment.
+    addFieldsMap.forEach((name, type) -> env.define(DSL.ref(name, type)));
+    removeFieldsMap.forEach((name, type) -> env.remove(DSL.ref(name, type)));
+
+    return new LogicalFlatten(child, DSL.ref(fieldName, STRUCT));
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
