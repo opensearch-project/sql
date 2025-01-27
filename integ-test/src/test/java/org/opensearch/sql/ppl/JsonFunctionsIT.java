@@ -217,4 +217,36 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json empty string", null),
         rows("json nested list", new JSONArray(List.of(Map.of("c", "2"), Map.of("c", "3")))));
   }
+
+  @Test
+  public void test_json_set() throws IOException {
+    JSONObject result;
+
+    result =
+            executeQuery(
+                    String.format(
+                            "source=%s | eval updated=json_set(json_string, \"$.c.innerProperty\", \"test_value\" | fields"
+                                    + " test_name, updated",
+                            TEST_INDEX_JSON_TEST));
+    verifySchema(result,
+            schema("test_name", null, "string"),
+            schema("updated", null, "undefined"));
+    verifyDataRows(
+            result,
+            rows(
+                    "json nested object",
+                    new JSONObject(Map.of("a", "1",
+                            "b", Map.of("c", "3"),
+                            "d", List.of(1, 2, 3),
+                            "c", Map.of("innerProperty", "test_value")))),
+            rows("json object", new JSONObject(Map.of(
+                    "a", "1",
+                    "b", "2",
+                    "c", Map.of("innerProperty", "test_value")))),
+            rows("json array", null),
+            rows("json scalar string", null),
+            rows("json empty string", null),
+            rows("json invalid string", null),
+            rows("json null", null));
+  }
 }
