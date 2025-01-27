@@ -387,7 +387,7 @@ JSON_VALID:                         'JSON_VALID';
 //JSON_APPEND:                        'JSON_APPEND';
 //JSON_DELETE:                        'JSON_DELETE';
 //JSON_EXTEND:                        'JSON_EXTEND';
-//JSON_SET:                           'JSON_SET';
+JSON_SET:                           'JSON_SET';
 //JSON_ARRAY_ALL_MATCH:               'JSON_ARRAY_ALL_MATCH';
 //JSON_ARRAY_ANY_MATCH:               'JSON_ARRAY_ANY_MATCH';
 //JSON_ARRAY_FILTER:                  'JSON_ARRAY_FILTER';
