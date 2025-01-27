@@ -7,11 +7,9 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
 import com.jayway.jsonpath.PathNotFoundException;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -60,25 +58,13 @@ public class JsonUtils {
     String jsonString = json.stringValue();
     String jsonPath = path.stringValue();
 
-    if (jsonString.equals("")) {
+    if (jsonString.isEmpty()) {
       return LITERAL_NULL;
     }
 
     try {
-      Configuration config = Configuration.builder().options(Option.AS_PATH_LIST).build();
-      List<String> resultPaths = JsonPath.using(config).parse(jsonString).read(jsonPath);
-
-      List<ExprValue> elements = new LinkedList<>();
-      for (String resultPath : resultPaths) {
-        Object result = JsonPath.parse(jsonString).read(resultPath);
-        elements.add(ExprValueUtils.fromObjectValue(result));
-      }
-
-      if (elements.size() == 1) {
-        return elements.get(0);
-      } else {
-        return new ExprCollectionValue(elements);
-      }
+      Object results = JsonPath.parse(jsonString).read(jsonPath);
+      return ExprValueUtils.fromObjectValue(results);
     } catch (PathNotFoundException e) {
       return LITERAL_NULL;
     } catch (InvalidPathException e) {

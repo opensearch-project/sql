@@ -69,7 +69,7 @@ ____________
 Description
 >>>>>>>>>>>
 
-Usage: `json_extract(doc, path [, path]...)` Extracts a json value or scalar from a json document based on the path(s) specified.
+Usage: `json_extract(doc, path)` Extracts a json value or scalar from a json document based on the path(s) specified.
 
 Argument type: STRING, STRING
 
