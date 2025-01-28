@@ -2,7 +2,7 @@
   "root": {
     "name": "ProjectOperator",
     "description": {
-      "fields": "[name, country, province, latitude, state, longitude]"
+      "fields": "[name, country, province, coordinates, state]"
     },
     "children": [
       {
