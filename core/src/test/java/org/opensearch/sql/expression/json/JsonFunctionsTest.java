@@ -38,43 +38,57 @@ import org.opensearch.sql.expression.FunctionExpression;
 
 @ExtendWith(MockitoExtension.class)
 public class JsonFunctionsTest {
-  private static final ExprValue JsonNestedObject =
-      ExprValueUtils.stringValue("{\"a\":\"1\",\"b\":{\"c\":\"2\",\"d\":\"3\"}}");
-  private static final ExprValue JsonObject =
-      ExprValueUtils.stringValue("{\"a\":\"1\",\"b\":\"2\"}");
-  private static final ExprValue JsonArray = ExprValueUtils.stringValue("[1, 2, 3, 4]");
-  private static final ExprValue JsonScalarString = ExprValueUtils.stringValue("\"abc\"");
-  private static final ExprValue JsonEmptyString = ExprValueUtils.stringValue("");
-  private static final ExprValue JsonInvalidObject =
-      ExprValueUtils.stringValue("{\"invalid\":\"json\", \"string\"}");
-  private static final ExprValue JsonInvalidScalar = ExprValueUtils.stringValue("abc");
-
   @Test
   public void json_valid_returns_false() {
-    assertEquals(LITERAL_FALSE, execute(JsonInvalidObject));
-    assertEquals(LITERAL_FALSE, execute(JsonInvalidScalar));
-    assertEquals(LITERAL_FALSE, execute(LITERAL_NULL));
-    assertEquals(LITERAL_FALSE, execute(LITERAL_MISSING));
+    assertEquals(
+        LITERAL_FALSE,
+        DSL.jsonValid(DSL.literal(ExprValueUtils.stringValue("{\"invalid\":\"json\", \"string\"}")))
+            .valueOf());
+    assertEquals(
+        LITERAL_FALSE, DSL.jsonValid(DSL.literal((ExprValueUtils.stringValue("abc")))).valueOf());
+    assertEquals(LITERAL_FALSE, DSL.jsonValid(DSL.literal((LITERAL_NULL))).valueOf());
+    assertEquals(LITERAL_FALSE, DSL.jsonValid(DSL.literal((LITERAL_MISSING))).valueOf());
   }
 
   @Test
   public void json_valid_throws_ExpressionEvaluationException() {
     assertThrows(
-        ExpressionEvaluationException.class, () -> execute(ExprValueUtils.booleanValue(true)));
+        ExpressionEvaluationException.class,
+        () -> DSL.jsonValid(DSL.literal((ExprValueUtils.booleanValue(true)))).valueOf());
   }
 
   @Test
   public void json_valid_returns_true() {
-    assertEquals(LITERAL_TRUE, execute(JsonNestedObject));
-    assertEquals(LITERAL_TRUE, execute(JsonObject));
-    assertEquals(LITERAL_TRUE, execute(JsonArray));
-    assertEquals(LITERAL_TRUE, execute(JsonScalarString));
-    assertEquals(LITERAL_TRUE, execute(JsonEmptyString));
-  }
 
-  private ExprValue execute(ExprValue jsonString) {
-    FunctionExpression exp = DSL.jsonValid(DSL.literal(jsonString));
-    return exp.valueOf();
+    List<String> validJsonStrings =
+        List.of(
+            // test json objects are valid
+            "{\"a\":\"1\",\"b\":\"2\"}",
+            "{\"a\":1,\"b\":{\"c\":2,\"d\":3}}",
+            "{\"arr1\": [1,2,3], \"arr2\": [4,5,6]}",
+
+            // test json arrays are valid
+            "[1, 2, 3, 4]",
+            "[{\"a\":1,\"b\":2}, {\"c\":3,\"d\":2}]",
+
+            // test json scalars are valid
+            "\"abc\"",
+            "1234",
+            "12.34",
+            "true",
+            "false",
+            "null",
+
+            // test empty string is valid
+            "");
+
+    validJsonStrings.stream()
+        .forEach(
+            str ->
+                assertEquals(
+                    LITERAL_TRUE,
+                    DSL.jsonValid(DSL.literal((ExprValueUtils.stringValue(str)))).valueOf(),
+                    String.format("String %s must be valid json", str)));
   }
 
   @Test
@@ -101,12 +115,16 @@ public class JsonFunctionsTest {
     ExprValue expectedTupleExpr = ExprTupleValue.fromExprValueMap(objectMap);
 
     // exercise
-    exp = DSL.json_function(DSL.literal(objectJson));
+    exp = DSL.stringToJson(DSL.literal(objectJson));
 
     // Verify
     var value = exp.valueOf();
     assertTrue(value instanceof ExprTupleValue);
     assertEquals(expectedTupleExpr, value);
+
+    // also test the empty object case
+    assertEquals(
+        ExprTupleValue.fromExprValueMap(Map.of()), DSL.stringToJson(DSL.literal("{}")).valueOf());
   }
 
   @Test
@@ -127,29 +145,36 @@ public class JsonFunctionsTest {
                 LITERAL_NULL));
 
     // exercise
-    exp = DSL.json_function(DSL.literal(arrayJson));
+    exp = DSL.stringToJson(DSL.literal(arrayJson));
 
     // Verify
     var value = exp.valueOf();
     assertTrue(value instanceof ExprCollectionValue);
     assertEquals(expectedArrayExpr, value);
+
+    // also test the empty-array case
+    assertEquals(new ExprCollectionValue(List.of()), DSL.stringToJson(DSL.literal("[]")).valueOf());
   }
 
   @Test
   void json_returnsScalar() {
     assertEquals(
-        new ExprStringValue("foobar"), DSL.json_function(DSL.literal("\"foobar\"")).valueOf());
+        new ExprStringValue("foobar"), DSL.stringToJson(DSL.literal("\"foobar\"")).valueOf());
 
-    assertEquals(new ExprIntegerValue(1234), DSL.json_function(DSL.literal("1234")).valueOf());
+    assertEquals(new ExprIntegerValue(1234), DSL.stringToJson(DSL.literal("1234")).valueOf());
 
-    assertEquals(LITERAL_TRUE, DSL.json_function(DSL.literal("true")).valueOf());
+    assertEquals(new ExprDoubleValue(12.34), DSL.stringToJson(DSL.literal("12.34")).valueOf());
 
-    assertEquals(LITERAL_NULL, DSL.json_function(DSL.literal("null")).valueOf());
+    assertEquals(LITERAL_TRUE, DSL.stringToJson(DSL.literal("true")).valueOf());
+    assertEquals(LITERAL_FALSE, DSL.stringToJson(DSL.literal("false")).valueOf());
 
-    assertEquals(LITERAL_NULL, DSL.json_function(DSL.literal("")).valueOf());
+    assertEquals(LITERAL_NULL, DSL.stringToJson(DSL.literal("null")).valueOf());
 
-    assertEquals(
-        ExprTupleValue.fromExprValueMap(Map.of()), DSL.json_function(DSL.literal("{}")).valueOf());
+    assertEquals(LITERAL_NULL, DSL.stringToJson(DSL.literal(LITERAL_NULL)).valueOf());
+
+    assertEquals(LITERAL_MISSING, DSL.stringToJson(DSL.literal(LITERAL_MISSING)).valueOf());
+
+    assertEquals(LITERAL_NULL, DSL.stringToJson(DSL.literal("")).valueOf());
   }
 
   @Test

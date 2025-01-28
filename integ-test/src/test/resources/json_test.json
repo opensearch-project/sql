@@ -7,10 +7,20 @@
 {"index":{"_id":"3"}}
 {"test_name":"json scalar string", "json_string":"\"abc\""}
 {"index":{"_id":"4"}}
-{"test_name":"json empty string","json_string":""}
+{"test_name":"json scalar int", "json_string":"1234"}
 {"index":{"_id":"5"}}
-{"test_name":"json invalid object", "json_string":"{\"invalid\":\"json\", \"string\"}"}
+{"test_name":"json scalar float", "json_string":"12.34"}
 {"index":{"_id":"6"}}
-{"test_name":"json null", "json_string":null}
+{"test_name":"json scalar double", "json_string":"2.99792458e8"}
 {"index":{"_id":"7"}}
+{"test_name":"json scalar boolean true", "json_string":"true"}
+{"index":{"_id":"8"}}
+{"test_name":"json scalar boolean false", "json_string":"false"}
+{"index":{"_id":"9"}}
+{"test_name":"json empty string", "json_string":""}
+{"index":{"_id":"10"}}
+{"test_name":"json invalid object", "json_string":"{\"invalid\":\"json\", \"string\"}"}
+{"index":{"_id":"11"}}
+{"test_name":"json null", "json_string":null}
+{"index":{"_id":"12"}}
 {"test_name":"json nested list", "json_string":"{\"a\":\"1\",\"b\":[{\"c\":\"2\"}, {\"c\":\"3\"}]}"}
