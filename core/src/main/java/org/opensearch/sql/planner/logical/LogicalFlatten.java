@@ -16,11 +16,11 @@ import org.opensearch.sql.expression.ReferenceExpression;
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public class LogicalFlatten extends LogicalPlan {
-  private final ReferenceExpression field;
+  private final ReferenceExpression fieldRefExp;
 
-  public LogicalFlatten(LogicalPlan child, ReferenceExpression field) {
+  public LogicalFlatten(LogicalPlan child, ReferenceExpression fieldRefExp) {
     super(Collections.singletonList(child));
-    this.field = field;
+    this.fieldRefExp = fieldRefExp;
   }
 
   @Override

@@ -134,7 +134,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   private final BuiltinFunctionRepository repository;
 
   private static final String PATH_SEPARATOR = ".";
-  private static final Pattern PATH_COMPONENT_PATTERN =
+  private static final Pattern PATH_SEPARATOR_PATTERN =
       Pattern.compile(PATH_SEPARATOR, Pattern.LITERAL);
 
   /** Constructor. */
@@ -491,7 +491,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     for (java.util.Map.Entry<String, ExprType> entry : fieldsMap.entrySet()) {
       String path = entry.getKey();
-      List<String> pathComponents = Arrays.stream(PATH_COMPONENT_PATTERN.split(path)).toList();
+      List<String> pathComponents = Arrays.stream(PATH_SEPARATOR_PATTERN.split(path)).toList();
 
       // Verify that path starts with the field name.
       if (!pathComponents.getFirst().equals(fieldName)) {

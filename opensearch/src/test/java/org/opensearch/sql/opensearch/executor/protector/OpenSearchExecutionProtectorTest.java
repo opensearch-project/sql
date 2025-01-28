@@ -369,10 +369,9 @@ class OpenSearchExecutionProtectorTest {
   void test_visitFlatten() {
     FlattenOperator flattenOperator =
         new FlattenOperator(values(emptyList()), ref("field_name", STRUCT));
+
     assertEquals(
-        resourceMonitor(flattenOperator),
-        executionProtector.visitFlatten(flattenOperator, null),
-        "flatten operator is protected");
+        resourceMonitor(flattenOperator), executionProtector.visitFlatten(flattenOperator, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

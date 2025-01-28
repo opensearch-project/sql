@@ -34,6 +34,20 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
   @Mock private PhysicalPlan inputPlan;
 
   @Test
+  void testFlattenStructEmpty() {
+    Map<String, Object> structMap = ImmutableMap.of();
+    Map<String, Object> rowMap = ImmutableMap.of("struct_field", structMap);
+    ExprValue rowValue = ExprValueUtils.tupleValue(rowMap);
+
+    when(inputPlan.hasNext()).thenReturn(true, false);
+    when(inputPlan.next()).thenReturn(rowValue);
+
+    PhysicalPlan plan = flatten(inputPlan, DSL.ref("struct_field", STRUCT));
+
+    assertThat(execute(plan), allOf(iterableWithSize(1), hasItems()));
+  }
+
+  @Test
   void testFlattenStructBasic() {
     Map<String, Object> structMap =
         ImmutableMap.ofEntries(
@@ -54,20 +68,6 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan = flatten(inputPlan, DSL.ref("struct_field", STRUCT));
 
     assertThat(execute(plan), allOf(iterableWithSize(1), hasItems(expectedRowValue)));
-  }
-
-  @Test
-  void testFlattenStructEmpty() {
-    Map<String, Object> structMap = ImmutableMap.of();
-    Map<String, Object> rowMap = ImmutableMap.of("struct_field", structMap);
-    ExprValue rowValue = ExprValueUtils.tupleValue(rowMap);
-
-    when(inputPlan.hasNext()).thenReturn(true, false);
-    when(inputPlan.next()).thenReturn(rowValue);
-
-    PhysicalPlan plan = flatten(inputPlan, DSL.ref("struct_field", STRUCT));
-
-    assertThat(execute(plan), allOf(iterableWithSize(1), hasItems()));
   }
 
   @Test

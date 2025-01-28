@@ -53,7 +53,7 @@ public class FlattenOperator extends PhysicalPlan {
     ExprValue inputExprValue = input.next();
     Map<String, ExprValue> fieldsMap = ExprValueUtils.getTupleValue(inputExprValue);
 
-    // Get the flattened field map.
+    // Build the flattened field map.
     String fieldName = field.getAttr();
     ExprValue exprValue = fieldsMap.get(fieldName);
 
@@ -63,7 +63,7 @@ public class FlattenOperator extends PhysicalPlan {
     fieldsMap.putAll(flattenedFieldsMap);
     fieldsMap.remove(fieldName);
 
-    // Update environment.
+    // Update the environment.
     Environment<Expression, ExprValue> env = inputExprValue.bindingTuples();
 
     for (Entry<String, ExprValue> entry : flattenedFieldsMap.entrySet()) {

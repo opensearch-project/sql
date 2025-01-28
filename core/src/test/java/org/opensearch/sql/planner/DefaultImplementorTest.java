@@ -342,13 +342,8 @@ class DefaultImplementorTest {
     var logicalPlan = new LogicalFlatten(logicalChild, ref(fieldName, STRUCT));
     var implemented = logicalPlan.accept(implementor, null);
 
-    assertInstanceOf(
-        FlattenOperator.class, implemented, "Visiting logical flatten builds physical flatten");
-    assertEquals(
-        fieldName,
-        ((FlattenOperator) implemented).getField().getAttr(),
-        "Physical flatten has expected field");
-    assertSame(
-        physicalChild, implemented.getChild().getFirst(), "Physical flatten has expected child");
+    assertInstanceOf(FlattenOperator.class, implemented);
+    assertEquals(fieldName, ((FlattenOperator) implemented).getField().getAttr());
+    assertSame(physicalChild, implemented.getChild().getFirst());
   }
 }

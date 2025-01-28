@@ -97,8 +97,8 @@ public class LogicalPlanDSL {
     return new LogicalEval(input, Arrays.asList(expressions));
   }
 
-  public LogicalPlan flatten(LogicalPlan input, ReferenceExpression field) {
-    return new LogicalFlatten(input, field);
+  public LogicalPlan flatten(LogicalPlan input, ReferenceExpression fieldRefExp) {
+    return new LogicalFlatten(input, fieldRefExp);
   }
 
   public static LogicalPlan sort(LogicalPlan input, Pair<SortOption, Expression>... sorts) {

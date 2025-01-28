@@ -103,7 +103,7 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
 
   @Override
   public PhysicalPlan visitFlatten(LogicalFlatten node, C context) {
-    return new FlattenOperator(visitChild(node, context), node.getField());
+    return new FlattenOperator(visitChild(node, context), node.getFieldRefExp());
   }
 
   @Override
