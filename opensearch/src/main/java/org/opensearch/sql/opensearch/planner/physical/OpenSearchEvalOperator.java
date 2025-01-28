@@ -50,7 +50,7 @@ public class OpenSearchEvalOperator extends EvalOperator {
     Map<String, ExprValue> evalResultMap = new LinkedHashMap<>();
     for (Pair<ReferenceExpression, Expression> pair : this.getExpressionList()) {
       ExprValue value;
-      if (pair.getValue() instanceof OpenSearchFunctions.OpenSearchFunction openSearchExpr) {
+      if (pair.getValue() instanceof OpenSearchFunctions.OpenSearchExecutableFunction openSearchExpr) {
         value = OpenSearchEvalProcessor.process(openSearchExpr, env, nodeClient);
       } else {
         value = pair.getValue().valueOf(env);

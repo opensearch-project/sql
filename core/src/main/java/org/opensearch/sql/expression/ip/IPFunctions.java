@@ -11,6 +11,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.expression.function.OpenSearchFunctions.OpenSearchExecutableFunction.openSearchImpl;
 
 import inet.ipaddr.IPAddress;
 import java.util.Arrays;
@@ -78,23 +79,5 @@ public class IPFunctions {
         BuiltinFunctionName.GEOIP.getName(),
         openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING)),
         openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING, STRING)));
-  }
-
-  /**
-   * Util method to generate probe implementation with given list of argument types, with marker
-   * class `OpenSearchFunction` to annotate this is an OpenSearch specific expression.
-   *
-   * @param returnType return type.
-   * @return Binary Function Implementation.
-   */
-  public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
-      openSearchImpl(ExprType returnType, List<ExprType> args) {
-    return functionName -> {
-      FunctionSignature functionSignature = new FunctionSignature(functionName, args);
-      FunctionBuilder functionBuilder =
-          (functionProperties, arguments) ->
-              new OpenSearchFunctions.OpenSearchFunction(functionName, arguments, returnType);
-      return Pair.of(functionSignature, functionBuilder);
-    };
   }
 }

@@ -130,18 +130,8 @@ public class OpenSearchFunctions {
   public static class OpenSearchFunction extends FunctionExpression {
     private final FunctionName functionName;
     private final List<Expression> arguments;
-    private final ExprType returnType;
 
     @Getter @Setter private boolean isScoreTracked;
-
-    public OpenSearchFunction(
-        FunctionName functionName, List<Expression> arguments, ExprType returnType) {
-      super(functionName, arguments);
-      this.functionName = functionName;
-      this.arguments = arguments;
-      this.returnType = returnType;
-      this.isScoreTracked = false;
-    }
 
     /**
      * Required argument constructor.
@@ -150,16 +140,62 @@ public class OpenSearchFunctions {
      * @param arguments a list of expressions
      */
     public OpenSearchFunction(FunctionName functionName, List<Expression> arguments) {
-      this(functionName, arguments, BOOLEAN);
+      super(functionName, arguments);
+      this.functionName = functionName;
+      this.arguments = arguments;
+      this.isScoreTracked = false;
     }
 
     @Override
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
       throw new UnsupportedOperationException(
-          String.format(
-              "OpenSearch defined function [%s] is only supported in WHERE clause, HAVING clause"
-                  + " and Eval operation.",
-              functionName));
+              String.format(
+                      "OpenSearch defined function [%s] is only supported in WHERE and HAVING clause.",
+                      functionName));
+    }
+
+    @Override
+    public ExprType type() {
+      return BOOLEAN;
+    }
+
+    @Override
+    public String toString() {
+      List<String> args =
+              arguments.stream()
+                      .map(
+                              arg ->
+                                      String.format(
+                                              "%s=%s",
+                                              ((NamedArgumentExpression) arg).getArgName(),
+                                              ((NamedArgumentExpression) arg).getValue().toString()))
+                      .collect(Collectors.toList());
+      return String.format("%s(%s)", functionName, String.join(", ", args));
+    }
+  }
+
+  /**
+   * Static class to identify functional Expression which specifically designed for OpenSearch storage runtime
+   */
+  public static class OpenSearchExecutableFunction extends FunctionExpression {
+    private final FunctionName functionName;
+    private final List<Expression> arguments;
+    private final ExprType returnType;
+
+    public OpenSearchExecutableFunction(
+            FunctionName functionName, List<Expression> arguments, ExprType returnType) {
+      super(functionName, arguments);
+      this.functionName = functionName;
+      this.arguments = arguments;
+      this.returnType = returnType;
+    }
+
+    @Override
+    public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+      throw new UnsupportedOperationException(
+              String.format(
+                      "OpenSearch defined function [%s] is only supported in Eval operation.",
+                      functionName));
     }
 
     @Override
@@ -170,15 +206,33 @@ public class OpenSearchFunctions {
     @Override
     public String toString() {
       List<String> args =
-          arguments.stream()
-              .map(
-                  arg ->
-                      String.format(
-                          "%s=%s",
-                          ((NamedArgumentExpression) arg).getArgName(),
-                          ((NamedArgumentExpression) arg).getValue().toString()))
-              .collect(Collectors.toList());
+              arguments.stream()
+                      .map(
+                              arg ->
+                                      String.format(
+                                              "%s=%s",
+                                              ((NamedArgumentExpression) arg).getArgName(),
+                                              ((NamedArgumentExpression) arg).getValue().toString()))
+                      .collect(Collectors.toList());
       return String.format("%s(%s)", functionName, String.join(", ", args));
+    }
+
+    /**
+     * Util method to generate probe implementation with given list of argument types, with marker
+     * class `OpenSearchFunction` to annotate this is an OpenSearch specific expression.
+     *
+     * @param returnType return type.
+     * @return Binary Function Implementation.
+     */
+    public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
+    openSearchImpl(ExprType returnType, List<ExprType> args) {
+      return functionName -> {
+        FunctionSignature functionSignature = new FunctionSignature(functionName, args);
+        FunctionBuilder functionBuilder =
+                (functionProperties, arguments) ->
+                        new OpenSearchFunctions.OpenSearchExecutableFunction(functionName, arguments, returnType);
+        return Pair.of(functionSignature, functionBuilder);
+      };
     }
   }
 }

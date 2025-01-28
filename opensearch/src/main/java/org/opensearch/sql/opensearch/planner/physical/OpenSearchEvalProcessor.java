@@ -37,7 +37,7 @@ public class OpenSearchEvalProcessor {
    * @return evaluation result.
    */
   public static ExprValue process(
-      OpenSearchFunctions.OpenSearchFunction funcExpression,
+      OpenSearchFunctions.OpenSearchExecutableFunction funcExpression,
       Environment<Expression, ExprValue> env,
       NodeClient nodeClient) {
 

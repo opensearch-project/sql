@@ -120,7 +120,7 @@ public class OpenSearchEvalOperatorTest {
         List.of(
             ImmutablePair.of(
                 new ReferenceExpression("ipEnrichmentResult", OpenSearchTextType.of()),
-                new OpenSearchFunctions.OpenSearchFunction(
+                new OpenSearchFunctions.OpenSearchExecutableFunction(
                     BuiltinFunctionName.GEOIP.getName(),
                     List.of(
                         DSL.literal("my-datasource"),
