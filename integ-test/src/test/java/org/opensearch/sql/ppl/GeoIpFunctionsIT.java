@@ -92,6 +92,40 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
         rows("Test user - Canada", "127.1.1.1", Map.of("country", "Canada", "city", "Vancouver")));
   }
 
+  @SneakyThrows
+  @Test
+  public void testGeoIpEnrichmentWithSingleOption() {
+
+    JSONObject resultGeoIp =
+            executeQuery(
+                    String.format(
+                            "search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s,\\\"%s\\\")",
+                            TEST_INDEX_GEOIP, "dummycityindex", "ip", "city"));
+
+    verifyColumn(resultGeoIp, columnName("name"), columnName("ip"), columnName("enrichmentResult"));
+    verifyDataRows(
+            resultGeoIp,
+            rows("Test user - USA", "10.1.1.1", Map.of( "city", "Seattle")),
+            rows("Test user - Canada", "127.1.1.1", Map.of( "city", "Vancouver")));
+  }
+
+  @SneakyThrows
+  @Test
+  public void testGeoIpEnrichmentWithSpaceSeparatedMultipleOptions() {
+
+    JSONObject resultGeoIp =
+            executeQuery(
+                    String.format(
+                            "search source=%s | eval enrichmentResult = geoip(\\\"%s\\\",%s,\\\"%s\\\")",
+                            TEST_INDEX_GEOIP, "dummycityindex", "ip", "city, country"));
+
+    verifyColumn(resultGeoIp, columnName("name"), columnName("ip"), columnName("enrichmentResult"));
+    verifyDataRows(
+            resultGeoIp,
+            rows("Test user - USA", "10.1.1.1", Map.of("country", "USA", "city", "Seattle")),
+            rows("Test user - Canada", "127.1.1.1", Map.of("country", "Canada", "city", "Vancouver")));
+  }
+
   /**
    * Helper method to send a PUT request to create a dummy dataSource with provided endpoint for
    * integration test.

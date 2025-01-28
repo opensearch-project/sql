@@ -50,16 +50,6 @@ public class OpenSearchEvalProcessor {
 
   private static ExprValue fetchIpEnrichment(
       List<Expression> arguments, Environment<Expression, ExprValue> env, NodeClient nodeClient) {
-    final Set<String> PERMITTED_OPTIONS =
-        Set.of(
-            "country_iso_code",
-            "country_name",
-            "continent_name",
-            "region_iso_code",
-            "region_name",
-            "city_name",
-            "time_zone",
-            "location");
     IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);
     String dataSource = StringUtils.unquoteText(arguments.get(0).toString());
     String ipAddress = arguments.get(1).valueOf(env).stringValue();
@@ -69,7 +59,7 @@ public class OpenSearchEvalProcessor {
       // Convert the option into a set.
       options.addAll(
           Arrays.stream(option.split(","))
-              .filter(PERMITTED_OPTIONS::contains)
+              .map(String::trim)
               .collect(Collectors.toSet()));
     }
     try {
