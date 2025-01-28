@@ -15,21 +15,13 @@ import static org.opensearch.sql.expression.function.OpenSearchFunctions.OpenSea
 
 import inet.ipaddr.IPAddress;
 import java.util.Arrays;
-import java.util.List;
 import lombok.experimental.UtilityClass;
-import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
-import org.opensearch.sql.expression.function.FunctionBuilder;
-import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.FunctionSignature;
-import org.opensearch.sql.expression.function.OpenSearchFunctions;
-import org.opensearch.sql.expression.function.SerializableFunction;
 import org.opensearch.sql.utils.IPUtils;
 
 /** Utility class that defines and registers IP functions. */

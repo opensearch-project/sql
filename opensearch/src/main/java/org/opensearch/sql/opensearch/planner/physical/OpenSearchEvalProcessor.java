@@ -58,9 +58,7 @@ public class OpenSearchEvalProcessor {
       String option = StringUtils.unquoteText(arguments.get(2).toString());
       // Convert the option into a set.
       options.addAll(
-          Arrays.stream(option.split(","))
-              .map(String::trim)
-              .collect(Collectors.toSet()));
+          Arrays.stream(option.split(",")).map(String::trim).collect(Collectors.toSet()));
     }
     try {
       Map<String, Object> geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);
