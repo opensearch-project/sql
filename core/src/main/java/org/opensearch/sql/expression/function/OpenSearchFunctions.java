@@ -149,9 +149,9 @@ public class OpenSearchFunctions {
     @Override
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
       throw new UnsupportedOperationException(
-              String.format(
-                      "OpenSearch defined function [%s] is only supported in WHERE and HAVING clause.",
-                      functionName));
+          String.format(
+                  "OpenSearch defined function [%s] is only supported in WHERE and HAVING clause.",
+                  functionName));
     }
 
     @Override
@@ -162,14 +162,14 @@ public class OpenSearchFunctions {
     @Override
     public String toString() {
       List<String> args =
-              arguments.stream()
-                      .map(
-                              arg ->
-                                      String.format(
-                                              "%s=%s",
-                                              ((NamedArgumentExpression) arg).getArgName(),
-                                              ((NamedArgumentExpression) arg).getValue().toString()))
-                      .collect(Collectors.toList());
+          arguments.stream()
+              .map(
+        arg ->
+                      String.format(
+                          "%s=%s",
+                          ((NamedArgumentExpression) arg).getArgName(),
+                          ((NamedArgumentExpression) arg).getValue().toString()))
+              .collect(Collectors.toList());
       return String.format("%s(%s)", functionName, String.join(", ", args));
     }
   }
