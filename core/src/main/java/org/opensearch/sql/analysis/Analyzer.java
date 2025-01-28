@@ -36,7 +36,6 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -59,7 +58,6 @@ import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
-import org.opensearch.sql.ast.tree.Pattern;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -71,6 +69,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -475,25 +474,17 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
-  public LogicalPlan visitPattern(Pattern node, AnalysisContext context) {
+  public LogicalPlan visitWindow(Window node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     WindowExpressionAnalyzer windowAnalyzer =
         new WindowExpressionAnalyzer(expressionAnalyzer, child);
-    child = windowAnalyzer.analyze(node.getPatternWindowFunction(), context);
-    java.util.Map<String, Literal> arguments = node.getArguments();
-    Literal alias = arguments.getOrDefault("new_field", AstDSL.stringLiteral("patterns_field"));
+    child = windowAnalyzer.analyze(node.getWindowFunction(), context);
 
     TypeEnvironment curEnv = context.peek();
-    if (child instanceof LogicalWindow patternWindow) {
-      NamedExpression namedExpression =
-          new NamedExpression(
-              patternWindow.getWindowFunction().getNameOrAlias(),
-              new ReferenceExpression(
-                  patternWindow.getWindowFunction().getNameOrAlias(),
-                  patternWindow.getWindowFunction().getDelegated().type()));
+    if (child instanceof LogicalWindow window) {
       curEnv.define(
-          new Symbol(Namespace.FIELD_NAME, namedExpression.getNameOrAlias()),
-          namedExpression.type());
+          new Symbol(Namespace.FIELD_NAME, window.getWindowFunction().getNameOrAlias()),
+          window.getWindowFunction().getDelegated().type());
     }
 
     return child;

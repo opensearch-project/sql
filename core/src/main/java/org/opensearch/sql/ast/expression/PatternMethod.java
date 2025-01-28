@@ -1,9 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
 
 package org.opensearch.sql.ast.expression;
@@ -13,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public enum PatternMethod {
-  SIMPLE("simple_pattern"),
+  SIMPLE_PATTERN("simple_pattern"),
   BRAIN("brain");
 
   @Getter final String name;

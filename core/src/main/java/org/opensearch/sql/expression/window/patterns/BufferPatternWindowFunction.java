@@ -17,13 +17,13 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.WindowFunctionExpression;
 import org.opensearch.sql.expression.window.frame.BufferPatternRowsWindowFrame;
 import org.opensearch.sql.expression.window.frame.WindowFrame;
+import org.opensearch.sql.utils.FunctionUtils;
 
 @EqualsAndHashCode(callSuper = true)
 public class BufferPatternWindowFunction extends FunctionExpression
@@ -36,30 +36,12 @@ public class BufferPatternWindowFunction extends FunctionExpression
   @Override
   public WindowFrame createWindowFrame(WindowDefinition definition) {
     int variableCountThreshold =
-        getArguments().stream()
-            .filter(
-                expression ->
-                    expression instanceof NamedArgumentExpression
-                        && ((NamedArgumentExpression) expression)
-                            .getArgName()
-                            .equalsIgnoreCase("variable_count_threshold"))
-            .map(
-                expression ->
-                    ((NamedArgumentExpression) expression).getValue().valueOf().integerValue())
-            .findFirst()
+        FunctionUtils.getNamedArgumentValue(getArguments(), "variable_count_threshold")
+            .map(ExprValue::integerValue)
             .orElse(5);
     float thresholdPercentage =
-        getArguments().stream()
-            .filter(
-                expression ->
-                    expression instanceof NamedArgumentExpression
-                        && ((NamedArgumentExpression) expression)
-                            .getArgName()
-                            .equalsIgnoreCase("frequency_threshold_percentage"))
-            .map(
-                expression ->
-                    ((NamedArgumentExpression) expression).getValue().valueOf().floatValue())
-            .findFirst()
+        FunctionUtils.getNamedArgumentValue(getArguments(), "frequency_threshold_percentage")
+            .map(ExprValue::floatValue)
             .orElse(0.3f);
     return new BufferPatternRowsWindowFrame(
         definition,

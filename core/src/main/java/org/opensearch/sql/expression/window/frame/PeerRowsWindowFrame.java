@@ -37,7 +37,7 @@ public class PeerRowsWindowFrame implements WindowFrame {
   protected int position;
 
   /** Does row at current position represents a new partition. */
-  protected boolean isNewPartition = true;
+  private boolean isNewPartition = true;
 
   /** If any more pre-fetched rows not returned to window operator yet. */
   @Override
@@ -95,11 +95,6 @@ public class PeerRowsWindowFrame implements WindowFrame {
     loadAllRows(it);
   }
 
-  @Override
-  public boolean isNewPartition() {
-    return isNewPartition;
-  }
-
   protected void loadAllRows(PeekingIterator<ExprValue> it) {
     // Reset state: reset new partition before clearing peers
     isNewPartition = !isSamePartition(it.peek());
@@ -118,7 +113,12 @@ public class PeerRowsWindowFrame implements WindowFrame {
     }
   }
 
-  protected boolean isPeer(ExprValue next) {
+  @Override
+  public boolean isNewPartition() {
+    return isNewPartition;
+  }
+
+  private boolean isPeer(ExprValue next) {
     List<Expression> sortFields =
         windowDefinition.getSortList().stream().map(Pair::getRight).collect(Collectors.toList());
 
@@ -126,7 +126,7 @@ public class PeerRowsWindowFrame implements WindowFrame {
     return resolve(sortFields, last).equals(resolve(sortFields, next));
   }
 
-  protected boolean isSamePartition(ExprValue next) {
+  private boolean isSamePartition(ExprValue next) {
     if (peers.isEmpty()) {
       return false;
     }

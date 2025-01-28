@@ -6,8 +6,10 @@
 package org.opensearch.sql.ast.dsl;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -55,7 +57,6 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
-import org.opensearch.sql.ast.tree.Pattern;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -68,6 +69,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Window;
 
 /** Class of static methods to create specific node instances. */
 @UtilityClass
@@ -491,19 +493,23 @@ public class AstDSL {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
   }
 
-  public static Pattern pattern(
+  public static Window window(
       UnresolvedPlan input,
       PatternMethod patternMethod,
       UnresolvedExpression sourceField,
       String alias,
-      java.util.Map<String, Literal> arguments) {
-    return new Pattern(
+      List<Argument> arguments) {
+    List<UnresolvedExpression> funArgs = new ArrayList<>();
+    funArgs.add(sourceField);
+    funArgs.addAll(arguments);
+    return new Window(
         new Alias(
-            "patterns_field",
+            alias,
             new WindowFunction(
-                new Function(patternMethod.getName(), List.of(sourceField)), List.of(), List.of()),
+                new Function(patternMethod.name().toLowerCase(Locale.ROOT), funArgs),
+                List.of(),
+                List.of()),
             alias),
-        arguments,
         input);
   }
 

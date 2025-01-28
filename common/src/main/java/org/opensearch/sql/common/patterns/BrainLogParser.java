@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -39,7 +40,8 @@ public class BrainLogParser {
         "<*DATETIME*>");
     // Hex Decimal, letters followed by digits, float numbers
     DEFAULT_FILTER_PATTERN_VARIABLE_MAP.put(
-        Pattern.compile("((0x|0X)[0-9a-fA-F]+)|[a-zA-Z]+\\d+|([+-]?(?!\\d{3}$)\\d{4,}(\\.\\d*)?|\\.\\d+)"),
+        Pattern.compile(
+            "((0x|0X)[0-9a-fA-F]+)|[a-zA-Z]+\\d+|([+-]?(?!\\d{3}$)\\d{4,}(\\.\\d*)?|\\.\\d+)"),
         VARIABLE_DENOTER);
     // generic number surrounded by non-alphanumeric
     DEFAULT_FILTER_PATTERN_VARIABLE_MAP.put(
@@ -214,18 +216,18 @@ public class BrainLogParser {
    *
    * @param preprocessedLogs preprocessed list of log messages
    */
-  private void calculateGroupTokenFreq(List<List<String>> preprocessedLogs) {
+  void calculateGroupTokenFreq(List<List<String>> preprocessedLogs) {
     for (List<String> tokens : preprocessedLogs) {
       Map<Long, Integer> wordOccurrences = this.getWordOccurrences(tokens);
       List<WordCombination> sortedWordCombinations =
           wordOccurrences.entrySet().stream()
               .map(entry -> new WordCombination(entry.getKey(), entry.getValue()))
               .sorted()
-              .toList();
+              .collect(Collectors.toList());
       WordCombination candidate = this.findCandidate(sortedWordCombinations);
       String groupCandidateStr =
           String.format(Locale.ROOT, "%d,%d", candidate.wordFreq(), candidate.sameFreqCount());
-      this.logIdGroupCandidateMap.put(tokens.getLast(), groupCandidateStr);
+      this.logIdGroupCandidateMap.put(tokens.get(tokens.size() - 1), groupCandidateStr);
       this.updateGroupTokenFreqMap(tokens, groupCandidateStr);
     }
   }
@@ -238,7 +240,7 @@ public class BrainLogParser {
    * @return parsed log pattern that is a list of string
    */
   public List<String> parseLogPattern(List<String> tokens) {
-    String logId = tokens.getLast();
+    String logId = tokens.get(tokens.size() - 1);
     String groupCandidateStr = this.logIdGroupCandidateMap.get(logId);
     String[] groupCandidate = groupCandidateStr.split(",");
     Long repFreq = Long.parseLong(groupCandidate[0]); // representative frequency of the group
@@ -299,7 +301,7 @@ public class BrainLogParser {
 
     Map<String, List<String>> logPatternMap = new HashMap<>();
     for (List<String> processedMessage : processedMessages) {
-      String logId = processedMessage.getLast();
+      String logId = processedMessage.get(processedMessage.size() - 1);
       List<String> logPattern = this.parseLogPattern(processedMessage);
       String patternKey = String.join(" ", logPattern);
       logPatternMap.computeIfAbsent(patternKey, k -> new ArrayList<>()).add(logId);
@@ -357,7 +359,7 @@ public class BrainLogParser {
         return wordCombination;
       }
     }
-    return sortedWordCombinations.getFirst();
+    return sortedWordCombinations.get(0);
   }
 
   private void updateGroupTokenFreqMap(List<String> tokens, String groupCandidateStr) {
@@ -371,8 +373,22 @@ public class BrainLogParser {
     }
   }
 
-  private record WordCombination(Long wordFreq, Integer sameFreqCount)
-      implements Comparable<WordCombination> {
+  private static final class WordCombination implements Comparable<WordCombination> {
+    private final Long wordFreq;
+    private final Integer sameFreqCount;
+
+    public WordCombination(Long wordFreq, Integer sameFreqCount) {
+      this.wordFreq = wordFreq;
+      this.sameFreqCount = sameFreqCount;
+    }
+
+    public Long wordFreq() {
+      return this.wordFreq;
+    }
+
+    public Integer sameFreqCount() {
+      return this.sameFreqCount;
+    }
 
     @Override
     public int compareTo(WordCombination other) {
@@ -381,9 +397,26 @@ public class BrainLogParser {
       if (wordFreqComparison != 0) {
         return wordFreqComparison;
       }
-
       // If sameFreqCount are the same, compare by wordFreq in descending order
       return other.wordFreq.compareTo(this.wordFreq);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      WordCombination other = (WordCombination) obj;
+      return Objects.equals(wordFreq, other.wordFreq)
+          && Objects.equals(sameFreqCount, other.sameFreqCount);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(wordFreq, sameFreqCount);
     }
   }
 }

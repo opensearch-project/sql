@@ -33,12 +33,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
@@ -61,7 +61,6 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
-import org.opensearch.sql.ast.tree.Pattern;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -71,6 +70,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -291,33 +291,32 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
     List<UnresolvedExpression> unresolvedArguments = new ArrayList<>();
     unresolvedArguments.add(sourceField);
-    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    AtomicReference<String> alias = new AtomicReference<>("patterns_field");
     ctx.patternsParameter()
         .forEach(
             x -> {
-              builder.put(
-                  x.children.get(0).toString(),
-                  (Literal) internalVisitExpression(x.children.get(2)));
-              unresolvedArguments.add(
-                  new Argument(
-                      x.children.get(0).toString(),
-                      (Literal) internalVisitExpression(x.children.get(2))));
+              String argName = x.children.get(0).toString();
+              Literal value = (Literal) internalVisitExpression(x.children.get(2));
+              if ("new_field".equalsIgnoreCase(argName)) {
+                alias.set((String) value.getValue());
+              }
+              unresolvedArguments.add(new Argument(argName, value));
             });
-    java.util.Map<String, Literal> arguments = builder.build();
-    Literal alias = arguments.getOrDefault("new_field", AstDSL.stringLiteral("patterns_field"));
-    return new Pattern(
+    return new Window(
         new Alias(
-            "patterns_field",
+            alias.get(),
             new WindowFunction(
                 new Function(
                     ctx.pattern_method != null
-                        ? ctx.pattern_method.getText().toLowerCase(Locale.ROOT)
-                        : BuiltinFunctionName.BRAIN.name(), // By default, use new algorithm
+                        ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText())
+                            .toLowerCase(Locale.ROOT)
+                        : BuiltinFunctionName.BRAIN
+                            .name()
+                            .toLowerCase(Locale.ROOT), // By default, use new algorithm
                     unresolvedArguments),
                 List.of(), // ignore partition by list for now as we haven't seen such requirement
                 List.of()), // ignore sort by list for now as we haven't seen such requirement
-            (String) alias.getValue()),
-        arguments);
+            alias.get()));
   }
 
   /** Top command. */

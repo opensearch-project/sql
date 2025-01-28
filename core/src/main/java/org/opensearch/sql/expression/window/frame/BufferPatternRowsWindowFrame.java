@@ -11,6 +11,7 @@ package org.opensearch.sql.expression.window.frame;
 import com.google.common.collect.PeekingIterator;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -52,7 +53,7 @@ public class BufferPatternRowsWindowFrame extends PeerRowsWindowFrame {
                   ExprValue value = sourceField.valueOf(exprValue.bindingTuples());
                   return value.stringValue();
                 })
-            .toList();
+            .collect(Collectors.toList());
     this.preprocessedMessages.addAll(logParser.preprocessAllLogs(logMessages));
   }
 

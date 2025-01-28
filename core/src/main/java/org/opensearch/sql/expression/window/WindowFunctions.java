@@ -6,10 +6,12 @@
 package org.opensearch.sql.expression.window;
 
 import static java.util.Collections.emptyList;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.function.Supplier;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -56,22 +58,36 @@ public class WindowFunctions {
 
   private DefaultFunctionResolver brain() {
     FunctionName functionName = BuiltinFunctionName.BRAIN.getName();
-    FunctionSignature functionSignature =
-        new FunctionSignature(functionName, Collections.singletonList(STRING));
     FunctionBuilder functionBuilder =
         (functionProperties, arguments) -> new BufferPatternWindowFunction(arguments);
     return new DefaultFunctionResolver(
-        functionName, ImmutableMap.of(functionSignature, functionBuilder));
+        functionName,
+        ImmutableMap.of(
+            new FunctionSignature(functionName, ImmutableList.of(STRING)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, DOUBLE)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, INTEGER)),
+                functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, DOUBLE)),
+                functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER, DOUBLE)),
+                functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, INTEGER, DOUBLE)),
+                functionBuilder));
   }
 
   private DefaultFunctionResolver simplePattern() {
     FunctionName functionName = BuiltinFunctionName.SIMPLE_PATTERN.getName();
-    FunctionSignature functionSignature =
-        new FunctionSignature(functionName, Collections.singletonList(STRING));
     FunctionBuilder functionBuilder =
         (functionProperties, arguments) -> new StreamPatternWindowFunction(arguments);
     return new DefaultFunctionResolver(
-        functionName, ImmutableMap.of(functionSignature, functionBuilder));
+        functionName,
+        ImmutableMap.of(
+            new FunctionSignature(functionName, ImmutableList.of(STRING)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, STRING)),
+                functionBuilder));
   }
 
   private DefaultFunctionResolver rankingFunction(
