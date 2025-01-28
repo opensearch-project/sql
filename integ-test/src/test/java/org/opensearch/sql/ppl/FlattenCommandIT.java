@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Map;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +27,36 @@ public class FlattenCommandIT extends PPLIntegTestCase {
   public void testFlattenStruct() throws IOException {
     String query =
         String.format(
-            "source=%s | flatten location | fields state, province, country, latitude, longitude",
+            "source=%s | flatten location | fields state, province, country, coordinates",
+            TEST_INDEX_CITIES);
+    JSONObject result = executeQuery(query);
+
+    verifySchema(
+        result,
+        schema("state", "string"),
+        schema("province", "string"),
+        schema("country", "string"),
+        schema("coordinates", "struct"));
+    verifyDataRows(
+        result,
+        rows(
+            "Washington",
+            null,
+            "United States",
+            Map.of("latitude", 47.6061, "longitude", -122.3328)),
+        rows(
+            null,
+            "British Columbia",
+            "Canada",
+            Map.of("latitude", 49.2827, "longitude", -123.1207)));
+  }
+
+  @Test
+  public void testFlattenStructMultiple() throws IOException {
+    String query =
+        String.format(
+            "source=%s | flatten location | flatten coordinates | fields state, province, country,"
+                + " latitude, longitude",
             TEST_INDEX_CITIES);
     JSONObject result = executeQuery(query);
 
