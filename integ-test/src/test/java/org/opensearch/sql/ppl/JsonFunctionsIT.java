@@ -40,6 +40,11 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json object"),
         rows("json array"),
         rows("json scalar string"),
+        rows("json scalar int"),
+        rows("json scalar float"),
+        rows("json scalar double"),
+        rows("json scalar boolean true"),
+        rows("json scalar boolean false"),
         rows("json empty string"),
         rows("json nested list"));
   }
@@ -74,6 +79,11 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json object", new JSONObject(Map.of("a", "1", "b", "2"))),
         rows("json array", new JSONArray(List.of(1, 2, 3, 4))),
         rows("json scalar string", "abc"),
+        rows("json scalar int", 1234),
+        rows("json scalar float", 12.34f),
+        rows("json scalar double", 2.99792458e8),
+        rows("json scalar boolean true", true),
+        rows("json scalar boolean false", false),
         rows("json empty string", null),
         rows(
             "json nested list",
@@ -100,10 +110,76 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json object", new JSONObject(Map.of("a", "1", "b", "2"))),
         rows("json array", new JSONArray(List.of(1, 2, 3, 4))),
         rows("json scalar string", "abc"),
+        rows("json scalar int", 1234),
+        rows("json scalar float", 12.34),
+        rows("json scalar double", 2.99792458e8),
+        rows("json scalar boolean true", true),
+        rows("json scalar boolean false", false),
         rows("json empty string", null),
         rows(
             "json nested list",
             new JSONObject(Map.of("a", "1", "b", List.of(Map.of("c", "2"), Map.of("c", "3"))))));
+  }
+
+  @Test
+  public void test_cast_json_scalar_to_type() throws IOException {
+    // cast to integer
+    JSONObject result;
+
+    result =
+        executeQuery(
+            String.format(
+                "source=%s | "
+                    + "where test_name='json scalar int' | "
+                    + "eval casted=cast(json(json_string) as int) | "
+                    + "fields test_name, casted",
+                TEST_INDEX_JSON_TEST));
+    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "integer"));
+    verifyDataRows(result, rows("json scalar int", 1234));
+
+    result =
+        executeQuery(
+            String.format(
+                "source=%s | "
+                    + "where test_name='json scalar int' | "
+                    + "eval casted=cast(json(json_string) as long) | "
+                    + "fields test_name, casted",
+                TEST_INDEX_JSON_TEST));
+    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "long"));
+    verifyDataRows(result, rows("json scalar int", 1234l));
+
+    result =
+        executeQuery(
+            String.format(
+                "source=%s | "
+                    + "where test_name='json scalar float' | "
+                    + "eval casted=cast(json(json_string) as float) | "
+                    + "fields test_name, casted",
+                TEST_INDEX_JSON_TEST));
+    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "float"));
+    verifyDataRows(result, rows("json scalar float", 12.34f));
+
+    result =
+        executeQuery(
+            String.format(
+                "source=%s | "
+                    + "where test_name='json scalar double' | "
+                    + "eval casted=cast(json(json_string) as double) | "
+                    + "fields test_name, casted",
+                TEST_INDEX_JSON_TEST));
+    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "double"));
+    verifyDataRows(result, rows("json scalar double", 2.99792458e8));
+
+    result =
+        executeQuery(
+            String.format(
+                "source=%s | where test_name='json scalar boolean true' OR test_name='json scalar"
+                    + " boolean false' | eval casted=cast(json(json_string) as boolean) | fields"
+                    + " test_name, casted",
+                TEST_INDEX_JSON_TEST));
+    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "boolean"));
+    verifyDataRows(
+        result, rows("json scalar boolean true", true), rows("json scalar boolean false", false));
   }
 
   @Test
@@ -123,6 +199,11 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json object", "2"),
         rows("json array", null),
         rows("json scalar string", null),
+        rows("json scalar int", null),
+        rows("json scalar float", null),
+        rows("json scalar double", null),
+        rows("json scalar boolean true", null),
+        rows("json scalar boolean false", null),
         rows("json empty string", null),
         rows("json nested list", new JSONArray(List.of(Map.of("c", "2"), Map.of("c", "3")))));
   }
