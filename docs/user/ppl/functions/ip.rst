@@ -49,9 +49,11 @@ Argument type: STRING, STRING, STRING
 
 Return type: OBJECT
 
+.. The execution of below example is being excluded, as this requires a standalone Geo-Spatial dataSource setup, which is not yet supported by docTest.
+
 Example:
 
-    os> source=weblogs | eval LookupResult = geoip("dataSourceName", "50.68.18.229", "country_iso_code,city_name")
+    > source=weblogs | eval LookupResult = geoip("dataSourceName", "50.68.18.229", "country_iso_code,city_name")
     fetched rows / total rows = 1/1
     +-------------------------------------------------------------+
     | LookupResult                                                |
