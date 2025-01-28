@@ -27,12 +27,10 @@ Example 1: Flatten an object field
 PPL query::
 
     os> source=cities | flatten location | fields name, province, state, country, coordinates
-    fetched rows / total rows = 2/2
+     fetched rows / total rows = 2/2
     +-----------+------------------+------------+---------------+-----------------------------------------------+
     | name      | province         | state      | country       | coordinates                                   |
-    +-----------+------------------+------------+---------------+-----------------------------------------------+
+    |-----------+------------------+------------+---------------+-----------------------------------------------|
     | Seattle   | null             | Washington | United States | {'latitude': 47.6061, 'longitude': -122.3328} |
     | Vancouver | British Columbia | null       | Canada        | {'latitude': 49.2827, 'longitude': -123.1207} |
     +-----------+------------------+------------+---------------+-----------------------------------------------+
-
-
