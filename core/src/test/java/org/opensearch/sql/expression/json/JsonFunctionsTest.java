@@ -167,10 +167,35 @@ public class JsonFunctionsTest {
   }
 
   @Test
+  void json_extract_search() {
+    Expression jsonArray = DSL.literal(ExprValueUtils.stringValue("{\"a\":1}"));
+    ExprValue expectedExprValue = new ExprIntegerValue(1);
+    Expression pathExpr = DSL.literal(ExprValueUtils.stringValue("$.a"));
+    FunctionExpression expression = DSL.jsonExtract(jsonArray, pathExpr);
+    assertEquals(expectedExprValue, expression.valueOf());
+  }
+
+  @Test
+  void json_extract_search_arrays_out_of_bound() {
+    Expression jsonArray = DSL.literal(ExprValueUtils.stringValue("{\"a\":[1,2,3}"));
+
+    // index out of bounds
+    assertThrows(
+        SemanticCheckException.class,
+        () -> DSL.jsonExtract(jsonArray, DSL.literal(new ExprStringValue("$.a[3]"))).valueOf());
+
+    // negative index
+    assertThrows(
+        SemanticCheckException.class,
+        () -> DSL.jsonExtract(jsonArray, DSL.literal(new ExprStringValue("$.a[-1]"))).valueOf());
+  }
+
+  @Test
   void json_extract_search_arrays() {
     Expression jsonArray =
         DSL.literal(
-            ExprValueUtils.stringValue("{\"a\":[1,2.3,\"abc\",true,null,{\"c\":1},[1,2,3]]}"));
+            ExprValueUtils.stringValue(
+                "{\"a\":[1,2.3,\"abc\",true,null,{\"c\":{\"d\":1}},[1,2,3]]}"));
     List<ExprValue> expectedExprValue =
         List.of(
             new ExprIntegerValue(1),
@@ -178,7 +203,8 @@ public class JsonFunctionsTest {
             new ExprStringValue("abc"),
             LITERAL_TRUE,
             LITERAL_NULL,
-            ExprTupleValue.fromExprValueMap(Map.of("c", new ExprIntegerValue(1))),
+            ExprTupleValue.fromExprValueMap(
+                Map.of("c", ExprTupleValue.fromExprValueMap(Map.of("d", new ExprIntegerValue(1))))),
             new ExprCollectionValue(
                 List.of(
                     new ExprIntegerValue(1), new ExprIntegerValue(2), new ExprIntegerValue(3))));
@@ -190,6 +216,13 @@ public class JsonFunctionsTest {
       FunctionExpression expression = DSL.jsonExtract(jsonArray, pathExpr);
       assertEquals(expectedExprValue.get(i), expression.valueOf());
     }
+
+    // extract nested object
+    ExprValue nestedExpected =
+        ExprTupleValue.fromExprValueMap(Map.of("d", new ExprIntegerValue(1)));
+    Expression nestedPath = DSL.literal(ExprValueUtils.stringValue("$.a[5].c"));
+    FunctionExpression nestedExpression = DSL.jsonExtract(jsonArray, nestedPath);
+    assertEquals(nestedExpected, nestedExpression.valueOf());
 
     // extract * from JSON list
     Expression starPath = DSL.literal(ExprValueUtils.stringValue("$.a[*]"));

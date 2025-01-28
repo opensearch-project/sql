@@ -69,7 +69,7 @@ ____________
 Description
 >>>>>>>>>>>
 
-Usage: `json_extract(doc, path)` Extracts a json value or scalar from a json document based on the path(s) specified.
+Usage: `json_extract(doc, path)` Extracts a json value or scalar from a json document based on the path specified.
 
 Argument type: STRING, STRING
 
@@ -77,6 +77,8 @@ Return type: BOOLEAN/DOUBLE/INTEGER/NULL/STRUCT/ARRAY
 
 - Returns a JSON array for multiple paths or if the path leads to an array.
 - Return null if path is not valid.
+- Throws error if `doc` or `path` is malformed.
+- Throws error if `doc` or `path` is MISSING or NULL.
 
 Example::
 

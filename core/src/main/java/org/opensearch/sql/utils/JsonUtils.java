@@ -54,6 +54,13 @@ public class JsonUtils {
     return processJsonNode(jsonNode);
   }
 
+  /**
+   * Extract value of JSON string at given JSON path.
+   *
+   * @param json JSON string (e.g. "{\"hello\": \"world\"}").
+   * @param path JSON path (e.g. "$.hello")
+   * @return ExprValue of value at given path of json string.
+   */
   public static ExprValue extractJson(ExprValue json, ExprValue path) {
     String jsonString = json.stringValue();
     String jsonPath = path.stringValue();
