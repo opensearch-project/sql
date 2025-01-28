@@ -225,7 +225,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     result =
             executeQuery(
                     String.format(
-                            "source=%s | eval updated=json_set(json_string, \"$.c.innerProperty\", \"test_value\" | fields"
+                            "source=%s | eval updated=json_set(json_string, \\\"$.c.innerProperty\\\", \\\"test_value\\\") | fields"
                                     + " test_name, updated",
                             TEST_INDEX_JSON_TEST));
     verifySchema(result,
@@ -233,20 +233,13 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
             schema("updated", null, "undefined"));
     verifyDataRows(
             result,
-            rows(
-                    "json nested object",
-                    new JSONObject(Map.of("a", "1",
-                            "b", Map.of("c", "3"),
-                            "d", List.of(1, 2, 3),
-                            "c", Map.of("innerProperty", "test_value")))),
-            rows("json object", new JSONObject(Map.of(
-                    "a", "1",
-                    "b", "2",
-                    "c", Map.of("innerProperty", "test_value")))),
+            rows("json nested object",
+                    "{\"a\":\"1\",\"b\":{\"c\":\"3\"},\"d\":[1,2,3],\"c\":{\"innerProperty\":\"test_value\"}}"),
+            rows("json object", "{\"a\":\"1\",\"b\":\"2\",\"c\":{\"innerProperty\":\"test_value\"}}"),
             rows("json array", null),
             rows("json scalar string", null),
             rows("json empty string", null),
-            rows("json invalid string", null),
+            rows("json invalid object", null),
             rows("json null", null));
   }
 }
