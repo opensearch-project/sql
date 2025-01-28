@@ -65,5 +65,5 @@ Example:
 Note:
  - `dataSourceName` must be an established dataSource on OpenSearch GeoSpatial plugin, detail of configuration can be found: https://opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/
  - `ip` can be an IPv4 or an IPv6 address
- - `options` is a comma separated String of fields to output: the selection of fields is subject to dataSourceProvider's schema.  For example, the list of fields in the provided `geolite2-city` dataset includes: "country_iso_code", "country_name", "continent_name", "region_iso_code", "region_name", "city_name", "time_zone", "location"
+ - `options` is an optional String of comma separated fields to output: the selection of fields is subject to dataSourceProvider's schema.  For example, the list of fields in the provided `geolite2-city` dataset includes: "country_iso_code", "country_name", "continent_name", "region_iso_code", "region_name", "city_name", "time_zone", "location"
 
