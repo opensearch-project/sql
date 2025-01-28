@@ -5,10 +5,7 @@
 
 package org.opensearch.sql.planner.physical;
 
-import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
-
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -57,7 +54,7 @@ public class FlattenOperator extends PhysicalPlan {
     String fieldName = field.getAttr();
     ExprValue exprValue = fieldsMap.get(fieldName);
 
-    Map<String, ExprValue> flattenedFieldsMap = flatten(exprValue);
+    Map<String, ExprValue> flattenedFieldsMap = exprValue.tupleValue();
 
     // Update field map.
     fieldsMap.putAll(flattenedFieldsMap);
@@ -73,26 +70,5 @@ public class FlattenOperator extends PhysicalPlan {
     }
 
     return ExprTupleValue.fromExprValueMap(fieldsMap);
-  }
-
-  /** Flattens the given expression value tuple and returns the result. */
-  private static Map<String, ExprValue> flatten(ExprValue exprValue) {
-
-    // Build flattened map from field name to value.
-    Map<String, ExprValue> flattenedFieldMap = new HashMap<>();
-
-    for (Entry<String, ExprValue> entry : exprValue.tupleValue().entrySet()) {
-      ExprValue entryExprValue = entry.getValue();
-
-      // Recursively flatten.
-      Map<String, ExprValue> flattenedEntryMap =
-          (entryExprValue.type() == STRUCT)
-              ? flatten(entryExprValue)
-              : Map.of(entry.getKey(), entryExprValue);
-
-      flattenedFieldMap.putAll(flattenedEntryMap);
-    }
-
-    return flattenedFieldMap;
   }
 }

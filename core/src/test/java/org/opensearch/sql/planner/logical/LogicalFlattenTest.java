@@ -97,8 +97,8 @@ class LogicalFlattenTest extends AnalyzerTestBase {
     Map<String, ExprType> fieldMap =
         analysisContext.peek().lookupAllTupleFields(Namespace.FIELD_NAME);
     assertFalse(fieldMap.containsKey("struct_nested"));
-    assertFalse(fieldMap.containsKey("struct_nested.struct"));
-    assertEquals(STRING, fieldMap.get("string"));
+    assertEquals(STRUCT, fieldMap.get("struct"));
+    assertEquals(STRING, fieldMap.get("struct.string"));
   }
 
   @Test

@@ -69,24 +69,4 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
 
     assertThat(execute(plan), allOf(iterableWithSize(1), hasItems(expectedRowValue)));
   }
-
-  @Test
-  void testFlattenStructNested() {
-    Map<String, Object> nestedStructMap =
-        ImmutableMap.ofEntries(Map.entry("nested_string_field", "string_value"));
-    Map<String, Object> structMap =
-        ImmutableMap.ofEntries(Map.entry("nested_struct_field", nestedStructMap));
-    Map<String, Object> rowMap = ImmutableMap.of("struct_field", structMap);
-    ExprValue rowValue = ExprValueUtils.tupleValue(rowMap);
-
-    Map<String, Object> expectedRowMap = ImmutableMap.of("nested_string_field", "string_value");
-    ExprValue expectedRowValue = ExprValueUtils.tupleValue(expectedRowMap);
-
-    when(inputPlan.hasNext()).thenReturn(true, false);
-    when(inputPlan.next()).thenReturn(rowValue);
-
-    PhysicalPlan plan = flatten(inputPlan, DSL.ref("struct_field", STRUCT));
-
-    assertThat(execute(plan), allOf(iterableWithSize(1), hasItems(expectedRowValue)));
-  }
 }

@@ -489,31 +489,28 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     java.util.Map<String, ExprType> addFieldsMap = new HashMap<>();
     java.util.Map<String, ExprType> removeFieldsMap = new HashMap<>();
 
+    removeFieldsMap.put(fieldName, fieldType);
+
     for (java.util.Map.Entry<String, ExprType> entry : fieldsMap.entrySet()) {
       String path = entry.getKey();
       List<String> pathComponents = Arrays.stream(PATH_SEPARATOR_PATTERN.split(path)).toList();
 
       // Verify that path starts with the field name.
-      if (!pathComponents.getFirst().equals(fieldName)) {
+      if (pathComponents.size() < 2 || !pathComponents.getFirst().equals(fieldName)) {
         continue;
       }
 
-      // Remove non-leaf nodes.
-      ExprType type = entry.getValue();
-      if (type == STRUCT) {
-        removeFieldsMap.put(path, STRUCT);
-        continue;
-      }
-
-      String newFieldName = pathComponents.getLast();
+      String newPath =
+          String.join(PATH_SEPARATOR, pathComponents.subList(1, pathComponents.size()));
 
       // Verify that new field does not overwrite an existing field.
-      if (fieldsMap.containsKey(newFieldName)) {
+      if (fieldsMap.containsKey(newPath)) {
         throw new IllegalArgumentException(
-            String.format("Flatten command cannot overwrite field '%s'", newFieldName));
+            String.format("Flatten command cannot overwrite field '%s'", newPath));
       }
 
-      addFieldsMap.put(newFieldName, type);
+      ExprType type = entry.getValue();
+      addFieldsMap.put(newPath, type);
       removeFieldsMap.put(path, type);
     }
 

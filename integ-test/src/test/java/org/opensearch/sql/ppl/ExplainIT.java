@@ -130,7 +130,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFlatten() throws Exception {
-    String actual = explainQueryToString(String.format("source=%s | flatten location", TEST_INDEX_CITIES));
+    String actual =
+        explainQueryToString(String.format("source=%s | flatten location", TEST_INDEX_CITIES));
     String expected = loadFromFile("expectedOutput/ppl/explain_flatten.json");
     assertJsonEquals(expected, actual);
   }
