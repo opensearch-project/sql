@@ -64,7 +64,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
       fail();
     } catch (ResponseException e) {
       assertTrue(e.getMessage().contains("RuntimeException"));
-      assertTrue(e.getMessage().contains("Failed to parse query due to offending symbol"));
+      assertTrue(e.getMessage().contains("is not a valid term at this part of the query"));
     }
   }
 }

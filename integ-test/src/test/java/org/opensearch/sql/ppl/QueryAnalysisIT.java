@@ -82,25 +82,25 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
   @Test
   public void queryNotStartingWithSearchCommandShouldFailSyntaxCheck() {
     String query = "fields firstname";
-    queryShouldThrowSyntaxException(query, "Failed to parse query due to offending symbol");
+    queryShouldThrowSyntaxException(query, "is not a valid term at this part of the query");
   }
 
   @Test
   public void queryWithIncorrectCommandShouldFailSyntaxCheck() {
     String query = String.format("search source=%s | field firstname", TEST_INDEX_ACCOUNT);
-    queryShouldThrowSyntaxException(query, "Failed to parse query due to offending symbol");
+    queryShouldThrowSyntaxException(query, "is not a valid term at this part of the query");
   }
 
   @Test
   public void queryWithIncorrectKeywordsShouldFailSyntaxCheck() {
     String query = String.format("search sources=%s", TEST_INDEX_ACCOUNT);
-    queryShouldThrowSyntaxException(query, "Failed to parse query due to offending symbol");
+    queryShouldThrowSyntaxException(query, "is not a valid term at this part of the query");
   }
 
   @Test
   public void unsupportedAggregationFunctionShouldFailSyntaxCheck() {
     String query = String.format("search source=%s | stats range(age)", TEST_INDEX_ACCOUNT);
-    queryShouldThrowSyntaxException(query, "Failed to parse query due to offending symbol");
+    queryShouldThrowSyntaxException(query, "is not a valid term at this part of the query");
   }
 
   /** Commands that fail semantic analysis should throw {@link SemanticCheckException}. */
