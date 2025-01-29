@@ -204,19 +204,6 @@ public class OpenSearchFunctions {
       return returnType;
     }
 
-    @Override
-    public String toString() {
-      List<String> args =
-          arguments.stream()
-              .map(
-                  arg ->
-                      String.format(
-                          "%s=%s",
-                          ((NamedArgumentExpression) arg).getArgName(),
-                          ((NamedArgumentExpression) arg).getValue().toString()))
-              .collect(Collectors.toList());
-      return String.format("%s(%s)", functionName, String.join(", ", args));
-    }
 
     /**
      * Util method to generate probe implementation with given list of argument types, with marker
