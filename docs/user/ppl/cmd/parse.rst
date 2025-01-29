@@ -111,6 +111,6 @@ There are a few limitations with parse command:
 
 - Fields defined by parse will not appear in the final result unless the original source field is included in the ``fields`` command.
 
-  For example, the following query will not display the parsed fields ``host`` unless the source field ``email`` is explicitly included::
+  For example, the following query will not display the parsed fields ``host`` unless the source field ``email`` is also explicitly included::
 
-    source=accounts | parse email email '.+@(?<host>.+)' | fields host ;
+    source=accounts | parse email email '.+@(?<host>.+)' | fields email, host ;
