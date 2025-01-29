@@ -5,12 +5,10 @@
 
 package org.opensearch.sql.common.antlr;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
-import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.IntervalSet;
 
 /**
@@ -18,6 +16,10 @@ import org.antlr.v4.runtime.misc.IntervalSet;
  * information.
  */
 public class SyntaxAnalysisErrorListener extends BaseErrorListener {
+  // Show the up to this many characters before the offending token in the query.
+  private static final int CONTEXT_TRUNCATION_THRESHOLD = 20;
+  // Avoid presenting too many alternatives when many are available.
+  private static final int SUGGESTION_TRUNCATION_THRESHOLD = 5;
 
   @Override
   public void syntaxError(
@@ -35,8 +37,7 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     throw new SyntaxCheckException(
         String.format(
             Locale.ROOT,
-            "Failed to parse query due to offending symbol [%s] "
-                + "at: '%s' <--- HERE... More details: %s",
+            "[%s] is not a valid term at this part of the query: '%s' <-- HERE. %s",
             getOffendingText(offendingToken),
             truncateQueryAtOffendingToken(query, offendingToken),
             getDetails(recognizer, msg, e)));
@@ -47,21 +48,39 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
   }
 
   private String truncateQueryAtOffendingToken(String query, Token offendingToken) {
-    return query.substring(0, offendingToken.getStopIndex() + 1);
+    int contextStart = offendingToken.getStartIndex() - CONTEXT_TRUNCATION_THRESHOLD;
+    if (offendingToken.getStartIndex() - CONTEXT_TRUNCATION_THRESHOLD <= 3) {
+      return query.substring(0, offendingToken.getStopIndex() + 1);
+    }
+    return "..." + query.substring(contextStart, offendingToken.getStopIndex() + 1);
   }
 
-  /**
-   * As official JavaDoc says, e=null means parser was able to recover from the error. In other
-   * words, "msg" argument includes the information we want.
-   */
   private String getDetails(Recognizer<?, ?> recognizer, String msg, RecognitionException e) {
-    String details;
     if (e == null) {
-      details = msg;
-    } else {
-      IntervalSet followSet = e.getExpectedTokens();
-      details = "Expecting tokens in " + followSet.toString(recognizer.getVocabulary());
+      // As official ANTLR says, e=null means parser was able to recover from the error.
+      // In such cases, `msg` includes the raw error information we care about.
+      return msg;
     }
-    return details;
+
+    IntervalSet followSet = e.getExpectedTokens();
+    Vocabulary vocab = recognizer.getVocabulary();
+    List<String> tokenNames = new ArrayList<>(followSet.size());
+    for (int tokenType : followSet.toList()) {
+      tokenNames.add(vocab.getDisplayName(tokenType));
+    }
+
+    StringBuilder details = new StringBuilder("Expecting ");
+    if (tokenNames.size() > SUGGESTION_TRUNCATION_THRESHOLD) {
+      details.append("one of ").append(tokenNames.size()).append(" possible tokens. ");
+      details.append("Some examples: ");
+      for (int i = 0; i < SUGGESTION_TRUNCATION_THRESHOLD; i++) {
+        if (i > 0) details.append(", ");
+        details.append(tokenNames.get(i));
+      }
+      details.append(", ...");
+    } else {
+      details.append("tokens: ").append(String.join(", ", tokenNames));
+    }
+    return details.toString();
   }
 }
