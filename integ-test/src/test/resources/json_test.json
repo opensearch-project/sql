@@ -1,24 +1,26 @@
 {"index":{"_id":"0"}}
-{"test_name":"json nested object", "json_string":"{\"a\":\"1\", \"b\": {\"c\": \"3\"}, \"d\": [1, 2, 3]}"}
+{"test_name":"json nested object", "json_string":"{\"a\":\"1\", \"b\": {\"c\": \"3\"}, \"d\": [false, 3]}"}
 {"index":{"_id":"1"}}
 {"test_name":"json object", "json_string":"{\"a\":\"1\",\"b\":\"2\"}"}
 {"index":{"_id":"2"}}
 {"test_name":"json array", "json_string":"[1, 2, 3, 4]"}
 {"index":{"_id":"3"}}
-{"test_name":"json scalar string", "json_string":"\"abc\""}
+{"test_name":"json nested array", "json_string":"[1, 2, 3, {\"true\": true, \"number\": 123}]"}
 {"index":{"_id":"4"}}
-{"test_name":"json scalar int", "json_string":"1234"}
+{"test_name":"json scalar string", "json_string":"\"abc\""}
 {"index":{"_id":"5"}}
-{"test_name":"json scalar float", "json_string":"12.34"}
+{"test_name":"json scalar int", "json_string":"1234"}
 {"index":{"_id":"6"}}
-{"test_name":"json scalar double", "json_string":"2.99792458e8"}
+{"test_name":"json scalar float", "json_string":"12.34"}
 {"index":{"_id":"7"}}
-{"test_name":"json scalar boolean true", "json_string":"true"}
+{"test_name":"json scalar double", "json_string":"2.99792458e8"}
 {"index":{"_id":"8"}}
-{"test_name":"json scalar boolean false", "json_string":"false"}
+{"test_name":"json scalar boolean true", "json_string":"true"}
 {"index":{"_id":"9"}}
-{"test_name":"json empty string", "json_string":""}
+{"test_name":"json scalar boolean false", "json_string":"false"}
 {"index":{"_id":"10"}}
-{"test_name":"json invalid object", "json_string":"{\"invalid\":\"json\", \"string\"}"}
+{"test_name":"json empty string", "json_string":""}
 {"index":{"_id":"11"}}
+{"test_name":"json invalid object", "json_string":"{\"invalid\":\"json\", \"string\"}"}
+{"index":{"_id":"12"}}
 {"test_name":"json null", "json_string":null}
