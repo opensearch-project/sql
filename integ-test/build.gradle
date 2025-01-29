@@ -138,7 +138,6 @@ ext {
             cluster.setting name, value
         }
 
-//        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
         cluster.plugin provider { (RegularFile) (() -> downloadedSecurityPlugin )}
     }
 
@@ -563,8 +562,6 @@ List<Provider<RegularFile>> plugins = [
                 fileTree(bwcFilePath + project.version).getSingleFile())
         }
 ]
-
-
 
 // Creates 2 test clusters with 3 nodes of the old version.
 2.times { i ->
