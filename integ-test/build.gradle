@@ -536,37 +536,21 @@ task comparisonTest(type: RestIntegTestTask) {
             testDistribution = "ARCHIVE"
             versions = [baseVersion, opensearch_version]
             numberOfNodes = 3
-            plugin(provider(new Callable<RegularFile>(){
-                @Override
-                RegularFile call() throws Exception {
-                    return new RegularFile() {
-                        @Override
-                        File getAsFile() {
-                            if (new File("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion").exists()) {
-                                project.delete(files("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion"))
-                            }
-                            project.mkdir bwcJobSchedulerPath + bwcVersion
-                            ant.get(src: bwcOpenSearchJSDownload,
-                                    dest: bwcJobSchedulerPath + bwcVersion,
-                                    httpusecaches: false)
-                            return fileTree(bwcJobSchedulerPath + bwcVersion).getSingleFile()
-                        }
-                    }
+            plugin(provider { (RegularFile) (() -> {
+                if (new File("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion").exists()) {
+                    project.delete(files("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion"))
                 }
-            }))
-            plugin(provider(new Callable<RegularFile>(){
-                @Override
-                RegularFile call() throws Exception {
-                    return new RegularFile() {
-                        @Override
-                        File getAsFile() {
-                            return configurations.zipArchive.asFileTree.matching {
-                                include '**/opensearch-sql-plugin*'
-                            }.singleFile
-                        }
-                    }
-                }
-            }))
+                project.mkdir bwcJobSchedulerPath + bwcVersion
+                ant.get(src: bwcOpenSearchJSDownload,
+                        dest: bwcJobSchedulerPath + bwcVersion,
+                        httpusecaches: false)
+                return fileTree(bwcJobSchedulerPath + bwcVersion).getSingleFile()
+            })})
+            plugin(provider { (RegularFile) (() -> {
+                return configurations.zipArchive.asFileTree.matching {
+                    include '**/opensearch-sql-plugin*'
+                }.singleFile
+            })})
             setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
             setting 'http.content_type.required', 'true'
         }
@@ -576,9 +560,11 @@ task comparisonTest(type: RestIntegTestTask) {
 List<Provider<RegularFile>> plugins = [
         getJobSchedulerPlugin(),
         provider { (RegularFile) (() ->
-                fileTree(bwcFilePath + project.version).getSingleFile() )
+                fileTree(bwcFilePath + project.version).getSingleFile())
         }
 ]
+
+
 
 // Creates 2 test clusters with 3 nodes of the old version.
 2.times { i ->
