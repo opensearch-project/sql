@@ -313,17 +313,14 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void opensearchExecutableFunction_valueOf() {
-    var ipInStr = new OpenSearchFunctions.OpenSearchExecutableFunction(
+    var ipInStr =
+        new OpenSearchFunctions.OpenSearchExecutableFunction(
             BuiltinFunctionName.GEOIP.getName(),
-            List.of(
-                    DSL.literal("my-datasource"),
-                    new ReferenceExpression("ipInStr", STRING)),
+            List.of(DSL.literal("my-datasource"), new ReferenceExpression("ipInStr", STRING)),
             BOOLEAN);
     assertThrows(
-            UnsupportedOperationException.class,
-            () -> ipInStr.valueOf(valueEnv()),
-            "OpenSearch defined function [geoip] is only supported in Eval operation.");
-
+        UnsupportedOperationException.class,
+        () -> ipInStr.valueOf(valueEnv()),
+        "OpenSearch defined function [geoip] is only supported in Eval operation.");
   }
-
 }

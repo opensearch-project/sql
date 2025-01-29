@@ -204,7 +204,6 @@ public class OpenSearchFunctions {
       return returnType;
     }
 
-
     /**
      * Util method to generate probe implementation with given list of argument types, with marker
      * class `OpenSearchFunction` to annotate this is an OpenSearch specific expression.
