@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.Map;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.utils.StringUtils;
 
 public class FlattenCommandIT extends PPLIntegTestCase {
 
@@ -26,7 +27,7 @@ public class FlattenCommandIT extends PPLIntegTestCase {
   @Test
   public void testFlattenStruct() throws IOException {
     String query =
-        String.format(
+        StringUtils.format(
             "source=%s | flatten location | fields state, province, country, coordinates",
             TEST_INDEX_CITIES);
     JSONObject result = executeQuery(query);
@@ -54,7 +55,7 @@ public class FlattenCommandIT extends PPLIntegTestCase {
   @Test
   public void testFlattenStructMultiple() throws IOException {
     String query =
-        String.format(
+        StringUtils.format(
             "source=%s | flatten location | flatten coordinates | fields state, province, country,"
                 + " latitude, longitude",
             TEST_INDEX_CITIES);

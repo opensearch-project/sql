@@ -67,6 +67,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstBuilderTest {
@@ -451,7 +452,7 @@ public class AstBuilderTest {
   public void testFlattenCommand() {
     String fieldName = "field_name";
     assertEqual(
-        String.format("source=t | flatten %s", fieldName),
+        StringUtils.format("source=t | flatten %s", fieldName),
         flatten(relation("t"), field(fieldName)));
   }
 

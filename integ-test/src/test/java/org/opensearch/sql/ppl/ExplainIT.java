@@ -14,6 +14,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.utils.StringUtils;
 
 public class ExplainIT extends PPLIntegTestCase {
 
@@ -130,7 +131,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFlatten() throws Exception {
-    String query = String.format("source=%s | flatten location", TEST_INDEX_CITIES);
+    String query = StringUtils.format("source=%s | flatten location", TEST_INDEX_CITIES);
     String actual = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/ppl/explain_flatten.json");
     assertJsonEquals(expected, actual);

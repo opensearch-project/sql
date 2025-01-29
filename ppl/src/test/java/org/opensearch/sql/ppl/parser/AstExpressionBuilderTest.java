@@ -46,13 +46,13 @@ import static org.opensearch.sql.ast.dsl.AstDSL.xor;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.common.utils.StringUtils;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
 
@@ -257,7 +257,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   public void testFlattenExpr() {
     String fieldName = "field_name";
     assertEqual(
-        String.format("source=t | flatten %s", fieldName),
+        StringUtils.format("source=t | flatten %s", fieldName),
         flatten(relation("t"), field(fieldName)));
   }
 
@@ -784,7 +784,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
     assertFalse(functionList.isEmpty());
     for (String functionName : functionList) {
       assertEqual(
-          String.format(Locale.ROOT, "source=t | fields %s", functionName),
+          StringUtils.format("source=t | fields %s", functionName),
           projectWithArg(relation("t"), defaultFieldsArgs(), field(qualifiedName(functionName))));
     }
   }

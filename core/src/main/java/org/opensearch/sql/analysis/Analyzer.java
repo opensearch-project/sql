@@ -74,6 +74,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -478,8 +479,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     // Verify that the field type is valid.
     ExprType fieldType = fieldExpr.type();
     if (fieldType != STRUCT) {
-      throw new IllegalArgumentException(
-          String.format("Invalid field type '%s' for flatten command", fieldType));
+      String msg =
+          StringUtils.format(
+              "Invalid field type '%s' for flatten command. Supported field types: '%s'.",
+              fieldType, STRUCT.typeName());
+      throw new IllegalArgumentException(msg);
     }
 
     // Get fields to add and remove.
@@ -506,7 +510,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       // Verify that new field does not overwrite an existing field.
       if (fieldsMap.containsKey(newPath)) {
         throw new IllegalArgumentException(
-            String.format("Flatten command cannot overwrite field '%s'", newPath));
+            StringUtils.format("Flatten command cannot overwrite field '%s'", newPath));
       }
 
       ExprType type = entry.getValue();
