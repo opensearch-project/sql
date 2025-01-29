@@ -48,11 +48,11 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
   }
 
   private String truncateQueryAtOffendingToken(String query, Token offendingToken) {
-    int contextStart = offendingToken.getStartIndex() - CONTEXT_TRUNCATION_THRESHOLD;
-    if (offendingToken.getStartIndex() - CONTEXT_TRUNCATION_THRESHOLD <= 3) {
+    int contextStartIndex = offendingToken.getStartIndex() - CONTEXT_TRUNCATION_THRESHOLD;
+    if (contextStartIndex < 3) { // The ellipses won't save us anything below the first 4 characters
       return query.substring(0, offendingToken.getStopIndex() + 1);
     }
-    return "..." + query.substring(contextStart, offendingToken.getStopIndex() + 1);
+    return "..." + query.substring(contextStartIndex, offendingToken.getStopIndex() + 1);
   }
 
   private String getDetails(Recognizer<?, ?> recognizer, String msg, RecognitionException e) {
