@@ -25,12 +25,12 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -135,8 +135,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   private final BuiltinFunctionRepository repository;
 
   private static final String PATH_SEPARATOR = ".";
-  private static final Pattern PATH_SEPARATOR_PATTERN =
-      Pattern.compile(PATH_SEPARATOR, Pattern.LITERAL);
 
   /** Constructor. */
   public Analyzer(
@@ -495,17 +493,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     removeFieldsMap.put(fieldName, fieldType);
 
+    final Pattern fieldNamePathPattern =
+        Pattern.compile(fieldName + PATH_SEPARATOR, Pattern.LITERAL);
+
     for (java.util.Map.Entry<String, ExprType> entry : fieldsMap.entrySet()) {
       String path = entry.getKey();
-      List<String> pathComponents = Arrays.stream(PATH_SEPARATOR_PATTERN.split(path)).toList();
 
-      // Verify that path starts with the field name.
-      if (pathComponents.size() < 2 || !pathComponents.getFirst().equals(fieldName)) {
+      Matcher fieldNamePathMatcher = fieldNamePathPattern.matcher(path);
+      if (!fieldNamePathMatcher.find() || fieldNamePathMatcher.hitEnd()) {
         continue;
       }
 
-      String newPath =
-          String.join(PATH_SEPARATOR, pathComponents.subList(1, pathComponents.size()));
+      String newPath = path.substring(fieldNamePathMatcher.end());
 
       // Verify that new field does not overwrite an existing field.
       if (fieldsMap.containsKey(newPath)) {
