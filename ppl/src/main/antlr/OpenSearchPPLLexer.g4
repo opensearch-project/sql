@@ -37,6 +37,11 @@ AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 TRENDLINE:                          'TRENDLINE';
+PATTERN_METHOD:                     'PATTERN_METHOD';
+SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
+BRAIN:                              'BRAIN';
+VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
+FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';

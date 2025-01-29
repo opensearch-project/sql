@@ -31,10 +31,10 @@ public class PeerRowsWindowFrame implements WindowFrame {
    * All peer rows (peer means rows in a partition that share same sort key based on sort list in
    * window definition.
    */
-  private final List<ExprValue> peers = new ArrayList<>();
+  protected final List<ExprValue> peers = new ArrayList<>();
 
   /** Which row in the peer is currently being enriched by window function. */
-  private int position;
+  protected int position;
 
   /** Does row at current position represents a new partition. */
   private boolean isNewPartition = true;
@@ -92,6 +92,10 @@ public class PeerRowsWindowFrame implements WindowFrame {
       return;
     }
 
+    loadAllRows(it);
+  }
+
+  protected void loadAllRows(PeekingIterator<ExprValue> it) {
     // Reset state: reset new partition before clearing peers
     isNewPartition = !isSamePartition(it.peek());
     position = 0;
