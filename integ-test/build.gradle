@@ -138,7 +138,8 @@ ext {
             cluster.setting name, value
         }
 
-        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
+//        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
+        cluster.plugin provider { (RegularFile) (() -> downloadedSecurityPlugin )}
     }
 
     bwcOpenSearchJSDownload = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + baseVersion + '/latest/linux/x64/tar/builds/' +
