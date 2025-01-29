@@ -16,7 +16,7 @@ import org.antlr.v4.runtime.misc.IntervalSet;
  * information.
  */
 public class SyntaxAnalysisErrorListener extends BaseErrorListener {
-  // Show the up to this many characters before the offending token in the query.
+  // Show up to this many characters before the offending token in the query.
   private static final int CONTEXT_TRUNCATION_THRESHOLD = 20;
   // Avoid presenting too many alternatives when many are available.
   private static final int SUGGESTION_TRUNCATION_THRESHOLD = 5;
@@ -57,7 +57,7 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
 
   private String getDetails(Recognizer<?, ?> recognizer, String msg, RecognitionException e) {
     if (e == null) {
-      // As official ANTLR says, e=null means parser was able to recover from the error.
+      // According to the ANTLR docs, e == null means the parser was able to recover from the error.
       // In such cases, `msg` includes the raw error information we care about.
       return msg;
     }
