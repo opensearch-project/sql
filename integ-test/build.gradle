@@ -290,8 +290,6 @@ task startPrometheus(type: SpawnProcessTask) {
                 src getPrometheusBinaryLocation()
                 dest prometheusFilePath
             }
-        } else {
-            println "Prometheus File Already Exists"
         }
         copy {
             from tarTree("$projectDir/bin/prometheus-${prometheus_binary_version}.tar.gz")
