@@ -193,34 +193,18 @@ public class JsonFunctionsTest {
 
   @Test
   void json_extract_search() {
-    Expression jsonArray = DSL.literal(ExprValueUtils.stringValue("{\"a\":1}"));
-    ExprValue expectedExprValue = new ExprIntegerValue(1);
-    Expression pathExpr = DSL.literal(ExprValueUtils.stringValue("$.a"));
-    FunctionExpression expression = DSL.jsonExtract(jsonArray, pathExpr);
-    assertEquals(expectedExprValue, expression.valueOf());
+    ExprValue expected = new ExprIntegerValue(1);
+    execute_extract_json(expected, "{\"a\":1}", "$.a");
   }
 
   @Test
   void json_extract_search_arrays_out_of_bound() {
-    Expression jsonArray = DSL.literal(ExprValueUtils.stringValue("{\"a\":[1,2,3}"));
-
-    // index out of bounds
-    assertThrows(
-        SemanticCheckException.class,
-        () -> DSL.jsonExtract(jsonArray, DSL.literal(new ExprStringValue("$.a[3]"))).valueOf());
-
-    // negative index
-    assertThrows(
-        SemanticCheckException.class,
-        () -> DSL.jsonExtract(jsonArray, DSL.literal(new ExprStringValue("$.a[-1]"))).valueOf());
+    execute_extract_json(LITERAL_NULL, "{\"a\":[1,2,3]}", "$.a[4]");
   }
 
   @Test
   void json_extract_search_arrays() {
-    Expression jsonArray =
-        DSL.literal(
-            ExprValueUtils.stringValue(
-                "{\"a\":[1,2.3,\"abc\",true,null,{\"c\":{\"d\":1}},[1,2,3]]}"));
+    String jsonArray = "{\"a\":[1,2.3,\"abc\",true,null,{\"c\":{\"d\":1}},[1,2,3]]}";
     List<ExprValue> expectedExprValue =
         List.of(
             new ExprIntegerValue(1),
@@ -237,22 +221,17 @@ public class JsonFunctionsTest {
     // extract specific index from JSON list
     for (int i = 0; i < expectedExprValue.size(); i++) {
       String path = String.format("$.a[%d]", i);
-      Expression pathExpr = DSL.literal(ExprValueUtils.stringValue(path));
-      FunctionExpression expression = DSL.jsonExtract(jsonArray, pathExpr);
-      assertEquals(expectedExprValue.get(i), expression.valueOf());
+      execute_extract_json(expectedExprValue.get(i), jsonArray, path);
     }
 
     // extract nested object
     ExprValue nestedExpected =
         ExprTupleValue.fromExprValueMap(Map.of("d", new ExprIntegerValue(1)));
-    Expression nestedPath = DSL.literal(ExprValueUtils.stringValue("$.a[5].c"));
-    FunctionExpression nestedExpression = DSL.jsonExtract(jsonArray, nestedPath);
-    assertEquals(nestedExpected, nestedExpression.valueOf());
+    execute_extract_json(nestedExpected, jsonArray, "$.a[5].c");
 
     // extract * from JSON list
-    Expression starPath = DSL.literal(ExprValueUtils.stringValue("$.a[*]"));
-    FunctionExpression starExpression = DSL.jsonExtract(jsonArray, starPath);
-    assertEquals(new ExprCollectionValue(expectedExprValue), starExpression.valueOf());
+    ExprValue starExpected = new ExprCollectionValue(expectedExprValue);
+    execute_extract_json(starExpected, jsonArray, "$.a[*]");
   }
 
   @Test
@@ -271,61 +250,53 @@ public class JsonFunctionsTest {
             "false",
             "");
 
-    jsonStrings.stream()
-        .forEach(
-            str ->
-                assertEquals(
-                    LITERAL_NULL,
-                    DSL.jsonExtract(
-                            DSL.literal((ExprValueUtils.stringValue(str))),
-                            DSL.literal("$.a.path_not_found_key"))
-                        .valueOf(),
-                    String.format("JSON string %s should return null", str)));
+    jsonStrings.forEach(
+        str -> execute_extract_json(LITERAL_NULL, str, "$.a.path_not_found_key")
+    );
+
+    // null json
+    assertEquals(LITERAL_NULL, DSL.jsonExtract(DSL.literal(LITERAL_NULL), DSL.literal(new ExprStringValue("$.a"))).valueOf());
+
+    // missing json
+    assertEquals(LITERAL_MISSING, DSL.jsonExtract(DSL.literal(LITERAL_MISSING), DSL.literal(new ExprStringValue("$.a"))).valueOf());
   }
 
   @Test
   void json_extract_throws_SemanticCheckException() {
     // invalid path
-    assertThrows(
+    SemanticCheckException invalidPathError = assertThrows(
         SemanticCheckException.class,
         () ->
             DSL.jsonExtract(
                     DSL.literal(new ExprStringValue("{\"a\":1}")),
                     DSL.literal(new ExprStringValue("$a")))
                 .valueOf());
+    assertEquals(
+            "JSON path '\"$a\"' is not valid. Error details: Illegal character at position 1 expected '.' or '['",
+            invalidPathError.getMessage());
+
 
     // invalid json
-    assertThrows(
+    SemanticCheckException invalidJsonError = assertThrows(
         SemanticCheckException.class,
         () ->
             DSL.jsonExtract(
                     DSL.literal(new ExprStringValue("{\"invalid\":\"json\", \"string\"}")),
                     DSL.literal(new ExprStringValue("$.a")))
                 .valueOf());
+    assertEquals(
+            "JSON string '\"{\"invalid\":\"json\", \"string\"}\"' is not valid. Error details: net.minidev.json.parser.ParseException: Unexpected character (}) at position 26.",
+            invalidJsonError.getMessage());
   }
 
   @Test
   void json_extract_throws_ExpressionEvaluationException() {
-    // null json
-    assertThrows(
-        ExpressionEvaluationException.class,
-        () ->
-            DSL.jsonExtract(DSL.literal(LITERAL_NULL), DSL.literal(new ExprStringValue("$.a")))
-                .valueOf());
-
     // null path
     assertThrows(
         ExpressionEvaluationException.class,
         () ->
             DSL.jsonExtract(
                     DSL.literal(new ExprStringValue("{\"a\":1}")), DSL.literal(LITERAL_NULL))
-                .valueOf());
-
-    // missing json
-    assertThrows(
-        ExpressionEvaluationException.class,
-        () ->
-            DSL.jsonExtract(DSL.literal(LITERAL_MISSING), DSL.literal(new ExprStringValue("$.a")))
                 .valueOf());
 
     // missing path
@@ -335,5 +306,12 @@ public class JsonFunctionsTest {
             DSL.jsonExtract(
                     DSL.literal(new ExprStringValue("{\"a\":1}")), DSL.literal(LITERAL_MISSING))
                 .valueOf());
+  }
+
+  private static void execute_extract_json(ExprValue expected, String json, String path) {
+    Expression pathExpr = DSL.literal(ExprValueUtils.stringValue(path));
+    Expression jsonExpr = DSL.literal(ExprValueUtils.stringValue(json));
+    ExprValue actual = DSL.jsonExtract(jsonExpr, pathExpr).valueOf();
+    assertEquals(expected, actual);
   }
 }

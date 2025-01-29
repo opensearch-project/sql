@@ -1,9 +1,5 @@
 package org.opensearch.sql.utils;
 
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +22,8 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
+
+import static org.opensearch.sql.data.model.ExprValueUtils.*;
 
 @UtilityClass
 public class JsonUtils {
@@ -86,6 +84,10 @@ public class JsonUtils {
    * @return ExprValue of value at given path of json string.
    */
   public static ExprValue extractJson(ExprValue json, ExprValue path) {
+    if (json == LITERAL_NULL || json == LITERAL_MISSING) {
+      return json;
+    }
+
     String jsonString = json.stringValue();
     String jsonPath = path.stringValue();
 

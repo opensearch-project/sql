@@ -75,10 +75,10 @@ Argument type: STRING, STRING
 
 Return type: BOOLEAN/DOUBLE/INTEGER/NULL/STRUCT/ARRAY
 
-- Returns a JSON array for multiple paths or if the path leads to an array.
-- Return null if path is not valid.
-- Throws error if `doc` or `path` is malformed.
-- Throws error if `doc` or `path` is MISSING or NULL.
+- Returns a JSON array if path points to multiple results (e.g. $.a[*]) or if the path points to an array.
+- Return null if path is not valid is MISSING or NULL.
+- Throws SemanticCheckException if `doc` or `path` is malformed.
+- Throws ExpressionEvaluationException if `path` is missing.
 
 Example::
 
