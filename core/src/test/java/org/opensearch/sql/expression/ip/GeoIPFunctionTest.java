@@ -44,8 +44,6 @@ public class GeoIPFunctionTest {
     assertTrue(
         exception
             .getMessage()
-            .contains(
-                "OpenSearch defined function [geoip] is only supported in WHERE clause, HAVING"
-                    + " clause and Eval operation."));
+            .contains("OpenSearch defined function [geoip] is only supported in Eval operation."));
   }
 }
