@@ -113,4 +113,4 @@ There are a few limitations with parse command:
 
   For example, the following query will not display the parsed fields ``host`` unless the source field ``email`` is also explicitly included::
 
-    source=accounts | parse email email '.+@(?<host>.+)' | fields email, host ;
+    source=accounts | parse email '.+@(?<host>.+)' | fields email, host ;
