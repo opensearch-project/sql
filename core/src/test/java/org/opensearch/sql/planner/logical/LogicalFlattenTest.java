@@ -8,6 +8,7 @@ package org.opensearch.sql.planner.logical;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -37,13 +38,11 @@ class LogicalFlattenTest extends AnalyzerTestBase {
     // Override mapping for testing.
     mapping.put("struct_empty", STRUCT);
 
-    mapping.put("struct_basic", STRUCT);
-    mapping.put("struct_basic.integer", INTEGER);
-    mapping.put("struct_basic.double", DOUBLE);
-
-    mapping.put("struct_nested", STRUCT);
-    mapping.put("struct_nested.struct", STRUCT);
-    mapping.put("struct_nested.struct.string", STRING);
+    mapping.put("struct", STRUCT);
+    mapping.put("struct.integer", INTEGER);
+    mapping.put("struct.double", DOUBLE);
+    mapping.put("struct.nested_struct", STRUCT);
+    mapping.put("struct.nested_struct.string", STRING);
 
     mapping.put("duplicate", STRUCT);
     mapping.put("duplicate.integer_value", INTEGER);
@@ -58,47 +57,51 @@ class LogicalFlattenTest extends AnalyzerTestBase {
             LogicalPlanDSL.relation(TABLE_NAME, table), DSL.ref("struct_empty", STRUCT));
     LogicalPlan actualLogicalPlan =
         analyze(AstDSL.flatten(AstDSL.relation(TABLE_NAME), AstDSL.field("struct_empty")));
+
     assertEquals(expectedLogicalPlan, actualLogicalPlan);
 
-    Map<String, ExprType> fieldMap =
-        analysisContext.peek().lookupAllTupleFields(Namespace.FIELD_NAME);
-    assertFalse(fieldMap.containsKey("struct_empty"));
+    assertTypeNotDefined("struct_empty");
   }
 
   @Test
-  void testStructBasic() {
+  void testStruct() {
     LogicalPlan expectedLogicalPlan =
         LogicalPlanDSL.flatten(
-            LogicalPlanDSL.relation(TABLE_NAME, table), DSL.ref("struct_basic", STRUCT));
+            LogicalPlanDSL.relation(TABLE_NAME, table), DSL.ref("struct", STRUCT));
     LogicalPlan actualLogicalPlan =
-        analyze(AstDSL.flatten(AstDSL.relation(TABLE_NAME), AstDSL.field("struct_basic")));
+        analyze(AstDSL.flatten(AstDSL.relation(TABLE_NAME), AstDSL.field("struct")));
 
     assertEquals(expectedLogicalPlan, actualLogicalPlan);
 
-    Map<String, ExprType> fieldMap =
-        analysisContext.peek().lookupAllTupleFields(Namespace.FIELD_NAME);
-    assertFalse(fieldMap.containsKey("struct_basic"));
-    assertFalse(fieldMap.containsKey("struct_basic.integer"));
-    assertFalse(fieldMap.containsKey("struct_basic.double"));
-    assertEquals(INTEGER, fieldMap.get("integer"));
-    assertEquals(DOUBLE, fieldMap.get("double"));
+    assertTypeNotDefined("struct");
+    assertTypeNotDefined("struct.integer");
+    assertTypeNotDefined("struct.double");
+    assertTypeNotDefined("struct.nested_struct");
+    assertTypeNotDefined("struct.nested_struct.string");
+
+    assertTypeDefined("integer", INTEGER);
+    assertTypeDefined("double", DOUBLE);
+    assertTypeDefined("nested_struct", STRUCT);
+    assertTypeDefined("nested_struct.string", STRING);
   }
 
   @Test
   void testStructNested() {
     LogicalPlan expectedLogicalPlan =
         LogicalPlanDSL.flatten(
-            LogicalPlanDSL.relation(TABLE_NAME, table), DSL.ref("struct_nested", STRUCT));
+            LogicalPlanDSL.relation(TABLE_NAME, table), DSL.ref("struct.nested_struct", STRUCT));
     LogicalPlan actualLogicalPlan =
-        analyze(AstDSL.flatten(AstDSL.relation(TABLE_NAME), AstDSL.field("struct_nested")));
+        analyze(AstDSL.flatten(AstDSL.relation(TABLE_NAME), AstDSL.field("struct.nested_struct")));
 
     assertEquals(expectedLogicalPlan, actualLogicalPlan);
 
-    Map<String, ExprType> fieldMap =
-        analysisContext.peek().lookupAllTupleFields(Namespace.FIELD_NAME);
-    assertFalse(fieldMap.containsKey("struct_nested"));
-    assertEquals(STRUCT, fieldMap.get("struct"));
-    assertEquals(STRING, fieldMap.get("struct.string"));
+    assertTypeNotDefined("struct.nested_struct");
+    assertTypeNotDefined("struct.nested_struct.string");
+
+    assertTypeDefined("struct", STRUCT);
+    assertTypeDefined("struct.integer", INTEGER);
+    assertTypeDefined("struct.double", DOUBLE);
+    assertTypeDefined("struct.string", STRING);
   }
 
   @Test
@@ -134,5 +137,23 @@ class LogicalFlattenTest extends AnalyzerTestBase {
         assertThrows(IllegalArgumentException.class, () -> analyze(actualUnresolvedPlan))
             .getMessage();
     assertEquals("Flatten command cannot overwrite field 'integer_value'", msg);
+  }
+
+  /** Asserts that the given field name is not defined in the type environment */
+  private void assertTypeNotDefined(String fieldName) {
+    Map<String, ExprType> fieldsMap =
+        analysisContext.peek().lookupAllTupleFields(Namespace.FIELD_NAME);
+    assertFalse(fieldsMap.containsKey(fieldName));
+  }
+
+  /**
+   * Asserts that the given field name is defined in the type environment and corresponds to the
+   * given type.
+   */
+  private void assertTypeDefined(String fieldName, ExprType fieldType) {
+    Map<String, ExprType> fieldsMap =
+        analysisContext.peek().lookupAllTupleFields(Namespace.FIELD_NAME);
+    assertTrue(fieldsMap.containsKey(fieldName));
+    assertEquals(fieldType, fieldsMap.get(fieldName));
   }
 }

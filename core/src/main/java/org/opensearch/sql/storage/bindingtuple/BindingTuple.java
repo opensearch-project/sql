@@ -13,7 +13,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 
 /**
- * BindingTuple represents the a relationship between bindingName and ExprValue. e.g. The operation
+ * BindingTuple represents the relationship between bindingName and ExprValue. e.g. The operation
  * output column name is bindingName, the value is the ExprValue.
  */
 public abstract class BindingTuple implements Environment<Expression, ExprValue> {

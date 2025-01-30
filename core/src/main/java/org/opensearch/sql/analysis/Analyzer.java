@@ -28,10 +28,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -43,7 +42,6 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -286,7 +284,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> renameMapBuilder =
         new ImmutableMap.Builder<>();
-    for (Map renameMap : node.getRenameList()) {
+    for (org.opensearch.sql.ast.expression.Map renameMap : node.getRenameList()) {
       Expression origin = expressionAnalyzer.analyze(renameMap.getOrigin(), context);
       // We should define the new target field in the context instead of analyze it.
       if (renameMap.getTarget() instanceof Field) {
@@ -461,10 +459,13 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    * Builds and returns a {@link org.opensearch.sql.planner.logical.LogicalFlatten} corresponding to
    * the given flatten node.
    */
+  @SuppressWarnings("NonConstantStringShouldBeStringBuffer")
   @Override
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
     LogicalPlan child = node.getChild().getFirst().accept(this, context);
-    TypeEnvironment env = context.peek();
+
+    // [A] Get field name and type
+    // ---------------------------
 
     // Verify that the field name is valid.
     ReferenceExpression fieldExpr;
@@ -474,8 +475,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       throw new IllegalArgumentException("Invalid field name for flatten command", e);
     }
 
-    // Verify that the field type is valid.
+    String fieldName = fieldExpr.getAttr();
     ExprType fieldType = fieldExpr.type();
+
+    // Verify that the field type is valid.
     if (fieldType != STRUCT) {
       String msg =
           StringUtils.format(
@@ -484,42 +487,82 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       throw new IllegalArgumentException(msg);
     }
 
-    // Get fields to add and remove.
-    String fieldName = fieldExpr.getAttr();
-    java.util.Map<String, ExprType> fieldsMap = env.lookupAllTupleFields(Namespace.FIELD_NAME);
+    // [B] Get fields to add and remove
+    // --------------------------------
 
-    java.util.Map<String, ExprType> addFieldsMap = new HashMap<>();
-    java.util.Map<String, ExprType> removeFieldsMap = new HashMap<>();
+    // Iterate over all the fields defined in the type environment. Find all those that are
+    // descended from field that is being flattened. Determine the new path to add and remove the
+    // existing path. When determining the new path, we need to preserve the portion of the
+    // path corresponding to the flattened field's parent, if one exists, in order to support
+    // flattening nested structs - see example below.
+    //
+    // Input Data:
+    //
+    // { struct: {
+    //     integer: 0,
+    //       nested_struct: {
+    //         string: "value" }}}
+    //
+    // Example 1: 'flatten struct'
+    //
+    // { integer: 0,
+    //   nested_struct: {
+    //     string: "value" }}
+    //
+    // Example 2: 'flatten nested_struct'
+    //
+    // { struct: {
+    //     integer: 0,
+    //     string: "value" }}
 
+    Map<String, ExprType> addFieldsMap = new HashMap<>();
+    Map<String, ExprType> removeFieldsMap = new HashMap<>();
     removeFieldsMap.put(fieldName, fieldType);
 
-    final Pattern fieldNamePathPattern =
-        Pattern.compile(fieldName + PATH_SEPARATOR, Pattern.LITERAL);
+    TypeEnvironment env = context.peek();
+    Map<String, ExprType> fieldsMap = env.lookupAllTupleFields(Namespace.FIELD_NAME);
 
-    for (java.util.Map.Entry<String, ExprType> entry : fieldsMap.entrySet()) {
-      String path = entry.getKey();
+    final String fieldDescendantPath = fieldName + PATH_SEPARATOR;
+    final Optional<String> fieldParentPath =
+        fieldName.contains(PATH_SEPARATOR)
+            ? Optional.of(fieldName.substring(0, fieldName.lastIndexOf(PATH_SEPARATOR)))
+            : Optional.empty();
 
-      Matcher fieldNamePathMatcher = fieldNamePathPattern.matcher(path);
-      if (!fieldNamePathMatcher.find() || fieldNamePathMatcher.hitEnd()) {
+    for (String path : fieldsMap.keySet()) {
+
+      // Verify that the path is descended from the flattened field.
+      if (!path.startsWith(fieldDescendantPath)) {
         continue;
       }
 
-      String newPath = path.substring(fieldNamePathMatcher.end());
-
-      // Verify that new field does not overwrite an existing field.
-      if (fieldsMap.containsKey(newPath)) {
-        throw new IllegalArgumentException(
-            StringUtils.format("Flatten command cannot overwrite field '%s'", newPath));
+      // Build the new path.
+      String newPath = path.substring(fieldDescendantPath.length());
+      if (fieldParentPath.isPresent()) {
+        newPath = fieldParentPath.get() + PATH_SEPARATOR + newPath;
       }
 
-      ExprType type = entry.getValue();
+      ExprType type = fieldsMap.get(path);
       addFieldsMap.put(newPath, type);
       removeFieldsMap.put(path, type);
     }
 
-    // Update environment.
-    addFieldsMap.forEach((name, type) -> env.define(DSL.ref(name, type)));
+    // [C] Update environment
+    // ----------------------
+
     removeFieldsMap.forEach((name, type) -> env.remove(DSL.ref(name, type)));
+
+    for (Map.Entry<String, ExprType> entry : addFieldsMap.entrySet()) {
+      String name = entry.getKey();
+      ExprType type = entry.getValue();
+
+      // Verify that new field does not overwrite an existing field.
+      if (fieldsMap.containsKey(name)) {
+        throw new IllegalArgumentException(
+            StringUtils.format("Flatten command cannot overwrite field '%s'", name));
+      }
+
+      env.define(DSL.ref(name, type));
+    }
 
     return new LogicalFlatten(child, DSL.ref(fieldName, STRUCT));
   }
