@@ -219,9 +219,9 @@ public class JsonFunctionsTest {
                     new ExprIntegerValue(1), new ExprIntegerValue(2), new ExprIntegerValue(3))));
 
     // extract specific index from JSON list
-    for (int i = 0; i < expectedExprValue.size(); i++) {
+    for (int i = 0; i < expectedExprValues.size(); i++) {
       String path = String.format("$.a[%d]", i);
-      execute_extract_json(expectedExprValue.get(i), jsonArray, path);
+      execute_extract_json(expectedExprValues.get(i), jsonArray, path);
     }
 
     // extract nested object
@@ -230,7 +230,7 @@ public class JsonFunctionsTest {
     execute_extract_json(nestedExpected, jsonArray, "$.a[5].c");
 
     // extract * from JSON list
-    ExprValue starExpected = new ExprCollectionValue(expectedExprValue);
+    ExprValue starExpected = new ExprCollectionValue(expectedExprValues);
     execute_extract_json(starExpected, jsonArray, "$.a[*]");
   }
 
