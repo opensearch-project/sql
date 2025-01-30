@@ -28,9 +28,7 @@ public class FlattenOperator extends PhysicalPlan {
   private final PhysicalPlan input;
   private final ReferenceExpression field;
 
-  private static final String PATH_SEPARATOR = ".";
-  private static final Pattern PATH_SEPARATOR_PATTERN =
-      Pattern.compile(PATH_SEPARATOR, Pattern.LITERAL);
+  private static final Pattern PATH_SEPARATOR_PATTERN = Pattern.compile(".", Pattern.LITERAL);
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {

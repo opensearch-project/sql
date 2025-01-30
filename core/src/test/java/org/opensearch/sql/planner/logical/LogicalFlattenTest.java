@@ -124,8 +124,7 @@ class LogicalFlattenTest extends AnalyzerTestBase {
         assertThrows(IllegalArgumentException.class, () -> analyze(actualUnresolvedPlan))
             .getMessage();
     assertEquals(
-        "Invalid field type 'INTEGER' for flatten command. Supported field types: 'STRUCT'.",
-        actualMsg);
+        "Invalid field type for flatten command. Expected 'STRUCT' but got 'INTEGER'.", actualMsg);
   }
 
   @Test

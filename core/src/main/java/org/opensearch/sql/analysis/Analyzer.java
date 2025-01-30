@@ -482,8 +482,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     if (fieldType != STRUCT) {
       String msg =
           StringUtils.format(
-              "Invalid field type '%s' for flatten command. Supported field types: '%s'.",
-              fieldType, STRUCT.typeName());
+              "Invalid field type for flatten command. Expected '%s' but got '%s'.",
+              STRUCT.typeName(), fieldType);
       throw new IllegalArgumentException(msg);
     }
 
