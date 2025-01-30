@@ -317,7 +317,7 @@ public class SQLQueryUtils {
 
     @Override
     public Void visitVacuumCoveringIndexStatement(
-            FlintSparkSqlExtensionsParser.VacuumCoveringIndexStatementContext ctx) {
+        FlintSparkSqlExtensionsParser.VacuumCoveringIndexStatementContext ctx) {
       indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.VACUUM);
       indexQueryDetailsBuilder.indexType(FlintIndexType.COVERING);
       return super.visitVacuumCoveringIndexStatement(ctx);
@@ -325,7 +325,7 @@ public class SQLQueryUtils {
 
     @Override
     public Void visitVacuumSkippingIndexStatement(
-            FlintSparkSqlExtensionsParser.VacuumSkippingIndexStatementContext ctx) {
+        FlintSparkSqlExtensionsParser.VacuumSkippingIndexStatementContext ctx) {
       indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.VACUUM);
       indexQueryDetailsBuilder.indexType(FlintIndexType.SKIPPING);
       return super.visitVacuumSkippingIndexStatement(ctx);
@@ -333,7 +333,7 @@ public class SQLQueryUtils {
 
     @Override
     public Void visitVacuumMaterializedViewStatement(
-            FlintSparkSqlExtensionsParser.VacuumMaterializedViewStatementContext ctx) {
+        FlintSparkSqlExtensionsParser.VacuumMaterializedViewStatementContext ctx) {
       indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.VACUUM);
       indexQueryDetailsBuilder.indexType(FlintIndexType.MATERIALIZED_VIEW);
       indexQueryDetailsBuilder.mvName(ctx.mvName.getText());
