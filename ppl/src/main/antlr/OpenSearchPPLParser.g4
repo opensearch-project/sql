@@ -51,6 +51,7 @@ commands
    | mlCommand
    | fillnullCommand
    | trendlineCommand
+   | fieldSummaryCommand
    ;
 
 searchCommand
@@ -132,6 +133,15 @@ patternsMethod
 fillnullCommand
    : FILLNULL (fillNullWithTheSameValue
    | fillNullWithFieldVariousValues)
+   ;
+
+fieldsummaryCommand
+   : FIELDSUMMARY (fieldsummaryParameter)*
+   ;
+
+fieldsummaryParameter
+   : INCLUDEFIELDS EQUAL fieldList          # fieldsummaryIncludeFields
+   | NULLS EQUAL booleanLiteral             # fieldsummaryNulls
    ;
 
 fillNullWithTheSameValue
