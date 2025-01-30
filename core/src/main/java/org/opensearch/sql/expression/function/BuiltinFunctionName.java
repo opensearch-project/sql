@@ -237,6 +237,9 @@ public enum BuiltinFunctionName {
   JSON_APPEND(FunctionName.of("json_append")),
   JSON_EXTEND(FunctionName.of("json_extend")),
 
+  /** GEOSPATIAL Functions. */
+  GEOIP(FunctionName.of("geoip")),
+
   /** NULL Test. */
   IS_NULL(FunctionName.of("is null")),
   IS_NOT_NULL(FunctionName.of("is not null")),

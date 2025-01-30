@@ -611,6 +611,7 @@ evalFunctionName
    | cryptographicFunctionName
    | jsonFunctionName
    | collectionFunctionName
+   | geoipFunctionName
    ;
 
 functionArgs
@@ -736,6 +737,9 @@ collectionFunctionName
     | TRANSFORM
     | REDUCE
     ;
+geoipFunctionName
+   : GEOIP
+   ;
 
 trigonometricFunctionName
    : ACOS
@@ -1131,6 +1135,7 @@ keywordsCanBeId
    | jsonFunctionName
    | patternMethod
    | patternsMethod
+   | geoipFunctionName
    // commands
    | SEARCH
    | DESCRIBE

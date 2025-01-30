@@ -22,6 +22,7 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 
 public class OpenSearchFunctionsTest extends ExpressionTestBase {
@@ -308,5 +309,18 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
         ExprValueUtils.tupleValue(Map.of("message", Map.of("info", "result"))).bindingTuples();
     assertEquals(expr.valueOf(nestedTuple), ExprValueUtils.stringValue("result"));
     assertEquals(expr.type(), STRING);
+  }
+
+  @Test
+  void opensearchExecutableFunction_valueOf() {
+    var ipInStr =
+        new OpenSearchFunctions.OpenSearchExecutableFunction(
+            BuiltinFunctionName.GEOIP.getName(),
+            List.of(DSL.literal("my-datasource"), new ReferenceExpression("ipInStr", STRING)),
+            BOOLEAN);
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> ipInStr.valueOf(valueEnv()),
+        "OpenSearch defined function [geoip] is only supported in Eval operation.");
   }
 }
