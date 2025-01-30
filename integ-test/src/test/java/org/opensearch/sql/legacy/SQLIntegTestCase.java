@@ -23,6 +23,7 @@ import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDuplicationNullableIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getGeoIpIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getHdfsLogsIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getHobbiesIndexMapping;
@@ -655,6 +656,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "unexpandedObject",
         getUnexpandedObjectIndexMapping(),
         "src/test/resources/unexpanded_objects.json"),
+    GEOIP(
+        TestsConstants.TEST_INDEX_GEOIP,
+        "geoip",
+        getGeoIpIndexMapping(),
+        "src/test/resources/geoip.json"),
     BANK(
         TestsConstants.TEST_INDEX_BANK,
         "account",

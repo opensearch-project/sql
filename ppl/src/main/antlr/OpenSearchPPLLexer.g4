@@ -121,6 +121,9 @@ ELSE:                               'ELSE';
 IN:                                 'IN';
 EXISTS:                             'EXISTS';
 
+// Geo IP eval function
+GEOIP:                              'GEOIP';
+
 // LOGICAL KEYWORDS
 NOT:                                'NOT';
 OR:                                 'OR';
