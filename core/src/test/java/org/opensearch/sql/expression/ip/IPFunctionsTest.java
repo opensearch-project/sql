@@ -13,6 +13,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.type.ExprCoreType.IP;
 
+import lombok.ToString;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -25,6 +26,7 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 
+@ToString
 @ExtendWith(MockitoExtension.class)
 class IPFunctionsTest {
 
@@ -57,7 +59,7 @@ class IPFunctionsTest {
             SemanticCheckException.class,
             () -> execute(ExprValueUtils.ipValue("INVALID"), IPv4Range));
     assertTrue(
-        ex.getMessage().matches("IP address string 'INVALID' is not valid. Error details: .*"));
+        ex.getMessage().matches("^IP address string 'INVALID' is not valid. Error details: .*"));
 
     ex =
         assertThrows(
@@ -65,7 +67,7 @@ class IPFunctionsTest {
             () -> execute(IPv4AddressWithin, ExprValueUtils.stringValue("INVALID")));
     assertTrue(
         ex.getMessage()
-            .matches("IP address range string 'INVALID' is not valid. Error details: .*"));
+            .matches("^IP address range string 'INVALID' is not valid. Error details: .*"));
   }
 
   @Test
