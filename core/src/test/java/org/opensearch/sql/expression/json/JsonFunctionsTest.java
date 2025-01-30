@@ -250,43 +250,50 @@ public class JsonFunctionsTest {
             "false",
             "");
 
-    jsonStrings.forEach(
-        str -> execute_extract_json(LITERAL_NULL, str, "$.a.path_not_found_key")
-    );
+    jsonStrings.forEach(str -> execute_extract_json(LITERAL_NULL, str, "$.a.path_not_found_key"));
 
     // null json
-    assertEquals(LITERAL_NULL, DSL.jsonExtract(DSL.literal(LITERAL_NULL), DSL.literal(new ExprStringValue("$.a"))).valueOf());
+    assertEquals(
+        LITERAL_NULL,
+        DSL.jsonExtract(DSL.literal(LITERAL_NULL), DSL.literal(new ExprStringValue("$.a")))
+            .valueOf());
 
     // missing json
-    assertEquals(LITERAL_MISSING, DSL.jsonExtract(DSL.literal(LITERAL_MISSING), DSL.literal(new ExprStringValue("$.a"))).valueOf());
+    assertEquals(
+        LITERAL_MISSING,
+        DSL.jsonExtract(DSL.literal(LITERAL_MISSING), DSL.literal(new ExprStringValue("$.a")))
+            .valueOf());
   }
 
   @Test
   void json_extract_throws_SemanticCheckException() {
     // invalid path
-    SemanticCheckException invalidPathError = assertThrows(
-        SemanticCheckException.class,
-        () ->
-            DSL.jsonExtract(
-                    DSL.literal(new ExprStringValue("{\"a\":1}")),
-                    DSL.literal(new ExprStringValue("$a")))
-                .valueOf());
+    SemanticCheckException invalidPathError =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                DSL.jsonExtract(
+                        DSL.literal(new ExprStringValue("{\"a\":1}")),
+                        DSL.literal(new ExprStringValue("$a")))
+                    .valueOf());
     assertEquals(
-            "JSON path '\"$a\"' is not valid. Error details: Illegal character at position 1 expected '.' or '['",
-            invalidPathError.getMessage());
-
+        "JSON path '\"$a\"' is not valid. Error details: Illegal character at position 1 expected"
+            + " '.' or '['",
+        invalidPathError.getMessage());
 
     // invalid json
-    SemanticCheckException invalidJsonError = assertThrows(
-        SemanticCheckException.class,
-        () ->
-            DSL.jsonExtract(
-                    DSL.literal(new ExprStringValue("{\"invalid\":\"json\", \"string\"}")),
-                    DSL.literal(new ExprStringValue("$.a")))
-                .valueOf());
+    SemanticCheckException invalidJsonError =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                DSL.jsonExtract(
+                        DSL.literal(new ExprStringValue("{\"invalid\":\"json\", \"string\"}")),
+                        DSL.literal(new ExprStringValue("$.a")))
+                    .valueOf());
     assertEquals(
-            "JSON string '\"{\"invalid\":\"json\", \"string\"}\"' is not valid. Error details: net.minidev.json.parser.ParseException: Unexpected character (}) at position 26.",
-            invalidJsonError.getMessage());
+        "JSON string '\"{\"invalid\":\"json\", \"string\"}\"' is not valid. Error details:"
+            + " net.minidev.json.parser.ParseException: Unexpected character (}) at position 26.",
+        invalidJsonError.getMessage());
   }
 
   @Test

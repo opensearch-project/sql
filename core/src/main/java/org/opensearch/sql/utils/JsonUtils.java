@@ -1,5 +1,7 @@
 package org.opensearch.sql.utils;
 
+import static org.opensearch.sql.data.model.ExprValueUtils.*;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,8 +24,6 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
-
-import static org.opensearch.sql.data.model.ExprValueUtils.*;
 
 @UtilityClass
 public class JsonUtils {
