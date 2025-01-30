@@ -132,8 +132,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   private final BuiltinFunctionRepository repository;
 
-  private static final String PATH_SEPARATOR = ".";
-
   /** Constructor. */
   public Analyzer(
       ExpressionAnalyzer expressionAnalyzer,
@@ -459,7 +457,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    * Builds and returns a {@link org.opensearch.sql.planner.logical.LogicalFlatten} corresponding to
    * the given flatten node.
    */
-  @SuppressWarnings("NonConstantStringShouldBeStringBuffer")
   @Override
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
     LogicalPlan child = node.getChild().getFirst().accept(this, context);
@@ -522,10 +519,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment env = context.peek();
     Map<String, ExprType> fieldsMap = env.lookupAllTupleFields(Namespace.FIELD_NAME);
 
-    final String fieldDescendantPath = fieldName + PATH_SEPARATOR;
+    final String pathSeparator = ".";
+    final String fieldDescendantPath = fieldName + pathSeparator;
     final Optional<String> fieldParentPath =
-        fieldName.contains(PATH_SEPARATOR)
-            ? Optional.of(fieldName.substring(0, fieldName.lastIndexOf(PATH_SEPARATOR)))
+        fieldName.contains(pathSeparator)
+            ? Optional.of(fieldName.substring(0, fieldName.lastIndexOf(pathSeparator)))
             : Optional.empty();
 
     for (String path : fieldsMap.keySet()) {
@@ -538,7 +536,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       // Build the new path.
       String newPath = path.substring(fieldDescendantPath.length());
       if (fieldParentPath.isPresent()) {
-        newPath = fieldParentPath.get() + PATH_SEPARATOR + newPath;
+        newPath = fieldParentPath.get() + pathSeparator + newPath;
       }
 
       ExprType type = fieldsMap.get(path);

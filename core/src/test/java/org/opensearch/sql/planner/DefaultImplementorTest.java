@@ -330,7 +330,7 @@ class DefaultImplementorTest {
   }
 
   @Test
-  void visitFlatten_should_build_FlattenOperator() {
+  public void visitFlatten_should_build_FlattenOperator() {
 
     // Mock physical and logical plan children.
     var logicalChild = mock(LogicalPlan.class);
