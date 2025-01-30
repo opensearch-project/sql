@@ -205,7 +205,7 @@ public class JsonFunctionsTest {
   @Test
   void json_extract_search_arrays() {
     String jsonArray = "{\"a\":[1,2.3,\"abc\",true,null,{\"c\":{\"d\":1}},[1,2,3]]}";
-    List<ExprValue> expectedExprValue =
+    List<ExprValue> expectedExprValues =
         List.of(
             new ExprIntegerValue(1),
             new ExprFloatValue(2.3),
