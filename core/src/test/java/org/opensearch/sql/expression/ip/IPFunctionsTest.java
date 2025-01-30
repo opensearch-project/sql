@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.ip;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
@@ -25,7 +26,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 
 @ExtendWith(MockitoExtension.class)
-public class IPFunctionsTest {
+class IPFunctionsTest {
 
   // IP range and address constants for testing.
   private static final ExprValue IPv4Range = ExprValueUtils.stringValue("198.51.100.0/24");
@@ -48,19 +49,27 @@ public class IPFunctionsTest {
   @Mock private Environment<Expression, ExprValue> env;
 
   @Test
-  public void cidrmatch_invalid_arguments() {
-    assertThrows(
-        SemanticCheckException.class,
-        () -> execute(ExprValueUtils.ipValue("INVALID"), IPv4Range),
-        "IP address string 'INVALID' is not valid. Error details: .*");
-    assertThrows(
-        SemanticCheckException.class,
-        () -> execute(IPv4AddressWithin, ExprValueUtils.stringValue("INVALID")),
-        "IP address range string 'INVALID' is not valid. Error details: .*");
+  void cidrmatch_invalid_arguments() {
+    Exception ex;
+
+    ex =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> execute(ExprValueUtils.ipValue("INVALID"), IPv4Range));
+    assertTrue(
+        ex.getMessage().matches("IP address string 'INVALID' is not valid. Error details: .*"));
+
+    ex =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> execute(IPv4AddressWithin, ExprValueUtils.stringValue("INVALID")));
+    assertTrue(
+        ex.getMessage()
+            .matches("IP address range string 'INVALID' is not valid. Error details: .*"));
   }
 
   @Test
-  public void cidrmatch_valid_arguments() {
+  void cidrmatch_valid_arguments() {
 
     assertEquals(LITERAL_FALSE, execute(IPv4AddressBelow, IPv4Range));
     assertEquals(LITERAL_TRUE, execute(IPv4AddressWithin, IPv4Range));
