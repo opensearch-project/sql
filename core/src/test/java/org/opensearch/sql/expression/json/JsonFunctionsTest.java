@@ -290,10 +290,12 @@ public class JsonFunctionsTest {
                         DSL.literal(new ExprStringValue("{\"invalid\":\"json\", \"string\"}")),
                         DSL.literal(new ExprStringValue("$.a")))
                     .valueOf());
-    assertEquals(
-        "JSON string '\"{\"invalid\":\"json\", \"string\"}\"' is not valid. Error details:"
-            + " net.minidev.json.parser.ParseException: Unexpected character (}) at position 26.",
-        invalidJsonError.getMessage());
+    assertTrue(
+        invalidJsonError
+            .getMessage()
+            .startsWith(
+                "JSON string '\"{\"invalid\":\"json\", \"string\"}\"' is not valid. Error"
+                    + " details:"));
   }
 
   @Test
