@@ -209,6 +209,9 @@ public enum BuiltinFunctionName {
   JSON(FunctionName.of("json")),
   JSON_EXTRACT(FunctionName.of("json_extract")),
 
+  /** GEOSPATIAL Functions. */
+  GEOIP(FunctionName.of("geoip")),
+
   /** NULL Test. */
   IS_NULL(FunctionName.of("is null")),
   IS_NOT_NULL(FunctionName.of("is not null")),

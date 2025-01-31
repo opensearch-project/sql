@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getAliasIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankWithNullValuesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNonnumericIndexMapping;
@@ -20,6 +21,7 @@ import static org.opensearch.sql.legacy.TestUtils.getDogs2IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getGeoIpIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJsonTestIndexMapping;
@@ -626,6 +628,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "unexpandedObject",
         getUnexpandedObjectIndexMapping(),
         "src/test/resources/unexpanded_objects.json"),
+    GEOIP(
+        TestsConstants.TEST_INDEX_GEOIP,
+        "geoip",
+        getGeoIpIndexMapping(),
+        "src/test/resources/geoip.json"),
     BANK(
         TestsConstants.TEST_INDEX_BANK,
         "account",
@@ -751,7 +758,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_JSON_TEST,
         "json",
         getJsonTestIndexMapping(),
-        "src/test/resources/json_test.json");
+        "src/test/resources/json_test.json"),
+    DATA_TYPE_ALIAS(
+        TestsConstants.TEST_INDEX_ALIAS,
+        "alias",
+        getAliasIndexMapping(),
+        "src/test/resources/alias.json");
 
     private final String name;
     private final String type;
