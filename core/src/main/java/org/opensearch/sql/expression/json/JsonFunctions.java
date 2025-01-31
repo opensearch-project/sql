@@ -52,18 +52,16 @@ public class JsonFunctions {
         impl(JsonUtils::extractJson, UNDEFINED, STRING, STRING, STRING, STRING));
   }
 
-
   private DefaultFunctionResolver jsonSet() {
     return define(
-            BuiltinFunctionName.JSON_SET.getName(),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRING),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, LONG),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, SHORT),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, INTEGER),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, DOUBLE),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BOOLEAN),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, ARRAY),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRUCT));
+        BuiltinFunctionName.JSON_SET.getName(),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRING),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, LONG),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, SHORT),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, INTEGER),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, DOUBLE),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BOOLEAN),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, ARRAY),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRUCT));
   }
-
 }

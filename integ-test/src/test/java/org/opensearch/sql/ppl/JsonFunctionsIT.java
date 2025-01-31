@@ -223,23 +223,22 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     JSONObject result;
 
     result =
-            executeQuery(
-                    String.format(
-                            "source=%s | eval updated=json_set(json_string, \\\"$.c.innerProperty\\\", \\\"test_value\\\") | fields"
-                                    + " test_name, updated",
-                            TEST_INDEX_JSON_TEST));
-    verifySchema(result,
-            schema("test_name", null, "string"),
-            schema("updated", null, "undefined"));
+        executeQuery(
+            String.format(
+                "source=%s | eval updated=json_set(json_string, \\\"$.c.innerProperty\\\","
+                    + " \\\"test_value\\\") | fields test_name, updated",
+                TEST_INDEX_JSON_TEST));
+    verifySchema(result, schema("test_name", null, "string"), schema("updated", null, "undefined"));
     verifyDataRows(
-            result,
-            rows("json nested object",
-                    "{\"a\":\"1\",\"b\":{\"c\":\"3\"},\"d\":[1,2,3],\"c\":{\"innerProperty\":\"test_value\"}}"),
-            rows("json object", "{\"a\":\"1\",\"b\":\"2\",\"c\":{\"innerProperty\":\"test_value\"}}"),
-            rows("json array", null),
-            rows("json scalar string", null),
-            rows("json empty string", null),
-            rows("json invalid object", null),
-            rows("json null", null));
+        result,
+        rows(
+            "json nested object",
+            "{\"a\":\"1\",\"b\":{\"c\":\"3\"},\"d\":[1,2,3],\"c\":{\"innerProperty\":\"test_value\"}}"),
+        rows("json object", "{\"a\":\"1\",\"b\":\"2\",\"c\":{\"innerProperty\":\"test_value\"}}"),
+        rows("json array", null),
+        rows("json scalar string", null),
+        rows("json empty string", null),
+        rows("json invalid object", null),
+        rows("json null", null));
   }
 }
