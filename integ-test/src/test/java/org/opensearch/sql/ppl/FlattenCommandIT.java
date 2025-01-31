@@ -25,52 +25,81 @@ public class FlattenCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFlattenStruct() throws IOException {
-    String query =
-        StringUtils.format(
-            "source=%s | flatten location | fields state, province, country, coordinates",
-            TEST_INDEX_CITIES);
+  public void testBasic() throws IOException {
+    String query = StringUtils.format("source=%s | flatten location", TEST_INDEX_CITIES);
     JSONObject result = executeQuery(query);
 
     verifySchema(
         result,
-        schema("state", "string"),
-        schema("province", "string"),
+        schema("name", "string"),
         schema("country", "string"),
-        schema("coordinates", "struct"));
+        schema("province", "string"),
+        schema("coordinates", "struct"),
+        schema("state", "string"));
     verifyDataRows(
         result,
         rows(
-            "Washington",
-            null,
+            "Seattle",
             "United States",
-            Map.of("latitude", 47.6061, "longitude", -122.3328)),
-        rows(
             null,
-            "British Columbia",
+            Map.ofEntries(Map.entry("latitude", 47.6061), Map.entry("longitude", -122.3328)),
+            "Washington"),
+        rows(
+            "Vancouver",
             "Canada",
-            Map.of("latitude", 49.2827, "longitude", -123.1207)));
+            "British Columbia",
+            Map.ofEntries(Map.entry("latitude", 49.2827), Map.entry("longitude", -123.1207)),
+            null),
+        rows("Null Location", null, null, null, null),
+        rows("Null Coordinates", "Australia", null, null, "Victoria"));
   }
 
   @Test
-  public void testFlattenStructMultiple() throws IOException {
+  public void testMultiple() throws IOException {
     String query =
-        StringUtils.format(
-            "source=%s | flatten location | flatten coordinates | fields state, province, country,"
-                + " latitude, longitude",
-            TEST_INDEX_CITIES);
+        StringUtils.format("source=%s | flatten location | flatten coordinates", TEST_INDEX_CITIES);
     JSONObject result = executeQuery(query);
 
     verifySchema(
         result,
-        schema("state", "string"),
-        schema("province", "string"),
+        schema("name", "string"),
         schema("country", "string"),
+        schema("province", "string"),
+        schema("state", "string"),
         schema("latitude", "float"),
         schema("longitude", "float"));
     verifyDataRows(
         result,
-        rows("Washington", null, "United States", 47.6061, -122.3328),
-        rows(null, "British Columbia", "Canada", 49.2827, -123.1207));
+        rows("Seattle", "United States", null, "Washington", 47.6061, -122.3328),
+        rows("Vancouver", "Canada", "British Columbia", null, 49.2827, -123.1207),
+        rows("Null Location", null, null, null, null, null),
+        rows("Null Coordinates", "Australia", null, "Victoria", null, null));
+  }
+
+  @Test
+  public void testNested() throws IOException {
+    String query =
+        StringUtils.format("source=%s | flatten location.coordinates", TEST_INDEX_CITIES);
+    JSONObject result = executeQuery(query);
+
+    verifySchema(result, schema("name", "string"), schema("location", "struct"));
+    verifyDataRows(
+        result,
+        rows(
+            "Seattle",
+            Map.ofEntries(
+                Map.entry("state", "Washington"),
+                Map.entry("country", "United States"),
+                Map.entry("latitude", 47.6061),
+                Map.entry("longitude", -122.3328))),
+        rows(
+            "Vancouver",
+            Map.ofEntries(
+                Map.entry("country", "Canada"),
+                Map.entry("province", "British Columbia"),
+                Map.entry("latitude", 49.2827),
+                Map.entry("longitude", -123.1207))),
+        rows("Null Location", null),
+        rows("Null Coordinates", Map.of("state", "Victoria", "country", "Australia")));
   }
 }
