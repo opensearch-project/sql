@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getAliasIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankWithNullValuesIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getCitiesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNonnumericIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNumericIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDateIndexMapping;
@@ -759,6 +760,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "json",
         getJsonTestIndexMapping(),
         "src/test/resources/json_test.json"),
+    CITIES(
+        TestsConstants.TEST_INDEX_CITIES,
+        "cities",
+        getCitiesIndexMapping(),
+        "src/test/resources/cities.json"),
     DATA_TYPE_ALIAS(
         TestsConstants.TEST_INDEX_ALIAS,
         "alias",

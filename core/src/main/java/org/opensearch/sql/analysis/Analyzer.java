@@ -467,7 +467,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalPlan child = node.getChild().getFirst().accept(this, context);
     TypeEnvironment env = context.peek();
 
-    // Verify that the field type is valid.
+    // Verify that the field name is valid.
     ReferenceExpression fieldExpr;
     try {
       fieldExpr = (ReferenceExpression) expressionAnalyzer.analyze(node.getField(), context);
@@ -475,6 +475,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       throw new IllegalArgumentException("Invalid field name for flatten command", e);
     }
 
+    // Verify that the field type is valid.
     ExprType fieldType = fieldExpr.type();
     if (fieldType != STRUCT) {
       throw new IllegalArgumentException(

@@ -34,19 +34,14 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
   @Mock private PhysicalPlan inputPlan;
 
   @Test
-  void testFlattenStruct() {
+  void testFlattenStructBasic() {
     Map<String, Object> structMap =
-        ImmutableMap.of(
-            "string_field",
-            "string_value",
-            "integer_field",
-            1,
-            "long_field",
-            1L,
-            "boolean_field",
-            true,
-            "list_field",
-            List.of("a", "b"));
+        ImmutableMap.ofEntries(
+            Map.entry("string_field", "string_value"),
+            Map.entry("integer_field", 1),
+            Map.entry("long_field", 1L),
+            Map.entry("boolean_field", true),
+            Map.entry("list_field", List.of("a", "b")));
 
     Map<String, Object> rowMap = ImmutableMap.of("struct_field", structMap);
     ExprValue rowValue = ExprValueUtils.tupleValue(rowMap);
@@ -77,9 +72,10 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
 
   @Test
   void testFlattenStructNested() {
+    Map<String, Object> nestedStructMap =
+        ImmutableMap.ofEntries(Map.entry("nested_string_field", "string_value"));
     Map<String, Object> structMap =
-        ImmutableMap.of(
-            "nested_struct_field", ImmutableMap.of("nested_string_field", "string_value"));
+        ImmutableMap.ofEntries(Map.entry("nested_struct_field", nestedStructMap));
     Map<String, Object> rowMap = ImmutableMap.of("struct_field", structMap);
     ExprValue rowValue = ExprValueUtils.tupleValue(rowMap);
 
