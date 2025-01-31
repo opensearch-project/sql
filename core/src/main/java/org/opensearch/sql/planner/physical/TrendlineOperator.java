@@ -11,6 +11,7 @@ import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.time.Instant;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,6 +22,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.tree.Trendline;
+import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -106,9 +108,10 @@ public class TrendlineOperator extends PhysicalPlan {
 
   private static TrendlineAccumulator createAccumulator(
       Pair<Trendline.TrendlineComputation, ExprCoreType> computation) {
-    // Add a switch statement based on computation type to choose the accumulator when more
-    // types of computations are supported.
-    return new SimpleMovingAverageAccumulator(computation.getKey(), computation.getValue());
+      return switch (computation.getKey().getComputationType()) {
+          case SMA -> new SimpleMovingAverageAccumulator(computation.getKey(), computation.getValue());
+          case WMA -> new WeightedMovingAverageAccumulator(computation.getKey(), computation.getValue());
+      };
   }
 
   /** Maintains stateful information for calculating the trendline. */
@@ -186,6 +189,53 @@ public class TrendlineOperator extends PhysicalPlan {
       return evaluator.evaluate(runningTotal, dataPointsNeeded);
     }
   }
+
+  private static class WeightedMovingAverageAccumulator implements TrendlineAccumulator {
+    private final LiteralExpression dataPointsNeeded;
+    private final ArrayList<ExprValue> receivedValues;
+//    private final ArithmeticEvaluator evaluator;
+
+    public WeightedMovingAverageAccumulator(
+            Trendline.TrendlineComputation computation, ExprCoreType type) {
+      dataPointsNeeded = DSL.literal(computation.getNumberOfDataPoints().doubleValue());
+      receivedValues = new ArrayList<>(computation.getNumberOfDataPoints()+1);
+//      evaluator = TrendlineAccumulator.getEvaluator(type);
+    }
+
+    @Override
+    public void accumulate(ExprValue value) {
+//      if (dataPointsNeeded.valueOf().integerValue() == 1) {
+//        receivedValues.add(value);
+//        return;
+//      }
+
+      receivedValues.add(value);
+
+      if (receivedValues.size() > dataPointsNeeded.valueOf().integerValue()) {
+        receivedValues.removeFirst();
+      }
+
+    }
+
+    @Override
+    public ExprValue calculate() {
+      if (receivedValues.size() < dataPointsNeeded.valueOf().integerValue()) {
+        return null;
+      } else if (dataPointsNeeded.valueOf().integerValue() == 1) {
+        return receivedValues.getFirst();
+      }
+      return computeWma(receivedValues);
+    }
+  }
+
+  private static ExprValue computeWma(ArrayList<ExprValue> receivedValues) {
+    double sum = 0D;
+    for (int i=0 ; i<receivedValues.size() ; i++) {
+      sum += receivedValues.get(i).doubleValue() / i+1;
+    }
+    return new ExprDoubleValue(sum / receivedValues.size());
+  }
+
 
   private interface ArithmeticEvaluator {
     Expression calculateFirstTotal(List<ExprValue> dataPoints);
