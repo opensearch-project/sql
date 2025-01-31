@@ -11,14 +11,14 @@ flatten
 Description
 ============
 
-Using ``flatten`` command to flatten an `object`. New fields are added to the search results corresponding
+The ``flatten`` command flattens an `object`'s fields. New fields are added to the search results corresponding
 to each of the object's fields, while the object field itself is removed from the search results. If the
 specified `object` is null or missing, the search results are not modified.
 
 Syntax
 ============
 
-`flatten field`
+`flatten <field>`
 
 * `field`: reference to the `object` field to flatten.
 

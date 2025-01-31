@@ -495,22 +495,28 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     //
     // Input Data:
     //
-    // { struct: {
-    //     integer: 0,
-    //       nested_struct: {
-    //         string: "value" }}}
+    // [
+    //    struct: {
+    //      integer: 0,
+    //      nested_struct: { string: "value" }
+    //    }
+    // ]
     //
     // Example 1: 'flatten struct'
     //
-    // { integer: 0,
-    //   nested_struct: {
-    //     string: "value" }}
+    // [
+    //   integer: 0,
+    //   nested_struct: { string: "value" }
+    // ]
     //
-    // Example 2: 'flatten nested_struct'
+    // Example 2: 'flatten struct.nested_struct'
     //
-    // { struct: {
-    //     integer: 0,
-    //     string: "value" }}
+    // [
+    //    struct: {
+    //      integer: 0,
+    //      string: "value"
+    //    {
+    // ]
 
     Map<String, ExprType> addFieldsMap = new HashMap<>();
     Map<String, ExprType> removeFieldsMap = new HashMap<>();
