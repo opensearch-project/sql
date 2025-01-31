@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.utils;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.*;
