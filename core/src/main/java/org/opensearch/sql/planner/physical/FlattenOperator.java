@@ -50,23 +50,50 @@ public class FlattenOperator extends PhysicalPlan {
     return flattenExprValueAtPath(input.next(), field.getAttr());
   }
 
-  /** Flattens the value at the specified path and returns the result. */
-  private static ExprValue flattenExprValueAtPath(ExprValue value, String path) {
+  /**
+   * Flattens the {@link ExprTupleValue} at the specified path and returns the update value.. If the
+   * value is null or missing, the unmodified value is returned..
+   */
+  private static ExprValue flattenExprValueAtPath(ExprValue exprValue, String path) {
 
     Matcher matcher = PATH_SEPARATOR_PATTERN.matcher(path);
-    Map<String, ExprValue> exprValueMap = ExprValueUtils.getTupleValue(value);
+    Map<String, ExprValue> exprValueMap = ExprValueUtils.getTupleValue(exprValue);
+
+    // [A] Flatten nested struct value
+    // -------------------------------
 
     if (matcher.find()) {
       String currentPathComponent = path.substring(0, matcher.start());
       String remainingPath = path.substring(matcher.end());
 
+      if (!exprValueMap.containsKey(currentPathComponent)) {
+        return exprValue;
+      }
+
+      ExprValue childExprValue = exprValueMap.get(currentPathComponent);
+      if (childExprValue.isNull() || childExprValue.isMissing()) {
+        return exprValue;
+      }
+
       ExprValue flattenedExprValue =
           flattenExprValueAtPath(exprValueMap.get(currentPathComponent), remainingPath);
       exprValueMap.put(currentPathComponent, flattenedExprValue);
-    } else {
-      exprValueMap.putAll(ExprValueUtils.getTupleValue(exprValueMap.get(path)));
-      exprValueMap.remove(path);
+      return ExprTupleValue.fromExprValueMap(exprValueMap);
     }
+
+    // [B] Flatten child struct value
+    // ------------------------------
+
+    if (!exprValueMap.containsKey(path)) {
+      return exprValue;
+    }
+
+    ExprValue childExprValue = exprValueMap.get(path);
+    if (!childExprValue.isNull() && !childExprValue.isMissing()) {
+      exprValueMap.putAll(ExprValueUtils.getTupleValue(childExprValue));
+    }
+
+    exprValueMap.remove(path);
 
     return ExprTupleValue.fromExprValueMap(exprValueMap);
   }

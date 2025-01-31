@@ -29,19 +29,37 @@ import org.opensearch.sql.expression.DSL;
 class FlattenOperatorTest extends PhysicalPlanTestBase {
   @Mock private PhysicalPlan inputPlan;
 
+  // Define input values for testing.
+  private final ExprValue doubleExprValue = ExprValueUtils.integerValue(0);
+  private final ExprValue integerExprValue = ExprValueUtils.doubleValue(0.0);
+  private final ExprValue stringExprValue = ExprValueUtils.stringValue("value");
+
+  private final ExprValue structEmptyExprValue = ExprValueUtils.tupleValue(Map.of());
+  private final ExprValue structNullExprValue = ExprValueUtils.nullValue();
+  private final ExprValue structMissingExprValue = ExprValueUtils.missingValue();
+
+  private final ExprValue structNestedExprValue =
+      ExprValueUtils.tupleValue(Map.of("string", stringExprValue));
+
+  private final ExprValue structExprValue =
+      ExprValueUtils.tupleValue(
+          Map.ofEntries(
+              Map.entry("integer", integerExprValue),
+              Map.entry("double", doubleExprValue),
+              Map.entry("struct_nested", structNestedExprValue)));
+
+  private final ExprValue rowValue =
+      ExprValueUtils.tupleValue(
+          Map.ofEntries(
+              Map.entry("struct_empty", structEmptyExprValue),
+              Map.entry("struct_null", structNullExprValue),
+              Map.entry("struct_missing", structMissingExprValue),
+              Map.entry("struct", structExprValue)));
+
   @BeforeEach
   void setup() {
-    ExprValue rowValue =
-        ExprValueUtils.tupleValue(
-            Map.ofEntries(
-                Map.entry("struct_empty", Map.of()),
-                Map.entry(
-                    "struct",
-                    Map.ofEntries(
-                        Map.entry("integer", 0),
-                        Map.entry("double", 0),
-                        Map.entry("struct_nested", Map.of("string", "value"))))));
 
+    // Mock input values.
     when(inputPlan.hasNext()).thenReturn(true, false);
     when(inputPlan.next()).thenReturn(rowValue);
   }
@@ -53,12 +71,37 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
     ExprValue expected =
         ExprValueUtils.tupleValue(
             Map.ofEntries(
-                Map.entry(
-                    "struct",
-                    Map.ofEntries(
-                        Map.entry("integer", 0),
-                        Map.entry("double", 0),
-                        Map.entry("struct_nested", Map.of("string", "value"))))));
+                Map.entry("struct_null", structNullExprValue),
+                Map.entry("struct_missing", structMissingExprValue),
+                Map.entry("struct", structExprValue)));
+
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  void testStructNull() {
+    ExprValue actual = execute(flatten(inputPlan, DSL.ref("struct_null", STRUCT))).getFirst();
+
+    ExprValue expected =
+        ExprValueUtils.tupleValue(
+            Map.ofEntries(
+                Map.entry("struct_empty", structEmptyExprValue),
+                Map.entry("struct_missing", structMissingExprValue),
+                Map.entry("struct", structExprValue)));
+
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  void testStructMissing() {
+    ExprValue actual = execute(flatten(inputPlan, DSL.ref("struct_missing", STRUCT))).getFirst();
+
+    ExprValue expected =
+        ExprValueUtils.tupleValue(
+            Map.ofEntries(
+                Map.entry("struct_empty", structEmptyExprValue),
+                Map.entry("struct_null", structNullExprValue),
+                Map.entry("struct", structExprValue)));
 
     assertEquals(expected, actual);
   }
@@ -70,10 +113,12 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
     ExprValue expected =
         ExprValueUtils.tupleValue(
             Map.ofEntries(
-                Map.entry("struct_empty", Map.of()),
-                Map.entry("integer", 0),
-                Map.entry("double", 0),
-                Map.entry("struct_nested", Map.of("string", "value"))));
+                Map.entry("struct_empty", structEmptyExprValue),
+                Map.entry("struct_null", structNullExprValue),
+                Map.entry("struct_missing", structMissingExprValue),
+                Map.entry("integer", integerExprValue),
+                Map.entry("double", doubleExprValue),
+                Map.entry("struct_nested", structNestedExprValue)));
 
     assertEquals(expected, actual);
   }
@@ -86,13 +131,77 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
     ExprValue expected =
         ExprValueUtils.tupleValue(
             Map.ofEntries(
-                Map.entry("struct_empty", Map.of()),
+                Map.entry("struct_empty", structEmptyExprValue),
+                Map.entry("struct_null", structNullExprValue),
+                Map.entry("struct_missing", structMissingExprValue),
                 Map.entry(
                     "struct",
-                    Map.ofEntries(
-                        Map.entry("integer", 0),
-                        Map.entry("double", 0),
-                        Map.entry("string", "value")))));
+                    ExprValueUtils.tupleValue(
+                        Map.ofEntries(
+                            Map.entry("integer", integerExprValue),
+                            Map.entry("double", doubleExprValue),
+                            Map.entry("string", stringExprValue))))));
+
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  void testAncestorStructNull() {
+    ExprValue actual = execute(flatten(inputPlan, DSL.ref("struct_null.path", STRUCT))).getFirst();
+
+    ExprValue expected =
+        ExprValueUtils.tupleValue(
+            Map.ofEntries(
+                Map.entry("struct_empty", structEmptyExprValue),
+                Map.entry("struct_null", structNullExprValue),
+                Map.entry("struct_missing", structMissingExprValue),
+                Map.entry("struct", structExprValue)));
+
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  void testAncestorStructMissing() {
+    ExprValue actual =
+        execute(flatten(inputPlan, DSL.ref("struct_missing.path", STRUCT))).getFirst();
+
+    ExprValue expected =
+        ExprValueUtils.tupleValue(
+            Map.ofEntries(
+                Map.entry("struct_empty", structEmptyExprValue),
+                Map.entry("struct_null", structNullExprValue),
+                Map.entry("struct_missing", structMissingExprValue),
+                Map.entry("struct", structExprValue)));
+
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  void testPathMissing() {
+    ExprValue actual = execute(flatten(inputPlan, DSL.ref("struct.unknown", STRUCT))).getFirst();
+
+    ExprValue expected =
+        ExprValueUtils.tupleValue(
+            Map.ofEntries(
+                Map.entry("struct_empty", structEmptyExprValue),
+                Map.entry("struct_null", structNullExprValue),
+                Map.entry("struct_missing", structMissingExprValue),
+                Map.entry("struct", structExprValue)));
+
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  void testAncestorPathMissing() {
+    ExprValue actual = execute(flatten(inputPlan, DSL.ref("unknown", STRUCT))).getFirst();
+
+    ExprValue expected =
+        ExprValueUtils.tupleValue(
+            Map.ofEntries(
+                Map.entry("struct_empty", structEmptyExprValue),
+                Map.entry("struct_null", structNullExprValue),
+                Map.entry("struct_missing", structMissingExprValue),
+                Map.entry("struct", structExprValue)));
 
     assertEquals(expected, actual);
   }
