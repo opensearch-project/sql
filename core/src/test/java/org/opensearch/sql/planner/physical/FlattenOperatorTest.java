@@ -6,7 +6,9 @@
 package org.opensearch.sql.planner.physical;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.flatten;
 
@@ -21,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 
 @ToString
@@ -30,8 +33,8 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
   @Mock private PhysicalPlan inputPlan;
 
   // Define input values for testing.
-  private final ExprValue doubleExprValue = ExprValueUtils.integerValue(0);
-  private final ExprValue integerExprValue = ExprValueUtils.doubleValue(0.0);
+  private final ExprValue integerExprValue = ExprValueUtils.integerValue(0);
+  private final ExprValue doubleExprValue = ExprValueUtils.doubleValue(0.0);
   private final ExprValue stringExprValue = ExprValueUtils.stringValue("value");
 
   private final ExprValue structEmptyExprValue = ExprValueUtils.tupleValue(Map.of());
@@ -204,5 +207,14 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
                 Map.entry("struct", structExprValue)));
 
     assertEquals(expected, actual);
+  }
+
+  @Test
+  void testInvalidType() {
+    Exception ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> execute(flatten(inputPlan, DSL.ref("struct.integer", INTEGER))));
+    assertEquals("invalid to get tupleValue from value of type INTEGER", ex.getMessage());
   }
 }

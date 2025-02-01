@@ -461,31 +461,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
     LogicalPlan child = node.getChild().getFirst().accept(this, context);
 
-    // [A] Get field name and type
-    // ---------------------------
-
-    // Verify that the field name is valid.
-    ReferenceExpression fieldExpr;
-    try {
-      fieldExpr = (ReferenceExpression) expressionAnalyzer.analyze(node.getField(), context);
-    } catch (SemanticCheckException e) {
-      throw new IllegalArgumentException("Invalid field name for flatten command", e);
-    }
-
+    ReferenceExpression fieldExpr =
+        (ReferenceExpression) expressionAnalyzer.analyze(node.getField(), context);
     String fieldName = fieldExpr.getAttr();
     ExprType fieldType = fieldExpr.type();
-
-    // Verify that the field type is valid.
-    if (fieldType != STRUCT) {
-      String msg =
-          StringUtils.format(
-              "Invalid field type for flatten command. Expected '%s' but got '%s'.",
-              STRUCT.typeName(), fieldType);
-      throw new IllegalArgumentException(msg);
-    }
-
-    // [B] Get fields to add and remove
-    // --------------------------------
 
     // Iterate over all the fields defined in the type environment. Find all those that are
     // descended from field that is being flattened. Determine the new path to add and remove the

@@ -24,6 +24,7 @@ import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 
 @ExtendWith(MockitoExtension.class)
@@ -110,21 +111,9 @@ class LogicalFlattenTest extends AnalyzerTestBase {
         AstDSL.flatten(AstDSL.relation("schema"), AstDSL.field("invalid"));
 
     String msg =
-        assertThrows(IllegalArgumentException.class, () -> analyze(actualUnresolvedPlan))
+        assertThrows(SemanticCheckException.class, () -> analyze(actualUnresolvedPlan))
             .getMessage();
-    assertEquals("Invalid field name for flatten command", msg);
-  }
-
-  @Test
-  void testInvalidType() {
-    Flatten actualUnresolvedPlan =
-        AstDSL.flatten(AstDSL.relation("schema"), AstDSL.field("integer_value"));
-
-    String actualMsg =
-        assertThrows(IllegalArgumentException.class, () -> analyze(actualUnresolvedPlan))
-            .getMessage();
-    assertEquals(
-        "Invalid field type for flatten command. Expected 'STRUCT' but got 'INTEGER'.", actualMsg);
+    assertEquals("can't resolve Symbol(namespace=FIELD_NAME, name=invalid) in type env", msg);
   }
 
   @Test
