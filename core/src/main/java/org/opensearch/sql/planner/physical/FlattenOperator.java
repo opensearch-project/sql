@@ -51,8 +51,8 @@ public class FlattenOperator extends PhysicalPlan {
   }
 
   /**
-   * Flattens the {@link ExprTupleValue} at the specified path and returns the update value.. If the
-   * value is null or missing, the unmodified value is returned..
+   * Flattens the {@link ExprTupleValue} at the specified path and returns the update value. If the
+   * value is null or missing, the unmodified value is returned.
    */
   private static ExprValue flattenExprValueAtPath(ExprValue exprValue, String path) {
 
