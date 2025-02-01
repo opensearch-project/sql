@@ -75,6 +75,12 @@ public class ExprTupleValue extends AbstractExprValue {
       return false;
     }
 
+    /**
+     * {@link Map#equals} returns true if the two maps' entry sets are equal, and works properly
+     * across all implementation of the {@link Map} interface. See {@link
+     * https://docs.oracle.com/javase/8/docs/api/java/util/Map.html#equals-java.lang.Object-} for
+     * more details.
+     */
     return valueMap.equals(other.tupleValue());
   }
 
