@@ -12,8 +12,7 @@ Description
 ============
 
 The ``flatten`` command flattens an `object`'s fields. New fields are added to the search results corresponding
-to each of the object's fields, while the object field itself is removed from the search results. If the
-specified `object` is null or missing, the search results are not modified.
+to each of the object's fields; if the specified `object` is null or missing, the search results are not modified.
 
 Syntax
 ============
@@ -27,7 +26,7 @@ Example 1: Flatten an object field
 
 PPL query::
 
-    os> source=cities | flatten location
+    os> source=cities | flatten location | fields name, country, province, coordinates, state
     fetched rows / total rows = 4/4
     +------------------+---------------+------------------+-----------------------------------------------+------------+
     | name             | country       | province         | coordinates                                   | state      |
@@ -43,7 +42,7 @@ Example 2: Flatten multiple object fields
 
 PPL query::
 
-    os> source=cities | flatten location | flatten coordinates
+    os> source=cities | flatten location | flatten coordinates | fields name, country, province, state, latitude, longitude
     fetched rows / total rows = 4/4
     +------------------+---------------+------------------+------------+----------+-----------+
     | name             | country       | province         | state      | latitude | longitude |
@@ -59,14 +58,14 @@ Example 3: Flatten a nested object field
 
 PPL query::
 
-    os> source=cities | flatten location.coordinates
+    os> source=cities | flatten location.coordinates | fields name, location
     fetched rows / total rows = 4/4
-    +------------------+----------------------------------------------------------------------------------------------------+
-    | name             | location                                                                                           |
-    |------------------+----------------------------------------------------------------------------------------------------|
-    | Seattle          | {'state': 'Washington', 'country': 'United States', 'latitude': 47.6061, 'longitude': -122.3328}   |
-    | Vancouver        | {'province': 'British Columbia', 'country': 'Canada', 'latitude': 49.2827, 'longitude': -123.1207} |
-    | Null Location    | null                                                                                               |
-    | Null Coordinates | {'state': 'Victoria', 'country': 'Australia'}                                                      |
-    +------------------+----------------------------------------------------------------------------------------------------+
+    +------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | name             | location                                                                                                                                                         |
+    |------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | Seattle          | {'state': 'Washington', 'country': 'United States', 'coordinates': {'latitude': 47.6061, 'longitude': -122.3328}, 'latitude': 47.6061, 'longitude': -122.3328}   |
+    | Vancouver        | {'province': 'British Columbia', 'country': 'Canada', 'coordinates': {'latitude': 49.2827, 'longitude': -123.1207}, 'latitude': 49.2827, 'longitude': -123.1207} |
+    | Null Location    | null                                                                                                                                                             |
+    | Null Coordinates | {'state': 'Victoria', 'country': 'Australia'}                                                                                                                    |
+    +------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 

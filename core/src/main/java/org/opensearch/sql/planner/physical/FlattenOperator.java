@@ -19,6 +19,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.ReferenceExpression;
 
+/** Flattens the specified field from the input and returns the result. */
 @Getter
 @ToString
 @RequiredArgsConstructor
@@ -92,8 +93,6 @@ public class FlattenOperator extends PhysicalPlan {
     if (!childExprValue.isNull() && !childExprValue.isMissing()) {
       exprValueMap.putAll(ExprValueUtils.getTupleValue(childExprValue));
     }
-
-    exprValueMap.remove(path);
 
     return ExprTupleValue.fromExprValueMap(exprValueMap);
   }

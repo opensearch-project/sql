@@ -466,6 +466,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     String fieldName = fieldExpr.getAttr();
     ExprType fieldType = fieldExpr.type();
 
+    // [A] Determine fields to add
+    // ---------------------------
+
     // Iterate over all the fields defined in the type environment. Find all those that are
     // descended from field that is being flattened. Determine the new path to add and remove the
     // existing path. When determining the new path, we need to preserve the portion of the
@@ -498,8 +501,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     // ]
 
     Map<String, ExprType> addFieldsMap = new HashMap<>();
-    Map<String, ExprType> removeFieldsMap = new HashMap<>();
-    removeFieldsMap.put(fieldName, fieldType);
 
     TypeEnvironment env = context.peek();
     Map<String, ExprType> fieldsMap = env.lookupAllTupleFields(Namespace.FIELD_NAME);
@@ -526,13 +527,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
       ExprType type = fieldsMap.get(path);
       addFieldsMap.put(newPath, type);
-      removeFieldsMap.put(path, type);
     }
 
-    // [C] Update environment
+    // [B] Update environment
     // ----------------------
-
-    removeFieldsMap.forEach((name, type) -> env.remove(DSL.ref(name, type)));
 
     for (Map.Entry<String, ExprType> entry : addFieldsMap.entrySet()) {
       String name = entry.getKey();

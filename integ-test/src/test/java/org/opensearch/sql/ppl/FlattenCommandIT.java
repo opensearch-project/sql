@@ -26,7 +26,10 @@ public class FlattenCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBasic() throws IOException {
-    String query = StringUtils.format("source=%s | flatten location", TEST_INDEX_CITIES);
+    String query =
+        StringUtils.format(
+            "source=%s | flatten location | fields name, country, province, coordinates, state",
+            TEST_INDEX_CITIES);
     JSONObject result = executeQuery(query);
 
     verifySchema(
@@ -57,7 +60,10 @@ public class FlattenCommandIT extends PPLIntegTestCase {
   @Test
   public void testMultiple() throws IOException {
     String query =
-        StringUtils.format("source=%s | flatten location | flatten coordinates", TEST_INDEX_CITIES);
+        StringUtils.format(
+            "source=%s | flatten location | flatten coordinates | fields name, country, province,"
+                + " state, latitude, longitude",
+            TEST_INDEX_CITIES);
     JSONObject result = executeQuery(query);
 
     verifySchema(
@@ -79,7 +85,8 @@ public class FlattenCommandIT extends PPLIntegTestCase {
   @Test
   public void testNested() throws IOException {
     String query =
-        StringUtils.format("source=%s | flatten location.coordinates", TEST_INDEX_CITIES);
+        StringUtils.format(
+            "source=%s | flatten location.coordinates | fields name, location", TEST_INDEX_CITIES);
     JSONObject result = executeQuery(query);
 
     verifySchema(result, schema("name", "string"), schema("location", "struct"));
@@ -90,6 +97,7 @@ public class FlattenCommandIT extends PPLIntegTestCase {
             Map.ofEntries(
                 Map.entry("state", "Washington"),
                 Map.entry("country", "United States"),
+                Map.entry("coordinates", Map.of("latitude", 47.6061, "longitude", -122.3328)),
                 Map.entry("latitude", 47.6061),
                 Map.entry("longitude", -122.3328))),
         rows(
@@ -97,6 +105,7 @@ public class FlattenCommandIT extends PPLIntegTestCase {
             Map.ofEntries(
                 Map.entry("country", "Canada"),
                 Map.entry("province", "British Columbia"),
+                Map.entry("coordinates", Map.of("latitude", 49.2827, "longitude", -123.1207)),
                 Map.entry("latitude", 49.2827),
                 Map.entry("longitude", -123.1207))),
         rows("Null Location", null),

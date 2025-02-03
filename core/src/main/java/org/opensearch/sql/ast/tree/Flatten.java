@@ -13,6 +13,7 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
 
+/** AST node representing a flatten <field> operation. */
 @Getter
 @ToString
 @RequiredArgsConstructor

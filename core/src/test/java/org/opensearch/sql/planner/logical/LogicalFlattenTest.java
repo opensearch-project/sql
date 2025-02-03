@@ -6,7 +6,6 @@
 package org.opensearch.sql.planner.logical;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
@@ -60,8 +59,6 @@ class LogicalFlattenTest extends AnalyzerTestBase {
         analyze(AstDSL.flatten(AstDSL.relation(TABLE_NAME), AstDSL.field("struct_empty")));
 
     assertEquals(expectedLogicalPlan, actualLogicalPlan);
-
-    assertTypeNotDefined("struct_empty");
   }
 
   @Test
@@ -73,12 +70,6 @@ class LogicalFlattenTest extends AnalyzerTestBase {
         analyze(AstDSL.flatten(AstDSL.relation(TABLE_NAME), AstDSL.field("struct")));
 
     assertEquals(expectedLogicalPlan, actualLogicalPlan);
-
-    assertTypeNotDefined("struct");
-    assertTypeNotDefined("struct.integer");
-    assertTypeNotDefined("struct.double");
-    assertTypeNotDefined("struct.nested_struct");
-    assertTypeNotDefined("struct.nested_struct.string");
 
     assertTypeDefined("integer", INTEGER);
     assertTypeDefined("double", DOUBLE);
@@ -95,9 +86,6 @@ class LogicalFlattenTest extends AnalyzerTestBase {
         analyze(AstDSL.flatten(AstDSL.relation(TABLE_NAME), AstDSL.field("struct.nested_struct")));
 
     assertEquals(expectedLogicalPlan, actualLogicalPlan);
-
-    assertTypeNotDefined("struct.nested_struct");
-    assertTypeNotDefined("struct.nested_struct.string");
 
     assertTypeDefined("struct", STRUCT);
     assertTypeDefined("struct.integer", INTEGER);
@@ -125,13 +113,6 @@ class LogicalFlattenTest extends AnalyzerTestBase {
         assertThrows(IllegalArgumentException.class, () -> analyze(actualUnresolvedPlan))
             .getMessage();
     assertEquals("Flatten command cannot overwrite field 'integer_value'", msg);
-  }
-
-  /** Asserts that the given field name is not defined in the type environment */
-  private void assertTypeNotDefined(String fieldName) {
-    Map<String, ExprType> fieldsMap =
-        analysisContext.peek().lookupAllTupleFields(Namespace.FIELD_NAME);
-    assertFalse(fieldsMap.containsKey(fieldName));
   }
 
   /**
