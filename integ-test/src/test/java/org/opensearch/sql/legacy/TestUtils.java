@@ -195,6 +195,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getGeoIpIndexMapping() {
+    String mappingFile = "geoip_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getBankWithNullValuesIndexMapping() {
     String mappingFile = "bank_with_null_values_index_mapping.json";
     return getMappingFile(mappingFile);
@@ -252,6 +257,11 @@ public class TestUtils {
 
   public static String getJsonTestIndexMapping() {
     String mappingFile = "json_test_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getAliasIndexMapping() {
+    String mappingFile = "alias_index_mapping.json";
     return getMappingFile(mappingFile);
   }
 

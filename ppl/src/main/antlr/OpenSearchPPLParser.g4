@@ -421,6 +421,7 @@ evalFunctionName
    | systemFunctionName
    | positionFunctionName
    | jsonFunctionName
+   | geoipFunctionName
    ;
 
 functionArgs
@@ -520,6 +521,10 @@ mathematicalFunctionName
    | SQRT
    | TRUNCATE
    | trigonometricFunctionName
+   ;
+
+geoipFunctionName
+   : GEOIP
    ;
 
 trigonometricFunctionName
@@ -871,6 +876,7 @@ keywordsCanBeId
    | positionFunctionName
    | conditionFunctionName
    | jsonFunctionName
+   | geoipFunctionName
    // commands
    | SEARCH
    | DESCRIBE
