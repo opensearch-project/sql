@@ -86,6 +86,12 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
   }
 
   @Test
+  void testStructUnknown() {
+    ExprValue actual = execute(flatten(inputPlan, DSL.ref("struct_unknown", STRUCT))).getFirst();
+    assertEquals(rowValue, actual);
+  }
+
+  @Test
   void testStruct() {
     ExprValue actual = execute(flatten(inputPlan, DSL.ref("struct", STRUCT))).getFirst();
 
@@ -140,14 +146,9 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
   }
 
   @Test
-  void testPathMissing() {
-    ExprValue actual = execute(flatten(inputPlan, DSL.ref("struct.unknown", STRUCT))).getFirst();
-    assertEquals(rowValue, actual);
-  }
-
-  @Test
-  void testAncestorPathMissing() {
-    ExprValue actual = execute(flatten(inputPlan, DSL.ref("unknown", STRUCT))).getFirst();
+  void testAncestorStructUnknown() {
+    ExprValue actual =
+        execute(flatten(inputPlan, DSL.ref("struct_unknown.path", STRUCT))).getFirst();
     assertEquals(rowValue, actual);
   }
 
