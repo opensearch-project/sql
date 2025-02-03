@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
@@ -63,6 +64,7 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
+import org.opensearch.sql.planner.logical.LogicalExpand;
 import org.opensearch.sql.planner.logical.LogicalFlatten;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -72,6 +74,7 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
+import org.opensearch.sql.planner.physical.ExpandOperator;
 import org.opensearch.sql.planner.physical.FlattenOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
@@ -327,6 +330,24 @@ class DefaultImplementorTest {
     var implemented = logicalPlan.accept(implementor, null);
     assertInstanceOf(TrendlineOperator.class, implemented);
     assertSame(physicalChild, implemented.getChild().get(0));
+  }
+
+  @Test
+  public void visitExpand_should_build_ExpandOperator() {
+
+    // Mock physical and logical plan children.
+    var logicalChild = mock(LogicalPlan.class);
+    var physicalChild = mock(PhysicalPlan.class);
+    when(logicalChild.accept(implementor, null)).thenReturn(physicalChild);
+
+    // Build physical plan from logical plan.
+    var fieldName = "field_name";
+    var logicalPlan = new LogicalExpand(logicalChild, ref(fieldName, ARRAY));
+    var implemented = logicalPlan.accept(implementor, null);
+
+    assertInstanceOf(ExpandOperator.class, implemented);
+    assertEquals(fieldName, ((ExpandOperator) implemented).getField().getAttr());
+    assertSame(physicalChild, implemented.getChild().getFirst());
   }
 
   @Test

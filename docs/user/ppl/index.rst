@@ -52,6 +52,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `eval command <cmd/eval.rst>`_
 
+  - `expand command <cmd/expand.rst>`_
+
   - `fields command <cmd/fields.rst>`_
 
   - `flatten command <cmd/flatten.rst>`_

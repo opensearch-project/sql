@@ -13,6 +13,7 @@
     "user/ppl/cmd/showdatasources.rst",
     "user/ppl/cmd/information_schema.rst",
     "user/ppl/cmd/eval.rst",
+    "user/ppl/cmd/expand.rst",
     "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/fillnull.rst",
     "user/ppl/cmd/flatten.rst",

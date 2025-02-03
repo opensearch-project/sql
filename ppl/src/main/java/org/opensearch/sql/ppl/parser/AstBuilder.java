@@ -51,6 +51,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
@@ -263,6 +264,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ArgumentFactory.getArgumentList(ctx),
         getFieldList(ctx.fieldList()),
         groupList);
+  }
+
+  @Override
+  public UnresolvedPlan visitExpandCommand(OpenSearchPPLParser.ExpandCommandContext ctx) {
+    Field fieldExpression = (Field) internalVisitExpression(ctx.fieldExpression());
+    return new Expand(fieldExpression);
   }
 
   @Override

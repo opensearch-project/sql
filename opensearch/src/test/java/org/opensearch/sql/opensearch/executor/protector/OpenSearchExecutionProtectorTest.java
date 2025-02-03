@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.*;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -71,6 +72,7 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
+import org.opensearch.sql.planner.physical.ExpandOperator;
 import org.opensearch.sql.planner.physical.FlattenOperator;
 import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -363,6 +365,15 @@ class OpenSearchExecutionProtectorTest {
     assertEquals(
         executionProtector.doProtect(evalOperator),
         executionProtector.visitEval(evalOperator, null));
+  }
+
+  @Test
+  void test_visitExpand() {
+    ExpandOperator expandOperator =
+        new ExpandOperator(values(emptyList()), ref("field_name", ARRAY));
+
+    assertEquals(
+        resourceMonitor(expandOperator), executionProtector.visitExpand(expandOperator, null));
   }
 
   @Test

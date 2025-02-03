@@ -72,6 +72,10 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return visitNode(plan, context);
   }
 
+  public R visitExpand(LogicalExpand plan, C context) {
+    return visitNode(plan, context);
+  }
+
   public R visitFlatten(LogicalFlatten plan, C context) {
     return visitNode(plan, context);
   }

@@ -16,6 +16,7 @@ import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.agg;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.dedupe;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.eval;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.expand;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.filter;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.flatten;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.limit;
@@ -130,6 +131,8 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
 
     PhysicalPlan eval = eval(plan, Pair.of(ref, ref));
 
+    PhysicalPlan expand = expand(plan, ref);
+
     PhysicalPlan flatten = flatten(plan, ref);
 
     PhysicalPlan sort = sort(plan, Pair.of(SortOption.DEFAULT_ASC, ref));
@@ -164,6 +167,7 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
         Arguments.of(window, "window"),
         Arguments.of(remove, "remove"),
         Arguments.of(eval, "eval"),
+        Arguments.of(expand, "expand"),
         Arguments.of(flatten, "flatten"),
         Arguments.of(sort, "sort"),
         Arguments.of(takeOrdered, "takeOrdered"),

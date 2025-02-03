@@ -22,6 +22,7 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
+import org.opensearch.sql.planner.physical.ExpandOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
 import org.opensearch.sql.planner.physical.FlattenOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
@@ -159,6 +160,14 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
         explainNode ->
             explainNode.setDescription(
                 ImmutableMap.of("expressions", convertPairListToMap(node.getExpressionList()))));
+  }
+
+  @Override
+  public ExplainResponseNode visitExpand(ExpandOperator node, Object context) {
+    return explain(
+        node,
+        context,
+        explainNode -> explainNode.setDescription(ImmutableMap.of("expandField", node.getField())));
   }
 
   @Override

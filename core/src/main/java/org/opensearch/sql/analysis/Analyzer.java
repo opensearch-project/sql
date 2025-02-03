@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
+import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Argument;
@@ -52,6 +53,7 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
@@ -333,9 +335,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment newEnv = context.peek();
     aggregators.forEach(
         aggregator ->
-            newEnv.define(new Symbol(FIELD_NAME, aggregator.getName()), aggregator.type()));
+            newEnv.define(
+                new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));
     groupBys.forEach(
-        group -> newEnv.define(new Symbol(FIELD_NAME, group.getNameOrAlias()), group.type()));
+        group ->
+            newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
     return new LogicalAggregation(child, aggregators, groupBys);
   }
 
@@ -360,8 +364,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     context.push();
     TypeEnvironment newEnv = context.peek();
     groupBys.forEach(
-        group -> newEnv.define(new Symbol(FIELD_NAME, group.toString()), group.type()));
-    fields.forEach(field -> newEnv.define(new Symbol(FIELD_NAME, field.toString()), field.type()));
+        group -> newEnv.define(new Symbol(Namespace.FIELD_NAME, group.toString()), group.type()));
+    fields.forEach(
+        field -> newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));
 
     List<Argument> options = node.getNoOfResults();
     Integer noOfResults = (Integer) options.get(0).getValue().getValue();
@@ -427,7 +432,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     context.push();
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(
-        expr -> newEnv.define(new Symbol(FIELD_NAME, expr.getNameOrAlias()), expr.type()));
+        expr ->
+            newEnv.define(new Symbol(Namespace.FIELD_NAME, expr.getNameOrAlias()), expr.type()));
     List<NamedExpression> namedParseExpressions = context.getNamedParseExpressions();
     return new LogicalProject(child, namedExpressions, namedParseExpressions);
   }
@@ -447,6 +453,17 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       typeEnvironment.define(ref);
     }
     return new LogicalEval(child, expressionsBuilder.build());
+  }
+
+  /**
+   * Builds and returns a {@link org.opensearch.sql.planner.logical.logicalExpand} corresponding to
+   * the given expand node.
+   */
+  @Override
+  public LogicalPlan visitExpand(Expand node, AnalysisContext context) {
+
+    // TODO #3016: Implement expand command
+    return null;
   }
 
   /**

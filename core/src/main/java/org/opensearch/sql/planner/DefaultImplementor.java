@@ -10,6 +10,7 @@ import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalExpand;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalFlatten;
@@ -31,6 +32,7 @@ import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
+import org.opensearch.sql.planner.physical.ExpandOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
 import org.opensearch.sql.planner.physical.FlattenOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
@@ -99,6 +101,11 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   @Override
   public PhysicalPlan visitEval(LogicalEval node, C context) {
     return new EvalOperator(visitChild(node, context), node.getExpressions());
+  }
+
+  @Override
+  public PhysicalPlan visitExpand(LogicalExpand node, C context) {
+    return new ExpandOperator(visitChild(node, context), node.getFieldRefExp());
   }
 
   @Override

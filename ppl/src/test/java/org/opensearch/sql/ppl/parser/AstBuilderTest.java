@@ -21,6 +21,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
+import static org.opensearch.sql.ast.dsl.AstDSL.expand;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
@@ -446,6 +447,14 @@ public class AstBuilderTest {
     assertEqual(
         "source=t | eval r=abs(f)",
         eval(relation("t"), let(field("r"), function("abs", field("f")))));
+  }
+
+  @Test
+  public void testExpandCommand() {
+    String fieldName = "field_name";
+    assertEqual(
+        StringUtils.format("source=t | expand %s", fieldName),
+        expand(relation("t"), field(fieldName)));
   }
 
   @Test

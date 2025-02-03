@@ -22,6 +22,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.distinctAggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.doubleLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.equalTo;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
+import static org.opensearch.sql.ast.dsl.AstDSL.expand;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
@@ -251,6 +252,14 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     function("like", field("a"), stringLiteral("_a%b%c_d_")),
                     intLiteral(1),
                     intLiteral(0)))));
+  }
+
+  @Test
+  public void testExpandExpr() {
+    String fieldName = "field_name";
+    assertEqual(
+        StringUtils.format("source=t | expand %s", fieldName),
+        expand(relation("t"), field(fieldName)));
   }
 
   @Test

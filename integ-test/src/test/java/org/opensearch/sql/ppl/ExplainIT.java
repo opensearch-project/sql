@@ -130,6 +130,12 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testExpand() throws Exception {
+
+    // TODO #3016: Test expand command.
+  }
+
+  @Test
   public void testFlatten() throws Exception {
     String query = StringUtils.format("source=%s | flatten location", TEST_INDEX_FLATTEN);
     String actual = explainQueryToString(query);
