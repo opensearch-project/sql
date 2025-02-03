@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -205,13 +204,13 @@ public class TrendlineOperator extends PhysicalPlan {
     }
 
     static WmaTrendlineEvaluator getEvaluator(ExprCoreType type) {
-        return switch (type) {
-            case DOUBLE -> NumericWmaEvaluator.INSTANCE;
-            case DATE, TIMESTAMP -> TimeStampWmaEvaluator.INSTANCE;
-            case TIME -> TimeWmaEvaluator.INSTANCE;
-            default -> throw new IllegalArgumentException(
-                    String.format("Invalid type %s used for weighted moving average.", type.typeName()));
-        };
+      return switch (type) {
+        case DOUBLE -> NumericWmaEvaluator.INSTANCE;
+        case DATE, TIMESTAMP -> TimeStampWmaEvaluator.INSTANCE;
+        case TIME -> TimeWmaEvaluator.INSTANCE;
+        default -> throw new IllegalArgumentException(
+            String.format("Invalid type %s used for weighted moving average.", type.typeName()));
+      };
     }
 
     @Override
@@ -256,7 +255,10 @@ public class TrendlineOperator extends PhysicalPlan {
         long sum = 0L;
         int totalWeight = (receivedValues.size() * (receivedValues.size() + 1)) / 2;
         for (int i = 0; i < receivedValues.size(); i++) {
-          sum += (long) (receivedValues.get(i).timestampValue().toEpochMilli() * ((i + 1D) / totalWeight));
+          sum +=
+              (long)
+                  (receivedValues.get(i).timestampValue().toEpochMilli()
+                      * ((i + 1D) / totalWeight));
         }
 
         return ExprValueUtils.timestampValue(Instant.ofEpochMilli((sum)));
@@ -272,21 +274,19 @@ public class TrendlineOperator extends PhysicalPlan {
         long sum = 0L;
         int totalWeight = (receivedValues.size() * (receivedValues.size() + 1)) / 2;
         for (int i = 0; i < receivedValues.size(); i++) {
-          sum += (long) (MILLIS.between(LocalTime.MIN, receivedValues.get(i).timeValue()) * ((i + 1D) / totalWeight));
+          sum +=
+              (long)
+                  (MILLIS.between(LocalTime.MIN, receivedValues.get(i).timeValue())
+                      * ((i + 1D) / totalWeight));
         }
-        return ExprValueUtils.timeValue(
-                        LocalTime.MIN.plus(sum, MILLIS));
+        return ExprValueUtils.timeValue(LocalTime.MIN.plus(sum, MILLIS));
       }
     }
-
 
     private interface WmaTrendlineEvaluator {
       ExprValue evaluate(ArrayList<ExprValue> receivedValues);
     }
   }
-
-
-
 
   private interface ArithmeticEvaluator {
     Expression calculateFirstTotal(List<ExprValue> dataPoints);

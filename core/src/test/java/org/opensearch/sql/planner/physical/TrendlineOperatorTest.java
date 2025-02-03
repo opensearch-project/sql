@@ -700,15 +700,14 @@ public class TrendlineOperatorTest {
   @Test
   public void use_illegal_core_type_wma() {
     assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-              new TrendlineOperator(
-                      inputPlan,
-                      Collections.singletonList(
-                              Pair.of(
-                                      AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
-                                      ExprCoreType.ARRAY)));
-            });
+        IllegalArgumentException.class,
+        () -> {
+          new TrendlineOperator(
+              inputPlan,
+              Collections.singletonList(
+                  Pair.of(
+                      AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
+                      ExprCoreType.ARRAY)));
+        });
   }
-
 }
