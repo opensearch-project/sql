@@ -17,13 +17,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.data.model.ExprDoubleValue;
-import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -109,10 +109,11 @@ public class TrendlineOperator extends PhysicalPlan {
 
   private static TrendlineAccumulator createAccumulator(
       Pair<Trendline.TrendlineComputation, ExprCoreType> computation) {
-      return switch (computation.getKey().getComputationType()) {
-          case SMA -> new SimpleMovingAverageAccumulator(computation.getKey(), computation.getValue());
-          case WMA -> new WeightedMovingAverageAccumulator(computation.getKey(), computation.getValue());
-      };
+    return switch (computation.getKey().getComputationType()) {
+      case SMA -> new SimpleMovingAverageAccumulator(computation.getKey(), computation.getValue());
+      case WMA -> new WeightedMovingAverageAccumulator(
+          computation.getKey(), computation.getValue());
+    };
   }
 
   /** Maintains stateful information for calculating the trendline. */
@@ -196,11 +197,10 @@ public class TrendlineOperator extends PhysicalPlan {
     private final ArrayList<ExprValue> receivedValues;
     private final ExprCoreType type;
 
-
     public WeightedMovingAverageAccumulator(
-            Trendline.TrendlineComputation computation, ExprCoreType type) {
+        Trendline.TrendlineComputation computation, ExprCoreType type) {
       this.dataPointsNeeded = DSL.literal(computation.getNumberOfDataPoints().doubleValue());
-      this.receivedValues = new ArrayList<>(computation.getNumberOfDataPoints()+1);
+      this.receivedValues = new ArrayList<>(computation.getNumberOfDataPoints() + 1);
       this.type = type;
     }
 
@@ -224,6 +224,7 @@ public class TrendlineOperator extends PhysicalPlan {
 
     /**
      * Compute WMA values from provided dataset with in ascending order.
+     *
      * @param receivedValues the dataset for WMA calculation, sorted in ascending order.
      * @return ExprValue which represent he result onf WMA.
      */
@@ -232,51 +233,43 @@ public class TrendlineOperator extends PhysicalPlan {
         return new ExprDoubleValue(calculateWmaInDouble(receivedValues));
 
       } else if (type == ExprCoreType.DATE) {
-        return ExprValueUtils.dateValue(
-                ExprValueUtils.timestampValue(Instant.ofEpochMilli(
-                        calculateWmaInTs(receivedValues))).dateValue());
-
-      } else if ( type == ExprCoreType.TIME) {
+        return ExprValueUtils.timestampValue(
+            Instant.ofEpochMilli(
+                calculateWmaInLong(receivedValues, i -> i.timestampValue().toEpochMilli())));
+      } else if (type == ExprCoreType.TIME) {
         return ExprValueUtils.timeValue(
-                LocalTime.MIN.plus(calculateWmaInTime(receivedValues), MILLIS));
+            LocalTime.MIN.plus(
+                calculateWmaInLong(
+                    receivedValues, i -> MILLIS.between(LocalTime.MIN, i.timeValue())),
+                MILLIS));
 
       } else if (type == ExprCoreType.TIMESTAMP) {
-        return ExprValueUtils.timestampValue(Instant.ofEpochMilli(
-                calculateWmaInTs(receivedValues)));
+        return ExprValueUtils.timestampValue(
+            Instant.ofEpochMilli(
+                calculateWmaInLong(receivedValues, i -> i.timestampValue().toEpochMilli())));
       }
-     return null;
+      return null;
     }
 
-    private double calculateWmaInDouble (ArrayList<ExprValue> receivedValues) {
+    private double calculateWmaInDouble(ArrayList<ExprValue> receivedValues) {
       double sum = 0D;
-      int totalWeight = (receivedValues.size()*(receivedValues.size()+1)) / 2;
-      for (int i=0 ; i<receivedValues.size() ; i++) {
+      int totalWeight = (receivedValues.size() * (receivedValues.size() + 1)) / 2;
+      for (int i = 0; i < receivedValues.size(); i++) {
         sum += receivedValues.get(i).doubleValue() * ((i + 1D) / totalWeight);
       }
       return sum;
     }
 
-    private long calculateWmaInTs (ArrayList<ExprValue> receivedValues) {
+    private long calculateWmaInLong(
+        ArrayList<ExprValue> receivedValues, Function<ExprValue, Long> convertFunc) {
       long sum = 0L;
-      int totalWeight = (receivedValues.size()*(receivedValues.size()+1)) / 2;
-      for (int i=0 ; i<receivedValues.size() ; i++) {
-        sum += (long) (receivedValues.get(i).timestampValue().toEpochMilli() * ((i + 1D) / totalWeight));
+      int totalWeight = (receivedValues.size() * (receivedValues.size() + 1)) / 2;
+      for (int i = 0; i < receivedValues.size(); i++) {
+        sum += (long) (convertFunc.apply(receivedValues.get(i)) * ((i + 1D) / totalWeight));
       }
       return sum;
     }
-
-    private long calculateWmaInTime (ArrayList<ExprValue> receivedValues) {
-      long sum = 0L;
-      int totalWeight = (receivedValues.size()*(receivedValues.size()+1)) / 2;
-      for (int i=0 ; i<receivedValues.size() ; i++) {
-        sum += (long) (MILLIS.between(LocalTime.MIN, receivedValues.get(i).timeValue()) * ((i + 1D) / totalWeight));
-      }
-      return sum;
-    }
-
   }
-
-
 
   private interface ArithmeticEvaluator {
     Expression calculateFirstTotal(List<ExprValue> dataPoints);
