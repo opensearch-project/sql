@@ -464,7 +464,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     ReferenceExpression fieldExpr =
         (ReferenceExpression) expressionAnalyzer.analyze(node.getField(), context);
     String fieldName = fieldExpr.getAttr();
-    ExprType fieldType = fieldExpr.type();
 
     // [A] Determine fields to add
     // ---------------------------
@@ -545,7 +544,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       env.define(DSL.ref(name, type));
     }
 
-    return new LogicalFlatten(child, DSL.ref(fieldName, STRUCT));
+    return new LogicalFlatten(child, fieldExpr);
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
