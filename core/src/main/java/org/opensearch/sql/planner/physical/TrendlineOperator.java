@@ -234,34 +234,46 @@ public class TrendlineOperator extends PhysicalPlan {
       } else if (type == ExprCoreType.DATE) {
         return ExprValueUtils.dateValue(
                 ExprValueUtils.timestampValue(Instant.ofEpochMilli(
-                        calculateWmaInLong(receivedValues))).dateValue());
+                        calculateWmaInTs(receivedValues))).dateValue());
 
       } else if ( type == ExprCoreType.TIME) {
         return ExprValueUtils.timeValue(
-                LocalTime.MIN.plus(calculateWmaInLong(receivedValues), MILLIS));
+                LocalTime.MIN.plus(calculateWmaInTime(receivedValues), MILLIS));
 
       } else if (type == ExprCoreType.TIMESTAMP) {
         return ExprValueUtils.timestampValue(Instant.ofEpochMilli(
-                calculateWmaInLong(receivedValues)));
+                calculateWmaInTs(receivedValues)));
       }
      return null;
     }
 
     private double calculateWmaInDouble (ArrayList<ExprValue> receivedValues) {
       double sum = 0D;
+      int totalWeight = (receivedValues.size()*(receivedValues.size()+1)) / 2;
       for (int i=0 ; i<receivedValues.size() ; i++) {
-        sum += receivedValues.get(i).doubleValue() / (i+1);
+        sum += receivedValues.get(i).doubleValue() * ((i + 1D) / totalWeight);
       }
-      return sum / receivedValues.size();
+      return sum;
     }
 
-    private long calculateWmaInLong (ArrayList<ExprValue> receivedValues) {
+    private long calculateWmaInTs (ArrayList<ExprValue> receivedValues) {
       long sum = 0L;
+      int totalWeight = (receivedValues.size()*(receivedValues.size()+1)) / 2;
       for (int i=0 ; i<receivedValues.size() ; i++) {
-        sum += receivedValues.get(i).longValue() / (i+1);
+        sum += (long) (receivedValues.get(i).timestampValue().toEpochMilli() * ((i + 1D) / totalWeight));
       }
-      return sum / receivedValues.size();
+      return sum;
     }
+
+    private long calculateWmaInTime (ArrayList<ExprValue> receivedValues) {
+      long sum = 0L;
+      int totalWeight = (receivedValues.size()*(receivedValues.size()+1)) / 2;
+      for (int i=0 ; i<receivedValues.size() ; i++) {
+        sum += (long) (MILLIS.between(LocalTime.MIN, receivedValues.get(i).timeValue()) * ((i + 1D) / totalWeight));
+      }
+      return sum;
+    }
+
   }
 
 
