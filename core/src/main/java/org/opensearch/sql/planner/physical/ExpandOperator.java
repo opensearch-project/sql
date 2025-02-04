@@ -5,16 +5,17 @@
 
 package org.opensearch.sql.planner.physical;
 
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.utils.PathUtils;
 
 /** Flattens the specified field from the input and returns the result. */
 @Getter
@@ -25,8 +26,6 @@ public class ExpandOperator extends PhysicalPlan {
 
   private final PhysicalPlan input;
   private final ReferenceExpression field;
-
-  private static final Pattern PATH_SEPARATOR_PATTERN = Pattern.compile(".", Pattern.LITERAL);
 
   private List<ExprValue> expandedRows = List.of();
 
@@ -43,7 +42,7 @@ public class ExpandOperator extends PhysicalPlan {
   @Override
   public boolean hasNext() {
     while (expandedRows.isEmpty() && input.hasNext()) {
-      expandedRows = expandExprValueAtPath(input.next(), field.getAttr());
+      expandedRows = expandValue(input.next(), field.getAttr());
     }
 
     return expandedRows.isEmpty();
@@ -58,9 +57,10 @@ public class ExpandOperator extends PhysicalPlan {
    * Expands the {@link org.opensearch.sql.data.model.ExprCollectionValue} at the specified path and
    * returns the resulting value. If the value is null or missing, the unmodified value is returned.
    */
-  private static List<ExprValue> expandExprValueAtPath(ExprValue exprValue, String path) {
-
-    // TODO #3016: Implement expand command
-    return new ArrayList<>(Collections.singletonList(exprValue));
+  private static List<ExprValue> expandValue(ExprValue rootExprValue, String path) {
+    ExprValue targetExprValue = PathUtils.getExprValueAtPath(rootExprValue, path);
+    return targetExprValue.collectionValue().stream()
+        .map(v -> PathUtils.setExprValueAtPath(rootExprValue, path, v))
+        .collect(Collectors.toCollection(LinkedList::new));
   }
 }
