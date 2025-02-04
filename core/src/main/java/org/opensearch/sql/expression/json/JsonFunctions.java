@@ -10,12 +10,16 @@ import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
 import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
@@ -57,17 +61,31 @@ public class JsonFunctions {
 
   private DefaultFunctionResolver jsonSet() {
     return define(
-        BuiltinFunctionName.JSON_SET.getName(),
-        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRING),
-        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, LONG),
-        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, SHORT),
-        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, INTEGER),
-        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, DOUBLE),
-        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BOOLEAN),
-        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, ARRAY),
-        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRUCT),
-        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BYTE),
-        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, DATE),
-        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, IP));
+            BuiltinFunctionName.JSON_SET.getName(),
+
+            // Numeric types
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BYTE),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, SHORT),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, INTEGER),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, LONG),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, FLOAT),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, DOUBLE),
+
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRING),
+
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BOOLEAN),
+
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, DATE),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, TIME),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, TIMESTAMP),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, INTERVAL),
+
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, IP),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRUCT),
+            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, ARRAY)
+
+
+
+            );
   }
 }
