@@ -49,9 +49,9 @@ buildscript {
         getPrometheusBinaryLocation = { ->
             return "https://github.com/prometheus/prometheus/releases/download/v${prometheus_binary_version}/prometheus-${prometheus_binary_version}."+ getOSFamilyType() + "-" + getArchType() + ".tar.gz"
         }
+        // TODO: Migrate following to Gradle version catalog || Read from OpenSearch BOM in the future.
         aws_java_sdk_version = "1.12.651"
         guava_version = "32.1.3-jre"
-        // TODO: Migrate following Gradle version catalog || Read from OpenSearch BOM in the future.
         resilience4j_version = "1.5.0"
         hamcrest_version = "2.1"
         mockito_version = "5.7.0"
