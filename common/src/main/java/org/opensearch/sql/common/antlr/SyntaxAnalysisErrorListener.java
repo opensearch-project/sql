@@ -64,20 +64,22 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
 
     IntervalSet followSet = e.getExpectedTokens();
     Vocabulary vocab = recognizer.getVocabulary();
-    List<String> tokenNames = new ArrayList<>(followSet.size());
-    for (int tokenType : followSet.toList()) {
+    List<String> tokenNames = new ArrayList<>(SUGGESTION_TRUNCATION_THRESHOLD);
+    for (int tokenType :
+        followSet
+            .toList()
+            .subList(0, Math.min(followSet.size(), SUGGESTION_TRUNCATION_THRESHOLD))) {
       tokenNames.add(vocab.getDisplayName(tokenType));
     }
 
     StringBuilder details = new StringBuilder("Expecting ");
-    if (tokenNames.size() > SUGGESTION_TRUNCATION_THRESHOLD) {
-      details.append("one of ").append(tokenNames.size()).append(" possible tokens. ");
-      details.append("Some examples: ");
-      for (int i = 0; i < SUGGESTION_TRUNCATION_THRESHOLD; i++) {
-        if (i > 0) details.append(", ");
-        details.append(tokenNames.get(i));
-      }
-      details.append(", ...");
+    if (followSet.size() > SUGGESTION_TRUNCATION_THRESHOLD) {
+      details
+          .append("one of ")
+          .append(tokenNames.size())
+          .append(" possible tokens. Some examples: ")
+          .append(String.join(", ", tokenNames))
+          .append(", ...");
     } else {
       details.append("tokens: ").append(String.join(", ", tokenNames));
     }
