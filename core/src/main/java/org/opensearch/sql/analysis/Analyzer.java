@@ -101,6 +101,7 @@ import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalExpand;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalFlatten;
@@ -461,9 +462,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    */
   @Override
   public LogicalPlan visitExpand(Expand node, AnalysisContext context) {
-
-    // TODO #3016: Implement expand command
-    return null;
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+    ReferenceExpression fieldExpr =
+        (ReferenceExpression) expressionAnalyzer.analyze(node.getField(), context);
+    return new LogicalExpand(child, fieldExpr);
   }
 
   /**
