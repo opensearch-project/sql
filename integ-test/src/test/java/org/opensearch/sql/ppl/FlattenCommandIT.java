@@ -72,8 +72,8 @@ public class FlattenCommandIT extends PPLIntegTestCase {
         schema("country", "string"),
         schema("province", "string"),
         schema("state", "string"),
-        schema("latitude", "float"),
-        schema("longitude", "float"));
+        schema("latitude", "double"),
+        schema("longitude", "double"));
     verifyDataRows(
         result,
         rows("Seattle", "United States", null, "Washington", 47.6061, -122.3328),

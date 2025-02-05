@@ -2,7 +2,7 @@
   "root": {
     "name": "ProjectOperator",
     "description": {
-      "fields": "[name, country, province, coordinates, state]"
+      "fields": "[name, location, country, province, coordinates, state]"
     },
     "children": [
       {
@@ -10,6 +10,7 @@
         "description": {
           "flattenField": {
             "attr": "location",
+            "rawPath": "location",
             "paths": [
               "location"
             ],
