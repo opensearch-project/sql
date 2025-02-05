@@ -33,33 +33,34 @@ import org.opensearch.sql.expression.DSL;
 class ExpandOperatorTest extends PhysicalPlanTestBase {
   @Mock private PhysicalPlan inputPlan;
 
-  private final ExprValue integerExprValue = ExprValueUtils.integerValue(0);
-  private final ExprValue doubleExprValue = ExprValueUtils.doubleValue(0.0);
-  private final ExprValue stringExprValue = ExprValueUtils.stringValue("value");
+  // Test constants
+  private static final Integer integerValue = 0;
+  private static final Double doubleValue = 0.0;
+  private static final String stringValue = "value";
 
   @Test
   void testArrayEmpty() {
     mockInput(
         ExprValueUtils.tupleValue(
             Map.of("array_empty", ExprValueUtils.collectionValue(List.of()))));
-
     List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("array_empty", ARRAY)));
+
     assertTrue(actualRows.isEmpty());
   }
 
   @Test
   void testArrayNull() {
     mockInput(ExprValueUtils.tupleValue(Map.of("array_empty", ExprValueUtils.nullValue())));
-
     List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("array_empty", ARRAY)));
+
     assertTrue(actualRows.isEmpty());
   }
 
   @Test
   void testArrayMissing() {
     mockInput(ExprValueUtils.tupleValue(Map.of("array_missing", ExprValueUtils.missingValue())));
-
     List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("array_missing", ARRAY)));
+
     assertTrue(actualRows.isEmpty());
   }
 
@@ -73,16 +74,14 @@ class ExpandOperatorTest extends PhysicalPlanTestBase {
   void testArray() {
     mockInput(
         ExprValueUtils.tupleValue(
-            Map.of(
-                "array",
-                ExprValueUtils.collectionValue(List.of(integerExprValue, doubleExprValue)))));
+            Map.of("array", ExprValueUtils.collectionValue(List.of(integerValue, doubleValue)))));
+    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("array", ARRAY)));
 
     List<ExprValue> expectedRows =
         List.of(
-            ExprValueUtils.tupleValue(Map.of("array", integerExprValue)),
-            ExprValueUtils.tupleValue(Map.of("array", doubleExprValue)));
+            ExprValueUtils.tupleValue(Map.of("array", integerValue)),
+            ExprValueUtils.tupleValue(Map.of("array", doubleValue)));
 
-    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("array", ARRAY)));
     assertEquals(expectedRows, actualRows);
   }
 
@@ -94,16 +93,14 @@ class ExpandOperatorTest extends PhysicalPlanTestBase {
                 "struct",
                 ExprValueUtils.tupleValue(
                     Map.of(
-                        "array_nested",
-                        ExprValueUtils.collectionValue(List.of(stringExprValue)))))));
+                        "array_nested", ExprValueUtils.collectionValue(List.of(stringValue)))))));
+    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("struct.array_nested", ARRAY)));
 
     List<ExprValue> expectedRows =
         List.of(
             ExprValueUtils.tupleValue(
-                Map.of(
-                    "struct", ExprValueUtils.tupleValue(Map.of("array_nested", stringExprValue)))));
+                Map.of("struct", ExprValueUtils.tupleValue(Map.of("array_nested", stringValue)))));
 
-    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("array", ARRAY)));
     assertEquals(expectedRows, actualRows);
   }
 
@@ -131,7 +128,7 @@ class ExpandOperatorTest extends PhysicalPlanTestBase {
 
   @Test
   void testInvalidType() {
-    mockInput(ExprValueUtils.tupleValue(Map.of("integer", integerExprValue)));
+    mockInput(ExprValueUtils.tupleValue(Map.of("integer", integerValue)));
 
     Exception ex =
         assertThrows(

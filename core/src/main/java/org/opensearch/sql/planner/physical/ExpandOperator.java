@@ -42,10 +42,10 @@ public class ExpandOperator extends PhysicalPlan {
   @Override
   public boolean hasNext() {
     while (expandedRows.isEmpty() && input.hasNext()) {
-      expandedRows = expandValue(input.next(), field.getAttr());
+      expandedRows = expandExprValue(input.next(), field.getAttr());
     }
 
-    return expandedRows.isEmpty();
+    return !expandedRows.isEmpty();
   }
 
   @Override
@@ -57,8 +57,17 @@ public class ExpandOperator extends PhysicalPlan {
    * Expands the {@link org.opensearch.sql.data.model.ExprCollectionValue} at the specified path and
    * returns the resulting value. If the value is null or missing, the unmodified value is returned.
    */
-  private static List<ExprValue> expandValue(ExprValue rootExprValue, String path) {
+  private static List<ExprValue> expandExprValue(ExprValue rootExprValue, String path) {
+
+    if (!PathUtils.containsExprValueAtPath(rootExprValue, path)) {
+      return List.of();
+    }
+
     ExprValue targetExprValue = PathUtils.getExprValueAtPath(rootExprValue, path);
+    if (targetExprValue.isMissing() || targetExprValue.isNull()) {
+      return List.of();
+    }
+
     return targetExprValue.collectionValue().stream()
         .map(v -> PathUtils.setExprValueAtPath(rootExprValue, path, v))
         .collect(Collectors.toCollection(LinkedList::new));
