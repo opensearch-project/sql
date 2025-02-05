@@ -1,1 +1,32 @@
-// TODO #3016: Test expand command
+{
+  "root": {
+    "name": "ProjectOperator",
+    "description": {
+      "fields": "[city, team]"
+    },
+    "children": [
+      {
+        "name": "ExpandOperator",
+        "description": {
+          "expandField": {
+            "attr": "team",
+            "rawPath": "team",
+            "paths": [
+              "team"
+            ],
+            "type": "STRUCT"
+          }
+        },
+        "children": [
+          {
+            "name": "OpenSearchIndexScan",
+            "description": {
+              "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_expand, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

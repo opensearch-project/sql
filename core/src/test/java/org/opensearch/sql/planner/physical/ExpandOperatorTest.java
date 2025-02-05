@@ -6,11 +6,9 @@
 package org.opensearch.sql.planner.physical;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.expand;
 
 import java.util.List;
@@ -24,60 +22,36 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 
 @ToString
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class ExpandOperatorTest extends PhysicalPlanTestBase {
-  @Mock private PhysicalPlan inputPlan;
 
   // Test constants
   private static final Integer integerValue = 0;
   private static final Double doubleValue = 0.0;
   private static final String stringValue = "value";
 
-  @Test
-  void testArrayEmpty() {
-    mockInput(
-        ExprValueUtils.tupleValue(
-            Map.of("array_empty", ExprValueUtils.collectionValue(List.of()))));
-    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("array_empty", ARRAY)));
+  private static final ExprValue nullExprValue = ExprValueUtils.nullValue();
+  private static final ExprValue missingExprValue = ExprValueUtils.missingValue();
 
-    assertTrue(actualRows.isEmpty());
-  }
-
-  @Test
-  void testArrayNull() {
-    mockInput(ExprValueUtils.tupleValue(Map.of("array_empty", ExprValueUtils.nullValue())));
-    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("array_empty", ARRAY)));
-
-    assertTrue(actualRows.isEmpty());
-  }
-
-  @Test
-  void testArrayMissing() {
-    mockInput(ExprValueUtils.tupleValue(Map.of("array_missing", ExprValueUtils.missingValue())));
-    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("array_missing", ARRAY)));
-
-    assertTrue(actualRows.isEmpty());
-  }
-
-  @Test
-  void testArrayUnknown() {
-    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("array_unknown", ARRAY)));
-    assertTrue(actualRows.isEmpty());
-  }
+  // Test variables
+  @Mock private PhysicalPlan inputPlan;
+  private ExprValue inputRow;
+  private List<ExprValue> actualRows;
+  private List<ExprValue> expectedRows;
 
   @Test
   void testArray() {
-    mockInput(
+    inputRow =
         ExprValueUtils.tupleValue(
-            Map.of("array", ExprValueUtils.collectionValue(List.of(integerValue, doubleValue)))));
-    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("array", ARRAY)));
+            Map.of("array", ExprValueUtils.collectionValue(List.of(integerValue, doubleValue))));
+    mockInput(inputRow);
 
-    List<ExprValue> expectedRows =
+    actualRows = execute(expand(inputPlan, DSL.ref("array", ARRAY)));
+    expectedRows =
         List.of(
             ExprValueUtils.tupleValue(Map.of("array", integerValue)),
             ExprValueUtils.tupleValue(Map.of("array", doubleValue)));
@@ -86,55 +60,141 @@ class ExpandOperatorTest extends PhysicalPlanTestBase {
   }
 
   @Test
+  void testArrayEmpty() {
+    ExprValue inputRow =
+        ExprValueUtils.tupleValue(Map.of("array_empty", ExprValueUtils.collectionValue(List.of())));
+    mockInput(inputRow);
+
+    actualRows = execute(expand(inputPlan, DSL.ref("array_empty", ARRAY)));
+    expectedRows = List.of(ExprValueUtils.tupleValue(Map.of("array_empty", nullExprValue)));
+
+    assertEquals(expectedRows, actualRows);
+  }
+
+  @Test
   void testArrayNested() {
-    mockInput(
+    ExprValue inputRow =
         ExprValueUtils.tupleValue(
             Map.of(
                 "struct",
                 ExprValueUtils.tupleValue(
-                    Map.of(
-                        "array_nested", ExprValueUtils.collectionValue(List.of(stringValue)))))));
-    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("struct.array_nested", ARRAY)));
+                    Map.of("array", ExprValueUtils.collectionValue(List.of(stringValue))))));
+    mockInput(inputRow);
 
-    List<ExprValue> expectedRows =
+    actualRows = execute(expand(inputPlan, DSL.ref("struct.array", ARRAY)));
+    expectedRows =
         List.of(
             ExprValueUtils.tupleValue(
-                Map.of("struct", ExprValueUtils.tupleValue(Map.of("array_nested", stringValue)))));
+                Map.of("struct", ExprValueUtils.tupleValue(Map.of("array", stringValue)))));
+
+    assertEquals(expectedRows, actualRows);
+  }
+
+  @Test
+  void testScalar() {
+    ExprValue inputValue = ExprValueUtils.tupleValue(Map.of("scalar", stringValue));
+    mockInput(inputValue);
+
+    actualRows = execute(expand(inputPlan, DSL.ref("scalar", ARRAY)));
+    expectedRows = List.of(inputValue);
+
+    assertEquals(expectedRows, actualRows);
+  }
+
+  @Test
+  void testScalarNull() {
+    ExprValue inputRow = ExprValueUtils.tupleValue(Map.of("scalar_null", nullExprValue));
+    mockInput(inputRow);
+
+    actualRows = execute(expand(inputPlan, DSL.ref("scalar_null", ARRAY)));
+    expectedRows = List.of(inputRow);
+
+    assertEquals(expectedRows, actualRows);
+  }
+
+  @Test
+  void testScalarMissing() {
+
+    /** With {@link org.opensearch.sql.data.model.ExprMissingValue} */
+    inputRow = ExprValueUtils.tupleValue(Map.of());
+    mockInput(inputRow);
+
+    actualRows = execute(expand(inputPlan, DSL.ref("scalar_missing", ARRAY)));
+    expectedRows = List.of(inputRow);
+
+    assertEquals(expectedRows, actualRows);
+
+    /** Without {@link org.opensearch.sql.data.model.ExprMissingValue} */
+    inputRow = ExprValueUtils.tupleValue(Map.of("scalar_missing", missingExprValue));
+    mockInput(inputRow);
+
+    actualRows = execute(expand(inputPlan, DSL.ref("scalar_missing", ARRAY)));
+    expectedRows = List.of(inputRow);
+
+    assertEquals(expectedRows, actualRows);
+  }
+
+  @Test
+  void testScalarNested() {
+    ExprValue rowInput =
+        ExprValueUtils.tupleValue(
+            Map.of("struct", ExprValueUtils.tupleValue(Map.of("scalar", stringValue))));
+    mockInput(rowInput);
+
+    actualRows = execute(expand(inputPlan, DSL.ref("struct.scalar", ARRAY)));
+    expectedRows =
+        List.of(
+            ExprValueUtils.tupleValue(
+                Map.of("struct", ExprValueUtils.tupleValue(Map.of("scalar", stringValue)))));
+
+    assertEquals(expectedRows, actualRows);
+  }
+
+  @Test
+  void testPathUnknown() {
+    actualRows = execute(expand(inputPlan, DSL.ref("unknown", ARRAY)));
+    expectedRows = List.of();
 
     assertEquals(expectedRows, actualRows);
   }
 
   @Test
   void testAncestorNull() {
-    mockInput(ExprValueUtils.tupleValue(Map.of("struct", ExprValueUtils.nullValue())));
+    ExprValue rowInput = ExprValueUtils.tupleValue(Map.of("struct_null", nullExprValue));
+    mockInput(rowInput);
 
-    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("struct.array_nested", ARRAY)));
-    assertTrue(actualRows.isEmpty());
+    actualRows = execute(expand(inputPlan, DSL.ref("struct_null.unreachable", ARRAY)));
+    expectedRows = List.of(rowInput);
+
+    assertEquals(expectedRows, actualRows);
   }
 
   @Test
   void testAncestorMissing() {
-    mockInput(ExprValueUtils.tupleValue(Map.of("struct", ExprValueUtils.missingValue())));
 
-    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("struct.array_nested", ARRAY)));
-    assertTrue(actualRows.isEmpty());
+    /** With {@link org.opensearch.sql.data.model.ExprMissingValue} */
+    inputRow = ExprValueUtils.tupleValue(Map.of());
+    mockInput(inputRow);
+
+    actualRows = execute(expand(inputPlan, DSL.ref("struct_missing.unreachable", ARRAY)));
+    expectedRows = List.of(inputRow);
+
+    assertEquals(expectedRows, actualRows);
+
+    /** Without {@link org.opensearch.sql.data.model.ExprMissingValue} */
+    inputRow = ExprValueUtils.tupleValue(Map.of("struct_missing", missingExprValue));
+    mockInput(inputRow);
+
+    actualRows = execute(expand(inputPlan, DSL.ref("struct_missing.unreachable", ARRAY)));
+    expectedRows = List.of(inputRow);
+
+    assertEquals(expectedRows, actualRows);
   }
 
   @Test
   void testAncestorUnknown() {
-    List<ExprValue> actualRows = execute(expand(inputPlan, DSL.ref("struct.array_nested", ARRAY)));
+    actualRows = execute(expand(inputPlan, DSL.ref("unknown.unreachable", ARRAY)));
     assertTrue(actualRows.isEmpty());
-  }
-
-  @Test
-  void testInvalidType() {
-    mockInput(ExprValueUtils.tupleValue(Map.of("integer", integerValue)));
-
-    Exception ex =
-        assertThrows(
-            ExpressionEvaluationException.class,
-            () -> execute(expand(inputPlan, DSL.ref("integer", INTEGER))));
-    assertEquals("invalid to get collectionValue from value of type INTEGER", ex.getMessage());
   }
 
   /** Mocks the input plan to return a single row with the given input value. */

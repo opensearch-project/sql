@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.planner.physical;
 
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,6 +16,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.utils.PathUtils;
 
@@ -42,7 +45,7 @@ public class ExpandOperator extends PhysicalPlan {
   @Override
   public boolean hasNext() {
     while (expandedRows.isEmpty() && input.hasNext()) {
-      expandedRows = expandExprValue(input.next(), field.getAttr());
+      expandedRows = expandExprValueAtPath(input.next(), field.getAttr());
     }
 
     return !expandedRows.isEmpty();
@@ -53,23 +56,28 @@ public class ExpandOperator extends PhysicalPlan {
     return expandedRows.removeFirst();
   }
 
-  /**
-   * Expands the {@link org.opensearch.sql.data.model.ExprCollectionValue} at the specified path and
-   * returns the resulting value. If the value is null or missing, the unmodified value is returned.
-   */
-  private static List<ExprValue> expandExprValue(ExprValue rootExprValue, String path) {
+  /** Expands the {@link ExprValue} at the specified path and returns the resulting value. */
+  private static List<ExprValue> expandExprValueAtPath(ExprValue rootExprValue, String path) {
 
     if (!PathUtils.containsExprValueAtPath(rootExprValue, path)) {
-      return List.of();
+      return new LinkedList<>(Collections.singletonList(rootExprValue));
     }
 
     ExprValue targetExprValue = PathUtils.getExprValueAtPath(rootExprValue, path);
-    if (targetExprValue.isMissing() || targetExprValue.isNull()) {
-      return List.of();
-    }
+    List<ExprValue> expandedExprValues = expandExprValue(targetExprValue);
 
-    return targetExprValue.collectionValue().stream()
+    return expandedExprValues.stream()
         .map(v -> PathUtils.setExprValueAtPath(rootExprValue, path, v))
         .collect(Collectors.toCollection(LinkedList::new));
+  }
+
+  /** Expands the given {@link ExprValue} and returns the result. */
+  private static List<ExprValue> expandExprValue(ExprValue exprValue) {
+    if (exprValue.type().equals(ARRAY)) {
+      List<ExprValue> values = exprValue.collectionValue();
+      return values.isEmpty() ? List.of(ExprValueUtils.nullValue()) : values;
+    }
+
+    return List.of(exprValue);
   }
 }
