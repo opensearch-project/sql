@@ -11,15 +11,15 @@ flatten
 Description
 ============
 
-The ``flatten`` command flattens an `object`'s fields. New fields are added to the search results corresponding
-to each of the object's fields; if the specified `object` is null or missing, the search results are not modified.
+The ``flatten`` command flattens an object's field by adding a new field to the search results corresponding
+to each of the object's fields. If the specified object is null or missing, the search results are not modified.
 
 Syntax
 ============
 
-`flatten <field>`
+``flatten <field>``
 
-* `field`: reference to the `object` field to flatten.
+* ``field``: reference to the object field to flatten.
 
 Example 1: Flatten an object field
 ==================================
@@ -69,3 +69,7 @@ PPL query::
     | Null Coordinates | {'state': 'Victoria', 'country': 'Australia'}                                                                                                                    |
     +------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
+Example 4: Flatten and expand
+=============================
+
+TODO #3016: Add test once flatten merged.
