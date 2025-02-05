@@ -44,7 +44,7 @@ SQL query::
     | docTestCluster | null        | accounts        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | apache          | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | books           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | cities          | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | flatten         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | json_test       | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | nested          | BASE TABLE | null    | null     | null       | null      | null                      | null           |
     | docTestCluster | null        | nyc_taxi        | BASE TABLE | null    | null     | null       | null      | null                      | null           |

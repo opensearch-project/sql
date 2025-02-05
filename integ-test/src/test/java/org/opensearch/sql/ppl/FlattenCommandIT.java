@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CITIES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_FLATTEN;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -21,7 +21,7 @@ public class FlattenCommandIT extends PPLIntegTestCase {
 
   @Override
   public void init() throws IOException {
-    loadIndex(Index.CITIES);
+    loadIndex(Index.FLATTEN);
   }
 
   @Test
@@ -29,7 +29,7 @@ public class FlattenCommandIT extends PPLIntegTestCase {
     String query =
         StringUtils.format(
             "source=%s | flatten location | fields name, country, province, coordinates, state",
-            TEST_INDEX_CITIES);
+                TEST_INDEX_FLATTEN);
     JSONObject result = executeQuery(query);
 
     verifySchema(
@@ -63,7 +63,7 @@ public class FlattenCommandIT extends PPLIntegTestCase {
         StringUtils.format(
             "source=%s | flatten location | flatten coordinates | fields name, country, province,"
                 + " state, latitude, longitude",
-            TEST_INDEX_CITIES);
+                TEST_INDEX_FLATTEN);
     JSONObject result = executeQuery(query);
 
     verifySchema(
@@ -86,7 +86,7 @@ public class FlattenCommandIT extends PPLIntegTestCase {
   public void testNested() throws IOException {
     String query =
         StringUtils.format(
-            "source=%s | flatten location.coordinates | fields name, location", TEST_INDEX_CITIES);
+            "source=%s | flatten location.coordinates | fields name, location", TEST_INDEX_FLATTEN);
     JSONObject result = executeQuery(query);
 
     verifySchema(result, schema("name", "string"), schema("location", "struct"));

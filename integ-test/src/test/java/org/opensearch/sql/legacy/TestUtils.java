@@ -265,8 +265,8 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
-  public static String getCitiesIndexMapping() {
-    String mappingFile = "cities.mapping.json";
+  public static String getFlattenIndexMapping() {
+    String mappingFile = "flatten_mapping.json";
     return getMappingFile(mappingFile);
   }
 

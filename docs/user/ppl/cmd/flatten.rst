@@ -26,7 +26,7 @@ Example 1: Flatten an object field
 
 PPL query::
 
-    os> source=cities | flatten location | fields name, country, province, coordinates, state
+    os> source=flatten | flatten location | fields name, country, province, coordinates, state
     fetched rows / total rows = 4/4
     +------------------+---------------+------------------+-----------------------------------------------+------------+
     | name             | country       | province         | coordinates                                   | state      |
@@ -42,7 +42,7 @@ Example 2: Flatten multiple object fields
 
 PPL query::
 
-    os> source=cities | flatten location | flatten coordinates | fields name, country, province, state, latitude, longitude
+    os> source=flatten | flatten location | flatten coordinates | fields name, country, province, state, latitude, longitude
     fetched rows / total rows = 4/4
     +------------------+---------------+------------------+------------+----------+-----------+
     | name             | country       | province         | state      | latitude | longitude |
@@ -58,7 +58,7 @@ Example 3: Flatten a nested object field
 
 PPL query::
 
-    os> source=cities | flatten location.coordinates | fields name, location
+    os> source=flatten | flatten location.coordinates | fields name, location
     fetched rows / total rows = 4/4
     +------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | name             | location                                                                                                                                                         |

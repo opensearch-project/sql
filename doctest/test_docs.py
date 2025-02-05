@@ -31,7 +31,7 @@ NESTED = "nested"
 DATASOURCES = ".ql-datasources"
 WEBLOGS = "weblogs"
 JSON_TEST = "json_test"
-CITIES = "cities"
+FLATTEN = "flatten"
 
 class DocTestConnection(OpenSearchConnection):
 
@@ -126,7 +126,7 @@ def set_up_test_indices(test):
     load_file("datasources.json", index_name=DATASOURCES)
     load_file("weblogs.json", index_name=WEBLOGS)
     load_file("json_test.json", index_name=JSON_TEST)
-    load_file("cities.json", index_name=CITIES)
+    load_file("flatten.json", index_name=FLATTEN)
 
 def load_file(filename, index_name):
     # Create index with the mapping if mapping file exists
@@ -154,7 +154,7 @@ def set_up(test):
 
 def tear_down(test):
     # drop leftover tables after each test
-    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS, JSON_TEST, CITIES], ignore_unavailable=True)
+    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS, JSON_TEST, FLATTEN], ignore_unavailable=True)
 
 
 docsuite = partial(doctest.DocFileSuite,
