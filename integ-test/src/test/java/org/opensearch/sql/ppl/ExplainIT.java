@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_EXPAND;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_FLATTEN;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 
@@ -21,6 +22,7 @@ public class ExplainIT extends PPLIntegTestCase {
   @Override
   public void init() throws IOException {
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.EXPAND);
     loadIndex(Index.FLATTEN);
   }
 
@@ -131,8 +133,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExpand() throws Exception {
-
-    // TODO #3016: Test expand command.
+    String query = StringUtils.format("source=%s | expand team", TEST_INDEX_EXPAND);
+    String actual = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/ppl/explain_expand.json");
+    assertJsonEquals(expected, actual);
   }
 
   @Test

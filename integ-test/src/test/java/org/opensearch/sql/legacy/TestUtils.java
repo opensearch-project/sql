@@ -260,6 +260,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getExpandIndexMapping() {
+    String mappingFile = "expand_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getAliasIndexMapping() {
     String mappingFile = "alias_index_mapping.json";
     return getMappingFile(mappingFile);

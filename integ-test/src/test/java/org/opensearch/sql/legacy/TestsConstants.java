@@ -59,6 +59,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_NESTED_WITH_NULLS = TEST_INDEX + "_nested_with_nulls";
   public static final String TEST_INDEX_GEOPOINT = TEST_INDEX + "_geopoint";
   public static final String TEST_INDEX_JSON_TEST = TEST_INDEX + "_json_test";
+  public static final String TEST_INDEX_EXPAND = TEST_INDEX + "_expand";
   public static final String TEST_INDEX_ALIAS = TEST_INDEX + "_alias";
   public static final String TEST_INDEX_FLATTEN = TEST_INDEX + "_flatten";
   public static final String TEST_INDEX_GEOIP = TEST_INDEX + "_geoip";

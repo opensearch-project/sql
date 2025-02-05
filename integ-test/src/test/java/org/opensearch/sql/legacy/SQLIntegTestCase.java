@@ -20,6 +20,7 @@ import static org.opensearch.sql.legacy.TestUtils.getDogIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogs2IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getExpandIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getFlattenIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeoIpIndexMapping;
@@ -760,6 +761,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "json",
         getJsonTestIndexMapping(),
         "src/test/resources/json_test.json"),
+    EXPAND(
+        TestsConstants.TEST_INDEX_EXPAND,
+        "expand",
+        getExpandIndexMapping(),
+        "src/test/resources/expand.json"),
     FLATTEN(
         TestsConstants.TEST_INDEX_FLATTEN,
         "flatten",
