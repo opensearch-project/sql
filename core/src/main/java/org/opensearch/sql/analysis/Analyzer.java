@@ -469,10 +469,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     // ---------------------------
 
     // Iterate over all the fields defined in the type environment. Find all those that are
-    // descended from field that is being flattened. Determine the new path to add and remove the
-    // existing path. When determining the new path, we need to preserve the portion of the
-    // path corresponding to the flattened field's parent, if one exists, in order to support
-    // flattening nested structs - see example below.
+    // descended from field that is being flattened, and determine the new paths to add. When
+    // determining the new paths, we need to preserve the portion of the path corresponding to the
+    // flattened field's parent, if one exists, in order to support flattening nested structs - see
+    // example below.
     //
     // Input Data:
     //
@@ -486,8 +486,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     // Example 1: 'flatten struct'
     //
     // [
-    //   integer: 0,
-    //   nested_struct: { string: "value" }
+    //    struct: {
+    //      integer: 0,
+    //      nested_struct: { string: "value" }
+    //    },
+    //    integer: 0,
+    //    nested_struct: { string: "value" }
     // ]
     //
     // Example 2: 'flatten struct.nested_struct'
@@ -495,6 +499,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     // [
     //    struct: {
     //      integer: 0,
+    //      nested_struct: { string: "value" }
     //      string: "value"
     //    {
     // ]
