@@ -1,31 +1,16 @@
 {
   "mappings": {
     "properties": {
-      "name": {
+      "city": {
         "type": "keyword"
       },
-      "location": {
-        "type": "object",
+      "team": {
         "properties": {
-          "state": {
-            "type": "keyword"
+          "name": {
+            "type":"keyword"
           },
-          "province": {
-            "type": "keyword"
-          },
-          "country": {
-            "type": "keyword"
-          },
-          "coordinates": {
-            "type": "object",
-            "properties": {
-              "latitude": {
-                "type": "double"
-              },
-              "longitude": {
-                "type": "double"
-              }
-            }
+          "title": {
+            "type": "integer"
           }
         }
       }

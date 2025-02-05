@@ -1,12 +1,10 @@
 {"index":{"_id":"1"}}
-{"city": "Seattle", "team":[{"name": "Seattle Seahawks", "title": 2014}, {"name": "Seattle Kraken", "title": []}]}
+{"city": "Seattle", "team":[{"name": "Seattle Seahawks", "title": 2014}, {"name": "Seattle Kraken", "title": null}]}
 {"index":{"_id":"2"}}
 {"city": "Vancouver", "team":[{"name": "Vancouver Canucks", "title": null}, {"name": "BC Lions", "title": [1964, 1985, 1994, 2000, 2006, 2011]}]}
 {"index":{"_id":"3"}}
 {"city": "San Antonio", "team": {"name": "San Antonio Spurs", "title": [1999, 2003, 2005, 2007, 2014]}}
 {"index":{"_id":"4"}}
-{"city": "Empty Sports Team", "team": []}
+{"city": "Null Team", "team": null}
 {"index":{"_id":"5"}}
-{"city": "Null Sports Team", "team": null}
-{"index":{"_id":"6"}}
-{"city": "Missing Sports Team"}
+{"city": "Missing Team"}

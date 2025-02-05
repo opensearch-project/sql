@@ -61,19 +61,19 @@ class ExpandOperatorTest extends PhysicalPlanTestBase {
 
   @Test
   void testArrayEmpty() {
-    ExprValue inputRow =
+    inputRow =
         ExprValueUtils.tupleValue(Map.of("array_empty", ExprValueUtils.collectionValue(List.of())));
     mockInput(inputRow);
 
     actualRows = execute(expand(inputPlan, DSL.ref("array_empty", ARRAY)));
-    expectedRows = List.of(ExprValueUtils.tupleValue(Map.of("array_empty", nullExprValue)));
+    expectedRows = List.of();
 
     assertEquals(expectedRows, actualRows);
   }
 
   @Test
   void testArrayNested() {
-    ExprValue inputRow =
+    inputRow =
         ExprValueUtils.tupleValue(
             Map.of(
                 "struct",
@@ -92,18 +92,18 @@ class ExpandOperatorTest extends PhysicalPlanTestBase {
 
   @Test
   void testScalar() {
-    ExprValue inputValue = ExprValueUtils.tupleValue(Map.of("scalar", stringValue));
-    mockInput(inputValue);
+    inputRow = ExprValueUtils.tupleValue(Map.of("scalar", stringValue));
+    mockInput(inputRow);
 
     actualRows = execute(expand(inputPlan, DSL.ref("scalar", ARRAY)));
-    expectedRows = List.of(inputValue);
+    expectedRows = List.of(inputRow);
 
     assertEquals(expectedRows, actualRows);
   }
 
   @Test
   void testScalarNull() {
-    ExprValue inputRow = ExprValueUtils.tupleValue(Map.of("scalar_null", nullExprValue));
+    inputRow = ExprValueUtils.tupleValue(Map.of("scalar_null", nullExprValue));
     mockInput(inputRow);
 
     actualRows = execute(expand(inputPlan, DSL.ref("scalar_null", ARRAY)));
@@ -136,10 +136,10 @@ class ExpandOperatorTest extends PhysicalPlanTestBase {
 
   @Test
   void testScalarNested() {
-    ExprValue rowInput =
+    inputRow =
         ExprValueUtils.tupleValue(
             Map.of("struct", ExprValueUtils.tupleValue(Map.of("scalar", stringValue))));
-    mockInput(rowInput);
+    mockInput(inputRow);
 
     actualRows = execute(expand(inputPlan, DSL.ref("struct.scalar", ARRAY)));
     expectedRows =
@@ -160,11 +160,11 @@ class ExpandOperatorTest extends PhysicalPlanTestBase {
 
   @Test
   void testAncestorNull() {
-    ExprValue rowInput = ExprValueUtils.tupleValue(Map.of("struct_null", nullExprValue));
-    mockInput(rowInput);
+    inputRow = ExprValueUtils.tupleValue(Map.of("struct_null", nullExprValue));
+    mockInput(inputRow);
 
     actualRows = execute(expand(inputPlan, DSL.ref("struct_null.unreachable", ARRAY)));
-    expectedRows = List.of(rowInput);
+    expectedRows = List.of(inputRow);
 
     assertEquals(expectedRows, actualRows);
   }

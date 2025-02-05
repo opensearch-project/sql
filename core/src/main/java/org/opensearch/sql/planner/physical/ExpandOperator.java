@@ -16,7 +16,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.utils.PathUtils;
 
@@ -64,20 +63,12 @@ public class ExpandOperator extends PhysicalPlan {
     }
 
     ExprValue targetExprValue = PathUtils.getExprValueAtPath(rootExprValue, path);
-    List<ExprValue> expandedExprValues = expandExprValue(targetExprValue);
-
-    return expandedExprValues.stream()
-        .map(v -> PathUtils.setExprValueAtPath(rootExprValue, path, v))
-        .collect(Collectors.toCollection(LinkedList::new));
-  }
-
-  /** Expands the given {@link ExprValue} and returns the result. */
-  private static List<ExprValue> expandExprValue(ExprValue exprValue) {
-    if (exprValue.type().equals(ARRAY)) {
-      List<ExprValue> values = exprValue.collectionValue();
-      return values.isEmpty() ? List.of(ExprValueUtils.nullValue()) : values;
+    if (!targetExprValue.type().equals(ARRAY)) {
+      return new LinkedList<>(Collections.singletonList(rootExprValue));
     }
 
-    return List.of(exprValue);
+    return targetExprValue.collectionValue().stream()
+        .map(v -> PathUtils.setExprValueAtPath(rootExprValue, path, v))
+        .collect(Collectors.toCollection(LinkedList::new));
   }
 }

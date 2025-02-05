@@ -37,9 +37,8 @@ public class ExpandCommandIT extends PPLIntegTestCase {
         rows("Vancouver", "Vancouver Canucks"),
         rows("Vancouver", "BC Lions"),
         rows("San Antonio", "San Antonio Spurs"),
-        rows("Empty Sports Team", null),
-        rows("Null Sports Team", null),
-        rows("Missing Sports Team", null));
+        rows("Null Team", null),
+        rows("Missing Team", null));
   }
 
   @Test
@@ -86,7 +85,6 @@ public class ExpandCommandIT extends PPLIntegTestCase {
         rows("San Antonio Spurs", 2005),
         rows("San Antonio Spurs", 2007),
         rows("San Antonio Spurs", 2014),
-        rows(null, null),
         rows(null, null),
         rows(null, null));
   }
