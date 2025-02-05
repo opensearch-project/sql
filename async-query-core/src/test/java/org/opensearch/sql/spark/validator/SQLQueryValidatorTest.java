@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.validator;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -192,6 +193,10 @@ class SQLQueryValidatorTest {
     // Generator Functions
     GENERATOR_FUNCTIONS("SELECT explode(array(1, 2, 3));"),
 
+    // Ucategorized functions
+    NAMED_STRUCT("SELECT named_struct('a', 1);"),
+    PARSE_URL("SELECT parse_url(url) FROM my_table;"),
+
     // UDFs (User-Defined Functions)
     SCALAR_USER_DEFINED_FUNCTIONS("SELECT my_udf(name) FROM my_table;"),
     USER_DEFINED_AGGREGATE_FUNCTIONS("SELECT my_udaf(age) FROM my_table GROUP BY name;"),
@@ -323,6 +328,10 @@ class SQLQueryValidatorTest {
     // Generator Functions
     v.ng(TestElement.GENERATOR_FUNCTIONS);
 
+    // Uncategorized Functions
+    v.ng(TestElement.NAMED_STRUCT);
+    v.ng(TestElement.PARSE_URL);
+
     // UDFs
     v.ng(TestElement.SCALAR_USER_DEFINED_FUNCTIONS);
     v.ng(TestElement.USER_DEFINED_AGGREGATE_FUNCTIONS);
@@ -439,6 +448,10 @@ class SQLQueryValidatorTest {
 
     // Generator Functions
     v.ok(TestElement.GENERATOR_FUNCTIONS);
+
+    // Uncategorized Functions
+    v.ok(TestElement.NAMED_STRUCT);
+    v.ok(TestElement.PARSE_URL);
 
     // UDFs
     v.ng(TestElement.SCALAR_USER_DEFINED_FUNCTIONS);
@@ -621,6 +634,14 @@ class SQLQueryValidatorTest {
     v.ng("DFS");
   }
 
+  @Test
+  void testException() {
+    when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> false);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
+
+    v.ng("SELECT named_struct('a', 1);", "Uncategorized functions (named_struct) is not allowed.");
+  }
+
   @AllArgsConstructor
   private static class VerifyValidator {
     private final SQLQueryValidator validator;
@@ -643,6 +664,15 @@ class SQLQueryValidatorTest {
           IllegalArgumentException.class,
           () -> runValidate(query),
           "The query should throw: query=`" + query.toString() + "`");
+    }
+
+    public void ng(String query, String expectedMessage) {
+      Exception e =
+          assertThrows(
+              IllegalArgumentException.class,
+              () -> runValidate(query),
+              "The query should throw: query=`" + query.toString() + "`");
+      assertEquals(expectedMessage, e.getMessage());
     }
 
     void runValidate(String[] queries) {

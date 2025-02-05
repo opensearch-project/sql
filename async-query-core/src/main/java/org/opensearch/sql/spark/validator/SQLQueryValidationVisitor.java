@@ -561,25 +561,29 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   }
 
   private void validateFunctionAllowed(String function) {
-    FunctionType type = FunctionType.fromFunctionName(function.toLowerCase());
+    String functionLower = function.toLowerCase();
+    FunctionType type = FunctionType.fromFunctionName(functionLower);
     switch (type) {
       case MAP:
-        validateAllowed(SQLGrammarElement.MAP_FUNCTIONS);
+        validateAllowed(SQLGrammarElement.MAP_FUNCTIONS, functionLower);
         break;
       case BITWISE:
-        validateAllowed(SQLGrammarElement.BITWISE_FUNCTIONS);
+        validateAllowed(SQLGrammarElement.BITWISE_FUNCTIONS, functionLower);
         break;
       case CSV:
-        validateAllowed(SQLGrammarElement.CSV_FUNCTIONS);
+        validateAllowed(SQLGrammarElement.CSV_FUNCTIONS, functionLower);
         break;
       case MISC:
-        validateAllowed(SQLGrammarElement.MISC_FUNCTIONS);
+        validateAllowed(SQLGrammarElement.MISC_FUNCTIONS, functionLower);
         break;
       case GENERATOR:
-        validateAllowed(SQLGrammarElement.GENERATOR_FUNCTIONS);
+        validateAllowed(SQLGrammarElement.GENERATOR_FUNCTIONS, functionLower);
+        break;
+      case UNCATEGORIZED:
+        validateAllowed(SQLGrammarElement.UNCATEGORIZED_FUNCTIONS, functionLower);
         break;
       case UDF:
-        validateAllowed(SQLGrammarElement.UDF);
+        validateAllowed(SQLGrammarElement.UDF, functionLower);
         break;
     }
   }
@@ -587,6 +591,12 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
   private void validateAllowed(SQLGrammarElement element) {
     if (!grammarElementValidator.isValid(element)) {
       throw new IllegalArgumentException(element + " is not allowed.");
+    }
+  }
+
+  private void validateAllowed(SQLGrammarElement element, String detail) {
+    if (!grammarElementValidator.isValid(element)) {
+      throw new IllegalArgumentException(String.format("%s (%s) is not allowed.", element, detail));
     }
   }
 
