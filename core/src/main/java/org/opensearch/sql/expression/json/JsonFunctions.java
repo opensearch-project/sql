@@ -61,31 +61,23 @@ public class JsonFunctions {
 
   private DefaultFunctionResolver jsonSet() {
     return define(
-            BuiltinFunctionName.JSON_SET.getName(),
+        BuiltinFunctionName.JSON_SET.getName(),
 
-            // Numeric types
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BYTE),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, SHORT),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, INTEGER),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, LONG),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, FLOAT),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, DOUBLE),
-
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRING),
-
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BOOLEAN),
-
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, DATE),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, TIME),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, TIMESTAMP),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, INTERVAL),
-
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, IP),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRUCT),
-            impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, ARRAY)
-
-
-
-            );
+        // Numeric types
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BYTE),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, SHORT),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, INTEGER),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, LONG),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, FLOAT),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, DOUBLE),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRING),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BOOLEAN),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, DATE),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, TIME),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, TIMESTAMP),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, INTERVAL),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, IP),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, STRUCT),
+        impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, ARRAY));
   }
 }
