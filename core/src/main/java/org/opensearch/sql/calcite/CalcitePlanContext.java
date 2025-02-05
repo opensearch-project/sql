@@ -24,9 +24,7 @@ public class CalcitePlanContext {
   public static class OSRelBuilder extends RelBuilder {
 
     protected OSRelBuilder(
-        @Nullable Context context,
-        RelOptCluster cluster,
-        @Nullable RelOptSchema relOptSchema) {
+        @Nullable Context context, RelOptCluster cluster, @Nullable RelOptSchema relOptSchema) {
       super(context, cluster, relOptSchema);
     }
   }
@@ -49,9 +47,12 @@ public class CalcitePlanContext {
       throw new RuntimeException("create statement failed", e);
     }
     this.prepare = new CalcitePrepareImpl();
-    this.relBuilder = prepare.perform(statement, config,
-        (cluster, relOptSchema, rootSchema, statement) -> new OSRelBuilder(config.getContext(),
-            cluster, relOptSchema));
+    this.relBuilder =
+        prepare.perform(
+            statement,
+            config,
+            (cluster, relOptSchema, rootSchema, statement) ->
+                new OSRelBuilder(config.getContext(), cluster, relOptSchema));
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
   }
 

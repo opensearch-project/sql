@@ -19,7 +19,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.plan.OpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -193,10 +192,11 @@ public class OpenSearchIndex extends OpenSearchTable {
     return settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE);
   }
 
-  //@Override
+  // @Override
   public Enumerable<Object[]> scan(DataContext root) {
     return new AbstractEnumerable<@Nullable Object[]>() {
-      @Override public Enumerator<@Nullable Object[]> enumerator() {
+      @Override
+      public Enumerator<@Nullable Object[]> enumerator() {
         return null;
         // return search().toMap(v -> new Object[] {v});
       }

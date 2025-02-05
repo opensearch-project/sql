@@ -65,11 +65,17 @@ public class QueryService {
     try {
       try {
         // Use simple calcite schema since we don't compute tables in advance of the query.
-        CalciteSchema rootSchema= CalciteSchema.createRootSchema(true, false);
+        CalciteSchema rootSchema = CalciteSchema.createRootSchema(true, false);
         CalciteJdbc41Factory factory = new CalciteJdbc41Factory();
-        CalciteConnection connection = factory.newConnection(new Driver(), factory, "",  new java.util.Properties(), rootSchema, null);
-        final SchemaPlus defaultSchema = connection.getRootSchema().add(
-            OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME, new OpenSearchSchema(dataSourceService));
+        CalciteConnection connection =
+            factory.newConnection(
+                new Driver(), factory, "", new java.util.Properties(), rootSchema, null);
+        final SchemaPlus defaultSchema =
+            connection
+                .getRootSchema()
+                .add(
+                    OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME,
+                    new OpenSearchSchema(dataSourceService));
         // Set opensearch schema as the default schema in config, otherwise we need to explicitly
         // add schema path 'OpenSearch' before the opensearch table name
         final FrameworkConfig config = buildFrameworkConfig(defaultSchema);

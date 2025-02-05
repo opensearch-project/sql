@@ -15,21 +15,18 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.tools.RelRunner;
-import org.apache.calcite.tools.RelRunners;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
@@ -127,7 +124,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   }
 
   // for testing only
-  private void printResultSet(ResultSet resultSet, ResponseListener<QueryResponse> listener) throws SQLException {
+  private void printResultSet(ResultSet resultSet, ResponseListener<QueryResponse> listener)
+      throws SQLException {
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
@@ -154,8 +152,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       columns.add(new Column(metaData.getColumnName(i), null, ExprCoreType.STRING));
     }
     Schema schema = new Schema(columns);
-    QueryResponse response =
-        new QueryResponse(schema, values, null);
+    QueryResponse response = new QueryResponse(schema, values, null);
     listener.onResponse(response);
   }
 
