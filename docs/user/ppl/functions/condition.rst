@@ -103,7 +103,7 @@ Description
 
 Usage: nullif(field1, field2) return null if two parameters are same, otherwise return field1.
 
-Argument type: all the supported data type, (NOTE : if two parameters has different type, if two parameters has different type, you will fail semantic check)
+Argument type: all supported data types (NOTE: if the two parameters has different types, you will fail semantic check)
 
 Return type: any
 
