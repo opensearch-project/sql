@@ -29,7 +29,7 @@ public class FlattenCommandIT extends PPLIntegTestCase {
     String query =
         StringUtils.format(
             "source=%s | flatten location | fields name, country, province, coordinates, state",
-                TEST_INDEX_FLATTEN);
+            TEST_INDEX_FLATTEN);
     JSONObject result = executeQuery(query);
 
     verifySchema(
@@ -63,7 +63,7 @@ public class FlattenCommandIT extends PPLIntegTestCase {
         StringUtils.format(
             "source=%s | flatten location | flatten coordinates | fields name, country, province,"
                 + " state, latitude, longitude",
-                TEST_INDEX_FLATTEN);
+            TEST_INDEX_FLATTEN);
     JSONObject result = executeQuery(query);
 
     verifySchema(
