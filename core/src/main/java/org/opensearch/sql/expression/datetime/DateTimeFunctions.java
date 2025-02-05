@@ -127,7 +127,8 @@ public class DateTimeFunctions {
           .put("MINUTE", "mm")
           .put("HOUR", "HH")
           .put("DAY", "dd")
-          .put("WEEK", "w")
+          // removing "WEEK" to standardize the extract
+          // .put("WEEK", "w")
           .put("MONTH", "MM")
           .put("YEAR", "yyyy")
           .put("SECOND_MICROSECOND", "ssSSSSSS")
