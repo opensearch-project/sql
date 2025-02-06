@@ -145,7 +145,7 @@ PPL query::
 Example 3: Calculate the weighted moving average on one field without specifying an alias.
 =================================================================================
 
-The example shows how to calculate the weighted moving average on one field.
+The example shows how to calculate the weighted moving average on one field without specifying an alias.
 
 PPL query::
 
