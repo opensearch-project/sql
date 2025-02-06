@@ -455,20 +455,45 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   /**
    * Builds and returns a {@link org.opensearch.sql.planner.logical.LogicalFlatten} corresponding to
-   * the given flatten node.
+   * the given flatten node, and adds the new fields to the current type environment.
+   *
+   * <p><b>Example</b>
    *
    * <p>Input Data:
    *
-   * <p>[ struct: { integer: 0, nested_struct: { string: "value" } } ]
+   * <pre>
+   * [
+   *   struct: {
+   *     integer: 0,
+   *     nested_struct: { string: "value" }
+   *   }
+   * ]
+   * </pre>
    *
-   * <p>Example 1: 'flatten struct'
+   * Query 1: <code>flatten struct</code>
    *
-   * <p>[ struct: { integer: 0, nested_struct: { string: "value" } }, integer: 0, nested_struct: {
-   * string: "value" } ]
+   * <pre>
+   * [
+   *   struct: {
+   *     integer: 0,
+   *     nested_struct: { string: "value" }
+   *   },
+   *   integer: 0,
+   *   nested_struct: { string: "value" }
+   * ]
+   * </pre>
    *
-   * <p>Example 2: 'flatten struct.nested_struct'
+   * Query 2: <code>flatten struct.nested_struct</code>
    *
-   * <p>[ struct: { integer: 0, nested_struct: { string: "value" } string: "value" { ]
+   * <pre>
+   * [
+   *   struct: {
+   *     integer: 0,
+   *     nested_struct: { string: "value" },
+   *     string: "value"
+   *   }
+   * ]
+   * </pre>
    */
   @Override
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
@@ -515,8 +540,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       addFieldsMap.put(newPath, type);
     }
 
-    // [B] Update environment
-    // ----------------------
+    // [B] Add new fields to type environment
+    // --------------------------------------
 
     for (Map.Entry<String, ExprType> entry : addFieldsMap.entrySet()) {
       String name = entry.getKey();
