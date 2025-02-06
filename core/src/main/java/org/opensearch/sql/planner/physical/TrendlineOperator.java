@@ -12,11 +12,13 @@ import com.google.common.collect.ImmutableMap.Builder;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -116,10 +118,20 @@ public class TrendlineOperator extends PhysicalPlan {
   }
 
   /** Maintains stateful information for calculating the trendline. */
-  private interface TrendlineAccumulator {
-    void accumulate(ExprValue value);
+  private abstract static class TrendlineAccumulator<C extends Collection<ExprValue>> {
 
-    ExprValue calculate();
+    protected final LiteralExpression dataPointsNeeded;
+
+    protected final C receivedValues;
+
+    private TrendlineAccumulator(LiteralExpression dataPointsNeeded, C receivedValues) {
+      this.dataPointsNeeded = dataPointsNeeded;
+      this.receivedValues = receivedValues;
+    }
+
+    abstract void accumulate(ExprValue value);
+
+    abstract ExprValue calculate();
 
     static ArithmeticEvaluator getEvaluator(ExprCoreType type) {
       switch (type) {
@@ -137,16 +149,16 @@ public class TrendlineOperator extends PhysicalPlan {
     }
   }
 
-  private static class SimpleMovingAverageAccumulator implements TrendlineAccumulator {
-    private final LiteralExpression dataPointsNeeded;
-    private final EvictingQueue<ExprValue> receivedValues;
+  private static class SimpleMovingAverageAccumulator
+      extends TrendlineAccumulator<Queue<ExprValue>> {
     private final ArithmeticEvaluator evaluator;
     private Expression runningTotal = null;
 
     public SimpleMovingAverageAccumulator(
         Trendline.TrendlineComputation computation, ExprCoreType type) {
-      dataPointsNeeded = DSL.literal(computation.getNumberOfDataPoints().doubleValue());
-      receivedValues = EvictingQueue.create(computation.getNumberOfDataPoints());
+      super(
+          DSL.literal(computation.getNumberOfDataPoints().doubleValue()),
+          EvictingQueue.create(computation.getNumberOfDataPoints()));
       evaluator = TrendlineAccumulator.getEvaluator(type);
     }
 
@@ -191,19 +203,19 @@ public class TrendlineOperator extends PhysicalPlan {
     }
   }
 
-  private static class WeightedMovingAverageAccumulator implements TrendlineAccumulator {
-    private final LiteralExpression dataPointsNeeded;
-    private final ArrayList<ExprValue> receivedValues;
+  private static class WeightedMovingAverageAccumulator
+      extends TrendlineAccumulator<ArrayList<ExprValue>> {
     private final WmaTrendlineEvaluator evaluator;
 
     public WeightedMovingAverageAccumulator(
         Trendline.TrendlineComputation computation, ExprCoreType type) {
-      this.dataPointsNeeded = DSL.literal(computation.getNumberOfDataPoints().doubleValue());
-      this.receivedValues = new ArrayList<>(computation.getNumberOfDataPoints());
-      this.evaluator = getEvaluator(type);
+      super(
+          DSL.literal(computation.getNumberOfDataPoints()),
+          new ArrayList<>(computation.getNumberOfDataPoints()));
+      this.evaluator = getWmaEvaluator(type);
     }
 
-    static WmaTrendlineEvaluator getEvaluator(ExprCoreType type) {
+    static WmaTrendlineEvaluator getWmaEvaluator(ExprCoreType type) {
       return switch (type) {
         case DOUBLE -> NumericWmaEvaluator.INSTANCE;
         case DATE, TIMESTAMP -> TimeStampWmaEvaluator.INSTANCE;
