@@ -45,13 +45,13 @@ public class FlattenCommandIT extends PPLIntegTestCase {
             "Seattle",
             "United States",
             null,
-            Map.ofEntries(Map.entry("latitude", 47.6061), Map.entry("longitude", -122.3328)),
+            Map.of("latitude", 47.6061, "longitude", -122.3328),
             "Washington"),
         rows(
             "Vancouver",
             "Canada",
             "British Columbia",
-            Map.ofEntries(Map.entry("latitude", 49.2827), Map.entry("longitude", -123.1207)),
+            Map.of("latitude", 49.2827, "longitude", -123.1207),
             null),
         rows("Null Location", null, null, null, null),
         rows("Null Coordinates", "Australia", null, null, "Victoria"));
@@ -61,25 +61,37 @@ public class FlattenCommandIT extends PPLIntegTestCase {
   public void testMultiple() throws IOException {
     String query =
         StringUtils.format(
-            "source=%s | flatten location | flatten coordinates | fields name, country, province,"
-                + " state, latitude, longitude",
+            "source=%s | flatten location | flatten coordinates | fields name, location, latitude,"
+                + " longitude",
             TEST_INDEX_FLATTEN);
     JSONObject result = executeQuery(query);
 
     verifySchema(
         result,
         schema("name", "string"),
-        schema("country", "string"),
-        schema("province", "string"),
-        schema("state", "string"),
+        schema("location", "struct"),
         schema("latitude", "double"),
         schema("longitude", "double"));
     verifyDataRows(
         result,
-        rows("Seattle", "United States", null, "Washington", 47.6061, -122.3328),
-        rows("Vancouver", "Canada", "British Columbia", null, 49.2827, -123.1207),
-        rows("Null Location", null, null, null, null, null),
-        rows("Null Coordinates", "Australia", null, "Victoria", null, null));
+        rows(
+            "Seattle",
+            Map.ofEntries(
+                Map.entry("state", "Washington"),
+                Map.entry("country", "United States"),
+                Map.entry("coordinates", Map.of("latitude", 47.6061, "longitude", -122.3328))),
+            47.6061,
+            -122.3328),
+        rows(
+            "Vancouver",
+            Map.ofEntries(
+                Map.entry("country", "Canada"),
+                Map.entry("province", "British Columbia"),
+                Map.entry("coordinates", Map.of("latitude", 49.2827, "longitude", -123.1207))),
+            49.2827,
+            -123.1207),
+        rows("Null Location", null, null, null),
+        rows("Null Coordinates", Map.of("state", "Victoria", "country", "Australia"), null, null));
   }
 
   @Test

@@ -42,16 +42,16 @@ Example 2: Flatten multiple object fields
 
 PPL query::
 
-    os> source=flatten | flatten location | flatten coordinates | fields name, country, province, state, latitude, longitude
+    os> source=flatten | flatten location | flatten coordinates | fields name, location, latitude, longitude
     fetched rows / total rows = 4/4
-    +------------------+---------------+------------------+------------+----------+-----------+
-    | name             | country       | province         | state      | latitude | longitude |
-    |------------------+---------------+------------------+------------+----------+-----------|
-    | Seattle          | United States | null             | Washington | 47.6061  | -122.3328 |
-    | Vancouver        | Canada        | British Columbia | null       | 49.2827  | -123.1207 |
-    | Null Location    | null          | null             | null       | null     | null      |
-    | Null Coordinates | Australia     | null             | Victoria   | null     | null      |
-    +------------------+---------------+------------------+------------+----------+-----------+
+    +------------------+---------------------------------------------------------------------------------------------------------------------+----------+-----------+
+    | name             | location                                                                                                            | latitude | longitude |
+    |------------------+---------------------------------------------------------------------------------------------------------------------+----------+-----------|
+    | Seattle          | {'state': 'Washington', 'country': 'United States', 'coordinates': {'latitude': 47.6061, 'longitude': -122.3328}}   | 47.6061  | -122.3328 |
+    | Vancouver        | {'province': 'British Columbia', 'country': 'Canada', 'coordinates': {'latitude': 49.2827, 'longitude': -123.1207}} | 49.2827  | -123.1207 |
+    | Null Location    | null                                                                                                                | null     | null      |
+    | Null Coordinates | {'state': 'Victoria', 'country': 'Australia'}                                                                       | null     | null      |
+    +------------------+---------------------------------------------------------------------------------------------------------------------+----------+-----------+
 
 Example 3: Flatten a nested object field
 ========================================
