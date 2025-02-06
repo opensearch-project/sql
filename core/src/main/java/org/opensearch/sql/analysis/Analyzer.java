@@ -456,6 +456,19 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   /**
    * Builds and returns a {@link org.opensearch.sql.planner.logical.LogicalFlatten} corresponding to
    * the given flatten node.
+   *
+   * <p>Input Data:
+   *
+   * <p>[ struct: { integer: 0, nested_struct: { string: "value" } } ]
+   *
+   * <p>Example 1: 'flatten struct'
+   *
+   * <p>[ struct: { integer: 0, nested_struct: { string: "value" } }, integer: 0, nested_struct: {
+   * string: "value" } ]
+   *
+   * <p>Example 2: 'flatten struct.nested_struct'
+   *
+   * <p>[ struct: { integer: 0, nested_struct: { string: "value" } string: "value" { ]
    */
   @Override
   public LogicalPlan visitFlatten(Flatten node, AnalysisContext context) {
@@ -471,38 +484,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     // Iterate over all the fields defined in the type environment. Find all those that are
     // descended from field that is being flattened, and determine the new paths to add. When
     // determining the new paths, we need to preserve the portion of the path corresponding to the
-    // flattened field's parent, if one exists, in order to support flattening nested structs - see
-    // example below.
-    //
-    // Input Data:
-    //
-    // [
-    //    struct: {
-    //      integer: 0,
-    //      nested_struct: { string: "value" }
-    //    }
-    // ]
-    //
-    // Example 1: 'flatten struct'
-    //
-    // [
-    //    struct: {
-    //      integer: 0,
-    //      nested_struct: { string: "value" }
-    //    },
-    //    integer: 0,
-    //    nested_struct: { string: "value" }
-    // ]
-    //
-    // Example 2: 'flatten struct.nested_struct'
-    //
-    // [
-    //    struct: {
-    //      integer: 0,
-    //      nested_struct: { string: "value" }
-    //      string: "value"
-    //    {
-    // ]
+    // flattened field's parent, if one exists, in order to support flattening nested structs.
 
     Map<String, ExprType> addFieldsMap = new HashMap<>();
 
