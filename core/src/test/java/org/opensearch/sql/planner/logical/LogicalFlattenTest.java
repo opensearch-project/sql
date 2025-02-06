@@ -110,11 +110,11 @@ class LogicalFlattenTest extends AnalyzerTestBase {
 
     ex = assertThrows(SemanticCheckException.class, () -> executeFlatten(".invalid"));
     assertEquals(
-        "can't resolve Symbol(namespace=FIELD_NAME, name=.struct) in type env", ex.getMessage());
+        "can't resolve Symbol(namespace=FIELD_NAME, name=.invalid) in type env", ex.getMessage());
 
     ex = assertThrows(SemanticCheckException.class, () -> executeFlatten("invalid."));
     assertEquals(
-        "can't resolve Symbol(namespace=FIELD_NAME, name=struct.) in type env", ex.getMessage());
+        "can't resolve Symbol(namespace=FIELD_NAME, name=invalid.) in type env", ex.getMessage());
   }
 
   @Test
