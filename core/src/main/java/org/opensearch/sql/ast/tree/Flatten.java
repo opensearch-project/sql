@@ -13,13 +13,12 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
 
-/** AST node representing a flatten <field> operation. */
-@Getter
+/** AST node representing a {@code flatten <field>} operation. */
 @ToString
 @RequiredArgsConstructor
 public class Flatten extends UnresolvedPlan {
-  private UnresolvedPlan child;
 
+  private UnresolvedPlan child;
   @Getter private final Field field;
 
   @Override
