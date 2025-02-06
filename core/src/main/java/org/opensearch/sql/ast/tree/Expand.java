@@ -13,13 +13,13 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
 
-/** AST node representing an expand <field> operation. */
+/** AST node representing an {@code expand <field>} operation. */
 @Getter
 @ToString
 @RequiredArgsConstructor
 public class Expand extends UnresolvedPlan {
-  private UnresolvedPlan child;
 
+  private UnresolvedPlan child;
   @Getter private final Field field;
 
   @Override

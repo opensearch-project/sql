@@ -8,6 +8,7 @@ package org.opensearch.sql.planner.logical;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,19 +25,28 @@ class LogicalExpandTest extends AnalyzerTestBase {
   private static final String TABLE_NAME = "schema";
 
   @Test
+  void testExpandScalar() {
+    LogicalPlan expected =
+        LogicalPlanDSL.expand(
+            LogicalPlanDSL.relation(TABLE_NAME, table), DSL.ref("integer_value", INTEGER));
+    LogicalPlan actual =
+        analyze(AstDSL.expand(AstDSL.relation(TABLE_NAME), AstDSL.field("integer_value")));
+    assertEquals(expected, actual);
+  }
+
+  @Test
   void testExpandArray() {
     LogicalPlan expected =
         LogicalPlanDSL.expand(
             LogicalPlanDSL.relation(TABLE_NAME, table), DSL.ref("array_value", ARRAY));
-    UnresolvedPlan unresolved =
-        AstDSL.expand(AstDSL.relation(TABLE_NAME), AstDSL.field("array_value"));
-    assertEquals(expected, analyze(unresolved));
+    LogicalPlan actual =
+        analyze(AstDSL.expand(AstDSL.relation(TABLE_NAME), AstDSL.field("array_value")));
+    assertEquals(expected, actual);
   }
 
   @Test
   void testExpandInvalidFieldName() {
     UnresolvedPlan unresolved = AstDSL.expand(AstDSL.relation(TABLE_NAME), AstDSL.field("invalid"));
-
     String msg = assertThrows(SemanticCheckException.class, () -> analyze(unresolved)).getMessage();
     assertEquals("can't resolve Symbol(namespace=FIELD_NAME, name=invalid) in type env", msg);
   }

@@ -98,7 +98,9 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testExpandCommand() {
-    assertEquals("source=t | expand field_name", anonymize("source=t | expand field_name"));
+    String expected = "source=t | expand field_name";
+    String actual = anonymize("source=t | expand field_name");
+    assertEquals(expected, actual);
   }
 
   @Test

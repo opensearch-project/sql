@@ -456,10 +456,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalEval(child, expressionsBuilder.build());
   }
 
-  /**
-   * Builds and returns a {@link org.opensearch.sql.planner.logical.logicalExpand} corresponding to
-   * the given expand node.
-   */
+  /** Builds and returns a {@link LogicalExpand} corresponding to the given expand node. */
   @Override
   public LogicalPlan visitExpand(Expand node, AnalysisContext context) {
     LogicalPlan child = node.getChild().getFirst().accept(this, context);

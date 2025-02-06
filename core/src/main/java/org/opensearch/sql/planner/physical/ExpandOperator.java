@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.utils.PathUtils;
 
@@ -67,7 +68,12 @@ public class ExpandOperator extends PhysicalPlan {
       return new LinkedList<>(Collections.singletonList(rootExprValue));
     }
 
-    return targetExprValue.collectionValue().stream()
+    List<ExprValue> expandedExprValues = targetExprValue.collectionValue();
+    if (expandedExprValues.isEmpty()) {
+      expandedExprValues = List.of(ExprValueUtils.nullValue());
+    }
+
+    return expandedExprValues.stream()
         .map(v -> PathUtils.setExprValueAtPath(rootExprValue, path, v))
         .collect(Collectors.toCollection(LinkedList::new));
   }

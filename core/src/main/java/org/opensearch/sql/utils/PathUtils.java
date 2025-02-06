@@ -17,6 +17,7 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.SemanticCheckException;
 
+/** Utility methods for handling {@link ExprValue} paths. */
 @UtilityClass
 public class PathUtils {
 
@@ -34,8 +35,8 @@ public class PathUtils {
    * PathUtils#containsExprValueAtPath}.
    */
   public ExprValue getExprValueAtPath(ExprValue root, String path) {
-    List<String> pathComponents = splitPath(path);
 
+    List<String> pathComponents = splitPath(path);
     if (!containsExprValueForPathComponents(root, pathComponents)) {
       return null;
     }
@@ -49,8 +50,8 @@ public class PathUtils {
    * {@link PathUtils#containsExprValueAtPath}.
    */
   public ExprValue setExprValueAtPath(ExprValue root, String path, ExprValue newValue) {
-    List<String> pathComponents = splitPath(path);
 
+    List<String> pathComponents = splitPath(path);
     if (!containsExprValueForPathComponents(root, pathComponents)) {
       throw new SemanticCheckException(String.format("Field path '%s' does not exist.", path));
     }

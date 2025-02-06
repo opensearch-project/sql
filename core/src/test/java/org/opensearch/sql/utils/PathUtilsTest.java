@@ -42,31 +42,31 @@ class PathUtilsTest {
               Map.entry("struct_missing", missingValue)));
 
   @Test
-  void testContainsExprValueForPathComponents() {
+  void testContainsExprValueForPath() {
     assertTrue(PathUtils.containsExprValueAtPath(input, "field"));
     assertTrue(PathUtils.containsExprValueAtPath(input, "struct1.field"));
     assertTrue(PathUtils.containsExprValueAtPath(input, "struct2.struct1.field"));
 
     assertFalse(PathUtils.containsExprValueAtPath(input, "field_invalid"));
-    assertFalse(PathUtils.containsExprValueAtPath(input, "struct_null.field"));
-    assertFalse(PathUtils.containsExprValueAtPath(input, "struct_missing.field"));
-    assertFalse(PathUtils.containsExprValueAtPath(input, "field.field"));
+    assertFalse(PathUtils.containsExprValueAtPath(input, "struct_null.field_invalid"));
+    assertFalse(PathUtils.containsExprValueAtPath(input, "struct_missing.field_invalid"));
+    assertFalse(PathUtils.containsExprValueAtPath(input, "struct_invalid.field_invalid"));
   }
 
   @Test
-  void testGetExprValueForPathComponents() {
+  void testGetExprValueForPath() {
     assertEquals(value, PathUtils.getExprValueAtPath(input, "field"));
     assertEquals(value, PathUtils.getExprValueAtPath(input, "struct1.field"));
     assertEquals(value, PathUtils.getExprValueAtPath(input, "struct2.struct1.field"));
 
     assertNull(PathUtils.getExprValueAtPath(input, "field_invalid"));
-    assertNull(PathUtils.getExprValueAtPath(input, "struct_null.field"));
-    assertNull(PathUtils.getExprValueAtPath(input, "struct_missing.field"));
-    assertNull(PathUtils.getExprValueAtPath(input, "field.field"));
+    assertNull(PathUtils.getExprValueAtPath(input, "struct_null.field_invalid"));
+    assertNull(PathUtils.getExprValueAtPath(input, "struct_missing.field_invalid"));
+    assertNull(PathUtils.getExprValueAtPath(input, "struct_invalid.field_invalid"));
   }
 
   @Test
-  void testSetExprValueForPathComponents() {
+  void testSetExprValueForPath() {
     ExprValue expected;
     ExprValue actual;
 
@@ -128,7 +128,7 @@ class PathUtilsTest {
     ex =
         assertThrows(
             SemanticCheckException.class,
-            () -> PathUtils.setExprValueAtPath(input, "field.field_invalid", newValue));
-    assertEquals("Field path 'field.field_invalid' does not exist.", ex.getMessage());
+            () -> PathUtils.setExprValueAtPath(input, "struct_invalid.field_invalid", newValue));
+    assertEquals("Field path 'struct_invalid.field_invalid' does not exist.", ex.getMessage());
   }
 }
