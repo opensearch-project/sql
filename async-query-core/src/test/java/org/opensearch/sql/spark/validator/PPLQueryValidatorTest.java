@@ -97,7 +97,7 @@ public class PPLQueryValidatorTest {
   void testAllowAllByDefault() {
     when(mockedProvider.getValidatorForDatasource(any()))
         .thenReturn(new DefaultGrammarElementValidator());
-    VerifyValidator v = new VerifyValidator(pplQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(pplQueryValidator, DataSourceType.S3GLUE);
     Arrays.stream(PPLQueryValidatorTest.TestElement.values()).forEach(v::ok);
   }
 
@@ -127,7 +127,7 @@ public class PPLQueryValidatorTest {
   void testCwlValidator() {
     when(mockedProvider.getValidatorForDatasource(any()))
         .thenReturn(new TestPPLGrammarElementValidator());
-    VerifyValidator v = new VerifyValidator(pplQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(pplQueryValidator, DataSourceType.S3GLUE);
 
     v.ok(TestElement.FIELDS);
     v.ok(TestElement.WHERE);
