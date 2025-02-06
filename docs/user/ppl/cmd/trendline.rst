@@ -149,7 +149,7 @@ The example shows how to calculate the weighted moving average on one field.
 
 PPL query::
 
-    os> source=accounts | trendline wma(2, account_number)  | fields account_number_trendline;
+    os> source=accounts | trendline wma(2, account_number) | fields account_number_trendline;
     fetched rows / total rows = 4/4
     +--------------------------+
     | account_number_trendline |
