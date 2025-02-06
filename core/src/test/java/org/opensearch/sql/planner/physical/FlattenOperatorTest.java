@@ -36,13 +36,19 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
   private final ExprValue integerExprValue = ExprValueUtils.integerValue(0);
   private final ExprValue doubleExprValue = ExprValueUtils.doubleValue(0.0);
   private final ExprValue stringExprValue = ExprValueUtils.stringValue("value");
+  private final ExprValue booleanExprValue = ExprValueUtils.booleanValue(true);
 
   private final ExprValue structEmptyExprValue = ExprValueUtils.tupleValue(Map.of());
   private final ExprValue structNullExprValue = ExprValueUtils.nullValue();
   private final ExprValue structMissingExprValue = ExprValueUtils.missingValue();
 
+  private final ExprValue structNestedDeepExprValue =
+      ExprValueUtils.tupleValue(Map.of("boolean", booleanExprValue));
   private final ExprValue structNestedExprValue =
-      ExprValueUtils.tupleValue(Map.of("string", stringExprValue));
+      ExprValueUtils.tupleValue(
+          Map.ofEntries(
+              Map.entry("string", stringExprValue),
+              Map.entry("struct_nested_deep", structNestedDeepExprValue)));
 
   private final ExprValue structExprValue =
       ExprValueUtils.tupleValue(
@@ -127,8 +133,37 @@ class FlattenOperatorTest extends PhysicalPlanTestBase {
                             Map.entry("integer", integerExprValue),
                             Map.entry("double", doubleExprValue),
                             Map.entry("struct_nested", structNestedExprValue),
-                            Map.entry("string", stringExprValue))))));
+                            Map.entry("string", stringExprValue),
+                            Map.entry("struct_nested_deep", structNestedDeepExprValue))))));
 
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  void testStructNestedDeep() {
+    ExprValue actual =
+        execute(flatten(inputPlan, DSL.ref("struct.struct_nested.struct_nested_deep", STRUCT)))
+            .getFirst();
+
+    ExprValue expected =
+        ExprValueUtils.tupleValue(
+            Map.ofEntries(
+                Map.entry("struct_empty", structEmptyExprValue),
+                Map.entry("struct_null", structNullExprValue),
+                Map.entry("struct_missing", structMissingExprValue),
+                Map.entry(
+                    "struct",
+                    ExprValueUtils.tupleValue(
+                        Map.ofEntries(
+                            Map.entry("integer", integerExprValue),
+                            Map.entry("double", doubleExprValue),
+                            Map.entry(
+                                "struct_nested",
+                                ExprValueUtils.tupleValue(
+                                    Map.ofEntries(
+                                        Map.entry("string", stringExprValue),
+                                        Map.entry("struct_nested_deep", structNestedDeepExprValue),
+                                        Map.entry("boolean", booleanExprValue)))))))));
     assertEquals(expected, actual);
   }
 
