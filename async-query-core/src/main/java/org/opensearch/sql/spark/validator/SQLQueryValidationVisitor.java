@@ -560,30 +560,30 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
     return super.visitFunctionName(ctx);
   }
 
-  private void validateFunctionAllowed(String function) {
-    String functionLower = function.toLowerCase();
-    FunctionType type = FunctionType.fromFunctionName(functionLower);
+  private void validateFunctionAllowed(String functionName) {
+    String lowerCaseFunctionName = functionName.toLowerCase();
+    FunctionType type = FunctionType.fromFunctionName(lowerCaseFunctionName);
     switch (type) {
       case MAP:
-        validateAllowed(SQLGrammarElement.MAP_FUNCTIONS, functionLower);
+        validateAllowed(SQLGrammarElement.MAP_FUNCTIONS, lowerCaseFunctionName);
         break;
       case BITWISE:
-        validateAllowed(SQLGrammarElement.BITWISE_FUNCTIONS, functionLower);
+        validateAllowed(SQLGrammarElement.BITWISE_FUNCTIONS, lowerCaseFunctionName);
         break;
       case CSV:
-        validateAllowed(SQLGrammarElement.CSV_FUNCTIONS, functionLower);
+        validateAllowed(SQLGrammarElement.CSV_FUNCTIONS, lowerCaseFunctionName);
         break;
       case MISC:
-        validateAllowed(SQLGrammarElement.MISC_FUNCTIONS, functionLower);
+        validateAllowed(SQLGrammarElement.MISC_FUNCTIONS, lowerCaseFunctionName);
         break;
       case GENERATOR:
-        validateAllowed(SQLGrammarElement.GENERATOR_FUNCTIONS, functionLower);
+        validateAllowed(SQLGrammarElement.GENERATOR_FUNCTIONS, lowerCaseFunctionName);
         break;
       case UNCATEGORIZED:
-        validateAllowed(SQLGrammarElement.UNCATEGORIZED_FUNCTIONS, functionLower);
+        validateAllowed(SQLGrammarElement.UNCATEGORIZED_FUNCTIONS, lowerCaseFunctionName);
         break;
       case UDF:
-        validateAllowed(SQLGrammarElement.UDF, functionLower);
+        validateAllowed(SQLGrammarElement.UDF, lowerCaseFunctionName);
         break;
     }
   }
