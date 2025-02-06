@@ -115,6 +115,7 @@ import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
+import org.opensearch.sql.utils.PathUtils;
 
 /**
  * Analyze the {@link UnresolvedPlan} in the {@link AnalysisContext} to construct the {@link
@@ -516,11 +517,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment env = context.peek();
     Map<String, ExprType> fieldsMap = env.lookupAllTupleFields(Namespace.FIELD_NAME);
 
-    final String pathSeparator = ".";
-    final String fieldDescendantPath = fieldName + pathSeparator;
+    final String fieldDescendantPath = fieldName + PathUtils.SEPARATOR;
     final Optional<String> fieldParentPath =
-        fieldName.contains(pathSeparator)
-            ? Optional.of(fieldName.substring(0, fieldName.lastIndexOf(pathSeparator)))
+        fieldName.contains(PathUtils.SEPARATOR)
+            ? Optional.of(fieldName.substring(0, fieldName.lastIndexOf(PathUtils.SEPARATOR)))
             : Optional.empty();
 
     for (String path : fieldsMap.keySet()) {
@@ -533,7 +533,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       // Build the new path.
       String newPath = path.substring(fieldDescendantPath.length());
       if (fieldParentPath.isPresent()) {
-        newPath = fieldParentPath.get() + pathSeparator + newPath;
+        newPath = fieldParentPath.get() + PathUtils.SEPARATOR + newPath;
       }
 
       ExprType type = fieldsMap.get(path);

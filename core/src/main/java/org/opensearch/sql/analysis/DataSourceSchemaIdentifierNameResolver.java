@@ -9,6 +9,7 @@ package org.opensearch.sql.analysis;
 
 import java.util.List;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.utils.PathUtils;
 
 public class DataSourceSchemaIdentifierNameResolver {
 
@@ -20,8 +21,6 @@ public class DataSourceSchemaIdentifierNameResolver {
   private String schemaName = DEFAULT_SCHEMA_NAME;
   private final String identifierName;
   private final DataSourceService dataSourceService;
-
-  private static final String DOT = ".";
 
   /**
    * Data model for capturing dataSourceName, schema and identifier from fully qualifiedName. In the
@@ -35,7 +34,7 @@ public class DataSourceSchemaIdentifierNameResolver {
       DataSourceService dataSourceService, List<String> parts) {
     this.dataSourceService = dataSourceService;
     List<String> remainingParts = captureSchemaName(captureDataSourceName(parts));
-    identifierName = String.join(DOT, remainingParts);
+    identifierName = String.join(PathUtils.SEPARATOR, remainingParts);
   }
 
   public String getIdentifierName() {

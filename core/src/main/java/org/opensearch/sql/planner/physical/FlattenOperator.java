@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +17,7 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.utils.PathUtils;
 
 /** Flattens the specified field from the input and returns the result. */
 @Getter
@@ -28,8 +28,6 @@ public class FlattenOperator extends PhysicalPlan {
 
   private final PhysicalPlan input;
   private final ReferenceExpression field;
-
-  private static final Pattern PATH_SEPARATOR_PATTERN = Pattern.compile(".", Pattern.LITERAL);
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
@@ -57,7 +55,7 @@ public class FlattenOperator extends PhysicalPlan {
    */
   private static ExprValue flattenExprValueAtPath(ExprValue exprValue, String path) {
 
-    Matcher matcher = PATH_SEPARATOR_PATTERN.matcher(path);
+    Matcher matcher = PathUtils.SEPARATOR_PATTERN.matcher(path);
     Map<String, ExprValue> exprValueMap = ExprValueUtils.getTupleValue(exprValue);
 
     // [A] Flatten nested struct value
