@@ -84,7 +84,6 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
                 "source=%s | where balance > 39000 | sort balance | trendline wma(2, balance) as"
                     + " balance_trend | fields balance_trend",
                 TEST_INDEX_BANK));
-    System.out.println("Result (Base): " + result.toString());
     verifyDataRows(
         result, rows(new Object[] {null}), rows(45570.666666666664), rows(40101.666666666664));
   }
@@ -113,7 +112,6 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
                 "source=%s | where balance > 39000 | sort balance | trendline wma(2, balance) as"
                     + " age | fields age",
                 TEST_INDEX_BANK));
-    System.out.println("Result (Overwrite) : " + result.toString());
     verifyDataRows(
         result, rows(new Object[] {null}), rows(40101.666666666664), rows(45570.666666666664));
   }
@@ -138,7 +136,6 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
                 "source=%s | where balance > 39000 | trendline sort balance wma(2, balance) |"
                     + " fields balance_trendline",
                 TEST_INDEX_BANK));
-    System.out.println("Result (WithSortWma): " + result.toString());
     verifyDataRows(
         result, rows(new Object[] {null}), rows(40101.666666666664), rows(45570.666666666664));
   }
