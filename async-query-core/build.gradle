@@ -49,7 +49,6 @@ dependencies {
     implementation project(':datasources') // TODO: dependency to datasources should be eliminated
     implementation 'org.json:json:20231013'
     implementation 'com.google.code.gson:gson:2.8.9'
-    api group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: "${aws_java_sdk_version}"
     api group: 'com.amazonaws', name: 'aws-java-sdk-emrserverless', version: "${aws_java_sdk_version}"
 
     testImplementation(platform("org.junit:junit-bom:5.9.3"))
