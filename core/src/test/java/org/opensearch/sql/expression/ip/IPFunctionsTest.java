@@ -13,7 +13,6 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.type.ExprCoreType.IP;
 
-import lombok.ToString;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
