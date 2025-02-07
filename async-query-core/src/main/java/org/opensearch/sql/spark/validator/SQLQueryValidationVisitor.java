@@ -579,8 +579,8 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
       case GENERATOR:
         validateAllowed(SQLGrammarElement.GENERATOR_FUNCTIONS, lowerCaseFunctionName);
         break;
-      case UNCATEGORIZED:
-        validateAllowed(SQLGrammarElement.UNCATEGORIZED_FUNCTIONS, lowerCaseFunctionName);
+      case OTHER:
+        validateAllowed(SQLGrammarElement.OTHER_FUNCTIONS, lowerCaseFunctionName);
         break;
       case UDF:
         validateAllowed(SQLGrammarElement.UDF, lowerCaseFunctionName);

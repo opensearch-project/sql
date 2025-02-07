@@ -78,7 +78,7 @@ public enum SQLGrammarElement implements GrammarElement {
   CSV_FUNCTIONS("CSV functions"),
   GENERATOR_FUNCTIONS("Generator functions"),
   MISC_FUNCTIONS("Misc functions"),
-  UNCATEGORIZED_FUNCTIONS("Uncategorized functions"),
+  OTHER_FUNCTIONS("Other functions"),
 
   // UDF
   UDF("User Defined functions");

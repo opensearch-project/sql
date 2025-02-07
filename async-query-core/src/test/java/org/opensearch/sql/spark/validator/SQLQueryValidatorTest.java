@@ -193,7 +193,7 @@ class SQLQueryValidatorTest {
     // Generator Functions
     GENERATOR_FUNCTIONS("SELECT explode(array(1, 2, 3));"),
 
-    // Ucategorized functions
+    // Other functions
     NAMED_STRUCT("SELECT named_struct('a', 1);"),
     PARSE_URL("SELECT parse_url(url) FROM my_table;"),
 
@@ -328,7 +328,7 @@ class SQLQueryValidatorTest {
     // Generator Functions
     v.ng(TestElement.GENERATOR_FUNCTIONS);
 
-    // Uncategorized Functions
+    // Other Functions
     v.ng(TestElement.NAMED_STRUCT);
     v.ng(TestElement.PARSE_URL);
 
@@ -449,7 +449,7 @@ class SQLQueryValidatorTest {
     // Generator Functions
     v.ok(TestElement.GENERATOR_FUNCTIONS);
 
-    // Uncategorized Functions
+    // Other Functions
     v.ok(TestElement.NAMED_STRUCT);
     v.ok(TestElement.PARSE_URL);
 
@@ -639,7 +639,7 @@ class SQLQueryValidatorTest {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> false);
     VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
 
-    v.ng("SELECT named_struct('a', 1);", "Uncategorized functions (named_struct) is not allowed.");
+    v.ng("SELECT named_struct('a', 1);", "Other functions (named_struct) is not allowed.");
   }
 
   @AllArgsConstructor

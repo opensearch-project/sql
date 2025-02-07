@@ -32,7 +32,7 @@ public enum FunctionType {
   CSV("CSV"),
   MISC("Misc"),
   GENERATOR("Generator"),
-  UNCATEGORIZED("Uncategorized"),
+  OTHER("Other"),
   UDF("User Defined Function");
 
   private final String name;
@@ -424,7 +424,7 @@ public enum FunctionType {
                   "posexplode_outer",
                   "stack"))
           .put(
-              UNCATEGORIZED,
+              OTHER,
               Set.of(
                   "aggregate",
                   "array_size",
