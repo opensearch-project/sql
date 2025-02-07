@@ -7,9 +7,10 @@
 
 package org.opensearch.sql.analysis;
 
+import static org.opensearch.sql.utils.PathUtils.SEPARATOR;
+
 import java.util.List;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.utils.PathUtils;
 
 public class DataSourceSchemaIdentifierNameResolver {
 
@@ -34,7 +35,7 @@ public class DataSourceSchemaIdentifierNameResolver {
       DataSourceService dataSourceService, List<String> parts) {
     this.dataSourceService = dataSourceService;
     List<String> remainingParts = captureSchemaName(captureDataSourceName(parts));
-    identifierName = String.join(PathUtils.SEPARATOR, remainingParts);
+    identifierName = String.join(SEPARATOR, remainingParts);
   }
 
   public String getIdentifierName() {

@@ -26,7 +26,6 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 
-@ToString
 @ExtendWith(MockitoExtension.class)
 class IPFunctionsTest {
 

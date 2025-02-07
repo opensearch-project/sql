@@ -6,6 +6,9 @@
 package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
+import static org.opensearch.sql.analysis.symbol.Namespace.FIELD_NAME;
+import static org.opensearch.sql.analysis.symbol.Namespace.HIDDEN_FIELD_NAME;
+import static org.opensearch.sql.analysis.symbol.Namespace.INDEX_NAME;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
@@ -18,6 +21,7 @@ import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
+import static org.opensearch.sql.utils.PathUtils.SEPARATOR;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
 import com.google.common.collect.ImmutableList;
@@ -35,7 +39,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
-import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Argument;
@@ -115,7 +118,6 @@ import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
-import org.opensearch.sql.utils.PathUtils;
 
 /**
  * Analyze the {@link UnresolvedPlan} in the {@link AnalysisContext} to construct the {@link
@@ -171,16 +173,15 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
                       dataSourceSchemaIdentifierNameResolver.getSchemaName()),
                   dataSourceSchemaIdentifierNameResolver.getIdentifierName());
     }
-    table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
+    table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(FIELD_NAME, k), v));
     table
         .getReservedFieldTypes()
-        .forEach((k, v) -> curEnv.define(new Symbol(Namespace.HIDDEN_FIELD_NAME, k), v));
+        .forEach((k, v) -> curEnv.define(new Symbol(HIDDEN_FIELD_NAME, k), v));
 
     // Put index name or its alias in index namespace on type environment so qualifier
     // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
     curEnv.define(
-        new Symbol(Namespace.INDEX_NAME, (node.getAlias() == null) ? tableName : node.getAlias()),
-        STRUCT);
+        new Symbol(INDEX_NAME, (node.getAlias() == null) ? tableName : node.getAlias()), STRUCT);
 
     return new LogicalRelation(tableName, table);
   }
@@ -193,7 +194,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     // Put subquery alias in index namespace so the qualifier can be removed
     // when analyzing qualified name in the subquery layer
-    curEnv.define(new Symbol(Namespace.INDEX_NAME, node.getAliasAsTableName()), STRUCT);
+    curEnv.define(new Symbol(INDEX_NAME, node.getAliasAsTableName()), STRUCT);
     return subquery;
   }
 
@@ -225,14 +226,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     context.push();
     TypeEnvironment curEnv = context.peek();
     Table table = tableFunctionImplementation.applyArguments();
-    table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
+    table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(FIELD_NAME, k), v));
     table
         .getReservedFieldTypes()
-        .forEach((k, v) -> curEnv.define(new Symbol(Namespace.HIDDEN_FIELD_NAME, k), v));
+        .forEach((k, v) -> curEnv.define(new Symbol(HIDDEN_FIELD_NAME, k), v));
     curEnv.define(
-        new Symbol(
-            Namespace.INDEX_NAME, dataSourceSchemaIdentifierNameResolver.getIdentifierName()),
-        STRUCT);
+        new Symbol(INDEX_NAME, dataSourceSchemaIdentifierNameResolver.getIdentifierName()), STRUCT);
     return new LogicalRelation(
         dataSourceSchemaIdentifierNameResolver.getIdentifierName(),
         tableFunctionImplementation.applyArguments());
@@ -334,11 +333,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment newEnv = context.peek();
     aggregators.forEach(
         aggregator ->
-            newEnv.define(
-                new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));
+            newEnv.define(new Symbol(FIELD_NAME, aggregator.getName()), aggregator.type()));
     groupBys.forEach(
-        group ->
-            newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
+        group -> newEnv.define(new Symbol(FIELD_NAME, group.getNameOrAlias()), group.type()));
     return new LogicalAggregation(child, aggregators, groupBys);
   }
 
@@ -363,9 +360,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     context.push();
     TypeEnvironment newEnv = context.peek();
     groupBys.forEach(
-        group -> newEnv.define(new Symbol(Namespace.FIELD_NAME, group.toString()), group.type()));
-    fields.forEach(
-        field -> newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));
+        group -> newEnv.define(new Symbol(FIELD_NAME, group.toString()), group.type()));
+    fields.forEach(field -> newEnv.define(new Symbol(FIELD_NAME, field.toString()), field.type()));
 
     List<Argument> options = node.getNoOfResults();
     Integer noOfResults = (Integer) options.get(0).getValue().getValue();
@@ -431,8 +427,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     context.push();
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(
-        expr ->
-            newEnv.define(new Symbol(Namespace.FIELD_NAME, expr.getNameOrAlias()), expr.type()));
+        expr -> newEnv.define(new Symbol(FIELD_NAME, expr.getNameOrAlias()), expr.type()));
     List<NamedExpression> namedParseExpressions = context.getNamedParseExpressions();
     return new LogicalProject(child, namedExpressions, namedParseExpressions);
   }
@@ -512,49 +507,50 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     // determining the new paths, we need to preserve the portion of the path corresponding to the
     // flattened field's parent, if one exists, in order to support flattening nested structs.
 
-    Map<String, ExprType> addFieldsMap = new HashMap<>();
-
     TypeEnvironment env = context.peek();
-    Map<String, ExprType> fieldsMap = env.lookupAllTupleFields(Namespace.FIELD_NAME);
+    Map<String, ExprType> fieldsMap = env.lookupAllTupleFields(FIELD_NAME);
 
-    final String fieldDescendantPath = fieldName + PathUtils.SEPARATOR;
-    final String fieldParentPath =
-        fieldName.contains(PathUtils.SEPARATOR)
-            ? fieldName.substring(0, fieldName.lastIndexOf(PathUtils.SEPARATOR))
+    final String fieldParentPathPrefix =
+        fieldName.contains(SEPARATOR)
+            ? fieldName.substring(0, fieldName.lastIndexOf(SEPARATOR)) + SEPARATOR
             : "";
 
-    for (String path : fieldsMap.keySet()) {
+    // Get entries for paths that are descended from the flattened field.
+    final String fieldDescendantPathPrefix = fieldName + SEPARATOR;
+    List<Map.Entry<String, ExprType>> fieldDescendantEntries =
+        fieldsMap.entrySet().stream()
+            .filter(e -> e.getKey().startsWith(fieldDescendantPathPrefix))
+            .toList();
 
-      // Verify that the path is descended from the flattened field.
-      if (!path.startsWith(fieldDescendantPath)) {
-        continue;
-      }
+    // Get fields to add from descendant entries.
+    Map<String, ExprType> addFieldsMap = new HashMap<>();
+    for (Map.Entry<String, ExprType> entry : fieldDescendantEntries) {
+      String path = entry.getKey();
 
       // Build the new path.
-      String newPath = path.substring(fieldDescendantPath.length());
-      if (!fieldParentPath.isEmpty()) {
-        newPath = String.join(PathUtils.SEPARATOR, fieldParentPath, newPath);
+      String newPath = path.substring(fieldDescendantPathPrefix.length());
+      if (!fieldParentPathPrefix.isEmpty()) {
+        newPath = fieldParentPathPrefix + newPath;
       }
 
-      ExprType type = fieldsMap.get(path);
-      addFieldsMap.put(newPath, type);
+      addFieldsMap.put(newPath, entry.getValue());
     }
 
     // [B] Add new fields to type environment
     // --------------------------------------
 
-    for (Map.Entry<String, ExprType> entry : addFieldsMap.entrySet()) {
-      String name = entry.getKey();
-      ExprType type = entry.getValue();
+    // Verify that new fields do not overwrite an existing field.
+    List<String> duplicateFieldNames =
+        addFieldsMap.keySet().stream().filter(fieldsMap::containsKey).toList();
 
-      // Verify that new field does not overwrite an existing field.
-      if (fieldsMap.containsKey(name)) {
-        throw new IllegalArgumentException(
-            StringUtils.format("Flatten command cannot overwrite field '%s'", name));
-      }
-
-      env.define(DSL.ref(name, type));
+    if (!duplicateFieldNames.isEmpty()) {
+      throw new SemanticCheckException(
+          StringUtils.format(
+              "Flatten command cannot overwrite fields: %s",
+              String.join(", ", duplicateFieldNames)));
     }
+
+    addFieldsMap.forEach((name, type) -> env.define(DSL.ref(name, type)));
 
     return new LogicalFlatten(child, fieldExpr);
   }
@@ -576,7 +572,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
               ParseExpression expr =
                   ParseUtils.createParseExpression(
                       parseMethod, sourceField, patternExpression, DSL.literal(group));
-              curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
+              curEnv.define(new Symbol(FIELD_NAME, group), expr.type());
               context.getNamedParseExpressions().add(new NamedExpression(group, expr));
             });
     return child;
@@ -635,7 +631,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     java.util.Map<String, Literal> options = node.getArguments();
 
     TypeEnvironment currentEnv = context.peek();
-    currentEnv.define(new Symbol(Namespace.FIELD_NAME, "ClusterID"), ExprCoreType.INTEGER);
+    currentEnv.define(new Symbol(FIELD_NAME, "ClusterID"), ExprCoreType.INTEGER);
 
     return new LogicalMLCommons(child, "kmeans", options);
   }
@@ -648,13 +644,13 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     TypeEnvironment currentEnv = context.peek();
 
-    currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_SCORE), ExprCoreType.DOUBLE);
+    currentEnv.define(new Symbol(FIELD_NAME, RCF_SCORE), ExprCoreType.DOUBLE);
     if (Objects.isNull(node.getArguments().get(TIME_FIELD))) {
-      currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALOUS), ExprCoreType.BOOLEAN);
+      currentEnv.define(new Symbol(FIELD_NAME, RCF_ANOMALOUS), ExprCoreType.BOOLEAN);
     } else {
-      currentEnv.define(new Symbol(Namespace.FIELD_NAME, RCF_ANOMALY_GRADE), ExprCoreType.DOUBLE);
+      currentEnv.define(new Symbol(FIELD_NAME, RCF_ANOMALY_GRADE), ExprCoreType.DOUBLE);
       currentEnv.define(
-          new Symbol(Namespace.FIELD_NAME, (String) node.getArguments().get(TIME_FIELD).getValue()),
+          new Symbol(FIELD_NAME, (String) node.getArguments().get(TIME_FIELD).getValue()),
           ExprCoreType.TIMESTAMP);
     }
     return new LogicalAD(child, options);
@@ -689,8 +685,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     TypeEnvironment currentEnv = context.peek();
     node.getOutputSchema(currentEnv).entrySet().stream()
-        .forEach(
-            v -> currentEnv.define(new Symbol(Namespace.FIELD_NAME, v.getKey()), v.getValue()));
+        .forEach(v -> currentEnv.define(new Symbol(FIELD_NAME, v.getKey()), v.getValue()));
 
     return new LogicalML(child, node.getArguments());
   }
@@ -731,7 +726,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
                         resolvedField.type().typeName()));
             }
           }
-          currEnv.define(new Symbol(Namespace.FIELD_NAME, computation.getAlias()), averageType);
+          currEnv.define(new Symbol(FIELD_NAME, computation.getAlias()), averageType);
           computationsAndTypes.add(Pair.of(computation, averageType));
         });
 

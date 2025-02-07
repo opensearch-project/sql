@@ -50,6 +50,10 @@ class LogicalFlattenTest extends AnalyzerTestBase {
     mapping.put("duplicate", STRUCT);
     mapping.put("duplicate.integer_value", INTEGER);
 
+    mapping.put("duplicate_2", STRUCT);
+    mapping.put("duplicate_2.integer_value", INTEGER);
+    mapping.put("duplicate_2.double_value", INTEGER);
+
     return mapping;
   }
 
@@ -119,10 +123,14 @@ class LogicalFlattenTest extends AnalyzerTestBase {
 
   @Test
   void testInvalidDuplicate() {
-    String msg =
-        assertThrows(IllegalArgumentException.class, () -> executeFlatten("duplicate"))
-            .getMessage();
-    assertEquals("Flatten command cannot overwrite field 'integer_value'", msg);
+    Exception ex;
+
+    ex = assertThrows(SemanticCheckException.class, () -> executeFlatten("duplicate"));
+    assertEquals("Flatten command cannot overwrite fields: integer_value", ex.getMessage());
+
+    ex = assertThrows(SemanticCheckException.class, () -> executeFlatten("duplicate_2"));
+    assertEquals(
+        "Flatten command cannot overwrite fields: integer_value, double_value", ex.getMessage());
   }
 
   /**

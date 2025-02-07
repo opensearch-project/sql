@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.expression;
 
+import static org.opensearch.sql.utils.PathUtils.SEPARATOR;
+
 import java.util.Arrays;
 import java.util.List;
 import lombok.EqualsAndHashCode;
@@ -15,7 +17,6 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.utils.PathUtils;
 
 @EqualsAndHashCode
 @RequiredArgsConstructor
@@ -105,7 +106,7 @@ public class ReferenceExpression implements Expression {
   }
 
   private ExprValue resolve(ExprValue value, List<String> paths) {
-    ExprValue wholePathValue = value.keyValue(String.join(PathUtils.SEPARATOR, paths));
+    ExprValue wholePathValue = value.keyValue(String.join(SEPARATOR, paths));
     // For array types only first index currently supported.
     if (value.type().equals(ExprCoreType.ARRAY)) {
       wholePathValue = value.collectionValue().get(0).keyValue(paths.get(0));
