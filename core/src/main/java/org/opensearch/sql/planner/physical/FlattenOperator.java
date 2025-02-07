@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.planner.physical;
 
-import static org.opensearch.sql.utils.PathUtils.SEPARATOR_PATTERN;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -53,11 +51,11 @@ public class FlattenOperator extends PhysicalPlan {
   /**
    * Flattens the {@link ExprTupleValue} at the specified path within the given root value and
    * returns the result. Returns the unmodified root value if it does not contain a value at the
-   * specified path.
+   * specified path. rootExprValue is expected to be an {@link ExprTupleValue}.
    */
   private static ExprValue flattenExprValueAtPath(ExprValue rootExprValue, String path) {
 
-    Matcher matcher = SEPARATOR_PATTERN.matcher(path);
+    Matcher matcher = ExprValueUtils.QUALIFIED_NAME_SEPARATOR_PATTERN.matcher(path);
     Map<String, ExprValue> exprValueMap = ExprValueUtils.getTupleValue(rootExprValue);
 
     // [A] Flatten nested struct value

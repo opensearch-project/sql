@@ -21,7 +21,6 @@ import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALOUS;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_ANOMALY_GRADE;
 import static org.opensearch.sql.utils.MLCommonsConstants.RCF_SCORE;
 import static org.opensearch.sql.utils.MLCommonsConstants.TIME_FIELD;
-import static org.opensearch.sql.utils.PathUtils.SEPARATOR;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
 import com.google.common.collect.ImmutableList;
@@ -77,6 +76,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprMissingValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -511,12 +511,13 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     Map<String, ExprType> fieldsMap = env.lookupAllTupleFields(FIELD_NAME);
 
     final String fieldParentPathPrefix =
-        fieldName.contains(SEPARATOR)
-            ? fieldName.substring(0, fieldName.lastIndexOf(SEPARATOR)) + SEPARATOR
+        fieldName.contains(ExprValueUtils.QUALIFIED_NAME_SEPARATOR)
+            ? fieldName.substring(0, fieldName.lastIndexOf(ExprValueUtils.QUALIFIED_NAME_SEPARATOR))
+                + ExprValueUtils.QUALIFIED_NAME_SEPARATOR
             : "";
 
     // Get entries for paths that are descended from the flattened field.
-    final String fieldDescendantPathPrefix = fieldName + SEPARATOR;
+    final String fieldDescendantPathPrefix = fieldName + ExprValueUtils.QUALIFIED_NAME_SEPARATOR;
     List<Map.Entry<String, ExprType>> fieldDescendantEntries =
         fieldsMap.entrySet().stream()
             .filter(e -> e.getKey().startsWith(fieldDescendantPathPrefix))
@@ -525,14 +526,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     // Get fields to add from descendant entries.
     Map<String, ExprType> addFieldsMap = new HashMap<>();
     for (Map.Entry<String, ExprType> entry : fieldDescendantEntries) {
-      String path = entry.getKey();
-
-      // Build the new path.
-      String newPath = path.substring(fieldDescendantPathPrefix.length());
-      if (!fieldParentPathPrefix.isEmpty()) {
-        newPath = fieldParentPathPrefix + newPath;
-      }
-
+      String newPath =
+          fieldParentPathPrefix + entry.getKey().substring(fieldDescendantPathPrefix.length());
       addFieldsMap.put(newPath, entry.getValue());
     }
 

@@ -7,9 +7,8 @@
 
 package org.opensearch.sql.analysis;
 
-import static org.opensearch.sql.utils.PathUtils.SEPARATOR;
-
 import java.util.List;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.datasource.DataSourceService;
 
 public class DataSourceSchemaIdentifierNameResolver {
@@ -35,7 +34,7 @@ public class DataSourceSchemaIdentifierNameResolver {
       DataSourceService dataSourceService, List<String> parts) {
     this.dataSourceService = dataSourceService;
     List<String> remainingParts = captureSchemaName(captureDataSourceName(parts));
-    identifierName = String.join(SEPARATOR, remainingParts);
+    identifierName = String.join(ExprValueUtils.QUALIFIED_NAME_SEPARATOR, remainingParts);
   }
 
   public String getIdentifierName() {
