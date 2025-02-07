@@ -23,7 +23,16 @@ public class OpenSearchSchema extends AbstractSchema {
 
   private final DataSourceService dataSourceService;
 
-  private final Map<String, Table> tableMap = new HashMap<>();
+  private final Map<String, Table> tableMap =
+      new HashMap<>() {
+        @Override
+        public Table get(Object key) {
+          if (!super.containsKey(key)) {
+            registerTable(new QualifiedName((String) key));
+          }
+          return super.get(key);
+        }
+      };
 
   public void registerTable(QualifiedName qualifiedName) {
     DataSourceSchemaIdentifierNameResolver nameResolver =

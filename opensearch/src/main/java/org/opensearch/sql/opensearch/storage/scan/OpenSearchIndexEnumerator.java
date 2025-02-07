@@ -15,7 +15,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
-public class OpenSearchIndexEnumerator implements Enumerator<ExprValue> {
+public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   /** OpenSearch client. */
   private final OpenSearchClient client;
@@ -50,9 +50,9 @@ public class OpenSearchIndexEnumerator implements Enumerator<ExprValue> {
   }
 
   @Override
-  public ExprValue current() {
+  public Object current() {
     queryCount++;
-    return iterator.next();
+    return iterator.next().tupleValue().values().stream().map(ExprValue::value).toArray();
   }
 
   @Override
