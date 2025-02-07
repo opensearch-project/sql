@@ -140,7 +140,15 @@ public class JsonUtils {
     return LITERAL_NULL;
   }
 
-  /** Converts a JSON encoded string to an Expression object. */
+  /**
+   * Perform an upsert operation against the incoming jsonString value with provided jsonPath and
+   * value.
+   *
+   * @param json jsonObject in String format.
+   * @param path upsert reference in the form of JsonPath.
+   * @param valueToInsert value to be added
+   * @return JsonString after the upsert operation.
+   */
   public static ExprValue setJson(ExprValue json, ExprValue path, ExprValue valueToInsert) {
 
     String jsonString = json.stringValue();
