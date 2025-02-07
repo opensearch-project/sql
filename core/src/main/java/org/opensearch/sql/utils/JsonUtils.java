@@ -144,25 +144,19 @@ public class JsonUtils {
   /** Converts a JSON encoded string to an Expression object. */
   public static ExprValue setJson(ExprValue json, ExprValue path, ExprValue valueToInsert) {
 
-    String jsonUnquoted = json.stringValue();
-    String pathUnquoted = path.stringValue();
-    Object valueUnquoted = valueToInsert.value();
+    String jsonString = json.stringValue();
+    String jsonPathString = path.stringValue();
+    Object valueToInsertObj = valueToInsert.value();
     Configuration conf =
         Configuration.defaultConfiguration().addOptions(Option.SUPPRESS_EXCEPTIONS);
     try {
-      JsonPath jsonPath = JsonPath.compile(pathUnquoted);
-      DocumentContext docContext = JsonPath.using(conf).parse(jsonUnquoted);
+      JsonPath jsonPath = JsonPath.compile(jsonPathString);
+      DocumentContext docContext = JsonPath.using(conf).parse(jsonString);
       Object readResult = docContext.read(jsonPath);
       if (readResult == null) {
-        recursiveCreate(docContext, pathUnquoted, valueUnquoted).jsonString();
-      } else if (readResult instanceof String) {
-        docContext.set(pathUnquoted, valueUnquoted).jsonString();
+        recursiveCreate(docContext, jsonPathString, valueToInsertObj);
       } else {
-        if (((List<?>) readResult).isEmpty()) {
-          docContext.add(pathUnquoted, valueUnquoted).jsonString();
-        } else {
-          docContext.set(pathUnquoted, valueUnquoted).jsonString();
-        }
+        docContext.set(jsonPathString, valueToInsertObj);
       }
       return new ExprStringValue(docContext.jsonString());
 
