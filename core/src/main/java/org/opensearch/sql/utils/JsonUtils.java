@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidJsonException;
-import com.jayway.jsonpath.InvalidModificationException;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
@@ -167,11 +166,6 @@ public class JsonUtils {
     } catch (InvalidJsonException e) {
       final String errorFormat = "JSON object '%s' is not valid. Error details: %s";
       throw new SemanticCheckException(String.format(errorFormat, json, e.getMessage()), e);
-
-    } catch (InvalidModificationException
-        | IllegalArgumentException
-        | UnsupportedOperationException ex) {
-      return LITERAL_NULL;
     }
   }
 
