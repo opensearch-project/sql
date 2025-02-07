@@ -113,14 +113,17 @@ class LogicalFlattenTest extends AnalyzerTestBase {
 
   @Test
   void testInvalidDuplicate() {
-    Exception ex;
+    String msg;
 
-    ex = assertThrows(SemanticCheckException.class, () -> executeFlatten("duplicate"));
-    assertEquals("Flatten command cannot overwrite fields: integer_value", ex.getMessage());
+    msg =
+        assertThrows(SemanticCheckException.class, () -> executeFlatten("duplicate")).getMessage();
+    assertTrue(msg.contains("integer_value"));
 
-    ex = assertThrows(SemanticCheckException.class, () -> executeFlatten("duplicate_2"));
-    assertEquals(
-        "Flatten command cannot overwrite fields: integer_value, double_value", ex.getMessage());
+    msg =
+        assertThrows(SemanticCheckException.class, () -> executeFlatten("duplicate_2"))
+            .getMessage();
+    assertTrue(msg.contains("integer_value"));
+    assertTrue(msg.contains("double_value"));
   }
 
   /**

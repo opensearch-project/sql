@@ -88,10 +88,11 @@ public class FlattenOperator extends PhysicalPlan {
     }
 
     ExprValue childExprValue = exprValueMap.get(path);
-    if (!childExprValue.isNull() && !childExprValue.isMissing()) {
-      exprValueMap.putAll(ExprValueUtils.getTupleValue(childExprValue));
+    if (childExprValue.isNull() || childExprValue.isMissing()) {
+      return rootExprValue;
     }
 
+    exprValueMap.putAll(ExprValueUtils.getTupleValue(childExprValue));
     return ExprTupleValue.fromExprValueMap(exprValueMap);
   }
 }
