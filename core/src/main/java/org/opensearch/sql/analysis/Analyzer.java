@@ -518,10 +518,10 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     Map<String, ExprType> fieldsMap = env.lookupAllTupleFields(Namespace.FIELD_NAME);
 
     final String fieldDescendantPath = fieldName + PathUtils.SEPARATOR;
-    final Optional<String> fieldParentPath =
+    final String fieldParentPath =
         fieldName.contains(PathUtils.SEPARATOR)
-            ? Optional.of(fieldName.substring(0, fieldName.lastIndexOf(PathUtils.SEPARATOR)))
-            : Optional.empty();
+            ? fieldName.substring(0, fieldName.lastIndexOf(PathUtils.SEPARATOR))
+            : "";
 
     for (String path : fieldsMap.keySet()) {
 
@@ -532,8 +532,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
       // Build the new path.
       String newPath = path.substring(fieldDescendantPath.length());
-      if (fieldParentPath.isPresent()) {
-        newPath = fieldParentPath.get() + PathUtils.SEPARATOR + newPath;
+      if (!fieldParentPath.isEmpty()) {
+        newPath = String.join(PathUtils.SEPARATOR, fieldParentPath, newPath);
       }
 
       ExprType type = fieldsMap.get(path);
