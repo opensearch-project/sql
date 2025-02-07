@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.planner.physical;
 
+import static org.opensearch.sql.utils.PathUtils.SEPARATOR_PATTERN;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +19,6 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.ReferenceExpression;
-import org.opensearch.sql.utils.PathUtils;
 
 /** Flattens the specified field from the input and returns the result. */
 @Getter
@@ -50,13 +51,14 @@ public class FlattenOperator extends PhysicalPlan {
   }
 
   /**
-   * Flattens the {@link ExprTupleValue} at the specified path and returns the update value. If the
-   * value is null or missing, the unmodified value is returned.
+   * Flattens the {@link ExprTupleValue} at the specified path within the given root value and
+   * returns the result. Returns the unmodified root value if it does not contain a value at the
+   * specified path.
    */
-  private static ExprValue flattenExprValueAtPath(ExprValue exprValue, String path) {
+  private static ExprValue flattenExprValueAtPath(ExprValue rootExprValue, String path) {
 
-    Matcher matcher = PathUtils.SEPARATOR_PATTERN.matcher(path);
-    Map<String, ExprValue> exprValueMap = ExprValueUtils.getTupleValue(exprValue);
+    Matcher matcher = SEPARATOR_PATTERN.matcher(path);
+    Map<String, ExprValue> exprValueMap = ExprValueUtils.getTupleValue(rootExprValue);
 
     // [A] Flatten nested struct value
     // -------------------------------
@@ -66,12 +68,12 @@ public class FlattenOperator extends PhysicalPlan {
       String remainingPath = path.substring(matcher.end());
 
       if (!exprValueMap.containsKey(currentPathComponent)) {
-        return exprValue;
+        return rootExprValue;
       }
 
       ExprValue childExprValue = exprValueMap.get(currentPathComponent);
       if (childExprValue.isNull() || childExprValue.isMissing()) {
-        return exprValue;
+        return rootExprValue;
       }
 
       ExprValue flattenedExprValue =
@@ -84,7 +86,7 @@ public class FlattenOperator extends PhysicalPlan {
     // ------------------------------
 
     if (!exprValueMap.containsKey(path)) {
-      return exprValue;
+      return rootExprValue;
     }
 
     ExprValue childExprValue = exprValueMap.get(path);
