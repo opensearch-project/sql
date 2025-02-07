@@ -62,8 +62,6 @@ public class JsonFunctions {
   private DefaultFunctionResolver jsonSet() {
     return define(
         BuiltinFunctionName.JSON_SET.getName(),
-
-        // Numeric types
         impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, BYTE),
         impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, SHORT),
         impl(nullMissingHandling(JsonUtils::setJson), UNDEFINED, STRING, STRING, INTEGER),
