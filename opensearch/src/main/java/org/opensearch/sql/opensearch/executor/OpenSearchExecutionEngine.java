@@ -15,9 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.rel.RelHomogeneousShuttle;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.tools.RelRunner;
@@ -111,8 +109,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   public void execute(
       RelNode rel, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
     Connection connection = context.connection;
-    final RelShuttle shuttle = new RelHomogeneousShuttle();
-    rel = rel.accept(shuttle);
     try {
       RelRunner runner = connection.unwrap(RelRunner.class);
       PreparedStatement statement = runner.prepareStatement(rel);

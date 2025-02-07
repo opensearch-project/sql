@@ -11,9 +11,7 @@ import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptSchema;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -31,8 +29,6 @@ public class CalcitePlanContext {
 
   public FrameworkConfig config;
   public CalciteConnection connection;
-  public CalciteServerStatement statement;
-  public final CalcitePrepareImpl prepare;
   public final RelBuilder relBuilder;
   public final ExtendedRexBuilder rexBuilder;
 
@@ -41,18 +37,7 @@ public class CalcitePlanContext {
   public CalcitePlanContext(FrameworkConfig config, CalciteConnection connection) {
     this.config = config;
     this.connection = connection;
-    try {
-      this.statement = connection.createStatement().unwrap(CalciteServerStatement.class);
-    } catch (Exception e) {
-      throw new RuntimeException("create statement failed", e);
-    }
-    this.prepare = new CalcitePrepareImpl();
-    this.relBuilder =
-        prepare.perform(
-            statement,
-            config,
-            (cluster, relOptSchema, rootSchema, statement) ->
-                new OSRelBuilder(config.getContext(), cluster, relOptSchema));
+    this.relBuilder = RelBuilder.create(config);
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
   }
 
@@ -65,6 +50,7 @@ public class CalcitePlanContext {
     return result;
   }
 
+  // for testing only
   public static CalcitePlanContext create(FrameworkConfig config) {
     return new CalcitePlanContext(config, null);
   }
