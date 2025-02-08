@@ -124,33 +124,33 @@ public class TrendlineOperatorTest {
   public void calculates_simple_moving_average_data_type_support_short() {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
-            .thenReturn(
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+        .thenReturn(
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
-            new TrendlineOperator(
-                    inputPlan,
-                    Collections.singletonList(
-                            Pair.of(
-                                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
-                                    ExprCoreType.SHORT)));
+        new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
+                    ExprCoreType.SHORT)));
 
     plan.open();
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
+        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
+        plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)),
+        plan.next());
     assertFalse(plan.hasNext());
   }
 
@@ -158,33 +158,33 @@ public class TrendlineOperatorTest {
   public void calculates_simple_moving_average_data_type_support_long() {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
-            .thenReturn(
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+        .thenReturn(
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
-            new TrendlineOperator(
-                    inputPlan,
-                    Collections.singletonList(
-                            Pair.of(
-                                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
-                                    ExprCoreType.SHORT)));
+        new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
+                    ExprCoreType.SHORT)));
 
     plan.open();
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
+        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
+        plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)),
+        plan.next());
     assertFalse(plan.hasNext());
   }
 
@@ -192,36 +192,35 @@ public class TrendlineOperatorTest {
   public void calculates_simple_moving_average_data_type_support_float() {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
-            .thenReturn(
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+        .thenReturn(
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
-            new TrendlineOperator(
-                    inputPlan,
-                    Collections.singletonList(
-                            Pair.of(
-                                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
-                                    ExprCoreType.FLOAT)));
+        new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
+                    ExprCoreType.FLOAT)));
 
     plan.open();
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
+        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
+        plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)),
+        plan.next());
     assertFalse(plan.hasNext());
   }
-
 
   @Test
   public void calculates_simple_moving_average_multiple_computations() {
@@ -588,33 +587,33 @@ public class TrendlineOperatorTest {
   public void calculates_weighted_moving_average_data_type_support_short() {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
-            .thenReturn(
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+        .thenReturn(
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
-            new TrendlineOperator(
-                    inputPlan,
-                    Collections.singletonList(
-                            Pair.of(
-                                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
-                                    ExprCoreType.SHORT)));
+        new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
+                    ExprCoreType.SHORT)));
 
     plan.open();
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
+        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+        plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
+        plan.next());
     assertFalse(plan.hasNext());
   }
 
@@ -622,103 +621,101 @@ public class TrendlineOperatorTest {
   public void calculates_weighted_moving_average_data_type_support_integer() {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
-            .thenReturn(
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+        .thenReturn(
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
-            new TrendlineOperator(
-                    inputPlan,
-                    Collections.singletonList(
-                            Pair.of(
-                                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
-                                    ExprCoreType.INTEGER)));
+        new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
+                    ExprCoreType.INTEGER)));
 
     plan.open();
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
+        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+        plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
+        plan.next());
     assertFalse(plan.hasNext());
   }
-
 
   @Test
   public void calculates_weighted_moving_average_data_type_support_long() {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
-            .thenReturn(
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+        .thenReturn(
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
-            new TrendlineOperator(
-                    inputPlan,
-                    Collections.singletonList(
-                            Pair.of(
-                                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
-                                    ExprCoreType.LONG)));
+        new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
+                    ExprCoreType.LONG)));
 
     plan.open();
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
+        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+        plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
+        plan.next());
     assertFalse(plan.hasNext());
   }
-
 
   @Test
   public void calculates_weighted_moving_average_data_type_support_float() {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
-            .thenReturn(
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-                    ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+        .thenReturn(
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
-            new TrendlineOperator(
-                    inputPlan,
-                    Collections.singletonList(
-                            Pair.of(
-                                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
-                                    ExprCoreType.FLOAT)));
+        new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
+                    ExprCoreType.FLOAT)));
 
     plan.open();
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
+        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+        plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
-            ExprValueUtils.tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
-            plan.next());
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
+        plan.next());
     assertFalse(plan.hasNext());
   }
 

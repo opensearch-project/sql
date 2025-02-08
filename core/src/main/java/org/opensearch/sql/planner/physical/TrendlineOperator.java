@@ -11,11 +11,10 @@ import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.time.Instant;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -118,13 +117,14 @@ public class TrendlineOperator extends PhysicalPlan {
   }
 
   /** Maintains stateful information for calculating the trendline. */
-  private abstract static class TrendlineAccumulator<C extends Collection<ExprValue>> {
+  private abstract static class TrendlineAccumulator {
 
     protected final LiteralExpression dataPointsNeeded;
 
-    protected final C receivedValues;
+    protected final Queue<ExprValue> receivedValues;
 
-    private TrendlineAccumulator(LiteralExpression dataPointsNeeded, C receivedValues) {
+    private TrendlineAccumulator(
+        LiteralExpression dataPointsNeeded, Queue<ExprValue> receivedValues) {
       this.dataPointsNeeded = dataPointsNeeded;
       this.receivedValues = receivedValues;
     }
@@ -132,25 +132,9 @@ public class TrendlineOperator extends PhysicalPlan {
     abstract void accumulate(ExprValue value);
 
     abstract ExprValue calculate();
-
-    static ArithmeticEvaluator getEvaluator(ExprCoreType type) {
-      switch (type) {
-        case INTEGER, SHORT, LONG, FLOAT, DOUBLE:
-          return NumericArithmeticEvaluator.INSTANCE;
-        case DATE:
-          return DateArithmeticEvaluator.INSTANCE;
-        case TIME:
-          return TimeArithmeticEvaluator.INSTANCE;
-        case TIMESTAMP:
-          return TimestampArithmeticEvaluator.INSTANCE;
-      }
-      throw new IllegalArgumentException(
-          String.format("Invalid type %s used for moving average.", type.typeName()));
-    }
   }
 
-  private static class SimpleMovingAverageAccumulator
-      extends TrendlineAccumulator<Queue<ExprValue>> {
+  private static class SimpleMovingAverageAccumulator extends TrendlineAccumulator {
     private final ArithmeticEvaluator evaluator;
     private Expression runningTotal = null;
 
@@ -159,7 +143,7 @@ public class TrendlineOperator extends PhysicalPlan {
       super(
           DSL.literal(computation.getNumberOfDataPoints().doubleValue()),
           EvictingQueue.create(computation.getNumberOfDataPoints()));
-      evaluator = TrendlineAccumulator.getEvaluator(type);
+      evaluator = getEvaluator(type);
     }
 
     @Override
@@ -201,17 +185,157 @@ public class TrendlineOperator extends PhysicalPlan {
       }
       return evaluator.evaluate(runningTotal, dataPointsNeeded);
     }
+
+    static ArithmeticEvaluator getEvaluator(ExprCoreType type) {
+      return switch (type) {
+        case INTEGER, SHORT, LONG, FLOAT, DOUBLE -> NumericArithmeticEvaluator.INSTANCE;
+        case DATE -> DateArithmeticEvaluator.INSTANCE;
+        case TIME -> TimeArithmeticEvaluator.INSTANCE;
+        case TIMESTAMP -> TimestampArithmeticEvaluator.INSTANCE;
+        default -> throw new IllegalArgumentException(
+            String.format("Invalid type %s used for moving average.", type.typeName()));
+      };
+    }
+
+    private interface ArithmeticEvaluator {
+      Expression calculateFirstTotal(List<ExprValue> dataPoints);
+
+      Expression add(Expression runningTotal, ExprValue incomingValue, ExprValue evictedValue);
+
+      ExprValue evaluate(Expression runningTotal, LiteralExpression numberOfDataPoints);
+    }
+
+    private static class NumericArithmeticEvaluator implements ArithmeticEvaluator {
+      private static final NumericArithmeticEvaluator INSTANCE = new NumericArithmeticEvaluator();
+
+      private NumericArithmeticEvaluator() {}
+
+      @Override
+      public Expression calculateFirstTotal(List<ExprValue> dataPoints) {
+        Expression total = DSL.literal(0.0D);
+        for (ExprValue dataPoint : dataPoints) {
+          total = DSL.add(total, DSL.literal(dataPoint.doubleValue()));
+        }
+        return DSL.literal(total.valueOf().doubleValue());
+      }
+
+      @Override
+      public Expression add(
+          Expression runningTotal, ExprValue incomingValue, ExprValue evictedValue) {
+        return DSL.literal(
+            DSL.add(
+                    runningTotal,
+                    DSL.subtract(DSL.literal(incomingValue), DSL.literal(evictedValue)))
+                .valueOf()
+                .doubleValue());
+      }
+
+      @Override
+      public ExprValue evaluate(Expression runningTotal, LiteralExpression numberOfDataPoints) {
+        return DSL.divide(runningTotal, numberOfDataPoints).valueOf();
+      }
+    }
+
+    private static class DateArithmeticEvaluator implements ArithmeticEvaluator {
+      private static final DateArithmeticEvaluator INSTANCE = new DateArithmeticEvaluator();
+
+      private DateArithmeticEvaluator() {}
+
+      @Override
+      public Expression calculateFirstTotal(List<ExprValue> dataPoints) {
+        return TimestampArithmeticEvaluator.INSTANCE.calculateFirstTotal(dataPoints);
+      }
+
+      @Override
+      public Expression add(
+          Expression runningTotal, ExprValue incomingValue, ExprValue evictedValue) {
+        return TimestampArithmeticEvaluator.INSTANCE.add(runningTotal, incomingValue, evictedValue);
+      }
+
+      @Override
+      public ExprValue evaluate(Expression runningTotal, LiteralExpression numberOfDataPoints) {
+        final ExprValue timestampResult =
+            TimestampArithmeticEvaluator.INSTANCE.evaluate(runningTotal, numberOfDataPoints);
+        return ExprValueUtils.dateValue(timestampResult.dateValue());
+      }
+    }
+
+    private static class TimeArithmeticEvaluator implements ArithmeticEvaluator {
+      private static final TimeArithmeticEvaluator INSTANCE = new TimeArithmeticEvaluator();
+
+      private TimeArithmeticEvaluator() {}
+
+      @Override
+      public Expression calculateFirstTotal(List<ExprValue> dataPoints) {
+        Expression total = DSL.literal(0);
+        for (ExprValue dataPoint : dataPoints) {
+          total = DSL.add(total, DSL.literal(MILLIS.between(LocalTime.MIN, dataPoint.timeValue())));
+        }
+        return DSL.literal(total.valueOf().longValue());
+      }
+
+      @Override
+      public Expression add(
+          Expression runningTotal, ExprValue incomingValue, ExprValue evictedValue) {
+        return DSL.literal(
+            DSL.add(
+                    runningTotal,
+                    DSL.subtract(
+                        DSL.literal(MILLIS.between(LocalTime.MIN, incomingValue.timeValue())),
+                        DSL.literal(MILLIS.between(LocalTime.MIN, evictedValue.timeValue()))))
+                .valueOf());
+      }
+
+      @Override
+      public ExprValue evaluate(Expression runningTotal, LiteralExpression numberOfDataPoints) {
+        return ExprValueUtils.timeValue(
+            LocalTime.MIN.plus(
+                DSL.divide(runningTotal, numberOfDataPoints).valueOf().longValue(), MILLIS));
+      }
+    }
+
+    private static class TimestampArithmeticEvaluator implements ArithmeticEvaluator {
+      private static final TimestampArithmeticEvaluator INSTANCE =
+          new TimestampArithmeticEvaluator();
+
+      private TimestampArithmeticEvaluator() {}
+
+      @Override
+      public Expression calculateFirstTotal(List<ExprValue> dataPoints) {
+        Expression total = DSL.literal(0);
+        for (ExprValue dataPoint : dataPoints) {
+          total = DSL.add(total, DSL.literal(dataPoint.timestampValue().toEpochMilli()));
+        }
+        return DSL.literal(total.valueOf().longValue());
+      }
+
+      @Override
+      public Expression add(
+          Expression runningTotal, ExprValue incomingValue, ExprValue evictedValue) {
+        return DSL.literal(
+            DSL.add(
+                    runningTotal,
+                    DSL.subtract(
+                        DSL.literal(incomingValue.timestampValue().toEpochMilli()),
+                        DSL.literal(evictedValue.timestampValue().toEpochMilli())))
+                .valueOf());
+      }
+
+      @Override
+      public ExprValue evaluate(Expression runningTotal, LiteralExpression numberOfDataPoints) {
+        return ExprValueUtils.timestampValue(
+            Instant.ofEpochMilli(
+                DSL.divide(runningTotal, numberOfDataPoints).valueOf().longValue()));
+      }
+    }
   }
 
-  private static class WeightedMovingAverageAccumulator
-      extends TrendlineAccumulator<ArrayList<ExprValue>> {
+  private static class WeightedMovingAverageAccumulator extends TrendlineAccumulator {
     private final WmaTrendlineEvaluator evaluator;
 
     public WeightedMovingAverageAccumulator(
         Trendline.TrendlineComputation computation, ExprCoreType type) {
-      super(
-          DSL.literal(computation.getNumberOfDataPoints()),
-          new ArrayList<>(computation.getNumberOfDataPoints()));
+      super(DSL.literal(computation.getNumberOfDataPoints()), new LinkedList<>());
       this.evaluator = getWmaEvaluator(type);
     }
 
@@ -229,7 +353,7 @@ public class TrendlineOperator extends PhysicalPlan {
     public void accumulate(ExprValue value) {
       receivedValues.add(value);
       if (receivedValues.size() > dataPointsNeeded.valueOf().integerValue()) {
-        receivedValues.removeFirst();
+        receivedValues.remove();
       }
     }
 
@@ -238,7 +362,7 @@ public class TrendlineOperator extends PhysicalPlan {
       if (receivedValues.size() < dataPointsNeeded.valueOf().integerValue()) {
         return null;
       } else if (dataPointsNeeded.valueOf().integerValue() == 1) {
-        return receivedValues.getFirst();
+        return receivedValues.peek();
       }
       return evaluator.evaluate(receivedValues);
     }
@@ -248,11 +372,13 @@ public class TrendlineOperator extends PhysicalPlan {
       private static final NumericWmaEvaluator INSTANCE = new NumericWmaEvaluator();
 
       @Override
-      public ExprValue evaluate(ArrayList<ExprValue> receivedValues) {
+      public ExprValue evaluate(Queue<ExprValue> receivedValues) {
         double sum = 0D;
         int totalWeight = (receivedValues.size() * (receivedValues.size() + 1)) / 2;
-        for (int i = 0; i < receivedValues.size(); i++) {
-          sum += receivedValues.get(i).doubleValue() * ((i + 1D) / totalWeight);
+        int count = 0;
+        for (ExprValue next : receivedValues) {
+          sum += next.doubleValue() * ((count + 1D) / totalWeight);
+          count++;
         }
         return new ExprDoubleValue(sum);
       }
@@ -263,16 +389,14 @@ public class TrendlineOperator extends PhysicalPlan {
       private static final TimeStampWmaEvaluator INSTANCE = new TimeStampWmaEvaluator();
 
       @Override
-      public ExprValue evaluate(ArrayList<ExprValue> receivedValues) {
+      public ExprValue evaluate(Queue<ExprValue> receivedValues) {
         long sum = 0L;
         int totalWeight = (receivedValues.size() * (receivedValues.size() + 1)) / 2;
-        for (int i = 0; i < receivedValues.size(); i++) {
-          sum +=
-              (long)
-                  (receivedValues.get(i).timestampValue().toEpochMilli()
-                      * ((i + 1D) / totalWeight));
+        int count = 0;
+        for (ExprValue next : receivedValues) {
+          sum += (long) (next.timestampValue().toEpochMilli() * ((count + 1D) / totalWeight));
+          count++;
         }
-
         return ExprValueUtils.timestampValue(Instant.ofEpochMilli((sum)));
       }
     }
@@ -282,149 +406,22 @@ public class TrendlineOperator extends PhysicalPlan {
       private static final TimeWmaEvaluator INSTANCE = new TimeWmaEvaluator();
 
       @Override
-      public ExprValue evaluate(ArrayList<ExprValue> receivedValues) {
+      public ExprValue evaluate(Queue<ExprValue> receivedValues) {
         long sum = 0L;
         int totalWeight = (receivedValues.size() * (receivedValues.size() + 1)) / 2;
-        for (int i = 0; i < receivedValues.size(); i++) {
+        int count = 0;
+        for (ExprValue next : receivedValues) {
           sum +=
               (long)
-                  (MILLIS.between(LocalTime.MIN, receivedValues.get(i).timeValue())
-                      * ((i + 1D) / totalWeight));
+                  (MILLIS.between(LocalTime.MIN, next.timeValue()) * ((count + 1D) / totalWeight));
+          count++;
         }
         return ExprValueUtils.timeValue(LocalTime.MIN.plus(sum, MILLIS));
       }
     }
 
     private interface WmaTrendlineEvaluator {
-      ExprValue evaluate(ArrayList<ExprValue> receivedValues);
-    }
-  }
-
-  private interface ArithmeticEvaluator {
-    Expression calculateFirstTotal(List<ExprValue> dataPoints);
-
-    Expression add(Expression runningTotal, ExprValue incomingValue, ExprValue evictedValue);
-
-    ExprValue evaluate(Expression runningTotal, LiteralExpression numberOfDataPoints);
-  }
-
-  private static class NumericArithmeticEvaluator implements ArithmeticEvaluator {
-    private static final NumericArithmeticEvaluator INSTANCE = new NumericArithmeticEvaluator();
-
-    private NumericArithmeticEvaluator() {}
-
-    @Override
-    public Expression calculateFirstTotal(List<ExprValue> dataPoints) {
-      Expression total = DSL.literal(0.0D);
-      for (ExprValue dataPoint : dataPoints) {
-        total = DSL.add(total, DSL.literal(dataPoint.doubleValue()));
-      }
-      return DSL.literal(total.valueOf().doubleValue());
-    }
-
-    @Override
-    public Expression add(
-        Expression runningTotal, ExprValue incomingValue, ExprValue evictedValue) {
-      return DSL.literal(
-          DSL.add(runningTotal, DSL.subtract(DSL.literal(incomingValue), DSL.literal(evictedValue)))
-              .valueOf()
-              .doubleValue());
-    }
-
-    @Override
-    public ExprValue evaluate(Expression runningTotal, LiteralExpression numberOfDataPoints) {
-      return DSL.divide(runningTotal, numberOfDataPoints).valueOf();
-    }
-  }
-
-  private static class DateArithmeticEvaluator implements ArithmeticEvaluator {
-    private static final DateArithmeticEvaluator INSTANCE = new DateArithmeticEvaluator();
-
-    private DateArithmeticEvaluator() {}
-
-    @Override
-    public Expression calculateFirstTotal(List<ExprValue> dataPoints) {
-      return TimestampArithmeticEvaluator.INSTANCE.calculateFirstTotal(dataPoints);
-    }
-
-    @Override
-    public Expression add(
-        Expression runningTotal, ExprValue incomingValue, ExprValue evictedValue) {
-      return TimestampArithmeticEvaluator.INSTANCE.add(runningTotal, incomingValue, evictedValue);
-    }
-
-    @Override
-    public ExprValue evaluate(Expression runningTotal, LiteralExpression numberOfDataPoints) {
-      final ExprValue timestampResult =
-          TimestampArithmeticEvaluator.INSTANCE.evaluate(runningTotal, numberOfDataPoints);
-      return ExprValueUtils.dateValue(timestampResult.dateValue());
-    }
-  }
-
-  private static class TimeArithmeticEvaluator implements ArithmeticEvaluator {
-    private static final TimeArithmeticEvaluator INSTANCE = new TimeArithmeticEvaluator();
-
-    private TimeArithmeticEvaluator() {}
-
-    @Override
-    public Expression calculateFirstTotal(List<ExprValue> dataPoints) {
-      Expression total = DSL.literal(0);
-      for (ExprValue dataPoint : dataPoints) {
-        total = DSL.add(total, DSL.literal(MILLIS.between(LocalTime.MIN, dataPoint.timeValue())));
-      }
-      return DSL.literal(total.valueOf().longValue());
-    }
-
-    @Override
-    public Expression add(
-        Expression runningTotal, ExprValue incomingValue, ExprValue evictedValue) {
-      return DSL.literal(
-          DSL.add(
-                  runningTotal,
-                  DSL.subtract(
-                      DSL.literal(MILLIS.between(LocalTime.MIN, incomingValue.timeValue())),
-                      DSL.literal(MILLIS.between(LocalTime.MIN, evictedValue.timeValue()))))
-              .valueOf());
-    }
-
-    @Override
-    public ExprValue evaluate(Expression runningTotal, LiteralExpression numberOfDataPoints) {
-      return ExprValueUtils.timeValue(
-          LocalTime.MIN.plus(
-              DSL.divide(runningTotal, numberOfDataPoints).valueOf().longValue(), MILLIS));
-    }
-  }
-
-  private static class TimestampArithmeticEvaluator implements ArithmeticEvaluator {
-    private static final TimestampArithmeticEvaluator INSTANCE = new TimestampArithmeticEvaluator();
-
-    private TimestampArithmeticEvaluator() {}
-
-    @Override
-    public Expression calculateFirstTotal(List<ExprValue> dataPoints) {
-      Expression total = DSL.literal(0);
-      for (ExprValue dataPoint : dataPoints) {
-        total = DSL.add(total, DSL.literal(dataPoint.timestampValue().toEpochMilli()));
-      }
-      return DSL.literal(total.valueOf().longValue());
-    }
-
-    @Override
-    public Expression add(
-        Expression runningTotal, ExprValue incomingValue, ExprValue evictedValue) {
-      return DSL.literal(
-          DSL.add(
-                  runningTotal,
-                  DSL.subtract(
-                      DSL.literal(incomingValue.timestampValue().toEpochMilli()),
-                      DSL.literal(evictedValue.timestampValue().toEpochMilli())))
-              .valueOf());
-    }
-
-    @Override
-    public ExprValue evaluate(Expression runningTotal, LiteralExpression numberOfDataPoints) {
-      return ExprValueUtils.timestampValue(
-          Instant.ofEpochMilli(DSL.divide(runningTotal, numberOfDataPoints).valueOf().longValue()));
+      ExprValue evaluate(Queue<ExprValue> receivedValues);
     }
   }
 }
