@@ -135,7 +135,7 @@ public class TrendlineOperator extends PhysicalPlan {
 
     static ArithmeticEvaluator getEvaluator(ExprCoreType type) {
       switch (type) {
-        case DOUBLE:
+        case INTEGER, SHORT, LONG, FLOAT, DOUBLE:
           return NumericArithmeticEvaluator.INSTANCE;
         case DATE:
           return DateArithmeticEvaluator.INSTANCE;
@@ -217,7 +217,7 @@ public class TrendlineOperator extends PhysicalPlan {
 
     static WmaTrendlineEvaluator getWmaEvaluator(ExprCoreType type) {
       return switch (type) {
-        case DOUBLE -> NumericWmaEvaluator.INSTANCE;
+        case INTEGER, SHORT, LONG, FLOAT, DOUBLE -> NumericWmaEvaluator.INSTANCE;
         case DATE, TIMESTAMP -> TimeStampWmaEvaluator.INSTANCE;
         case TIME -> TimeWmaEvaluator.INSTANCE;
         default -> throw new IllegalArgumentException(
