@@ -41,7 +41,6 @@ TRENDLINE:                          'TRENDLINE';
 // FIELDSUMMARY keywords
 FIELDSUMMARY:                       'FIELDSUMMARY';
 INCLUDEFIELDS:                      'INCLUDEFIELDS';
-NULLS:                              'NULLS';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';

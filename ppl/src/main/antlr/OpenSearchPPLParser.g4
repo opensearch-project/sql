@@ -51,7 +51,7 @@ commands
    | mlCommand
    | fillnullCommand
    | trendlineCommand
-   | fieldSummaryCommand
+   | fieldsummaryCommand
    ;
 
 searchCommand
@@ -135,15 +135,6 @@ fillnullCommand
    | fillNullWithFieldVariousValues)
    ;
 
-fieldsummaryCommand
-   : FIELDSUMMARY (fieldsummaryParameter)*
-   ;
-
-fieldsummaryParameter
-   : INCLUDEFIELDS EQUAL fieldList          # fieldsummaryIncludeFields
-   | NULLS EQUAL booleanLiteral             # fieldsummaryNulls
-   ;
-
 fillNullWithTheSameValue
    : WITH nullReplacement = valueExpression IN nullableFieldList = fieldList
    ;
@@ -203,6 +194,14 @@ mlCommand
 
 mlArg
    : (argName = ident EQUAL argValue = literalValue)
+   ;
+
+fieldsummaryCommand
+   : FIELDSUMMARY (fieldsummaryParameter)*
+   ;
+
+fieldsummaryParameter
+   : INCLUDEFIELDS EQUAL fieldList          # fieldsummaryIncludeFields
    ;
 
 // clauses
