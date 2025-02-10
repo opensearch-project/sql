@@ -18,6 +18,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -331,21 +334,24 @@ public class TrendlineOperator extends PhysicalPlan {
   }
 
   private static class WeightedMovingAverageAccumulator extends TrendlineAccumulator {
-    private final WmaTrendlineEvaluator evaluator;
+
+    private final BiFunction<Queue<ExprValue>, Integer, ExprValue> evaluator;
+    private final int totalWeight;
 
     public WeightedMovingAverageAccumulator(
         Trendline.TrendlineComputation computation, ExprCoreType type) {
       super(DSL.literal(computation.getNumberOfDataPoints()), new LinkedList<>());
+      this.totalWeight = (computation.getNumberOfDataPoints() * (computation.getNumberOfDataPoints() + 1)) / 2;
       this.evaluator = getWmaEvaluator(type);
     }
 
-    static WmaTrendlineEvaluator getWmaEvaluator(ExprCoreType type) {
+    static BiFunction<Queue<ExprValue>, Integer, ExprValue> getWmaEvaluator(ExprCoreType type) {
       return switch (type) {
-        case INTEGER, SHORT, LONG, FLOAT, DOUBLE -> NumericWmaEvaluator.INSTANCE;
-        case DATE, TIMESTAMP -> TimeStampWmaEvaluator.INSTANCE;
-        case TIME -> TimeWmaEvaluator.INSTANCE;
+        case INTEGER, SHORT, LONG, FLOAT, DOUBLE -> WMA_NUMERIC_EVALUATOR;
+        case DATE, TIMESTAMP -> WMA_TIMESTAMP_EVALUATOR;
+        case TIME -> WMA_TIME_EVALUATOR;
         default -> throw new IllegalArgumentException(
-            String.format("Invalid type %s used for weighted moving average.", type.typeName()));
+                String.format("Invalid type %s used for weighted moving average.", type.typeName()));
       };
     }
 
@@ -364,64 +370,40 @@ public class TrendlineOperator extends PhysicalPlan {
       } else if (dataPointsNeeded.valueOf().integerValue() == 1) {
         return receivedValues.peek();
       }
-      return evaluator.evaluate(receivedValues);
+      return evaluator.apply(receivedValues, totalWeight);
     }
 
-    private static class NumericWmaEvaluator implements WmaTrendlineEvaluator {
-
-      private static final NumericWmaEvaluator INSTANCE = new NumericWmaEvaluator();
-
-      @Override
-      public ExprValue evaluate(Queue<ExprValue> receivedValues) {
-        double sum = 0D;
-        int totalWeight = (receivedValues.size() * (receivedValues.size() + 1)) / 2;
-        int count = 0;
-        for (ExprValue next : receivedValues) {
-          sum += next.doubleValue() * ((count + 1D) / totalWeight);
-          count++;
-        }
-        return new ExprDoubleValue(sum);
+    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_NUMERIC_EVALUATOR = (receivedValues, totalWeight) -> {
+      double sum = 0D;
+      int count = 0;
+      for (ExprValue next : receivedValues) {
+        sum += next.doubleValue() * ((count + 1D) / totalWeight);
+        count++;
       }
-    }
+      return new ExprDoubleValue(sum);
+    };
 
-    private static class TimeStampWmaEvaluator implements WmaTrendlineEvaluator {
-
-      private static final TimeStampWmaEvaluator INSTANCE = new TimeStampWmaEvaluator();
-
-      @Override
-      public ExprValue evaluate(Queue<ExprValue> receivedValues) {
-        long sum = 0L;
-        int totalWeight = (receivedValues.size() * (receivedValues.size() + 1)) / 2;
-        int count = 0;
-        for (ExprValue next : receivedValues) {
-          sum += (long) (next.timestampValue().toEpochMilli() * ((count + 1D) / totalWeight));
-          count++;
-        }
-        return ExprValueUtils.timestampValue(Instant.ofEpochMilli((sum)));
+    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_TIMESTAMP_EVALUATOR = (receivedValues, totalWeight) -> {
+      long sum = 0L;
+      int count = 0;
+      for (ExprValue next : receivedValues) {
+        sum += (long) (next.timestampValue().toEpochMilli() * ((count + 1D) / totalWeight));
+        count++;
       }
-    }
+      return ExprValueUtils.timestampValue(Instant.ofEpochMilli((sum)));
+    };
 
-    private static class TimeWmaEvaluator implements WmaTrendlineEvaluator {
-
-      private static final TimeWmaEvaluator INSTANCE = new TimeWmaEvaluator();
-
-      @Override
-      public ExprValue evaluate(Queue<ExprValue> receivedValues) {
-        long sum = 0L;
-        int totalWeight = (receivedValues.size() * (receivedValues.size() + 1)) / 2;
-        int count = 0;
-        for (ExprValue next : receivedValues) {
-          sum +=
-              (long)
-                  (MILLIS.between(LocalTime.MIN, next.timeValue()) * ((count + 1D) / totalWeight));
-          count++;
-        }
-        return ExprValueUtils.timeValue(LocalTime.MIN.plus(sum, MILLIS));
+    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_TIME_EVALUATOR = (receivedValues, totalWeight) -> {
+      long sum = 0L;
+      int count = 0;
+      for (ExprValue next : receivedValues) {
+        sum +=
+                (long)
+                        (MILLIS.between(LocalTime.MIN, next.timeValue()) * ((count + 1D) / totalWeight));
+        count++;
       }
-    }
+      return ExprValueUtils.timeValue(LocalTime.MIN.plus(sum, MILLIS));
+    };
 
-    private interface WmaTrendlineEvaluator {
-      ExprValue evaluate(Queue<ExprValue> receivedValues);
-    }
   }
 }
