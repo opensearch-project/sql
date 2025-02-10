@@ -13,9 +13,9 @@ Description
 ============
 | Using ``trendline`` command to calculate moving averages of fields.
 
-Syntax - SMA (Simple Moving Average)
+Syntax
 ============
-`TRENDLINE [sort <[+|-] sort-field>] SMA(number-of-datapoints, field) [AS alias] [SMA(number-of-datapoints, field) [AS alias]]...`
+`TRENDLINE [sort <[+|-] sort-field>] <trendline-type>(number-of-datapoints, field) [AS alias] [<trendline-type>(number-of-datapoints, field) [AS alias]]...`
 
 * [+|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
 * sort-field: mandatory when sorting is used. The field used to sort.
@@ -71,7 +71,7 @@ PPL query::
 Example 3: Calculate the moving average on one field without specifying an alias.
 =================================================================================
 
-The example shows how to calculate the moving average on one field.
+The example shows how to calculate the moving average on one field without specifying an alias.
 
 PPL query::
 
