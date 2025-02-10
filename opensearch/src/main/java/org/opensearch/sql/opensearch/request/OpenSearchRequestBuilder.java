@@ -15,6 +15,7 @@ import static org.opensearch.search.sort.SortOrder.ASC;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -286,6 +287,19 @@ public class OpenSearchRequestBuilder {
   }
 
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
+    exprValueFactory.extendTypeMapping(typeMapping);
+  }
+
+  public void pushFieldSummaryTypeMapping() {
+    Map<String, OpenSearchDataType> typeMapping = Map.of(
+        "Field", OpenSearchDataType.of(OpenSearchDataType.MappingType.Text),
+            "Count", OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer),
+            "Distinct", OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer),
+            "Avg", OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
+            "Min", OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
+            "Max", OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
+            "Sum", OpenSearchDataType.of(OpenSearchDataType.MappingType.Double)
+    );
     exprValueFactory.extendTypeMapping(typeMapping);
   }
 

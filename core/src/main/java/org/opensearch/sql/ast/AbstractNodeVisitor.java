@@ -17,6 +17,7 @@ import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.FieldList;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
@@ -45,6 +46,7 @@ import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FieldSummary;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
@@ -325,5 +327,13 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitFillNull(FillNull fillNull, C context) {
     return visitChildren(fillNull, context);
+  }
+
+  public T visitFieldSummary(FieldSummary fieldSummary, C context) {
+    return visitChildren(fieldSummary, context);
+  }
+
+  public T visitFieldList(FieldList fieldList, C context) {
+    return visitChildren(fieldList, context);
   }
 }
