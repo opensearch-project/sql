@@ -19,11 +19,12 @@ Syntax
 
 * [+|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
 * sort-field: mandatory when sorting is used. The field used to sort.
+* trendline-type: mandatory. The type of algorithm being used for the calculation, only SMA || WMA are supported at the moment.
 * number-of-datapoints: mandatory. The number of datapoints to calculate the moving average (must be greater than zero).
 * field: mandatory. The name of the field the moving average should be calculated for.
 * alias: optional. The name of the resulting column containing the moving average (defaults to the field name with "_trendline").
 
-It is calculated like
+In the case of Simple Moving Average - SMA, result will be calculated as per the below formula.
 
     f[i]: The value of field 'f' in the i-th data-point
     n: The number of data-points in the moving window (period)
@@ -86,22 +87,14 @@ PPL query::
     | 15.5                     |
     +--------------------------+
 
-Syntax - WMA (Weighted Moving Average)
-============
-`TRENDLINE [sort <[+|-] sort-field>] WMA(number-of-datapoints, field) [AS alias] [WMA(number-of-datapoints, field) [AS alias]]...`
 
-* [+|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
-* sort-field: mandatory when sorting is used. The field used to sort.
-* number-of-datapoints: mandatory. The number of datapoints to calculate the moving average (must be greater than zero).
-* field: mandatory. The name of the field the moving average should be calculated for.
-* alias: optional. The name of the resulting column containing the moving average (defaults to the field name with "_trendline").
 
-It is calculated like
+In the case of Weighted Moving Average - WMA, result will be calculated as per the below formula.
 
     f[i]: The value of field 'f' in the i-th data point
     n: The number of data points in the moving window (period)
     t: The current time index
-    w[i]: The weight assigned to the i-th data point, typically increasing for more recent points
+    w[i]: The weight of the i-th data point, increasing by one per step to prioritize recent points.
 
     WMA(t) = ( Σ from i=t−n+1 to t of (w[i] * f[i]) ) / ( Σ from i=t−n+1 to t of w[i] )
 
