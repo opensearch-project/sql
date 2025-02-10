@@ -18,7 +18,6 @@ include 'sql'
 include 'prometheus'
 include 'benchmarks'
 include 'datasources'
-include 'spark'
 include 'async-query-core'
 include 'async-query'
 

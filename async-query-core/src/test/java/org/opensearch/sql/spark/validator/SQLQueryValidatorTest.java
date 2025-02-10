@@ -213,14 +213,14 @@ class SQLQueryValidatorTest {
   void testAllowAllByDefault() {
     when(mockedProvider.getValidatorForDatasource(any()))
         .thenReturn(new DefaultGrammarElementValidator());
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
     Arrays.stream(TestElement.values()).forEach(v::ok);
   }
 
   @Test
   void testDenyAllValidator() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> false);
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
     // The elements which doesn't have validation will be accepted.
     // That's why there are some ok case
 
@@ -587,7 +587,7 @@ class SQLQueryValidatorTest {
   @Test
   void testInvalidIdentifier() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
     v.ng("SELECT a.b.c as a-b-c FROM abc");
     v.ok("SELECT a.b.c as `a-b-c` FROM abc");
     v.ok("SELECT a.b.c as a_b_c FROM abc");
@@ -601,7 +601,7 @@ class SQLQueryValidatorTest {
   @Test
   void testUnsupportedType() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
 
     v.ng("SELECT cast ( a as DateTime ) FROM tbl");
     v.ok("SELECT cast ( a as DATE ) FROM tbl");
@@ -612,7 +612,7 @@ class SQLQueryValidatorTest {
   @Test
   void testUnsupportedTypedLiteral() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
 
     v.ng("SELECT DATETIME '2024-10-11'");
     v.ok("SELECT DATE '2024-10-11'");
@@ -622,7 +622,7 @@ class SQLQueryValidatorTest {
   @Test
   void testUnsupportedHiveNativeCommand() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
 
     v.ng("CREATE ROLE aaa");
     v.ng("SHOW GRANT");

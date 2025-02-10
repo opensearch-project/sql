@@ -15,7 +15,6 @@ class DataSourceTypeTest {
   public void fromString_succeed() {
     testFromString("PROMETHEUS", DataSourceType.PROMETHEUS);
     testFromString("OPENSEARCH", DataSourceType.OPENSEARCH);
-    testFromString("SPARK", DataSourceType.SPARK);
     testFromString("S3GLUE", DataSourceType.S3GLUE);
 
     testFromString("prometheus", DataSourceType.PROMETHEUS);
