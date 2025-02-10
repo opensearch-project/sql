@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.function.BiFunction;
-import java.util.function.Function;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -341,7 +339,8 @@ public class TrendlineOperator extends PhysicalPlan {
     public WeightedMovingAverageAccumulator(
         Trendline.TrendlineComputation computation, ExprCoreType type) {
       super(DSL.literal(computation.getNumberOfDataPoints()), new LinkedList<>());
-      this.totalWeight = (computation.getNumberOfDataPoints() * (computation.getNumberOfDataPoints() + 1)) / 2;
+      this.totalWeight =
+          (computation.getNumberOfDataPoints() * (computation.getNumberOfDataPoints() + 1)) / 2;
       this.evaluator = getWmaEvaluator(type);
     }
 
@@ -351,7 +350,7 @@ public class TrendlineOperator extends PhysicalPlan {
         case DATE, TIMESTAMP -> WMA_TIMESTAMP_EVALUATOR;
         case TIME -> WMA_TIME_EVALUATOR;
         default -> throw new IllegalArgumentException(
-                String.format("Invalid type %s used for weighted moving average.", type.typeName()));
+            String.format("Invalid type %s used for weighted moving average.", type.typeName()));
       };
     }
 
@@ -373,37 +372,40 @@ public class TrendlineOperator extends PhysicalPlan {
       return evaluator.apply(receivedValues, totalWeight);
     }
 
-    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_NUMERIC_EVALUATOR = (receivedValues, totalWeight) -> {
-      double sum = 0D;
-      int count = 0;
-      for (ExprValue next : receivedValues) {
-        sum += next.doubleValue() * ((count + 1D) / totalWeight);
-        count++;
-      }
-      return new ExprDoubleValue(sum);
-    };
+    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_NUMERIC_EVALUATOR =
+        (receivedValues, totalWeight) -> {
+          double sum = 0D;
+          int count = 0;
+          for (ExprValue next : receivedValues) {
+            sum += next.doubleValue() * ((count + 1D) / totalWeight);
+            count++;
+          }
+          return new ExprDoubleValue(sum);
+        };
 
-    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_TIMESTAMP_EVALUATOR = (receivedValues, totalWeight) -> {
-      long sum = 0L;
-      int count = 0;
-      for (ExprValue next : receivedValues) {
-        sum += (long) (next.timestampValue().toEpochMilli() * ((count + 1D) / totalWeight));
-        count++;
-      }
-      return ExprValueUtils.timestampValue(Instant.ofEpochMilli((sum)));
-    };
+    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_TIMESTAMP_EVALUATOR =
+        (receivedValues, totalWeight) -> {
+          long sum = 0L;
+          int count = 0;
+          for (ExprValue next : receivedValues) {
+            sum += (long) (next.timestampValue().toEpochMilli() * ((count + 1D) / totalWeight));
+            count++;
+          }
+          return ExprValueUtils.timestampValue(Instant.ofEpochMilli((sum)));
+        };
 
-    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_TIME_EVALUATOR = (receivedValues, totalWeight) -> {
-      long sum = 0L;
-      int count = 0;
-      for (ExprValue next : receivedValues) {
-        sum +=
+    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_TIME_EVALUATOR =
+        (receivedValues, totalWeight) -> {
+          long sum = 0L;
+          int count = 0;
+          for (ExprValue next : receivedValues) {
+            sum +=
                 (long)
-                        (MILLIS.between(LocalTime.MIN, next.timeValue()) * ((count + 1D) / totalWeight));
-        count++;
-      }
-      return ExprValueUtils.timeValue(LocalTime.MIN.plus(sum, MILLIS));
-    };
-
+                    (MILLIS.between(LocalTime.MIN, next.timeValue())
+                        * ((count + 1D) / totalWeight));
+            count++;
+          }
+          return ExprValueUtils.timeValue(LocalTime.MIN.plus(sum, MILLIS));
+        };
   }
 }
