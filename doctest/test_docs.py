@@ -156,7 +156,21 @@ def set_up(test):
 
 def tear_down(test):
     # drop leftover tables after each test
-    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS, JSON_TEST, EXPAND, FLATTEN], ignore_unavailable=True)
+    index = [
+        ACCOUNT2,
+        ACCOUNTS,
+        APACHE,
+        BOOKS,
+        EMPLOYEES,
+        EXPAND,
+        FLATTEN,
+        JSON_TEST,
+        NESTED,
+        NYC_TAXI,
+        PEOPLE,
+        WEBLOGS,
+        WILDCARD]
+    test_data_client.indices.delete(index=index, ignore_unavailable=True)
 
 docsuite = partial(doctest.DocFileSuite,
                    tearDown=tear_down,

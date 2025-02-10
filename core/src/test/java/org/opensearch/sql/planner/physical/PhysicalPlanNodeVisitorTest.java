@@ -160,24 +160,24 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
                 Pair.of(AstDSL.computation(1, AstDSL.field("field"), "alias", SMA), DOUBLE)));
 
     return Stream.of(
-        Arguments.of(filter, "filter"),
         Arguments.of(aggregation, "aggregation"),
-        Arguments.of(rename, "rename"),
-        Arguments.of(project, "project"),
-        Arguments.of(window, "window"),
-        Arguments.of(remove, "remove"),
+        Arguments.of(cursorClose, "cursorClose"),
+        Arguments.of(dedupe, "dedupe"),
         Arguments.of(eval, "eval"),
         Arguments.of(expand, "expand"),
+        Arguments.of(filter, "filter"),
         Arguments.of(flatten, "flatten"),
-        Arguments.of(sort, "sort"),
-        Arguments.of(takeOrdered, "takeOrdered"),
-        Arguments.of(dedupe, "dedupe"),
-        Arguments.of(values, "values"),
-        Arguments.of(rareTopN, "rareTopN"),
         Arguments.of(limit, "limit"),
         Arguments.of(nested, "nested"),
-        Arguments.of(cursorClose, "cursorClose"),
-        Arguments.of(trendline, "trendline"));
+        Arguments.of(project, "project"),
+        Arguments.of(rareTopN, "rareTopN"),
+        Arguments.of(remove, "remove"),
+        Arguments.of(rename, "rename"),
+        Arguments.of(sort, "sort"),
+        Arguments.of(takeOrdered, "takeOrdered"),
+        Arguments.of(trendline, "trendline"),
+        Arguments.of(values, "values"),
+        Arguments.of(window, "window"));
   }
 
   @ParameterizedTest(name = "{1}")
