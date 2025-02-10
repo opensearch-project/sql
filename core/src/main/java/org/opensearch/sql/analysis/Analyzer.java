@@ -458,37 +458,37 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    * <p>Input Data:
    *
    * <pre>
-   * [
+   * {
    *   struct: {
    *     integer: 0,
    *     nested_struct: { string: "value" }
    *   }
-   * ]
+   * }
    * </pre>
    *
    * Query 1: <code>flatten struct</code>
    *
    * <pre>
-   * [
+   * {
    *   struct: {
    *     integer: 0,
    *     nested_struct: { string: "value" }
    *   },
    *   integer: 0,
    *   nested_struct: { string: "value" }
-   * ]
+   * }
    * </pre>
    *
    * Query 2: <code>flatten struct.nested_struct</code>
    *
    * <pre>
-   * [
+   * {
    *   struct: {
    *     integer: 0,
    *     nested_struct: { string: "value" },
    *     string: "value"
    *   }
-   * ]
+   * }
    * </pre>
    */
   @Override
