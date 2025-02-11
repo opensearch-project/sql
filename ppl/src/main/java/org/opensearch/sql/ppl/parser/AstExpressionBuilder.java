@@ -89,13 +89,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     }
 
     final Field dataField = (Field) this.visitFieldExpression(ctx.field);
+    final Trendline.TrendlineType computationType =
+        Trendline.TrendlineType.valueOf(ctx.trendlineType().getText().toUpperCase(Locale.ROOT));
     final String alias =
         ctx.alias != null
             ? ctx.alias.getText()
-            : dataField.getChild().get(0).toString() + "_trendline";
-
-    final Trendline.TrendlineType computationType =
-        Trendline.TrendlineType.valueOf(ctx.trendlineType().getText().toUpperCase(Locale.ROOT));
+            : dataField.getChild().get(0).toString() + "_" + computationType.name() + "_trendline";
     return new Trendline.TrendlineComputation(
         numberOfDataPoints, dataField, alias, computationType);
   }

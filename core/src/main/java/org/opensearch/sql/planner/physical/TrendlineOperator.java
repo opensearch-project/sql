@@ -16,16 +16,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -131,8 +126,7 @@ public class TrendlineOperator extends PhysicalPlan {
 
     protected final Queue<ExprValue> receivedValues;
 
-    private TrendlineAccumulator(
-            Trendline.TrendlineComputation config) {
+    private TrendlineAccumulator(Trendline.TrendlineComputation config) {
       this.dataPointsNeeded = DSL.literal(config.getNumberOfDataPoints().doubleValue());
       this.receivedValues = EvictingQueue.create(config.getNumberOfDataPoints());
     }
@@ -346,7 +340,8 @@ public class TrendlineOperator extends PhysicalPlan {
       super(computation);
       int dataPoints = computation.getNumberOfDataPoints();
       this.evaluator = getWmaEvaluator(type);
-      this.weights = IntStream.rangeClosed(1, dataPoints)
+      this.weights =
+          IntStream.rangeClosed(1, dataPoints)
               .mapToObj(i -> i / ((dataPoints * (dataPoints + 1)) / 2d))
               .collect(toList());
     }
@@ -381,38 +376,45 @@ public class TrendlineOperator extends PhysicalPlan {
 
     public final Function<Queue<ExprValue>, ExprValue> WMA_NUMERIC_EVALUATOR =
         (receivedValues) ->
-                new ExprDoubleValue(calculateWmaInDouble(receivedValues, ExprValue::doubleValue));;
+            new ExprDoubleValue(calculateWmaInDouble(receivedValues, ExprValue::doubleValue));
+    ;
 
     public final Function<Queue<ExprValue>, ExprValue> WMA_TIMESTAMP_EVALUATOR =
         (receivedValues) -> {
-          Long wmaResult = Math.round(calculateWmaInDouble(receivedValues,
-                  i -> (double) (i.timestampValue().toEpochMilli())));
+          Long wmaResult =
+              Math.round(
+                  calculateWmaInDouble(
+                      receivedValues, i -> (double) (i.timestampValue().toEpochMilli())));
           return ExprValueUtils.timestampValue(Instant.ofEpochMilli((wmaResult)));
-
         };
 
     public final Function<Queue<ExprValue>, ExprValue> WMA_TIME_EVALUATOR =
         (receivedValues) -> {
-              Long wmaResult = Math.round(calculateWmaInDouble(receivedValues,
+          Long wmaResult =
+              Math.round(
+                  calculateWmaInDouble(
+                      receivedValues,
                       i -> (double) (MILLIS.between(LocalTime.MIN, i.timeValue()))));
-              return ExprValueUtils.timeValue(LocalTime.MIN.plus(wmaResult, MILLIS));
+          return ExprValueUtils.timeValue(LocalTime.MIN.plus(wmaResult, MILLIS));
         };
 
     /**
-     * Responsible to iterate the internal buffer, perform necessary calculation,
-     * and the up-to-date wma result in Double
+     * Responsible to iterate the internal buffer, perform necessary calculation, and the up-to-date
+     * wma result in Double
+     *
      * @param receivedValues internal buffer which stores all value in range.
-     * @param exprToDouble transformation function to convert incoming values to double for calcaution.
+     * @param exprToDouble transformation function to convert incoming values to double for
+     *     calcaution.
      * @return wma result in Double form.
      */
-    private Double calculateWmaInDouble(Queue<ExprValue> receivedValues, Function<ExprValue, Double> exprToDouble) {
-        double sum = 0D;
-        Iterator<Double> weightIter = weights.iterator();
-        for (ExprValue next : receivedValues) {
-          sum += exprToDouble.apply(next) * (weightIter.next());
-        }
-        return sum;
+    private Double calculateWmaInDouble(
+        Queue<ExprValue> receivedValues, Function<ExprValue, Double> exprToDouble) {
+      double sum = 0D;
+      Iterator<Double> weightIter = weights.iterator();
+      for (ExprValue next : receivedValues) {
+        sum += exprToDouble.apply(next) * (weightIter.next());
+      }
+      return sum;
     }
-
   }
 }
