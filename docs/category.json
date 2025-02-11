@@ -4,7 +4,7 @@
     "user/optimization/optimization.rst",
     "user/ppl/admin/settings.rst",
     "user/ppl/interfaces/endpoint.rst",
-    "user/ppl/interfaces/protocol.rst",
+    "user/ppl/interfaces/protocol.rst"
   ],
   "ppl_cli": [
     "user/ppl/cmd/ad.rst",
@@ -39,7 +39,7 @@
     "user/ppl/functions/relevance.rst",
     "user/ppl/functions/string.rst",
     "user/ppl/general/datatypes.rst",
-    "user/ppl/general/identifiers.rst",
+    "user/ppl/general/identifiers.rst"
   ],
   "sql_cli": [
     "user/beyond/partiql.rst",
@@ -53,6 +53,6 @@
     "user/general/comments.rst",
     "user/general/datatypes.rst",
     "user/general/identifiers.rst",
-    "user/general/values.rst",
+    "user/general/values.rst"
   ]
 }

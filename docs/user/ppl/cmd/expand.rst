@@ -85,7 +85,21 @@ PPL query::
     | null              | null       |
     +-------------------+------------+
 
-Example 4: Expand and flatten
-=============================
+Example 4: Expand and flatten a field
+=====================================
 
-TODO #3016: Test once flatten merged.
+PPL query::
+
+    os> source=expand | expand team | flatten team | fields name, title
+    fetched rows / total rows = 7/7
+    +-------------------+---------------------------------+
+    | name              | title                           |
+    |-------------------+---------------------------------|
+    | Seattle Seahawks  | 2014                            |
+    | Seattle Kraken    | null                            |
+    | Vancouver Canucks | null                            |
+    | BC Lions          | [1964,1985,1994,2000,2006,2011] |
+    | San Antonio Spurs | [1999,2003,2005,2007,2014]      |
+    | null              | null                            |
+    | null              | null                            |
+    +-------------------+---------------------------------+

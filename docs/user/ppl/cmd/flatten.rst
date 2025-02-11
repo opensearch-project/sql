@@ -69,7 +69,20 @@ PPL query::
     | Null Coordinates | {'state': 'Victoria', 'country': 'Australia'}                                                                                                                    |
     +------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-Example 4: Flatten and expand
-=============================
+Example 4: Flatten and expand an object field
+=============================================
 
-TODO #3016: Add test once flatten merged.
+PPL query::
+
+    os> source=expand | where city = 'San Antonio' | flatten team | expand title | fields name, title
+    fetched rows / total rows = 5/5
+    +-------------------+-------+
+    | name              | title |
+    |-------------------+-------|
+    | San Antonio Spurs | 1999  |
+    | San Antonio Spurs | 2003  |
+    | San Antonio Spurs | 2005  |
+    | San Antonio Spurs | 2007  |
+    | San Antonio Spurs | 2014  |
+    +-------------------+-------+
+

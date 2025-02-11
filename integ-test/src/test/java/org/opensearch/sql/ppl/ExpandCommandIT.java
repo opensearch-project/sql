@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -91,7 +92,20 @@ public class ExpandCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testExpandFlatten() throws IOException {
+    String query =
+        StringUtils.format(
+            "source=%s | expand team | flatten team | fields name, title", TEST_INDEX_EXPAND);
+    JSONObject result = executeQuery(query);
 
-    // TODO #3016: Test once flatten merged.
+    verifySchema(result, schema("name", "string"), schema("title", "integer"));
+    verifyDataRows(
+        result,
+        rows("Seattle Seahawks", 2014),
+        rows("Seattle Kraken", null),
+        rows("Vancouver Canucks", null),
+        rows("BC Lions", List.of(1964, 1985, 1994, 2000, 2006, 2011)),
+        rows("San Antonio Spurs", List.of(1999, 2003, 2005, 2007, 2014)),
+        rows(null, null),
+        rows(null, null));
   }
 }
