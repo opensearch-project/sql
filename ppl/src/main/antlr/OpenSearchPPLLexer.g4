@@ -333,6 +333,7 @@ CIDRMATCH:                          'CIDRMATCH';
 
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
+JSON:                               'JSON';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';

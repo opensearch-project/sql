@@ -206,6 +206,7 @@ public enum BuiltinFunctionName {
 
   /** Json Functions. */
   JSON_VALID(FunctionName.of("json_valid")),
+  JSON(FunctionName.of("json")),
 
   /** GEOSPATIAL Functions. */
   GEOIP(FunctionName.of("geoip")),
@@ -238,6 +239,7 @@ public enum BuiltinFunctionName {
   CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
   CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
   CAST_TO_IP(FunctionName.of("cast_to_ip")),
+  CAST_TO_JSON(FunctionName.of("cast_to_json")),
   TYPEOF(FunctionName.of("typeof")),
 
   /** Relevance Function. */
