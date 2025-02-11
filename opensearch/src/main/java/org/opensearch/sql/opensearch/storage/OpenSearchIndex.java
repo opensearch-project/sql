@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.storage;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
@@ -242,6 +243,7 @@ public class OpenSearchIndex extends OpenSearchTable {
             new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory(), settings);
         return new OpenSearchIndexEnumerator(
             client,
+            List.copyOf(getFieldTypes().keySet()),
             builder.getMaxResponseSize(),
             builder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
       }

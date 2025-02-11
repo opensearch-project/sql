@@ -8,6 +8,8 @@
 
 package org.opensearch.sql.executor;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -62,32 +65,49 @@ public class QueryService {
    */
   public void execute(
       UnresolvedPlan plan, ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    try {
-      try {
-        // Use simple calcite schema since we don't compute tables in advance of the query.
-        CalciteSchema rootSchema = CalciteSchema.createRootSchema(true, false);
-        CalciteJdbc41Factory factory = new CalciteJdbc41Factory();
-        CalciteConnection connection =
-            factory.newConnection(
-                new Driver(), factory, "", new java.util.Properties(), rootSchema, null);
-        final SchemaPlus defaultSchema =
-            connection
-                .getRootSchema()
-                .add(
-                    OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME,
-                    new OpenSearchSchema(dataSourceService));
-        // Set opensearch schema as the default schema in config, otherwise we need to explicitly
-        // add schema path 'OpenSearch' before the opensearch table name
-        final FrameworkConfig config = buildFrameworkConfig(defaultSchema);
-        final CalcitePlanContext context = new CalcitePlanContext(config, connection);
-        executePlanByCalcite(analyze(plan, context), context, listener);
-      } catch (Exception e) {
-        LOG.warn("Fallback to V2 query engine since got exception", e);
-        executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
-      }
-    } catch (Exception e) {
-      listener.onFailure(e);
-    }
+    AccessController.doPrivileged(
+        (PrivilegedAction<Void>)
+            () -> {
+              try {
+                if (relNodeVisitor == null) {
+                  executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
+                } else {
+                  try {
+                    // Use simple calcite schema since we don't compute tables in advance of the
+                    // query.
+                    CalciteSchema rootSchema = CalciteSchema.createRootSchema(true, false);
+                    CalciteJdbc41Factory factory = new CalciteJdbc41Factory();
+                    CalciteConnection connection =
+                        factory.newConnection(
+                            new Driver(),
+                            factory,
+                            "",
+                            new java.util.Properties(),
+                            rootSchema,
+                            null);
+                    final SchemaPlus defaultSchema =
+                        connection
+                            .getRootSchema()
+                            .add(
+                                OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME,
+                                new OpenSearchSchema(dataSourceService));
+                    // Set opensearch schema as the default schema in config, otherwise we need to
+                    // explicitly
+                    // add schema path 'OpenSearch' before the opensearch table name
+                    final FrameworkConfig config = buildFrameworkConfig(defaultSchema);
+                    final CalcitePlanContext context = new CalcitePlanContext(config, connection);
+                    executePlanByCalcite(analyze(plan, context), context, listener);
+                  } catch (Exception e) {
+                    LOG.warn("Fallback to V2 query engine since got exception", e);
+                    executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
+                  }
+                }
+                return null;
+              } catch (Exception e) {
+                listener.onFailure(e);
+                return null;
+              }
+            });
   }
 
   /**
@@ -120,11 +140,7 @@ public class QueryService {
       RelNode plan,
       CalcitePlanContext context,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    try {
-      executionEngine.execute(optimize(plan), context, listener);
-    } catch (Exception e) {
-      listener.onFailure(e);
-    }
+    executionEngine.execute(optimize(plan), context, listener);
   }
 
   /**
@@ -157,7 +173,8 @@ public class QueryService {
         .parserConfig(SqlParser.Config.DEFAULT) // TODO check
         .defaultSchema(defaultSchema)
         .traitDefs((List<RelTraitDef>) null)
-        .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2))
+        .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
+        .typeSystem(OpenSearchTypeSystem.INSTANCE)
         .build();
   }
 

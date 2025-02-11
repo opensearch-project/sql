@@ -1,16 +1,19 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.opensearch.util;
 
 import lombok.NonNull;
+import lombok.experimental.UtilityClass;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 
 /** RestRequestUtil is a utility class for common operations on OpenSearch RestRequest's. */
+@UtilityClass
 public class RestRequestUtil {
-
-  private RestRequestUtil() {
-    // utility class
-  }
 
   /**
    * Utility method for consuming all the request parameters. Doing this will ensure that the
