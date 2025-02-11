@@ -6,6 +6,7 @@
 package org.opensearch.sql.planner.physical;
 
 import static java.time.temporal.ChronoUnit.MILLIS;
+import static java.util.stream.Collectors.*;
 
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -14,11 +15,17 @@ import java.time.LocalTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -125,9 +132,9 @@ public class TrendlineOperator extends PhysicalPlan {
     protected final Queue<ExprValue> receivedValues;
 
     private TrendlineAccumulator(
-        LiteralExpression dataPointsNeeded, Queue<ExprValue> receivedValues) {
-      this.dataPointsNeeded = dataPointsNeeded;
-      this.receivedValues = receivedValues;
+            Trendline.TrendlineComputation config) {
+      this.dataPointsNeeded = DSL.literal(config.getNumberOfDataPoints().doubleValue());
+      this.receivedValues = EvictingQueue.create(config.getNumberOfDataPoints());
     }
 
     abstract void accumulate(ExprValue value);
@@ -141,9 +148,7 @@ public class TrendlineOperator extends PhysicalPlan {
 
     public SimpleMovingAverageAccumulator(
         Trendline.TrendlineComputation computation, ExprCoreType type) {
-      super(
-          DSL.literal(computation.getNumberOfDataPoints().doubleValue()),
-          EvictingQueue.create(computation.getNumberOfDataPoints()));
+      super(computation);
       evaluator = getEvaluator(type);
     }
 
@@ -333,18 +338,20 @@ public class TrendlineOperator extends PhysicalPlan {
 
   private static class WeightedMovingAverageAccumulator extends TrendlineAccumulator {
 
-    private final BiFunction<Queue<ExprValue>, Integer, ExprValue> evaluator;
-    private final int totalWeight;
+    private final Function<Queue<ExprValue>, ExprValue> evaluator;
+    private final List<Double> weights;
 
     public WeightedMovingAverageAccumulator(
         Trendline.TrendlineComputation computation, ExprCoreType type) {
-      super(DSL.literal(computation.getNumberOfDataPoints()), new LinkedList<>());
-      this.totalWeight =
-          (computation.getNumberOfDataPoints() * (computation.getNumberOfDataPoints() + 1)) / 2;
+      super(computation);
+      int dataPoints = computation.getNumberOfDataPoints();
       this.evaluator = getWmaEvaluator(type);
+      this.weights = IntStream.rangeClosed(1, dataPoints)
+              .mapToObj(i -> i / ((dataPoints * (dataPoints + 1)) / 2d))
+              .collect(toList());
     }
 
-    static BiFunction<Queue<ExprValue>, Integer, ExprValue> getWmaEvaluator(ExprCoreType type) {
+    Function<Queue<ExprValue>, ExprValue> getWmaEvaluator(ExprCoreType type) {
       return switch (type) {
         case INTEGER, SHORT, LONG, FLOAT, DOUBLE -> WMA_NUMERIC_EVALUATOR;
         case DATE, TIMESTAMP -> WMA_TIMESTAMP_EVALUATOR;
@@ -369,43 +376,43 @@ public class TrendlineOperator extends PhysicalPlan {
       } else if (dataPointsNeeded.valueOf().integerValue() == 1) {
         return receivedValues.peek();
       }
-      return evaluator.apply(receivedValues, totalWeight);
+      return evaluator.apply(receivedValues);
     }
 
-    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_NUMERIC_EVALUATOR =
-        (receivedValues, totalWeight) -> {
-          double sum = 0D;
-          int count = 0;
-          for (ExprValue next : receivedValues) {
-            sum += next.doubleValue() * ((count + 1D) / totalWeight);
-            count++;
-          }
-          return new ExprDoubleValue(sum);
+    public final Function<Queue<ExprValue>, ExprValue> WMA_NUMERIC_EVALUATOR =
+        (receivedValues) ->
+                new ExprDoubleValue(calculateWmaInDouble(receivedValues, ExprValue::doubleValue));;
+
+    public final Function<Queue<ExprValue>, ExprValue> WMA_TIMESTAMP_EVALUATOR =
+        (receivedValues) -> {
+          Long wmaResult = Math.round(calculateWmaInDouble(receivedValues,
+                  i -> (double) (i.timestampValue().toEpochMilli())));
+          return ExprValueUtils.timestampValue(Instant.ofEpochMilli((wmaResult)));
+
         };
 
-    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_TIMESTAMP_EVALUATOR =
-        (receivedValues, totalWeight) -> {
-          long sum = 0L;
-          int count = 0;
-          for (ExprValue next : receivedValues) {
-            sum += (long) (next.timestampValue().toEpochMilli() * ((count + 1D) / totalWeight));
-            count++;
-          }
-          return ExprValueUtils.timestampValue(Instant.ofEpochMilli((sum)));
+    public final Function<Queue<ExprValue>, ExprValue> WMA_TIME_EVALUATOR =
+        (receivedValues) -> {
+              Long wmaResult = Math.round(calculateWmaInDouble(receivedValues,
+                      i -> (double) (MILLIS.between(LocalTime.MIN, i.timeValue()))));
+              return ExprValueUtils.timeValue(LocalTime.MIN.plus(wmaResult, MILLIS));
         };
 
-    public static final BiFunction<Queue<ExprValue>, Integer, ExprValue> WMA_TIME_EVALUATOR =
-        (receivedValues, totalWeight) -> {
-          long sum = 0L;
-          int count = 0;
-          for (ExprValue next : receivedValues) {
-            sum +=
-                (long)
-                    (MILLIS.between(LocalTime.MIN, next.timeValue())
-                        * ((count + 1D) / totalWeight));
-            count++;
-          }
-          return ExprValueUtils.timeValue(LocalTime.MIN.plus(sum, MILLIS));
-        };
+    /**
+     * Responsible to iterate the internal buffer, perform necessary calculation,
+     * and the up-to-date wma result in Double
+     * @param receivedValues internal buffer which stores all value in range.
+     * @param exprToDouble transformation function to convert incoming values to double for calcaution.
+     * @return wma result in Double form.
+     */
+    private Double calculateWmaInDouble(Queue<ExprValue> receivedValues, Function<ExprValue, Double> exprToDouble) {
+        double sum = 0D;
+        Iterator<Double> weightIter = weights.iterator();
+        for (ExprValue next : receivedValues) {
+          sum += exprToDouble.apply(next) * (weightIter.next());
+        }
+        return sum;
+    }
+
   }
 }

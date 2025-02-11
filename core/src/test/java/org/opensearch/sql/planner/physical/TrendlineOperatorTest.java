@@ -921,7 +921,7 @@ public class TrendlineOperatorTest {
                 "timestamp",
                 Instant.EPOCH.plusMillis(1000),
                 "timestamp_alias",
-                Instant.EPOCH.plusMillis(666))),
+                Instant.EPOCH.plusMillis(667))),
         plan.next());
     assertTrue(plan.hasNext());
     assertEquals(
