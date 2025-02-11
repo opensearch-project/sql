@@ -8,13 +8,12 @@ package org.opensearch.sql.common.antlr;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.Vocabulary;
-import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.misc.IntervalSet;
 
 /**
@@ -65,9 +64,9 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     Vocabulary vocab = recognizer.getVocabulary();
     List<String> tokenNames = new ArrayList<>(SUGGESTION_TRUNCATION_THRESHOLD);
     for (int tokenType :
-            continuations
-                    .toList()
-                    .subList(0, Math.min(continuations.size(), SUGGESTION_TRUNCATION_THRESHOLD))) {
+        continuations
+            .toList()
+            .subList(0, Math.min(continuations.size(), SUGGESTION_TRUNCATION_THRESHOLD))) {
       tokenNames.add(vocab.getDisplayName(tokenType));
     }
     return tokenNames;
@@ -75,7 +74,8 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
 
   private String getDetails(Recognizer<?, ?> recognizer, String msg, RecognitionException ex) {
     if (ex == null) {
-      // According to the ANTLR docs, ex == null means the parser was able to recover from the error.
+      // According to the ANTLR docs, ex == null means the parser was able to recover from the
+      // error.
       // In such cases, `msg` includes the raw error information we care about.
       return msg;
     }

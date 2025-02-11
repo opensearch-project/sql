@@ -67,5 +67,6 @@ public class TestsConstants {
   public static final String TS_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
   public static final String SIMPLE_DATE_FORMAT = "yyyy-MM-dd";
 
-  public static final String SYNTAX_EX_MSG_FRAGMENT = "is not a valid term at this part of the query";
+  public static final String SYNTAX_EX_MSG_FRAGMENT =
+      "is not a valid term at this part of the query";
 }
