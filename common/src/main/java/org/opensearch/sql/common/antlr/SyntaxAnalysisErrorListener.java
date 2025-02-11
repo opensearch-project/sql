@@ -8,7 +8,13 @@ package org.opensearch.sql.common.antlr;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import org.antlr.v4.runtime.*;
+
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.Vocabulary;
+import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.misc.IntervalSet;
 
 /**
@@ -55,33 +61,38 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     return "..." + query.substring(contextStartIndex, offendingToken.getStopIndex() + 1);
   }
 
-  private String getDetails(Recognizer<?, ?> recognizer, String msg, RecognitionException e) {
+  private List<String> topSuggestions(Recognizer<?, ?> recognizer, RecognitionException e) {
+    IntervalSet followSet = e.getExpectedTokens();
+    Vocabulary vocab = recognizer.getVocabulary();
+    List<String> tokenNames = new ArrayList<>(SUGGESTION_TRUNCATION_THRESHOLD);
+    for (int tokenType :
+            followSet
+                    .toList()
+                    .subList(0, Math.min(followSet.size(), SUGGESTION_TRUNCATION_THRESHOLD))) {
+      tokenNames.add(vocab.getDisplayName(tokenType));
+    }
+    return tokenNames;
+  }
+
+  private String getDetails(Recognizer<?, ?> recognizer, String msg, RecognitionException ex) {
     if (e == null) {
       // According to the ANTLR docs, e == null means the parser was able to recover from the error.
       // In such cases, `msg` includes the raw error information we care about.
       return msg;
     }
 
-    IntervalSet followSet = e.getExpectedTokens();
-    Vocabulary vocab = recognizer.getVocabulary();
-    List<String> tokenNames = new ArrayList<>(SUGGESTION_TRUNCATION_THRESHOLD);
-    for (int tokenType :
-        followSet
-            .toList()
-            .subList(0, Math.min(followSet.size(), SUGGESTION_TRUNCATION_THRESHOLD))) {
-      tokenNames.add(vocab.getDisplayName(tokenType));
-    }
+    List<String> suggestions = topSuggestions(recognizer, ex);
 
     StringBuilder details = new StringBuilder("Expecting ");
     if (followSet.size() > SUGGESTION_TRUNCATION_THRESHOLD) {
       details
           .append("one of ")
-          .append(tokenNames.size())
+          .append(suggestions.size())
           .append(" possible tokens. Some examples: ")
-          .append(String.join(", ", tokenNames))
+          .append(String.join(", ", suggestions))
           .append(", ...");
     } else {
-      details.append("tokens: ").append(String.join(", ", tokenNames));
+      details.append("tokens: ").append(String.join(", ", suggestions));
     }
     return details.toString();
   }
