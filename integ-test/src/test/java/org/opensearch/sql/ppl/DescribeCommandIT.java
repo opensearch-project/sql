@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.legacy.TestsConstants.SYNTAX_EX_MSG_FRAGMENT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
@@ -80,7 +81,7 @@ public class DescribeCommandIT extends PPLIntegTestCase {
       fail();
     } catch (ResponseException e) {
       assertTrue(e.getMessage().contains("RuntimeException"));
-      assertTrue(e.getMessage().contains("is not a valid term at this part of the query"));
+      assertTrue(e.getMessage().contains(SYNTAX_EX_MSG_FRAGMENT));
     }
   }
 }
