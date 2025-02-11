@@ -33,22 +33,23 @@ plugins {
 dependencies {
     api project(':core')
     api group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
-    implementation "io.github.resilience4j:resilience4j-retry:1.5.0"
+    implementation "io.github.resilience4j:resilience4j-retry:${resilience4j_version}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
     implementation group: 'org.json', name: 'json', version:'20231013'
     compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     implementation group: 'org.opensearch', name:'opensearch-ml-client', version: "${opensearch_build}"
+    implementation group: 'org.opensearch', name:'geospatial-client', version: "${opensearch_build}"
 
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.9.3')
     testImplementation('org.junit.jupiter:junit-jupiter-params:5.9.3')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.9.3')
     testRuntimeOnly('org.junit.platform:junit-platform-launcher:1.9.3')
 
-    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.7.0'
+    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
 }

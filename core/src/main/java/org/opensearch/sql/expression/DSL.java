@@ -687,6 +687,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.JSON_VALID, expressions);
   }
 
+  public static FunctionExpression stringToJson(Expression value) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.JSON, value);
+  }
+
   public static Aggregator avg(Expression... expressions) {
     return aggregate(BuiltinFunctionName.AVG, expressions);
   }
@@ -843,6 +847,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_IP, value);
   }
 
+  public static FunctionExpression castJson(Expression value) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_JSON, value);
+  }
+
   public static FunctionExpression typeof(Expression value) {
     return compile(FunctionProperties.None, BuiltinFunctionName.TYPEOF, value);
   }
@@ -971,6 +979,10 @@ public class DSL {
   public static FunctionExpression utc_timestamp(
       FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.UTC_TIMESTAMP, args);
+  }
+
+  public static FunctionExpression geoip(Expression... args) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.GEOIP, args);
   }
 
   @SuppressWarnings("unchecked")

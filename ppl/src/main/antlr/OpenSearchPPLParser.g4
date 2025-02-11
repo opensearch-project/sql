@@ -409,6 +409,7 @@ convertedDataType
    | typeName = STRING
    | typeName = BOOLEAN
    | typeName = IP
+   | typeName = JSON
    ;
 
 evalFunctionName
@@ -419,6 +420,8 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
+   | jsonFunctionName
+   | geoipFunctionName
    ;
 
 functionArgs
@@ -518,6 +521,10 @@ mathematicalFunctionName
    | SQRT
    | TRUNCATE
    | trigonometricFunctionName
+   ;
+
+geoipFunctionName
+   : GEOIP
    ;
 
 trigonometricFunctionName
@@ -700,6 +707,10 @@ positionFunctionName
    : POSITION
    ;
 
+jsonFunctionName
+   : JSON
+   ;
+
 // operators
  comparisonOperator
    : EQUAL
@@ -864,6 +875,8 @@ keywordsCanBeId
    | mathematicalFunctionName
    | positionFunctionName
    | conditionFunctionName
+   | jsonFunctionName
+   | geoipFunctionName
    // commands
    | SEARCH
    | DESCRIBE
