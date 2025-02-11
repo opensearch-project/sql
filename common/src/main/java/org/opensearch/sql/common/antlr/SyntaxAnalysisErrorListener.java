@@ -61,30 +61,30 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     return "..." + query.substring(contextStartIndex, offendingToken.getStopIndex() + 1);
   }
 
-  private List<String> topSuggestions(Recognizer<?, ?> recognizer, RecognitionException e) {
-    IntervalSet followSet = e.getExpectedTokens();
+  private List<String> topSuggestions(Recognizer<?, ?> recognizer, IntervalSet continuations) {
     Vocabulary vocab = recognizer.getVocabulary();
     List<String> tokenNames = new ArrayList<>(SUGGESTION_TRUNCATION_THRESHOLD);
     for (int tokenType :
-            followSet
+            continuations
                     .toList()
-                    .subList(0, Math.min(followSet.size(), SUGGESTION_TRUNCATION_THRESHOLD))) {
+                    .subList(0, Math.min(continuations.size(), SUGGESTION_TRUNCATION_THRESHOLD))) {
       tokenNames.add(vocab.getDisplayName(tokenType));
     }
     return tokenNames;
   }
 
   private String getDetails(Recognizer<?, ?> recognizer, String msg, RecognitionException ex) {
-    if (e == null) {
-      // According to the ANTLR docs, e == null means the parser was able to recover from the error.
+    if (ex == null) {
+      // According to the ANTLR docs, ex == null means the parser was able to recover from the error.
       // In such cases, `msg` includes the raw error information we care about.
       return msg;
     }
 
-    List<String> suggestions = topSuggestions(recognizer, ex);
+    IntervalSet possibleContinuations = ex.getExpectedTokens();
+    List<String> suggestions = topSuggestions(recognizer, possibleContinuations);
 
     StringBuilder details = new StringBuilder("Expecting ");
-    if (followSet.size() > SUGGESTION_TRUNCATION_THRESHOLD) {
+    if (possibleContinuations.size() > SUGGESTION_TRUNCATION_THRESHOLD) {
       details
           .append("one of ")
           .append(suggestions.size())
