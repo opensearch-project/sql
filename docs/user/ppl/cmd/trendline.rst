@@ -19,7 +19,7 @@ Syntax
 
 * [+|-]: optional. The plus [+] stands for ascending order and NULL/MISSING first and a minus [-] stands for descending order and NULL/MISSING last. **Default:** ascending order and NULL/MISSING first.
 * sort-field: mandatory when sorting is used. The field used to sort.
-* trendline-type: mandatory. The type of algorithm being used for the calculation, only SMA || WMA are supported at the moment.
+* trendline-type: mandatory. The type of algorithm being used for the calculation, only SMA (simple moving average) or WMA (weighted moving average) are supported at the moment.
 * number-of-datapoints: mandatory. The number of datapoints to calculate the moving average (must be greater than zero).
 * field: mandatory. The name of the field the moving average should be calculated for.
 * alias: optional. The name of the resulting column containing the moving average (defaults to the field name with "_trendline").
