@@ -18,6 +18,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
@@ -44,6 +45,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionDSL;
+import org.opensearch.sql.utils.JsonUtils;
 
 @UtilityClass
 public class TypeCastOperators {
@@ -59,6 +61,7 @@ public class TypeCastOperators {
     repository.register(castToDouble());
     repository.register(castToBoolean());
     repository.register(castToIp());
+    repository.register(castToJson());
     repository.register(castToDate());
     repository.register(castToTime());
     repository.register(castToTimestamp());
@@ -109,7 +112,8 @@ public class TypeCastOperators {
         impl(
             nullMissingHandling((v) -> new ExprShortValue(v.booleanValue() ? 1 : 0)),
             SHORT,
-            BOOLEAN));
+            BOOLEAN),
+        impl(nullMissingHandling((v) -> v), SHORT, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToInt() {
@@ -123,7 +127,8 @@ public class TypeCastOperators {
         impl(
             nullMissingHandling((v) -> new ExprIntegerValue(v.booleanValue() ? 1 : 0)),
             INTEGER,
-            BOOLEAN));
+            BOOLEAN),
+        impl(nullMissingHandling((v) -> v), INTEGER, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToLong() {
@@ -137,7 +142,8 @@ public class TypeCastOperators {
         impl(
             nullMissingHandling((v) -> new ExprLongValue(v.booleanValue() ? 1L : 0L)),
             LONG,
-            BOOLEAN));
+            BOOLEAN),
+        impl(nullMissingHandling((v) -> v), LONG, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToFloat() {
@@ -151,7 +157,8 @@ public class TypeCastOperators {
         impl(
             nullMissingHandling((v) -> new ExprFloatValue(v.booleanValue() ? 1f : 0f)),
             FLOAT,
-            BOOLEAN));
+            BOOLEAN),
+        impl(nullMissingHandling((v) -> v), FLOAT, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToDouble() {
@@ -165,7 +172,8 @@ public class TypeCastOperators {
         impl(
             nullMissingHandling((v) -> new ExprDoubleValue(v.booleanValue() ? 1D : 0D)),
             DOUBLE,
-            BOOLEAN));
+            BOOLEAN),
+        impl(nullMissingHandling((v) -> v), DOUBLE, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToBoolean() {
@@ -177,7 +185,8 @@ public class TypeCastOperators {
             STRING),
         impl(
             nullMissingHandling((v) -> ExprBooleanValue.of(v.doubleValue() != 0)), BOOLEAN, DOUBLE),
-        impl(nullMissingHandling((v) -> v), BOOLEAN, BOOLEAN));
+        impl(nullMissingHandling((v) -> v), BOOLEAN, BOOLEAN),
+        impl(nullMissingHandling((v) -> v), BOOLEAN, UNDEFINED));
   }
 
   private static DefaultFunctionResolver castToIp() {
@@ -185,6 +194,12 @@ public class TypeCastOperators {
         BuiltinFunctionName.CAST_TO_IP.getName(),
         impl(nullMissingHandling((v) -> new ExprIpValue(v.stringValue())), IP, STRING),
         impl(nullMissingHandling((v) -> v), IP, IP));
+  }
+
+  private static DefaultFunctionResolver castToJson() {
+    return FunctionDSL.define(
+        BuiltinFunctionName.CAST_TO_JSON.getName(),
+        impl(nullMissingHandling(JsonUtils::castJson), UNDEFINED, STRING));
   }
 
   private static DefaultFunctionResolver castToDate() {

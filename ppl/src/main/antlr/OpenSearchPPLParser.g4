@@ -509,6 +509,7 @@ convertedDataType
    | typeName = STRING
    | typeName = BOOLEAN
    | typeName = IP
+   | typeName = JSON
    ;
 
 evalFunctionName
@@ -519,6 +520,7 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
+   | jsonFunctionName
    ;
 
 functionArgs
@@ -800,6 +802,10 @@ positionFunctionName
    : POSITION
    ;
 
+jsonFunctionName
+   : JSON
+   ;
+
 // operators
  comparisonOperator
    : EQUAL
@@ -964,6 +970,40 @@ keywordsCanBeId
    | multiFieldRelevanceFunctionName
    | commandName
    | comparisonOperator
+   | dateTimeFunctionName
+   | textFunctionName
+   | mathematicalFunctionName
+   | positionFunctionName
+   | conditionFunctionName
+   | jsonFunctionName
+   // commands
+   | SEARCH
+   | DESCRIBE
+   | SHOW
+   | FROM
+   | WHERE
+   | FIELDS
+   | RENAME
+   | STATS
+   | DEDUP
+   | SORT
+   | EVAL
+   | FILLNULL
+   | HEAD
+   | TOP
+   | RARE
+   | PARSE
+   | METHOD
+   | REGEX
+   | PUNCT
+   | GROK
+   | PATTERN
+   | PATTERNS
+   | NEW_FIELD
+   | KMEANS
+   | AD
+   | ML
+   | TRENDLINE
    // commands assist keywords
    | IN
    | BETWEEN
