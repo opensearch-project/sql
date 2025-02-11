@@ -95,7 +95,7 @@ public class PPLSyntaxParserTest {
   @Test
   public void testSearchCommandWithoutSourceShouldFail() {
     exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage("Failed to parse query due to offending symbol");
+    exceptionRule.expectMessage("is not a valid term at this part of the query");
 
     new PPLSyntaxParser().parse("search a=1");
   }
@@ -337,7 +337,7 @@ public class PPLSyntaxParserTest {
   @Test
   public void testDescribeCommandWithSourceShouldFail() {
     exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage("Failed to parse query due to offending symbol");
+    exceptionRule.expectMessage("is not a valid term at this part of the query");
 
     new PPLSyntaxParser().parse("describe source=t");
   }
