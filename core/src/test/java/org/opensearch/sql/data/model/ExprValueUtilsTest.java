@@ -311,6 +311,24 @@ public class ExprValueUtilsTest {
   }
 
   @Test
+  void testSplitQualifiedName() {
+    assertEquals(List.of("integer"), ExprValueUtils.splitQualifiedName("integer"));
+    assertEquals(List.of("tuple", "integer"), ExprValueUtils.splitQualifiedName("tuple.integer"));
+    assertEquals(
+        List.of("tuple_with_nested", "tuple", "integer"),
+        ExprValueUtils.splitQualifiedName("tuple_with_nested.tuple.integer"));
+  }
+
+  @Test
+  void testJoinQualifiedName() {
+    assertEquals("integer", ExprValueUtils.joinQualifiedName(List.of("integer")));
+    assertEquals("tuple.integer", ExprValueUtils.joinQualifiedName(List.of("tuple", "integer")));
+    assertEquals(
+        "tuple_with_nested.tuple.integer",
+        ExprValueUtils.joinQualifiedName(List.of("tuple_with_nested", "tuple", "integer")));
+  }
+
+  @Test
   void testContainsNestedExprValue() {
     assertTrue(ExprValueUtils.containsNestedExprValue(rootExprValue, "integer"));
     assertTrue(ExprValueUtils.containsNestedExprValue(rootExprValue, "tuple.integer"));

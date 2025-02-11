@@ -8,7 +8,6 @@ package org.opensearch.sql.planner.physical;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -45,41 +44,45 @@ public class FlattenOperator extends PhysicalPlan {
 
   @Override
   public ExprValue next() {
-    return flattenExprValueAtPath(input.next(), field.getAttr());
+    ExprValue rootExprValue = input.next();
+    String qualifiedName = field.getAttr();
+
+    if (!ExprValueUtils.containsNestedExprValue(rootExprValue, qualifiedName)) {
+      return rootExprValue;
+    }
+
+    ExprValue flattenExprValue = ExprValueUtils.getNestedExprValue(rootExprValue, qualifiedName);
+    if (flattenExprValue.isNull() || flattenExprValue.isMissing()) {
+      return rootExprValue;
+    }
+
+    return flattenNestedExprValue(rootExprValue, qualifiedName);
   }
 
   /**
-   * Flattens the {@link ExprTupleValue} at the specified path within the given root value and
-   * returns the result. Returns the unmodified root value if it does not contain a value at the
-   * specified path. rootExprValue is expected to be an {@link ExprTupleValue}.
+   * Flattens the nested {@link ExprTupleValue} with the specified qualified name within the given
+   * root value and returns the result. Requires that the root value contain a nested value with the
+   * qualified name - see {@link ExprValueUtils#containsNestedExprValue}.
    */
-  private static ExprValue flattenExprValueAtPath(ExprValue rootExprValue, String path) {
+  private static ExprValue flattenNestedExprValue(ExprValue rootExprValue, String qualifiedName) {
 
     Map<String, ExprValue> exprValueMap = ExprValueUtils.getTupleValue(rootExprValue);
 
-    // Get current path component.
-    Matcher matcher = ExprValueUtils.QUALIFIED_NAME_SEPARATOR_PATTERN.matcher(path);
-    boolean fieldIsNested = matcher.find();
-    String currentPathComponent = fieldIsNested ? path.substring(0, matcher.start()) : path;
-
-    // Check for undefined, null, or missing values.
-    if (!exprValueMap.containsKey(currentPathComponent)) {
-      return rootExprValue;
-    }
-
-    ExprValue childExprValue = exprValueMap.get(currentPathComponent);
-    if (childExprValue.isNull() || childExprValue.isMissing()) {
-      return rootExprValue;
-    }
+    List<String> qualifiedNameComponents = ExprValueUtils.splitQualifiedName(qualifiedName);
+    String currentQualifiedNameComponent = qualifiedNameComponents.getFirst();
+    ExprValue childExprValue = exprValueMap.get(currentQualifiedNameComponent);
 
     // Get flattened values and add them to the field map.
     Map<String, ExprValue> flattenedExprValueMap;
-    if (fieldIsNested) {
-      String remainingPath = path.substring(matcher.end());
+    if (qualifiedNameComponents.size() > 1) {
+      String remainingQualifiedName =
+          ExprValueUtils.joinQualifiedName(
+              qualifiedNameComponents.subList(1, qualifiedNameComponents.size()));
+
       flattenedExprValueMap =
           Map.of(
-              currentPathComponent,
-              flattenExprValueAtPath(exprValueMap.get(currentPathComponent), remainingPath));
+              currentQualifiedNameComponent,
+              flattenNestedExprValue(childExprValue, remainingQualifiedName));
     } else {
       flattenedExprValueMap = ExprValueUtils.getTupleValue(childExprValue);
     }

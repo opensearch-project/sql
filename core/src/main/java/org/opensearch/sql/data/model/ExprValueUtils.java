@@ -43,8 +43,6 @@ public class ExprValueUtils {
   public final Pattern QUALIFIED_NAME_SEPARATOR_PATTERN =
       Pattern.compile(QUALIFIED_NAME_SEPARATOR, Pattern.LITERAL);
 
-  private final Pattern PATH_SEPARATOR_PATTERN = Pattern.compile(".", Pattern.LITERAL);
-
   public static ExprValue booleanValue(Boolean value) {
     return value ? LITERAL_TRUE : LITERAL_FALSE;
   }
@@ -219,6 +217,19 @@ public class ExprValueUtils {
   }
 
   /**
+   * Splits the given qualified name into components and returns the result. Throws {@link
+   * SemanticCheckException} if the qualified name is not valid.
+   */
+  public List<String> splitQualifiedName(String qualifiedName) {
+    return Arrays.asList(QUALIFIED_NAME_SEPARATOR_PATTERN.split(qualifiedName));
+  }
+
+  /** Joins the given components into a qualified name and returns the result. */
+  public String joinQualifiedName(List<String> components) {
+    return String.join(QUALIFIED_NAME_SEPARATOR, components);
+  }
+
+  /**
    * Returns true if a nested {@link ExprValue} with the specified qualified name exists within the
    * given root value.
    *
@@ -349,10 +360,5 @@ public class ExprValueUtils {
             exprValueMap.get(currentComponent), remainingComponents, newExprValue));
 
     return ExprTupleValue.fromExprValueMap(exprValueMap);
-  }
-
-  /** Splits the given qualified name into components and returns the result.. */
-  private List<String> splitQualifiedName(String qualifiedName) {
-    return Arrays.asList(PATH_SEPARATOR_PATTERN.split(qualifiedName));
   }
 }
