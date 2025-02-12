@@ -212,9 +212,7 @@ public class ExprValueUtils {
     return exprValue.booleanValue();
   }
 
-  /**
-   * Splits the given qualified name into components and returns the result as a modifiable list.
-   */
+  /** Splits the given qualified name into components and returns the result. */
   public List<String> splitQualifiedName(String qualifiedName) {
     return Arrays.asList(QUALIFIED_NAME_SEPARATOR_PATTERN.split(qualifiedName, -1));
   }
