@@ -56,12 +56,6 @@ public class JsonFunctions {
         impl(nullMissingHandling(JsonUtils::castJson), UNDEFINED, STRING));
   }
 
-  private DefaultFunctionResolver jsonFunction() {
-    return define(
-        BuiltinFunctionName.JSON.getName(),
-        impl(nullMissingHandling(JsonUtils::castJson), UNDEFINED, STRING));
-  }
-
   /** Creates a JSON Object/tuple expr from a given list of kv pairs. */
   private static FunctionResolver jsonObject() {
     return new FunctionResolver() {
