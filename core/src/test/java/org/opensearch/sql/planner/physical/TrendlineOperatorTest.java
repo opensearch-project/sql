@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.planner.physical;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -12,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.WMA;
+import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
@@ -19,6 +22,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -28,19 +33,20 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
-public class TrendlineOperatorTest {
+public class TrendlineOperatorTest extends PhysicalPlanTestBase {
   @Mock private PhysicalPlan inputPlan;
 
   @Test
   public void calculates_simple_moving_average_one_field_one_sample() {
     when(inputPlan.hasNext()).thenReturn(true, false);
     when(inputPlan.next())
-        .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)));
+        .thenReturn(tupleValue(ImmutableMap.of("distance", 100, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -50,12 +56,10 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(1, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100)),
-        plan.next());
+    List<ExprValue> result = execute(plan);
+    assertEquals(1, result.size());
+    assertThat(result, containsInAnyOrder(
+      tupleValue(ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100))));
   }
 
   @Test
@@ -63,8 +67,8 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -74,16 +78,12 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(2, result.size());
+    assertThat(result, containsInAnyOrder(
+      tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+      tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)
+    )));
   }
 
   @Test
@@ -91,9 +91,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -103,21 +103,14 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)),
-        plan.next());
-    assertFalse(plan.hasNext());
+
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0))
+            ));
   }
 
   @Test
@@ -125,9 +118,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -137,21 +130,14 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.SHORT)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)),
-        plan.next());
-    assertFalse(plan.hasNext());
+
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)))
+    );
   }
 
   @Test
@@ -159,9 +145,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -171,21 +157,15 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.SHORT)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)))
+    );
+
+
   }
 
   @Test
@@ -193,9 +173,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -205,21 +185,13 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.FLOAT)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)))
+    );
   }
 
   @Test
@@ -227,9 +199,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 20)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20)));
 
     var plan =
         new TrendlineOperator(
@@ -242,23 +214,13 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("time"), "time_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "distance", 200, "time", 20, "distance_alias", 150.0, "time_alias", 15.0)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "distance", 200, "time", 20, "distance_alias", 200.0, "time_alias", 20.0)),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20, "distance_alias", 150.0, "time_alias", 15.0)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20, "distance_alias", 200.0, "time_alias", 20.0)))
+    );
   }
 
   @Test
@@ -266,9 +228,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -278,16 +240,14 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "time", SMA),
                     ExprCoreType.DOUBLE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 150.0)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 200.0)), plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 150.0)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 200.0)))
+    );
+
   }
 
   @Test
@@ -295,9 +255,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 300, "time", 10)));
+            tupleValue(ImmutableMap.of("time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -307,18 +267,15 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of("time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 300, "time", 10, "distance_alias", 250.0)),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10, "distance_alias", 250.0)))
+    );
+
+
   }
 
   @Test
@@ -326,9 +283,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", ExprNullValue.of(), "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)));
+            tupleValue(ImmutableMap.of("time", 10)),
+            tupleValue(ImmutableMap.of("distance", ExprNullValue.of(), "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -338,19 +295,15 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(1, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of("time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", ExprNullValue.of(), "time", 10)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100)),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("time", 10)),
+            tupleValue(ImmutableMap.of("distance", ExprNullValue.of(), "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100)))
+    );
+
+
   }
 
   @Test
@@ -372,11 +325,11 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(6)))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12)))));
 
     var plan =
@@ -387,31 +340,21 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("date"), "date_alias", SMA),
                     ExprCoreType.DATE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "date",
-                ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(6)),
-                "date_alias",
-                ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(3)))),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "date",
-                ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12)),
-                "date_alias",
-                ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(9)))),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
+            tupleValue(ImmutableMap.of(
+                    "date",
+                    ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(6)),
+                    "date_alias",
+                    ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(3)))),
+            tupleValue(ImmutableMap.of(
+                    "date",
+                    ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12)),
+                    "date_alias",
+                    ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(9)))))
+    );
   }
 
   @Test
@@ -419,11 +362,11 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN.plusHours(6)))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN.plusHours(12)))));
 
     var plan =
@@ -434,22 +377,17 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("time"), "time_alias", SMA),
                     ExprCoreType.TIME)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of("time", LocalTime.MIN)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "time", LocalTime.MIN.plusHours(6), "time_alias", LocalTime.MIN.plusHours(3))),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "time", LocalTime.MIN.plusHours(12), "time_alias", LocalTime.MIN.plusHours(9))),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("time", LocalTime.MIN)),
+            tupleValue(ImmutableMap.of(
+                    "time", LocalTime.MIN.plusHours(6), "time_alias", LocalTime.MIN.plusHours(3))),
+            tupleValue(ImmutableMap.of(
+                    "time", LocalTime.MIN.plusHours(12), "time_alias", LocalTime.MIN.plusHours(9))))
+    );
+
+
   }
 
   @Test
@@ -457,12 +395,12 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("timestamp", ExprValueUtils.timestampValue(Instant.EPOCH))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of(
                     "timestamp", ExprValueUtils.timestampValue(Instant.EPOCH.plusMillis(1000)))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of(
                     "timestamp", ExprValueUtils.timestampValue(Instant.EPOCH.plusMillis(1500)))));
 
@@ -474,36 +412,30 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("timestamp"), "timestamp_alias", SMA),
                     ExprCoreType.TIMESTAMP)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("timestamp", Instant.EPOCH)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "timestamp",
-                Instant.EPOCH.plusMillis(1000),
-                "timestamp_alias",
-                Instant.EPOCH.plusMillis(500))),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "timestamp",
-                Instant.EPOCH.plusMillis(1500),
-                "timestamp_alias",
-                Instant.EPOCH.plusMillis(1250))),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("timestamp", Instant.EPOCH)),
+            tupleValue(ImmutableMap.of(
+                    "timestamp",
+                    Instant.EPOCH.plusMillis(1000),
+                    "timestamp_alias",
+                    Instant.EPOCH.plusMillis(500))),
+            tupleValue(ImmutableMap.of(
+                    "timestamp",
+                    Instant.EPOCH.plusMillis(1500),
+                    "timestamp_alias",
+                    Instant.EPOCH.plusMillis(1250))))
+    );
+
+
   }
 
   @Test
   public void calculates_weighted_moving_average_one_field_one_sample() {
     when(inputPlan.hasNext()).thenReturn(true, false);
     when(inputPlan.next())
-        .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)));
+        .thenReturn(tupleValue(ImmutableMap.of("distance", 100, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -514,9 +446,10 @@ public class TrendlineOperatorTest {
                     ExprCoreType.DOUBLE)));
 
     plan.open();
+
     assertTrue(plan.hasNext());
     assertEquals(
-        ExprValueUtils.tupleValue(
+        tupleValue(
             ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100)),
         plan.next());
   }
@@ -526,8 +459,8 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -537,16 +470,16 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.DOUBLE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-        plan.next());
-    assertFalse(plan.hasNext());
+
+    List<ExprValue> result = execute(plan);
+    assertEquals(2, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(
+                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)))
+    );
+
+
   }
 
   @Test
@@ -554,9 +487,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -566,21 +499,16 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.DOUBLE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(
+                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+            tupleValue(
+                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)))
+    );
+
   }
 
   @Test
@@ -588,9 +516,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -600,21 +528,17 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.SHORT)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(
+                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+            tupleValue(
+                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)))
+    );
+
+
   }
 
   @Test
@@ -622,9 +546,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -634,21 +558,16 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.INTEGER)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(
+                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+            tupleValue(
+                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)))
+    );
+
   }
 
   @Test
@@ -656,9 +575,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -668,21 +587,18 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.LONG)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
-        plan.next());
-    assertFalse(plan.hasNext());
+
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(
+                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+            tupleValue(
+                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)))
+    );
+
+
   }
 
   @Test
@@ -690,9 +606,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -702,21 +618,16 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.FLOAT)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(
+                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+            tupleValue(
+                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)))
+    );
+
   }
 
   @Test
@@ -724,9 +635,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 20)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20)));
 
     var plan =
         new TrendlineOperator(
@@ -739,37 +650,32 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("time"), "time_alias", WMA),
                     ExprCoreType.DOUBLE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 100, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "distance",
-                200,
-                "time",
-                20,
-                "distance_alias",
-                166.66666666666663,
-                "time_alias",
-                16.666666666666664)),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "distance",
-                200,
-                "time",
-                20,
-                "distance_alias",
-                199.99999999999997,
-                "time_alias",
-                20.0)),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(
+                    ImmutableMap.of(
+                            "distance",
+                            200,
+                            "time",
+                            20,
+                            "distance_alias",
+                            166.66666666666663,
+                            "time_alias",
+                            16.666666666666664)),
+            tupleValue(
+                    ImmutableMap.of(
+                            "distance",
+                            200,
+                            "time",
+                            20,
+                            "distance_alias",
+                            199.99999999999997,
+                            "time_alias",
+                            20.0)))
+    );
+
   }
 
   @Test
@@ -777,9 +683,9 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(ImmutableMap.of("time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            ExprValueUtils.tupleValue(ImmutableMap.of("distance", 300, "time", 10)));
+            tupleValue(ImmutableMap.of("time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10)));
 
     var plan =
         new TrendlineOperator(
@@ -789,18 +695,17 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.DOUBLE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of("time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("distance", 200, "time", 10)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("distance", 300, "time", 10, "distance_alias", 266.66666666666663)),
-        plan.next());
-    assertFalse(plan.hasNext());
+
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(
+                    ImmutableMap.of("distance", 300, "time", 10, "distance_alias", 266.66666666666663)))
+    );
+
+
   }
 
   @Test
@@ -808,11 +713,11 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(6)))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12)))));
 
     var plan =
@@ -823,31 +728,25 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("date"), "date_alias", WMA),
                     ExprCoreType.DATE)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "date",
-                ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(6)),
-                "date_alias",
-                ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(4)))),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "date",
-                ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12)),
-                "date_alias",
-                ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(10)))),
-        plan.next());
-    assertFalse(plan.hasNext());
+
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
+            tupleValue(ImmutableMap.of(
+                    "date",
+                    ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(6)),
+                    "date_alias",
+                    ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(4)))),
+            tupleValue(
+                    ImmutableMap.of(
+                            "date",
+                            ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12)),
+                            "date_alias",
+                            ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(10)))))
+    );
+
+
   }
 
   @Test
@@ -855,11 +754,11 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN.plusHours(6)))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN.plusHours(12)))));
 
     var plan =
@@ -870,22 +769,18 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("time"), "time_alias", WMA),
                     ExprCoreType.TIME)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(ExprValueUtils.tupleValue(ImmutableMap.of("time", LocalTime.MIN)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "time", LocalTime.MIN.plusHours(6), "time_alias", LocalTime.MIN.plusHours(4))),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "time", LocalTime.MIN.plusHours(12), "time_alias", LocalTime.MIN.plusHours(10))),
-        plan.next());
-    assertFalse(plan.hasNext());
+
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("time", LocalTime.MIN)),
+            tupleValue(ImmutableMap.of(
+                    "time", LocalTime.MIN.plusHours(6), "time_alias", LocalTime.MIN.plusHours(4))),
+            tupleValue(
+                    ImmutableMap.of(
+                            "time", LocalTime.MIN.plusHours(12), "time_alias", LocalTime.MIN.plusHours(10))))
+    );
+
   }
 
   @Test
@@ -893,12 +788,12 @@ public class TrendlineOperatorTest {
     when(inputPlan.hasNext()).thenReturn(true, true, true, false);
     when(inputPlan.next())
         .thenReturn(
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of("timestamp", ExprValueUtils.timestampValue(Instant.EPOCH))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of(
                     "timestamp", ExprValueUtils.timestampValue(Instant.EPOCH.plusMillis(1000)))),
-            ExprValueUtils.tupleValue(
+            tupleValue(
                 ImmutableMap.of(
                     "timestamp", ExprValueUtils.timestampValue(Instant.EPOCH.plusMillis(1500)))));
 
@@ -910,29 +805,23 @@ public class TrendlineOperatorTest {
                     AstDSL.computation(2, AstDSL.field("timestamp"), "timestamp_alias", WMA),
                     ExprCoreType.TIMESTAMP)));
 
-    plan.open();
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(ImmutableMap.of("timestamp", Instant.EPOCH)), plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "timestamp",
-                Instant.EPOCH.plusMillis(1000),
-                "timestamp_alias",
-                Instant.EPOCH.plusMillis(667))),
-        plan.next());
-    assertTrue(plan.hasNext());
-    assertEquals(
-        ExprValueUtils.tupleValue(
-            ImmutableMap.of(
-                "timestamp",
-                Instant.EPOCH.plusMillis(1500),
-                "timestamp_alias",
-                Instant.EPOCH.plusMillis(1333))),
-        plan.next());
-    assertFalse(plan.hasNext());
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertThat(result, containsInAnyOrder(
+            tupleValue(ImmutableMap.of("timestamp", Instant.EPOCH)),
+            tupleValue(ImmutableMap.of(
+                    "timestamp",
+                    Instant.EPOCH.plusMillis(1000),
+                    "timestamp_alias",
+                    Instant.EPOCH.plusMillis(667))),
+            tupleValue(
+                    ImmutableMap.of(
+                            "timestamp",
+                            Instant.EPOCH.plusMillis(1500),
+                            "timestamp_alias",
+                            Instant.EPOCH.plusMillis(1333))))
+    );
+
   }
 
   @Test
