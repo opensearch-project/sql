@@ -13,7 +13,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
-import org.apache.commons.math3.analysis.function.Exp;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -88,7 +87,7 @@ public class FlattenOperator extends PhysicalPlan {
     }
 
     // Build flattened value.
-    Map<String, ExprValue> newFieldsMap = new  HashMap<>(fieldsMap);
+    Map<String, ExprValue> newFieldsMap = new HashMap<>(fieldsMap);
     newFieldsMap.putAll(flattenedChildFieldMap);
 
     return ExprTupleValue.fromExprValueMap(newFieldsMap);

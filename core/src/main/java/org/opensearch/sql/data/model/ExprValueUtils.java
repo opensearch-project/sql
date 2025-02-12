@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.data.model;
 
-import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
-
 import inet.ipaddr.IPAddress;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -16,7 +14,6 @@ import java.time.ZoneOffset;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +21,6 @@ import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.exception.SemanticCheckException;
 
 /** The definition of {@link ExprValue} factory. */
 @UtilityClass
@@ -216,149 +212,13 @@ public class ExprValueUtils {
     return exprValue.booleanValue();
   }
 
-  /**
-   * Splits the given qualified name into components and returns the result. Throws {@link
-   * SemanticCheckException} if the qualified name is not valid.
-   */
+  /** Splits the given qualified name into components and returns the result. */
   public List<String> splitQualifiedName(String qualifiedName) {
-    return Arrays.asList(QUALIFIED_NAME_SEPARATOR_PATTERN.split(qualifiedName));
+    return Arrays.asList(QUALIFIED_NAME_SEPARATOR_PATTERN.split(qualifiedName, -1));
   }
 
   /** Joins the given components into a qualified name and returns the result. */
   public String joinQualifiedName(List<String> components) {
     return String.join(QUALIFIED_NAME_SEPARATOR, components);
-  }
-
-  /**
-   * Returns true if a nested {@link ExprValue} with the specified qualified name exists within the
-   * given root value.
-   *
-   * @param rootExprValue root value - expected to be an {@link ExprTupleValue}
-   * @param qualifiedName qualified name for the nested {@link ExprValue} - e.g.
-   *     'nested_struct.integer_field'
-   */
-  public boolean containsNestedExprValue(ExprValue rootExprValue, String qualifiedName) {
-    List<String> components = splitQualifiedName(qualifiedName);
-    return containsNestedExprValueForComponents(rootExprValue, components);
-  }
-
-  /**
-   * Returns the nested {@link ExprValue} with the specified qualified name within the given root
-   * value. Returns {@link ExprNullValue} if the root value does not contain a nested value with the
-   * qualified name - see {@link ExprValueUtils#containsNestedExprValue}.
-   *
-   * @param rootExprValue root value - expected to be an {@link ExprTupleValue}
-   * @param qualifiedName qualified name for the nested {@link ExprValue} - e.g.
-   *     'nested_struct.integer_field'
-   */
-  public ExprValue getNestedExprValue(ExprValue rootExprValue, String qualifiedName) {
-
-    List<String> components = splitQualifiedName(qualifiedName);
-    if (!containsNestedExprValueForComponents(rootExprValue, components)) {
-      return nullValue();
-    }
-
-    return getNestedExprValueForComponents(rootExprValue, components);
-  }
-
-  /**
-   * Sets the {@link ExprValue} with the specified qualified name within the given root value and
-   * returns the result. Throws {@link SemanticCheckException} if the root value does not contain a
-   * value with the qualified name - see {@link ExprValueUtils#containsNestedExprValue}.
-   *
-   * @param rootExprValue root value - expected to be an {@link ExprTupleValue}
-   * @param qualifiedName qualified name for the nested {@link ExprValue} - e.g.
-   *     'nested_struct.integer_field'
-   */
-  public ExprValue setNestedExprValue(
-      ExprValue rootExprValue, String qualifiedName, ExprValue newExprValue) {
-
-    List<String> components = splitQualifiedName(qualifiedName);
-    if (!containsNestedExprValueForComponents(rootExprValue, components)) {
-      throw new SemanticCheckException(
-          String.format("Field with qualified name '%s' does not exist.", qualifiedName));
-    }
-
-    return setNestedExprValueForComponents(rootExprValue, components, newExprValue);
-  }
-
-  /**
-   * Returns true if a nested {@link ExprValue} exists within the given root value, at the location
-   * specified by the qualified name components.
-   *
-   * @param rootExprValue root value - expected to be an {@link ExprTupleValue}
-   * @param components list of qualified name components - e.g. ['nested_struct','integer_field']
-   */
-  private boolean containsNestedExprValueForComponents(
-      ExprValue rootExprValue, List<String> components) {
-
-    if (components.isEmpty()) {
-      return true;
-    }
-
-    if (!rootExprValue.type().equals(STRUCT)) {
-      return false;
-    }
-
-    String currentComponent = components.getFirst();
-    List<String> remainingComponents = components.subList(1, components.size());
-
-    Map<String, ExprValue> exprValueMap = rootExprValue.tupleValue();
-    if (!exprValueMap.containsKey(currentComponent)) {
-      return false;
-    }
-
-    return containsNestedExprValueForComponents(
-        exprValueMap.get(currentComponent), remainingComponents);
-  }
-
-  /**
-   * Returns the nested {@link ExprValue} within the given root value, at the location specified by
-   * the qualified name components. Requires that the root value contain a nested value with the
-   * qualified name - see {@link ExprValueUtils#containsNestedExprValue}.
-   *
-   * @param rootExprValue root value - expected to be an {@link ExprTupleValue}
-   * @param components list of qualified name components - e.g. ['nested_struct','integer_field']
-   */
-  private ExprValue getNestedExprValueForComponents(
-      ExprValue rootExprValue, List<String> components) {
-
-    if (components.isEmpty()) {
-      return rootExprValue;
-    }
-
-    String currentComponent = components.getFirst();
-    List<String> remainingQualifiedNameComponents = components.subList(1, components.size());
-
-    Map<String, ExprValue> exprValueMap = rootExprValue.tupleValue();
-    return getNestedExprValueForComponents(
-        exprValueMap.get(currentComponent), remainingQualifiedNameComponents);
-  }
-
-  /**
-   * Sets the nested {@link ExprValue} within the given root value, at the location specified by the
-   * qualified name components, and returns the result. Requires that the root value contain a
-   * nested value with the qualified name - see {@link ExprValueUtils#containsNestedExprValue}.
-   *
-   * @param rootExprValue root value - expected to be an {@link ExprTupleValue}
-   * @param components list of qualified name components - e.g. ['nested_struct','integer_field']
-   */
-  private ExprValue setNestedExprValueForComponents(
-      ExprValue rootExprValue, List<String> components, ExprValue newExprValue) {
-
-    if (components.isEmpty()) {
-      return newExprValue;
-    }
-
-    String currentComponent = components.getFirst();
-    List<String> remainingComponents = components.subList(1, components.size());
-
-    Map<String, ExprValue> exprValueMap = new HashMap<>(rootExprValue.tupleValue());
-    exprValueMap.put(
-        currentComponent,
-        setNestedExprValueForComponents(
-            exprValueMap.get(currentComponent), remainingComponents, newExprValue));
-
-    return ExprTupleValue.fromExprValueMap(exprValueMap);
   }
 }

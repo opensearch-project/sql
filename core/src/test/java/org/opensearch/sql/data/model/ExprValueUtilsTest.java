@@ -7,10 +7,8 @@ package org.opensearch.sql.data.model;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -34,9 +32,12 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
@@ -46,77 +47,39 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 import org.opensearch.sql.utils.IPUtils;
 
 @DisplayName("Test Expression Value Utils")
 public class ExprValueUtilsTest {
+  private static final LinkedHashMap<String, ExprValue> testTuple = new LinkedHashMap<>();
 
-  // Test values
-  private static final ExprValue byteExprValue = new ExprByteValue((byte) 1);
-  private static final ExprValue shortExprValue = new ExprShortValue((short) 1);
-  private static final ExprValue integerExprValue = new ExprIntegerValue(1);
-  private static final ExprValue longExprValue = new ExprLongValue(1L);
-  private static final ExprValue floatExprValue = new ExprFloatValue(1.0f);
-  private static final ExprValue doubleExprValue = new ExprDoubleValue(1.0d);
-
-  private static final ExprValue nullExprValue = ExprNullValue.of();
-  private static final ExprValue missingExprValue = ExprMissingValue.of();
-
-  private static final ExprValue ipExprValue = new ExprIpValue("1.2.3.4");
-  private static final ExprValue stringExprValue = new ExprStringValue("value");
-  private static final ExprValue booleanExprValue = ExprBooleanValue.of(true);
-  private static final ExprValue dateExprValue = new ExprDateValue("2012-08-07");
-  private static final ExprValue timeExprValue = new ExprTimeValue("18:00:00");
-  private static final ExprValue timestampExprValue = new ExprTimestampValue("2012-08-07 18:00:00");
-  private static final ExprValue intervalExprValue =
-      new ExprIntervalValue(Duration.ofSeconds(100L));
-
-  private static final ExprValue tupleExprValue =
-      ExprTupleValue.fromExprValueMap(Map.of("integer", integerExprValue));
-  private static final ExprValue collectionExprValue =
-      new ExprCollectionValue(ImmutableList.of(integerExprValue));
-
-  private final ExprValue tupleWithNestedExprValue =
-      ExprTupleValue.fromExprValueMap(
-          Map.of("tuple", ExprValueUtils.tupleValue(Map.of("integer", integerExprValue))));
-
-  private final ExprValue rootExprValue =
-      ExprTupleValue.fromExprValueMap(
-          Map.ofEntries(
-              Map.entry("integer", integerExprValue),
-              Map.entry("tuple", tupleExprValue),
-              Map.entry("tuple_with_nested", tupleWithNestedExprValue),
-              Map.entry("null", ExprNullValue.of()),
-              Map.entry("missing", ExprMissingValue.of())));
+  static {
+    testTuple.put("1", new ExprIntegerValue(1));
+  }
 
   private static final List<ExprValue> numberValues =
-      List.of(
-          byteExprValue,
-          shortExprValue,
-          integerExprValue,
-          longExprValue,
-          floatExprValue,
-          doubleExprValue);
+      Stream.of((byte) 1, (short) 1, 1, 1L, 1f, 1D)
+          .map(ExprValueUtils::fromObjectValue)
+          .collect(Collectors.toList());
 
   private static final List<ExprValue> nonNumberValues =
-      List.of(
-          ipExprValue,
-          stringExprValue,
-          booleanExprValue,
-          collectionExprValue,
-          tupleExprValue,
-          dateExprValue,
-          timeExprValue,
-          timestampExprValue,
-          intervalExprValue);
+      Arrays.asList(
+          new ExprIpValue("1.2.3.4"),
+          new ExprStringValue("1"),
+          ExprBooleanValue.of(true),
+          new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1))),
+          new ExprTupleValue(testTuple),
+          new ExprDateValue("2012-08-07"),
+          new ExprTimeValue("18:00:00"),
+          new ExprTimestampValue("2012-08-07 18:00:00"),
+          new ExprIntervalValue(Duration.ofSeconds(100)));
 
   private static final List<ExprValue> allValues =
       Lists.newArrayList(Iterables.concat(numberValues, nonNumberValues));
 
   private static final List<Function<ExprValue, Object>> numberValueExtractor =
-      List.of(
+      Arrays.asList(
           ExprValueUtils::getByteValue,
           ExprValueUtils::getShortValue,
           ExprValueUtils::getIntegerValue,
@@ -124,14 +87,14 @@ public class ExprValueUtilsTest {
           ExprValueUtils::getFloatValue,
           ExprValueUtils::getDoubleValue);
   private static final List<Function<ExprValue, Object>> nonNumberValueExtractor =
-      List.of(
+      Arrays.asList(
           ExprValueUtils::getIpValue,
           ExprValueUtils::getStringValue,
           ExprValueUtils::getBooleanValue,
           ExprValueUtils::getCollectionValue,
           ExprValueUtils::getTupleValue);
   private static final List<Function<ExprValue, Object>> dateAndTimeValueExtractor =
-      List.of(
+      Arrays.asList(
           ExprValue::dateValue,
           ExprValue::timeValue,
           ExprValue::timestampValue,
@@ -142,7 +105,7 @@ public class ExprValueUtilsTest {
               numberValueExtractor, nonNumberValueExtractor, dateAndTimeValueExtractor));
 
   private static final List<ExprCoreType> numberTypes =
-      List.of(
+      Arrays.asList(
           ExprCoreType.BYTE,
           ExprCoreType.SHORT,
           ExprCoreType.INTEGER,
@@ -150,31 +113,31 @@ public class ExprValueUtilsTest {
           ExprCoreType.FLOAT,
           ExprCoreType.DOUBLE);
   private static final List<ExprCoreType> nonNumberTypes =
-      List.of(IP, STRING, BOOLEAN, ARRAY, STRUCT);
+      Arrays.asList(IP, STRING, BOOLEAN, ARRAY, STRUCT);
   private static final List<ExprCoreType> dateAndTimeTypes =
-      List.of(DATE, TIME, TIMESTAMP, INTERVAL);
+      Arrays.asList(DATE, TIME, TIMESTAMP, INTERVAL);
   private static final List<ExprCoreType> allTypes =
       Lists.newArrayList(Iterables.concat(numberTypes, nonNumberTypes, dateAndTimeTypes));
 
   private static Stream<Arguments> getValueTestArgumentStream() {
     List<Object> expectedValues =
-        List.of(
+        Arrays.asList(
             (byte) 1,
             (short) 1,
             1,
             1L,
-            1.0f,
-            1.0d,
+            1f,
+            1D,
             IPUtils.toAddress("1.2.3.4"),
-            "value",
+            "1",
             true,
-            List.of(integerValue(1)),
-            ImmutableMap.of("integer", integerValue(1)),
+            Arrays.asList(integerValue(1)),
+            ImmutableMap.of("1", integerValue(1)),
             LocalDate.parse("2012-08-07"),
             LocalTime.parse("18:00:00"),
             ZonedDateTime.of(LocalDateTime.parse("2012-08-07T18:00:00"), ZoneOffset.UTC)
                 .toInstant(),
-            Duration.ofSeconds(100L));
+            Duration.ofSeconds(100));
     Stream.Builder<Arguments> builder = Stream.builder();
     for (int i = 0; i < expectedValues.size(); i++) {
       builder.add(Arguments.of(allValues.get(i), allValueExtractor.get(i), expectedValues.get(i)));
@@ -284,154 +247,37 @@ public class ExprValueUtilsTest {
 
   @Test
   public void hashCodeTest() {
-    assertEquals(byteExprValue.hashCode(), new ExprByteValue((byte) 1).hashCode());
-    assertEquals(shortExprValue.hashCode(), new ExprShortValue((short) 1).hashCode());
-    assertEquals(integerExprValue.hashCode(), new ExprIntegerValue(1).hashCode());
-    assertEquals(longExprValue.hashCode(), new ExprLongValue(1L).hashCode());
-    assertEquals(floatExprValue.hashCode(), new ExprFloatValue(1.0f).hashCode());
-    assertEquals(doubleExprValue.hashCode(), new ExprDoubleValue(1.0d).hashCode());
-
-    assertEquals(nullExprValue.hashCode(), ExprNullValue.of().hashCode());
-    assertEquals(missingExprValue.hashCode(), ExprMissingValue.of().hashCode());
-    assertEquals(ipExprValue.hashCode(), new ExprIpValue("1.2.3.4").hashCode());
-    assertEquals(stringExprValue.hashCode(), new ExprStringValue("value").hashCode());
-    assertEquals(booleanExprValue.hashCode(), ExprBooleanValue.of(true).hashCode());
-    assertEquals(dateExprValue.hashCode(), new ExprDateValue("2012-08-07").hashCode());
-    assertEquals(timeExprValue.hashCode(), new ExprTimeValue("18:00:00").hashCode());
+    assertEquals(new ExprByteValue(1).hashCode(), new ExprByteValue(1).hashCode());
+    assertEquals(new ExprShortValue(1).hashCode(), new ExprShortValue(1).hashCode());
+    assertEquals(new ExprIntegerValue(1).hashCode(), new ExprIntegerValue(1).hashCode());
+    assertEquals(new ExprStringValue("1").hashCode(), new ExprStringValue("1").hashCode());
     assertEquals(
-        timestampExprValue.hashCode(), new ExprTimestampValue("2012-08-07 18:00:00").hashCode());
+        new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1))).hashCode(),
+        new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1))).hashCode());
     assertEquals(
-        intervalExprValue.hashCode(), new ExprIntervalValue(Duration.ofSeconds(100L)).hashCode());
+        new ExprTupleValue(testTuple).hashCode(), new ExprTupleValue(testTuple).hashCode());
     assertEquals(
-        tupleExprValue.hashCode(),
-        ExprTupleValue.fromExprValueMap(Map.of("integer", integerExprValue)).hashCode());
+        new ExprDateValue("2012-08-07").hashCode(), new ExprDateValue("2012-08-07").hashCode());
     assertEquals(
-        collectionExprValue.hashCode(),
-        new ExprCollectionValue(ImmutableList.of(integerExprValue)).hashCode());
+        new ExprTimeValue("18:00:00").hashCode(), new ExprTimeValue("18:00:00").hashCode());
+    assertEquals(
+        new ExprTimestampValue("2012-08-07 18:00:00").hashCode(),
+        new ExprTimestampValue("2012-08-07 18:00:00").hashCode());
   }
 
   @Test
   void testSplitQualifiedName() {
     assertEquals(List.of("integer"), ExprValueUtils.splitQualifiedName("integer"));
     assertEquals(List.of("tuple", "integer"), ExprValueUtils.splitQualifiedName("tuple.integer"));
-    assertEquals(
-        List.of("tuple_with_nested", "tuple", "integer"),
-        ExprValueUtils.splitQualifiedName("tuple_with_nested.tuple.integer"));
+    assertEquals(List.of("", "integer"), ExprValueUtils.splitQualifiedName(".integer"));
+    assertEquals(List.of("integer", ""), ExprValueUtils.splitQualifiedName("integer."));
   }
 
   @Test
   void testJoinQualifiedName() {
     assertEquals("integer", ExprValueUtils.joinQualifiedName(List.of("integer")));
     assertEquals("tuple.integer", ExprValueUtils.joinQualifiedName(List.of("tuple", "integer")));
-    assertEquals(
-        "tuple_with_nested.tuple.integer",
-        ExprValueUtils.joinQualifiedName(List.of("tuple_with_nested", "tuple", "integer")));
-  }
-
-  @Test
-  void testContainsNestedExprValue() {
-    assertTrue(ExprValueUtils.containsNestedExprValue(rootExprValue, "integer"));
-    assertTrue(ExprValueUtils.containsNestedExprValue(rootExprValue, "tuple.integer"));
-    assertTrue(
-        ExprValueUtils.containsNestedExprValue(rootExprValue, "tuple_with_nested.tuple.integer"));
-
-    assertFalse(ExprValueUtils.containsNestedExprValue(rootExprValue, "invalid"));
-    assertFalse(ExprValueUtils.containsNestedExprValue(rootExprValue, "null.invalid"));
-    assertFalse(ExprValueUtils.containsNestedExprValue(rootExprValue, "missing.invalid"));
-    assertFalse(ExprValueUtils.containsNestedExprValue(rootExprValue, "invalid.invalid"));
-  }
-
-  @Test
-  void testGetNestedExprValue() {
-    assertEquals(integerExprValue, ExprValueUtils.getNestedExprValue(rootExprValue, "integer"));
-    assertEquals(
-        integerExprValue, ExprValueUtils.getNestedExprValue(rootExprValue, "tuple.integer"));
-    assertEquals(
-        integerExprValue,
-        ExprValueUtils.getNestedExprValue(rootExprValue, "tuple_with_nested.tuple.integer"));
-
-    assertEquals(nullExprValue, ExprValueUtils.getNestedExprValue(rootExprValue, "invalid"));
-    assertEquals(nullExprValue, ExprValueUtils.getNestedExprValue(rootExprValue, "null.invalid"));
-    assertEquals(
-        nullExprValue, ExprValueUtils.getNestedExprValue(rootExprValue, "missing.invalid"));
-    assertEquals(
-        nullExprValue, ExprValueUtils.getNestedExprValue(rootExprValue, "invalid.invalid"));
-  }
-
-  @Test
-  void testSetNestedExprValue() {
-    ExprValue expected;
-    ExprValue actual;
-
-    expected =
-        ExprValueUtils.tupleValue(
-            Map.ofEntries(
-                Map.entry("integer", stringExprValue),
-                Map.entry("tuple", tupleExprValue),
-                Map.entry("tuple_with_nested", tupleWithNestedExprValue),
-                Map.entry("null", nullExprValue),
-                Map.entry("missing", missingExprValue)));
-    actual = ExprValueUtils.setNestedExprValue(rootExprValue, "integer", stringExprValue);
-    assertEquals(expected, actual);
-
-    expected =
-        ExprValueUtils.tupleValue(
-            Map.ofEntries(
-                Map.entry("integer", integerExprValue),
-                Map.entry("tuple", ExprValueUtils.tupleValue(Map.of("integer", stringExprValue))),
-                Map.entry("tuple_with_nested", tupleWithNestedExprValue),
-                Map.entry("null", nullExprValue),
-                Map.entry("missing", missingExprValue)));
-    actual = ExprValueUtils.setNestedExprValue(rootExprValue, "tuple.integer", stringExprValue);
-    assertEquals(expected, actual);
-
-    expected =
-        ExprValueUtils.tupleValue(
-            Map.ofEntries(
-                Map.entry("integer", integerExprValue),
-                Map.entry("tuple", tupleExprValue),
-                Map.entry(
-                    "tuple_with_nested",
-                    ExprValueUtils.tupleValue(
-                        Map.of(
-                            "tuple",
-                            ExprValueUtils.tupleValue(Map.of("integer", stringExprValue))))),
-                Map.entry("null", nullExprValue),
-                Map.entry("missing", missingExprValue)));
-    assertEquals(
-        expected,
-        ExprValueUtils.setNestedExprValue(
-            rootExprValue, "tuple_with_nested.tuple.integer", stringExprValue));
-
-    Exception ex;
-
-    ex =
-        assertThrows(
-            SemanticCheckException.class,
-            () -> ExprValueUtils.setNestedExprValue(rootExprValue, "invalid", stringExprValue));
-    assertEquals("Field with qualified name 'invalid' does not exist.", ex.getMessage());
-
-    ex =
-        assertThrows(
-            SemanticCheckException.class,
-            () ->
-                ExprValueUtils.setNestedExprValue(rootExprValue, "null.invalid", stringExprValue));
-    assertEquals("Field with qualified name 'null.invalid' does not exist.", ex.getMessage());
-
-    ex =
-        assertThrows(
-            SemanticCheckException.class,
-            () ->
-                ExprValueUtils.setNestedExprValue(
-                    rootExprValue, "missing.invalid", stringExprValue));
-    assertEquals("Field with qualified name 'missing.invalid' does not exist.", ex.getMessage());
-
-    ex =
-        assertThrows(
-            SemanticCheckException.class,
-            () ->
-                ExprValueUtils.setNestedExprValue(
-                    rootExprValue, "invalid.invalid", stringExprValue));
-    assertEquals("Field with qualified name 'invalid.invalid' does not exist.", ex.getMessage());
+    assertEquals(".integer", ExprValueUtils.joinQualifiedName(List.of("", "integer")));
+    assertEquals("integer.", ExprValueUtils.joinQualifiedName(List.of("integer", "")));
   }
 }
