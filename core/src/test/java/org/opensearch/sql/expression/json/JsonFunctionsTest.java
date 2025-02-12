@@ -41,6 +41,8 @@ public class JsonFunctionsTest {
   public void json_valid_returns_false() {
     List<LiteralExpression> expressions =
         List.of(
+            DSL.literal(LITERAL_MISSING), // missing returns false
+            DSL.literal(LITERAL_NULL), // null returns false
             DSL.literal("invalid"), // invalid type
             DSL.literal("{{[}}"), // missing bracket
             DSL.literal("[}"), // missing bracket

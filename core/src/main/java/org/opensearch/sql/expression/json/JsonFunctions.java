@@ -46,8 +46,7 @@ public class JsonFunctions {
 
   private DefaultFunctionResolver jsonValid() {
     return define(
-        BuiltinFunctionName.JSON_VALID.getName(),
-        impl(nullMissingHandling(JsonUtils::isValidJson), BOOLEAN, STRING));
+        BuiltinFunctionName.JSON_VALID.getName(), impl(JsonUtils::isValidJson, BOOLEAN, STRING));
   }
 
   private DefaultFunctionResolver jsonFunction() {
