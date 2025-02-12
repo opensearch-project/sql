@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.json;
 
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
@@ -40,6 +41,7 @@ public class JsonFunctions {
   private DefaultFunctionResolver jsonExtract() {
     return define(
         BuiltinFunctionName.JSON_EXTRACT.getName(),
-        impl(JsonUtils::extractJson, UNDEFINED, STRING, STRING));
+        impl(JsonUtils::extractJsonPaths, UNDEFINED, STRING, ARRAY),
+        impl(JsonUtils::extractJsonPath, UNDEFINED, STRING, STRING));
   }
 }

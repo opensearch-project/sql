@@ -75,14 +75,14 @@ Argument type: STRING, STRING
 
 Return type: STRING/BOOLEAN/DOUBLE/INTEGER/NULL/STRUCT/ARRAY
 
-- Returns a JSON array if `path` points to multiple results (e.g. $.a[*]) or if the `path` points to an array.
+- Returns an ARRAY if `path` points to multiple results (e.g. $.a[*]) or if the `path` points to an array.
 - Return null if `path` is not valid, or if JSON `doc` is MISSING or NULL.
 - Throws SemanticCheckException if `doc` or `path` is malformed.
 - Throws ExpressionEvaluationException if `path` is missing.
 
 Example::
 
-    > source=json_test | where json_valid(json_string) | eval json_extract=json_extract(json_string, '$.b') | fields test_name, json_string, json_extract
+    os> source=json_test | where json_valid(json_string) | eval json_extract=json_extract(json_string, '$.b') | fields test_name, json_string, json_extract
     fetched rows / total rows = 6/6
     +---------------------+-------------------------------------+-------------------+
     | test_name           | json_string                         | json_extract      |

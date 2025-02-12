@@ -198,11 +198,6 @@ public class JsonFunctionsTest {
   }
 
   @Test
-  void json_extract_search_arrays_out_of_bound() {
-    execute_extract_json(LITERAL_NULL, "{\"a\":[1,2,3]}", "$.a[4]");
-  }
-
-  @Test
   void json_extract_search_arrays() {
     String jsonArray = "{\"a\":[1,2.3,\"abc\",true,null,{\"c\":{\"d\":1}},[1,2,3]]}";
     List<ExprValue> expectedExprValues =
@@ -252,17 +247,20 @@ public class JsonFunctionsTest {
 
     jsonStrings.forEach(str -> execute_extract_json(LITERAL_NULL, str, "$.a.path_not_found_key"));
 
+    // null string literal
+    assertEquals(LITERAL_NULL, DSL.jsonExtract(DSL.literal("null"), DSL.literal("$.a")).valueOf());
+
     // null json
     assertEquals(
-        LITERAL_NULL,
-        DSL.jsonExtract(DSL.literal(LITERAL_NULL), DSL.literal(new ExprStringValue("$.a")))
-            .valueOf());
+        LITERAL_NULL, DSL.jsonExtract(DSL.literal(LITERAL_NULL), DSL.literal("$.a")).valueOf());
 
     // missing json
     assertEquals(
         LITERAL_MISSING,
-        DSL.jsonExtract(DSL.literal(LITERAL_MISSING), DSL.literal(new ExprStringValue("$.a")))
-            .valueOf());
+        DSL.jsonExtract(DSL.literal(LITERAL_MISSING), DSL.literal("$.a")).valueOf());
+
+    // array out of bounds
+    execute_extract_json(LITERAL_NULL, "{\"a\":[1,2,3]}", "$.a[4]");
   }
 
   @Test
@@ -271,13 +269,9 @@ public class JsonFunctionsTest {
     SemanticCheckException invalidPathError =
         assertThrows(
             SemanticCheckException.class,
-            () ->
-                DSL.jsonExtract(
-                        DSL.literal(new ExprStringValue("{\"a\":1}")),
-                        DSL.literal(new ExprStringValue("$a")))
-                    .valueOf());
+            () -> DSL.jsonExtract(DSL.literal("{\"a\":1}"), DSL.literal("$a")).valueOf());
     assertEquals(
-        "JSON path '\"$a\"' is not valid. Error details: Illegal character at position 1 expected"
+        "JSON path '$a' is not valid. Error details: Illegal character at position 1 expected"
             + " '.' or '['",
         invalidPathError.getMessage());
 
@@ -287,14 +281,13 @@ public class JsonFunctionsTest {
             SemanticCheckException.class,
             () ->
                 DSL.jsonExtract(
-                        DSL.literal(new ExprStringValue("{\"invalid\":\"json\", \"string\"}")),
-                        DSL.literal(new ExprStringValue("$.a")))
+                        DSL.literal("{\"invalid\":\"json\", \"string\"}"), DSL.literal("$.a"))
                     .valueOf());
     assertTrue(
         invalidJsonError
             .getMessage()
             .startsWith(
-                "JSON string '\"{\"invalid\":\"json\", \"string\"}\"' is not valid. Error"
+                "JSON string '{\"invalid\":\"json\", \"string\"}' is not valid. Error"
                     + " details:"));
   }
 
@@ -303,18 +296,21 @@ public class JsonFunctionsTest {
     // null path
     assertThrows(
         ExpressionEvaluationException.class,
-        () ->
-            DSL.jsonExtract(
-                    DSL.literal(new ExprStringValue("{\"a\":1}")), DSL.literal(LITERAL_NULL))
-                .valueOf());
+        () -> DSL.jsonExtract(DSL.literal("{\"a\":1}"), DSL.literal(LITERAL_NULL)).valueOf());
 
     // missing path
     assertThrows(
         ExpressionEvaluationException.class,
-        () ->
-            DSL.jsonExtract(
-                    DSL.literal(new ExprStringValue("{\"a\":1}")), DSL.literal(LITERAL_MISSING))
-                .valueOf());
+        () -> DSL.jsonExtract(DSL.literal("{\"a\":1}"), DSL.literal(LITERAL_MISSING)).valueOf());
+  }
+
+  @Test
+  void json_extract_search_list_of_paths() {
+    final String objectJson =
+        "{\"foo\": \"foo\", \"fuzz\": true, \"bar\": 1234, \"bar2\": 12.34, \"baz\": null, "
+            + "\"obj\": {\"internal\": \"value\"}, \"arr\": [\"string\", true, null]}";
+
+    execute_extract_json(LITERAL_NULL, objectJson, "($.foo, $bar2)");
   }
 
   private static void execute_extract_json(ExprValue expected, String json, String path) {

@@ -14,6 +14,7 @@ import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -88,7 +89,7 @@ public class JsonUtils {
    * @param path JSON path (e.g. "$.hello")
    * @return ExprValue of value at given path of json string.
    */
-  public static ExprValue extractJson(ExprValue json, ExprValue path) {
+  public static ExprValue extractJsonPath(ExprValue json, ExprValue path) {
     if (json == LITERAL_NULL || json == LITERAL_MISSING) {
       return json;
     }
@@ -96,21 +97,40 @@ public class JsonUtils {
     String jsonString = json.stringValue();
     String jsonPath = path.stringValue();
 
-    if (jsonString.isEmpty()) {
+    return extractJson(jsonString, jsonPath);
+  }
+
+  public static ExprValue extractJsonPaths(ExprValue json, ExprValue paths) {
+    List<ExprValue> pathList = paths.collectionValue();
+    List<ExprValue> resultList = new ArrayList<>();
+
+    for (ExprValue path : pathList) {
+      resultList.add(extractJsonPath(json, path));
+    }
+
+    return new ExprCollectionValue(resultList);
+  }
+
+  private static ExprValue extractJson(String json, String path) {
+    if (json.isEmpty() || json.equals("null")) {
       return LITERAL_NULL;
     }
 
     try {
-      Object results = JsonPath.parse(jsonString).read(jsonPath);
+      Object results = JsonPath.parse(json).read(path);
       return ExprValueUtils.fromObjectValue(results);
-    } catch (PathNotFoundException e) {
+    } catch (PathNotFoundException ignored) {
       return LITERAL_NULL;
-    } catch (InvalidPathException e) {
+    } catch (InvalidPathException invalidPathException) {
       final String errorFormat = "JSON path '%s' is not valid. Error details: %s";
-      throw new SemanticCheckException(String.format(errorFormat, path, e.getMessage()), e);
-    } catch (InvalidJsonException e) {
+      throw new SemanticCheckException(
+          String.format(errorFormat, path, invalidPathException.getMessage()),
+          invalidPathException);
+    } catch (InvalidJsonException invalidJsonException) {
       final String errorFormat = "JSON string '%s' is not valid. Error details: %s";
-      throw new SemanticCheckException(String.format(errorFormat, json, e.getMessage()), e);
+      throw new SemanticCheckException(
+          String.format(errorFormat, json, invalidJsonException.getMessage()),
+          invalidJsonException);
     }
   }
 
