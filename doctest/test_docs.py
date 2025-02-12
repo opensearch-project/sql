@@ -31,8 +31,7 @@ NESTED = "nested"
 DATASOURCES = ".ql-datasources"
 WEBLOGS = "weblogs"
 JSON_TEST = "json_test"
-EXPAND_FLATTEN = "expand"
-FLATTEN = "flatten"
+EXPAND_FLATTEN = "expand_flatten"
 
 class DocTestConnection(OpenSearchConnection):
 

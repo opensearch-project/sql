@@ -28,15 +28,15 @@ PPL query::
 
     os> source=expand_flatten | flatten location | fields city, country, province, coordinates, state
     fetched rows / total rows = 5/5
-    +------------------+---------------+------------------+-----------------------------------------------+------------+
-    | city             | country       | province         | coordinates                                   | state      |
-    |------------------+---------------+------------------+-----------------------------------------------+------------|
-    | Seattle          | United States | null             | {'latitude': 47.6061, 'longitude': -122.3328} | Washington |
-    | Vancouver        | Canada        | British Columbia | {'latitude': 49.2827, 'longitude': -123.1207} | null       |
-    | San Antonio      | United States | null             | {'latitude': 29.4252, 'longitude': -98.4946   | Texas      |
-    | Null City        | null          | null             | null                                          | null       |
-    | Missing City     | null          | null             | null                                          | null       |
-    +------------------+---------------+------------------+-----------------------------------------------+------------+
+    +--------------+---------------+------------------+-----------------------------------------------+------------+
+    | city         | country       | province         | coordinates                                   | state      |
+    |--------------+---------------+------------------+-----------------------------------------------+------------|
+    | Seattle      | United States | null             | {'latitude': 47.6061, 'longitude': -122.3328} | Washington |
+    | Vancouver    | Canada        | British Columbia | {'latitude': 49.2827, 'longitude': -123.1207} | null       |
+    | San Antonio  | United States | null             | {'latitude': 29.4252, 'longitude': -98.4946}  | Texas      |
+    | Null City    | null          | null             | null                                          | null       |
+    | Missing City | null          | null             | null                                          | null       |
+    +--------------+---------------+------------------+-----------------------------------------------+------------+
 
 Example 2: Flatten multiple object fields
 =========================================
@@ -67,7 +67,7 @@ PPL query::
     |--------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------|
     | Seattle      | {'coordinates': {'latitude': 47.6061, 'longitude': -122.3328}, 'country': 'United States', 'state': 'Washington', 'latitude': 47.6061, 'longitude': -122.3328}   |
     | Vancouver    | {'coordinates': {'latitude': 49.2827, 'longitude': -123.1207}, 'country': 'Canada', 'province': 'British Columbia', 'latitude': 49.2827, 'longitude': -123.1207} |
-    | San Antonio  | {'coordinates': {'latitude': 29.4252, 'longitude': -98.4946 }, 'country': 'United States', 'state': 'Texas', 'latitude': 29.4252, 'longitude': -98.4946}         |
+    | San Antonio  | {'coordinates': {'latitude': 29.4252, 'longitude': -98.4946}, 'country': 'United States', 'state': 'Texas', 'latitude': 29.4252, 'longitude': -98.4946}          |
     | Null City    | null                                                                                                                                                             |
     | Missing City | null                                                                                                                                                             |
     +--------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+

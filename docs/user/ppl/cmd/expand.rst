@@ -28,17 +28,17 @@ PPL query::
 
     os> source=expand_flatten | expand teams | fields city, teams.name
     fetched rows / total rows = 7/7
-    +--------------+--------------------+
-    | city         | teams.name         |
-    |--------------+--------------------|
-    | Seattle      | Seattle Seahawks   |
-    | Seattle      | Seattle Kraken     |
-    | Vancouver    | Vancouver Canucks  |
-    | Vancouver    | BC Lions           |
-    | San Antonio  | San Antonio Spurs  |
-    | Null City    | null               |
-    | Missing City | null               |
-    +--------------+--------------------+
+    +--------------+-------------------+
+    | city         | teams.name        |
+    |--------------+-------------------|
+    | Seattle      | Seattle Seahawks  |
+    | Seattle      | Seattle Kraken    |
+    | Vancouver    | Vancouver Canucks |
+    | Vancouver    | BC Lions          |
+    | San Antonio  | San Antonio Spurs |
+    | Null City    | null              |
+    | Missing City | null              |
+    +--------------+-------------------+
 
 Example 2: Expand a nested field
 =================================
@@ -47,15 +47,15 @@ PPL query::
 
     os> source=expand_flatten | where city = 'San Antonio' | expand teams.title | fields teams.name, teams.title
     fetched rows / total rows = 5/5
-    +-------------------+--------------+
-    | teams.name         | teams.title |
-    |-------------------+--------------|
-    | San Antonio Spurs | 1999         |
-    | San Antonio Spurs | 2003         |
-    | San Antonio Spurs | 2005         |
-    | San Antonio Spurs | 2007         |
-    | San Antonio Spurs | 2014         |
-    +-------------------+--------------+
+    +-------------------+-------------+
+    | teams.name        | teams.title |
+    |-------------------+-------------|
+    | San Antonio Spurs | 1999        |
+    | San Antonio Spurs | 2003        |
+    | San Antonio Spurs | 2005        |
+    | San Antonio Spurs | 2007        |
+    | San Antonio Spurs | 2014        |
+    +-------------------+-------------+
 
 Example 3: Expand multiple fields
 ==================================
@@ -64,26 +64,26 @@ PPL query::
 
     os> source=expand_flatten | expand teams | expand teams.title | fields teams.name, teams.title
     fetched rows / total rows = 16/16
-    +-------------------+--------------+
-    | teams.name         | teams.title |
-    |-------------------+--------------|
-    | Seattle Seahawks  | 2014         |
-    | Seattle Kraken    | null         |
-    | Vancouver Canucks | null         |
-    | BC Lions          | 1964         |
-    | BC Lions          | 1985         |
-    | BC Lions          | 1994         |
-    | BC Lions          | 2000         |
-    | BC Lions          | 2006         |
-    | BC Lions          | 2011         |
-    | San Antonio Spurs | 1999         |
-    | San Antonio Spurs | 2003         |
-    | San Antonio Spurs | 2005         |
-    | San Antonio Spurs | 2007         |
-    | San Antonio Spurs | 2014         |
-    | null              | null         |
-    | null              | null         |
-    +-------------------+--------------+
+    +-------------------+-------------+
+    | teams.name        | teams.title |
+    |-------------------+-------------|
+    | Seattle Seahawks  | 2014        |
+    | Seattle Kraken    | null        |
+    | Vancouver Canucks | null        |
+    | BC Lions          | 1964        |
+    | BC Lions          | 1985        |
+    | BC Lions          | 1994        |
+    | BC Lions          | 2000        |
+    | BC Lions          | 2006        |
+    | BC Lions          | 2011        |
+    | San Antonio Spurs | 1999        |
+    | San Antonio Spurs | 2003        |
+    | San Antonio Spurs | 2005        |
+    | San Antonio Spurs | 2007        |
+    | San Antonio Spurs | 2014        |
+    | null              | null        |
+    | null              | null        |
+    +-------------------+-------------+
 
 Example 4: Expand and flatten a field
 =====================================
