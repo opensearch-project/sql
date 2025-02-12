@@ -9,6 +9,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import lombok.experimental.UtilityClass;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -16,6 +18,7 @@ import org.opensearch.sql.data.type.ExprType;
 
 @UtilityClass
 public class JdbcUtil {
+  private static final Logger LOG = LogManager.getLogger();
 
   public static ExprType getExprTypeFromSqlType(int sqlType) {
     switch (sqlType) {
@@ -38,8 +41,10 @@ public class JdbcUtil {
       case Types.VARCHAR:
       case Types.CHAR:
       case Types.LONGVARCHAR:
-      default:
         return ExprCoreType.STRING;
+      default:
+        // TODO unchecked OpenSearchDataType
+        return ExprCoreType.UNKNOWN;
     }
   }
 
@@ -79,6 +84,10 @@ public class JdbcUtil {
         break;
       default:
         value = rs.getObject(i);
+        LOG.warn(
+            "Unchecked sql type: {}, return Object type {}",
+            sqlType,
+            value.getClass().getTypeName());
     }
     return ExprValueUtils.fromObjectValue(value);
   }

@@ -115,7 +115,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
         actual);
   }
 
-  @org.junit.Test
+  @Test
   public void testMultipleAggregatesWithAliases() {
     String actual =
         execute(
@@ -153,6 +153,150 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
             + "  ],\n"
             + "  \"total\": 1,\n"
             + "  \"size\": 1\n"
+            + "}",
+        actual);
+  }
+
+  @Test
+  public void testAvgByField() {
+    String actual =
+        execute(String.format("source=%s | stats avg(balance) by gender", TEST_INDEX_BANK));
+    assertEquals(
+        "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"gender\",\n"
+            + "      \"type\": \"string\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"name\": \"avg(balance)\",\n"
+            + "      \"type\": \"double\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      \"F\",\n"
+            + "      40488.0\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"M\",\n"
+            + "      16377.25\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 2,\n"
+            + "  \"size\": 2\n"
+            + "}",
+        actual);
+  }
+
+  @org.junit.Test
+  public void testAvgBySpan() {
+    String actual =
+        execute(String.format("source=%s | stats avg(balance) by span(age, 10)", TEST_INDEX_BANK));
+    assertEquals(
+        "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"span(age,10)\",\n"
+            + "      \"type\": \"double\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"name\": \"avg(balance)\",\n"
+            + "      \"type\": \"double\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      20.0,\n"
+            + "      32838.0\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      30.0,\n"
+            + "      25689.166666666668\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 2,\n"
+            + "  \"size\": 2\n"
+            + "}",
+        actual);
+  }
+
+  @Test
+  public void testAvgBySpanAndFields() {
+    String actual =
+        execute(
+            String.format(
+                "source=%s | stats avg(balance) by span(age, 10) as age_span, gender",
+                TEST_INDEX_BANK));
+    assertEquals(
+        "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"gender\",\n"
+            + "      \"type\": \"string\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"name\": \"age_span\",\n"
+            + "      \"type\": \"double\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"name\": \"avg(balance)\",\n"
+            + "      \"type\": \"double\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      \"F\",\n"
+            + "      30.0,\n"
+            + "      44313.0\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"M\",\n"
+            + "      30.0,\n"
+            + "      16377.25\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"F\",\n"
+            + "      20.0,\n"
+            + "      32838.0\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 3,\n"
+            + "  \"size\": 3\n"
+            + "}",
+        actual);
+  }
+
+  // TODO fallback to V2 because missing conversion LogicalAggregate[convention: NONE -> ENUMERABLE]
+  @Test
+  public void testCountDistinct() {
+    String actual =
+        execute(
+            String.format("source=%s | stats distinct_count(state) by gender", TEST_INDEX_BANK));
+    assertEquals(
+        "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"distinct_count(state)\",\n"
+            + "      \"type\": \"integer\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"name\": \"gender\",\n"
+            + "      \"type\": \"string\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      3,\n"
+            + "      \"f\"\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      4,\n"
+            + "      \"m\"\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 2,\n"
+            + "  \"size\": 2\n"
             + "}",
         actual);
   }
