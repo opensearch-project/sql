@@ -127,8 +127,13 @@ public class TrendlineOperator extends PhysicalPlan {
     protected final Queue<ExprValue> receivedValues;
 
     private TrendlineAccumulator(Trendline.TrendlineComputation config) {
-      this.dataPointsNeeded = DSL.literal(config.getNumberOfDataPoints().doubleValue());
-      this.receivedValues = EvictingQueue.create(config.getNumberOfDataPoints());
+      Integer numberOfDataPoints = config.getNumberOfDataPoints();
+      if (numberOfDataPoints <=0) {
+        throw new IllegalArgumentException(
+                String.format("Invalid dataPoints [%d] value.", numberOfDataPoints));
+      };
+      this.dataPointsNeeded = DSL.literal(numberOfDataPoints.doubleValue());
+      this.receivedValues = EvictingQueue.create(numberOfDataPoints);
     }
 
     abstract void accumulate(ExprValue value);

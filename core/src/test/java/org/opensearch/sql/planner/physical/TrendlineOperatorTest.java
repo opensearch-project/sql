@@ -828,13 +828,35 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
   public void use_illegal_core_type_wma() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> {
-          new TrendlineOperator(
-              inputPlan,
-              Collections.singletonList(
-                  Pair.of(
-                      AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
-                      ExprCoreType.ARRAY)));
-        });
+        () -> new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
+                    ExprCoreType.ARRAY))));
+  }
+
+  @Test
+  public void use_invalid_dataPoints_zero() {
+    assertThrows(
+            IllegalArgumentException.class,
+            () -> new TrendlineOperator(
+                    inputPlan,
+                    Collections.singletonList(
+                            Pair.of(
+                                    AstDSL.computation(0, AstDSL.field("distance"), "distance_alias", WMA),
+                                    ExprCoreType.INTEGER))));
+  }
+
+  @Test
+  public void use_invalid_dataPoints_negative() {
+    assertThrows(
+            IllegalArgumentException.class,
+            () -> new TrendlineOperator(
+                    inputPlan,
+                    Collections.singletonList(
+                            Pair.of(
+                                    AstDSL.computation(-100, AstDSL.field("distance"), "distance_alias", WMA),
+                                    ExprCoreType.INTEGER))));
   }
 }
