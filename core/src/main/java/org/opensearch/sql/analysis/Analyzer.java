@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
-import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Argument;
@@ -337,11 +336,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment newEnv = context.peek();
     aggregators.forEach(
         aggregator ->
-            newEnv.define(
-                new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));
+            newEnv.define(new Symbol(FIELD_NAME, aggregator.getName()), aggregator.type()));
     groupBys.forEach(
-        group ->
-            newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
+        group -> newEnv.define(new Symbol(FIELD_NAME, group.getNameOrAlias()), group.type()));
     return new LogicalAggregation(child, aggregators, groupBys);
   }
 
@@ -366,9 +363,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     context.push();
     TypeEnvironment newEnv = context.peek();
     groupBys.forEach(
-        group -> newEnv.define(new Symbol(Namespace.FIELD_NAME, group.toString()), group.type()));
-    fields.forEach(
-        field -> newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));
+        group -> newEnv.define(new Symbol(FIELD_NAME, group.toString()), group.type()));
+    fields.forEach(field -> newEnv.define(new Symbol(FIELD_NAME, field.toString()), field.type()));
 
     List<Argument> options = node.getNoOfResults();
     Integer noOfResults = (Integer) options.get(0).getValue().getValue();
@@ -434,8 +430,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     context.push();
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(
-        expr ->
-            newEnv.define(new Symbol(Namespace.FIELD_NAME, expr.getNameOrAlias()), expr.type()));
+        expr -> newEnv.define(new Symbol(FIELD_NAME, expr.getNameOrAlias()), expr.type()));
     List<NamedExpression> namedParseExpressions = context.getNamedParseExpressions();
     return new LogicalProject(child, namedExpressions, namedParseExpressions);
   }
@@ -457,7 +452,37 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalEval(child, expressionsBuilder.build());
   }
 
-  /** Builds and returns a {@link LogicalExpand} corresponding to the given expand node. */
+  /**
+   * Builds and returns a {@link LogicalExpand} corresponding to the given expand node.
+   *
+   * <p><b>Example</b>
+   *
+   * <p>Input Data:
+   *
+   * <pre>
+   * [
+   *    {
+   *       collection: [ "value_1", "value_2" ],
+   *       integer: 0
+   *      }
+   * ]
+   * </pre>
+   *
+   * Query: <code>expand collection</code>
+   *
+   * <pre>
+   * [
+   *    {
+   *       collection: "value_1",
+   *       integer: 0
+   *    },
+   *    {
+   *       collection: "value_2",
+   *       integer: 0
+   *    }
+   * ]
+   * </pre>
+   */
   @Override
   public LogicalPlan visitExpand(Expand node, AnalysisContext context) {
     LogicalPlan child = node.getChild().getFirst().accept(this, context);
@@ -475,37 +500,43 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
    * <p>Input Data:
    *
    * <pre>
-   * {
-   *   struct: {
-   *     integer: 0,
-   *     nested_struct: { string: "value" }
-   *   }
-   * }
+   * [
+   *    {
+   *       struct: {
+   *         integer: 0,
+   *         nested_struct: { string: "value" }
+   *       }
+   *    }
+   * ]
    * </pre>
    *
    * Query 1: <code>flatten struct</code>
    *
    * <pre>
-   * {
-   *   struct: {
-   *     integer: 0,
-   *     nested_struct: { string: "value" }
-   *   },
-   *   integer: 0,
-   *   nested_struct: { string: "value" }
-   * }
+   * [
+   *    {
+   *       struct: {
+   *         integer: 0,
+   *         nested_struct: { string: "value" }
+   *       },
+   *       integer: 0,
+   *       nested_struct: { string: "value" }
+   *    }
+   * ]
    * </pre>
    *
    * Query 2: <code>flatten struct.nested_struct</code>
    *
    * <pre>
-   * {
-   *   struct: {
-   *     integer: 0,
-   *     nested_struct: { string: "value" },
-   *     string: "value"
-   *   }
-   * }
+   * [
+   *    {
+   *       struct: {
+   *         integer: 0,
+   *         nested_struct: { string: "value" },
+   *         string: "value"
+   *       }
+   *    }
+   * ]
    * </pre>
    */
   @Override

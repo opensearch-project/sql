@@ -31,7 +31,7 @@ NESTED = "nested"
 DATASOURCES = ".ql-datasources"
 WEBLOGS = "weblogs"
 JSON_TEST = "json_test"
-EXPAND = "expand"
+EXPAND_FLATTEN = "expand"
 FLATTEN = "flatten"
 
 class DocTestConnection(OpenSearchConnection):
@@ -121,8 +121,7 @@ def set_up_test_indices(test):
     load_file("apache.json", index_name=APACHE)
     load_file("books.json", index_name=BOOKS)
     load_file("datasources.json", index_name=DATASOURCES)
-    load_file("expand.json", index_name=EXPAND)
-    load_file("flatten.json", index_name=FLATTEN)
+    load_file("expand_flatten.json", index_name=EXPAND_FLATTEN)
     load_file("json_test.json", index_name=JSON_TEST)
     load_file("nested_objects.json", index_name=NESTED)
     load_file("nyc_taxi.json", index_name=NYC_TAXI)
@@ -162,8 +161,7 @@ def tear_down(test):
         APACHE,
         BOOKS,
         EMPLOYEES,
-        EXPAND,
-        FLATTEN,
+        EXPAND_FLATTEN,
         JSON_TEST,
         NESTED,
         NYC_TAXI,

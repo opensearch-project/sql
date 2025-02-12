@@ -34,8 +34,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_DOG3 = TEST_INDEX + "_dog3";
   public static final String TEST_INDEX_DOGSUBQUERY = TEST_INDEX + "_subquery";
   public static final String TEST_INDEX_EMPLOYEE_NESTED = TEST_INDEX + "_employee_nested";
-  public static final String TEST_INDEX_EXPAND = TEST_INDEX + "_expand";
-  public static final String TEST_INDEX_FLATTEN = TEST_INDEX + "_flatten";
+  public static final String TEST_INDEX_EXPAND_FLATTEN = TEST_INDEX + "_expand_flatten";
   public static final String TEST_INDEX_GAME_OF_THRONES = TEST_INDEX + "_game_of_thrones";
   public static final String TEST_INDEX_GEOIP = TEST_INDEX + "_geoip";
   public static final String TEST_INDEX_GEOPOINT = TEST_INDEX + "_geopoint";

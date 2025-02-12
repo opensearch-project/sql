@@ -1,5 +1,0 @@
-{"city": "Seattle", "team":[{"name": "Seattle Seahawks", "title": 2014}, {"name": "Seattle Kraken", "title": null}]}
-{"city": "Vancouver", "team":[{"name": "Vancouver Canucks", "title": null}, {"name": "BC Lions", "title": [1964, 1985, 1994, 2000, 2006, 2011]}]}
-{"city": "San Antonio", "team": {"name": "San Antonio Spurs", "title": [1999, 2003, 2005, 2007, 2014]}}
-{"city": "Null Team", "team": null}
-{"city": "Missing Team"}

@@ -26,15 +26,16 @@ Example 1: Flatten an object field
 
 PPL query::
 
-    os> source=flatten | flatten location | fields name, country, province, coordinates, state
-    fetched rows / total rows = 4/4
+    os> source=expand_flatten | flatten location | fields city, country, province, coordinates, state
+    fetched rows / total rows = 5/5
     +------------------+---------------+------------------+-----------------------------------------------+------------+
-    | name             | country       | province         | coordinates                                   | state      |
+    | city             | country       | province         | coordinates                                   | state      |
     |------------------+---------------+------------------+-----------------------------------------------+------------|
     | Seattle          | United States | null             | {'latitude': 47.6061, 'longitude': -122.3328} | Washington |
     | Vancouver        | Canada        | British Columbia | {'latitude': 49.2827, 'longitude': -123.1207} | null       |
-    | Null Location    | null          | null             | null                                          | null       |
-    | Null Coordinates | Australia     | null             | null                                          | Victoria   |
+    | San Antonio      | United States | null             | {'latitude': 29.4252, 'longitude': -98.4946   | Texas      |
+    | Null City        | null          | null             | null                                          | null       |
+    | Missing City     | null          | null             | null                                          | null       |
     +------------------+---------------+------------------+-----------------------------------------------+------------+
 
 Example 2: Flatten multiple object fields
@@ -42,39 +43,41 @@ Example 2: Flatten multiple object fields
 
 PPL query::
 
-    os> source=flatten | flatten location | flatten coordinates | fields name, location, latitude, longitude
-    fetched rows / total rows = 4/4
-    +------------------+---------------------------------------------------------------------------------------------------------------------+----------+-----------+
-    | name             | location                                                                                                            | latitude | longitude |
-    |------------------+---------------------------------------------------------------------------------------------------------------------+----------+-----------|
-    | Seattle          | {'state': 'Washington', 'country': 'United States', 'coordinates': {'latitude': 47.6061, 'longitude': -122.3328}}   | 47.6061  | -122.3328 |
-    | Vancouver        | {'province': 'British Columbia', 'country': 'Canada', 'coordinates': {'latitude': 49.2827, 'longitude': -123.1207}} | 49.2827  | -123.1207 |
-    | Null Location    | null                                                                                                                | null     | null      |
-    | Null Coordinates | {'state': 'Victoria', 'country': 'Australia'}                                                                       | null     | null      |
-    +------------------+---------------------------------------------------------------------------------------------------------------------+----------+-----------+
+    os> source=expand_flatten | flatten location | flatten coordinates | fields city, location, latitude, longitude
+    fetched rows / total rows = 5/5
+    +--------------+---------------------------------------------------------------------------------------------------------------------+----------+-----------+
+    | city         | location                                                                                                            | latitude | longitude |
+    |--------------+---------------------------------------------------------------------------------------------------------------------+----------+-----------|
+    | Seattle      | {'state': 'Washington', 'country': 'United States', 'coordinates': {'latitude': 47.6061, 'longitude': -122.3328}}   | 47.6061  | -122.3328 |
+    | Vancouver    | {'province': 'British Columbia', 'country': 'Canada', 'coordinates': {'latitude': 49.2827, 'longitude': -123.1207}} | 49.2827  | -123.1207 |
+    | San Antonio  | {'state': 'Texas', 'country': 'United States', 'coordinates': {'latitude': 29.4252, 'longitude': -98.4946}}         | 29.4252  | -98.4946  |
+    | Null City    | null                                                                                                                | null     | null      |
+    | Missing City | null                                                                                                                | null     | null      |
+    +--------------+---------------------------------------------------------------------------------------------------------------------+----------+-----------+
 
 Example 3: Flatten a nested object field
 ========================================
 
 PPL query::
 
-    os> source=flatten | flatten location.coordinates | fields name, location
-    fetched rows / total rows = 4/4
-    +------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | name             | location                                                                                                                                                         |
-    |------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-    | Seattle          | {'coordinates': {'latitude': 47.6061, 'longitude': -122.3328}, 'country': 'United States', 'state': 'Washington', 'latitude': 47.6061, 'longitude': -122.3328}   |
-    | Vancouver        | {'coordinates': {'latitude': 49.2827, 'longitude': -123.1207}, 'country': 'Canada', 'province': 'British Columbia', 'latitude': 49.2827, 'longitude': -123.1207} |
-    | Null Location    | null                                                                                                                                                             |
-    | Null Coordinates | {'state': 'Victoria', 'country': 'Australia'}                                                                                                                    |
-    +------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    os> source=expand_flatten | flatten location.coordinates | fields city, location
+    fetched rows / total rows = 5/5
+    +--------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | city         | location                                                                                                                                                         |
+    |--------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | Seattle      | {'coordinates': {'latitude': 47.6061, 'longitude': -122.3328}, 'country': 'United States', 'state': 'Washington', 'latitude': 47.6061, 'longitude': -122.3328}   |
+    | Vancouver    | {'coordinates': {'latitude': 49.2827, 'longitude': -123.1207}, 'country': 'Canada', 'province': 'British Columbia', 'latitude': 49.2827, 'longitude': -123.1207} |
+    | San Antonio  | {'coordinates': {'latitude': 29.4252, 'longitude': -98.4946 }, 'country': 'United States', 'state': 'Texas', 'latitude': 29.4252, 'longitude': -98.4946}         |
+    | Null City    | null                                                                                                                                                             |
+    | Missing City | null                                                                                                                                                             |
+    +--------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Example 4: Flatten and expand an object field
 =============================================
 
 PPL query::
 
-    os> source=expand | where city = 'San Antonio' | flatten team | expand title | fields name, title
+    os> source=expand_flatten | where city = 'San Antonio' | flatten teams | expand title | fields name, title
     fetched rows / total rows = 5/5
     +-------------------+-------+
     | name              | title |

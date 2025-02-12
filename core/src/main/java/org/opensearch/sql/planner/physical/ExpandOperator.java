@@ -12,16 +12,19 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
+import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
 
-/** Flattens the specified field from the input and returns the result. */
+/** Expands the specified field from the input and returns the result. */
 @Getter
 @ToString
 @RequiredArgsConstructor
@@ -31,7 +34,7 @@ public class ExpandOperator extends PhysicalPlan {
   private final PhysicalPlan input;
   private final ReferenceExpression field;
 
-  private LinkedList<ExprValue> expandedRows = new LinkedList<>();
+  private Queue<ExprValue> expandedRows = new LinkedList<>();
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
@@ -54,17 +57,16 @@ public class ExpandOperator extends PhysicalPlan {
 
   @Override
   public ExprValue next() {
-    return expandedRows.removeFirst();
+    return expandedRows.remove();
   }
 
   /**
-   * Expands the nested {@link org.opensearch.sql.data.model.ExprCollectionValueValue} value with
-   * the specified qualified name within the given root value, and returns the results. If the root
-   * value does not contain a nested value with the qualified name, if the nested value is null or
-   * missing, or if the nested value in not an {@link
-   * org.opensearch.sql.data.model.ExprCollectionValueValue}, returns the unmodified root value.
-   * Raises {@link org.opensearch.sql.exception.SemanticCheckException} if the root value is not an
-   * {@link org.opensearch.sql.data.model.ExprTupleValue}.
+   * Expands the nested {@link ExprCollectionValue} with the specified qualified name within the
+   * given root value, and returns the results. If the root value does not contain a nested value
+   * with the qualified name, if the nested value is null or missing, or if the nested value in not
+   * an {@link ExprCollectionValue}, returns the unmodified root value.
+   *
+   * @throws SemanticCheckException if the root value is not an {@link ExprTupleValue}.
    */
   private static List<ExprValue> expandNestedExprValue(
       ExprValue rootExprValue, String qualifiedName) {

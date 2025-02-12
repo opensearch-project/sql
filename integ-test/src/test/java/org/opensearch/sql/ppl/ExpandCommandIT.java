@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_EXPAND;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_EXPAND_FLATTEN;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -21,16 +21,17 @@ public class ExpandCommandIT extends PPLIntegTestCase {
 
   @Override
   public void init() throws IOException {
-    loadIndex(Index.EXPAND);
+    loadIndex(Index.EXPAND_FLATTEN);
   }
 
   @Test
   public void testBasic() throws IOException {
     String query =
-        StringUtils.format("source=%s | expand team | fields city, team.name", TEST_INDEX_EXPAND);
+        StringUtils.format(
+            "source=%s | expand teams | fields city, teams.name", TEST_INDEX_EXPAND_FLATTEN);
     JSONObject result = executeQuery(query);
 
-    verifySchema(result, schema("city", "string"), schema("team.name", "string"));
+    verifySchema(result, schema("city", "string"), schema("teams.name", "string"));
     verifyDataRows(
         result,
         rows("Seattle", "Seattle Seahawks"),
@@ -38,20 +39,20 @@ public class ExpandCommandIT extends PPLIntegTestCase {
         rows("Vancouver", "Vancouver Canucks"),
         rows("Vancouver", "BC Lions"),
         rows("San Antonio", "San Antonio Spurs"),
-        rows("Null Team", null),
-        rows("Missing Team", null));
+        rows("Null City", null),
+        rows("Missing City", null));
   }
 
   @Test
   public void testNested() throws IOException {
     String query =
         StringUtils.format(
-            "source=%s | where city = 'San Antonio' | expand team.title | fields team.name,"
-                + " team.title",
-            TEST_INDEX_EXPAND);
+            "source=%s | where city = 'San Antonio' | expand teams.title | fields teams.name,"
+                + " teams.title",
+            TEST_INDEX_EXPAND_FLATTEN);
     JSONObject result = executeQuery(query);
 
-    verifySchema(result, schema("team.name", "string"), schema("team.title", "integer"));
+    verifySchema(result, schema("teams.name", "string"), schema("teams.title", "integer"));
     verifyDataRows(
         result,
         rows("San Antonio Spurs", 1999),
@@ -65,11 +66,11 @@ public class ExpandCommandIT extends PPLIntegTestCase {
   public void testMultiple() throws IOException {
     String query =
         StringUtils.format(
-            "source=%s | expand team | expand team.title | fields team.name, team.title",
-            TEST_INDEX_EXPAND);
+            "source=%s | expand teams | expand teams.title | fields teams.name, teams.title",
+            TEST_INDEX_EXPAND_FLATTEN);
     JSONObject result = executeQuery(query);
 
-    verifySchema(result, schema("team.name", "string"), schema("team.title", "integer"));
+    verifySchema(result, schema("teams.name", "string"), schema("teams.title", "integer"));
     verifyDataRows(
         result,
         rows("Seattle Seahawks", 2014),
@@ -94,7 +95,8 @@ public class ExpandCommandIT extends PPLIntegTestCase {
   public void testExpandFlatten() throws IOException {
     String query =
         StringUtils.format(
-            "source=%s | expand team | flatten team | fields name, title", TEST_INDEX_EXPAND);
+            "source=%s | expand teams | flatten teams | fields name, title",
+            TEST_INDEX_EXPAND_FLATTEN);
     JSONObject result = executeQuery(query);
 
     verifySchema(result, schema("name", "string"), schema("title", "integer"));

@@ -1,7 +1,7 @@
 {
   "mappings": {
     "properties": {
-      "name": {
+      "city": {
         "type": "keyword"
       },
       "location": {
@@ -26,6 +26,16 @@
                 "type": "double"
               }
             }
+          }
+        }
+      },
+      "teams": {
+        "properties": {
+          "name": {
+            "type":"keyword"
+          },
+          "title": {
+            "type": "integer"
           }
         }
       }

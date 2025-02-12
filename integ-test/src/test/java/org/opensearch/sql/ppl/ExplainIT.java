@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_EXPAND;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_FLATTEN;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_EXPAND_FLATTEN;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 
 import com.google.common.io.Resources;
@@ -22,8 +21,7 @@ public class ExplainIT extends PPLIntegTestCase {
   @Override
   public void init() throws IOException {
     loadIndex(Index.ACCOUNT);
-    loadIndex(Index.EXPAND);
-    loadIndex(Index.FLATTEN);
+    loadIndex(Index.EXPAND_FLATTEN);
   }
 
   @Test
@@ -133,7 +131,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExpand() throws Exception {
-    String query = StringUtils.format("source=%s | expand team", TEST_INDEX_EXPAND);
+    String query = StringUtils.format("source=%s | expand team", TEST_INDEX_EXPAND_FLATTEN);
     String actual = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/ppl/explain_expand.json");
     assertJsonEquals(expected, actual);
@@ -141,7 +139,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFlatten() throws Exception {
-    String query = StringUtils.format("source=%s | flatten location", TEST_INDEX_FLATTEN);
+    String query = StringUtils.format("source=%s | flatten location", TEST_INDEX_EXPAND_FLATTEN);
     String actual = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/ppl/explain_flatten.json");
     assertJsonEquals(expected, actual);

@@ -20,7 +20,7 @@ import org.opensearch.sql.storage.bindingtuple.LazyBindingTuple;
 @RequiredArgsConstructor
 public class ExprTupleValue extends AbstractExprValue {
 
-  private final Map<String, ExprValue> valueMap;
+  private final LinkedHashMap<String, ExprValue> valueMap;
 
   public static ExprTupleValue fromExprValueMap(Map<String, ExprValue> map) {
     LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>(map);

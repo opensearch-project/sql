@@ -52,8 +52,8 @@ public class FlattenOperator extends PhysicalPlan {
    * Flattens the nested {@link ExprTupleValue} with the specified qualified name within the given
    * root value, and returns the result. If the root value does not contain a nested value with the
    * qualified name, or if the nested value is null or missing, returns the unmodified root value.
-   * Raises {@link org.opensearch.sql.exception.SemanticCheckException} if the root value or nested
-   * value is not an {@link ExprTupleValue}.
+   *
+   * @throws SemanticCheckException if the root or nested value is not an {@link ExprTupleValue}.
    */
   private static ExprValue flattenNestedExprValue(ExprValue rootExprValue, String qualifiedName) {
 

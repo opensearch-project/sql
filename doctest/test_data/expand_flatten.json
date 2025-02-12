@@ -1,0 +1,5 @@
+{"city": "Seattle", "location": { "state": "Washington", "country": "United States", "coordinates": {"latitude": 47.6061, "longitude": -122.3328}}, "teams":[{"name": "Seattle Seahawks", "title": 2014}, {"name": "Seattle Kraken", "title": null}]}
+{"city": "Vancouver", "location": { "province": "British Columbia", "country": "Canada", "coordinates": {"latitude": 49.2827, "longitude": -123.1207}}, "teams":[{"name": "Vancouver Canucks", "title": null}, {"name": "BC Lions", "title": [1964, 1985, 1994, 2000, 2006, 2011]}]}
+{"city": "San Antonio", "location": { "state": "Texas", "country": "United States", "coordinates": {"latitude": 29.4252, "longitude": -98.4946}}, "teams": {"name": "San Antonio Spurs", "title": [1999, 2003, 2005, 2007, 2014]}}
+{"city": "Null City", "location": null, "teams": null}
+{"city": "Missing City"}

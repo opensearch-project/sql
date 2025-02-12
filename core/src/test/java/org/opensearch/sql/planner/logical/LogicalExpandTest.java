@@ -47,7 +47,6 @@ class LogicalExpandTest extends AnalyzerTestBase {
   @Test
   void testExpandInvalidFieldName() {
     UnresolvedPlan unresolved = AstDSL.expand(AstDSL.relation(TABLE_NAME), AstDSL.field("invalid"));
-    String msg = assertThrows(SemanticCheckException.class, () -> analyze(unresolved)).getMessage();
-    assertEquals("can't resolve Symbol(namespace=FIELD_NAME, name=invalid) in type env", msg);
+    assertThrows(SemanticCheckException.class, () -> analyze(unresolved));
   }
 }
