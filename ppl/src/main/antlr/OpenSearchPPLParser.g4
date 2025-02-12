@@ -51,6 +51,7 @@ commands
    | mlCommand
    | fillnullCommand
    | trendlineCommand
+   | fieldsummaryCommand
    ;
 
 searchCommand
@@ -193,6 +194,14 @@ mlCommand
 
 mlArg
    : (argName = ident EQUAL argValue = literalValue)
+   ;
+
+fieldsummaryCommand
+   : FIELDSUMMARY (fieldsummaryParameter)*
+   ;
+
+fieldsummaryParameter
+   : INCLUDEFIELDS EQUAL fieldList          # fieldsummaryIncludeFields
    ;
 
 // clauses

@@ -26,7 +26,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,7 +42,6 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -50,6 +51,7 @@ import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FieldSummary;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
@@ -72,6 +74,7 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -93,6 +96,7 @@ import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
+import org.opensearch.sql.planner.logical.LogicalFieldSummary;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalML;
@@ -277,7 +281,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> renameMapBuilder =
         new ImmutableMap.Builder<>();
-    for (Map renameMap : node.getRenameList()) {
+    for (org.opensearch.sql.ast.expression.Map renameMap : node.getRenameList()) {
       Expression origin = expressionAnalyzer.analyze(renameMap.getOrigin(), context);
       // We should define the new target field in the context instead of analyze it.
       if (renameMap.getTarget() instanceof Field) {
@@ -334,6 +338,70 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         group ->
             newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
     return new LogicalAggregation(child, aggregators, groupBys);
+  }
+
+  @Override
+  public LogicalPlan visitFieldSummary(FieldSummary node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().getFirst().accept(this, context);
+
+    TypeEnvironment env = context.peek();
+    Map<String, ExprType> fieldsMap = env.lookupAllFields(Namespace.FIELD_NAME);
+
+    if (node.getIncludeFields() != null) {
+      List<String> includeFields =
+          node.getIncludeFields().stream()
+              .map(expr -> ((Field) expr).getField().toString())
+              .toList();
+
+      Map<String, ExprType> filteredFields = new HashMap<>();
+      for (String field : includeFields) {
+        if (fieldsMap.containsKey(field)) {
+          filteredFields.put(field, fieldsMap.get(field));
+        }
+      }
+      fieldsMap = filteredFields;
+    }
+
+    ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
+    Map<String, Map.Entry<String, ExprType>> aggregatorToFieldNameMap = new HashMap<>();
+
+    for (Map.Entry<String, ExprType> entry : fieldsMap.entrySet()) {
+      ExprType fieldType = entry.getValue();
+      String fieldName = entry.getKey();
+      ReferenceExpression fieldExpression = DSL.ref(fieldName, fieldType);
+
+      aggregatorBuilder.add(new NamedAggregator("Count" + fieldName, DSL.count(fieldExpression)));
+      aggregatorToFieldNameMap.put("Count" + fieldName, entry);
+      aggregatorBuilder.add(
+          new NamedAggregator("Distinct" + fieldName, DSL.distinctCount(fieldExpression)));
+      aggregatorToFieldNameMap.put("Distinct" + fieldName, entry);
+
+      if (ExprCoreType.numberTypes().contains(fieldType)) {
+        aggregatorBuilder.add(new NamedAggregator("Max" + fieldName, DSL.max(fieldExpression)));
+        aggregatorToFieldNameMap.put("Max" + fieldName, entry);
+        aggregatorBuilder.add(new NamedAggregator("Min" + fieldName, DSL.min(fieldExpression)));
+        aggregatorToFieldNameMap.put("Min" + fieldName, entry);
+        aggregatorBuilder.add(new NamedAggregator("Avg" + fieldName, DSL.avg(fieldExpression)));
+        aggregatorToFieldNameMap.put("Avg" + fieldName, entry);
+      }
+    }
+
+    ImmutableList<NamedAggregator> aggregators = aggregatorBuilder.build();
+    ImmutableList<NamedExpression> groupBys = new ImmutableList.Builder<NamedExpression>().build();
+
+    // new context
+    context.push();
+    TypeEnvironment newEnv = context.peek();
+
+    newEnv.define(new Symbol(Namespace.FIELD_NAME, "Field"), ExprCoreType.STRING);
+    newEnv.define(new Symbol(Namespace.FIELD_NAME, "Count"), ExprCoreType.INTEGER);
+    newEnv.define(new Symbol(Namespace.FIELD_NAME, "Distinct"), ExprCoreType.INTEGER);
+    newEnv.define(new Symbol(Namespace.FIELD_NAME, "Avg"), ExprCoreType.DOUBLE);
+    newEnv.define(new Symbol(Namespace.FIELD_NAME, "Max"), ExprCoreType.DOUBLE);
+    newEnv.define(new Symbol(Namespace.FIELD_NAME, "Min"), ExprCoreType.DOUBLE);
+    newEnv.define(new Symbol(Namespace.FIELD_NAME, "Type"), ExprCoreType.STRING);
+
+    return new LogicalFieldSummary(child, aggregators, groupBys, aggregatorToFieldNameMap);
   }
 
   /** Build {@link LogicalRareTopN}. */

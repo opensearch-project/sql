@@ -38,6 +38,10 @@ ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 TRENDLINE:                          'TRENDLINE';
 
+// FIELDSUMMARY keywords
+FIELDSUMMARY:                       'FIELDSUMMARY';
+INCLUDEFIELDS:                      'INCLUDEFIELDS';
+
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
 BY:                                 'BY';

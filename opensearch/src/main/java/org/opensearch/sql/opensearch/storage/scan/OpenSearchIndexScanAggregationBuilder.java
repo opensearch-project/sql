@@ -6,12 +6,14 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -21,6 +23,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalFieldSummary;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalSort;
 
@@ -37,8 +40,17 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
   /** Grouping items pushed down. */
   private final List<NamedExpression> groupByList;
 
+  /** Is aggregation performing a fieldsumary aggregation */
+  private Map<String, Map.Entry<String, ExprType>> aggregationToFieldNameMap;
+
   /** Sorting items pushed down. */
   private List<Pair<Sort.SortOption, Expression>> sortList;
+
+  OpenSearchIndexScanAggregationBuilder(
+      OpenSearchRequestBuilder requestBuilder, LogicalFieldSummary aggregation) {
+    this(requestBuilder, (LogicalAggregation) aggregation);
+    aggregationToFieldNameMap = aggregation.getAggregationToFieldNameMap();
+  }
 
   OpenSearchIndexScanAggregationBuilder(
       OpenSearchRequestBuilder requestBuilder, LogicalAggregation aggregation) {
@@ -52,9 +64,13 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
     AggregationQueryBuilder builder =
         new AggregationQueryBuilder(new DefaultExpressionSerializer());
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
-        builder.buildAggregationBuilder(aggregatorList, groupByList, sortList);
+        builder.buildAggregationBuilder(
+            aggregatorList, groupByList, sortList, aggregationToFieldNameMap);
     requestBuilder.pushDownAggregation(aggregationBuilder);
     requestBuilder.pushTypeMapping(builder.buildTypeMapping(aggregatorList, groupByList));
+    if (aggregationToFieldNameMap != null) {
+      requestBuilder.pushFieldSummaryTypeMapping();
+    }
     return requestBuilder;
   }
 

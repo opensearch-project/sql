@@ -51,6 +51,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.FieldSummary;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
@@ -435,6 +436,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .map(Field.class::cast)
         .map(sort -> new Trendline(Optional.of(sort), trendlineComputations))
         .orElse(new Trendline(Optional.empty(), trendlineComputations));
+  }
+
+  @Override
+  public UnresolvedPlan visitFieldsummaryCommand(
+      OpenSearchPPLParser.FieldsummaryCommandContext ctx) {
+    return new FieldSummary(
+        ctx.fieldsummaryParameter().stream()
+            .map(arg -> expressionBuilder.visit(arg))
+            .collect(Collectors.toList()));
   }
 
   /** Get original text in query. */
