@@ -86,32 +86,32 @@ public class JsonUtils {
    * Extract value of JSON string at given JSON path.
    *
    * @param json JSON string (e.g. "{\"hello\": \"world\"}").
-   * @param path JSON path (e.g. "$.hello")
+   * @param paths list of JSON path (e.g. "$.hello")
    * @return ExprValue of value at given path of json string.
    */
-  public static ExprValue extractJsonPath(ExprValue json, ExprValue path) {
-    if (json == LITERAL_NULL || json == LITERAL_MISSING) {
-      return json;
-    }
-
-    String jsonString = json.stringValue();
-    String jsonPath = path.stringValue();
-
-    return extractJson(jsonString, jsonPath);
-  }
-
-  public static ExprValue extractJsonPaths(ExprValue json, ExprValue paths) {
-    List<ExprValue> pathList = paths.collectionValue();
+  public static ExprValue extractJson(ExprValue json, ExprValue... paths) {
     List<ExprValue> resultList = new ArrayList<>();
 
-    for (ExprValue path : pathList) {
-      resultList.add(extractJsonPath(json, path));
+    for (ExprValue path : paths) {
+      System.out.println("Processing path: " + path);
+      if (json == LITERAL_NULL || json == LITERAL_MISSING) {
+        return json;
+      }
+
+      String jsonString = json.stringValue();
+      String jsonPath = path.stringValue();
+
+      resultList.add(extractJsonPath(jsonString, jsonPath));
     }
 
-    return new ExprCollectionValue(resultList);
+    if (resultList.size() == 1) {
+      return resultList.getFirst();
+    } else {
+      return new ExprCollectionValue(resultList);
+    }
   }
 
-  private static ExprValue extractJson(String json, String path) {
+  private static ExprValue extractJsonPath(String json, String path) {
     if (json.isEmpty() || json.equals("null")) {
       return LITERAL_NULL;
     }

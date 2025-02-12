@@ -390,17 +390,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));
   }
 
-  @Override
-  public UnresolvedExpression visitJsonExtract(
-      OpenSearchPPLParser.JsonExtractFunctionCallContext ctx) {}
-
-  @Override
-  public UnresolvedExpression visitJsonPathString(OpenSearchPPLParser.JsonPathStringContext ctx) {}
-
-  @Override
-  public List<UnresolvedExpression> visitJsonPathList(
-      OpenSearchPPLParser.JsonPathListContext ctx) {}
-
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
     return new QualifiedName(
         ctx.stream()

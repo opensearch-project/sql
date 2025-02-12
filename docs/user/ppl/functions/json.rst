@@ -69,12 +69,13 @@ ____________
 Description
 >>>>>>>>>>>
 
-Usage: `json_extract(doc, path)` Extracts a JSON value from a json document based on the path specified.
+Usage: `json_extract(doc, path[, path])` Extracts a JSON value from a json document based on the path specified.
 
 Argument type: STRING, STRING
 
 Return type: STRING/BOOLEAN/DOUBLE/INTEGER/NULL/STRUCT/ARRAY
 
+- Up to 3 paths can be provided, and results of each `path` with be returned in an ARRAY.
 - Returns an ARRAY if `path` points to multiple results (e.g. $.a[*]) or if the `path` points to an array.
 - Return null if `path` is not valid, or if JSON `doc` is MISSING or NULL.
 - Throws SemanticCheckException if `doc` or `path` is malformed.
@@ -95,7 +96,7 @@ Example::
     | json empty string   |                                     | null              |
     +---------------------+-------------------------------------+-------------------+
 
-    > source=json_test | where test_name="json nested list" | eval json_extract=json_extract('{"a":[{"b":1},{"b":2}]}', '$.b[1].c')
+    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract('{"a":[{"b":1},{"b":2}]}', '$.b[1].c')
     fetched rows / total rows = 1/1
     +---------------------+-------------------------------------+--------------+
     | test_name           | json_string                         | json_extract |
@@ -103,10 +104,18 @@ Example::
     | json nested list    | {"a":"1","b":[{"c":"2"},{"c":"3"}]} | 3            |
     +---------------------+-------------------------------------+--------------+
 
-    > source=json_test | where test_name="json nested list" | eval json_extract=json_extract('{"a":[{"b":1},{"b":2}]}', '$.b[*].c')
+    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract('{"a":[{"b":1},{"b":2}]}', '$.b[*].c')
     fetched rows / total rows = 1/1
     +---------------------+-------------------------------------+--------------+
     | test_name           | json_string                         | json_extract |
     |---------------------|-------------------------------------|--------------|
     | json nested list    | {"a":"1","b":[{"c":"2"},{"c":"3"}]} | [2,3]        |
+    +---------------------+-------------------------------------+--------------+
+
+    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract('{"a":[{"b":1},{"b":2}]}', '$.a', '$.b[*].c')
+    fetched rows / total rows = 1/1
+    +---------------------+-------------------------------------+--------------+
+    | test_name           | json_string                         | json_extract |
+    |---------------------|-------------------------------------|--------------|
+    | json nested list    | {"a":"1","b":[{"c":"2"},{"c":"3"}]} | [1,[2,3]]    |
     +---------------------+-------------------------------------+--------------+

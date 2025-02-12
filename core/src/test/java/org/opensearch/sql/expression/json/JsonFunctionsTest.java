@@ -310,7 +310,15 @@ public class JsonFunctionsTest {
         "{\"foo\": \"foo\", \"fuzz\": true, \"bar\": 1234, \"bar2\": 12.34, \"baz\": null, "
             + "\"obj\": {\"internal\": \"value\"}, \"arr\": [\"string\", true, null]}";
 
-    execute_extract_json(LITERAL_NULL, objectJson, "($.foo, $bar2)");
+    ExprValue expected =
+        new ExprCollectionValue(
+            List.of(new ExprStringValue("foo"), new ExprFloatValue(12.34), LITERAL_NULL));
+    Expression pathExpr1 = DSL.literal(ExprValueUtils.stringValue("$.foo"));
+    Expression pathExpr2 = DSL.literal(ExprValueUtils.stringValue("$.bar2"));
+    Expression pathExpr3 = DSL.literal(ExprValueUtils.stringValue("$.potato"));
+    Expression jsonExpr = DSL.literal(ExprValueUtils.stringValue(objectJson));
+    ExprValue actual = DSL.jsonExtract(jsonExpr, pathExpr1, pathExpr2, pathExpr3).valueOf();
+    assertEquals(expected, actual);
   }
 
   private static void execute_extract_json(ExprValue expected, String json, String path) {
