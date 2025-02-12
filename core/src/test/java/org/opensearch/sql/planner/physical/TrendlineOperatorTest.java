@@ -8,7 +8,6 @@ package org.opensearch.sql.planner.physical;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -20,9 +19,12 @@ import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -44,10 +46,8 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
   @Test
   public void calculates_simple_moving_average_one_field_one_sample() {
-    when(inputPlan.hasNext()).thenReturn(true, false);
-    when(inputPlan.next())
-        .thenReturn(tupleValue(ImmutableMap.of("distance", 100, "time", 10)));
-
+    mockPlanWithData(List.of(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10))));
     var plan =
         new TrendlineOperator(
             inputPlan,
@@ -58,17 +58,24 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(1, result.size());
-    assertThat(result, containsInAnyOrder(
-      tupleValue(ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100))));
+    assertThat(
+        result,
+        containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100))));
   }
 
   @Test
   public void calculates_simple_moving_average_one_field_two_samples() {
-    when(inputPlan.hasNext()).thenReturn(true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+//    when(inputPlan.hasNext()).thenReturn(true, true, false);
+//    when(inputPlan.next())
+//        .thenReturn(
+//            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+//            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))
+    ));
 
     var plan =
         new TrendlineOperator(
@@ -80,20 +87,19 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());
-    assertThat(result, containsInAnyOrder(
-      tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-      tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)
-    )));
+    assertThat(
+        result,
+        containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0))));
   }
 
   @Test
   public void calculates_simple_moving_average_one_field_two_samples_three_rows() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -103,24 +109,22 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.DOUBLE)));
 
-
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0))
-            ));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0))));
   }
 
   @Test
   public void calculates_simple_moving_average_data_type_support_short() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -130,24 +134,22 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", SMA),
                     ExprCoreType.SHORT)));
 
-
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)))
-    );
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0))));
   }
 
   @Test
   public void calculates_simple_moving_average_data_type_support_long() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -159,23 +161,20 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)))
-    );
-
-
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0))));
   }
 
   @Test
   public void calculates_simple_moving_average_data_type_support_float() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -187,21 +186,20 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 150.0)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0)))
-    );
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200.0))));
   }
 
   @Test
   public void calculates_simple_moving_average_multiple_computations() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 20)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20))));
 
     var plan =
         new TrendlineOperator(
@@ -216,21 +214,24 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 20, "distance_alias", 150.0, "time_alias", 15.0)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 20, "distance_alias", 200.0, "time_alias", 20.0)))
-    );
+            tupleValue(
+                ImmutableMap.of(
+                    "distance", 200, "time", 20, "distance_alias", 150.0, "time_alias", 15.0)),
+            tupleValue(
+                ImmutableMap.of(
+                    "distance", 200, "time", 20, "distance_alias", 200.0, "time_alias", 20.0))));
   }
 
   @Test
   public void alias_overwrites_input_field() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -242,22 +243,20 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 150.0)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 200.0)))
-    );
-
+            tupleValue(ImmutableMap.of("distance", 200, "time", 200.0))));
   }
 
   @Test
   public void calculates_simple_moving_average_one_field_two_samples_three_rows_null_value() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 300, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -269,23 +268,20 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 300, "time", 10, "distance_alias", 250.0)))
-    );
-
-
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10, "distance_alias", 250.0))));
   }
 
   @Test
   public void use_null_value() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("time", 10)),
             tupleValue(ImmutableMap.of("distance", ExprNullValue.of(), "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 100, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -297,13 +293,12 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("time", 10)),
             tupleValue(ImmutableMap.of("distance", ExprNullValue.of(), "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100)))
-    );
-
-
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100))));
   }
 
   @Test
@@ -322,15 +317,12 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
   @Test
   public void calculates_simple_moving_average_date() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
-            tupleValue(
-                ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
+    mockPlanWithData(List.of(
+            tupleValue(ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
             tupleValue(
                 ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(6)))),
             tupleValue(
-                ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12)))));
+                ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12))))));
 
     var plan =
         new TrendlineOperator(
@@ -342,32 +334,32 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
-            tupleValue(ImmutableMap.of(
+            tupleValue(
+                ImmutableMap.of(
                     "date",
                     ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(6)),
                     "date_alias",
                     ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(3)))),
-            tupleValue(ImmutableMap.of(
+            tupleValue(
+                ImmutableMap.of(
                     "date",
                     ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12)),
                     "date_alias",
-                    ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(9)))))
-    );
+                    ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(9))))));
   }
 
   @Test
   public void calculates_simple_moving_average_time() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
-            tupleValue(
-                ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN))),
+    mockPlanWithData(List.of(
+            tupleValue(ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN))),
             tupleValue(
                 ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN.plusHours(6)))),
             tupleValue(
-                ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN.plusHours(12)))));
+                ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN.plusHours(12))))));
 
     var plan =
         new TrendlineOperator(
@@ -379,30 +371,31 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("time", LocalTime.MIN)),
-            tupleValue(ImmutableMap.of(
+            tupleValue(
+                ImmutableMap.of(
                     "time", LocalTime.MIN.plusHours(6), "time_alias", LocalTime.MIN.plusHours(3))),
-            tupleValue(ImmutableMap.of(
-                    "time", LocalTime.MIN.plusHours(12), "time_alias", LocalTime.MIN.plusHours(9))))
-    );
-
-
+            tupleValue(
+                ImmutableMap.of(
+                    "time",
+                    LocalTime.MIN.plusHours(12),
+                    "time_alias",
+                    LocalTime.MIN.plusHours(9)))));
   }
 
   @Test
   public void calculates_simple_moving_average_timestamp() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
-            tupleValue(
-                ImmutableMap.of("timestamp", ExprValueUtils.timestampValue(Instant.EPOCH))),
+    mockPlanWithData(List.of(
+            tupleValue(ImmutableMap.of("timestamp", ExprValueUtils.timestampValue(Instant.EPOCH))),
             tupleValue(
                 ImmutableMap.of(
                     "timestamp", ExprValueUtils.timestampValue(Instant.EPOCH.plusMillis(1000)))),
             tupleValue(
                 ImmutableMap.of(
-                    "timestamp", ExprValueUtils.timestampValue(Instant.EPOCH.plusMillis(1500)))));
+                    "timestamp", ExprValueUtils.timestampValue(Instant.EPOCH.plusMillis(1500))))));
 
     var plan =
         new TrendlineOperator(
@@ -414,28 +407,28 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("timestamp", Instant.EPOCH)),
-            tupleValue(ImmutableMap.of(
+            tupleValue(
+                ImmutableMap.of(
                     "timestamp",
                     Instant.EPOCH.plusMillis(1000),
                     "timestamp_alias",
                     Instant.EPOCH.plusMillis(500))),
-            tupleValue(ImmutableMap.of(
+            tupleValue(
+                ImmutableMap.of(
                     "timestamp",
                     Instant.EPOCH.plusMillis(1500),
                     "timestamp_alias",
-                    Instant.EPOCH.plusMillis(1250))))
-    );
-
-
+                    Instant.EPOCH.plusMillis(1250)))));
   }
 
   @Test
   public void calculates_weighted_moving_average_one_field_one_sample() {
-    when(inputPlan.hasNext()).thenReturn(true, false);
-    when(inputPlan.next())
-        .thenReturn(tupleValue(ImmutableMap.of("distance", 100, "time", 10)));
+    mockPlanWithData(List.of(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -449,18 +442,15 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     assertTrue(plan.hasNext());
     assertEquals(
-        tupleValue(
-            ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100)),
+        tupleValue(ImmutableMap.of("distance", 100, "time", 10, "distance_alias", 100)),
         plan.next());
   }
 
   @Test
   public void calculates_weighted_moving_average_one_field_two_samples() {
-    when(inputPlan.hasNext()).thenReturn(true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -470,26 +460,23 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.DOUBLE)));
 
-
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)))
-    );
-
-
+                ImmutableMap.of(
+                    "distance", 200, "time", 10, "distance_alias", 166.66666666666663))));
   }
 
   @Test
   public void calculates_weighted_moving_average_one_field_two_samples_three_rows() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -501,24 +488,23 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+                ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
             tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)))
-    );
-
+                ImmutableMap.of(
+                    "distance", 200, "time", 10, "distance_alias", 199.99999999999997))));
   }
 
   @Test
   public void calculates_weighted_moving_average_data_type_support_short() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -530,25 +516,23 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+                ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
             tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)))
-    );
-
-
+                ImmutableMap.of(
+                    "distance", 200, "time", 10, "distance_alias", 199.99999999999997))));
   }
 
   @Test
   public void calculates_weighted_moving_average_data_type_support_integer() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -560,24 +544,23 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+                ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
             tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)))
-    );
-
+                ImmutableMap.of(
+                    "distance", 200, "time", 10, "distance_alias", 199.99999999999997))));
   }
 
   @Test
   public void calculates_weighted_moving_average_data_type_support_long() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -587,28 +570,25 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.LONG)));
 
-
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+                ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
             tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)))
-    );
-
-
+                ImmutableMap.of(
+                    "distance", 200, "time", 10, "distance_alias", 199.99999999999997))));
   }
 
   @Test
   public void calculates_weighted_moving_average_data_type_support_float() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -620,24 +600,23 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
+                ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
             tupleValue(
-                    ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 199.99999999999997)))
-    );
-
+                ImmutableMap.of(
+                    "distance", 200, "time", 10, "distance_alias", 199.99999999999997))));
   }
 
   @Test
   public void calculates_weighted_moving_average_multiple_computations() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 20)));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20))));
 
     var plan =
         new TrendlineOperator(
@@ -652,40 +631,38 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(
-                    ImmutableMap.of(
-                            "distance",
-                            200,
-                            "time",
-                            20,
-                            "distance_alias",
-                            166.66666666666663,
-                            "time_alias",
-                            16.666666666666664)),
+                ImmutableMap.of(
+                    "distance",
+                    200,
+                    "time",
+                    20,
+                    "distance_alias",
+                    166.66666666666663,
+                    "time_alias",
+                    16.666666666666664)),
             tupleValue(
-                    ImmutableMap.of(
-                            "distance",
-                            200,
-                            "time",
-                            20,
-                            "distance_alias",
-                            199.99999999999997,
-                            "time_alias",
-                            20.0)))
-    );
-
+                ImmutableMap.of(
+                    "distance",
+                    200,
+                    "time",
+                    20,
+                    "distance_alias",
+                    199.99999999999997,
+                    "time_alias",
+                    20.0))));
   }
 
   @Test
   public void calculates_weighted_moving_average_one_field_two_samples_three_rows_null_value() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
+    mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 300, "time", 10)));
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10))));
 
     var plan =
         new TrendlineOperator(
@@ -695,30 +672,26 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
                     AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.DOUBLE)));
 
-
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
             tupleValue(
-                    ImmutableMap.of("distance", 300, "time", 10, "distance_alias", 266.66666666666663)))
-    );
-
-
+                ImmutableMap.of(
+                    "distance", 300, "time", 10, "distance_alias", 266.66666666666663))));
   }
 
   @Test
   public void calculates_weighted_moving_average_date() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
-            tupleValue(
-                ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
+    mockPlanWithData(List.of(
+            tupleValue(ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
             tupleValue(
                 ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(6)))),
             tupleValue(
-                ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12)))));
+                ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12))))));
 
     var plan =
         new TrendlineOperator(
@@ -728,38 +701,34 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
                     AstDSL.computation(2, AstDSL.field("date"), "date_alias", WMA),
                     ExprCoreType.DATE)));
 
-
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("date", ExprValueUtils.dateValue(LocalDate.EPOCH))),
-            tupleValue(ImmutableMap.of(
+            tupleValue(
+                ImmutableMap.of(
                     "date",
                     ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(6)),
                     "date_alias",
                     ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(4)))),
             tupleValue(
-                    ImmutableMap.of(
-                            "date",
-                            ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12)),
-                            "date_alias",
-                            ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(10)))))
-    );
-
-
+                ImmutableMap.of(
+                    "date",
+                    ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(12)),
+                    "date_alias",
+                    ExprValueUtils.dateValue(LocalDate.EPOCH.plusDays(10))))));
   }
 
   @Test
   public void calculates_weighted_moving_average_time() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
-            tupleValue(
-                ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN))),
+    mockPlanWithData(List.of(
+            tupleValue(ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN))),
             tupleValue(
                 ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN.plusHours(6)))),
             tupleValue(
-                ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN.plusHours(12)))));
+                ImmutableMap.of("time", ExprValueUtils.timeValue(LocalTime.MIN.plusHours(12))))));
 
     var plan =
         new TrendlineOperator(
@@ -769,33 +738,33 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
                     AstDSL.computation(2, AstDSL.field("time"), "time_alias", WMA),
                     ExprCoreType.TIME)));
 
-
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("time", LocalTime.MIN)),
-            tupleValue(ImmutableMap.of(
+            tupleValue(
+                ImmutableMap.of(
                     "time", LocalTime.MIN.plusHours(6), "time_alias", LocalTime.MIN.plusHours(4))),
             tupleValue(
-                    ImmutableMap.of(
-                            "time", LocalTime.MIN.plusHours(12), "time_alias", LocalTime.MIN.plusHours(10))))
-    );
-
+                ImmutableMap.of(
+                    "time",
+                    LocalTime.MIN.plusHours(12),
+                    "time_alias",
+                    LocalTime.MIN.plusHours(10)))));
   }
 
   @Test
   public void calculates_weighted_moving_average_timestamp() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, false);
-    when(inputPlan.next())
-        .thenReturn(
-            tupleValue(
-                ImmutableMap.of("timestamp", ExprValueUtils.timestampValue(Instant.EPOCH))),
+    mockPlanWithData(List.of(
+            tupleValue(ImmutableMap.of("timestamp", ExprValueUtils.timestampValue(Instant.EPOCH))),
             tupleValue(
                 ImmutableMap.of(
                     "timestamp", ExprValueUtils.timestampValue(Instant.EPOCH.plusMillis(1000)))),
             tupleValue(
                 ImmutableMap.of(
-                    "timestamp", ExprValueUtils.timestampValue(Instant.EPOCH.plusMillis(1500)))));
+                    "timestamp", ExprValueUtils.timestampValue(Instant.EPOCH.plusMillis(1500))))));
 
     var plan =
         new TrendlineOperator(
@@ -807,56 +776,72 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
-    assertThat(result, containsInAnyOrder(
+    assertThat(
+        result,
+        containsInAnyOrder(
             tupleValue(ImmutableMap.of("timestamp", Instant.EPOCH)),
-            tupleValue(ImmutableMap.of(
+            tupleValue(
+                ImmutableMap.of(
                     "timestamp",
                     Instant.EPOCH.plusMillis(1000),
                     "timestamp_alias",
                     Instant.EPOCH.plusMillis(667))),
             tupleValue(
-                    ImmutableMap.of(
-                            "timestamp",
-                            Instant.EPOCH.plusMillis(1500),
-                            "timestamp_alias",
-                            Instant.EPOCH.plusMillis(1333))))
-    );
-
+                ImmutableMap.of(
+                    "timestamp",
+                    Instant.EPOCH.plusMillis(1500),
+                    "timestamp_alias",
+                    Instant.EPOCH.plusMillis(1333)))));
   }
 
   @Test
   public void use_illegal_core_type_wma() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> new TrendlineOperator(
-            inputPlan,
-            Collections.singletonList(
-                Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
-                    ExprCoreType.ARRAY))));
+        () ->
+            new TrendlineOperator(
+                inputPlan,
+                Collections.singletonList(
+                    Pair.of(
+                        AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
+                        ExprCoreType.ARRAY))));
   }
 
   @Test
   public void use_invalid_dataPoints_zero() {
     assertThrows(
-            IllegalArgumentException.class,
-            () -> new TrendlineOperator(
-                    inputPlan,
-                    Collections.singletonList(
-                            Pair.of(
-                                    AstDSL.computation(0, AstDSL.field("distance"), "distance_alias", WMA),
-                                    ExprCoreType.INTEGER))));
+        IllegalArgumentException.class,
+        () ->
+            new TrendlineOperator(
+                inputPlan,
+                Collections.singletonList(
+                    Pair.of(
+                        AstDSL.computation(0, AstDSL.field("distance"), "distance_alias", WMA),
+                        ExprCoreType.INTEGER))));
   }
 
   @Test
   public void use_invalid_dataPoints_negative() {
     assertThrows(
-            IllegalArgumentException.class,
-            () -> new TrendlineOperator(
-                    inputPlan,
-                    Collections.singletonList(
-                            Pair.of(
-                                    AstDSL.computation(-100, AstDSL.field("distance"), "distance_alias", WMA),
-                                    ExprCoreType.INTEGER))));
+        IllegalArgumentException.class,
+        () ->
+            new TrendlineOperator(
+                inputPlan,
+                Collections.singletonList(
+                    Pair.of(
+                        AstDSL.computation(-100, AstDSL.field("distance"), "distance_alias", WMA),
+                        ExprCoreType.INTEGER))));
+  }
+
+  private void mockPlanWithData(List<ExprValue> inputs ) {
+    List<Boolean> hasNextElements = new ArrayList<>(Collections.nCopies(inputs.size(), true));
+    hasNextElements.add(false);
+
+    Iterator<Boolean> hasNextIterator = hasNextElements.iterator();
+    when(inputPlan.hasNext())
+            .thenAnswer(i -> hasNextIterator.hasNext() ? hasNextIterator.next() : null);
+    Iterator<ExprValue> iterator = inputs.iterator();
+    when(inputPlan.next())
+            .thenAnswer(i -> iterator.hasNext() ? iterator.next() : null);
   }
 }

@@ -128,10 +128,11 @@ public class TrendlineOperator extends PhysicalPlan {
 
     private TrendlineAccumulator(Trendline.TrendlineComputation config) {
       Integer numberOfDataPoints = config.getNumberOfDataPoints();
-      if (numberOfDataPoints <=0) {
+      if (numberOfDataPoints <= 0) {
         throw new IllegalArgumentException(
-                String.format("Invalid dataPoints [%d] value.", numberOfDataPoints));
-      };
+            String.format("Invalid dataPoints [%d] value.", numberOfDataPoints));
+      }
+      ;
       this.dataPointsNeeded = DSL.literal(numberOfDataPoints.doubleValue());
       this.receivedValues = EvictingQueue.create(numberOfDataPoints);
     }
