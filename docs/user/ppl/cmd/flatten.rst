@@ -63,8 +63,8 @@ PPL query::
     +------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | name             | location                                                                                                                                                         |
     |------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-    | Seattle          | {'state': 'Washington', 'country': 'United States', 'coordinates': {'latitude': 47.6061, 'longitude': -122.3328}, 'latitude': 47.6061, 'longitude': -122.3328}   |
-    | Vancouver        | {'province': 'British Columbia', 'country': 'Canada', 'coordinates': {'latitude': 49.2827, 'longitude': -123.1207}, 'latitude': 49.2827, 'longitude': -123.1207} |
+    | Seattle          | {'coordinates': {'latitude': 47.6061, 'longitude': -122.3328}, 'country': 'United States', 'state': 'Washington', 'latitude': 47.6061, 'longitude': -122.3328}   |
+    | Vancouver        | {'coordinates': {'latitude': 49.2827, 'longitude': -123.1207}, 'country': 'Canada', 'province': 'British Columbia', 'latitude': 49.2827, 'longitude': -123.1207} |
     | Null Location    | null                                                                                                                                                             |
     | Null Coordinates | {'state': 'Victoria', 'country': 'Australia'}                                                                                                                    |
     +------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
