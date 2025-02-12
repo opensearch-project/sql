@@ -38,6 +38,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         result,
         rows("json nested object"),
         rows("json object"),
+        rows("json nested array"),
         rows("json array"),
         rows("json scalar string"),
         rows("json scalar int"),
@@ -75,9 +76,13 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         result,
         rows(
             "json nested object",
-            new JSONObject(Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(1, 2, 3)))),
+            new JSONObject(
+                Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(Boolean.FALSE, 3)))),
         rows("json object", new JSONObject(Map.of("a", "1", "b", "2"))),
         rows("json array", new JSONArray(List.of(1, 2, 3, 4))),
+        rows(
+            "json nested array",
+            new JSONArray(List.of(1, 2, 3, Map.of("true", true, "number", 123)))),
         rows("json scalar string", "abc"),
         rows("json scalar int", 1234),
         rows("json scalar float", 12.34f),
@@ -106,9 +111,13 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         result,
         rows(
             "json nested object",
-            new JSONObject(Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(1, 2, 3)))),
+            new JSONObject(
+                Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(Boolean.FALSE, 3)))),
         rows("json object", new JSONObject(Map.of("a", "1", "b", "2"))),
         rows("json array", new JSONArray(List.of(1, 2, 3, 4))),
+        rows(
+            "json nested array",
+            new JSONArray(List.of(1, 2, 3, Map.of("true", true, "number", 123)))),
         rows("json scalar string", "abc"),
         rows("json scalar int", 1234),
         rows("json scalar float", 12.34),
@@ -198,6 +207,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json nested object", new JSONObject(Map.of("c", "3"))),
         rows("json object", "2"),
         rows("json array", null),
+        rows("json nested array", null),
         rows("json scalar string", null),
         rows("json scalar int", null),
         rows("json scalar float", null),

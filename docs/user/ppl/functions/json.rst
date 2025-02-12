@@ -22,7 +22,7 @@ Return type: BOOLEAN
 
 Example::
 
-    > source=json_test | eval is_valid = json_valid(json_string) | fields test_name, json_string, is_valid
+    os> source=json_test | eval is_valid = json_valid(json_string) | fields test_name, json_string, is_valid
     fetched rows / total rows = 7/7
     +---------------------+-------------------------------------+----------+
     | test_name           | json_string                         | is_valid |
@@ -50,7 +50,7 @@ Return type: BOOLEAN/DOUBLE/INTEGER/NULL/STRUCT/ARRAY
 
 Example::
 
-    > source=json_test | where json_valid(json_string) | eval json=json(json_string) | fields test_name, json_string, json
+    os> source=json_test | where json_valid(json_string) | eval json=json(json_string) | fields test_name, json_string, json
     fetched rows / total rows = 6/6
     +---------------------+-------------------------------------+-----------------------------+
     | test_name           | json_string                         | json                        |
@@ -96,7 +96,7 @@ Example::
     | json empty string   |                                     | null              |
     +---------------------+-------------------------------------+-------------------+
 
-    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract('{"a":[{"b":1},{"b":2}]}', '$.b[1].c')
+    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract(json_string, '$.b[1].c') | fields test_name, json_string, json_extract
     fetched rows / total rows = 1/1
     +---------------------+-------------------------------------+--------------+
     | test_name           | json_string                         | json_extract |
@@ -104,7 +104,7 @@ Example::
     | json nested list    | {"a":"1","b":[{"c":"2"},{"c":"3"}]} | 3            |
     +---------------------+-------------------------------------+--------------+
 
-    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract('{"a":[{"b":1},{"b":2}]}', '$.b[*].c')
+    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract(json_string, '$.b[*].c') | fields test_name, json_string, json_extract
     fetched rows / total rows = 1/1
     +---------------------+-------------------------------------+--------------+
     | test_name           | json_string                         | json_extract |
@@ -112,7 +112,7 @@ Example::
     | json nested list    | {"a":"1","b":[{"c":"2"},{"c":"3"}]} | [2,3]        |
     +---------------------+-------------------------------------+--------------+
 
-    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract('{"a":[{"b":1},{"b":2}]}', '$.a', '$.b[*].c')
+    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract(json_string, '$.a', '$.b[*].c') | fields test_name, json_string, json_extract
     fetched rows / total rows = 1/1
     +---------------------+-------------------------------------+--------------+
     | test_name           | json_string                         | json_extract |

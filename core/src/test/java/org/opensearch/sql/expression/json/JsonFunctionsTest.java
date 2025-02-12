@@ -22,7 +22,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
+<<<<<<< HEAD
 import org.opensearch.sql.data.model.ExprFloatValue;
+=======
+>>>>>>> main
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
@@ -35,11 +38,13 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.LiteralExpression;
 
 @ExtendWith(MockitoExtension.class)
 public class JsonFunctionsTest {
   @Test
   public void json_valid_returns_false() {
+<<<<<<< HEAD
     assertEquals(
         LITERAL_FALSE,
         DSL.jsonValid(DSL.literal(ExprValueUtils.stringValue("{\"invalid\":\"json\", \"string\"}")))
@@ -48,6 +53,32 @@ public class JsonFunctionsTest {
         LITERAL_FALSE, DSL.jsonValid(DSL.literal((ExprValueUtils.stringValue("abc")))).valueOf());
     assertEquals(LITERAL_FALSE, DSL.jsonValid(DSL.literal((LITERAL_NULL))).valueOf());
     assertEquals(LITERAL_FALSE, DSL.jsonValid(DSL.literal((LITERAL_MISSING))).valueOf());
+=======
+    List<LiteralExpression> expressions =
+        List.of(
+            DSL.literal(LITERAL_MISSING), // missing returns false
+            DSL.literal(LITERAL_NULL), // null returns false
+            DSL.literal("invalid"), // invalid type
+            DSL.literal("{{[}}"), // missing bracket
+            DSL.literal("[}"), // missing bracket
+            DSL.literal("}"), // missing bracket
+            DSL.literal("\"missing quote"), // missing quote
+            DSL.literal("abc"), // not a type
+            DSL.literal("97ab"), // not a type
+            DSL.literal("{1, 2, 3, 4}"), // invalid object
+            DSL.literal("{\"invalid\":\"json\", \"string\"}"), // invalid object
+            DSL.literal("{123: 1, true: 2, null: 3}"), // invalid object
+            DSL.literal("[\"a\": 1, \"b\": 2]") // invalid array
+            );
+
+    expressions.stream()
+        .forEach(
+            expr ->
+                assertEquals(
+                    LITERAL_FALSE,
+                    DSL.jsonValid(expr).valueOf(),
+                    "Expected FALSE when calling jsonValid with " + expr));
+>>>>>>> main
   }
 
   @Test
@@ -87,7 +118,11 @@ public class JsonFunctionsTest {
             str ->
                 assertEquals(
                     LITERAL_TRUE,
+<<<<<<< HEAD
                     DSL.jsonValid(DSL.literal((ExprValueUtils.stringValue(str)))).valueOf(),
+=======
+                    DSL.jsonValid(DSL.literal(str)).valueOf(),
+>>>>>>> main
                     String.format("String %s must be valid json", str)));
   }
 
@@ -179,6 +214,29 @@ public class JsonFunctionsTest {
 
   @Test
   void json_returnsSemanticCheckException() {
+    List<LiteralExpression> expressions =
+            List.of(
+                    DSL.literal("invalid"), // invalid type
+                    DSL.literal("{{[}}"), // missing bracket
+                    DSL.literal("[}"), // missing bracket
+                    DSL.literal("}"), // missing bracket
+                    DSL.literal("\"missing quote"), // missing quote
+                    DSL.literal("abc"), // not a type
+                    DSL.literal("97ab"), // not a type
+                    DSL.literal("{1, 2, 3, 4}"), // invalid object
+                    DSL.literal("{123: 1, true: 2, null: 3}"), // invalid object
+                    DSL.literal("{\"invalid\":\"json\", \"string\"}"), // invalid object
+                    DSL.literal("[\"a\": 1, \"b\": 2]") // invalid array
+            );
+
+    expressions.stream()
+            .forEach(
+                    expr ->
+                            assertThrows(
+                                    SemanticCheckException.class,
+                                    () -> DSL.castJson(expr).valueOf(),
+                                    "Expected to throw SemanticCheckException when calling castJson with " + expr));
+
     // invalid type
     assertThrows(
         SemanticCheckException.class, () -> DSL.castJson(DSL.literal("invalid")).valueOf());

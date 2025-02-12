@@ -53,9 +53,9 @@ dependencies {
     api project(':protocol')
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
-    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.7.0'
+    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
     testImplementation(testFixtures(project(":core")))
 }
 
