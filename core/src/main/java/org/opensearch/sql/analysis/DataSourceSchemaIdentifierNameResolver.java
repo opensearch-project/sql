@@ -34,7 +34,7 @@ public class DataSourceSchemaIdentifierNameResolver {
       DataSourceService dataSourceService, List<String> parts) {
     this.dataSourceService = dataSourceService;
     List<String> remainingParts = captureSchemaName(captureDataSourceName(parts));
-    identifierName = String.join(ExprValueUtils.QUALIFIED_NAME_SEPARATOR, remainingParts);
+    identifierName = ExprValueUtils.joinQualifiedName(remainingParts);
   }
 
   public String getIdentifierName() {

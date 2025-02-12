@@ -30,11 +30,14 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
@@ -513,7 +516,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     ReferenceExpression fieldExpr =
         (ReferenceExpression) expressionAnalyzer.analyze(node.getField(), context);
-    String fieldName = fieldExpr.getAttr();
+    String qualifiedName = fieldExpr.getAttr();
 
     // [A] Determine fields to add
     // ---------------------------
@@ -526,25 +529,21 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment env = context.peek();
     Map<String, ExprType> fieldsMap = env.lookupAllTupleFields(FIELD_NAME);
 
-    final String fieldParentPathPrefix =
-        fieldName.contains(ExprValueUtils.QUALIFIED_NAME_SEPARATOR)
-            ? fieldName.substring(0, fieldName.lastIndexOf(ExprValueUtils.QUALIFIED_NAME_SEPARATOR))
-                + ExprValueUtils.QUALIFIED_NAME_SEPARATOR
-            : "";
-
-    // Get entries for paths that are descended from the flattened field.
-    final String fieldDescendantPathPrefix = fieldName + ExprValueUtils.QUALIFIED_NAME_SEPARATOR;
-    List<Map.Entry<String, ExprType>> fieldDescendantEntries =
-        fieldsMap.entrySet().stream()
-            .filter(e -> e.getKey().startsWith(fieldDescendantPathPrefix))
+    List<String> descendantQualifiedNames =
+        fieldsMap.keySet().stream()
+            .filter(name -> name.startsWith(qualifiedName) && !name.equals(qualifiedName))
             .toList();
 
     // Get fields to add from descendant entries.
+    int numQualifiedNameComponents = ExprValueUtils.splitQualifiedName(qualifiedName).size();
+
     Map<String, ExprType> addFieldsMap = new HashMap<>();
-    for (Map.Entry<String, ExprType> entry : fieldDescendantEntries) {
-      String newPath =
-          fieldParentPathPrefix + entry.getKey().substring(fieldDescendantPathPrefix.length());
-      addFieldsMap.put(newPath, entry.getValue());
+    for (String name : descendantQualifiedNames) {
+      List<String> components = new LinkedList<>(ExprValueUtils.splitQualifiedName(name));
+      components.remove(numQualifiedNameComponents - 1);
+
+      String newName = ExprValueUtils.joinQualifiedName(components);
+      addFieldsMap.put(newName, fieldsMap.get(name));
     }
 
     // [B] Add new fields to type environment

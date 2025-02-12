@@ -33,10 +33,10 @@ public class ExprValueUtils {
   public static final ExprValue LITERAL_MISSING = ExprMissingValue.of();
 
   /** Qualified name separator string */
-  public final String QUALIFIED_NAME_SEPARATOR = ".";
+  private final String QUALIFIED_NAME_SEPARATOR = ".";
 
   /** Pattern that matches the qualified name separator string */
-  public final Pattern QUALIFIED_NAME_SEPARATOR_PATTERN =
+  private final Pattern QUALIFIED_NAME_SEPARATOR_PATTERN =
       Pattern.compile(QUALIFIED_NAME_SEPARATOR, Pattern.LITERAL);
 
   public static ExprValue booleanValue(Boolean value) {
@@ -212,7 +212,9 @@ public class ExprValueUtils {
     return exprValue.booleanValue();
   }
 
-  /** Splits the given qualified name into components and returns the result. */
+  /**
+   * Splits the given qualified name into components and returns the result as a modifiable list.
+   */
   public List<String> splitQualifiedName(String qualifiedName) {
     return Arrays.asList(QUALIFIED_NAME_SEPARATOR_PATTERN.split(qualifiedName, -1));
   }

@@ -105,8 +105,7 @@ public class ReferenceExpression implements Expression {
   }
 
   private ExprValue resolve(ExprValue value, List<String> paths) {
-    ExprValue wholePathValue =
-        value.keyValue(String.join(ExprValueUtils.QUALIFIED_NAME_SEPARATOR, paths));
+    ExprValue wholePathValue = value.keyValue(ExprValueUtils.joinQualifiedName(paths));
     // For array types only first index currently supported.
     if (value.type().equals(ExprCoreType.ARRAY)) {
       wholePathValue = value.collectionValue().get(0).keyValue(paths.get(0));
