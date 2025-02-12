@@ -16,18 +16,6 @@ public class OpenSearchTypeSystem extends RelDataTypeSystemImpl {
 
   private OpenSearchTypeSystem() {}
 
-  @Override
-  public RelDataType deriveSumType(RelDataTypeFactory typeFactory, RelDataType argumentType) {
-    switch (argumentType.getSqlTypeName()) {
-      case INTEGER:
-      case BIGINT:
-        return typeFactory.createSqlType(SqlTypeName.DOUBLE);
-
-      default:
-        return super.deriveSumType(typeFactory, argumentType);
-    }
-  }
-
   public RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory, RelDataType argumentType) {
     switch (argumentType.getSqlTypeName()) {
       case INTEGER:

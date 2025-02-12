@@ -34,6 +34,7 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
@@ -56,6 +57,8 @@ public class QueryService {
 
   private DataSourceService dataSourceService;
 
+  private Settings settings;
+
   /**
    * Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.<br>
    * Todo. deprecated this interface after finalize {@link PlanContext}.
@@ -65,14 +68,18 @@ public class QueryService {
    */
   public void execute(
       UnresolvedPlan plan, ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    AccessController.doPrivileged(
-        (PrivilegedAction<Void>)
-            () -> {
-              try {
-                if (relNodeVisitor == null) {
-                  executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
-                } else {
-                  try {
+    try {
+      boolean calciteEnabled = false;
+      if (settings != null) {
+        calciteEnabled = settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
+      }
+      if (!calciteEnabled || relNodeVisitor == null) {
+        executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
+      } else {
+        try {
+          AccessController.doPrivileged(
+              (PrivilegedAction<Void>)
+                  () -> {
                     // Use simple calcite schema since we don't compute tables in advance of the
                     // query.
                     CalciteSchema rootSchema = CalciteSchema.createRootSchema(true, false);
@@ -97,17 +104,16 @@ public class QueryService {
                     final FrameworkConfig config = buildFrameworkConfig(defaultSchema);
                     final CalcitePlanContext context = new CalcitePlanContext(config, connection);
                     executePlanByCalcite(analyze(plan, context), context, listener);
-                  } catch (Exception e) {
-                    LOG.warn("Fallback to V2 query engine since got exception", e);
-                    executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
-                  }
-                }
-                return null;
-              } catch (Exception e) {
-                listener.onFailure(e);
-                return null;
-              }
-            });
+                    return null;
+                  });
+        } catch (Exception e) {
+          LOG.warn("Fallback to V2 query engine since got exception", e);
+          executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
+        }
+      }
+    } catch (Exception e) {
+      listener.onFailure(e);
+    }
   }
 
   /**

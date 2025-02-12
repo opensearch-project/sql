@@ -97,6 +97,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               .put(Key.QUERY_SIZE_LIMIT, 200)
               .put(Key.SQL_PAGINATION_API_SEARCH_AFTER, true)
               .put(Key.FIELD_TYPE_TOLERANCE, true)
+              .put(Key.CALCITE_ENGINE_ENABLED, true)
               .build();
 
       @Override
@@ -239,7 +240,8 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
       Planner planner = new Planner(LogicalPlanOptimizer.create());
       CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor();
       QueryService queryService =
-          new QueryService(analyzer, executionEngine, planner, relNodeVisitor, dataSourceService);
+          new QueryService(
+              analyzer, executionEngine, planner, relNodeVisitor, dataSourceService, settings);
       return new QueryPlanFactory(queryService);
     }
   }
