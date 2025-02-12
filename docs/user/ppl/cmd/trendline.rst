@@ -32,7 +32,7 @@ In the case of Simple Moving Average - SMA, result will be calculated as per the
 
     SMA(t) = (1/n) * Σ(f[i]), where i = t-n+1 to t
 
-Example 1: Calculate the moving average on one field.
+Example 1: Calculate the simple moving average on one field.
 =====================================================
 
 The example shows how to calculate the moving average on one field.
@@ -51,7 +51,7 @@ PPL query::
     +------+
 
 
-Example 2: Calculate the moving average on multiple fields.
+Example 2: Calculate the simple moving average on multiple fields.
 ===========================================================
 
 The example shows how to calculate the moving average on multiple fields.
@@ -69,7 +69,7 @@ PPL query::
     | 15.5 | 30.5      |
     +------+-----------+
 
-Example 3: Calculate the moving average on one field without specifying an alias.
+Example 3: Calculate the simple moving average on one field without specifying an alias.
 =================================================================================
 
 The example shows how to calculate the moving average on one field without specifying an alias.
