@@ -6,8 +6,8 @@
 package org.opensearch.sql.data.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
 
 import java.time.Duration;
@@ -15,31 +15,32 @@ import java.time.Period;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
-public class ExprIntervalValueTest {
+class ExprIntervalValueTest {
+
   @Test
-  public void equals_to_self() {
-    ExprValue interval = ExprValueUtils.intervalValue(Duration.ofNanos(1000));
-    assertEquals(interval.intervalValue(), Duration.ofNanos(1000));
+  void equals_to_self() {
+    ExprValue interval = ExprValueUtils.intervalValue(Duration.ofNanos(1000L));
+    assertEquals(interval.intervalValue(), Duration.ofNanos(1000L));
   }
 
   @Test
-  public void equal() {
-    ExprValue v1 = new ExprIntervalValue(Duration.ofMinutes(1));
-    ExprValue v2 = ExprValueUtils.intervalValue(Duration.ofSeconds(60));
-    assertTrue(v1.equals(v2));
+  void equal() {
+    ExprValue v1 = new ExprIntervalValue(Duration.ofMinutes(1L));
+    ExprValue v2 = ExprValueUtils.intervalValue(Duration.ofSeconds(60L));
+    assertEquals(v1, v2);
   }
 
   @Test
-  public void compare() {
+  void compare() {
     ExprIntervalValue v1 = new ExprIntervalValue(Period.ofDays(1));
     ExprIntervalValue v2 = new ExprIntervalValue(Period.ofDays(2));
-    assertEquals(v1.compare(v2), -1);
+    assertEquals(-1, v1.compare(v2));
   }
 
   @Test
-  public void invalid_compare() {
+  void invalid_compare() {
     ExprIntervalValue v1 = new ExprIntervalValue(Period.ofYears(1));
-    ExprIntervalValue v2 = new ExprIntervalValue(Duration.ofHours(1));
+    ExprIntervalValue v2 = new ExprIntervalValue(Duration.ofHours(1L));
     assertThrows(
         ExpressionEvaluationException.class,
         () -> v1.compare(v2),
@@ -47,7 +48,7 @@ public class ExprIntervalValueTest {
   }
 
   @Test
-  public void invalid_get_value() {
+  void invalid_get_value() {
     ExprDateValue value = new ExprDateValue("2020-08-20");
     assertThrows(
         ExpressionEvaluationException.class,
@@ -56,14 +57,32 @@ public class ExprIntervalValueTest {
   }
 
   @Test
-  public void value() {
+  void value() {
     ExprValue value = new ExprIntervalValue(Period.ofWeeks(1));
     assertEquals(value.value(), Period.ofWeeks(1));
   }
 
   @Test
-  public void type() {
+  void type() {
     ExprValue interval = new ExprIntervalValue(Period.ofYears(1));
-    assertEquals(interval.type(), INTERVAL);
+    assertEquals(INTERVAL, interval.type());
+  }
+
+  @Test
+  void testHashCode() {
+    Duration oneMinute = Duration.ofMinutes(1L);
+    Duration sixtySeconds = Duration.ofSeconds(60L);
+    Duration twentyFourHours = Duration.ofHours(24L);
+    Period oneDay = Period.ofDays(1);
+    Period oneMonth = Period.ofMonths(1);
+
+    assertEquals(oneMinute.hashCode(), ExprValueUtils.intervalValue(oneMinute).hashCode());
+    assertEquals(oneMinute.hashCode(), ExprValueUtils.intervalValue(sixtySeconds).hashCode());
+    assertNotEquals(oneMinute.hashCode(), ExprValueUtils.intervalValue(twentyFourHours).hashCode());
+    assertNotEquals(oneMinute.hashCode(), ExprValueUtils.intervalValue(oneMonth).hashCode());
+
+    assertEquals(oneDay.hashCode(), ExprValueUtils.intervalValue(oneDay).hashCode());
+    assertNotEquals(oneDay.hashCode(), ExprValueUtils.intervalValue(twentyFourHours).hashCode());
+    assertNotEquals(oneDay.hashCode(), ExprValueUtils.intervalValue(oneMonth).hashCode());
   }
 }
