@@ -34,7 +34,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.math3.analysis.function.Exp;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
@@ -84,9 +83,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
-import org.opensearch.sql.expression.aggregation.AggregationState;
 import org.opensearch.sql.expression.aggregation.Aggregator;
-import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
@@ -350,8 +347,23 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment env = context.peek();
     Map<String, ExprType> fieldsMap = env.lookupAllFields(Namespace.FIELD_NAME);
 
+    if (node.getIncludeFields() != null) {
+      List<String> includeFields =
+          node.getIncludeFields().stream()
+              .map(expr -> ((Field) expr).getField().toString())
+              .toList();
+
+      Map<String, ExprType> filteredFields = new HashMap<>();
+      for (String field : includeFields) {
+        if (fieldsMap.containsKey(field)) {
+          filteredFields.put(field, fieldsMap.get(field));
+        }
+      }
+      fieldsMap = filteredFields;
+    }
+
     ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
-    Map<String, String> aggregatorToFieldNameMap = new HashMap<String, String>();
+    Map<String, Map.Entry<String, ExprType>> aggregatorToFieldNameMap = new HashMap<>();
 
     for (Map.Entry<String, ExprType> entry : fieldsMap.entrySet()) {
       ExprType fieldType = entry.getValue();
@@ -359,17 +371,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       ReferenceExpression fieldExpression = DSL.ref(fieldName, fieldType);
 
       aggregatorBuilder.add(new NamedAggregator("Count" + fieldName, DSL.count(fieldExpression)));
-      aggregatorToFieldNameMap.put("Count" + fieldName, fieldName);
-      aggregatorBuilder.add(new NamedAggregator("Distinct" + fieldName, DSL.distinctCount(fieldExpression)));
-      aggregatorToFieldNameMap.put("Distinct" + fieldName, fieldName);
+      aggregatorToFieldNameMap.put("Count" + fieldName, entry);
+      aggregatorBuilder.add(
+          new NamedAggregator("Distinct" + fieldName, DSL.distinctCount(fieldExpression)));
+      aggregatorToFieldNameMap.put("Distinct" + fieldName, entry);
 
       if (ExprCoreType.numberTypes().contains(fieldType)) {
-        aggregatorBuilder.add(new NamedAggregator("Avg" + fieldName, DSL.avg(fieldExpression)));
-        aggregatorToFieldNameMap.put("Avg" + fieldName, fieldName);
         aggregatorBuilder.add(new NamedAggregator("Max" + fieldName, DSL.max(fieldExpression)));
-        aggregatorToFieldNameMap.put("Max" + fieldName, fieldName);
+        aggregatorToFieldNameMap.put("Max" + fieldName, entry);
         aggregatorBuilder.add(new NamedAggregator("Min" + fieldName, DSL.min(fieldExpression)));
-        aggregatorToFieldNameMap.put("Min" + fieldName, fieldName);
+        aggregatorToFieldNameMap.put("Min" + fieldName, entry);
+        aggregatorBuilder.add(new NamedAggregator("Avg" + fieldName, DSL.avg(fieldExpression)));
+        aggregatorToFieldNameMap.put("Avg" + fieldName, entry);
       }
     }
 
@@ -386,6 +399,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     newEnv.define(new Symbol(Namespace.FIELD_NAME, "Avg"), ExprCoreType.DOUBLE);
     newEnv.define(new Symbol(Namespace.FIELD_NAME, "Max"), ExprCoreType.DOUBLE);
     newEnv.define(new Symbol(Namespace.FIELD_NAME, "Min"), ExprCoreType.DOUBLE);
+    newEnv.define(new Symbol(Namespace.FIELD_NAME, "Type"), ExprCoreType.STRING);
 
     return new LogicalFieldSummary(child, aggregators, groupBys, aggregatorToFieldNameMap);
   }

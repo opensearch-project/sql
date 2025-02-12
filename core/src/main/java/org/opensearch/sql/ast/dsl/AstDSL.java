@@ -509,9 +509,7 @@ public class AstDSL {
   }
 
   public static FieldSummary fieldSummary(
-          UnresolvedPlan input,
-          List<UnresolvedExpression> includeFields
-  ) {
+      UnresolvedPlan input, List<UnresolvedExpression> includeFields) {
     return new FieldSummary(includeFields).attach(input);
   }
 }

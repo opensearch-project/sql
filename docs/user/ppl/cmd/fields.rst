@@ -11,7 +11,7 @@ fields
 
 Description
 ============
-| Using ``field`` command to keep or remove fields from the search result.
+| Use ``field`` command to keep or remove fields from the search result.
 
 
 Syntax
