@@ -175,8 +175,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitFieldsummaryIncludeFields(OpenSearchPPLParser.FieldsummaryIncludeFieldsContext ctx) {
-    List<UnresolvedExpression> list = ctx.fieldList().fieldExpression().stream()
+  public UnresolvedExpression visitFieldsummaryIncludeFields(
+      OpenSearchPPLParser.FieldsummaryIncludeFieldsContext ctx) {
+    List<UnresolvedExpression> list =
+        ctx.fieldList().fieldExpression().stream()
             .map(this::visitFieldExpression)
             .collect(Collectors.toList());
     return new AttributeList(list);

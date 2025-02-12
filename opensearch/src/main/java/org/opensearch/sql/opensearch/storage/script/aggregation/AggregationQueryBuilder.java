@@ -23,6 +23,7 @@ import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.NamedExpression;
@@ -62,7 +63,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
 
   /** Build AggregationBuilder. */
   public Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser>
-  buildAggregationBuilder(
+      buildAggregationBuilder(
           List<NamedAggregator> namedAggregatorList,
           List<NamedExpression> groupByList,
           List<Pair<Sort.SortOption, Expression>> sortList) {
@@ -75,17 +76,17 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
           List<NamedAggregator> namedAggregatorList,
           List<NamedExpression> groupByList,
           List<Pair<Sort.SortOption, Expression>> sortList,
-          Map<String, String> aggregationToFieldNameMap) {
+          Map<String, Map.Entry<String, ExprType>> aggregationToFieldNameMap) {
 
     final Pair<AggregatorFactories.Builder, List<MetricParser>> metrics =
         metricBuilder.build(namedAggregatorList);
 
     if (aggregationToFieldNameMap != null) {
       return Pair.of(
-              ImmutableList.copyOf(metrics.getLeft().getAggregatorFactories()),
-              new FieldSummaryAggregationParser(metrics.getRight(), aggregationToFieldNameMap));
+          ImmutableList.copyOf(metrics.getLeft().getAggregatorFactories()),
+          new FieldSummaryAggregationParser(metrics.getRight(), aggregationToFieldNameMap));
     } else if (groupByList.isEmpty()) {
-    // no bucket
+      // no bucket
       return Pair.of(
           ImmutableList.copyOf(metrics.getLeft().getAggregatorFactories()),
           new NoBucketAggregationParser(metrics.getRight()));
@@ -107,7 +108,7 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
                               .collect(Collectors.toList())))
                   .subAggregations(metrics.getLeft())
                   .size(AGGREGATION_BUCKET_SIZE)),
-      new CompositeAggregationParser(metrics.getRight()));
+          new CompositeAggregationParser(metrics.getRight()));
     }
   }
 

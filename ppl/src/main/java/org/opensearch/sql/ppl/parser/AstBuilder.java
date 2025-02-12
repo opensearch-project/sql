@@ -439,8 +439,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
-  public UnresolvedPlan visitFieldsummaryCommand(OpenSearchPPLParser.FieldsummaryCommandContext ctx) {
-    return new FieldSummary(ctx.fieldsummaryParameter().stream().map(arg -> expressionBuilder.visit(arg)).collect(Collectors.toList()));
+  public UnresolvedPlan visitFieldsummaryCommand(
+      OpenSearchPPLParser.FieldsummaryCommandContext ctx) {
+    return new FieldSummary(
+        ctx.fieldsummaryParameter().stream()
+            .map(arg -> expressionBuilder.visit(arg))
+            .collect(Collectors.toList()));
   }
 
   /** Get original text in query. */

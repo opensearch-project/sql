@@ -72,8 +72,10 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
     // Switch to builder for aggregate query which has different push down logic
     //  for later filter, sort and limit operator.
-    if (aggregation instanceof LogicalFieldSummary){
-      delegate = new OpenSearchIndexScanAggregationBuilder(delegate.build(), (LogicalFieldSummary) aggregation);
+    if (aggregation instanceof LogicalFieldSummary) {
+      delegate =
+          new OpenSearchIndexScanAggregationBuilder(
+              delegate.build(), (LogicalFieldSummary) aggregation);
     } else {
       delegate = new OpenSearchIndexScanAggregationBuilder(delegate.build(), aggregation);
     }
