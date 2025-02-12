@@ -6,12 +6,14 @@
 package org.opensearch.sql.planner.physical;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
+import org.apache.commons.math3.analysis.function.Exp;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -44,50 +46,51 @@ public class FlattenOperator extends PhysicalPlan {
 
   @Override
   public ExprValue next() {
-    ExprValue rootExprValue = input.next();
-    String qualifiedName = field.getAttr();
-
-    if (!ExprValueUtils.containsNestedExprValue(rootExprValue, qualifiedName)) {
-      return rootExprValue;
-    }
-
-    ExprValue flattenExprValue = ExprValueUtils.getNestedExprValue(rootExprValue, qualifiedName);
-    if (flattenExprValue.isNull() || flattenExprValue.isMissing()) {
-      return rootExprValue;
-    }
-
-    return flattenNestedExprValue(rootExprValue, qualifiedName);
+    return flattenNestedExprValue(input.next(), field.getAttr());
   }
 
   /**
    * Flattens the nested {@link ExprTupleValue} with the specified qualified name within the given
-   * root value and returns the result. Requires that the root value contain a nested value with the
-   * qualified name - see {@link ExprValueUtils#containsNestedExprValue}.
+   * root value, and returns the result. If the root value does not contain a nested value with the
+   * qualified name, or if the nested value is null or missing, returns the unmodified root value.
+   * Raises {@link org.opensearch.sql.exception.SemanticCheckException} if the root value or nested
+   * value is not an {@link ExprTupleValue}.
    */
   private static ExprValue flattenNestedExprValue(ExprValue rootExprValue, String qualifiedName) {
 
-    Map<String, ExprValue> exprValueMap = ExprValueUtils.getTupleValue(rootExprValue);
+    // Get current field name.
+    List<String> components = ExprValueUtils.splitQualifiedName(qualifiedName);
+    String fieldName = components.getFirst();
 
-    List<String> qualifiedNameComponents = ExprValueUtils.splitQualifiedName(qualifiedName);
-    String currentQualifiedNameComponent = qualifiedNameComponents.getFirst();
-    ExprValue childExprValue = exprValueMap.get(currentQualifiedNameComponent);
-
-    // Get flattened values and add them to the field map.
-    Map<String, ExprValue> flattenedExprValueMap;
-    if (qualifiedNameComponents.size() > 1) {
-      String remainingQualifiedName =
-          ExprValueUtils.joinQualifiedName(
-              qualifiedNameComponents.subList(1, qualifiedNameComponents.size()));
-
-      flattenedExprValueMap =
-          Map.of(
-              currentQualifiedNameComponent,
-              flattenNestedExprValue(childExprValue, remainingQualifiedName));
-    } else {
-      flattenedExprValueMap = ExprValueUtils.getTupleValue(childExprValue);
+    // Check if the child value is undefined.
+    Map<String, ExprValue> fieldsMap = rootExprValue.tupleValue();
+    if (!fieldsMap.containsKey(fieldName)) {
+      return rootExprValue;
     }
 
-    exprValueMap.putAll(flattenedExprValueMap);
-    return ExprTupleValue.fromExprValueMap(exprValueMap);
+    // Check if the child value is null or missing.
+    ExprValue childExprValue = fieldsMap.get(fieldName);
+    if (childExprValue.isNull() || childExprValue.isMissing()) {
+      return rootExprValue;
+    }
+
+    // Flatten the child value.
+    Map<String, ExprValue> flattenedChildFieldMap;
+
+    if (components.size() == 1) {
+      flattenedChildFieldMap = childExprValue.tupleValue();
+    } else {
+      String remainingQualifiedName =
+          ExprValueUtils.joinQualifiedName(components.subList(1, components.size()));
+      ExprValue flattenedChildExprValue =
+          flattenNestedExprValue(childExprValue, remainingQualifiedName);
+      flattenedChildFieldMap = Map.of(fieldName, flattenedChildExprValue);
+    }
+
+    // Build flattened value.
+    Map<String, ExprValue> newFieldsMap = new  HashMap<>(fieldsMap);
+    newFieldsMap.putAll(flattenedChildFieldMap);
+
+    return ExprTupleValue.fromExprValueMap(newFieldsMap);
   }
 }
