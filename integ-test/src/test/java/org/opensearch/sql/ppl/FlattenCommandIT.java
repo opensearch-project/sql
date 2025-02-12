@@ -150,18 +150,19 @@ public class FlattenCommandIT extends PPLIntegTestCase {
   @Test
   public void testWithFlatten() throws IOException {
     String query =
-            StringUtils.format(
-                    "source=%s | where city = 'San Antonio' | flatten teams | expand title | fields name, title",
-                    TEST_INDEX_EXPAND_FLATTEN);
+        StringUtils.format(
+            "source=%s | where city = 'San Antonio' | flatten teams | expand title | fields name,"
+                + " title",
+            TEST_INDEX_EXPAND_FLATTEN);
     JSONObject result = executeQuery(query);
 
     verifySchema(result, schema("name", "string"), schema("title", "integer"));
     verifyDataRows(
-            result,
-            rows("San Antonio Spurs", 1999),
-            rows("San Antonio Spurs", 2003),
-            rows("San Antonio Spurs", 2005),
-            rows("San Antonio Spurs", 2007),
-            rows("San Antonio Spurs", 2014));
+        result,
+        rows("San Antonio Spurs", 1999),
+        rows("San Antonio Spurs", 2003),
+        rows("San Antonio Spurs", 2005),
+        rows("San Antonio Spurs", 2007),
+        rows("San Antonio Spurs", 2014));
   }
 }
