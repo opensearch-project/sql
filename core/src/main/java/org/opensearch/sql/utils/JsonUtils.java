@@ -13,7 +13,6 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
