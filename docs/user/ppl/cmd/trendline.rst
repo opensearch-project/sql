@@ -22,7 +22,7 @@ Syntax
 * trendline-type: mandatory. The type of algorithm being used for the calculation, only SMA (simple moving average) or WMA (weighted moving average) are supported at the moment.
 * number-of-datapoints: mandatory. The number of datapoints to calculate the moving average (must be greater than zero).
 * field: mandatory. The name of the field the moving average should be calculated for.
-* alias: optional. The name of the resulting column containing the moving average (defaults to the field name with "_trendline").
+* alias: optional. The name of the resulting column containing the moving average (defaults to the field name with "_<trendline-type>_trendline").
 
 In the case of Simple Moving Average - SMA, result will be calculated as per the below formula.
 
