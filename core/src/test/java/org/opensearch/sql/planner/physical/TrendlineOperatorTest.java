@@ -66,12 +66,6 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
   @Test
   public void calculates_simple_moving_average_one_field_two_samples() {
-//    when(inputPlan.hasNext()).thenReturn(true, true, false);
-//    when(inputPlan.next())
-//        .thenReturn(
-//            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-//            tupleValue(ImmutableMap.of("distance", 200, "time", 10)));
-
     mockPlanWithData(List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10))
