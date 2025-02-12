@@ -203,6 +203,9 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
             new JSONObject(
                 Map.of("key", Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(1, 2, 3))))),
         rows("json object", new JSONObject(Map.of("key", Map.of("a", "1", "b", "2")))),
+        rows(
+            "json nested array",
+            new JSONObject(Map.of("key", List.of(1, 2, 3, Map.of("true", true, "number", 123))))),
         rows("json array", new JSONObject(Map.of("key", List.of(1, 2, 3, 4)))),
         rows("json scalar string", Map.of("key", "abc")),
         rows("json scalar int", Map.of("key", 1234)),
