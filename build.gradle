@@ -6,9 +6,9 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-alpha1-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-        buildVersionQualifier = System.getProperty("build.version_qualifier", "")
+        buildVersionQualifier = System.getProperty("build.version_qualifier", "alpha1")
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
         prometheus_binary_version = "2.37.2"
@@ -138,7 +138,7 @@ subprojects {
         mavenLocal()
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
-        maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
         maven { url 'https://jitpack.io' }
     }
 }
@@ -165,7 +165,7 @@ compileTestJava {
 }
 
 jacoco {
-    toolVersion = "0.8.7"
+    toolVersion = "0.8.12"
 }
 jacocoTestReport {
     reports {
