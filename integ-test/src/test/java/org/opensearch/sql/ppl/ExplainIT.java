@@ -131,7 +131,7 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExpand() throws Exception {
-    String query = StringUtils.format("source=%s | expand team", TEST_INDEX_EXPAND_FLATTEN);
+    String query = StringUtils.format("source=%s | expand teams", TEST_INDEX_EXPAND_FLATTEN);
     String actual = explainQueryToString(query);
     String expected = loadFromFile("expectedOutput/ppl/explain_expand.json");
     assertJsonEquals(expected, actual);

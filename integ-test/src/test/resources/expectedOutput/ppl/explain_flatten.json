@@ -2,7 +2,7 @@
   "root": {
     "name": "ProjectOperator",
     "description": {
-      "fields": "[name, location, country, province, coordinates, state]"
+      "fields": "[teams, city, location, country, province, coordinates, state]"
     },
     "children": [
       {
@@ -21,7 +21,7 @@
           {
             "name": "OpenSearchIndexScan",
             "description": {
-              "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_flatten, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+              "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_expand_flatten, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
             },
             "children": []
           }

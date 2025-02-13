@@ -2,17 +2,17 @@
   "root": {
     "name": "ProjectOperator",
     "description": {
-      "fields": "[city, team]"
+      "fields": "[teams, city, location]"
     },
     "children": [
       {
         "name": "ExpandOperator",
         "description": {
           "expandField": {
-            "attr": "team",
-            "rawPath": "team",
+            "attr": "teams",
+            "rawPath": "teams",
             "paths": [
-              "team"
+              "teams"
             ],
             "type": "STRUCT"
           }
@@ -21,7 +21,7 @@
           {
             "name": "OpenSearchIndexScan",
             "description": {
-              "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_expand, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+              "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_expand_flatten, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
             },
             "children": []
           }
