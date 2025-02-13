@@ -64,7 +64,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  @Ignore
+  @Test
   public void testFilterQueryWithOr() {
     String ppl =
         "source=EMP | where (DEPTNO = 20 or MGR = 30) and SAL > 1000 | fields EMPNO, ENAME";
@@ -84,7 +84,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  @Ignore
+  @Test
   public void testFilterQueryWithOr2() {
     String ppl = "source=EMP (DEPTNO = 20 or MGR = 30) and SAL > 1000 | fields EMPNO, ENAME";
     RelNode root = getRelNode(ppl);

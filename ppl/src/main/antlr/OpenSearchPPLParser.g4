@@ -288,8 +288,9 @@ expression
 
 // predicates
 logicalExpression
-   : comparisonExpression                                       # comparsion
-   | NOT logicalExpression                                      # logicalNot
+   : NOT logicalExpression                                      # logicalNot
+   | LT_PRTHS logicalExpression RT_PRTHS                        # parentheticLogicalExpr
+   | comparisonExpression                                       # comparsion
    | left = logicalExpression OR right = logicalExpression      # logicalOr
    | left = logicalExpression (AND)? right = logicalExpression  # logicalAnd
    | left = logicalExpression XOR right = logicalExpression     # logicalXor

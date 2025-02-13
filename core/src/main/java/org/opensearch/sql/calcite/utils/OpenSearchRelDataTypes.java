@@ -88,6 +88,8 @@ public class OpenSearchRelDataTypes extends JavaTypeFactoryImpl {
     } else {
       if (fieldType.legacyTypeName().equalsIgnoreCase("binary")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.BINARY, nullable);
+      } else if (fieldType.legacyTypeName().equalsIgnoreCase("timestamp")) {
+        return TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("geo_point")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.GEOMETRY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("text")) {

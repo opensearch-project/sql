@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.calcite.linq4j.Enumerator;
@@ -20,6 +21,8 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   /** OpenSearch client. */
   private final OpenSearchClient client;
 
+  private final List<String> fields;
+
   /** Search request. */
   @EqualsAndHashCode.Include @ToString.Include private final OpenSearchRequest request;
 
@@ -32,14 +35,19 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
+  private ExprValue current;
+
   public OpenSearchIndexEnumerator(
-      OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
+      OpenSearchClient client,
+      List<String> fields,
+      int maxResponseSize,
+      OpenSearchRequest request) {
     this.client = client;
+    this.fields = fields;
     this.maxResponseSize = maxResponseSize;
     this.request = request;
     this.queryCount = 0;
-    this.iterator = Collections.emptyIterator();
-    fetchNextBatch();
+    this.current = null;
   }
 
   private void fetchNextBatch() {
@@ -51,27 +59,36 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public Object current() {
-    queryCount++;
-    return iterator.next().tupleValue().values().stream().map(ExprValue::value).toArray();
+    Object[] p = fields.stream().map(k -> current.tupleValue().get(k).value()).toArray();
+    return p;
   }
 
   @Override
   public boolean moveNext() {
     if (queryCount >= maxResponseSize) {
       iterator = Collections.emptyIterator();
-    } else if (!iterator.hasNext()) {
+      return false;
+    } else if (iterator == null || !iterator.hasNext()) {
       fetchNextBatch();
     }
-    return iterator.hasNext();
+    if (iterator.hasNext()) {
+      current = iterator.next();
+      queryCount++;
+      return true;
+    } else {
+      return false;
+    }
   }
 
   @Override
   public void reset() {
-    throw new UnsupportedOperationException();
+    iterator = Collections.emptyIterator();
+    queryCount = 0;
   }
 
   @Override
   public void close() {
+    reset();
     client.cleanup(request);
   }
 }
