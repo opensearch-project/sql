@@ -1,0 +1,4 @@
+{"name": "Seattle", "location": { "state": "Washington", "country": "United States", "coordinates": {"latitude": 47.6061, "longitude": -122.3328}}}
+{"name": "Vancouver", "location": { "province": "British Columbia", "country": "Canada", "coordinates": {"latitude": 49.2827, "longitude": -123.1207}}}
+{"name": "Null Location", "location":  null}
+{"name": "Null Coordinates", "location": { "state": "Victoria", "country": "Australia", "coordinates": null}}

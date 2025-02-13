@@ -14,6 +14,7 @@ import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
@@ -70,6 +71,7 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
+import org.opensearch.sql.planner.physical.FlattenOperator;
 import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
@@ -361,6 +363,15 @@ class OpenSearchExecutionProtectorTest {
     assertEquals(
         executionProtector.doProtect(evalOperator),
         executionProtector.visitEval(evalOperator, null));
+  }
+
+  @Test
+  void test_visitFlatten() {
+    FlattenOperator flattenOperator =
+        new FlattenOperator(values(emptyList()), ref("field_name", STRUCT));
+
+    assertEquals(
+        resourceMonitor(flattenOperator), executionProtector.visitFlatten(flattenOperator, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

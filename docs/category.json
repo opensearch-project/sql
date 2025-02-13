@@ -15,6 +15,7 @@
     "user/ppl/cmd/eval.rst",
     "user/ppl/cmd/fields.rst",
     "user/ppl/cmd/fillnull.rst",
+    "user/ppl/cmd/flatten.rst",
     "user/ppl/cmd/grok.rst",
     "user/ppl/cmd/head.rst",
     "user/ppl/cmd/parse.rst",

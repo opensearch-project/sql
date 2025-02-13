@@ -10,7 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.expression.DSL.named;
+import static org.opensearch.sql.expression.DSL.ref;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -135,8 +137,7 @@ class LogicalPlanNodeVisitorTest {
                 "field", new ReferenceExpression("message.info", STRING),
                 "path", new ReferenceExpression("message", STRING)));
     List<NamedExpression> projectList =
-        List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
+        List.of(new NamedExpression("message.info", DSL.nested(ref("message.info", STRING)), null));
 
     LogicalNested nested = new LogicalNested(null, nestedArgs, projectList);
 
@@ -151,6 +152,8 @@ class LogicalPlanNodeVisitorTest {
                 Pair.of(
                     AstDSL.computation(1, AstDSL.field("testField"), "dummy", SMA),
                     ExprCoreType.DOUBLE)));
+
+    LogicalFlatten flatten = new LogicalFlatten(relation, ref("testField", STRUCT));
 
     return Stream.of(
             relation,
@@ -175,7 +178,8 @@ class LogicalPlanNodeVisitorTest {
             nested,
             cursor,
             closeCursor,
-            trendline)
+            trendline,
+            flatten)
         .map(Arguments::of);
   }
 

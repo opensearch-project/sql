@@ -16,6 +16,7 @@ import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
+import org.opensearch.sql.planner.physical.FlattenOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
 import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -105,6 +106,11 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
               evalOperator.getNodeClient()));
     }
     return new EvalOperator(visitInput(node.getInput(), context), node.getExpressionList());
+  }
+
+  @Override
+  public PhysicalPlan visitFlatten(FlattenOperator node, Object context) {
+    return doProtect(new FlattenOperator(visitInput(node.getInput(), context), node.getField()));
   }
 
   @Override

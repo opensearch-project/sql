@@ -25,6 +25,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
+import static org.opensearch.sql.ast.dsl.AstDSL.flatten;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.in;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
@@ -45,13 +46,13 @@ import static org.opensearch.sql.ast.dsl.AstDSL.xor;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.common.utils.StringUtils;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
 
@@ -250,6 +251,14 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     function("like", field("a"), stringLiteral("_a%b%c_d_")),
                     intLiteral(1),
                     intLiteral(0)))));
+  }
+
+  @Test
+  public void testFlattenExpr() {
+    String fieldName = "field_name";
+    assertEqual(
+        StringUtils.format("source=t | flatten %s", fieldName),
+        flatten(relation("t"), field(fieldName)));
   }
 
   @Test
@@ -775,7 +784,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
     assertFalse(functionList.isEmpty());
     for (String functionName : functionList) {
       assertEqual(
-          String.format(Locale.ROOT, "source=t | fields %s", functionName),
+          StringUtils.format("source=t | fields %s", functionName),
           projectWithArg(relation("t"), defaultFieldsArgs(), field(qualifiedName(functionName))));
     }
   }

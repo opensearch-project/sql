@@ -51,6 +51,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
@@ -102,6 +103,10 @@ public class AstDSL {
 
   public static Eval eval(UnresolvedPlan input, Let... projectList) {
     return new Eval(Arrays.asList(projectList)).attach(input);
+  }
+
+  public Flatten flatten(UnresolvedPlan input, Field field) {
+    return new Flatten(field).attach(input);
   }
 
   public static UnresolvedPlan projectWithArg(

@@ -37,6 +37,7 @@ AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 TRENDLINE:                          'TRENDLINE';
+FLATTEN:                            'FLATTEN';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';

@@ -97,6 +97,11 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testFlattenCommand() {
+    assertEquals("source=t | flatten field_name", anonymize("source=t | flatten field_name"));
+  }
+
+  @Test
   public void testHeadCommandWithNumber() {
     assertEquals("source=t | head 3", anonymize("source=t | head 3"));
   }
