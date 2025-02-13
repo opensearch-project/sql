@@ -8,24 +8,12 @@ package org.opensearch.sql.calcite;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.plan.Context;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptSchema;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 public class CalcitePlanContext {
-
-  public static class OSRelBuilder extends RelBuilder {
-
-    protected OSRelBuilder(
-        @Nullable Context context, RelOptCluster cluster, @Nullable RelOptSchema relOptSchema) {
-      super(context, cluster, relOptSchema);
-    }
-  }
 
   public FrameworkConfig config;
   public CalciteConnection connection;

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.executor;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,15 +18,12 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.tools.RelRunner;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
-import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
@@ -32,6 +31,7 @@ import org.opensearch.sql.executor.Explain;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
+import org.opensearch.sql.opensearch.util.JdbcUtil;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
@@ -108,19 +108,24 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   @Override
   public void execute(
       RelNode rel, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
-    Connection connection = context.connection;
-    try {
-      RelRunner runner = connection.unwrap(RelRunner.class);
-      PreparedStatement statement = runner.prepareStatement(rel);
-      ResultSet result = statement.executeQuery();
-      printResultSet(result, listener);
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
+    AccessController.doPrivileged(
+        (PrivilegedAction<Void>)
+            () -> {
+              Connection connection = context.connection;
+              try {
+                RelRunner relRunner = connection.unwrap(RelRunner.class);
+                try (PreparedStatement statement = relRunner.prepareStatement(rel)) {
+                  ResultSet resultSet = statement.executeQuery();
+                  buildResultSet(resultSet, listener);
+                }
+                return null;
+              } catch (SQLException e) {
+                throw new RuntimeException(e);
+              }
+            });
   }
 
-  // for testing only
-  private void printResultSet(ResultSet resultSet, ResponseListener<QueryResponse> listener)
+  private void buildResultSet(ResultSet resultSet, ResponseListener<QueryResponse> listener)
       throws SQLException {
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
@@ -133,29 +138,22 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
-        String value = resultSet.getString(i);
-        System.out.println(columnName + ": " + value);
-
-        row.put(columnName, new ExprStringValue(value));
+        int sqlType = metaData.getColumnType(i);
+        ExprValue exprValue = JdbcUtil.getExprValueFromSqlType(resultSet, i, sqlType);
+        row.put(columnName, exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
-      System.out.println("-------------------"); // Separator between rows
     }
 
     List<Column> columns = new ArrayList<>(metaData.getColumnCount());
     for (int i = 1; i <= columnCount; ++i) {
-      // TODO: mapping RelDataType to ExprType or deprecate ExprType
-      columns.add(new Column(metaData.getColumnName(i), null, ExprCoreType.STRING));
+      String columnName = metaData.getColumnName(i);
+      int sqlType = metaData.getColumnType(i);
+      ExprType exprType = JdbcUtil.getExprTypeFromSqlType(sqlType);
+      columns.add(new Column(columnName, null, exprType));
     }
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
     listener.onResponse(response);
-  }
-
-  private RelDataType makeStruct(RelDataTypeFactory typeFactory, RelDataType type) {
-    if (type.isStruct()) {
-      return type;
-    }
-    return typeFactory.builder().add("$0", type).build();
   }
 }

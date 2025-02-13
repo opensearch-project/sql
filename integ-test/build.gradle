@@ -48,6 +48,7 @@ String baseVersion = "2.17.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
+String calciteCodegen = "$projectDir/src/test/java/codegen/"
 
 repositories {
     mavenCentral()
@@ -427,7 +428,11 @@ integTest {
         finalizedBy stopPrometheus
     }
 
-    systemProperty 'java.security.manager', 'disallow'
+    // enable calcite codegen in IT
+    systemProperty 'calcite.debug', 'false'
+    systemProperty 'org.codehaus.janino.source_debugging.enable', 'false'
+    systemProperty 'org.codehaus.janino.source_debugging.dir', calciteCodegen
+
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
 
