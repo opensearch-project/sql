@@ -6,7 +6,7 @@
     },
     "children": [
       {
-        "name": "EvalOperator",
+        "name": "OpenSearchEvalOperator",
         "description": {
           "expressions": {
             "ageMinus": "-(age, 30)"

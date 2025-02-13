@@ -92,6 +92,9 @@ ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 CASE:                               'CASE';
 IN:                                 'IN';
 
+// Geo IP eval function
+GEOIP:                              'GEOIP';
+
 // LOGICAL KEYWORDS
 NOT:                                'NOT';
 OR:                                 'OR';
@@ -335,6 +338,7 @@ CIDRMATCH:                          'CIDRMATCH';
 
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
+JSON:                               'JSON';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';
