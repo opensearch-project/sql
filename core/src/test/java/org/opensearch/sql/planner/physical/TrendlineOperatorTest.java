@@ -36,6 +36,7 @@ import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -303,7 +304,7 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
   @Test
   public void use_illegal_core_type() {
     assertThrows(
-        IllegalArgumentException.class,
+        SemanticCheckException.class,
         () -> {
           new TrendlineOperator(
               inputPlan,
@@ -809,7 +810,7 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
   @Test
   public void use_illegal_core_type_wma() {
     assertThrows(
-        IllegalArgumentException.class,
+        SemanticCheckException.class,
         () ->
             new TrendlineOperator(
                 inputPlan,
@@ -822,7 +823,7 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
   @Test
   public void use_invalid_dataPoints_zero() {
     assertThrows(
-        IllegalArgumentException.class,
+        SemanticCheckException.class,
         () ->
             new TrendlineOperator(
                 inputPlan,
@@ -835,7 +836,7 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
   @Test
   public void use_invalid_dataPoints_negative() {
     assertThrows(
-        IllegalArgumentException.class,
+        SemanticCheckException.class,
         () ->
             new TrendlineOperator(
                 inputPlan,

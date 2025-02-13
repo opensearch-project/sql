@@ -6,7 +6,7 @@
 package org.opensearch.sql.planner.physical;
 
 import static java.time.temporal.ChronoUnit.MILLIS;
-import static java.util.stream.Collectors.*;
+import static java.util.stream.Collectors.toList;
 
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableMap.Builder;
@@ -31,6 +31,7 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
@@ -120,7 +121,7 @@ public class TrendlineOperator extends PhysicalPlan {
   }
 
   /** Maintains stateful information for calculating the trendline. */
-  private abstract static class TrendlineAccumulator {
+  protected abstract static class TrendlineAccumulator {
 
     protected final LiteralExpression dataPointsNeeded;
 
@@ -129,10 +130,9 @@ public class TrendlineOperator extends PhysicalPlan {
     private TrendlineAccumulator(Trendline.TrendlineComputation config) {
       Integer numberOfDataPoints = config.getNumberOfDataPoints();
       if (numberOfDataPoints <= 0) {
-        throw new IllegalArgumentException(
+        throw new SemanticCheckException(
             String.format("Invalid dataPoints [%d] value.", numberOfDataPoints));
       }
-      ;
       this.dataPointsNeeded = DSL.literal(numberOfDataPoints.doubleValue());
       this.receivedValues = EvictingQueue.create(numberOfDataPoints);
     }
@@ -198,7 +198,7 @@ public class TrendlineOperator extends PhysicalPlan {
         case DATE -> DateArithmeticEvaluator.INSTANCE;
         case TIME -> TimeArithmeticEvaluator.INSTANCE;
         case TIMESTAMP -> TimestampArithmeticEvaluator.INSTANCE;
-        default -> throw new IllegalArgumentException(
+        default -> throw new SemanticCheckException(
             String.format("Invalid type %s used for moving average.", type.typeName()));
       };
     }
@@ -357,7 +357,7 @@ public class TrendlineOperator extends PhysicalPlan {
         case INTEGER, SHORT, LONG, FLOAT, DOUBLE -> WMA_NUMERIC_EVALUATOR;
         case DATE, TIMESTAMP -> WMA_TIMESTAMP_EVALUATOR;
         case TIME -> WMA_TIME_EVALUATOR;
-        default -> throw new IllegalArgumentException(
+        default -> throw new SemanticCheckException(
             String.format("Invalid type %s used for weighted moving average.", type.typeName()));
       };
     }
