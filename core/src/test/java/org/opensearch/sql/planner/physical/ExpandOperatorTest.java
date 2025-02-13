@@ -44,6 +44,18 @@ class ExpandOperatorTest extends PhysicalPlanTestBase {
   private List<ExprValue> expectedRows;
 
   @Test
+  void testArrayEmpty() {
+    inputRow =
+        ExprValueUtils.tupleValue(Map.of("array", ExprValueUtils.collectionValue(List.of())));
+    mockInput(inputRow);
+
+    actualRows = execute(expand(inputPlan, DSL.ref("array", ARRAY)));
+    expectedRows = List.of(ExprValueUtils.tupleValue(Map.of("array", nullExprValue)));
+
+    assertEquals(expectedRows, actualRows);
+  }
+
+  @Test
   void testArray() {
     inputRow =
         ExprValueUtils.tupleValue(

@@ -63,7 +63,7 @@ public class ExpandOperator extends PhysicalPlan {
   /**
    * Expands the nested {@link ExprCollectionValue} with the specified qualified name within the
    * given root value, and returns the results. If the root value does not contain a nested value
-   * with the qualified name, if the nested value is null or missing, or if the nested value in not
+   * with the qualified name, if the nested value is null or missing, or if the nested value is not
    * an {@link ExprCollectionValue}, returns the unmodified root value.
    *
    * @throws SemanticCheckException if the root value is not an {@link ExprTupleValue}.
@@ -90,11 +90,7 @@ public class ExpandOperator extends PhysicalPlan {
     // Expand the child value.
     List<ExprValue> expandedChildExprValues;
     if (components.size() == 1) {
-      expandedChildExprValues =
-          new LinkedList<>(
-              childExprValue.type().equals(ARRAY)
-                  ? childExprValue.collectionValue()
-                  : List.of(childExprValue));
+      expandedChildExprValues = expandExprValue(childExprValue);
     } else {
       String remainingQualifiedName =
           ExprValueUtils.joinQualifiedName(components.subList(1, components.size()));
@@ -104,12 +100,28 @@ public class ExpandOperator extends PhysicalPlan {
     // Build expanded values.
     List<ExprValue> expandedExprValues = new LinkedList<>();
 
-    for (ExprValue expandedChildExprValue : expandedChildExprValues) {
+    for (ExprValue expanded : expandedChildExprValues) {
       Map<String, ExprValue> newFieldsMap = new HashMap<>(fieldsMap);
-      newFieldsMap.put(fieldName, expandedChildExprValue);
+      newFieldsMap.put(fieldName, expanded);
       expandedExprValues.add(ExprTupleValue.fromExprValueMap(newFieldsMap));
     }
 
     return expandedExprValues;
+  }
+
+  /** Expands the given value and returns the results. */
+  private static List<ExprValue> expandExprValue(ExprValue exprValue) {
+    if (!exprValue.type().equals(ARRAY)) {
+      return List.of(exprValue);
+    }
+
+    List<ExprValue> collectionExprValues = exprValue.collectionValue();
+
+    // Expand an empyt collection expands to a null value.
+    if (collectionExprValues.isEmpty()) {
+      return List.of(ExprValueUtils.nullValue());
+    }
+
+    return collectionExprValues;
   }
 }
