@@ -16,7 +16,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
-public class OpenSearchIndexEnumerator implements Enumerator<Object> {
+public class OpenSearchIndexEnumerator implements Enumerator<Object[]> {
 
   /** OpenSearch client. */
   private final OpenSearchClient client;
@@ -58,7 +58,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   }
 
   @Override
-  public Object current() {
+  public Object[] current() {
     Object[] p = fields.stream().map(k -> current.tupleValue().get(k).value()).toArray();
     return p;
   }

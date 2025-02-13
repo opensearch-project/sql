@@ -16,13 +16,14 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.opensearch.sql.calcite.utils.OpenSearchRelDataTypes;
 
 public abstract class OpenSearchTable extends AbstractQueryableTable
-    implements TranslatableTable, org.opensearch.sql.storage.Table {
+    implements ProjectableFilterableTable, TranslatableTable, org.opensearch.sql.storage.Table {
 
   protected OpenSearchTable(Type elementType) {
     super(elementType);
@@ -55,5 +56,5 @@ public abstract class OpenSearchTable extends AbstractQueryableTable
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public abstract Enumerable<Object> search();
+  public abstract Enumerable<Object[]> search();
 }
