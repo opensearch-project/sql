@@ -36,7 +36,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.opensearch.action.support.PlainActionFuture;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.ml.client.MachineLearningNodeClient;
 import org.opensearch.ml.common.dataframe.DataFrame;
 import org.opensearch.ml.common.dataframe.DataFrameBuilder;
@@ -52,6 +51,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.client.MLClient;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
+import org.opensearch.transport.client.node.NodeClient;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)

@@ -28,7 +28,6 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.xcontent.XContentType;
@@ -40,6 +39,7 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.scheduler.job.ScheduledAsyncQueryJobRunner;
 import org.opensearch.sql.spark.scheduler.model.AsyncQuerySchedulerRequest;
 import org.opensearch.sql.spark.scheduler.model.ScheduledAsyncQueryJobRequest;
+import org.opensearch.transport.client.Client;
 
 /** Scheduler class for managing asynchronous query jobs. */
 @RequiredArgsConstructor

@@ -5,9 +5,9 @@
 
 package org.opensearch.sql.legacy.query.multi;
 
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.QueryAction;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 19/8/2016. */
 public class OpenSearchMultiQueryActionFactory {

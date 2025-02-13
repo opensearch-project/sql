@@ -1,9 +1,9 @@
 package org.opensearch.sql.opensearch.util;
 
 import lombok.NonNull;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** RestRequestUtil is a utility class for common operations on OpenSearch RestRequest's. */
 public class RestRequestUtil {

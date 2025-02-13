@@ -6,10 +6,10 @@
 package org.opensearch.sql.legacy.query;
 
 import org.opensearch.action.admin.indices.get.GetIndexRequestBuilder;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.IndexStatement;
 import org.opensearch.sql.legacy.domain.QueryStatement;
 import org.opensearch.sql.legacy.utils.Util;
+import org.opensearch.transport.client.Client;
 
 public class DescribeQueryAction extends QueryAction {
 
