@@ -7,35 +7,34 @@ package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Field;
 
-/** AST node represent Eval operation. */
+/** AST node representing an {@code expand <field>} operation. */
 @Getter
 @ToString
-@EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
-public class Eval extends UnresolvedPlan {
-  private final List<Let> expressionList;
+public class Expand extends UnresolvedPlan {
+
   private UnresolvedPlan child;
+  @Getter private final Field field;
 
   @Override
-  public Eval attach(UnresolvedPlan child) {
+  public Expand attach(UnresolvedPlan child) {
     this.child = child;
     return this;
   }
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return ImmutableList.of(this.child);
+    return ImmutableList.of(child);
   }
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitEval(this, context);
+    return nodeVisitor.visitExpand(this, context);
   }
 }

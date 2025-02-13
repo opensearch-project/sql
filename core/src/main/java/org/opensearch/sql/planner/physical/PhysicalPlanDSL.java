@@ -60,6 +60,14 @@ public class PhysicalPlanDSL {
     return new EvalOperator(input, Arrays.asList(expressions));
   }
 
+  public ExpandOperator expand(PhysicalPlan input, ReferenceExpression fieldRefExp) {
+    return new ExpandOperator(input, fieldRefExp);
+  }
+
+  public FlattenOperator flatten(PhysicalPlan input, ReferenceExpression fieldRefExp) {
+    return new FlattenOperator(input, fieldRefExp);
+  }
+
   public static SortOperator sort(PhysicalPlan input, Pair<SortOption, Expression>... sorts) {
     return new SortOperator(input, Arrays.asList(sorts));
   }

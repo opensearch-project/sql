@@ -7,6 +7,7 @@ package org.opensearch.sql.data.model;
 
 import java.time.temporal.TemporalAmount;
 import java.time.temporal.TemporalUnit;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -55,5 +56,10 @@ public class ExprIntervalValue extends AbstractExprValue {
         .filter(v -> interval.get(v) != 0)
         .findAny()
         .orElse(interval.getUnits().get(0));
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(interval);
   }
 }

@@ -13,9 +13,11 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -23,10 +25,19 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 /** The definition of {@link ExprValue} factory. */
 @UtilityClass
 public class ExprValueUtils {
+
+  // Literal constants
   public static final ExprValue LITERAL_TRUE = ExprBooleanValue.of(true);
   public static final ExprValue LITERAL_FALSE = ExprBooleanValue.of(false);
   public static final ExprValue LITERAL_NULL = ExprNullValue.of();
   public static final ExprValue LITERAL_MISSING = ExprMissingValue.of();
+
+  /** Qualified name separator string */
+  private final String QUALIFIED_NAME_SEPARATOR = ".";
+
+  /** Pattern that matches the qualified name separator string */
+  private final Pattern QUALIFIED_NAME_SEPARATOR_PATTERN =
+      Pattern.compile(QUALIFIED_NAME_SEPARATOR, Pattern.LITERAL);
 
   public static ExprValue booleanValue(Boolean value) {
     return value ? LITERAL_TRUE : LITERAL_FALSE;
@@ -199,5 +210,15 @@ public class ExprValueUtils {
 
   public static Boolean getBooleanValue(ExprValue exprValue) {
     return exprValue.booleanValue();
+  }
+
+  /** Splits the given qualified name into components and returns the result. */
+  public List<String> splitQualifiedName(String qualifiedName) {
+    return Arrays.asList(QUALIFIED_NAME_SEPARATOR_PATTERN.split(qualifiedName, -1));
+  }
+
+  /** Joins the given components into a qualified name and returns the result. */
+  public String joinQualifiedName(List<String> components) {
+    return String.join(QUALIFIED_NAME_SEPARATOR, components);
   }
 }

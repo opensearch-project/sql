@@ -11,9 +11,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.ast.tree.RareTopN.CommandType.TOP;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
@@ -55,6 +57,8 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.planner.physical.ExpandOperator;
+import org.opensearch.sql.planner.physical.FlattenOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.TrendlineOperator;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -297,6 +301,42 @@ class ExplainTest extends ExpressionTestBase {
                             "time_alias"))),
                 singletonList(tableScan.explainNode()))),
         explain.apply(plan));
+  }
+
+  @Test
+  void can_explain_expand() {
+    String fieldName = "field_name";
+    ReferenceExpression fieldReference = ref(fieldName, ARRAY);
+
+    PhysicalPlan plan = new ExpandOperator(tableScan, fieldReference);
+    ExplainResponse actual = explain.apply(plan);
+
+    ExplainResponse expected =
+        new ExplainResponse(
+            new ExplainResponseNode(
+                "ExpandOperator",
+                ImmutableMap.of("expandField", fieldReference),
+                singletonList(tableScan.explainNode())));
+
+    assertEquals(expected, actual, "explain expand");
+  }
+
+  @Test
+  void can_explain_flatten() {
+    String fieldName = "field_name";
+    ReferenceExpression fieldReference = ref(fieldName, STRUCT);
+
+    PhysicalPlan plan = new FlattenOperator(tableScan, fieldReference);
+    ExplainResponse actual = explain.apply(plan);
+
+    ExplainResponse expected =
+        new ExplainResponse(
+            new ExplainResponseNode(
+                "FlattenOperator",
+                ImmutableMap.of("flattenField", fieldReference),
+                singletonList(tableScan.explainNode())));
+
+    assertEquals(expected, actual, "explain flatten");
   }
 
   private static class FakeTableScan extends TableScanOperator {

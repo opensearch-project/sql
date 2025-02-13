@@ -31,6 +31,7 @@ NESTED = "nested"
 DATASOURCES = ".ql-datasources"
 WEBLOGS = "weblogs"
 JSON_TEST = "json_test"
+EXPAND_FLATTEN = "expand_flatten"
 
 class DocTestConnection(OpenSearchConnection):
 
@@ -114,18 +115,18 @@ bash_parser = zc.customdoctests.DocTestParser(
 
 def set_up_test_indices(test):
     set_up(test)
-    load_file("accounts.json", index_name=ACCOUNTS)
-    load_file("people.json", index_name=PEOPLE)
     load_file("account2.json", index_name=ACCOUNT2)
-    load_file("nyc_taxi.json", index_name=NYC_TAXI)
-    load_file("books.json", index_name=BOOKS)
+    load_file("accounts.json", index_name=ACCOUNTS)
     load_file("apache.json", index_name=APACHE)
-    load_file("wildcard.json", index_name=WILDCARD)
-    load_file("nested_objects.json", index_name=NESTED)
+    load_file("books.json", index_name=BOOKS)
     load_file("datasources.json", index_name=DATASOURCES)
-    load_file("weblogs.json", index_name=WEBLOGS)
+    load_file("expand_flatten.json", index_name=EXPAND_FLATTEN)
     load_file("json_test.json", index_name=JSON_TEST)
-
+    load_file("nested_objects.json", index_name=NESTED)
+    load_file("nyc_taxi.json", index_name=NYC_TAXI)
+    load_file("people.json", index_name=PEOPLE)
+    load_file("weblogs.json", index_name=WEBLOGS)
+    load_file("wildcard.json", index_name=WILDCARD)
 
 def load_file(filename, index_name):
     # Create index with the mapping if mapping file exists
@@ -153,8 +154,20 @@ def set_up(test):
 
 def tear_down(test):
     # drop leftover tables after each test
-    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS, JSON_TEST], ignore_unavailable=True)
-
+    index = [
+        ACCOUNT2,
+        ACCOUNTS,
+        APACHE,
+        BOOKS,
+        EMPLOYEES,
+        EXPAND_FLATTEN,
+        JSON_TEST,
+        NESTED,
+        NYC_TAXI,
+        PEOPLE,
+        WEBLOGS,
+        WILDCARD]
+    test_data_client.indices.delete(index=index, ignore_unavailable=True)
 
 docsuite = partial(doctest.DocFileSuite,
                    tearDown=tear_down,

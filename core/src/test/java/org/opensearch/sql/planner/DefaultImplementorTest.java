@@ -14,8 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
@@ -62,6 +64,8 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
+import org.opensearch.sql.planner.logical.LogicalExpand;
+import org.opensearch.sql.planner.logical.LogicalFlatten;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
@@ -70,6 +74,8 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
+import org.opensearch.sql.planner.physical.ExpandOperator;
+import org.opensearch.sql.planner.physical.FlattenOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.planner.physical.ProjectOperator;
@@ -92,7 +98,7 @@ class DefaultImplementorTest {
   private final DefaultImplementor<Object> implementor = new DefaultImplementor<>();
 
   @Test
-  public void visit_should_return_default_physical_operator() {
+  void visit_should_return_default_physical_operator() {
     String indexName = "test";
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
@@ -186,7 +192,7 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitRelation_should_throw_an_exception() {
+  void visitRelation_should_throw_an_exception() {
     assertThrows(
         UnsupportedOperationException.class,
         () -> new LogicalRelation("test", table).accept(implementor, null));
@@ -194,7 +200,7 @@ class DefaultImplementorTest {
 
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
-  public void visitWindowOperator_should_return_PhysicalWindowOperator() {
+  void visitWindowOperator_should_return_PhysicalWindowOperator() {
     NamedExpression windowFunction = named(new RowNumberFunction());
     WindowDefinition windowDefinition =
         new WindowDefinition(
@@ -236,7 +242,7 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitTableScanBuilder_should_build_TableScanOperator() {
+  void visitTableScanBuilder_should_build_TableScanOperator() {
     TableScanOperator tableScanOperator = mock(TableScanOperator.class);
     TableScanBuilder tableScanBuilder =
         new TableScanBuilder() {
@@ -249,7 +255,7 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitTableWriteBuilder_should_build_TableWriteOperator() {
+  void visitTableWriteBuilder_should_build_TableWriteOperator() {
     LogicalPlan child = values();
     TableWriteOperator tableWriteOperator = mock(TableWriteOperator.class);
     TableWriteBuilder logicalPlan =
@@ -263,7 +269,7 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitCloseCursor_should_build_CursorCloseOperator() {
+  void visitCloseCursor_should_build_CursorCloseOperator() {
     var logicalChild = mock(LogicalPlan.class);
     var physicalChild = mock(PhysicalPlan.class);
     when(logicalChild.accept(implementor, null)).thenReturn(physicalChild);
@@ -274,7 +280,7 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitPaginate_should_remove_it_from_tree() {
+  void visitPaginate_should_remove_it_from_tree() {
     var logicalPlanTree =
         new LogicalPaginate(
             42,
@@ -286,7 +292,7 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitLimit_support_return_takeOrdered() {
+  void visitLimit_support_return_takeOrdered() {
     // replace SortOperator + LimitOperator with TakeOrderedOperator
     Pair<Sort.SortOption, Expression> sort =
         ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("a", INTEGER));
@@ -312,7 +318,7 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitTrendline_should_build_TrendlineOperator() {
+  void visitTrendline_should_build_TrendlineOperator() {
     var logicalChild = mock(LogicalPlan.class);
     var physicalChild = mock(PhysicalPlan.class);
     when(logicalChild.accept(implementor, null)).thenReturn(physicalChild);
@@ -324,5 +330,35 @@ class DefaultImplementorTest {
     var implemented = logicalPlan.accept(implementor, null);
     assertInstanceOf(TrendlineOperator.class, implemented);
     assertSame(physicalChild, implemented.getChild().get(0));
+  }
+
+  @Test
+  void visitExpand_should_build_ExpandOperator() {
+    var logicalChild = mock(LogicalPlan.class);
+    var physicalChild = mock(PhysicalPlan.class);
+    when(logicalChild.accept(implementor, null)).thenReturn(physicalChild);
+
+    var fieldName = "field_name";
+    var logicalPlan = new LogicalExpand(logicalChild, ref(fieldName, ARRAY));
+    var implemented = logicalPlan.accept(implementor, null);
+
+    assertInstanceOf(ExpandOperator.class, implemented);
+    assertEquals(fieldName, ((ExpandOperator) implemented).getField().getAttr());
+    assertSame(physicalChild, implemented.getChild().getFirst());
+  }
+
+  @Test
+  void visitFlatten_should_build_FlattenOperator() {
+    var logicalChild = mock(LogicalPlan.class);
+    var physicalChild = mock(PhysicalPlan.class);
+    when(logicalChild.accept(implementor, null)).thenReturn(physicalChild);
+
+    var fieldName = "field_name";
+    var logicalPlan = new LogicalFlatten(logicalChild, ref(fieldName, STRUCT));
+    var implemented = logicalPlan.accept(implementor, null);
+
+    assertInstanceOf(FlattenOperator.class, implemented);
+    assertEquals(fieldName, ((FlattenOperator) implemented).getField().getAttr());
+    assertSame(physicalChild, implemented.getChild().getFirst());
   }
 }

@@ -67,7 +67,7 @@ public class Relation extends UnresolvedPlan {
   }
 
   /**
-   * Get Qualified name preservs parts of the user given identifiers. This can later be utilized to
+   * Get Qualified name preserves parts of the user given identifiers. This can later be utilized to
    * determine DataSource,Schema and Table Name during Analyzer stage. So Passing QualifiedName
    * directly to Analyzer Stage.
    *
