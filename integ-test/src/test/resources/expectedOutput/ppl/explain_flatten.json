@@ -1,0 +1,32 @@
+{
+  "root": {
+    "name": "ProjectOperator",
+    "description": {
+      "fields": "[teams, city, location, country, province, coordinates, state]"
+    },
+    "children": [
+      {
+        "name": "FlattenOperator",
+        "description": {
+          "flattenField": {
+            "attr": "location",
+            "rawPath": "location",
+            "paths": [
+              "location"
+            ],
+            "type": "STRUCT"
+          }
+        },
+        "children": [
+          {
+            "name": "OpenSearchIndexScan",
+            "description": {
+              "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_expand_flatten, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

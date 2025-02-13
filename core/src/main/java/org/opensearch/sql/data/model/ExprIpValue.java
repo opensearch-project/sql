@@ -6,6 +6,7 @@
 package org.opensearch.sql.data.model;
 
 import inet.ipaddr.IPAddress;
+import java.util.Objects;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.utils.IPUtils;
@@ -46,5 +47,10 @@ public class ExprIpValue extends AbstractExprValue {
   @Override
   public IPAddress ipValue() {
     return value;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(value);
   }
 }

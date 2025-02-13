@@ -17,7 +17,7 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.utils.IPUtils;
 
-public class ExprIpValueTest {
+class ExprIpValueTest {
 
   private static final String ipv4String = "1.2.3.4";
   private static final String ipv6String = "2001:db7::ff00:42:8329";
@@ -53,7 +53,7 @@ public class ExprIpValueTest {
           "2001:0db7:0000:0000:0000:ff00:0042:8330");
 
   @Test
-  public void testInvalid() {
+  void testInvalid() {
     assertThrows(
         SemanticCheckException.class,
         () -> ExprValueUtils.ipValue(ipInvalidString),
@@ -61,33 +61,33 @@ public class ExprIpValueTest {
   }
 
   @Test
-  public void testValue() {
-    ipv4EqualStrings.forEach((s) -> assertEquals(ipv4String, ExprValueUtils.ipValue(s).value()));
-    ipv6EqualStrings.forEach((s) -> assertEquals(ipv6String, ExprValueUtils.ipValue(s).value()));
+  void testValue() {
+    ipv4EqualStrings.forEach(s -> assertEquals(ipv4String, ExprValueUtils.ipValue(s).value()));
+    ipv6EqualStrings.forEach(s -> assertEquals(ipv6String, ExprValueUtils.ipValue(s).value()));
   }
 
   @Test
-  public void testType() {
+  void testType() {
     assertEquals(ExprCoreType.IP, exprIpv4Value.type());
     assertEquals(ExprCoreType.IP, exprIpv6Value.type());
   }
 
   @Test
-  public void testCompare() {
+  void testCompare() {
 
     // Compare to IP address.
     ipv4LesserStrings.forEach(
-        (s) -> assertTrue(exprIpv4Value.compareTo(ExprValueUtils.ipValue(s)) > 0));
+        s -> assertTrue(exprIpv4Value.compareTo(ExprValueUtils.ipValue(s)) > 0));
     ipv4EqualStrings.forEach(
-        (s) -> assertEquals(0, exprIpv4Value.compareTo(ExprValueUtils.ipValue(s))));
+        s -> assertEquals(0, exprIpv4Value.compareTo(ExprValueUtils.ipValue(s))));
     ipv4GreaterStrings.forEach(
-        (s) -> assertTrue(exprIpv4Value.compareTo(ExprValueUtils.ipValue(s)) < 0));
+        s -> assertTrue(exprIpv4Value.compareTo(ExprValueUtils.ipValue(s)) < 0));
     ipv6LesserStrings.forEach(
-        (s) -> assertTrue(exprIpv6Value.compareTo(ExprValueUtils.ipValue(s)) > 0));
+        s -> assertTrue(exprIpv6Value.compareTo(ExprValueUtils.ipValue(s)) > 0));
     ipv6EqualStrings.forEach(
-        (s) -> assertEquals(0, exprIpv6Value.compareTo(ExprValueUtils.ipValue(s))));
+        s -> assertEquals(0, exprIpv6Value.compareTo(ExprValueUtils.ipValue(s))));
     ipv6GreaterStrings.forEach(
-        (s) -> assertTrue(exprIpv6Value.compareTo(ExprValueUtils.ipValue(s)) < 0));
+        s -> assertTrue(exprIpv6Value.compareTo(ExprValueUtils.ipValue(s)) < 0));
 
     // Compare to null/missing value.
     assertThrows(
@@ -107,32 +107,50 @@ public class ExprIpValueTest {
   }
 
   @Test
-  public void testEquals() {
+  void testEquals() {
     assertEquals(exprIpv4Value, exprIpv4Value);
     assertNotEquals(exprIpv4Value, new Object());
     assertNotEquals(exprIpv4Value, ExprValueUtils.LITERAL_NULL);
     assertNotEquals(exprIpv4Value, ExprValueUtils.LITERAL_MISSING);
 
-    ipv4EqualStrings.forEach((s) -> assertEquals(exprIpv4Value, ExprValueUtils.ipValue(s)));
-    ipv6EqualStrings.forEach((s) -> assertEquals(exprIpv6Value, ExprValueUtils.ipValue(s)));
+    ipv4EqualStrings.forEach(s -> assertEquals(exprIpv4Value, ExprValueUtils.ipValue(s)));
+    ipv6EqualStrings.forEach(s -> assertEquals(exprIpv6Value, ExprValueUtils.ipValue(s)));
 
-    ipv4LesserStrings.forEach((s) -> assertNotEquals(exprIpv4Value, ExprValueUtils.ipValue(s)));
-    ipv6GreaterStrings.forEach((s) -> assertNotEquals(exprIpv6Value, ExprValueUtils.ipValue(s)));
+    ipv4LesserStrings.forEach(s -> assertNotEquals(exprIpv4Value, ExprValueUtils.ipValue(s)));
+    ipv6GreaterStrings.forEach(s -> assertNotEquals(exprIpv6Value, ExprValueUtils.ipValue(s)));
   }
 
   @Test
-  public void testToString() {
+  void testToString() {
     ipv4EqualStrings.forEach(
-        (s) ->
+        s ->
             assertEquals(String.format("IP %s", ipv4String), ExprValueUtils.ipValue(s).toString()));
     ipv6EqualStrings.forEach(
-        (s) ->
+        s ->
             assertEquals(String.format("IP %s", ipv6String), ExprValueUtils.ipValue(s).toString()));
   }
 
   @Test
-  public void testIpValue() {
-    ipv4EqualStrings.forEach((s) -> assertEquals(IPUtils.toAddress(s), exprIpv4Value.ipValue()));
-    ipv6EqualStrings.forEach((s) -> assertEquals(IPUtils.toAddress(s), exprIpv6Value.ipValue()));
+  void testIpValue() {
+    ipv4EqualStrings.forEach(s -> assertEquals(IPUtils.toAddress(s), exprIpv4Value.ipValue()));
+    ipv6EqualStrings.forEach(s -> assertEquals(IPUtils.toAddress(s), exprIpv6Value.ipValue()));
+  }
+
+  @Test
+  void testHashCode() {
+    assertEquals(exprIpv4Value.hashCode(), exprIpv4Value.hashCode());
+    assertNotEquals(exprIpv4Value.hashCode(), new Object().hashCode());
+    assertNotEquals(exprIpv4Value.hashCode(), ExprValueUtils.LITERAL_NULL.hashCode());
+    assertNotEquals(exprIpv4Value.hashCode(), ExprValueUtils.LITERAL_MISSING.hashCode());
+
+    ipv4EqualStrings.forEach(
+        s -> assertEquals(exprIpv4Value.hashCode(), ExprValueUtils.ipValue(s).hashCode()));
+    ipv6EqualStrings.forEach(
+        s -> assertEquals(exprIpv6Value.hashCode(), ExprValueUtils.ipValue(s).hashCode()));
+
+    ipv4LesserStrings.forEach(
+        s -> assertNotEquals(exprIpv4Value.hashCode(), ExprValueUtils.ipValue(s).hashCode()));
+    ipv6GreaterStrings.forEach(
+        s -> assertNotEquals(exprIpv6Value.hashCode(), ExprValueUtils.ipValue(s).hashCode()));
   }
 }

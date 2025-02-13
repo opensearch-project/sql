@@ -51,6 +51,8 @@ commands
    | mlCommand
    | fillnullCommand
    | trendlineCommand
+   | expandCommand
+   | flattenCommand
    ;
 
 searchCommand
@@ -156,6 +158,15 @@ trendlineClause
 
 trendlineType
    : SMA
+   ;
+
+expandCommand
+   : EXPAND fieldExpression
+   ;
+
+// TODO #3291: Extend flatten command to support aliases
+flattenCommand
+   : FLATTEN fieldExpression
    ;
 
 kmeansCommand
@@ -889,7 +900,9 @@ keywordsCanBeId
    | DEDUP
    | SORT
    | EVAL
+   | EXPAND
    | FILLNULL
+   | FLATTEN
    | HEAD
    | TOP
    | RARE

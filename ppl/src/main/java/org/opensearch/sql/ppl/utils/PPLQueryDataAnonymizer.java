@@ -35,8 +35,10 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -190,6 +192,22 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
             .map(pair -> StringUtils.format("%s" + "=%s", pair.getLeft(), pair.getRight()))
             .collect(Collectors.joining(" "));
     return StringUtils.format("%s | eval %s", child, expressions);
+  }
+
+  @Override
+  public String visitExpand(Expand node, String context) {
+    String child = node.getChild().getFirst().accept(this, context);
+    String field = visitExpression(node.getField());
+
+    return StringUtils.format("%s | expand %s", child, field);
+  }
+
+  @Override
+  public String visitFlatten(Flatten node, String context) {
+    String child = node.getChild().getFirst().accept(this, context);
+    String field = visitExpression(node.getField());
+
+    return StringUtils.format("%s | flatten %s", child, field);
   }
 
   /** Build {@link LogicalSort}. */

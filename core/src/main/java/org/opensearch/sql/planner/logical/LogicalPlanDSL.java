@@ -97,6 +97,14 @@ public class LogicalPlanDSL {
     return new LogicalEval(input, Arrays.asList(expressions));
   }
 
+  public LogicalPlan expand(LogicalPlan input, ReferenceExpression fieldRefExp) {
+    return new LogicalExpand(input, fieldRefExp);
+  }
+
+  public LogicalPlan flatten(LogicalPlan input, ReferenceExpression fieldRefExp) {
+    return new LogicalFlatten(input, fieldRefExp);
+  }
+
   public static LogicalPlan sort(LogicalPlan input, Pair<SortOption, Expression>... sorts) {
     return new LogicalSort(input, Arrays.asList(sorts));
   }

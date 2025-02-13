@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_EXPAND_FLATTEN;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 
 import com.google.common.io.Resources;
@@ -13,12 +14,14 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.utils.StringUtils;
 
 public class ExplainIT extends PPLIntegTestCase {
 
   @Override
   public void init() throws IOException {
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.EXPAND_FLATTEN);
   }
 
   @Test
@@ -126,7 +129,24 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| fields ageTrend"));
   }
 
-  String loadFromFile(String filename) throws Exception {
+  @Test
+  public void testExpand() throws Exception {
+    String query = StringUtils.format("source=%s | expand teams", TEST_INDEX_EXPAND_FLATTEN);
+    String actual = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/ppl/explain_expand.json");
+    assertJsonEquals(expected, actual);
+  }
+
+  @Test
+  public void testFlatten() throws Exception {
+    String query = StringUtils.format("source=%s | flatten location", TEST_INDEX_EXPAND_FLATTEN);
+    String actual = explainQueryToString(query);
+    String expected = loadFromFile("expectedOutput/ppl/explain_flatten.json");
+    assertJsonEquals(expected, actual);
+  }
+
+  private static String loadFromFile(String filename)
+      throws java.net.URISyntaxException, IOException {
     URI uri = Resources.getResource(filename).toURI();
     return new String(Files.readAllBytes(Paths.get(uri)));
   }

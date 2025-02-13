@@ -21,9 +21,11 @@ import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
+import static org.opensearch.sql.ast.dsl.AstDSL.expand;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
+import static org.opensearch.sql.ast.dsl.AstDSL.flatten;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.head;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
@@ -66,6 +68,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstBuilderTest {
@@ -444,6 +447,22 @@ public class AstBuilderTest {
     assertEqual(
         "source=t | eval r=abs(f)",
         eval(relation("t"), let(field("r"), function("abs", field("f")))));
+  }
+
+  @Test
+  public void testExpandCommand() {
+    String fieldName = "field_name";
+    assertEqual(
+        StringUtils.format("source=t | expand %s", fieldName),
+        expand(relation("t"), field(fieldName)));
+  }
+
+  @Test
+  public void testFlattenCommand() {
+    String fieldName = "field_name";
+    assertEqual(
+        StringUtils.format("source=t | flatten %s", fieldName),
+        flatten(relation("t"), field(fieldName)));
   }
 
   @Test

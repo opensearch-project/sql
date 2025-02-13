@@ -264,4 +264,20 @@ public class ExprValueUtilsTest {
         new ExprTimestampValue("2012-08-07 18:00:00").hashCode(),
         new ExprTimestampValue("2012-08-07 18:00:00").hashCode());
   }
+
+  @Test
+  void testSplitQualifiedName() {
+    assertEquals(List.of("integer"), ExprValueUtils.splitQualifiedName("integer"));
+    assertEquals(List.of("tuple", "integer"), ExprValueUtils.splitQualifiedName("tuple.integer"));
+    assertEquals(List.of("", "integer"), ExprValueUtils.splitQualifiedName(".integer"));
+    assertEquals(List.of("integer", ""), ExprValueUtils.splitQualifiedName("integer."));
+  }
+
+  @Test
+  void testJoinQualifiedName() {
+    assertEquals("integer", ExprValueUtils.joinQualifiedName(List.of("integer")));
+    assertEquals("tuple.integer", ExprValueUtils.joinQualifiedName(List.of("tuple", "integer")));
+    assertEquals(".integer", ExprValueUtils.joinQualifiedName(List.of("", "integer")));
+    assertEquals("integer.", ExprValueUtils.joinQualifiedName(List.of("integer", "")));
+  }
 }

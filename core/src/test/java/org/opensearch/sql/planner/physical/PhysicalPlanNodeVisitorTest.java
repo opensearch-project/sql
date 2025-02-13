@@ -16,7 +16,9 @@ import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.agg;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.dedupe;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.eval;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.expand;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.filter;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.flatten;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.limit;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.project;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.rareTopN;
@@ -129,6 +131,10 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
 
     PhysicalPlan eval = eval(plan, Pair.of(ref, ref));
 
+    PhysicalPlan expand = expand(plan, ref);
+
+    PhysicalPlan flatten = flatten(plan, ref);
+
     PhysicalPlan sort = sort(plan, Pair.of(SortOption.DEFAULT_ASC, ref));
 
     PhysicalPlan takeOrdered = takeOrdered(plan, 1, 1, Pair.of(SortOption.DEFAULT_ASC, ref));
@@ -154,22 +160,24 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
                 Pair.of(AstDSL.computation(1, AstDSL.field("field"), "alias", SMA), DOUBLE)));
 
     return Stream.of(
-        Arguments.of(filter, "filter"),
         Arguments.of(aggregation, "aggregation"),
-        Arguments.of(rename, "rename"),
-        Arguments.of(project, "project"),
-        Arguments.of(window, "window"),
-        Arguments.of(remove, "remove"),
-        Arguments.of(eval, "eval"),
-        Arguments.of(sort, "sort"),
-        Arguments.of(takeOrdered, "takeOrdered"),
+        Arguments.of(cursorClose, "cursorClose"),
         Arguments.of(dedupe, "dedupe"),
-        Arguments.of(values, "values"),
-        Arguments.of(rareTopN, "rareTopN"),
+        Arguments.of(eval, "eval"),
+        Arguments.of(expand, "expand"),
+        Arguments.of(filter, "filter"),
+        Arguments.of(flatten, "flatten"),
         Arguments.of(limit, "limit"),
         Arguments.of(nested, "nested"),
-        Arguments.of(cursorClose, "cursorClose"),
-        Arguments.of(trendline, "trendline"));
+        Arguments.of(project, "project"),
+        Arguments.of(rareTopN, "rareTopN"),
+        Arguments.of(remove, "remove"),
+        Arguments.of(rename, "rename"),
+        Arguments.of(sort, "sort"),
+        Arguments.of(takeOrdered, "takeOrdered"),
+        Arguments.of(trendline, "trendline"),
+        Arguments.of(values, "values"),
+        Arguments.of(window, "window"));
   }
 
   @ParameterizedTest(name = "{1}")
