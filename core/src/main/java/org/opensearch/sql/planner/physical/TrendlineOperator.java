@@ -133,7 +133,7 @@ public class TrendlineOperator extends PhysicalPlan {
         throw new SemanticCheckException(
             String.format("Invalid dataPoints [%d] value.", numberOfDataPoints));
       }
-      this.dataPointsNeeded = DSL.literal(numberOfDataPoints.doubleValue());
+      this.dataPointsNeeded = DSL.literal(numberOfDataPoints);
       this.receivedValues = EvictingQueue.create(numberOfDataPoints);
     }
 

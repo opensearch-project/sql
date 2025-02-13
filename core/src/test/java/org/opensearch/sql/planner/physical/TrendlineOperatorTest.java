@@ -50,15 +50,12 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
   @Mock private PhysicalPlan inputPlan;
 
   static Stream<Arguments> supportedDataTypes() {
-    return Stream.of(SMA, WMA)
-        .flatMap(
-            trendlineType ->
-                Stream.of(
-                    Arguments.of(trendlineType, ExprCoreType.SHORT),
-                    Arguments.of(trendlineType, ExprCoreType.INTEGER),
-                    Arguments.of(trendlineType, ExprCoreType.LONG),
-                    Arguments.of(trendlineType, ExprCoreType.FLOAT),
-                    Arguments.of(trendlineType, ExprCoreType.DOUBLE)));
+    return Stream.of(
+      Arguments.of(ExprCoreType.SHORT),
+      Arguments.of(ExprCoreType.INTEGER),
+      Arguments.of(ExprCoreType.LONG),
+      Arguments.of(ExprCoreType.FLOAT),
+      Arguments.of(ExprCoreType.DOUBLE));
   }
 
   static Stream<Arguments> invalidArguments() {
@@ -404,36 +401,11 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
   }
 
   @Test
-  public void calculates_weighted_moving_average_one_field_two_samples() {
+  public void calculates_weighted_moving_average_one_field_four_samples_four_rows() {
     mockPlanWithData(
         List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
-
-    var plan =
-        new TrendlineOperator(
-            inputPlan,
-            Collections.singletonList(
-                Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
-                    ExprCoreType.DOUBLE)));
-
-    List<ExprValue> result = execute(plan);
-    assertEquals(2, result.size());
-    assertThat(
-        result,
-        containsInAnyOrder(
-            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            tupleValue(
-                ImmutableMap.of(
-                    "distance", 200, "time", 10, "distance_alias", 166.66666666666663))));
-  }
-
-  @Test
-  public void calculates_weighted_moving_average_one_field_two_samples_three_rows() {
-    mockPlanWithData(
-        List.of(
-            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
@@ -442,20 +414,19 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
+                    AstDSL.computation(4, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.DOUBLE)));
 
     List<ExprValue> result = execute(plan);
-    assertEquals(3, result.size());
+    assertEquals(4, result.size());
     assertThat(
         result,
         containsInAnyOrder(
-            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            tupleValue(
-                ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-            tupleValue(
-                ImmutableMap.of(
-                    "distance", 200, "time", 10, "distance_alias", 199.99999999999997))));
+            tupleValue( ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue( ImmutableMap.of("distance", 200, "time", 10,
+                    "distance_alias", 190))));
   }
 
   @Test
@@ -464,6 +435,7 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
         List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 20))));
 
     var plan =
@@ -471,46 +443,32 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
             inputPlan,
             Arrays.asList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
+                    AstDSL.computation(4, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.DOUBLE),
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("time"), "time_alias", WMA),
+                    AstDSL.computation(4, AstDSL.field("time"), "time_alias", WMA),
                     ExprCoreType.DOUBLE)));
 
     List<ExprValue> result = execute(plan);
-    assertEquals(3, result.size());
+    assertEquals(4, result.size());
     assertThat(
         result,
         containsInAnyOrder(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            tupleValue(
-                ImmutableMap.of(
-                    "distance",
-                    200,
-                    "time",
-                    20,
-                    "distance_alias",
-                    166.66666666666663,
-                    "time_alias",
-                    16.666666666666664)),
-            tupleValue(
-                ImmutableMap.of(
-                    "distance",
-                    200,
-                    "time",
-                    20,
-                    "distance_alias",
-                    199.99999999999997,
-                    "time_alias",
-                    20.0))));
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 20,
+                    "distance_alias", 190, "time_alias", 19.0))));
   }
 
   @Test
-  public void calculates_weighted_moving_average_one_field_two_samples_three_rows_null_value() {
+  public void calculates_weighted_moving_average_null_value() {
     mockPlanWithData(
         List.of(
             tupleValue(ImmutableMap.of("time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 300, "time", 10))));
 
     var plan =
@@ -518,19 +476,20 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
+                    AstDSL.computation(4, AstDSL.field("distance"), "distance_alias", WMA),
                     ExprCoreType.DOUBLE)));
 
     List<ExprValue> result = execute(plan);
-    assertEquals(3, result.size());
+    assertEquals(5, result.size());
     assertThat(
         result,
         containsInAnyOrder(
             tupleValue(ImmutableMap.of("time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue(
-                ImmutableMap.of(
-                    "distance", 300, "time", 10, "distance_alias", 266.66666666666663))));
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10,
+                    "distance_alias", 290))));
   }
 
   @Test
@@ -646,13 +605,47 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
                     Instant.EPOCH.plusMillis(1333)))));
   }
 
+
   @ParameterizedTest
   @MethodSource("supportedDataTypes")
-  public void trendLine_dataType_support(
-      Trendline.TrendlineType trendlineType, ExprCoreType supportedType) {
+  public void trendLine_dataType_support_sma(ExprCoreType supportedType) {
+    mockPlanWithData(
+            List.of(
+                    tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+                    tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+                    tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+                    tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
+
+    var plan =
+            new TrendlineOperator(
+                    inputPlan,
+                    Collections.singletonList(
+                            Pair.of(
+                                    AstDSL.computation(4, AstDSL.field("distance"), "distance_alias", SMA),
+                                    supportedType)));
+
+    List<ExprValue> result = execute(plan);
+    System.out.println(result);
+    assertEquals(4, result.size());
+    assertThat(
+            String.format(
+                    "Assertion error on TrendLine-WMA dataType support: %s", supportedType.typeName()),
+            result,
+            containsInAnyOrder(
+                    tupleValue( ImmutableMap.of("distance", 100, "time", 10)),
+                    tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
+                    tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
+                    tupleValue( ImmutableMap.of("distance", 200, "time", 10,
+                            "distance_alias", 175))));
+  }
+
+  @ParameterizedTest
+  @MethodSource("supportedDataTypes")
+  public void trendLine_dataType_support_wma(ExprCoreType supportedType) {
     mockPlanWithData(
         List.of(
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
@@ -661,22 +654,22 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
             inputPlan,
             Collections.singletonList(
                 Pair.of(
-                    AstDSL.computation(2, AstDSL.field("distance"), "distance_alias", WMA),
+                    AstDSL.computation(4, AstDSL.field("distance"), "distance_alias", WMA),
                     supportedType)));
 
     List<ExprValue> result = execute(plan);
-    assertEquals(3, result.size());
+    System.out.println(result);
+    assertEquals(4, result.size());
     assertThat(
         String.format(
             "Assertion error on TrendLine-WMA dataType support: %s", supportedType.typeName()),
         result,
         containsInAnyOrder(
-            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-            tupleValue(
-                ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 166.66666666666663)),
-            tupleValue(
-                ImmutableMap.of(
-                    "distance", 200, "time", 10, "distance_alias", 199.99999999999997))));
+          tupleValue( ImmutableMap.of("distance", 100, "time", 10)),
+          tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
+          tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
+          tupleValue( ImmutableMap.of("distance", 200, "time", 10,
+        "distance_alias", 190))));
   }
 
   @ParameterizedTest
