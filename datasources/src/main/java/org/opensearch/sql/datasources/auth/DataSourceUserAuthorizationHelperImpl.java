@@ -10,11 +10,11 @@ import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver
 import java.util.List;
 import lombok.AllArgsConstructor;
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.client.Client;
 import org.opensearch.commons.ConfigConstants;
 import org.opensearch.commons.authuser.User;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.transport.client.Client;
 
 @AllArgsConstructor
 public class DataSourceUserAuthorizationHelperImpl implements DataSourceUserAuthorizationHelper {

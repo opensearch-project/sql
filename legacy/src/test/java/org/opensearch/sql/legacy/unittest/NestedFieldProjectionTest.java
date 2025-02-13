@@ -33,7 +33,6 @@ import org.mockito.Mockito;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchRequestBuilder;
-import org.opensearch.client.Client;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.NestedQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -48,6 +47,7 @@ import org.opensearch.sql.legacy.query.maker.QueryMaker;
 import org.opensearch.sql.legacy.rewriter.nestedfield.NestedFieldProjection;
 import org.opensearch.sql.legacy.rewriter.nestedfield.NestedFieldRewriter;
 import org.opensearch.sql.legacy.util.HasFieldWithValue;
+import org.opensearch.transport.client.Client;
 
 public class NestedFieldProjectionTest {
 

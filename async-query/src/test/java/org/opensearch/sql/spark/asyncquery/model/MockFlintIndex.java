@@ -10,9 +10,9 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
-import org.opensearch.client.Client;
 import org.opensearch.sql.spark.flint.FlintIndexType;
 import org.opensearch.sql.spark.utils.TestUtils;
+import org.opensearch.transport.client.Client;
 
 @Getter
 public class MockFlintIndex {

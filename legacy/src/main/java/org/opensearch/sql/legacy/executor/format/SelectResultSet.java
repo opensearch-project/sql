@@ -31,7 +31,6 @@ import org.opensearch.action.admin.indices.alias.get.GetAliasesResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
 import org.opensearch.action.search.ClearScrollResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.core.common.Strings;
 import org.opensearch.search.SearchHit;
@@ -61,6 +60,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.utils.SQLFunctions;
+import org.opensearch.transport.client.Client;
 
 public class SelectResultSet extends ResultSet {
 
@@ -541,7 +541,7 @@ public class SelectResultSet extends ResultSet {
       this.rows = populateRows(searchHits);
       this.size = rows.size();
       this.internalTotalHits =
-          Optional.ofNullable(searchHits.getTotalHits()).map(th -> th.value).orElse(0L);
+          Optional.ofNullable(searchHits.getTotalHits()).map(th -> th.value()).orElse(0L);
       // size may be greater than totalHits after nested rows be flatten
       this.totalHits = Math.max(size, internalTotalHits);
     } else if (queryResult instanceof Aggregations) {

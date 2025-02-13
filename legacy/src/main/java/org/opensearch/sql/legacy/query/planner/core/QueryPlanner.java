@@ -10,7 +10,6 @@ import static org.opensearch.sql.legacy.query.planner.core.ExecuteParams.Execute
 import static org.opensearch.sql.legacy.query.planner.core.ExecuteParams.ExecuteParamType.TIMEOUT;
 
 import java.util.List;
-import org.opensearch.client.Client;
 import org.opensearch.search.SearchHit;
 import org.opensearch.sql.legacy.executor.join.MetaSearchResult;
 import org.opensearch.sql.legacy.query.planner.explain.Explanation;
@@ -19,6 +18,7 @@ import org.opensearch.sql.legacy.query.planner.logical.LogicalPlan;
 import org.opensearch.sql.legacy.query.planner.physical.PhysicalPlan;
 import org.opensearch.sql.legacy.query.planner.resource.ResourceManager;
 import org.opensearch.sql.legacy.query.planner.resource.Stats;
+import org.opensearch.transport.client.Client;
 
 /** Query planner that driver the logical planning, physical planning, execute and explain. */
 public class QueryPlanner {

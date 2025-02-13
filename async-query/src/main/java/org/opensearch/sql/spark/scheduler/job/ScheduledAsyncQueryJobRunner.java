@@ -7,7 +7,6 @@ package org.opensearch.sql.spark.scheduler.job;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
@@ -20,6 +19,7 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.scheduler.model.ScheduledAsyncQueryJobRequest;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 /**
  * The job runner class for scheduling async query.
@@ -27,7 +27,7 @@ import org.opensearch.threadpool.ThreadPool;
  * <p>The job runner should be a singleton class if it uses OpenSearch client or other objects
  * passed from OpenSearch. Because when registering the job runner to JobScheduler plugin,
  * OpenSearch has not invoked plugins' createComponents() method. That is saying the plugin is not
- * completely initialized, and the OpenSearch {@link org.opensearch.client.Client}, {@link
+ * completely initialized, and the OpenSearch {@link org.opensearch.transport.client.Client}, {@link
  * ClusterService} and other objects are not available to plugin and this job runner.
  *
  * <p>So we have to move this job runner initialization to {@link Plugin} createComponents() method,
