@@ -36,8 +36,6 @@ public abstract class OpenSearchTable extends AbstractQueryableTable
   @Override
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
     final RelOptCluster cluster = context.getCluster();
-    // return new LogicalTableScan(cluster, cluster.traitSetOf(Convention.NONE), ImmutableList.of(),
-    // relOptTable);
     return new OpenSearchTableScan(cluster, relOptTable, this);
   }
 

@@ -28,6 +28,9 @@ public abstract class Settings {
     /** PPL Settings. */
     PPL_ENABLED("plugins.ppl.enabled"),
 
+    /** Enable Calcite as execution engine */
+    CALCITE_ENGINE_ENABLED("plugins.calcite.enabled"),
+
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),
 

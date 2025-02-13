@@ -154,6 +154,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return visit(ctx.valueExpression()); // Discard parenthesis around
   }
 
+  @Override
+  public UnresolvedExpression visitParentheticLogicalExpr(
+      OpenSearchPPLParser.ParentheticLogicalExprContext ctx) {
+    return visit(ctx.logicalExpression()); // Discard parenthesis around
+  }
+
   /** Field expression. */
   @Override
   public UnresolvedExpression visitFieldExpression(FieldExpressionContext ctx) {
