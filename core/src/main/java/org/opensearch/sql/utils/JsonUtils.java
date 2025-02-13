@@ -97,7 +97,7 @@ public class JsonUtils {
 
     for (ExprValue path : paths) {
       System.out.println("Processing path: " + path);
-      if (json == LITERAL_NULL || json == LITERAL_MISSING) {
+      if (json.isNull() || json.isMissing()) {
         return json;
       }
 
