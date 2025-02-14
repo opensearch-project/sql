@@ -289,6 +289,26 @@ public class OpenSearchRequestBuilder {
     exprValueFactory.extendTypeMapping(typeMapping);
   }
 
+  public void pushFieldSummaryTypeMapping() {
+    Map<String, OpenSearchDataType> typeMapping =
+        Map.of(
+            "Field",
+            OpenSearchDataType.of(OpenSearchDataType.MappingType.Text),
+            "Count",
+            OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer),
+            "Distinct",
+            OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer),
+            "Avg",
+            OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
+            "Min",
+            OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
+            "Max",
+            OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
+            "Type",
+            OpenSearchDataType.of(OpenSearchDataType.MappingType.Text));
+    exprValueFactory.extendTypeMapping(typeMapping);
+  }
+
   private boolean isSortByDocOnly() {
     List<SortBuilder<?>> sorts = sourceBuilder.sorts();
     if (sorts != null) {

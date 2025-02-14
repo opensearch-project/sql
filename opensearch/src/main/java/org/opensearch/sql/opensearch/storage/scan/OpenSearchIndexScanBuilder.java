@@ -12,6 +12,7 @@ import lombok.EqualsAndHashCode;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalFieldSummary;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
@@ -71,7 +72,14 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
     // Switch to builder for aggregate query which has different push down logic
     //  for later filter, sort and limit operator.
-    delegate = new OpenSearchIndexScanAggregationBuilder(delegate.build(), aggregation);
+    if (aggregation instanceof LogicalFieldSummary) {
+      delegate =
+          new OpenSearchIndexScanAggregationBuilder(
+              delegate.build(), (LogicalFieldSummary) aggregation);
+    } else {
+      delegate = new OpenSearchIndexScanAggregationBuilder(delegate.build(), aggregation);
+    }
+
     return true;
   }
 

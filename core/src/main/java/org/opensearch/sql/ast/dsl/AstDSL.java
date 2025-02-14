@@ -49,6 +49,7 @@ import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.FieldSummary;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
@@ -505,5 +506,10 @@ public class AstDSL {
     }
     return new FillNull(
         FillNull.ContainNullableFieldFill.ofVariousValue(replacementsBuilder.build()));
+  }
+
+  public static FieldSummary fieldSummary(
+      UnresolvedPlan input, List<UnresolvedExpression> includeFields) {
+    return new FieldSummary(includeFields).attach(input);
   }
 }

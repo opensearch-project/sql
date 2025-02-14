@@ -49,18 +49,21 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.AttributeList;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.FieldSummary;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
@@ -846,6 +849,16 @@ public class AstBuilderTest {
   @Test
   public void testShowDataSourcesCommand() {
     assertEqual("show datasources", relation(DATASOURCES_TABLE_NAME));
+  }
+
+  @Test
+  public void testFieldSummaryCommand() {
+    assertEqual("source=t | fieldsummary", new FieldSummary(List.of()).attach(relation("t")));
+
+    assertEqual(
+        "source=t | fieldsummary includefields = field_name",
+        new FieldSummary(List.of(new AttributeList(List.of(field("field_name")))))
+            .attach(relation("t")));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

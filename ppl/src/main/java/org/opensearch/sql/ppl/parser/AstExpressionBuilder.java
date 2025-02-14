@@ -175,6 +175,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitFieldsummaryIncludeFields(
+      OpenSearchPPLParser.FieldsummaryIncludeFieldsContext ctx) {
+    List<UnresolvedExpression> list =
+        ctx.fieldList().fieldExpression().stream()
+            .map(this::visitFieldExpression)
+            .collect(Collectors.toList());
+    return new AttributeList(list);
+  }
+
+  @Override
   public UnresolvedExpression visitCountAllFunctionCall(CountAllFunctionCallContext ctx) {
     return new AggregateFunction("count", AllFields.of());
   }
