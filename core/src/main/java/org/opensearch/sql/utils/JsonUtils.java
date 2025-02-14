@@ -6,7 +6,6 @@
 package org.opensearch.sql.utils;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 
@@ -186,7 +185,7 @@ public class JsonUtils {
     String jsonPathString = path.stringValue();
     Object valueToInsertObj = valueToInsert.value();
     Configuration conf =
-            Configuration.defaultConfiguration().addOptions(Option.SUPPRESS_EXCEPTIONS);
+        Configuration.defaultConfiguration().addOptions(Option.SUPPRESS_EXCEPTIONS);
     try {
       JsonPath jsonPath = JsonPath.compile(jsonPathString);
       DocumentContext docContext = JsonPath.using(conf).parse(jsonString);
@@ -216,7 +215,7 @@ public class JsonUtils {
    * @param value value to be inserted with given path.
    */
   private static DocumentContext recursiveCreate(
-          DocumentContext docContext, String path, Object value) {
+      DocumentContext docContext, String path, Object value) {
     final int pos = path.lastIndexOf('.');
     final String parent = path.substring(0, pos);
     final String current = path.substring(pos + 1);
@@ -226,5 +225,4 @@ public class JsonUtils {
     }
     return docContext.put(parent, current, value);
   }
-
 }
