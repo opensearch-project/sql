@@ -313,7 +313,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                     ctx.pattern_method != null
                         ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText())
                             .toLowerCase(Locale.ROOT)
-                        : settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD),
+                        : settings
+                            .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
+                            .toString()
+                            .toLowerCase(Locale.ROOT),
                     unresolvedArguments),
                 List.of(), // ignore partition by list for now as we haven't seen such requirement
                 List.of()), // ignore sort by list for now as we haven't seen such requirement

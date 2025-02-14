@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.parser;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
@@ -55,6 +56,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
@@ -69,6 +71,8 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstBuilderTest {
@@ -76,6 +80,8 @@ public class AstBuilderTest {
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
+
+  private final Settings settings = Mockito.mock(Settings.class);
 
   @Test
   public void testSearchCommand() {
@@ -826,9 +832,9 @@ public class AstBuilderTest {
 
   @Test
   public void testPatternsCommand() {
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEqual(
-        "source=t | patterns new_field=\"custom_field\" pattern=\"custom_pattern\" raw"
-            + " SIMPLE_PATTERN",
+        "source=t | patterns new_field=\"custom_field\" pattern=\"custom_pattern\" raw",
         window(
             relation("t"),
             PatternMethod.SIMPLE_PATTERN,
@@ -839,7 +845,8 @@ public class AstBuilderTest {
                 new Argument("pattern", new Literal("custom_pattern", DataType.STRING)))));
 
     assertEqual(
-        "source=t | patterns variable_count_threshold=2 frequency_threshold_percentage=0.1 raw",
+        "source=t | patterns variable_count_threshold=2 frequency_threshold_percentage=0.1 raw"
+            + " BRAIN",
         window(
             relation("t"),
             PatternMethod.BRAIN,
@@ -853,10 +860,15 @@ public class AstBuilderTest {
 
   @Test
   public void testPatternsWithoutArguments() {
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEqual(
         "source=t | patterns raw",
         window(
-            relation("t"), PatternMethod.BRAIN, field("raw"), "patterns_field", Arrays.asList()));
+            relation("t"),
+            PatternMethod.SIMPLE_PATTERN,
+            field("raw"),
+            "patterns_field",
+            Arrays.asList()));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {
@@ -870,7 +882,7 @@ public class AstBuilderTest {
   }
 
   private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), query);
+    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), settings, query);
     return astBuilder.visit(parser.parse(query));
   }
 }
