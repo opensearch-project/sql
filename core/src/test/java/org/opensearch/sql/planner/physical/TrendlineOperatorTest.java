@@ -60,17 +60,17 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
   static Stream<Arguments> unSupportedDataTypes() {
     return Stream.of(SMA, WMA)
-            .flatMap(
-                    trendlineType ->
-              Stream.of(
-            Arguments.of(trendlineType, ExprCoreType.UNDEFINED),
-            Arguments.of(trendlineType, ExprCoreType.BYTE),
-            Arguments.of(trendlineType, ExprCoreType.STRING),
-            Arguments.of(trendlineType, ExprCoreType.BOOLEAN),
-            Arguments.of(trendlineType, ExprCoreType.INTERVAL),
-            Arguments.of(trendlineType, ExprCoreType.IP),
-            Arguments.of(trendlineType, ExprCoreType.STRUCT),
-            Arguments.of(trendlineType, ExprCoreType.ARRAY)));
+        .flatMap(
+            trendlineType ->
+                Stream.of(
+                    Arguments.of(trendlineType, ExprCoreType.UNDEFINED),
+                    Arguments.of(trendlineType, ExprCoreType.BYTE),
+                    Arguments.of(trendlineType, ExprCoreType.STRING),
+                    Arguments.of(trendlineType, ExprCoreType.BOOLEAN),
+                    Arguments.of(trendlineType, ExprCoreType.INTERVAL),
+                    Arguments.of(trendlineType, ExprCoreType.IP),
+                    Arguments.of(trendlineType, ExprCoreType.STRUCT),
+                    Arguments.of(trendlineType, ExprCoreType.ARRAY)));
   }
 
   static Stream<Arguments> invalidArguments() {
@@ -716,16 +716,17 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
   @ParameterizedTest
   @MethodSource("unSupportedDataTypes")
   public void trendLine_unsupported_dataType(
-          Trendline.TrendlineType trendlineType, ExprCoreType dataType) {
+      Trendline.TrendlineType trendlineType, ExprCoreType dataType) {
     assertThrows(
-            SemanticCheckException.class,
-            () ->
-                    new TrendlineOperator(
-                            inputPlan,
-                            Collections.singletonList(
-                                    Pair.of(
-                                            AstDSL.computation(2, AstDSL.field("distance"),
-                                                    "distance_alias", trendlineType), dataType))));
+        SemanticCheckException.class,
+        () ->
+            new TrendlineOperator(
+                inputPlan,
+                Collections.singletonList(
+                    Pair.of(
+                        AstDSL.computation(
+                            2, AstDSL.field("distance"), "distance_alias", trendlineType),
+                        dataType))));
   }
 
   @ParameterizedTest
@@ -747,8 +748,6 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
                         AstDSL.computation(dataPoints, field, alias, trendlineType), dataType))),
         "Unsupported arguments: " + errorMessage);
   }
-
-
 
   private void mockPlanWithData(List<ExprValue> inputs) {
     List<Boolean> hasNextElements = new ArrayList<>(Collections.nCopies(inputs.size(), true));
