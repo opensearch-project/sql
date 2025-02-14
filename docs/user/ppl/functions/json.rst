@@ -119,3 +119,32 @@ Example::
     |------------------+--------------------------------------+--------------|
     | json nested list | {"a":"1","b":[{"c":"2"}, {"c":"3"}]} | [1,[2,3]]    |
     +------------------+--------------------------------------+--------------+
+
+
+
+JSON_SET
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: `json_set(json_string, json_path, value)` Perform value insertion or override with provided Json path and value. Returns the updated JSON object if valid, null otherwise.
+
+Argument type: STRING, STRING, BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE/STRING/BOOLEAN/DATE/TIME/TIMESTAMP/INTERVAL/IP/STRUCT/ARRAY
+
+Return type: STRING
+
+Example::
+
+    os> source=json_test | eval updated=json_set(json_string, "$.c.innerProperty", "test_value") | fields test_name, updated
+    fetched rows / total rows = 6/6
+    +---------------------+--------------------------------------------------------------------+
+    | test_name           | updated                                                            |
+    |---------------------+--------------------------------------------------------------------|
+    | json nested object  | {"a":"1","b":{"c":"2","d":"3"},"c":{"innerProperty":"test_value"}} |
+    | json object         | {"a":"1","b":"2","c":{"innerProperty":"test_value"}}               |
+    | json array          | null                                                               |
+    | json scalar string  | null                                                               |
+    | json empty string   | null                                                               |
+    | json invalid object | null                                                               |
+    +---------------------+--------------------------------------------------------------------+

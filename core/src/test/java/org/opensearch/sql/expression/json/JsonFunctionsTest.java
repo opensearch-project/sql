@@ -21,12 +21,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprCollectionValue;
+import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -39,6 +41,10 @@ import org.opensearch.sql.expression.LiteralExpression;
 
 @ExtendWith(MockitoExtension.class)
 public class JsonFunctionsTest {
+
+  private static final String JsonSetTestData =
+          "{\"members\":[{\"name\":\"Alice\",\"age\":19,\"phoneNumbers\":[{\"home\":\"alice_home_landline\"},{\"work\":\"alice_work_phone\"}]},{\"name\":\"Ben\",\"age\":30,\"phoneNumbers\":[{\"home\":\"ben_home_landline\"},{\"work\":\"ben_work_phone\"}]}]}";
+
   @Test
   public void json_valid_returns_false() {
     List<LiteralExpression> expressions =
@@ -359,6 +365,251 @@ public class JsonFunctionsTest {
     Expression jsonExpr = DSL.literal(ExprValueUtils.stringValue(objectJson));
     ExprValue actual = DSL.jsonExtract(jsonExpr, pathExpr1, pathExpr2, pathExpr3).valueOf();
     assertEquals(expected, actual);
+  }
+
+
+  @Test
+  void json_set_InsertByte() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(DSL.literal("{}"), DSL.literal("$.test"), DSL.literal((byte) 'a'));
+    assertEquals("{\"test\":97}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertShort() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(DSL.literal("{}"), DSL.literal("$.test"), DSL.literal(Short.valueOf("123")));
+    assertEquals("{\"test\":123}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertInt() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(DSL.literal("{}"), DSL.literal("$.test"), DSL.literal(123));
+    assertEquals("{\"test\":123}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertLong() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(DSL.literal("{}"), DSL.literal("$.test"), DSL.literal(123L));
+    assertEquals("{\"test\":123}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertFloat() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(DSL.literal("{}"), DSL.literal("$.test"), DSL.literal(123.123F));
+    assertEquals("{\"test\":123.123}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertDouble() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(DSL.literal("{}"), DSL.literal("$.test"), DSL.literal(123.123));
+    assertEquals("{\"test\":123.123}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertString() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(DSL.literal("{}"), DSL.literal("$.test"), DSL.literal("test_value"));
+    assertEquals("{\"test\":\"test_value\"}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertBoolean() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(DSL.literal("{}"), DSL.literal("$.test"), DSL.literal(Boolean.TRUE));
+    assertEquals("{\"test\":true}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertDate() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal("{}"),
+                    DSL.literal("$.test"),
+                    DSL.date(DSL.literal(new ExprDateValue("2020-08-17"))));
+    assertEquals("{\"test\":\"2020-08-17\"}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertTime() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal("{}"),
+                    DSL.literal("$.test"),
+                    DSL.time(DSL.literal(new ExprTimeValue("01:01:01"))));
+    assertEquals("{\"test\":\"01:01:01\"}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertTimestamp() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal("{}"),
+                    DSL.literal("$.test"),
+                    DSL.timestamp(DSL.literal("2008-05-15 22:00:00")));
+    assertEquals("{\"test\":\"2008-05-15 22:00:00\"}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertInterval() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal("{}"),
+                    DSL.literal("$.test"),
+                    DSL.interval(DSL.literal(1), DSL.literal("second")));
+    assertEquals("{\"test\":{\"seconds\":1}}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertIp() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal("{}"), DSL.literal("$.test"), DSL.castIp(DSL.literal("192.168.1.1")));
+    assertEquals("{\"test\":\"192.168.1.1\"}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertMap() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal("{}"),
+                    DSL.literal("$.test"),
+                    DSL.literal(
+                            ExprTupleValue.fromExprValueMap(Map.of("name", new ExprStringValue("alice")))));
+    assertEquals("{\"test\":{\"name\":\"alice\"}}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_InsertArray() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal("{}"),
+                    DSL.literal("$.test"),
+                    DSL.literal(
+                            new ExprCollectionValue(
+                                    List.of(new ExprStringValue("Alice"), new ExprStringValue("Ben")))));
+    assertEquals("{\"test\":[\"Alice\",\"Ben\"]}", functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_insert_invalid_path() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal("{\"members\":[{\"name\":\"alice\"}]}"),
+                    DSL.literal("$$$$$$$$$"),
+                    DSL.literal("18"));
+    assertThrows(SemanticCheckException.class, functionExpression::valueOf);
+  }
+
+  @Test
+  void json_set_insert_invalid_jsonObject() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(DSL.literal("[xxxx}}}}}"), DSL.literal("$.test"), DSL.literal("18"));
+    assertThrows(SemanticCheckException.class, functionExpression::valueOf);
+  }
+
+  @Test
+  void json_set_noMatch_property() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal("{\"members\":[{\"name\":\"alice\"}]}"),
+                    DSL.literal("$.members[0].age.innerAge"),
+                    DSL.literal("18"));
+    assertEquals(
+            "{\"members\":[{\"name\":\"alice\",\"age\":{\"innerAge\":\"18\"}}]}",
+            functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_noMatch_array() {
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal("{\"members\":[{\"name\":\"alice\"}]}"),
+                    DSL.literal("$.members[0].age.innerArray"),
+                    DSL.literal(
+                            new ExprCollectionValue(
+                                    List.of(new ExprStringValue("18"), new ExprStringValue("20")))));
+    assertEquals(
+            "{\"members\":[{\"name\":\"alice\",\"age\":{\"innerArray\":[\"18\",\"20\"]}}]}",
+            functionExpression.valueOf().stringValue());
+  }
+
+  /**
+   * In the case of jsonPath hit single match on property, it should overwrite the existing value,
+   * regardless of the value type (Array, numeric....etc.)
+   */
+  @Test
+  void json_set_singleMatch_property() {
+
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal(JsonSetTestData),
+                    DSL.literal("$.members[0].name"),
+                    DSL.literal(new ExprStringValue("Alice Spring")));
+    assertEquals(
+            "{\"members\":[{\"name\":\"Alice"
+                    + " Spring\",\"age\":19,\"phoneNumbers\":[{\"home\":\"alice_home_landline\"},{\"work\":\"alice_work_phone\"}]},{\"name\":\"Ben\",\"age\":30,\"phoneNumbers\":[{\"home\":\"ben_home_landline\"},{\"work\":\"ben_work_phone\"}]}]}",
+            functionExpression.valueOf().stringValue());
+  }
+
+  /**
+   * In the case of jsonPath hit single match on property, it should overwrite the existing value,
+   * regardless of the value type (Array, numeric....etc.)
+   */
+  @Test
+  void json_set_singleMatch_array() {
+
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal(JsonSetTestData),
+                    DSL.literal("$.members[0].phoneNumbers"),
+                    DSL.literal(
+                            new ExprCollectionValue(
+                                    List.of(
+                                            ExprTupleValue.fromExprValueMap(
+                                                    Map.of("home", new ExprStringValue("alice_new_landline"))),
+                                            ExprTupleValue.fromExprValueMap(
+                                                    Map.of("work", new ExprStringValue("alice_new_work_phone")))))));
+    assertEquals(
+            "{\"members\":[{\"name\":\"Alice\",\"age\":19,\"phoneNumbers\":[{\"home\":\"alice_new_landline\"},{\"work\":\"alice_new_work_phone\"}]},{\"name\":\"Ben\",\"age\":30,\"phoneNumbers\":[{\"home\":\"ben_home_landline\"},{\"work\":\"ben_work_phone\"}]}]}",
+            functionExpression.valueOf().stringValue());
+  }
+
+  /** The handling would stay identical regardless of single match || multiple matches. */
+  @Test
+  void json_set_multiMatches_property() {
+
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal(JsonSetTestData),
+                    DSL.literal("$.members..age"),
+                    DSL.literal(new ExprLongValue(25)));
+    assertEquals(
+            "{\"members\":[{\"name\":\"Alice\",\"age\":25,\"phoneNumbers\":[{\"home\":\"alice_home_landline\"},{\"work\":\"alice_work_phone\"}]},{\"name\":\"Ben\",\"age\":25,\"phoneNumbers\":[{\"home\":\"ben_home_landline\"},{\"work\":\"ben_work_phone\"}]}]}",
+            functionExpression.valueOf().stringValue());
+  }
+
+  @Test
+  void json_set_multiMatches_array() {
+
+    FunctionExpression functionExpression =
+            DSL.jsonSet(
+                    DSL.literal(JsonSetTestData),
+                    DSL.literal("$.members..phoneNumbers"),
+                    DSL.literal(
+                            new ExprCollectionValue(
+                                    List.of(
+                                            ExprTupleValue.fromExprValueMap(
+                                                    Map.of("home", new ExprStringValue("generic_new_landline"))),
+                                            ExprTupleValue.fromExprValueMap(
+                                                    Map.of("work", new ExprStringValue("generic_new_work_phone")))))));
+    assertEquals(
+            "{\"members\":[{\"name\":\"Alice\",\"age\":19,\"phoneNumbers\":[{\"home\":\"generic_new_landline\"},{\"work\":\"generic_new_work_phone\"}]},{\"name\":\"Ben\",\"age\":30,\"phoneNumbers\":[{\"home\":\"generic_new_landline\"},{\"work\":\"generic_new_work_phone\"}]}]}",
+            functionExpression.valueOf().stringValue());
   }
 
   private static void execute_extract_json(ExprValue expected, String json, String path) {
