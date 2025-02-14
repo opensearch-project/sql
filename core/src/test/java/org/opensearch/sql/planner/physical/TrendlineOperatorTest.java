@@ -51,11 +51,11 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
 
   static Stream<Arguments> supportedDataTypes() {
     return Stream.of(
-      Arguments.of(ExprCoreType.SHORT),
-      Arguments.of(ExprCoreType.INTEGER),
-      Arguments.of(ExprCoreType.LONG),
-      Arguments.of(ExprCoreType.FLOAT),
-      Arguments.of(ExprCoreType.DOUBLE));
+        Arguments.of(ExprCoreType.SHORT),
+        Arguments.of(ExprCoreType.INTEGER),
+        Arguments.of(ExprCoreType.LONG),
+        Arguments.of(ExprCoreType.FLOAT),
+        Arguments.of(ExprCoreType.DOUBLE));
   }
 
   static Stream<Arguments> invalidArguments() {
@@ -422,11 +422,10 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
     assertThat(
         result,
         containsInAnyOrder(
-            tupleValue( ImmutableMap.of("distance", 100, "time", 10)),
-            tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
-            tupleValue( ImmutableMap.of("distance", 200, "time", 10,
-                    "distance_alias", 190))));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 190))));
   }
 
   @Test
@@ -457,8 +456,9 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
             tupleValue(ImmutableMap.of("distance", 200, "time", 20)),
-            tupleValue(ImmutableMap.of("distance", 200, "time", 20,
-                    "distance_alias", 190, "time_alias", 19.0))));
+            tupleValue(
+                ImmutableMap.of(
+                    "distance", 200, "time", 20, "distance_alias", 190, "time_alias", 19.0))));
   }
 
   @Test
@@ -488,8 +488,7 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 300, "time", 10)),
             tupleValue(ImmutableMap.of("distance", 300, "time", 10)),
-            tupleValue(ImmutableMap.of("distance", 300, "time", 10,
-                    "distance_alias", 290))));
+            tupleValue(ImmutableMap.of("distance", 300, "time", 10, "distance_alias", 290))));
   }
 
   @Test
@@ -605,38 +604,36 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
                     Instant.EPOCH.plusMillis(1333)))));
   }
 
-
   @ParameterizedTest
   @MethodSource("supportedDataTypes")
   public void trendLine_dataType_support_sma(ExprCoreType supportedType) {
     mockPlanWithData(
-            List.of(
-                    tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
-                    tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-                    tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
-                    tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
+        List.of(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
 
     var plan =
-            new TrendlineOperator(
-                    inputPlan,
-                    Collections.singletonList(
-                            Pair.of(
-                                    AstDSL.computation(4, AstDSL.field("distance"), "distance_alias", SMA),
-                                    supportedType)));
+        new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(4, AstDSL.field("distance"), "distance_alias", SMA),
+                    supportedType)));
 
     List<ExprValue> result = execute(plan);
     System.out.println(result);
     assertEquals(4, result.size());
     assertThat(
-            String.format(
-                    "Assertion error on TrendLine-WMA dataType support: %s", supportedType.typeName()),
-            result,
-            containsInAnyOrder(
-                    tupleValue( ImmutableMap.of("distance", 100, "time", 10)),
-                    tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
-                    tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
-                    tupleValue( ImmutableMap.of("distance", 200, "time", 10,
-                            "distance_alias", 175))));
+        String.format(
+            "Assertion error on TrendLine-WMA dataType support: %s", supportedType.typeName()),
+        result,
+        containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 175))));
   }
 
   @ParameterizedTest
@@ -665,11 +662,10 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
             "Assertion error on TrendLine-WMA dataType support: %s", supportedType.typeName()),
         result,
         containsInAnyOrder(
-          tupleValue( ImmutableMap.of("distance", 100, "time", 10)),
-          tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
-          tupleValue( ImmutableMap.of("distance", 200, "time", 10)),
-          tupleValue( ImmutableMap.of("distance", 200, "time", 10,
-        "distance_alias", 190))));
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 190))));
   }
 
   @ParameterizedTest

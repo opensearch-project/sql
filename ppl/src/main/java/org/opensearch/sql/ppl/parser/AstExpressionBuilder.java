@@ -94,7 +94,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     final String alias =
         ctx.alias != null
             ? ctx.alias.getText()
-            : dataField.getChild().get(0).toString() + "_" + computationType.name() + "_trendline";
+            : dataField.getChild().getFirst().toString()
+                + "_"
+                + computationType.name().toLowerCase()
+                + "_trendline";
     return new Trendline.TrendlineComputation(
         numberOfDataPoints, dataField, alias, computationType);
   }
