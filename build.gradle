@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.19.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.20.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -130,7 +130,7 @@ subprojects {
         mavenLocal()
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
-        maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
         maven { url 'https://jitpack.io' }
     }
 }
