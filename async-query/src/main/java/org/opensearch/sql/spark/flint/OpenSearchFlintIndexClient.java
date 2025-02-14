@@ -9,8 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.opensearch.action.support.master.AcknowledgedResponse;
-import org.opensearch.client.Client;
+import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
+import org.opensearch.transport.client.Client;
 
 @RequiredArgsConstructor
 public class OpenSearchFlintIndexClient implements FlintIndexClient {

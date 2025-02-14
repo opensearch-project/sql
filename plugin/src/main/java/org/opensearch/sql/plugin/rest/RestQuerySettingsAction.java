@@ -15,8 +15,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchGenerationException;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.opensearch.client.Requests;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -28,6 +26,8 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
+import org.opensearch.transport.client.Requests;
+import org.opensearch.transport.client.node.NodeClient;
 
 public class RestQuerySettingsAction extends BaseRestHandler {
   private static final Logger LOG = LogManager.getLogger(RestQuerySettingsAction.class);

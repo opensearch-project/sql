@@ -14,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryBuilder;
@@ -23,6 +22,7 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.transport.client.Client;
 
 /** JobExecutionResponseReader implementation for reading response from OpenSearch index. */
 public class OpenSearchJobExecutionResponseReader implements JobExecutionResponseReader {

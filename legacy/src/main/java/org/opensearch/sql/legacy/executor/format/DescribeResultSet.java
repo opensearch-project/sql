@@ -11,12 +11,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.sql.legacy.domain.IndexStatement;
 import org.opensearch.sql.legacy.executor.format.DataRows.Row;
 import org.opensearch.sql.legacy.executor.format.Schema.Column;
 import org.opensearch.sql.legacy.executor.format.Schema.Type;
+import org.opensearch.transport.client.Client;
 
 public class DescribeResultSet extends ResultSet {
 

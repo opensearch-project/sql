@@ -38,7 +38,6 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
@@ -109,6 +108,7 @@ import org.opensearch.sql.spark.validator.S3GlueSQLGrammarElementValidator;
 import org.opensearch.sql.spark.validator.SQLQueryValidator;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.opensearch.transport.client.node.NodeClient;
 
 public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 

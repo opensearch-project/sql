@@ -14,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
@@ -32,6 +31,7 @@ import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlOpenSearchRequestBuilder;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
+import org.opensearch.transport.client.Client;
 
 public class PrettyFormatRestExecutor implements RestExecutor {
 
@@ -136,7 +136,7 @@ public class PrettyFormatRestExecutor implements RestExecutor {
   protected boolean isDefaultCursor(SearchResponse searchResponse, DefaultQueryAction queryAction) {
     if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
       return queryAction.getSqlRequest().fetchSize() != 0
-          && Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value
+          && Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value()
               >= queryAction.getSqlRequest().fetchSize();
     } else {
       return !Strings.isNullOrEmpty(searchResponse.getScrollId());
