@@ -69,17 +69,18 @@ ____________
 Description
 >>>>>>>>>>>
 
-Usage: `json_extract(doc, path[, path])` Extracts a JSON value from a json document based on the path specified.
+Usage: `json_extract(doc, path[, path[, path])` Extracts a JSON value from a json document based on the path(s) specified.
 
-Argument type: STRING, STRING
+Argument type: STRING, STRING[, STRING[, STRING]]
 
 Return type: STRING/BOOLEAN/DOUBLE/INTEGER/NULL/STRUCT/ARRAY
 
-- Up to 3 paths can be provided, and results of each `path` with be returned in an ARRAY.
-- Returns an ARRAY if `path` points to multiple results (e.g. $.a[*]) or if the `path` points to an array.
+- Up to 3 paths can be provided, and results of all possible `path`s will be returned in an ARRAY.
+- If only one `path` is provided, returns an ARRAY if `path` points to multiple results (e.g. $.a[*]) or if the `path` points to an array.
 - Return null if `path` is not valid, or if JSON `doc` is MISSING or NULL.
-- Throws SemanticCheckException if `doc` or `path` is malformed.
-- Throws ExpressionEvaluationException if `path` is missing.
+- If multiple paths are provided with paths that are not valid, will return an ARRAY where results of invalid paths are null.
+- Throws SemanticCheckException if `doc` or any `path` is malformed.
+- Throws ExpressionEvaluationException if any `path` is missing.
 
 Example::
 

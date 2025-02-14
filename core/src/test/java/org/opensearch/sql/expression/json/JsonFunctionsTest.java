@@ -13,11 +13,13 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.TestInstantiationException;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprCollectionValue;
@@ -234,7 +236,7 @@ public class JsonFunctionsTest {
   @Test
   void json_extract_search() {
     ExprValue expected = new ExprIntegerValue(1);
-    execute_extract_json(expected, "{\"a\":1}", "$.a");
+    assert_equals_extract_json(expected, "{\"a\":1}", "$.a");
   }
 
   @Test
@@ -256,17 +258,17 @@ public class JsonFunctionsTest {
     // extract specific index from JSON list
     for (int i = 0; i < expectedExprValues.size(); i++) {
       String path = String.format("$.a[%d]", i);
-      execute_extract_json(expectedExprValues.get(i), jsonArray, path);
+      assert_equals_extract_json(expectedExprValues.get(i), jsonArray, path);
     }
 
     // extract nested object
     ExprValue nestedExpected =
         ExprTupleValue.fromExprValueMap(Map.of("d", new ExprIntegerValue(1)));
-    execute_extract_json(nestedExpected, jsonArray, "$.a[5].c");
+    assert_equals_extract_json(nestedExpected, jsonArray, "$.a[5].c");
 
     // extract * from JSON list
     ExprValue starExpected = new ExprCollectionValue(expectedExprValues);
-    execute_extract_json(starExpected, jsonArray, "$.a[*]");
+    assert_equals_extract_json(starExpected, jsonArray, "$.a[*]");
   }
 
   @Test
@@ -285,10 +287,11 @@ public class JsonFunctionsTest {
             "false",
             "");
 
-    jsonStrings.forEach(str -> execute_extract_json(LITERAL_NULL, str, "$.a.path_not_found_key"));
+    jsonStrings.forEach(
+        str -> assert_equals_extract_json(LITERAL_NULL, str, "$.a.path_not_found_key"));
 
     // null string literal
-    assertEquals(LITERAL_NULL, DSL.jsonExtract(DSL.literal("null"), DSL.literal("$.a")).valueOf());
+    assert_equals_extract_json(LITERAL_NULL, "null", "$.a");
 
     // null json
     assertEquals(
@@ -300,7 +303,7 @@ public class JsonFunctionsTest {
         DSL.jsonExtract(DSL.literal(LITERAL_MISSING), DSL.literal("$.a")).valueOf());
 
     // array out of bounds
-    execute_extract_json(LITERAL_NULL, "{\"a\":[1,2,3]}", "$.a[4]");
+    assert_equals_extract_json(LITERAL_NULL, "{\"a\":[1,2,3]}", "$.a[4]");
   }
 
   @Test
@@ -334,14 +337,10 @@ public class JsonFunctionsTest {
   @Test
   void json_extract_throws_ExpressionEvaluationException() {
     // null path
-    assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.jsonExtract(DSL.literal("{\"a\":1}"), DSL.literal(LITERAL_NULL)).valueOf());
+    assert_throws_extract_json(ExpressionEvaluationException.class, "{\"a\":1}", LITERAL_NULL);
 
     // missing path
-    assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.jsonExtract(DSL.literal("{\"a\":1}"), DSL.literal(LITERAL_MISSING)).valueOf());
+    assert_throws_extract_json(ExpressionEvaluationException.class, "{\"a\":1}", LITERAL_MISSING);
   }
 
   @Test
@@ -350,21 +349,59 @@ public class JsonFunctionsTest {
         "{\"foo\": \"foo\", \"fuzz\": true, \"bar\": 1234, \"bar2\": 12.34, \"baz\": null, "
             + "\"obj\": {\"internal\": \"value\"}, \"arr\": [\"string\", true, null]}";
 
-    ExprValue expected =
+    // scalar results with one invalid path
+    ExprValue expected_scalar_results =
         new ExprCollectionValue(
             List.of(new ExprStringValue("foo"), new ExprFloatValue(12.34), LITERAL_NULL));
-    Expression pathExpr1 = DSL.literal(ExprValueUtils.stringValue("$.foo"));
-    Expression pathExpr2 = DSL.literal(ExprValueUtils.stringValue("$.bar2"));
-    Expression pathExpr3 = DSL.literal(ExprValueUtils.stringValue("$.potato"));
-    Expression jsonExpr = DSL.literal(ExprValueUtils.stringValue(objectJson));
-    ExprValue actual = DSL.jsonExtract(jsonExpr, pathExpr1, pathExpr2, pathExpr3).valueOf();
+
+    assert_equals_extract_json(expected_scalar_results, objectJson, "$.foo", "$.bar2", "$.potato");
+
+    ExprValue expected_multivalued_results =
+        new ExprCollectionValue(
+            List.of(
+                new ExprCollectionValue(
+                    List.of(new ExprStringValue("string"), LITERAL_TRUE, LITERAL_NULL)),
+                ExprTupleValue.fromExprValueMap(Map.of("internal", new ExprStringValue("value"))),
+                new ExprFloatValue(12.34)));
+
+    // path returns array and struct
+    assert_equals_extract_json(
+        expected_multivalued_results, objectJson, "$.arr", "$.obj", "$.bar2");
+
+    // path returns multivalued result
+    assert_equals_extract_json(
+        expected_multivalued_results, objectJson, "$.arr[*]", "$.obj", "$.bar2");
+  }
+
+  private static void assert_equals_extract_json(ExprValue expected, Object json, Object... paths) {
+    ExprValue actual = execute_extract_json(json, paths);
     assertEquals(expected, actual);
   }
 
-  private static void execute_extract_json(ExprValue expected, String json, String path) {
-    Expression pathExpr = DSL.literal(ExprValueUtils.stringValue(path));
-    Expression jsonExpr = DSL.literal(ExprValueUtils.stringValue(json));
-    ExprValue actual = DSL.jsonExtract(jsonExpr, pathExpr).valueOf();
-    assertEquals(expected, actual);
+  private static <T extends Throwable> void assert_throws_extract_json(
+      Class<T> expectedError, Object json, Object... paths) {
+    assertThrows(expectedError, () -> execute_extract_json(json, paths));
+  }
+
+  private static ExprValue execute_extract_json(Object json, Object[] paths) {
+    Expression jsonExpr = object_to_expr(json);
+    List<Expression> pathExpressions =
+        Arrays.stream(paths).map(JsonFunctionsTest::object_to_expr).toList();
+
+    return switch (paths.length) {
+      case 1 -> DSL.jsonExtract(jsonExpr, pathExpressions.getFirst()).valueOf();
+      case 2 -> DSL.jsonExtract(jsonExpr, pathExpressions.getFirst(), pathExpressions.get(1))
+          .valueOf();
+      case 3 -> DSL.jsonExtract(
+              jsonExpr, pathExpressions.getFirst(), pathExpressions.get(1), pathExpressions.get(2))
+          .valueOf();
+      default -> throw new TestInstantiationException("Invalid number of paths provided.");
+    };
+  }
+
+  private static Expression object_to_expr(Object val) {
+    return (val instanceof String)
+        ? DSL.literal(ExprValueUtils.stringValue((String) val))
+        : DSL.literal((ExprValue) val);
   }
 }

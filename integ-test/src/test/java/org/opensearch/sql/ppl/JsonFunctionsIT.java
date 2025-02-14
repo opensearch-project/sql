@@ -17,6 +17,7 @@ import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.ResponseException;
 
 public class JsonFunctionsIT extends PPLIntegTestCase {
   @Override
@@ -131,6 +132,20 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void test_json_throws_SemanticCheckException() throws IOException {
+    // Invalid json provided
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | where not json_valid(json_string) | eval"
+                  + " casted=json(json_string) | fields test_name, casted",
+              TEST_INDEX_JSON_TEST));
+    } catch (ResponseException invalidJsonException) {
+      assertTrue(invalidJsonException.getMessage().contains("SemanticCheckException"));
+    }
+  }
+
+  @Test
   public void test_cast_json_scalar_to_type() throws IOException {
     // cast to integer
     JSONObject result;
@@ -216,5 +231,75 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json scalar boolean false", null),
         rows("json empty string", null),
         rows("json nested list", new JSONArray(List.of(Map.of("c", "2"), Map.of("c", "3")))));
+  }
+
+  @Test
+  public void test_json_extract_multiple_paths() throws IOException {
+    JSONObject resultTwoPaths =
+        executeQuery(
+            String.format(
+                "source=%s | where test_name = 'json nested list' | eval"
+                    + " extracted=json_extract(json_string, '$.a', '$.b') | fields test_name,"
+                    + " extracted",
+                TEST_INDEX_JSON_TEST));
+    verifySchema(
+        resultTwoPaths,
+        schema("test_name", null, "string"),
+        schema("extracted", null, "undefined"));
+    verifyDataRows(
+        resultTwoPaths,
+        rows(
+            "json nested list",
+            List.of("1", new JSONArray(List.of(Map.of("c", "2"), Map.of("c", "3"))))));
+
+    JSONObject resultThreePaths =
+        executeQuery(
+            String.format(
+                "source=%s | where test_name = 'json nested list' | eval"
+                    + " extracted=json_extract(json_string, '$.a', '$.b[0].c', '$.b[1].c') | fields"
+                    + " test_name, extracted",
+                TEST_INDEX_JSON_TEST));
+    verifySchema(
+        resultThreePaths,
+        schema("test_name", null, "string"),
+        schema("extracted", null, "undefined"));
+    verifyDataRows(resultThreePaths, rows("json nested list", List.of("1", "2", "3")));
+  }
+
+  @Test
+  public void test_json_extract_throws_SemanticCheckException() throws IOException {
+    // Invalid json provided
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | where not json_valid(json_string) | eval"
+                  + " extracted=json_extract(json_string, '$.a') | fields test_name, extracted",
+              TEST_INDEX_JSON_TEST));
+    } catch (ResponseException invalidJsonException) {
+      assertTrue(invalidJsonException.getMessage().contains("SemanticCheckException"));
+    }
+
+    // Invalid path provided
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | where test_name = 'json nested list' | eval"
+                  + " extracted=json_extract(json_string, '$a') | fields test_name, extracted",
+              TEST_INDEX_JSON_TEST));
+    } catch (ResponseException invalidPathException) {
+      assertTrue(invalidPathException.getMessage().contains("SemanticCheckException"));
+    }
+
+    // Invalid path with multiple paths provided
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | where test_name = 'json nested list' | eval"
+                  + " extracted=json_extract(json_string, '$a', '$.b') | fields test_name,"
+                  + " extracted",
+              TEST_INDEX_JSON_TEST));
+    } catch (ResponseException invalidPathException) {
+      assertTrue(invalidPathException.getMessage().contains("SemanticCheckException"));
+    }
   }
 }

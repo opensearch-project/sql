@@ -6,7 +6,6 @@
 package org.opensearch.sql.utils;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 
@@ -93,10 +92,9 @@ public class JsonUtils {
    * @return ExprValue of value at given path of json string.
    */
   public static ExprValue extractJson(ExprValue json, ExprValue... paths) {
-    List<ExprValue> resultList = new ArrayList<>();
+    List<ExprValue> resultList = new ArrayList<>(paths.length);
 
     for (ExprValue path : paths) {
-      System.out.println("Processing path: " + path);
       if (json.isNull() || json.isMissing()) {
         return json;
       }
