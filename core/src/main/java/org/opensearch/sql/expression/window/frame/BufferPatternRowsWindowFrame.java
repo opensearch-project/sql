@@ -44,6 +44,7 @@ public class BufferPatternRowsWindowFrame extends PeerRowsWindowFrame {
       return;
     }
 
+    this.preprocessedMessages.clear();
     loadAllRows(it);
 
     List<String> logMessages =

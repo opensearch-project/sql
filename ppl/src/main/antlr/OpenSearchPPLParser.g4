@@ -979,4 +979,6 @@ keywordsCanBeId
    | SPARKLINE
    | C
    | DC
+   | patternMethod
+   | patternsMethod
    ;

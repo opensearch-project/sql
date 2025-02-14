@@ -71,8 +71,9 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
@@ -86,6 +87,8 @@ import org.opensearch.sql.ppl.utils.ArgumentFactory;
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   private final AstExpressionBuilder expressionBuilder;
+
+  private final Settings settings;
 
   /**
    * PPL query to get original token text. This is necessary because token.getText() returns text
@@ -310,9 +313,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                     ctx.pattern_method != null
                         ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText())
                             .toLowerCase(Locale.ROOT)
-                        : BuiltinFunctionName.BRAIN
-                            .name()
-                            .toLowerCase(Locale.ROOT), // By default, use new algorithm
+                        : settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD),
                     unresolvedArguments),
                 List.of(), // ignore partition by list for now as we haven't seen such requirement
                 List.of()), // ignore sort by list for now as we haven't seen such requirement
