@@ -365,9 +365,6 @@ public class TrendlineOperator extends PhysicalPlan {
     @Override
     public void accumulate(ExprValue value) {
       receivedValues.add(value);
-      if (receivedValues.size() > dataPointsNeeded.valueOf().integerValue()) {
-        receivedValues.remove();
-      }
     }
 
     @Override

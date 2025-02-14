@@ -429,6 +429,36 @@ public class TrendlineOperatorTest extends PhysicalPlanTestBase {
   }
 
   @Test
+  public void calculates_weighted_moving_average_one_field_five_samples_four_rows() {
+    mockPlanWithData(
+        List.of(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10))));
+
+    var plan =
+        new TrendlineOperator(
+            inputPlan,
+            Collections.singletonList(
+                Pair.of(
+                    AstDSL.computation(4, AstDSL.field("distance"), "distance_alias", WMA),
+                    ExprCoreType.DOUBLE)));
+
+    List<ExprValue> result = execute(plan);
+    assertEquals(5, result.size());
+    assertThat(
+        result,
+        containsInAnyOrder(
+            tupleValue(ImmutableMap.of("distance", 100, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 190)),
+            tupleValue(ImmutableMap.of("distance", 200, "time", 10, "distance_alias", 200))));
+  }
+
+  @Test
   public void calculates_weighted_moving_average_multiple_computations() {
     mockPlanWithData(
         List.of(

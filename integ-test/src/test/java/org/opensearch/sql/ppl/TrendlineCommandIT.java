@@ -165,5 +165,4 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
         rows(19615.8),
         rows(29393.6));
   }
-
 }
