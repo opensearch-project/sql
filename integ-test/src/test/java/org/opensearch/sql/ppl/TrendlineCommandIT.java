@@ -57,13 +57,14 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testTrendlineNoAlias() throws IOException {
+  public void testTrendlineNoAliasDefaultName() throws IOException {
     final JSONObject result =
         executeQuery(
             String.format(
                 "source=%s | where balance > 39000 | sort balance | trendline sma(2, balance) |"
                     + " fields balance_sma_trendline",
                 TEST_INDEX_BANK));
+    verifySchema(result, schema("balance_sma_trendline", "double"));
     verifyDataRows(result, rows(new Object[] {null}), rows(44313.0), rows(39882.5));
   }
 
@@ -164,21 +165,5 @@ public class TrendlineCommandIT extends PPLIntegTestCase {
         rows(19615.8),
         rows(29393.6));
   }
-  //
-  //  @Test
-  //  public void testTrendlineWithDefaultNameWma() throws IOException {
-  //    final JSONObject result =
-  //            executeQuery(
-  //                    String.format(
-  //                            "source=%s | where balance > 39000 | trendline sort balance wma(2,
-  // balance) |"
-  //                                    + " fields balance_wma_trendline",
-  //                            TEST_INDEX_BANK));
-  //    verifySchema(
-  //            result,
-  //            schema("balance_wma_trendline", "double"));
-  //    verifyDataRows(
-  //            result, rows(new Object[] {null}), rows(40101.666666666664),
-  // rows(45570.666666666664));
-  //  }
+
 }
