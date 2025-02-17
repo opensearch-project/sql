@@ -49,7 +49,7 @@ public class BufferPatternRowsWindowFrame extends PeerRowsWindowFrame {
             .map(
                 exprValue -> {
                   ExprValue value = sourceField.valueOf(exprValue.bindingTuples());
-                  return value.stringValue();
+                  return value.isNull() || value.isMissing() ? "" : value.stringValue();
                 })
             .collect(Collectors.toList());
     this.preprocessedMessages.addAll(logParser.preprocessAllLogs(logMessages));
