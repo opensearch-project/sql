@@ -11,19 +11,15 @@ import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.linq4j.Queryable;
 import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.schema.ProjectableFilterableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.opensearch.sql.calcite.utils.OpenSearchRelDataTypes;
 
 public abstract class OpenSearchTable extends AbstractQueryableTable
-    implements ProjectableFilterableTable, TranslatableTable, org.opensearch.sql.storage.Table {
+    implements TranslatableTable, org.opensearch.sql.storage.Table {
 
   protected OpenSearchTable(Type elementType) {
     super(elementType);
@@ -32,12 +28,6 @@ public abstract class OpenSearchTable extends AbstractQueryableTable
   @Override
   public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {
     return OpenSearchRelDataTypes.convertSchema(this);
-  }
-
-  @Override
-  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
-    final RelOptCluster cluster = context.getCluster();
-    return new OpenSearchTableScan(cluster, relOptTable, this);
   }
 
   @Override
@@ -56,5 +46,5 @@ public abstract class OpenSearchTable extends AbstractQueryableTable
     return Schemas.tableExpression(schema, getElementType(), tableName, clazz);
   }
 
-  public abstract Enumerable<Object[]> search();
+  public abstract Enumerable<Object> search();
 }
