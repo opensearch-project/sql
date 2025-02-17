@@ -10,8 +10,8 @@ import com.google.common.io.Resources;
 import java.net.URL;
 import lombok.SneakyThrows;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.transport.client.Client;
 
 public class TestUtils {
   @SneakyThrows

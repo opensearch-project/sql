@@ -5,12 +5,12 @@
 
 package org.opensearch.sql.legacy.query.join;
 
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.JoinSelect;
 import org.opensearch.sql.legacy.domain.Where;
 import org.opensearch.sql.legacy.domain.hints.Hint;
 import org.opensearch.sql.legacy.domain.hints.HintType;
 import org.opensearch.sql.legacy.exception.SqlParseException;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 15/9/2015. */
 public class OpenSearchNestedLoopsQueryAction extends OpenSearchJoinQueryAction {

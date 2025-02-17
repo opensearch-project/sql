@@ -24,7 +24,6 @@ import java.util.Optional;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchType;
-import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.script.Script;
@@ -51,6 +50,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.query.maker.QueryMaker;
 import org.opensearch.sql.legacy.rewriter.nestedfield.NestedFieldProjection;
 import org.opensearch.sql.legacy.utils.SQLFunctions;
+import org.opensearch.transport.client.Client;
 
 /** Transform SQL query to standard OpenSearch search query */
 public class DefaultQueryAction extends QueryAction {

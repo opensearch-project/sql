@@ -15,7 +15,6 @@ import org.opensearch.action.admin.indices.get.GetIndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
-import org.opensearch.client.Client;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.reindex.BulkIndexByScrollResponseContentListener;
@@ -33,6 +32,7 @@ import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
 import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
+import org.opensearch.transport.client.Client;
 
 public class ElasticDefaultRestExecutor implements RestExecutor {
 

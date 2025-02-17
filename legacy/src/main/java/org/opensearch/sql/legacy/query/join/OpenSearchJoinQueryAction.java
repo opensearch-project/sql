@@ -6,7 +6,6 @@
 package org.opensearch.sql.legacy.query.join;
 
 import java.util.List;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.JoinSelect;
 import org.opensearch.sql.legacy.domain.Select;
@@ -18,6 +17,7 @@ import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.Config;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 15/9/2015. */
 public abstract class OpenSearchJoinQueryAction extends QueryAction {

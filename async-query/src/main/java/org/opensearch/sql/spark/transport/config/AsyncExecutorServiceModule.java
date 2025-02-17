@@ -9,7 +9,6 @@ import static org.opensearch.sql.spark.execution.statestore.StateStore.ALL_DATAS
 
 import com.google.common.collect.ImmutableMap;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Provides;
@@ -71,6 +70,7 @@ import org.opensearch.sql.spark.validator.PPLQueryValidator;
 import org.opensearch.sql.spark.validator.S3GlueSQLGrammarElementValidator;
 import org.opensearch.sql.spark.validator.SQLQueryValidator;
 import org.opensearch.sql.spark.validator.SecurityLakeSQLGrammarElementValidator;
+import org.opensearch.transport.client.node.NodeClient;
 
 @RequiredArgsConstructor
 public class AsyncExecutorServiceModule extends AbstractModule {
