@@ -6,10 +6,10 @@
 package org.opensearch.sql.legacy.executor.multi;
 
 import com.alibaba.druid.sql.ast.statement.SQLUnionOperator;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 21/8/2016. */
 public class MultiRequestExecutorFactory {

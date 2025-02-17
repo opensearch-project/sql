@@ -23,7 +23,6 @@ import org.hamcrest.Matcher;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.opensearch.client.Client;
 import org.opensearch.common.lucene.BytesRefs;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -36,6 +35,7 @@ import org.opensearch.sql.legacy.parser.SqlParser;
 import org.opensearch.sql.legacy.query.AggregationQueryAction;
 import org.opensearch.sql.legacy.query.maker.QueryMaker;
 import org.opensearch.sql.legacy.util.MatcherUtils;
+import org.opensearch.transport.client.Client;
 
 public class DateFormatTest {
 

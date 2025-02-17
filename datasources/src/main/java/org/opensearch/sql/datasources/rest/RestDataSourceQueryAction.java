@@ -23,7 +23,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.OpenSearchStatusException;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -42,6 +41,7 @@ import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.utils.MetricUtils;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.util.RestRequestUtil;
+import org.opensearch.transport.client.node.NodeClient;
 
 @RequiredArgsConstructor
 public class RestDataSourceQueryAction extends BaseRestHandler {

@@ -24,8 +24,6 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
-import org.opensearch.client.Client;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
@@ -64,6 +62,8 @@ import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
 import org.opensearch.sql.legacy.utils.JsonPrettyFormatter;
 import org.opensearch.sql.legacy.utils.QueryDataAnonymizer;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
+import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.node.NodeClient;
 
 public class RestSqlAction extends BaseRestHandler {
 

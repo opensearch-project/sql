@@ -16,7 +16,6 @@ import java.util.Optional;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -29,6 +28,7 @@ import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 2/9/2016. */
 public class ElasticUtils {

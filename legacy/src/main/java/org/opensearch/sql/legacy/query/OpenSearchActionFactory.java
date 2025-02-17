@@ -26,7 +26,6 @@ import com.google.common.annotations.VisibleForTesting;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.List;
-import org.opensearch.client.Client;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.common.setting.Settings;
@@ -62,6 +61,7 @@ import org.opensearch.sql.legacy.rewriter.ordinal.OrdinalRewriterRule;
 import org.opensearch.sql.legacy.rewriter.parent.SQLExprParentSetterRule;
 import org.opensearch.sql.legacy.rewriter.subquery.SubQueryRewriteRule;
 import org.opensearch.sql.legacy.utils.StringUtils;
+import org.opensearch.transport.client.Client;
 
 public class OpenSearchActionFactory {
 

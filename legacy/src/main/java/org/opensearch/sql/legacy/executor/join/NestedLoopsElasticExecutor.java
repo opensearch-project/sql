@@ -16,7 +16,6 @@ import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.MultiSearchResponse;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.index.mapper.MapperService;
 import org.opensearch.search.SearchHit;
@@ -31,6 +30,7 @@ import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
 import org.opensearch.sql.legacy.query.join.NestedLoopsElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.maker.Maker;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 15/9/2015. */
 public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {

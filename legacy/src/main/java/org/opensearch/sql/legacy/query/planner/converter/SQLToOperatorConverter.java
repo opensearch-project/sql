@@ -12,7 +12,6 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.expression.domain.BindingTuple;
@@ -22,6 +21,7 @@ import org.opensearch.sql.legacy.query.planner.core.ColumnNode;
 import org.opensearch.sql.legacy.query.planner.physical.PhysicalOperator;
 import org.opensearch.sql.legacy.query.planner.physical.node.project.PhysicalProject;
 import org.opensearch.sql.legacy.query.planner.physical.node.scroll.PhysicalScroll;
+import org.opensearch.transport.client.Client;
 
 /** Definition of SQL to PhysicalOperator converter. */
 public class SQLToOperatorConverter extends MySqlASTVisitorAdapter {

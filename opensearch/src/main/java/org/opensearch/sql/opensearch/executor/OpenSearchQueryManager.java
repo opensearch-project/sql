@@ -11,12 +11,12 @@ package org.opensearch.sql.opensearch.executor;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.ThreadContext;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.execution.AbstractPlan;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** QueryManager implemented in OpenSearch cluster. */
 @RequiredArgsConstructor

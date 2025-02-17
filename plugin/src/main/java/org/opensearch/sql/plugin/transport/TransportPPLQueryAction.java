@@ -14,7 +14,6 @@ import java.util.function.Supplier;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Injector;
@@ -43,6 +42,7 @@ import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** Send PPL query transport action. */
 public class TransportPPLQueryAction

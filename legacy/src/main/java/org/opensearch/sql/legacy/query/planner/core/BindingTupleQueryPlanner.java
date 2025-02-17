@@ -9,12 +9,12 @@ import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
 import org.opensearch.sql.legacy.expression.domain.BindingTuple;
 import org.opensearch.sql.legacy.query.planner.converter.SQLToOperatorConverter;
 import org.opensearch.sql.legacy.query.planner.physical.PhysicalOperator;
 import org.opensearch.sql.legacy.query.planner.physical.node.scroll.PhysicalScroll;
+import org.opensearch.transport.client.Client;
 
 /** The definition of QueryPlanner which return the {@link BindingTuple} as result. */
 public class BindingTupleQueryPlanner {

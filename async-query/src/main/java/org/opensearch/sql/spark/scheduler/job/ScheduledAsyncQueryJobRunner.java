@@ -7,7 +7,6 @@ package org.opensearch.sql.spark.scheduler.job;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
@@ -20,6 +19,7 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.scheduler.model.ScheduledAsyncQueryJobRequest;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 /**
  * The job runner class for scheduling async query.

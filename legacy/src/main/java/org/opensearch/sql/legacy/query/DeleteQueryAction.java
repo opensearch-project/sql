@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.legacy.query;
 
-import org.opensearch.client.Client;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.DeleteByQueryAction;
@@ -15,6 +14,7 @@ import org.opensearch.sql.legacy.domain.Delete;
 import org.opensearch.sql.legacy.domain.Where;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.maker.QueryMaker;
+import org.opensearch.transport.client.Client;
 
 public class DeleteQueryAction extends QueryAction {
 
