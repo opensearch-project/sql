@@ -8,9 +8,7 @@ package org.opensearch.sql.bwc;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
-import static org.opensearch.sql.legacy.plugin.RestSqlAction.LEGACY_QUERY_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
-import static org.opensearch.sql.plugin.rest.RestQuerySettingsAction.LEGACY_SQL_SETTINGS_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -94,17 +92,6 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
       Set<Object> pluginNames =
           plugins.stream().map(map -> map.get("name")).collect(Collectors.toSet());
       switch (CLUSTER_TYPE) {
-        case OLD:
-          Assert.assertTrue(pluginNames.contains("opensearch-sql"));
-          updateLegacySQLSettings();
-          loadIndex(Index.ACCOUNT);
-          verifySQLQueries(LEGACY_QUERY_API_ENDPOINT);
-          break;
-        case MIXED:
-          Assert.assertTrue(pluginNames.contains("opensearch-sql"));
-          verifySQLSettings();
-          verifySQLQueries(LEGACY_QUERY_API_ENDPOINT);
-          break;
         case UPGRADED:
           Assert.assertTrue(pluginNames.contains("opensearch-sql"));
           verifySQLSettings();
@@ -135,24 +122,6 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
     }
   }
 
-  private void updateLegacySQLSettings() throws IOException {
-    Request request = new Request("PUT", LEGACY_SQL_SETTINGS_API_ENDPOINT);
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            "{\n" + "  \"persistent\" : {\n    \"%s\" : \"%s\"\n  }\n}",
-            "opendistro.sql.cursor.keep_alive",
-            "7m"));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-
-    Response response = client().performRequest(request);
-    JSONObject jsonObject = new JSONObject(getResponseBody(response));
-    Assert.assertTrue((boolean) jsonObject.get("acknowledged"));
-  }
-
   private void verifySQLSettings() throws IOException {
     Request request = new Request("GET", "_cluster/settings?flat_settings");
 
@@ -163,7 +132,7 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
     Response response = client().performRequest(request);
     JSONObject jsonObject = new JSONObject(getResponseBody(response));
     Assert.assertEquals(
-        "{\"transient\":{},\"persistent\":{\"opendistro.sql.cursor.keep_alive\":\"7m\"}}",
+        "{\"transient\":{},\"persistent\":{\"plugins.sql.cursor.keep_alive\":\"7m\"}}",
         jsonObject.toString());
   }
 

@@ -73,14 +73,6 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void legacySettingsLegacyEndpoint() throws IOException {
-    String requestBody =
-        "{" + "  \"persistent\": {" + "    \"opendistro.sql.query.slowlog\": \"10\"" + "  }" + "}";
-    Response response = updateSetting(LEGACY_SQL_SETTINGS_API_ENDPOINT, requestBody);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-  }
-
-  @Test
   public void legacySettingNewEndpoint() throws IOException {
     String requestBody =
         "{" + "  \"persistent\": {" + "    \"opendistro.query.size_limit\": \"100\"" + "  }" + "}";
