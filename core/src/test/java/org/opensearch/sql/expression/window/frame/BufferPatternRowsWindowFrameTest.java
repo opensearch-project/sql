@@ -260,26 +260,26 @@ public class BufferPatternRowsWindowFrameTest {
             new NamedArgumentExpression("message", new ReferenceExpression("message", STRING)));
 
     PeekingIterator<ExprValue> tuples =
-        Iterators.peekingIterator(Iterators.forArray(TEST_TUPLE_1, TEST_NULL_TUPLE, TEST_MISSING_TUPLE));
+        Iterators.peekingIterator(
+            Iterators.forArray(TEST_TUPLE_1, TEST_NULL_TUPLE, TEST_MISSING_TUPLE));
 
     windowFrame.load(tuples);
     assertTrue(windowFrame.isNewPartition());
     assertEquals(
         LOG_PARSER.preprocess(TEST_MESSAGE_1, "0"), windowFrame.currentPreprocessedMessage());
-    assertEquals(ImmutableList.of(TEST_TUPLE_1, TEST_NULL_TUPLE, TEST_MISSING_TUPLE), windowFrame.next());
+    assertEquals(
+        ImmutableList.of(TEST_TUPLE_1, TEST_NULL_TUPLE, TEST_MISSING_TUPLE), windowFrame.next());
     assertTrue(windowFrame.hasNext());
 
     windowFrame.load(tuples);
     assertFalse(windowFrame.isNewPartition());
-    assertEquals(
-        LOG_PARSER.preprocess("", "1"), windowFrame.currentPreprocessedMessage());
+    assertEquals(LOG_PARSER.preprocess("", "1"), windowFrame.currentPreprocessedMessage());
     assertEquals(ImmutableList.of(), windowFrame.next());
     assertTrue(windowFrame.hasNext());
 
     windowFrame.load(tuples);
     assertFalse(windowFrame.isNewPartition());
-    assertEquals(
-        LOG_PARSER.preprocess("", "2"), windowFrame.currentPreprocessedMessage());
+    assertEquals(LOG_PARSER.preprocess("", "2"), windowFrame.currentPreprocessedMessage());
     assertEquals(ImmutableList.of(), windowFrame.next());
     assertFalse(windowFrame.hasNext());
   }
@@ -310,11 +310,16 @@ public class BufferPatternRowsWindowFrameTest {
   private static final String TEST_ERROR_1 =
       "Unexpected exception causing shutdown while sock still open";
   private static final String TEST_ERROR_2 = "ERROR in contacting RM";
-  private static final ExprValue TEST_TUPLE_1 = tuple("INFO", 10, new ExprStringValue(TEST_MESSAGE_1));
-  private static final ExprValue TEST_TUPLE_2 = tuple("INFO", 10, new ExprStringValue(TEST_MESSAGE_2));
-  private static final ExprValue TEST_TUPLE_3 = tuple("INFO", 15, new ExprStringValue(TEST_MESSAGE_3));
-  private static final ExprValue TEST_TUPLE_4 = tuple("ERROR", 20, new ExprStringValue(TEST_ERROR_1));
-  private static final ExprValue TEST_TUPLE_5 = tuple("ERROR", 20, new ExprStringValue(TEST_ERROR_2));
+  private static final ExprValue TEST_TUPLE_1 =
+      tuple("INFO", 10, new ExprStringValue(TEST_MESSAGE_1));
+  private static final ExprValue TEST_TUPLE_2 =
+      tuple("INFO", 10, new ExprStringValue(TEST_MESSAGE_2));
+  private static final ExprValue TEST_TUPLE_3 =
+      tuple("INFO", 15, new ExprStringValue(TEST_MESSAGE_3));
+  private static final ExprValue TEST_TUPLE_4 =
+      tuple("ERROR", 20, new ExprStringValue(TEST_ERROR_1));
+  private static final ExprValue TEST_TUPLE_5 =
+      tuple("ERROR", 20, new ExprStringValue(TEST_ERROR_2));
   private static final ExprValue TEST_NULL_TUPLE = tuple("INFO", 10, ExprNullValue.of());
   private static final ExprValue TEST_MISSING_TUPLE = tuple("INFO", 10, ExprMissingValue.of());
   private static final BrainLogParser LOG_PARSER = new BrainLogParser();
