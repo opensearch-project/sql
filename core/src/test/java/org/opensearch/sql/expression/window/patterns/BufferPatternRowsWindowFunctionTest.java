@@ -41,7 +41,8 @@ public class BufferPatternRowsWindowFunctionTest {
                 tuple(TEST_MESSAGE_1), tuple(TEST_MESSAGE_2), tuple(TEST_MESSAGE_3)));
 
     BufferPatternWindowFunction brain =
-        (BufferPatternWindowFunction) DSL.brain(DSL.ref("message", STRING));
+        (BufferPatternWindowFunction)
+            DSL.brain(DSL.namedArgument("message", DSL.ref("message", STRING)));
     List<List<String>> preprocessedMessages =
         LOG_PARSER.preprocessAllLogs(Arrays.asList(TEST_MESSAGE_1, TEST_MESSAGE_2, TEST_MESSAGE_3));
     windowFrame.load(tuples);
@@ -55,6 +56,23 @@ public class BufferPatternRowsWindowFunctionTest {
     assertEquals(
         String.join(" ", LOG_PARSER.parseLogPattern(preprocessedMessages.get(2))),
         brain.valueOf(windowFrame).stringValue());
+  }
+
+  @Test
+  void test_create_window_frame() {
+    BufferPatternWindowFunction brain =
+        (BufferPatternWindowFunction)
+            DSL.brain(DSL.namedArgument("message", DSL.ref("message", STRING)));
+    assertEquals(
+        windowFrame,
+        brain.createWindowFrame(new WindowDefinition(ImmutableList.of(), ImmutableList.of())));
+  }
+
+  @Test
+  void test_to_string() {
+    BufferPatternWindowFunction brain =
+        (BufferPatternWindowFunction) DSL.brain(DSL.ref("message", STRING));
+    assertEquals("brain(message)", brain.toString());
   }
 
   private ExprValue tuple(String message) {

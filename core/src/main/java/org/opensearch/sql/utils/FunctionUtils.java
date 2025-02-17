@@ -7,10 +7,12 @@ package org.opensearch.sql.utils;
 
 import java.util.List;
 import java.util.Optional;
+import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 
+@UtilityClass
 public final class FunctionUtils {
 
   public static Optional<ExprValue> getNamedArgumentValue(

@@ -1,9 +1,6 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
 
 package org.opensearch.sql.expression.window.frame;
@@ -28,7 +25,7 @@ public class BufferPatternRowsWindowFrame extends PeerRowsWindowFrame {
 
   @Getter private final BrainLogParser logParser;
 
-  private final List<List<String>> preprocessedMessages;
+  @EqualsAndHashCode.Exclude private final List<List<String>> preprocessedMessages;
 
   public BufferPatternRowsWindowFrame(
       WindowDefinition windowDefinition, BrainLogParser logParser, Expression sourceField) {

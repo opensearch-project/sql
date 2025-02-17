@@ -373,6 +373,27 @@ public class BrainLogParser {
     }
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    BrainLogParser other = (BrainLogParser) obj;
+    return Objects.equals(variableCountThreshold, other.variableCountThreshold)
+        && Objects.equals(thresholdPercentage, other.thresholdPercentage)
+        && Objects.equals(filterPatternVariableMap, other.filterPatternVariableMap)
+        && Objects.equals(delimiters, other.delimiters);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        variableCountThreshold, thresholdPercentage, filterPatternVariableMap, delimiters);
+  }
+
   private static final class WordCombination implements Comparable<WordCombination> {
     private final Long wordFreq;
     private final Integer sameFreqCount;

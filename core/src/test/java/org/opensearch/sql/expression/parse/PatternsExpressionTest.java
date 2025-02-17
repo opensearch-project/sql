@@ -15,6 +15,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -85,5 +86,19 @@ class PatternsExpressionTest extends ExpressionTestBase {
             DSL.patterns(
                     DSL.ref("boolean_value", BOOLEAN), DSL.literal("pattern"), DSL.literal("group"))
                 .valueOf(valueEnv()));
+  }
+
+  @Test
+  public void get_named_group_candidates_with_default_field() {
+    assertEquals(
+        ImmutableList.of(PatternsExpression.DEFAULT_NEW_FIELD),
+        PatternsExpression.getNamedGroupCandidates(null));
+  }
+
+  @Test
+  public void get_named_group_candidates_with_specified_field() {
+    assertEquals(
+        ImmutableList.of("specified_field"),
+        PatternsExpression.getNamedGroupCandidates("specified_field"));
   }
 }

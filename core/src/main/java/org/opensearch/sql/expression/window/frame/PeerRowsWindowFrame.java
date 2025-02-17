@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprValue;
@@ -22,6 +23,7 @@ import org.opensearch.sql.expression.window.WindowDefinition;
  * window definition). See PeerWindowFrameTest for details about how this window frame interacts
  * with window operator and window function.
  */
+@EqualsAndHashCode
 @RequiredArgsConstructor
 public class PeerRowsWindowFrame implements WindowFrame {
 

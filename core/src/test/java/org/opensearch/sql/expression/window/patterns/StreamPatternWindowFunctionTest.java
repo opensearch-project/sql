@@ -57,6 +57,23 @@ public class StreamPatternWindowFunctionTest {
         simplePattern.valueOf(windowFrame));
   }
 
+  @Test
+  void test_create_window_frame() {
+    StreamPatternWindowFunction simplePattern =
+        (StreamPatternWindowFunction) DSL.simple_pattern(DSL.ref("message", STRING));
+    assertEquals(
+        windowFrame,
+        simplePattern.createWindowFrame(
+            new WindowDefinition(ImmutableList.of(), ImmutableList.of())));
+  }
+
+  @Test
+  void test_to_string() {
+    StreamPatternWindowFunction simplePattern =
+        (StreamPatternWindowFunction) DSL.simple_pattern(DSL.ref("message", STRING));
+    assertEquals("simple_pattern(message)", simplePattern.toString());
+  }
+
   private ExprValue tuple(String message) {
     return fromExprValueMap(ImmutableMap.of("message", new ExprStringValue(message)));
   }
