@@ -79,9 +79,6 @@ public class RestSqlAction extends BaseRestHandler {
 
   public static final String EXPLAIN_API_ENDPOINT = QUERY_API_ENDPOINT + "/_explain";
   public static final String CURSOR_CLOSE_ENDPOINT = QUERY_API_ENDPOINT + "/close";
-  public static final String LEGACY_QUERY_API_ENDPOINT = "/_opendistro/_sql";
-  public static final String LEGACY_EXPLAIN_API_ENDPOINT = LEGACY_QUERY_API_ENDPOINT + "/_explain";
-  public static final String LEGACY_CURSOR_CLOSE_ENDPOINT = LEGACY_QUERY_API_ENDPOINT + "/close";
 
   /** New SQL query request handler. */
   private final RestSQLQueryAction newSqlQueryHandler;
@@ -94,21 +91,10 @@ public class RestSqlAction extends BaseRestHandler {
 
   @Override
   public List<Route> routes() {
-    return ImmutableList.of();
-  }
-
-  @Override
-  public List<ReplacedRoute> replacedRoutes() {
     return ImmutableList.of(
-        new ReplacedRoute(
-            RestRequest.Method.POST, QUERY_API_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
-        new ReplacedRoute(
-            RestRequest.Method.POST, EXPLAIN_API_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT),
-        new ReplacedRoute(
-            RestRequest.Method.POST, CURSOR_CLOSE_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_CURSOR_CLOSE_ENDPOINT));
+        new Route(RestRequest.Method.POST, QUERY_API_ENDPOINT),
+        new Route(RestRequest.Method.POST, EXPLAIN_API_ENDPOINT),
+        new Route(RestRequest.Method.POST, CURSOR_CLOSE_ENDPOINT));
   }
 
   @Override

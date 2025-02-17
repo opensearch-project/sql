@@ -41,8 +41,6 @@ import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 public class RestPPLQueryAction extends BaseRestHandler {
   public static final String QUERY_API_ENDPOINT = "/_plugins/_ppl";
   public static final String EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain";
-  public static final String LEGACY_QUERY_API_ENDPOINT = "/_opendistro/_ppl";
-  public static final String LEGACY_EXPLAIN_API_ENDPOINT = "/_opendistro/_ppl/_explain";
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -66,18 +64,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   @Override
   public List<Route> routes() {
-    return ImmutableList.of();
-  }
-
-  @Override
-  public List<ReplacedRoute> replacedRoutes() {
-    return Arrays.asList(
-        new ReplacedRoute(
-            RestRequest.Method.POST, QUERY_API_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
-        new ReplacedRoute(
-            RestRequest.Method.POST, EXPLAIN_API_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT));
+    return ImmutableList.of(
+        new Route(RestRequest.Method.POST, QUERY_API_ENDPOINT),
+        new Route(RestRequest.Method.POST, EXPLAIN_API_ENDPOINT));
   }
 
   @Override
