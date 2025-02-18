@@ -6,7 +6,11 @@
 package org.opensearch.sql.expression.window;
 
 import static java.util.Collections.emptyList;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.function.Supplier;
 import lombok.experimental.UtilityClass;
@@ -16,6 +20,8 @@ import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.window.patterns.BufferPatternWindowFunction;
+import org.opensearch.sql.expression.window.patterns.StreamPatternWindowFunction;
 import org.opensearch.sql.expression.window.ranking.DenseRankFunction;
 import org.opensearch.sql.expression.window.ranking.RankFunction;
 import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
@@ -34,6 +40,8 @@ public class WindowFunctions {
     repository.register(rowNumber());
     repository.register(rank());
     repository.register(denseRank());
+    repository.register(brain());
+    repository.register(simplePattern());
   }
 
   private DefaultFunctionResolver rowNumber() {
@@ -46,6 +54,40 @@ public class WindowFunctions {
 
   private DefaultFunctionResolver denseRank() {
     return rankingFunction(BuiltinFunctionName.DENSE_RANK.getName(), DenseRankFunction::new);
+  }
+
+  private DefaultFunctionResolver brain() {
+    FunctionName functionName = BuiltinFunctionName.BRAIN.getName();
+    FunctionBuilder functionBuilder =
+        (functionProperties, arguments) -> new BufferPatternWindowFunction(arguments);
+    return new DefaultFunctionResolver(
+        functionName,
+        ImmutableMap.of(
+            new FunctionSignature(functionName, ImmutableList.of(STRING)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, DOUBLE)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, INTEGER)),
+                functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, DOUBLE)),
+                functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER, DOUBLE)),
+                functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, INTEGER, DOUBLE)),
+                functionBuilder));
+  }
+
+  private DefaultFunctionResolver simplePattern() {
+    FunctionName functionName = BuiltinFunctionName.SIMPLE_PATTERN.getName();
+    FunctionBuilder functionBuilder =
+        (functionProperties, arguments) -> new StreamPatternWindowFunction(arguments);
+    return new DefaultFunctionResolver(
+        functionName,
+        ImmutableMap.of(
+            new FunctionSignature(functionName, ImmutableList.of(STRING)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING)), functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, STRING)),
+                functionBuilder));
   }
 
   private DefaultFunctionResolver rankingFunction(

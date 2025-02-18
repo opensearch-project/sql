@@ -27,6 +27,7 @@ public abstract class Settings {
 
     /** PPL Settings. */
     PPL_ENABLED("plugins.ppl.enabled"),
+    DEFAULT_PATTERN_METHOD("plugins.ppl.default.pattern.method"),
 
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),
