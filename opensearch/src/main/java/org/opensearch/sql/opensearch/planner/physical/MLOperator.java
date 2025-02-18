@@ -14,7 +14,6 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.ml.common.dataframe.DataFrame;
 import org.opensearch.ml.common.dataframe.Row;
 import org.opensearch.ml.common.output.MLOutput;
@@ -23,6 +22,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
+import org.opensearch.transport.client.node.NodeClient;
 
 /**
  * ml-commons Physical operator to call machine learning interface to get results for algorithm

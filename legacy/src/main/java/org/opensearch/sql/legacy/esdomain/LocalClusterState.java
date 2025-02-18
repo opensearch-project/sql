@@ -16,7 +16,6 @@ import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.IndicesOptions;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
@@ -24,6 +23,7 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.esdomain.mapping.IndexMappings;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
+import org.opensearch.transport.client.Client;
 
 /**
  * Local cluster state information which may be stale but help avoid blocking operation in NIO

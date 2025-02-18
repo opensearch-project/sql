@@ -13,7 +13,6 @@ import java.util.Map;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchType;
-import org.opensearch.client.Client;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.join.aggregations.JoinAggregationBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
@@ -36,6 +35,7 @@ import org.opensearch.sql.legacy.domain.hints.HintType;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.maker.AggMaker;
 import org.opensearch.sql.legacy.query.maker.QueryMaker;
+import org.opensearch.transport.client.Client;
 
 /** Transform SQL query to OpenSearch aggregations query */
 public class AggregationQueryAction extends QueryAction {

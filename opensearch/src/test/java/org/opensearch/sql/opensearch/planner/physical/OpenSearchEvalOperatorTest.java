@@ -26,7 +26,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.geospatial.action.IpEnrichmentAction;
@@ -44,6 +43,7 @@ import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprTextValue;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** To assert the original behaviour of eval operator. */
 @ExtendWith(MockitoExtension.class)

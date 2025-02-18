@@ -38,7 +38,7 @@ public class SearchResult {
   public SearchResult(SearchResponse resp) {
     SearchHits hits = resp.getHits();
     this.total =
-        Optional.ofNullable(hits.getTotalHits()).map(totalHits -> totalHits.value).orElse(0L);
+        Optional.ofNullable(hits.getTotalHits()).map(totalHits -> totalHits.value()).orElse(0L);
     results = new ArrayList<>(hits.getHits().length);
     for (SearchHit searchHit : hits.getHits()) {
       if (searchHit.getSourceAsMap() != null) {

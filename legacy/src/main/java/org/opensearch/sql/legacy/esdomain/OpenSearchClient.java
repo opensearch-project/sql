@@ -13,8 +13,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.MultiSearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
+import org.opensearch.transport.client.Client;
 
 public class OpenSearchClient {
 

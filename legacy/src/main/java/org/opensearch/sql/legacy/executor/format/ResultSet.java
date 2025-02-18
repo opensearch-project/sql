@@ -7,7 +7,7 @@ package org.opensearch.sql.legacy.executor.format;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.opensearch.client.Client;
+import org.opensearch.transport.client.Client;
 
 public abstract class ResultSet {
 

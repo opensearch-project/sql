@@ -22,6 +22,7 @@ jobs:
       matrix:
         java:
           - 21
+          - 23
     runs-on: ubuntu-latest
     container:
       # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
