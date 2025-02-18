@@ -77,7 +77,6 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
-import org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
@@ -287,7 +286,6 @@ public class SQLPlugin extends Plugin
   @Override
   public List<Setting<?>> getSettings() {
     return new ImmutableList.Builder<Setting<?>>()
-        .addAll(LegacyOpenDistroSettings.legacySettings())
         .addAll(OpenSearchSettings.pluginSettings())
         .addAll(OpenSearchSettings.pluginNonDynamicSettings())
         .build();

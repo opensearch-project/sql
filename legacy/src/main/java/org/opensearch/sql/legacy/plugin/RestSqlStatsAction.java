@@ -39,8 +39,6 @@ public class RestSqlStatsAction extends BaseRestHandler {
   /** API endpoint path */
   public static final String STATS_API_ENDPOINT = "/_plugins/_sql/stats";
 
-  public static final String LEGACY_STATS_API_ENDPOINT = "/_opendistro/_sql/stats";
-
   public RestSqlStatsAction(Settings settings, RestController restController) {
     super();
   }
@@ -52,18 +50,9 @@ public class RestSqlStatsAction extends BaseRestHandler {
 
   @Override
   public List<Route> routes() {
-    return ImmutableList.of();
-  }
-
-  @Override
-  public List<ReplacedRoute> replacedRoutes() {
     return ImmutableList.of(
-        new ReplacedRoute(
-            RestRequest.Method.POST, STATS_API_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_STATS_API_ENDPOINT),
-        new ReplacedRoute(
-            RestRequest.Method.GET, STATS_API_ENDPOINT,
-            RestRequest.Method.GET, LEGACY_STATS_API_ENDPOINT));
+        new Route(RestRequest.Method.POST, STATS_API_ENDPOINT),
+        new Route(RestRequest.Method.GET, STATS_API_ENDPOINT));
   }
 
   @Override
