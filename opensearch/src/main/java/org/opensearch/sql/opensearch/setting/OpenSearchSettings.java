@@ -85,6 +85,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> DEFAULT_PATTERN_METHOD_SETTING =
+      Setting.simpleString(
+          Key.DEFAULT_PATTERN_METHOD.getKeyValue(),
+          "SIMPLE_PATTERN",
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> QUERY_MEMORY_LIMIT_SETTING =
       new Setting<>(
           Key.QUERY_MEMORY_LIMIT.getKeyValue(),
@@ -279,6 +286,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.DEFAULT_PATTERN_METHOD,
+        DEFAULT_PATTERN_METHOD_SETTING,
+        new Updater(Key.DEFAULT_PATTERN_METHOD));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.QUERY_MEMORY_LIMIT,
         QUERY_MEMORY_LIMIT_SETTING,
         new Updater(Key.QUERY_MEMORY_LIMIT));
@@ -450,6 +463,7 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_DELETE_ENABLED_SETTING)
         .add(SQL_PAGINATION_API_SEARCH_AFTER_SETTING)
         .add(PPL_ENABLED_SETTING)
+        .add(DEFAULT_PATTERN_METHOD_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)

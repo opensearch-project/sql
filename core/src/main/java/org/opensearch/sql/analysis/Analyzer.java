@@ -69,6 +69,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -107,6 +108,7 @@ import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
+import org.opensearch.sql.planner.logical.LogicalWindow;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
@@ -468,6 +470,22 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
               curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
               context.getNamedParseExpressions().add(new NamedExpression(group, expr));
             });
+    return child;
+  }
+
+  @Override
+  public LogicalPlan visitWindow(Window node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    WindowExpressionAnalyzer windowAnalyzer =
+        new WindowExpressionAnalyzer(expressionAnalyzer, child);
+    child = windowAnalyzer.analyze(node.getWindowFunction(), context);
+
+    TypeEnvironment curEnv = context.peek();
+    LogicalWindow window = (LogicalWindow) child;
+    curEnv.define(
+        new Symbol(Namespace.FIELD_NAME, window.getWindowFunction().getNameOrAlias()),
+        window.getWindowFunction().getDelegated().type());
+
     return child;
   }
 

@@ -9,9 +9,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public enum ParseMethod {
-  REGEX("regex"),
-  GROK("grok");
+public enum PatternMethod {
+  SIMPLE_PATTERN("simple_pattern"),
+  BRAIN("brain");
 
-  @Getter private final String name;
+  @Getter final String name;
 }

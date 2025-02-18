@@ -45,12 +45,12 @@ commands
    | rareCommand
    | grokCommand
    | parseCommand
-   | patternsCommand
    | kmeansCommand
    | adCommand
    | mlCommand
    | fillnullCommand
    | trendlineCommand
+   | patternsCommand
    ;
 
 searchCommand
@@ -115,18 +115,25 @@ parseCommand
    : PARSE (source_field = expression) (pattern = stringLiteral)
    ;
 
+patternsMethod
+   : PUNCT
+   | REGEX
+   ;
+
 patternsCommand
-   : PATTERNS (patternsParameter)* (source_field = expression)
+   : PATTERNS (patternsParameter)* (source_field = expression) (pattern_method = patternMethod)*
    ;
 
 patternsParameter
    : (NEW_FIELD EQUAL new_field = stringLiteral)
    | (PATTERN EQUAL pattern = stringLiteral)
+   | (VARIABLE_COUNT_THRESHOLD EQUAL variable_count_threshold = integerLiteral)
+   | (FREQUENCY_THRESHOLD_PERCENTAGE EQUAL frequency_threshold_percentage = decimalLiteral)
    ;
 
-patternsMethod
-   : PUNCT
-   | REGEX
+patternMethod
+   : SIMPLE_PATTERN
+   | BRAIN
    ;
 
 fillnullCommand
@@ -972,4 +979,6 @@ keywordsCanBeId
    | SPARKLINE
    | C
    | DC
+   | patternMethod
+   | patternsMethod
    ;
