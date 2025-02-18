@@ -18,7 +18,6 @@ import java.util.UUID;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.common.util.ArrayUtils;
 import org.opensearch.index.mapper.MapperService;
@@ -39,6 +38,7 @@ import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
 import org.opensearch.sql.legacy.utils.Util;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 26/8/2016. */
 public class MinusExecutor extends ElasticHitsExecutor {

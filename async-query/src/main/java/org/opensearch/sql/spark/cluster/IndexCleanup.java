@@ -8,13 +8,13 @@ package org.opensearch.sql.spark.cluster;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.IndicesOptions;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequest;
+import org.opensearch.transport.client.Client;
 
 /** Clean up the old docs for indices. */
 public class IndexCleanup {

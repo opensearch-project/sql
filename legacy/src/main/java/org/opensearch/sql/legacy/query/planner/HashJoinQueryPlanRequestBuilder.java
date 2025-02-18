@@ -5,12 +5,12 @@
 
 package org.opensearch.sql.legacy.query.planner;
 
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.sql.legacy.query.planner.core.QueryParams;
 import org.opensearch.sql.legacy.query.planner.core.QueryPlanner;
 import org.opensearch.sql.legacy.request.SqlRequest;
+import org.opensearch.transport.client.Client;
 
 /**
  * QueryPlanner builder for Hash Join query. In the future, different queries could have its own

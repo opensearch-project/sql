@@ -22,7 +22,6 @@ import org.apache.lucene.search.join.ScoreMode;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
 import org.opensearch.index.query.AbstractQueryBuilder;
@@ -33,6 +32,7 @@ import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.util.CheckScriptContents;
 import org.opensearch.sql.legacy.util.TestsConstants;
+import org.opensearch.transport.client.Client;
 
 public class QueryFunctionsTest {
 

@@ -20,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -48,6 +47,7 @@ import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRequest;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
+import org.opensearch.transport.client.node.NodeClient;
 
 @RequiredArgsConstructor
 public class RestAsyncQueryManagementAction extends BaseRestHandler {

@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
@@ -19,6 +18,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
+import org.opensearch.transport.client.node.NodeClient;
 
 @ExtendWith(MockitoExtension.class)
 public class AsyncExecutorServiceModuleTest {

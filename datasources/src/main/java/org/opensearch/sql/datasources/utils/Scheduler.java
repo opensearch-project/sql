@@ -8,9 +8,9 @@ package org.opensearch.sql.datasources.utils;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.apache.logging.log4j.ThreadContext;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** The scheduler which schedule the task run in sql-worker thread pool. */
 @UtilityClass
