@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.legacy.antlr.semantic;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -16,16 +12,12 @@ import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import org.opensearch.sql.legacy.antlr.SqlAnalysisConfig;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 
+import static org.hamcrest.Matchers.*;
+
 /** Test cases for semantic analysis configuration */
 public class SemanticAnalyzerConfigTest extends SemanticAnalyzerTestBase {
 
   @Rule public final ExpectedException exceptionWithoutSuggestion = ExpectedException.none();
-
-  @Test
-  public void noAnalysisShouldPerformForNonSelectStatement() {
-    String sql = "DELETE FROM semantics WHERE age12 = 123";
-    expectValidationPassWithConfig(sql, new SqlAnalysisConfig(true, true, 1000));
-  }
 
   @Test
   public void noAnalysisShouldPerformIfDisabledAnalysis() {

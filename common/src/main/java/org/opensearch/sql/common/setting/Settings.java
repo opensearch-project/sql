@@ -7,11 +7,12 @@ package org.opensearch.sql.common.setting;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 /** Setting. */
 public abstract class Settings {
@@ -22,7 +23,6 @@ public abstract class Settings {
     SQL_ENABLED("plugins.sql.enabled"),
     SQL_SLOWLOG("plugins.sql.slowlog"),
     SQL_CURSOR_KEEP_ALIVE("plugins.sql.cursor.keep_alive"),
-    SQL_DELETE_ENABLED("plugins.sql.delete.enabled"),
     SQL_PAGINATION_API_SEARCH_AFTER("plugins.sql.pagination.api"),
 
     /** PPL Settings. */

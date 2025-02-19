@@ -5,21 +5,9 @@
 
 package org.opensearch.sql.opensearch.setting;
 
-import static org.opensearch.common.settings.Settings.EMPTY;
-import static org.opensearch.common.unit.TimeValue.timeValueDays;
-import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
-import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_KEY;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.cluster.ClusterName;
@@ -29,6 +17,19 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.common.setting.Settings;
+
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import static org.opensearch.common.settings.Settings.EMPTY;
+import static org.opensearch.common.unit.TimeValue.timeValueDays;
+import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
+import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_KEY;
 
 /** Setting implementation on OpenSearch. */
 @Log4j2
@@ -59,13 +60,6 @@ public class OpenSearchSettings extends Settings {
       Setting.positiveTimeSetting(
           Key.SQL_CURSOR_KEEP_ALIVE.getKeyValue(),
           timeValueMinutes(1),
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
-  public static final Setting<?> SQL_DELETE_ENABLED_SETTING =
-      Setting.boolSetting(
-          Key.SQL_DELETE_ENABLED.getKeyValue(),
-          false,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -263,12 +257,6 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
-        Key.SQL_DELETE_ENABLED,
-        SQL_DELETE_ENABLED_SETTING,
-        new Updater(Key.SQL_DELETE_ENABLED));
-    register(
-        settingBuilder,
-        clusterSettings,
         Key.SQL_PAGINATION_API_SEARCH_AFTER,
         SQL_PAGINATION_API_SEARCH_AFTER_SETTING,
         new Updater(Key.SQL_PAGINATION_API_SEARCH_AFTER));
@@ -455,7 +443,6 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_ENABLED_SETTING)
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
-        .add(SQL_DELETE_ENABLED_SETTING)
         .add(SQL_PAGINATION_API_SEARCH_AFTER_SETTING)
         .add(PPL_ENABLED_SETTING)
         .add(DEFAULT_PATTERN_METHOD_SETTING)

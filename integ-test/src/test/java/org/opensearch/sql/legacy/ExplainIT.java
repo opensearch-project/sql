@@ -5,24 +5,20 @@
 
 package org.opensearch.sql.legacy;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOCATION;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PHRASE;
-
 import com.google.common.io.Files;
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.opensearch.sql.legacy.TestsConstants.*;
 
 public class ExplainIT extends SQLIntegTestCase {
 
@@ -131,24 +127,6 @@ public class ExplainIT extends SQLIntegTestCase {
             String.format(
                 "SELECT * FROM %s WHERE firstname LIKE 'A%%' " + "AND age > 20 GROUP BY gender",
                 TEST_INDEX_ACCOUNT));
-    Assert.assertThat(
-        result.replaceAll("\\s+", ""), equalTo(expectedOutput.replaceAll("\\s+", "")));
-  }
-
-  @Test
-  public void deleteSanity() throws IOException {
-
-    String expectedOutputFilePath =
-        TestUtils.getResourceFilePath("src/test/resources/expectedOutput/delete_explain.json");
-    String expectedOutput =
-        Files.toString(new File(expectedOutputFilePath), StandardCharsets.UTF_8)
-            .replaceAll("\r", "");
-    ;
-
-    String result =
-        explainQuery(
-            String.format(
-                "DELETE FROM %s WHERE firstname LIKE 'A%%' AND age > 20", TEST_INDEX_ACCOUNT));
     Assert.assertThat(
         result.replaceAll("\\s+", ""), equalTo(expectedOutput.replaceAll("\\s+", "")));
   }
