@@ -1,18 +1,6 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to you under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 package org.opensearch.sql.opensearch.request;
 
@@ -57,12 +45,19 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
  * {@link QueryBuilder}
+ *
+ * <p>Major part of this class have been copied from <a
+ * href="https://calcite.apache.org/">calcite</a> ES adapter, but it has been changed to support the
+ * OpenSearch QueryBuilder.
+ *
+ * <p>And that file was also sourced from <a href="https://www.dremio.com/">dremio</a> ES adapter
+ * (thanks to their team for improving calcite-ES integration).
  */
 public class PredicateAnalyzer {
 
   /** Internal exception. */
   @SuppressWarnings("serial")
-  private static final class PredicateAnalyzerException extends RuntimeException {
+  public static final class PredicateAnalyzerException extends RuntimeException {
 
     PredicateAnalyzerException(String message) {
       super(message);
@@ -75,7 +70,7 @@ public class PredicateAnalyzer {
 
   /**
    * Exception that is thrown when a {@link org.apache.calcite.rel.RelNode} expression cannot be
-   * processed (or converted into an Elasticsearch query).
+   * processed (or converted into an OpenSearch query).
    */
   public static class ExpressionNotAnalyzableException extends Exception {
     ExpressionNotAnalyzableException(String message, Throwable cause) {
@@ -102,12 +97,13 @@ public class PredicateAnalyzer {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
-      QueryExpression e = (QueryExpression) expression.accept(new Visitor(schema));
+      QueryExpression queryExpression = (QueryExpression) expression.accept(new Visitor(schema));
 
-      if (e != null && e.isPartial()) {
-        throw new UnsupportedOperationException("Can't handle partial QueryExpression: " + e);
+      if (queryExpression != null && queryExpression.isPartial()) {
+        throw new UnsupportedOperationException(
+            "Can't handle partial QueryExpression: " + queryExpression);
       }
-      return e != null ? e.builder() : null;
+      return queryExpression != null ? queryExpression.builder() : null;
     } catch (Throwable e) {
       Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
       throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
@@ -303,7 +299,7 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
       Expression a = call.getOperands().get(0).accept(this);
-      // Elasticsearch does not want is null/is not null (exists query)
+      // OpenSearch does not want is null/is not null (exists query)
       // for _id and _index, although it supports for all other metadata column
       isColumn(a, call, OpenSearchConstants.METADATA_FIELD_ID, true);
       isColumn(a, call, OpenSearchConstants.METADATA_FIELD_INDEX, true);
@@ -777,7 +773,7 @@ public class PredicateAnalyzer {
     @Override
     public QueryExpression notExists() {
       // Even though Lucene doesn't allow a stand alone mustNot boolean query,
-      // Elasticsearch handles this problem transparently on its end
+      // OpenSearch handles this problem transparently on its end
       builder = boolQuery().mustNot(existsQuery(getFieldReference()));
       return this;
     }
@@ -813,6 +809,8 @@ public class PredicateAnalyzer {
                 .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value)))
                 .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lte(value)));
       } else {
+        // TODO: equal(textFieldType, "value") should not rewrite as termQuery,
+        //  it should be addressed by issue: https://github.com/opensearch-project/sql/issues/3334
         builder = termQuery(getFieldReference(), value);
       }
       return this;

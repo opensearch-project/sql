@@ -84,7 +84,7 @@ public class QueryService {
                   });
         } catch (Exception e) {
           LOG.warn("Fallback to V2 query engine since got exception", e);
-          // executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);}
+          executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
         }
       }
     } catch (Exception e) {

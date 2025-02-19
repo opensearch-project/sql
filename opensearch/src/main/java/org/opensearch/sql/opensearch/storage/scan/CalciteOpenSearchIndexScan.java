@@ -36,6 +36,7 @@ import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ExpressionNotAnalyzableException;
+import org.opensearch.sql.opensearch.request.PredicateAnalyzer.PredicateAnalyzerException;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** Relational expression representing a scan of an OpenSearchIndex type. */
@@ -124,7 +125,7 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
       requestBuilder.pushDownFilter(filterBuilder);
       // TODO: handle the case where condition contains a score function
       return true;
-    } catch (ExpressionNotAnalyzableException e) {
+    } catch (ExpressionNotAnalyzableException | PredicateAnalyzerException e) {
       LOG.warn("Cannot analyze the filter condition {}", filter.getCondition(), e);
     }
     return false;
