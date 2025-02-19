@@ -48,6 +48,11 @@ ANTI:                               'ANTI';
 CROSS:                              'CROSS';
 LEFT_HINT:                          'HINT.LEFT';
 RIGHT_HINT:                         'HINT.RIGHT';
+PATTERN_METHOD:                     'PATTERN_METHOD';
+SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
+BRAIN:                              'BRAIN';
+VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
+FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';

@@ -13,9 +13,11 @@ import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
@@ -24,6 +26,8 @@ import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 public class PPLQueryDataAnonymizerTest {
 
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
+
+  @Mock private Settings settings;
 
   @Test
   public void testSearchCommand() {

@@ -103,6 +103,13 @@ public class OpenSearchSettings extends Settings {
       Setting.boolSetting(
           Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
           true,
+              Setting.Property.NodeScope,
+              Setting.Property.Dynamic);
+
+  public static final Setting<?> DEFAULT_PATTERN_METHOD_SETTING =
+      Setting.simpleString(
+          Key.DEFAULT_PATTERN_METHOD.getKeyValue(),
+          "SIMPLE_PATTERN",
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -300,6 +307,7 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+<<<<<<< HEAD
         Key.CALCITE_ENGINE_ENABLED,
         CALCITE_ENGINE_ENABLED_SETTING,
         new Updater(Key.CALCITE_ENGINE_ENABLED));
@@ -315,6 +323,11 @@ public class OpenSearchSettings extends Settings {
         Key.CALCITE_PUSHDOWN_ENABLED,
         CALCITE_PUSHDOWN_ENABLED_SETTING,
         new Updater(Key.CALCITE_PUSHDOWN_ENABLED));
+=======
+        Key.DEFAULT_PATTERN_METHOD,
+        DEFAULT_PATTERN_METHOD_SETTING,
+        new Updater(Key.DEFAULT_PATTERN_METHOD));
+>>>>>>> 0d749958b (Improved patterns command with new algorithm (#3263) (#3335))
     register(
         settingBuilder,
         clusterSettings,
@@ -489,9 +502,13 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_DELETE_ENABLED_SETTING)
         .add(SQL_PAGINATION_API_SEARCH_AFTER_SETTING)
         .add(PPL_ENABLED_SETTING)
+<<<<<<< HEAD
         .add(CALCITE_ENGINE_ENABLED_SETTING)
         .add(CALCITE_FALLBACK_ALLOWED_SETTING)
         .add(CALCITE_PUSHDOWN_ENABLED_SETTING)
+=======
+        .add(DEFAULT_PATTERN_METHOD_SETTING)
+>>>>>>> 0d749958b (Improved patterns command with new algorithm (#3263) (#3335))
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)

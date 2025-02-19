@@ -20,16 +20,20 @@ import static org.opensearch.sql.executor.QueryType.PPL;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mock;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstStatementBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
+
+  @Mock private Settings settings;
 
   private PPLSyntaxParser parser = new PPLSyntaxParser();
 
