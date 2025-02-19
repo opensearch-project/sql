@@ -15,12 +15,16 @@ import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.data.model.ExprMissingValue;
+import org.opensearch.sql.data.model.ExprNullValue;
+import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -85,5 +89,27 @@ class PatternsExpressionTest extends ExpressionTestBase {
             DSL.patterns(
                     DSL.ref("boolean_value", BOOLEAN), DSL.literal("pattern"), DSL.literal("group"))
                 .valueOf(valueEnv()));
+  }
+
+  @Test
+  public void parse_null_or_missing_expr_value() {
+    PatternsExpression patternsExpression =
+        DSL.patterns(DSL.ref("string_value", STRING), DSL.literal("pattern"), DSL.literal("group"));
+    assertEquals(new ExprStringValue(""), patternsExpression.parseValue(ExprNullValue.of()));
+    assertEquals(new ExprStringValue(""), patternsExpression.parseValue(ExprMissingValue.of()));
+  }
+
+  @Test
+  public void get_named_group_candidates_with_default_field() {
+    assertEquals(
+        ImmutableList.of(PatternsExpression.DEFAULT_NEW_FIELD),
+        PatternsExpression.getNamedGroupCandidates(null));
+  }
+
+  @Test
+  public void get_named_group_candidates_with_specified_field() {
+    assertEquals(
+        ImmutableList.of("specified_field"),
+        PatternsExpression.getNamedGroupCandidates("specified_field"));
   }
 }
