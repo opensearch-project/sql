@@ -85,8 +85,9 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public PPLService pplService(QueryManager queryManager, QueryPlanFactory queryPlanFactory) {
-    return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory);
+  public PPLService pplService(
+      QueryManager queryManager, QueryPlanFactory queryPlanFactory, Settings settings) {
+    return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory, settings);
   }
 
   @Provides
