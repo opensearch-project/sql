@@ -14,8 +14,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH;
-import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_URI;
 import static org.opensearch.sql.spark.dispatcher.IndexDMLHandler.DML_QUERY_JOB_ID;
 import static org.opensearch.sql.spark.dispatcher.IndexDMLHandler.DROP_INDEX_JOB_ID;
 
@@ -41,7 +39,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata.AsyncQueryJobMetadataBuilder;
@@ -675,10 +672,7 @@ public class AsyncQueryCoreIntegTest {
                 .setName(DATASOURCE_NAME)
                 .setConnector(DataSourceType.S3GLUE)
                 .setProperties(
-                    ImmutableMap.<String, String>builder()
-                        .put(GLUE_INDEX_STORE_OPENSEARCH_URI, "https://open.search.cluster:9200/")
-                        .put(GLUE_INDEX_STORE_OPENSEARCH_AUTH, AuthenticationType.NOAUTH.getName())
-                        .build())
+                    ImmutableMap.<String, String>builder().put("PARAM_NAME", "PARAM_VALUE").build())
                 .build());
   }
 
