@@ -32,15 +32,21 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
+<<<<<<< HEAD
 import org.opensearch.sql.ast.expression.EqualTo;
+=======
+import org.opensearch.sql.ast.expression.Argument;
+>>>>>>> 0d749958b (Improved patterns command with new algorithm (#3263) (#3335))
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -48,6 +54,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -72,6 +79,9 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
@@ -86,6 +96,8 @@ import org.opensearch.sql.ppl.utils.ArgumentFactory;
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   private final AstExpressionBuilder expressionBuilder;
+
+  private final Settings settings;
 
   /**
    * PPL query to get original token text. This is necessary because token.getText() returns text
@@ -399,18 +411,35 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitPatternsCommand(OpenSearchPPLParser.PatternsCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
-    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    List<UnresolvedExpression> unresolvedArguments = new ArrayList<>();
+    unresolvedArguments.add(sourceField);
+    AtomicReference<String> alias = new AtomicReference<>("patterns_field");
     ctx.patternsParameter()
         .forEach(
             x -> {
-              builder.put(
-                  x.children.get(0).toString(),
-                  (Literal) internalVisitExpression(x.children.get(2)));
+              String argName = x.children.get(0).toString();
+              Literal value = (Literal) internalVisitExpression(x.children.get(2));
+              if ("new_field".equalsIgnoreCase(argName)) {
+                alias.set((String) value.getValue());
+              }
+              unresolvedArguments.add(new Argument(argName, value));
             });
-    java.util.Map<String, Literal> arguments = builder.build();
-    Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
-
-    return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
+    return new Window(
+        new Alias(
+            alias.get(),
+            new WindowFunction(
+                new Function(
+                    ctx.pattern_method != null
+                        ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText())
+                            .toLowerCase(Locale.ROOT)
+                        : settings
+                            .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
+                            .toString()
+                            .toLowerCase(Locale.ROOT),
+                    unresolvedArguments),
+                List.of(), // ignore partition by list for now as we haven't seen such requirement
+                List.of()), // ignore sort by list for now as we haven't seen such requirement
+            alias.get()));
   }
 
   /** Lookup command */

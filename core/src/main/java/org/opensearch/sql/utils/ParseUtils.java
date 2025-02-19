@@ -14,7 +14,6 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.parse.GrokExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
-import org.opensearch.sql.expression.parse.PatternsExpression;
 import org.opensearch.sql.expression.parse.RegexExpression;
 
 /** Utils for {@link ParseExpression}. */
@@ -24,8 +23,7 @@ public class ParseUtils {
   private static final Map<ParseMethod, ParseExpressionFactory> FACTORY_MAP =
       ImmutableMap.of(
           ParseMethod.REGEX, RegexExpression::new,
-          ParseMethod.GROK, GrokExpression::new,
-          ParseMethod.PATTERNS, PatternsExpression::new);
+          ParseMethod.GROK, GrokExpression::new);
 
   /**
    * Construct corresponding ParseExpression by {@link ParseMethod}.
@@ -52,13 +50,8 @@ public class ParseUtils {
     switch (parseMethod) {
       case REGEX:
         return RegexExpression.getNamedGroupCandidates(pattern);
-      case GROK:
-        return GrokExpression.getNamedGroupCandidates(pattern);
       default:
-        return PatternsExpression.getNamedGroupCandidates(
-            arguments.containsKey(NEW_FIELD_KEY)
-                ? (String) arguments.get(NEW_FIELD_KEY).getValue()
-                : null);
+        return GrokExpression.getNamedGroupCandidates(pattern);
     }
   }
 
