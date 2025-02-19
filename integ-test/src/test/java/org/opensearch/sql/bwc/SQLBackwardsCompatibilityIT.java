@@ -9,6 +9,8 @@ import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.sql.LegacyAPICompatibilityIT.LEGACY_QUERY_API_ENDPOINT;
+import static org.opensearch.sql.sql.LegacyAPICompatibilityIT.LEGACY_SQL_SETTINGS_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -91,10 +93,33 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
       List<Map<String, Object>> plugins = (List<Map<String, Object>>) response.get("plugins");
       Set<Object> pluginNames =
           plugins.stream().map(map -> map.get("name")).collect(Collectors.toSet());
+      String version = (String) response.get("version");
+
+      boolean isBackwardsIncompatibleVersion = version.startsWith("2.");
+
       switch (CLUSTER_TYPE) {
+        case OLD:
+          Assert.assertTrue(pluginNames.contains("opensearch-sql"));
+          if (isBackwardsIncompatibleVersion) {
+            updateLegacySQLSettings();
+          }
+          loadIndex(Index.ACCOUNT);
+          verifySQLQueries(
+              isBackwardsIncompatibleVersion ? LEGACY_QUERY_API_ENDPOINT : QUERY_API_ENDPOINT);
+          break;
+        case MIXED:
+          Assert.assertTrue(pluginNames.contains("opensearch-sql"));
+          if (isBackwardsIncompatibleVersion) {
+            verifySQLSettings();
+          } else {
+            // For upgraded nodes, we don't need to verify legacy settings
+          }
+          verifySQLQueries(
+              isBackwardsIncompatibleVersion ? LEGACY_QUERY_API_ENDPOINT : QUERY_API_ENDPOINT);
+          break;
         case UPGRADED:
           Assert.assertTrue(pluginNames.contains("opensearch-sql"));
-          verifySQLSettings();
+          // For fully upgraded clusters, we don't need to verify legacy settings
           verifySQLQueries(QUERY_API_ENDPOINT);
           break;
       }
@@ -122,6 +147,24 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
     }
   }
 
+  private void updateLegacySQLSettings() throws IOException {
+    Request request = new Request("PUT", LEGACY_SQL_SETTINGS_API_ENDPOINT);
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            "{\n" + "  \"persistent\" : {\n    \"%s\" : \"%s\"\n  }\n}",
+            "opendistro.sql.cursor.keep_alive",
+            "7m"));
+
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+
+    Response response = client().performRequest(request);
+    JSONObject jsonObject = new JSONObject(getResponseBody(response));
+    Assert.assertTrue((boolean) jsonObject.get("acknowledged"));
+  }
+
   private void verifySQLSettings() throws IOException {
     Request request = new Request("GET", "_cluster/settings?flat_settings");
 
@@ -132,7 +175,7 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
     Response response = client().performRequest(request);
     JSONObject jsonObject = new JSONObject(getResponseBody(response));
     Assert.assertEquals(
-        "{\"transient\":{},\"persistent\":{\"plugins.sql.cursor.keep_alive\":\"7m\"}}",
+        "{\"transient\":{},\"persistent\":{\"opendistro.sql.cursor.keep_alive\":\"7m\"}}",
         jsonObject.toString());
   }
 
