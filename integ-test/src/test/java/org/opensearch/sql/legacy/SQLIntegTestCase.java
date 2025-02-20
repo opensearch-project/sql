@@ -53,6 +53,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import javax.management.MBeanServerInvocationHandler;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
@@ -68,6 +69,7 @@ import org.junit.Before;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -250,6 +252,18 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     sqlRequest.setOptions(restOptionsBuilder);
 
     return sqlRequest;
+  }
+
+  protected void assertBadRequest(Callable<Response> operation) {
+    try {
+      operation.call();
+      Assert.fail("Expected ResponseException was not thrown");
+    } catch (ResponseException e) {
+      Assert.assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
+      Assert.assertEquals("Bad Request", e.getResponse().getStatusLine().getReasonPhrase());
+    } catch (Exception e) {
+      Assert.fail("Unexpected exception: " + e.getMessage());
+    }
   }
 
   protected String executeQuery(String query, String requestType) {

@@ -5,13 +5,7 @@
 
 package org.opensearch.sql.sql;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.plugin.RestSqlAction.LEGACY_CURSOR_CLOSE_ENDPOINT;
-import static org.opensearch.sql.legacy.plugin.RestSqlAction.LEGACY_EXPLAIN_API_ENDPOINT;
-import static org.opensearch.sql.legacy.plugin.RestSqlAction.LEGACY_QUERY_API_ENDPOINT;
-import static org.opensearch.sql.legacy.plugin.RestSqlStatsAction.LEGACY_STATS_API_ENDPOINT;
-import static org.opensearch.sql.plugin.rest.RestQuerySettingsAction.LEGACY_SQL_SETTINGS_API_ENDPOINT;
 import static org.opensearch.sql.plugin.rest.RestQuerySettingsAction.SETTINGS_API_ENDPOINT;
 
 import java.io.IOException;
@@ -27,29 +21,32 @@ import org.opensearch.sql.legacy.utils.StringUtils;
 /** For backward compatibility, check if legacy API endpoints are accessible. */
 public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
 
+  public static final String LEGACY_QUERY_API_ENDPOINT = "/_opendistro/_sql";
+  public static final String LEGACY_CURSOR_CLOSE_ENDPOINT = LEGACY_QUERY_API_ENDPOINT + "/close";
+  public static final String LEGACY_EXPLAIN_API_ENDPOINT = LEGACY_QUERY_API_ENDPOINT + "/_explain";
+  public static final String LEGACY_SQL_SETTINGS_API_ENDPOINT =
+      LEGACY_QUERY_API_ENDPOINT + "/settings";
+  public static final String LEGACY_STATS_API_ENDPOINT = LEGACY_QUERY_API_ENDPOINT + "/stats";
+
   @Override
   protected void init() throws Exception {
     loadIndex(Index.ACCOUNT);
   }
 
   @Test
-  public void query() throws IOException {
+  public void query() {
     String requestBody = makeRequest("SELECT 1");
     Request request = new Request("POST", LEGACY_QUERY_API_ENDPOINT);
     request.setJsonEntity(requestBody);
-
-    Response response = client().performRequest(request);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    assertBadRequest(() -> client().performRequest(request));
   }
 
   @Test
-  public void explain() throws IOException {
+  public void explain() {
     String requestBody = makeRequest("SELECT 1");
     Request request = new Request("POST", LEGACY_EXPLAIN_API_ENDPOINT);
     request.setJsonEntity(requestBody);
-
-    Response response = client().performRequest(request);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    assertBadRequest(() -> client().performRequest(request));
   }
 
   @Test
@@ -61,39 +58,27 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
     Request request = new Request("POST", LEGACY_CURSOR_CLOSE_ENDPOINT);
     request.setJsonEntity(makeCursorRequest(result.getString("cursor")));
     request.setOptions(buildJsonOption());
-    JSONObject response = new JSONObject(executeRequest(request));
-    assertThat(response.getBoolean("succeeded"), equalTo(true));
+    assertBadRequest(() -> client().performRequest(request));
   }
 
   @Test
-  public void stats() throws IOException {
+  public void stats() {
     Request request = new Request("GET", LEGACY_STATS_API_ENDPOINT);
-    Response response = client().performRequest(request);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    assertBadRequest(() -> client().performRequest(request));
   }
 
   @Test
-  public void legacySettingsLegacyEndpoint() throws IOException {
-    String requestBody =
-        "{" + "  \"persistent\": {" + "    \"opendistro.sql.query.slowlog\": \"10\"" + "  }" + "}";
-    Response response = updateSetting(LEGACY_SQL_SETTINGS_API_ENDPOINT, requestBody);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-  }
-
-  @Test
-  public void legacySettingNewEndpoint() throws IOException {
+  public void legacySettingNewEndpoint() {
     String requestBody =
         "{" + "  \"persistent\": {" + "    \"opendistro.query.size_limit\": \"100\"" + "  }" + "}";
-    Response response = updateSetting(SETTINGS_API_ENDPOINT, requestBody);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    assertBadRequest(() -> updateSetting(SETTINGS_API_ENDPOINT, requestBody));
   }
 
   @Test
   public void newSettingsLegacyEndpoint() throws IOException {
     String requestBody =
         "{" + "  \"persistent\": {" + "    \"plugins.sql.slowlog\": \"10\"" + "  }" + "}";
-    Response response = updateSetting(LEGACY_SQL_SETTINGS_API_ENDPOINT, requestBody);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    assertBadRequest(() -> updateSetting(LEGACY_SQL_SETTINGS_API_ENDPOINT, requestBody));
   }
 
   @Test
