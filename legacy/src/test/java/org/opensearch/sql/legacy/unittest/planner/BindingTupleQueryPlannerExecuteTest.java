@@ -23,7 +23,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
@@ -31,6 +30,7 @@ import org.opensearch.sql.legacy.expression.domain.BindingTuple;
 import org.opensearch.sql.legacy.query.planner.core.BindingTupleQueryPlanner;
 import org.opensearch.sql.legacy.util.AggregationUtils;
 import org.opensearch.sql.legacy.util.SqlParserUtils;
+import org.opensearch.transport.client.Client;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BindingTupleQueryPlannerExecuteTest {

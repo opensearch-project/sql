@@ -15,7 +15,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.opensearch.action.search.SearchRequestBuilder;
-import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.script.Script;
 import org.opensearch.search.sort.FieldSortBuilder;
@@ -31,6 +30,7 @@ import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.request.SqlRequest;
+import org.opensearch.transport.client.Client;
 
 public class DefaultQueryActionTest {
 

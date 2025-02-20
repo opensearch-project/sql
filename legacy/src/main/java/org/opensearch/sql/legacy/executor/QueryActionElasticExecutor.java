@@ -8,7 +8,6 @@ package org.opensearch.sql.legacy.executor;
 import java.io.IOException;
 import java.util.List;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
@@ -29,6 +28,7 @@ import org.opensearch.sql.legacy.query.SqlOpenSearchRequestBuilder;
 import org.opensearch.sql.legacy.query.join.OpenSearchJoinQueryAction;
 import org.opensearch.sql.legacy.query.multi.MultiQueryAction;
 import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 3/10/2015. */
 public class QueryActionElasticExecutor {

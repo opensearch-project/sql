@@ -30,7 +30,6 @@ import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.client.AdminClient;
-import org.opensearch.client.Client;
 import org.opensearch.client.IndicesAdminClient;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.service.ClusterService;
@@ -52,6 +51,7 @@ import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
+import org.opensearch.transport.client.Client;
 
 public class CheckScriptContents {
 

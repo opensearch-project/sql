@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -40,6 +39,7 @@ import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
 import org.opensearch.sql.legacy.query.join.NestedLoopsElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 15/9/2015. */
 public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {

@@ -19,12 +19,12 @@ import java.net.URL;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.parser.SqlParser;
 import org.opensearch.sql.legacy.query.AggregationQueryAction;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.request.SqlRequest;
+import org.opensearch.transport.client.Client;
 
 public class AliasInliningTests {
 

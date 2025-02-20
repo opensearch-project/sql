@@ -11,7 +11,6 @@ import static org.hamcrest.Matchers.equalTo;
 import java.io.IOException;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -21,6 +20,7 @@ import org.opensearch.sql.legacy.domain.Delete;
 import org.opensearch.sql.legacy.executor.format.DataRows;
 import org.opensearch.sql.legacy.executor.format.DeleteResultSet;
 import org.opensearch.sql.legacy.executor.format.Schema;
+import org.opensearch.transport.client.node.NodeClient;
 
 public class DeleteResultSetTest {
 

@@ -9,13 +9,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.opensearch.action.search.SearchRequestBuilder;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 19/8/2016. */
 public class MultiQueryAction extends QueryAction {

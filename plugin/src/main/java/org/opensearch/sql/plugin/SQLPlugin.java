@@ -23,8 +23,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionType;
-import org.opensearch.client.Client;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
@@ -108,6 +106,8 @@ import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.watcher.ResourceWatcherService;
 
 public class SQLPlugin extends Plugin

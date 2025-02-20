@@ -6,9 +6,9 @@
 package org.opensearch.sql.legacy.executor;
 
 import java.util.Map;
-import org.opensearch.client.Client;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.legacy.query.QueryAction;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 26/12/2015. */
 public interface RestExecutor {

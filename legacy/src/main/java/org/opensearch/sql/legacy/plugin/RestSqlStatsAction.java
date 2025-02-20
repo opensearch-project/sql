@@ -16,7 +16,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.rest.RestStatus;
@@ -28,6 +27,7 @@ import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.node.NodeClient;
 
 /**
  * Currently this interface is for node level. Cluster level is coming up soon.

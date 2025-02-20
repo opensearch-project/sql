@@ -34,7 +34,6 @@ import org.opensearch.action.search.ClearScrollRequestBuilder;
 import org.opensearch.action.search.ClearScrollResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequestBuilder;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.ClusterSettings;
@@ -57,6 +56,7 @@ import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.QueryPlanner;
 import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
+import org.opensearch.transport.client.Client;
 
 /** Test base class for all query planner tests. */
 @Ignore

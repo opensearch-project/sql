@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -22,6 +21,7 @@ import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.transport.client.node.NodeClient;
 
 /**
  * OpenSearch version of eval operator, which contains nodeClient, in order to perform OpenSearch
