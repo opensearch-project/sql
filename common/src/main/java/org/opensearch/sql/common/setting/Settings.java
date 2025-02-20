@@ -7,12 +7,11 @@ package org.opensearch.sql.common.setting;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /** Setting. */
 public abstract class Settings {

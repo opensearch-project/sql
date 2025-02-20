@@ -5,14 +5,14 @@
 
 package org.opensearch.sql.legacy.antlr.semantic;
 
+import static org.hamcrest.Matchers.*;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import org.opensearch.sql.legacy.antlr.SqlAnalysisConfig;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-
-import static org.hamcrest.Matchers.*;
 
 /** Test cases for semantic analysis configuration */
 public class SemanticAnalyzerConfigTest extends SemanticAnalyzerTestBase {

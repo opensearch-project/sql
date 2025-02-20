@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.legacy.query;
 
+import static org.opensearch.sql.legacy.domain.IndexStatement.StatementType;
+import static org.opensearch.sql.legacy.utils.Util.toSqlExpr;
+
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
 import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
@@ -19,6 +22,9 @@ import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import com.alibaba.druid.sql.parser.SQLStatementParser;
 import com.google.common.annotations.VisibleForTesting;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.ArrayList;
+import java.util.List;
 import org.opensearch.client.Client;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
@@ -48,13 +54,6 @@ import org.opensearch.sql.legacy.rewriter.nestedfield.NestedFieldRewriter;
 import org.opensearch.sql.legacy.rewriter.ordinal.OrdinalRewriterRule;
 import org.opensearch.sql.legacy.rewriter.parent.SQLExprParentSetterRule;
 import org.opensearch.sql.legacy.rewriter.subquery.SubQueryRewriteRule;
-
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.opensearch.sql.legacy.domain.IndexStatement.StatementType;
-import static org.opensearch.sql.legacy.utils.Util.toSqlExpr;
 
 public class OpenSearchActionFactory {
 

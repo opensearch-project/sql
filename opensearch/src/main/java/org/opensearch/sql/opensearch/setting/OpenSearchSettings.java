@@ -5,9 +5,21 @@
 
 package org.opensearch.sql.opensearch.setting;
 
+import static org.opensearch.common.settings.Settings.EMPTY;
+import static org.opensearch.common.unit.TimeValue.timeValueDays;
+import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
+import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_KEY;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.cluster.ClusterName;
@@ -17,19 +29,6 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.common.setting.Settings;
-
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static org.opensearch.common.settings.Settings.EMPTY;
-import static org.opensearch.common.unit.TimeValue.timeValueDays;
-import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
-import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_KEY;
 
 /** Setting implementation on OpenSearch. */
 @Log4j2
