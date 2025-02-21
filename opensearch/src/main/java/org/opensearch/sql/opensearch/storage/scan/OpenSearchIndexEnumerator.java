@@ -58,7 +58,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   }
 
   @Override
-  public Object current() {
+  public Object[] current() {
     Object[] p = fields.stream().map(k -> current.tupleValue().get(k).value()).toArray();
     return p;
   }
