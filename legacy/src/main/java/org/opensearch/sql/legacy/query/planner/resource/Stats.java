@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.legacy.query.planner.resource;
 
-import org.opensearch.client.Client;
+import org.opensearch.transport.client.Client;
 
 /**
  * Statistics collector collects from OpenSearch stats, JVM etc for other components:

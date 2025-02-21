@@ -8,7 +8,6 @@ package org.opensearch.sql.legacy.executor.csv;
 import com.google.common.base.Joiner;
 import java.util.List;
 import java.util.Map;
-import org.opensearch.client.Client;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
@@ -16,6 +15,7 @@ import org.opensearch.sql.legacy.executor.QueryActionElasticExecutor;
 import org.opensearch.sql.legacy.executor.RestExecutor;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 26/12/2015. */
 public class CSVResultRestExecutor implements RestExecutor {

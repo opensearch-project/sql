@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.geospatial.action.IpEnrichmentActionClient;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -23,6 +22,7 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** Class to centralise all OpenSearch specific eval operations. */
 public class OpenSearchEvalProcessor {
