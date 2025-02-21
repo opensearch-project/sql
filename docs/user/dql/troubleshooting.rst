@@ -25,9 +25,9 @@ Query:
 
 .. code-block:: JSON
 
-	POST /_plugins/_sql
+	POST /_plugins/_ppl
 	{
-	  "query" : "SELECT * FROM sample:data"
+	  "query" : "SOURCE = test_index | where a > 0)"
 	}
 
 Result:
@@ -35,12 +35,12 @@ Result:
 .. code-block:: JSON
 
     {
-      "reason": "Invalid SQL query",
-      "details": "Failed to parse query due to offending symbol [:] at: 'SELECT * FROM xxx WHERE xxx:' <--- HERE...
-        More details: Expecting tokens in {<EOF>, 'AND', 'BETWEEN', 'GROUP', 'HAVING', 'IN', 'IS', 'LIKE', 'LIMIT',
-        'NOT', 'OR', 'ORDER', 'REGEXP', '*', '/', '%', '+', '-', 'DIV', 'MOD', '=', '>', '<', '!',
-        '|', '&', '^', '.', DOT_ID}",
-      "type": "SyntaxAnalysisException"
+      "error": {
+        "reason": "Invalid Query",
+        "details": "[)] is not a valid term at this part of the query: '..._index | where a > 0)' <-- HERE. extraneous input ')' expecting <EOF>",
+        "type": "SyntaxCheckException"
+      },
+      "status": 400
     }
 
 **Workaround**
