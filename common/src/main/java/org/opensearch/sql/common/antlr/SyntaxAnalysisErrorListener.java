@@ -87,7 +87,7 @@ public class SyntaxAnalysisErrorListener extends BaseErrorListener {
     if (possibleContinuations.size() > SUGGESTION_TRUNCATION_THRESHOLD) {
       details
           .append("one of ")
-          .append(suggestions.size())
+          .append(possibleContinuations.size())
           .append(" possible tokens. Some examples: ")
           .append(String.join(", ", suggestions))
           .append(", ...");

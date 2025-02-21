@@ -337,9 +337,22 @@ public class PPLSyntaxParserTest {
   @Test
   public void testDescribeCommandWithSourceShouldFail() {
     exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage("is not a valid term at this part of the query");
+    exceptionRule.expectMessage(
+        "[=] is not a valid term at this part of the query: 'describe source=' <-- HERE. Expecting"
+            + " tokens: EOF, '|', ',', '.'");
 
     new PPLSyntaxParser().parse("describe source=t");
+  }
+
+  @Test
+  public void testInvalidOperatorCombinationShouldFail() {
+    exceptionRule.expect(RuntimeException.class);
+    exceptionRule.expectMessage(
+        "[<EOF>] is not a valid term at this part of the query: '...= t | where x > y OR' <-- HERE."
+            + " Expecting one of 294 possible tokens. Some examples: 'SEARCH', 'DESCRIBE', 'SHOW',"
+            + " 'FROM', 'WHERE', ...");
+
+    new PPLSyntaxParser().parse("source = t | where x > y OR");
   }
 
   @Test
