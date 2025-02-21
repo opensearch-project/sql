@@ -35,9 +35,32 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         () -> execute("source=unknown"));
   }
 
+
+  public void testSourceFieldQueryPercentile() {
+    String actual = execute("source=test | stats percentile_approx(score, 50), percentile_approx(age, 90)");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"median\",\n"
+                    + "      \"type\": \"double\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      25.0\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 1,\n"
+                    + "  \"size\": 1\n"
+                    + "}",
+            actual);
+  }
+
+
   @Test
   public void testSourceFieldQuery() {
-    String actual = execute("source=test | fields name");
+    String actual = execute("source=test | where age =30");
     assertEquals(
         "{\n"
             + "  \"schema\": [\n"
@@ -715,5 +738,330 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + "  \"size\": 1\n"
             + "}",
         actual);
+  }
+
+  @Test
+  public void testConcat() {
+    String actual = execute("source=test | eval `CONCAT('hello', 'world')` = CONCAT('hello', 'world'), `CONCAT('hello ', 'whole ', 'world', '!')` = CONCAT('a', 'b ', 'c', 'd', 'e', 'f', 'g', '1', '2') | fields `CONCAT('hello', 'world')`, `CONCAT('hello ', 'whole ', 'world', '!')`");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testConcatWs() {
+    String actual = execute("source=test | eval `CONCAT_WS(',', 'hello', 'world')` = CONCAT_WS(',', 'hello', 'world') | fields `CONCAT_WS(',', 'hello', 'world')`");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testLength() {
+    String actual = execute("source=test | eval `LENGTH('helloworld')` = LENGTH('helloworld') | fields `LENGTH('helloworld')`");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testLike() {
+    String actual = execute("source=test | eval `LIKE('hello world', '_ELLO%')` = LIKE('hello world', '_ELLO%'),  `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ello%')");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testLower() {
+    String actual = execute("source=test | eval `LOWER('helloworld')` = LOWER('helloworld'), `LOWER('HELLOWORLD')` = LOWER('HELLOWORLD') | fields `LOWER('helloworld')`, `LOWER('HELLOWORLD')`");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testLtrim() {
+    String actual = execute("source=test | eval a = LTRIM(' hello')");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testPosition() {
+    String actual = execute("source=test | eval `POSITION('world' IN 'helloworld')` = POSITION('world' IN 'helloworld'), `POSITION('invalid' IN 'helloworld')`= POSITION('invalid' IN 'helloworld')  | fields `POSITION('world' IN 'helloworld')`, `POSITION('invalid' IN 'helloworld')`");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testReverse() {
+    String actual = execute("source=test | eval `REVERSE('abcde')` = REVERSE('abcde') | fields `REVERSE('abcde')`");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testRight() {
+    String actual = execute("source=test | eval `RIGHT('helloworld', 5)` = RIGHT('helloworld', 5), `RIGHT('HELLOWORLD', 0)` = RIGHT('HELLOWORLD', 0) | fields `RIGHT('helloworld', 5)`, `RIGHT('HELLOWORLD', 0)`");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testRtrim() {
+    String actual = execute("source=test | eval `RTRIM('   hello')` = RTRIM('   hello'), `RTRIM('hello   ')` = RTRIM('hello   ') | fields `RTRIM('   hello')`, `RTRIM('hello   ')`");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testSubstring() {
+    String actual = execute("source=test | eval `SUBSTRING('helloworld', 5)` = SUBSTRING('helloworld', 5), `SUBSTRING('helloworld', 5, 3)` = SUBSTRING('helloworld', 5, 3) | fields `SUBSTRING('helloworld', 5)`, `SUBSTRING('helloworld', 5, 3)`");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testTrim() {
+    String actual = execute("source=test | eval `TRIM('   hello', ' ')` = TRIM('   hello')");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testUpper() {
+    String actual = execute("source=test | eval `UPPER('helloworld')` = UPPER('helloworld'), `UPPER('HELLOWORLD')` = UPPER('HELLOWORLD') | fields `UPPER('helloworld')`, `UPPER('HELLOWORLD')`");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
   }
 }

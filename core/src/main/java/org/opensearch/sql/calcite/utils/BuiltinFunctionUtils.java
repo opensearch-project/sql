@@ -9,7 +9,25 @@ import java.util.Locale;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.ScalarFunction;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 public interface BuiltinFunctionUtils {
 
   static SqlOperator translate(String op) {
@@ -44,10 +62,39 @@ public interface BuiltinFunctionUtils {
       case "/":
         return SqlStdOperatorTable.DIVIDE;
         // Built-in String Functions
+      case "CONCAT":
+        return SqlLibraryOperators.CONCAT_FUNCTION;
+      case "CONCAT_WS":
+        return SqlLibraryOperators.CONCAT_WS;
+      case "LIKE":
+        return SqlLibraryOperators.ILIKE;
+      case "LTRIM", "RTRIM", "TRIM":
+        return SqlStdOperatorTable.TRIM;
+      case "LENGTH":
+        return SqlLibraryOperators.LENGTH;
       case "LOWER":
         return SqlStdOperatorTable.LOWER;
-      case "LIKE":
-        return SqlStdOperatorTable.LIKE;
+      case "POSITION":
+        return SqlStdOperatorTable.POSITION;
+      case "REVERSE":
+        return SqlLibraryOperators.REVERSE;
+      case "RIGHT":
+        return SqlLibraryOperators.RIGHT;
+        case "SUBSTRING":
+        return SqlStdOperatorTable.SUBSTRING;
+        case "UPPER":
+        return SqlStdOperatorTable.UPPER;
+        // Built-in condition Functions
+      case "IFNULL":
+        return SqlLibraryOperators.IFNULL;
+      case "IF":
+        return SqlLibraryOperators.IF;
+      case "ISNOTNULL":
+        return SqlStdOperatorTable.IS_NOT_NULL;
+      case "ISNULL":
+        return SqlStdOperatorTable.IS_NULL;
+      case "NULLIF":
+        return SqlStdOperatorTable.NULLIF;
         // Built-in Math Functions
       case "ABS":
         return SqlStdOperatorTable.ABS;
@@ -63,8 +110,33 @@ public interface BuiltinFunctionUtils {
       case "DATE_ADD":
         return SqlLibraryOperators.DATEADD;
         // TODO Add more, ref RexImpTable
+      case "DATE_SUB":
+        return SqlLibraryOperators.DATE_SUB;
+      case "HOUR":
+        return SqlStdOperatorTable.HOUR;
+      case "MINUTE":
+        return SqlStdOperatorTable.MINUTE;
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);
+    }
+  }
+
+  static List<RexNode> translateArgument(String op, List<RexNode> argList, CalcitePlanContext context) {
+    switch (op.toUpperCase(Locale.ROOT)) {
+      case "TRIM":
+        List<RexNode> trimArgs = new ArrayList<>(List.of(context.rexBuilder.makeFlag(SqlTrimFunction.Flag.BOTH), context.rexBuilder.makeLiteral(" ")));
+        trimArgs.addAll(argList);
+        return trimArgs;
+      case "LTRIM":
+        List<RexNode> LTrimArgs = new ArrayList<>(List.of(context.rexBuilder.makeFlag(SqlTrimFunction.Flag.LEADING), context.rexBuilder.makeLiteral(" ")));
+        LTrimArgs.addAll(argList);
+        return LTrimArgs;
+      case "RTRIM":
+        List<RexNode> RTrimArgs = new ArrayList<>(List.of(context.rexBuilder.makeFlag(SqlTrimFunction.Flag.TRAILING), context.rexBuilder.makeLiteral(" ")));
+        RTrimArgs.addAll(argList);
+        return RTrimArgs;
+      default:
+        return argList;
     }
   }
 }

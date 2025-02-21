@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite;
 
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
+import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.translateArgument;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -18,6 +19,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -245,6 +247,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> arguments =
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
     return context.rexBuilder.makeCall(
-        BuiltinFunctionUtils.translate(node.getFuncName()), arguments);
+        BuiltinFunctionUtils.translate(node.getFuncName()), translateArgument(node.getFuncName(), arguments, context));
   }
 }
