@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.executor;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -18,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.tools.RelRunner;
+import org.apache.calcite.tools.RelRunners;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -111,13 +110,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     AccessController.doPrivileged(
         (PrivilegedAction<Void>)
             () -> {
-              Connection connection = context.connection;
-              try {
-                RelRunner relRunner = connection.unwrap(RelRunner.class);
-                try (PreparedStatement statement = relRunner.prepareStatement(rel)) {
-                  ResultSet resultSet = statement.executeQuery();
-                  buildResultSet(resultSet, listener);
-                }
+              try (PreparedStatement statement = RelRunners.run(rel)) {
+                ResultSet result = statement.executeQuery();
+                buildResultSet(result, listener);
                 return null;
               } catch (SQLException e) {
                 throw new RuntimeException(e);
