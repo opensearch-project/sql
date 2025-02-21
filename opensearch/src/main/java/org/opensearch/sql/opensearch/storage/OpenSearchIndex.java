@@ -11,12 +11,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.plan.OpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
@@ -31,6 +33,7 @@ import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
+import org.opensearch.sql.opensearch.storage.scan.CalciteOpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexEnumerator;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
@@ -63,7 +66,7 @@ public class OpenSearchIndex extends OpenSearchTable {
           METADATA_FIELD_ROUTING, ExprCoreType.STRING);
 
   /** OpenSearch client connection. */
-  private final OpenSearchClient client;
+  @Getter private final OpenSearchClient client;
 
   private final Settings settings;
 
@@ -85,6 +88,12 @@ public class OpenSearchIndex extends OpenSearchTable {
     this.client = client;
     this.settings = settings;
     this.indexName = new OpenSearchRequest.IndexName(indexName);
+  }
+
+  @Override
+  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+    final RelOptCluster cluster = context.getCluster();
+    return new CalciteOpenSearchIndexScan(cluster, relOptTable, this);
   }
 
   @Override
@@ -193,17 +202,6 @@ public class OpenSearchIndex extends OpenSearchTable {
     return settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE);
   }
 
-  // @Override
-  public Enumerable<Object[]> scan(DataContext root) {
-    return new AbstractEnumerable<@Nullable Object[]>() {
-      @Override
-      public Enumerator<@Nullable Object[]> enumerator() {
-        return null;
-        // return search().toMap(v -> new Object[] {v});
-      }
-    };
-  }
-
   @VisibleForTesting
   @RequiredArgsConstructor
   public static class OpenSearchDefaultImplementor extends DefaultImplementor<OpenSearchIndexScan> {
@@ -232,7 +230,7 @@ public class OpenSearchIndex extends OpenSearchTable {
 
   @Override
   public Enumerable<Object> search() {
-    return new AbstractEnumerable<Object>() {
+    return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
         final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
@@ -248,5 +246,17 @@ public class OpenSearchIndex extends OpenSearchTable {
             builder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
       }
     };
+  }
+
+  public OpenSearchRequestBuilder createRequestBuilder() {
+    return new OpenSearchRequestBuilder(
+        settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
+        this.createExprValueFactory(),
+        settings);
+  }
+
+  public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {
+    final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
+    return requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client);
   }
 }

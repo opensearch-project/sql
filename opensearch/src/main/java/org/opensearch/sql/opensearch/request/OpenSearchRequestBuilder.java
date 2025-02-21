@@ -280,9 +280,11 @@ public class OpenSearchRequestBuilder {
 
   /** Push down project list to DSL requests. */
   public void pushDownProjects(Set<ReferenceExpression> projects) {
-    sourceBuilder.fetchSource(
-        projects.stream().map(ReferenceExpression::getAttr).distinct().toArray(String[]::new),
-        new String[0]);
+    pushDownProjectStream(projects.stream().map(ReferenceExpression::getAttr));
+  }
+
+  public void pushDownProjectStream(Stream<String> projects) {
+    sourceBuilder.fetchSource(projects.distinct().toArray(String[]::new), new String[0]);
   }
 
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
