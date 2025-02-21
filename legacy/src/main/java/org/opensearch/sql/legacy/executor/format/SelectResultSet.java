@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.opensearch.action.admin.indices.alias.get.GetAliasesResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
@@ -542,7 +541,7 @@ public class SelectResultSet extends ResultSet {
       this.rows = populateRows(searchHits);
       this.size = rows.size();
       this.internalTotalHits =
-          Optional.ofNullable(searchHits.getTotalHits()).map(TotalHits::value).orElse(0L);
+          Optional.ofNullable(searchHits.getTotalHits()).map(th -> th.value).orElse(0L);
       // size may be greater than totalHits after nested rows be flatten
       this.totalHits = Math.max(size, internalTotalHits);
     } else if (queryResult instanceof Aggregations) {

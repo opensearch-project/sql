@@ -305,7 +305,7 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
       // scroll request with max.
       responseWithHits = getResponseWithHits(tableRequest, MAX_RESULTS_ON_ONE_FETCH, null);
       if (responseWithHits.getHits().getTotalHits() != null
-          && responseWithHits.getHits().getTotalHits().value() < MAX_RESULTS_ON_ONE_FETCH) {
+          && responseWithHits.getHits().getTotalHits().value < MAX_RESULTS_ON_ONE_FETCH) {
         needScrollForFirstTable = true;
       }
     }

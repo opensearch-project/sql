@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.search.SearchHit;
@@ -38,7 +37,8 @@ public class SearchResult {
 
   public SearchResult(SearchResponse resp) {
     SearchHits hits = resp.getHits();
-    this.total = Optional.ofNullable(hits.getTotalHits()).map(TotalHits::value).orElse(0L);
+    this.total =
+        Optional.ofNullable(hits.getTotalHits()).map(totalHits -> totalHits.value).orElse(0L);
     results = new ArrayList<>(hits.getHits().length);
     for (SearchHit searchHit : hits.getHits()) {
       if (searchHit.getSourceAsMap() != null) {

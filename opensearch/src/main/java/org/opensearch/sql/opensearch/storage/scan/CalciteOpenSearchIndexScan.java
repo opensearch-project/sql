@@ -124,7 +124,7 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
       QueryBuilder filterBuilder = PredicateAnalyzer.analyze(filter.getCondition(), schema);
       requestBuilder.pushDownFilter(filterBuilder);
       // TODO: handle the case where condition contains a score function
-      return false;
+      return true;
     } catch (ExpressionNotAnalyzableException | PredicateAnalyzerException e) {
       LOG.warn("Cannot analyze the filter condition {}", filter.getCondition(), e);
     }

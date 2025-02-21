@@ -100,8 +100,8 @@ task stopPrometheus(type: KillProcessTask) {
 if(getOSFamilyType() != "windows") {
     stopPrometheus.mustRunAfter startPrometheus
     startOpenSearch.dependsOn startPrometheus
-//    stopOpenSearch.finalizedBy stopPrometheus
-//    startOpenSearch.finalizedBy stopPrometheus
+    stopOpenSearch.finalizedBy stopPrometheus
+    startOpenSearch.finalizedBy stopPrometheus
 }
 doctest.dependsOn startOpenSearch
 doctest.finalizedBy stopOpenSearch

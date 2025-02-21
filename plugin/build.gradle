@@ -170,7 +170,7 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${versions.mockito}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
 
-    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "3.0.0.0-alpha1-SNAPSHOT"
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
 }
 
 test {

@@ -141,11 +141,11 @@ jacocoTestCoverageVerification {
 }
 check.dependsOn jacocoTestCoverageVerification
 
-//shadowJar {
-//    archiveBaseName.set('async-query-core')
-//    archiveVersion.set('1.0.0')  // Set the desired version
-//    archiveClassifier.set('all')
-//
-//    from sourceSets.main.output
-//    configurations = [project.configurations.runtimeClasspath]
-//}
+shadowJar {
+    archiveBaseName.set('async-query-core')
+    archiveVersion.set('1.0.0')  // Set the desired version
+    archiveClassifier.set('all')
+
+    from sourceSets.main.output
+    configurations = [project.configurations.runtimeClasspath]
+}
