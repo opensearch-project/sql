@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
@@ -62,7 +63,10 @@ public class ElasticUtils {
     Object[] searchHits;
     searchHits =
         new Object
-            [Optional.ofNullable(results.getTotalHits()).map(th -> th.value).orElse(0L).intValue()];
+            [Optional.ofNullable(results.getTotalHits())
+                .map(TotalHits::value)
+                .orElse(0L)
+                .intValue()];
     int i = 0;
     for (SearchHit hit : results) {
       HashMap<String, Object> value = new HashMap<>();
@@ -76,10 +80,10 @@ public class ElasticUtils {
     hits.put(
         "total",
         ImmutableMap.of(
-            "value", Optional.ofNullable(results.getTotalHits()).map(th -> th.value).orElse(0L),
+            "value", Optional.ofNullable(results.getTotalHits()).map(TotalHits::value).orElse(0L),
             "relation",
                 Optional.ofNullable(results.getTotalHits())
-                    .map(th -> th.relation)
+                    .map(TotalHits::relation)
                     .orElse(Relation.EQUAL_TO)));
     hits.put("max_score", results.getMaxScore());
     hits.put("hits", searchHits);

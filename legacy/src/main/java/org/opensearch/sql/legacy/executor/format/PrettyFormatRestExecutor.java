@@ -136,7 +136,7 @@ public class PrettyFormatRestExecutor implements RestExecutor {
   protected boolean isDefaultCursor(SearchResponse searchResponse, DefaultQueryAction queryAction) {
     if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
       return queryAction.getSqlRequest().fetchSize() != 0
-          && Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value
+          && Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value()
               >= queryAction.getSqlRequest().fetchSize();
     } else {
       return !Strings.isNullOrEmpty(searchResponse.getScrollId());

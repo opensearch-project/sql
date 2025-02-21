@@ -260,7 +260,7 @@ public class StateStore {
       throw new RuntimeException(
           "Fetching job metadata information failed with status : " + searchResponse.status());
     } else {
-      return searchResponse.getHits().getTotalHits().value;
+      return searchResponse.getHits().getTotalHits().value();
     }
   }
 

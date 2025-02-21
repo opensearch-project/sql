@@ -16,11 +16,12 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.storage.Table;
 
-public class OpenSearchRelDataTypes extends JavaTypeFactoryImpl {
-  public static final OpenSearchRelDataTypes TYPE_FACTORY =
-      new OpenSearchRelDataTypes(RelDataTypeSystem.DEFAULT);
+/** This class is used to create RelDataType and map RelDataType to Java data type */
+public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
+  public static final OpenSearchTypeFactory TYPE_FACTORY =
+      new OpenSearchTypeFactory(RelDataTypeSystem.DEFAULT);
 
-  private OpenSearchRelDataTypes(RelDataTypeSystem typeSystem) {
+  private OpenSearchTypeFactory(RelDataTypeSystem typeSystem) {
     super(typeSystem);
   }
 
@@ -108,8 +109,33 @@ public class OpenSearchRelDataTypes extends JavaTypeFactoryImpl {
     List<RelDataType> typeList = new ArrayList<>();
     for (Map.Entry<String, ExprType> entry : table.getFieldTypes().entrySet()) {
       fieldNameList.add(entry.getKey());
-      typeList.add(OpenSearchRelDataTypes.convertSchemaField(entry.getValue()));
+      typeList.add(OpenSearchTypeFactory.convertSchemaField(entry.getValue()));
     }
     return TYPE_FACTORY.createStructType(typeList, fieldNameList, true);
   }
+  //
+  //  @Override
+  //  public Type getJavaClass(RelDataType type) {
+  //    if (type instanceof JavaType) {
+  //      JavaType javaType = (JavaType) type;
+  //      return javaType.getJavaClass();
+  //    }
+  //    if (type instanceof BasicSqlType || type instanceof IntervalSqlType) {
+  //      switch (type.getSqlTypeName()) {
+  //        case DATE:
+  //          return Date.class;
+  //        case TIME:
+  //        case TIME_WITH_LOCAL_TIME_ZONE:
+  //        case TIME_TZ:
+  //          return Time.class;
+  //        case TIMESTAMP:
+  //        case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+  //        case TIMESTAMP_TZ:
+  //          return Timestamp.class;
+  //        default:
+  //          break;
+  //      }
+  //    }
+  //    return super.getJavaClass(type);
+  //  }
 }
