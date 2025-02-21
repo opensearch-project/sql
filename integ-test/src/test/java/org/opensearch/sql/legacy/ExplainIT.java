@@ -7,7 +7,12 @@ package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOCATION;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PHRASE;
 
 import com.google.common.io.Files;
 import java.io.File;
