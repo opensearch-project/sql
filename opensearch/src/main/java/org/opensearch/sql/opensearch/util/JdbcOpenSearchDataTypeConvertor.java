@@ -16,8 +16,9 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
+/** This class is used to convert the data type from JDBC to OpenSearch data type. */
 @UtilityClass
-public class JdbcUtil {
+public class JdbcOpenSearchDataTypeConvertor {
   private static final Logger LOG = LogManager.getLogger();
 
   public static ExprType getExprTypeFromSqlType(int sqlType) {

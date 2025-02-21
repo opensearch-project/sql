@@ -92,13 +92,20 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
-    List<RexNode> projectList =
-        node.getProjectList().stream()
-            .filter(expr -> !(expr instanceof AllFields))
-            .map(expr -> rexVisitor.analyze(expr, context))
-            .collect(Collectors.toList());
-    if (projectList.isEmpty()) {
+    List<RexNode> projectList;
+    if (node.getProjectList().stream().anyMatch(e -> e instanceof AllFields)) {
+      //      if (context.relBuilder.peek() instanceof TableScan) {
+      //        // force add project all to stack to avoid the TableScan in plan only.
+      //        // if the stack only contains OpenSearchTableScan.ENUMERABLE, it will fail
+      //        // e.g. search source=table should return project(all_fields, child=tableScan)
+      //        context.relBuilder.project(context.relBuilder.fields(), ImmutableList.of(), true);
+      //      }
       return context.relBuilder.peek();
+    } else {
+      projectList =
+          node.getProjectList().stream()
+              .map(expr -> rexVisitor.analyze(expr, context))
+              .collect(Collectors.toList());
     }
     if (node.isExcluded()) {
       context.relBuilder.projectExcept(projectList);

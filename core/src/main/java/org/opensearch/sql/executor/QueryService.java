@@ -83,6 +83,13 @@ public class QueryService {
                     return null;
                   });
         } catch (Exception e) {
+          boolean fallbackAllowed = true;
+          if (settings != null) {
+            fallbackAllowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
+          }
+          if (!fallbackAllowed) {
+            throw e;
+          }
           LOG.warn("Fallback to V2 query engine since got exception", e);
           executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
         }

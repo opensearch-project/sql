@@ -253,6 +253,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + "  LogicalTableScan(table=[[scott, EMP]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 28);
   }
 
   @Test

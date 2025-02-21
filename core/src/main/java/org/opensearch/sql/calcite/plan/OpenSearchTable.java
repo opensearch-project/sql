@@ -16,7 +16,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
-import org.opensearch.sql.calcite.utils.OpenSearchRelDataTypes;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 
 public abstract class OpenSearchTable extends AbstractQueryableTable
     implements TranslatableTable, org.opensearch.sql.storage.Table {
@@ -27,7 +27,7 @@ public abstract class OpenSearchTable extends AbstractQueryableTable
 
   @Override
   public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {
-    return OpenSearchRelDataTypes.convertSchema(this);
+    return OpenSearchTypeFactory.convertSchema(this);
   }
 
   @Override

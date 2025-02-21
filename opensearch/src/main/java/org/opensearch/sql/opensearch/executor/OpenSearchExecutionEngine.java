@@ -18,6 +18,8 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.tools.RelRunners;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -30,13 +32,14 @@ import org.opensearch.sql.executor.Explain;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
-import org.opensearch.sql.opensearch.util.JdbcUtil;
+import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /** OpenSearch execution engine implementation. */
 @RequiredArgsConstructor
 public class OpenSearchExecutionEngine implements ExecutionEngine {
+  private static final Logger LOG = LogManager.getLogger();
 
   private final OpenSearchClient client;
 
@@ -134,7 +137,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
         int sqlType = metaData.getColumnType(i);
-        ExprValue exprValue = JdbcUtil.getExprValueFromSqlType(resultSet, i, sqlType);
+        ExprValue exprValue =
+            JdbcOpenSearchDataTypeConvertor.getExprValueFromSqlType(resultSet, i, sqlType);
         row.put(columnName, exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
@@ -144,7 +148,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     for (int i = 1; i <= columnCount; ++i) {
       String columnName = metaData.getColumnName(i);
       int sqlType = metaData.getColumnType(i);
-      ExprType exprType = JdbcUtil.getExprTypeFromSqlType(sqlType);
+      ExprType exprType = JdbcOpenSearchDataTypeConvertor.getExprTypeFromSqlType(sqlType);
       columns.add(new Column(columnName, null, exprType));
     }
     Schema schema = new Schema(columns);

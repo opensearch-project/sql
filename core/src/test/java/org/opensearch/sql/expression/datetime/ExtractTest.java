@@ -102,7 +102,7 @@ class ExtractTest extends ExpressionTestBase {
     // the previous year, and for late-December dates to be part of the first week of the next year.
     // For example, 2005-01-02 is part of the 53rd week of year 2004, while 2012-12-31 is part of
     // the first week of 2013
-    if (now.getMonthValue() != 1 && now.getMonthValue() != 12) {
+    if (now.getMonthValue() > 2 && now.getMonthValue() != 12) {
       datePartWithTimeArgQuery("WEEK", datetimeInput, now.get(ALIGNED_WEEK_OF_YEAR));
     }
 

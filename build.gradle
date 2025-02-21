@@ -119,11 +119,15 @@ allprojects {
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.9.10"
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.10"
         resolutionStrategy.force "net.bytebuddy:byte-buddy:1.14.9"
-        resolutionStrategy.force "org.apache.httpcomponents.client5:httpclient5:5.3.1"
-        resolutionStrategy.force 'org.apache.httpcomponents.core5:httpcore5:5.2.5'
-        resolutionStrategy.force 'org.apache.httpcomponents.core5:httpcore5-h2:5.2.5'
-        resolutionStrategy.force 'com.fasterxml.jackson.core:jackson-annotations:2.17.2'
-        resolutionStrategy.force 'com.fasterxml.jackson:jackson-bom:2.17.2'
+        resolutionStrategy.force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
+        resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
+        resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
+        resolutionStrategy.force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
+        resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+        resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+        resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
+        resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
+        resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"
         resolutionStrategy.force 'com.google.protobuf:protobuf-java:3.25.5'
         resolutionStrategy.force 'org.locationtech.jts:jts-core:1.19.0'
         resolutionStrategy.force 'com.google.errorprone:error_prone_annotations:2.28.0'
