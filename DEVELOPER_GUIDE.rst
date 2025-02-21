@@ -294,7 +294,6 @@ For test cases, you can use the cases in the following checklist in case you mis
   
 - *Other Statements*
 
-  - DELETE
   - SHOW
   - DESCRIBE
   

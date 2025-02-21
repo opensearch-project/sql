@@ -8,7 +8,6 @@ package org.opensearch.sql.legacy.unittest;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -25,14 +24,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
 import org.opensearch.sql.legacy.domain.QueryActionRequest;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.Format;
@@ -371,53 +365,6 @@ public class JSONRequestTest {
             .replaceAll("\r", "");
 
     assertThat(removeSpaces(result), equalTo(removeSpaces(expectedOutput)));
-  }
-
-  @Test
-  public void deleteSanity() throws IOException {
-    try (MockedStatic<LocalClusterState> localClusterStateMockedStatic =
-        Mockito.mockStatic(LocalClusterState.class)) {
-      LocalClusterState state = mock(LocalClusterState.class);
-      localClusterStateMockedStatic.when(LocalClusterState::state).thenReturn(state);
-      when(state.getSettingValue(any(Settings.Key.class))).thenReturn(true);
-
-      String result =
-          explain(
-              String.format(
-                  "{\"query\":\""
-                      + "DELETE "
-                      + "FROM %s "
-                      + "WHERE firstname LIKE 'A%%' AND age > 20\"}",
-                  TestsConstants.TEST_INDEX_ACCOUNT));
-      String expectedOutput =
-          Files.toString(
-                  new File(
-                      getResourcePath() + "src/test/resources/expectedOutput/delete_explain.json"),
-                  StandardCharsets.UTF_8)
-              .replaceAll("\r", "");
-      assertThat(removeSpaces(result), equalTo(removeSpaces(expectedOutput)));
-    }
-  }
-
-  @Test(expected = SQLFeatureDisabledException.class)
-  public void deleteShouldThrowExceptionWhenDisabled()
-      throws SQLFeatureDisabledException, SQLFeatureNotSupportedException, SqlParseException {
-    try (MockedStatic<LocalClusterState> localClusterStateMockedStatic =
-        Mockito.mockStatic(LocalClusterState.class)) {
-      LocalClusterState state = mock(LocalClusterState.class);
-      localClusterStateMockedStatic.when(LocalClusterState::state).thenReturn(state);
-      when(state.getSettingValue(any(Settings.Key.class))).thenReturn(false);
-
-      JSONObject jsonRequest =
-          new JSONObject(
-              StringUtils.format(
-                  "{\"query\":\""
-                      + "DELETE "
-                      + "FROM %s "
-                      + "WHERE firstname LIKE 'A%%' AND age > 20\"}",
-                  TestsConstants.TEST_INDEX_ACCOUNT));
-      translate(jsonRequest.getString("query"), jsonRequest);
-    }
   }
 
   @Test
