@@ -18,7 +18,6 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.ClearScrollResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
@@ -38,6 +37,7 @@ import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
+import org.opensearch.transport.client.Client;
 
 public class CursorResultExecutor implements CursorRestExecutor {
 

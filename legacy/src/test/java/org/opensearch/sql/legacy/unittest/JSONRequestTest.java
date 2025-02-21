@@ -28,7 +28,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.opensearch.client.Client;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
@@ -44,6 +43,7 @@ import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.legacy.util.CheckScriptContents;
 import org.opensearch.sql.legacy.util.TestsConstants;
+import org.opensearch.transport.client.Client;
 
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class JSONRequestTest {

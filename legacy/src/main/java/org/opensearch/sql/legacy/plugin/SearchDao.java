@@ -8,12 +8,12 @@ package org.opensearch.sql.legacy.plugin;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.HashSet;
 import java.util.Set;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.QueryActionRequest;
 import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.query.QueryAction;
+import org.opensearch.transport.client.Client;
 
 public class SearchDao {
 

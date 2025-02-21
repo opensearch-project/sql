@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -25,6 +24,7 @@ import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** PPL Node level status. */
 public class RestPPLStatsAction extends BaseRestHandler {
