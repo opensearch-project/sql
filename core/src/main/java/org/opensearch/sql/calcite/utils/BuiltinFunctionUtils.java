@@ -5,13 +5,16 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 
+import static java.lang.Math.E;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -180,8 +183,19 @@ public interface BuiltinFunctionUtils {
         return AtanArgs;
       case "LOG":
         List<RexNode> LogArgs = new ArrayList<>();
-        LogArgs.add(argList.get(1));
-        LogArgs.add(argList.get(0));
+        RelDataTypeFactory typeFactory = context.rexBuilder.getTypeFactory();
+        if (argList.size() == 1) {
+          LogArgs.add(argList.getFirst());
+          LogArgs.add(context.rexBuilder.makeExactLiteral(
+                  BigDecimal.valueOf(E), typeFactory.createSqlType(SqlTypeName.DOUBLE)
+          ));
+        } else if (argList.size() == 2) {
+          LogArgs.add(argList.get(1));
+          LogArgs.add(argList.get(0));
+        }
+        else {
+          throw new IllegalArgumentException("Log cannot accept argument list: " + argList);
+        }
         return LogArgs;
       default:
         return argList;
