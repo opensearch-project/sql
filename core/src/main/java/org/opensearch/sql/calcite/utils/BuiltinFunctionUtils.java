@@ -73,17 +73,17 @@ public interface BuiltinFunctionUtils {
       case "UPPER":
         return SqlStdOperatorTable.UPPER;
         // Built-in condition Functions
-      case "IFNULL":
-        return SqlLibraryOperators.IFNULL;
-      case "IF":
-        return SqlLibraryOperators.IF;
-      case "ISNOTNULL":
+      //case "IFNULL":
+      //  return SqlLibraryOperators.IFNULL;
+      //case "IF":
+      //  return SqlLibraryOperators.IF;
+      case "IS NOT NULL":
         return SqlStdOperatorTable.IS_NOT_NULL;
-      case "ISNULL":
+      case "IS NULL":
         return SqlStdOperatorTable.IS_NULL;
-      case "NULLIF":
-        return SqlStdOperatorTable.NULLIF;
-      // Built-in Math Functions
+      //case "NULLIF":
+      //  return SqlStdOperatorTable.NULLIF;
+        // Built-in Math Functions
       case "ABS":
         return SqlStdOperatorTable.ABS;
       case "ACOS":
@@ -172,11 +172,17 @@ public interface BuiltinFunctionUtils {
         RTrimArgs.addAll(argList);
         return RTrimArgs;
       case "ATAN":
-        List<RexNode> AtanArgs = new ArrayList<>();
-        AtanArgs.addAll(argList);
-        BigDecimal divideNumber = BigDecimal.valueOf(1);
-        AtanArgs.add(context.rexBuilder.makeBigintLiteral(divideNumber));
+        List<RexNode> AtanArgs = new ArrayList<>(argList);
+        if (AtanArgs.size() == 1) {
+          BigDecimal divideNumber = BigDecimal.valueOf(1);
+          AtanArgs.add(context.rexBuilder.makeBigintLiteral(divideNumber));
+        }
         return AtanArgs;
+      case "LOG":
+        List<RexNode> LogArgs = new ArrayList<>();
+        LogArgs.add(argList.get(1));
+        LogArgs.add(argList.get(0));
+        return LogArgs;
       default:
         return argList;
     }

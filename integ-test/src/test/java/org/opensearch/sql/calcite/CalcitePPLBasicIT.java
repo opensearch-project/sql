@@ -25,7 +25,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   public void init() throws IOException {
     super.init();
     Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
-    request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
+    request1.setJsonEntity("{\"name\": null, \"age\": 20}");
     client().performRequest(request1);
     Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
     request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
@@ -1295,4 +1295,5 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             List.of(Math.cbrt(8), Math.cbrt(9.261), Math.cbrt(-27))
     );
   }
+
 }
