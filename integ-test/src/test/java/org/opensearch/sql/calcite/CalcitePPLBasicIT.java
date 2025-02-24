@@ -5,12 +5,19 @@
 
 package org.opensearch.sql.calcite;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-
-import java.io.IOException;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.List;
+
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+
 
 public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
@@ -23,7 +30,9 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
     request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
     client().performRequest(request2);
-
+    Request request3 = new Request("PUT", "/people/_doc/2?refresh=true");
+    request3.setJsonEntity("{\"name\": \"DummyEntityForMathVerification\", \"age\": 24}");
+    client().performRequest(request3);
     loadIndex(Index.BANK);
   }
 
@@ -1065,6 +1074,226 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             actual);
   }
 
+  private static JsonArray parseAndGetFirstDataRow(String executionResult) {
+    JsonObject sqrtResJson = JsonParser.parseString(executionResult).getAsJsonObject();
+    JsonArray dataRows = sqrtResJson.getAsJsonArray("datarows");
+    return dataRows.get(0).getAsJsonArray();
+  }
 
+  private void testMathPPL(String query, List<? extends Number> expectedValues){
+    String execResult = execute(query);
+    JsonArray dataRow = parseAndGetFirstDataRow(execResult);
+    assertEquals(expectedValues.size(), dataRow.size());
+    for (int i = 0; i < expectedValues.size(); i++){
+      Number expected = expectedValues.get(i);
+      Number actual = dataRow.get(i).getAsNumber();
+      if (expected instanceof BigDecimal) {
+        assertEquals(expected, actual);
+      }
+      else if (expected instanceof Double || expected instanceof Float) {
+        assertDoubleUlpEquals(expected.doubleValue(), actual.doubleValue(), 8);
+      } else if (expected instanceof Long || expected instanceof Integer) {
+        assertEquals(expected.longValue(), actual.longValue());
+      } else {
+        fail("Unsupported number type: " + expected.getClass().getName());
+      }
+    }
+  }
+
+  @Test
+  public void testAbs() {
+    String absPpl = "source=people | eval `ABS(-1)` = ABS(-1) | fields `ABS(-1)`";
+    List<Integer> expected = List.of(1);
+    testMathPPL(absPpl, expected);
+  }
+
+  @Test
+  public void testAcos() {
+    String acosPpl = "source=people | eval `ACOS(0)` = ACOS(0) | fields `ACOS(0)`";
+    List<Double> expected = List.of(Math.PI / 2);
+    testMathPPL(acosPpl, expected);
+  }
+
+  @Test
+  public void testAsin() {
+    String asinPpl = "source=people | eval `ASIN(0)` = ASIN(0) | fields `ASIN(0)`";
+    List<Double> expected = List.of(0.0);
+    testMathPPL(asinPpl, expected);
+  }
+
+  @Test
+  public void testAtan() {
+    // TODO: Error while preparing plan [LogicalProject(ATAN(2)=[ATAN(2)], ATAN(2, 3)=[ATAN(2, 3)])
+    // ATAN defined in OpenSearch accepts single and double arguments, while that defined in SQL standard library accepts only single argument.
+    testMathPPL("source=people | eval `ATAN(2)` = ATAN(2), `ATAN(2, 3)` = ATAN(2, 3) | fields `ATAN(2)`, `ATAN(2, 3)`", List.of(Math.atan(2), Math.atan2(2, 3)));
+  }
+
+  @Test
+  public void testAtan2() {
+    testMathPPL("source=people | eval `ATAN2(2, 3)` = ATAN2(2, 3) | fields `ATAN2(2, 3)`", List.of(Math.atan2(2, 3)));
+  }
+
+  @Test
+  public void testCeiling() {
+    testMathPPL(
+            "source=people | eval `CEILING(0)` = CEILING(0), `CEILING(50.00005)` = CEILING(50.00005), `CEILING(-50.00005)` = CEILING(-50.00005) | fields `CEILING(0)`, `CEILING(50.00005)`, `CEILING(-50.00005)`",
+            List.of(Math.ceil(0.0), Math.ceil(50.00005), Math.ceil(-50.00005)));
+    testMathPPL(
+            "source=people | eval `CEILING(3147483647.12345)` = CEILING(3147483647.12345), `CEILING(113147483647.12345)` = CEILING(113147483647.12345), `CEILING(3147483647.00001)` = CEILING(3147483647.00001) | fields `CEILING(3147483647.12345)`, `CEILING(113147483647.12345)`, `CEILING(3147483647.00001)`",
+            List.of(Math.ceil(3147483647.12345), Math.ceil(113147483647.12345), Math.ceil(3147483647.00001)));
+  }
+
+  @Test
+  public void testConv() {
+    // TODO: Error while preparing plan [LogicalProject(CONV('12', 10, 16)=[CONVERT('12', 10, 16)], CONV('2C', 16, 10)=[CONVERT('2C', 16, 10)], CONV(12, 10, 2)=[CONVERT(12, 10, 2)], CONV(1111, 2, 10)=[CONVERT(1111, 2, 10)])
+    //  OpenSearchTableScan(table=[[OpenSearch, people]])
+    String convPpl = "source=people | eval `CONV('12', 10, 16)` = CONV('12', 10, 16), `CONV('2C', 16, 10)` = CONV('2C', 16, 10), `CONV(12, 10, 2)` = CONV(12, 10, 2), `CONV(1111, 2, 10)` = CONV(1111, 2, 10) | fields `CONV('12', 10, 16)`, `CONV('2C', 16, 10)`, `CONV(12, 10, 2)`, `CONV(1111, 2, 10)`";
+    String execResult = execute(convPpl);
+    JsonArray dataRow = parseAndGetFirstDataRow(execResult);
+    assertEquals(4, dataRow.size());
+    assertEquals("c", dataRow.get(0).getAsString());
+    assertEquals("44", dataRow.get(1).getAsString());
+    assertEquals("1100", dataRow.get(2).getAsString());
+    assertEquals("15", dataRow.get(3).getAsString());
+  }
+
+  @Test
+  public void testCos() {
+    testMathPPL("source=people | eval `COS(0)` = COS(0) | fields `COS(0)`", List.of(1.0));
+  }
+
+  @Test
+  public void testCot() {
+    testMathPPL("source=people | eval `COT(1)` = COT(1) | fields `COT(1)`", List.of(1.0 / Math.tan(1)));
+  }
+
+  @Test
+  public void testCrc32() {
+    //TODO: No corresponding built-in implementation
+    testMathPPL("source=people | eval `CRC32('MySQL')` = CRC32('MySQL') | fields `CRC32('MySQL')`", List.of(3259397556L));
+  }
+
+  @Test
+  public void testDegrees() {
+    testMathPPL("source=people | eval `DEGREES(1.57)` = DEGREES(1.57) | fields `DEGREES(1.57)`", List.of(Math.toDegrees(1.57)));
+  }
+
+  @Test
+  public void testEuler() {
+    //TODO: No corresponding built-in implementation
+    testMathPPL("source=people | eval `E()` = E() | fields `E()`", List.of(Math.E));
+  }
+
+  @Test
+  public void testExp() {
+    testMathPPL("source=people | eval `EXP(2)` = EXP(2) | fields `EXP(2)`", List.of(Math.exp(2)));
+  }
+
+  @Test
+  public void testFloor() {
+    testMathPPL(
+            "source=people | eval `FLOOR(0)` = FLOOR(0), `FLOOR(50.00005)` = FLOOR(50.00005), `FLOOR(-50.00005)` = FLOOR(-50.00005) | fields `FLOOR(0)`, `FLOOR(50.00005)`, `FLOOR(-50.00005)`",
+            List.of(Math.floor(0.0), Math.floor(50.00005), Math.floor(-50.00005)));
+    testMathPPL(
+            "source=people | eval `FLOOR(3147483647.12345)` = FLOOR(3147483647.12345), `FLOOR(113147483647.12345)` = FLOOR(113147483647.12345), `FLOOR(3147483647.00001)` = FLOOR(3147483647.00001) | fields `FLOOR(3147483647.12345)`, `FLOOR(113147483647.12345)`, `FLOOR(3147483647.00001)`",
+            List.of(Math.floor(3147483647.12345), Math.floor(113147483647.12345), Math.floor(3147483647.00001)));
+    testMathPPL(
+            "source=people | eval `FLOOR(282474973688888.022)` = FLOOR(282474973688888.022), `FLOOR(9223372036854775807.022)` = FLOOR(9223372036854775807.022), `FLOOR(9223372036854775807.0000001)` = FLOOR(9223372036854775807.0000001) | fields `FLOOR(282474973688888.022)`, `FLOOR(9223372036854775807.022)`, `FLOOR(9223372036854775807.0000001)`",
+            List.of(Math.floor(282474973688888.022), Math.floor(9223372036854775807.022), Math.floor(9223372036854775807.0000001)));
+  }
+
+  @Test
+  public void testLn() {
+    testMathPPL("source=people | eval `LN(2)` = LN(2) | fields `LN(2)`", List.of(Math.log(2)));
+  }
+
+  @Test
+  public void testLog() {
+    // TODO: No built-in function for 2-operand log
+    testMathPPL("source=people | eval `LOG(2)` = LOG(2), `LOG(2, 8)` = LOG(2, 8) | fields `LOG(2)`, `LOG(2, 8)`", List.of(Math.log(2), Math.log(8) / Math.log(2)));
+  }
+
+  @Test
+  public void testLog2() {
+    testMathPPL("source=people | eval `LOG2(8)` = LOG2(8) | fields `LOG2(8)`", List.of(Math.log(8) / Math.log(2)));
+  }
+
+  @Test
+  public void testLog10() {
+    testMathPPL("source=people | eval `LOG10(100)` = LOG10(100) | fields `LOG10(100)`", List.of(Math.log10(100)));
+  }
+
+  @Test
+  public void testMod() {
+    // TODO: There is a difference between MOD in OpenSearch and SQL standard library
+    // For MOD in Calcite, MOD(3.1, 2) = 1
+    testMathPPL(
+            "source=people | eval `MOD(3, 2)` = MOD(3, 2), `MOD(3.1, 2)` = MOD(3.1, 2) | fields `MOD(3, 2)`, `MOD(3.1, 2)`",
+            List.of(1, 1.1));
+  }
+
+  @Test
+  public void testPi() {
+    testMathPPL("source=people | eval `PI()` = PI() | fields `PI()`", List.of(Math.PI));
+  }
+
+  @Test
+  public void testPowAndPower() {
+    testMathPPL(
+            "source=people | eval `POW(3, 2)` = POW(3, 2), `POW(-3, 2)` = POW(-3, 2), `POW(3, -2)` = POW(3, -2) | fields `POW(3, 2)`, `POW(-3, 2)`, `POW(3, -2)`",
+            List.of(Math.pow(3, 2), Math.pow(-3, 2), Math.pow(3, -2)));
+    testMathPPL(
+            "source=people | eval `POWER(3, 2)` = POWER(3, 2), `POWER(-3, 2)` = POWER(-3, 2), `POWER(3, -2)` = POWER(3, -2) | fields `POWER(3, 2)`, `POWER(-3, 2)`, `POWER(3, -2)`",
+            List.of(Math.pow(3, 2), Math.pow(-3, 2), Math.pow(3, -2)));
+  }
+
+  @Test
+  public void testRadians() {
+    testMathPPL("source=people | eval `RADIANS(90)` = RADIANS(90) | fields `RADIANS(90)`", List.of(Math.toRadians(90)));
+  }
+
+  @Test
+  public void testRand() {
+    String randPpl = "source=people | eval `RAND(3)` = RAND(3) | fields `RAND(3)`";
+    String execResult1 = execute(randPpl);
+    String execResult2 = execute(randPpl);
+    assertEquals(execResult1, execResult2);
+    double val = parseAndGetFirstDataRow(execResult1).get(0).getAsDouble();
+    assertTrue(val >= 0 && val <= 1);
+  }
+
+  @Test
+  public void testRound() {
+    testMathPPL(
+            "source=people | eval `ROUND(12.34)` = ROUND(12.34), `ROUND(12.34, 1)` = ROUND(12.34, 1), `ROUND(12.34, -1)` = ROUND(12.34, -1), `ROUND(12, 1)` = ROUND(12, 1) | fields `ROUND(12.34)`, `ROUND(12.34, 1)`, `ROUND(12.34, -1)`, `ROUND(12, 1)`",
+            List.of(Math.round(12.34), Math.round(12.34 * 10) / 10.0, Math.round(12.34 / 10) * 10.0, Math.round(12.0 * 10) / 10.0)
+    );
+  }
+
+  @Test
+  public void testSign() {
+    testMathPPL(
+            "source=people | eval `SIGN(1)` = SIGN(1), `SIGN(0)` = SIGN(0), `SIGN(-1.1)` = SIGN(-1.1) | fields `SIGN(1)`, `SIGN(0)`, `SIGN(-1.1)`",
+            List.of(1, 0, -1)
+    );
+  }
+
+  @Test
+  public void testSin() {
+    testMathPPL("source=people | eval `SIN(0)` = SIN(0) | fields `SIN(0)`", List.of(Math.sin(0.0)));
+  }
+
+  @Test
+  public void testSqrt() {
+    testMathPPL("source=people | eval `SQRT(4)` = SQRT(4), `SQRT(4.41)` = SQRT(4.41) | fields `SQRT(4)`, `SQRT(4.41)`", List.of(Math.sqrt(4), Math.sqrt(4.41)));
+  }
+
+  @Test
+  public void testCbrt() {
+    testMathPPL(
+            "source=people | eval `CBRT(8)` = CBRT(8), `CBRT(9.261)` = CBRT(9.261), `CBRT(-27)` = CBRT(-27) | fields `CBRT(8)`, `CBRT(9.261)`, `CBRT(-27)`",
+            List.of(Math.cbrt(8), Math.cbrt(9.261), Math.cbrt(-27))
+    );
+  }
 
 }

@@ -5,30 +5,17 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import java.math.BigDecimal;
-import java.util.Locale;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.schema.ScalarFunction;
-import org.apache.calcite.schema.impl.ScalarFunctionImpl;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
-import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 public interface BuiltinFunctionUtils {
 
   static SqlOperator translate(String op) {
@@ -62,7 +49,7 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.MULTIPLY;
       case "/":
         return SqlStdOperatorTable.DIVIDE;
-        // Built-in String Functions
+      // Built-in String Functions
       case "CONCAT":
         return SqlLibraryOperators.CONCAT_FUNCTION;
       case "CONCAT_WS":
@@ -99,11 +86,55 @@ public interface BuiltinFunctionUtils {
         // Built-in Math Functions
       case "ABS":
         return SqlStdOperatorTable.ABS;
+      case "ACOS":
+        return SqlStdOperatorTable.ACOS;
+      case "ASIN":
+        return SqlStdOperatorTable.ASIN;
       case "ATAN", "ATAN2":
         return SqlStdOperatorTable.ATAN2;
+      case "CEILING":
+        return SqlStdOperatorTable.CEIL;
+      case "CONV":
+        return SqlStdOperatorTable.CONVERT;
+      case "COS":
+        return SqlStdOperatorTable.COS;
+      case "COT":
+        return SqlStdOperatorTable.COT;
+      case "DEGREES":
+        return SqlStdOperatorTable.DEGREES;
+      case "EXP":
+        return SqlStdOperatorTable.EXP;
+      case "FLOOR":
+        return SqlStdOperatorTable.FLOOR;
+      case "LN":
+        return SqlStdOperatorTable.LN;
       case "LOG":
         return SqlLibraryOperators.LOG;
-        // Built-in Date Functions
+      case "LOG2":
+        return SqlLibraryOperators.LOG2;
+      case "LOG10":
+        return SqlStdOperatorTable.LOG10;
+      case "MOD":
+        return SqlStdOperatorTable.MOD;
+      case "PI":
+        return SqlStdOperatorTable.PI;
+      case "POW", "POWER":
+        return SqlStdOperatorTable.POWER;
+      case "RADIANS":
+        return SqlStdOperatorTable.RADIANS;
+      case "RAND":
+        return SqlStdOperatorTable.RAND;
+      case "ROUND":
+        return SqlStdOperatorTable.ROUND;
+      case "SIGN":
+        return SqlStdOperatorTable.SIGN;
+      case "SIN":
+        return SqlStdOperatorTable.SIN;
+      case "SQRT":
+        return SqlStdOperatorTable.SQRT;
+      case "CBRT":
+        return SqlStdOperatorTable.CBRT;
+      // Built-in Date Functions
       case "CURRENT_TIMESTAMP":
         return SqlStdOperatorTable.CURRENT_TIMESTAMP;
       case "CURRENT_DATE":
