@@ -19,7 +19,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -247,6 +246,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> arguments =
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
     return context.rexBuilder.makeCall(
-        BuiltinFunctionUtils.translate(node.getFuncName()), translateArgument(node.getFuncName(), arguments, context));
+        BuiltinFunctionUtils.translate(node.getFuncName()),
+        translateArgument(node.getFuncName(), arguments, context));
   }
 }
