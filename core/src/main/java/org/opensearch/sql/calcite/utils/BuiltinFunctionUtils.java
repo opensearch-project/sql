@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import java.math.BigDecimal;
 import java.util.Locale;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -80,9 +81,9 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.REVERSE;
       case "RIGHT":
         return SqlLibraryOperators.RIGHT;
-        case "SUBSTRING":
+      case "SUBSTRING":
         return SqlStdOperatorTable.SUBSTRING;
-        case "UPPER":
+      case "UPPER":
         return SqlStdOperatorTable.UPPER;
         // Built-in condition Functions
       case "IFNULL":
@@ -98,6 +99,8 @@ public interface BuiltinFunctionUtils {
         // Built-in Math Functions
       case "ABS":
         return SqlStdOperatorTable.ABS;
+      case "ATAN", "ATAN2":
+        return SqlStdOperatorTable.ATAN2;
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP":
         return SqlStdOperatorTable.CURRENT_TIMESTAMP;
@@ -135,6 +138,12 @@ public interface BuiltinFunctionUtils {
         List<RexNode> RTrimArgs = new ArrayList<>(List.of(context.rexBuilder.makeFlag(SqlTrimFunction.Flag.TRAILING), context.rexBuilder.makeLiteral(" ")));
         RTrimArgs.addAll(argList);
         return RTrimArgs;
+      case "ATAN":
+        List<RexNode> AtanArgs = new ArrayList<>();
+        AtanArgs.addAll(argList);
+        BigDecimal divideNumber = BigDecimal.valueOf(1);
+        AtanArgs.add(context.rexBuilder.makeBigintLiteral(divideNumber));
+        return AtanArgs;
       default:
         return argList;
     }
