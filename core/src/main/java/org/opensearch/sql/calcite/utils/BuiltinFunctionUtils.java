@@ -26,6 +26,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
+import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
@@ -137,8 +139,12 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.COS;
       case "COT":
         return SqlStdOperatorTable.COT;
+      case "CRC32":
+        return TransferUserDefinedFunction(CRC32Function.class, "crc32", ReturnTypes.BIGINT);
       case "DEGREES":
         return SqlStdOperatorTable.DEGREES;
+      case "E":
+        return TransferUserDefinedFunction(EulerFunction.class, "e", ReturnTypes.DOUBLE);
       case "EXP":
         return SqlStdOperatorTable.EXP;
       case "FLOOR":

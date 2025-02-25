@@ -12,7 +12,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -771,365 +773,94 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testConcat() {
-    String actual =
-        execute(
-            "source=test | eval `CONCAT('hello', 'world')` = CONCAT('hello', 'world'),"
-                + " `CONCAT('hello ', 'whole ', 'world', '!')` = CONCAT('a', 'b ', 'c', 'd', 'e',"
-                + " 'f', 'g', '1', '2') | fields `CONCAT('hello', 'world')`, `CONCAT('hello ',"
-                + " 'whole ', 'world', '!')`");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    String query = "source=test | eval `CONCAT('hello', 'world')` = CONCAT('hello', 'world'),"
+            + " `CONCAT('hello ', 'whole ', 'world', '!')` = CONCAT('a', 'b ', 'c', 'd', 'e',"
+            + " 'f', 'g', '1', '2') | fields `CONCAT('hello', 'world')`, `CONCAT('hello ',"
+            + " 'whole ', 'world', '!')`";
+
+    testSimplePPL(query, List.of("helloworld", "ab cdefg12"));
   }
 
   @Test
   public void testConcatWs() {
-    String actual =
-        execute(
-            "source=test | eval `CONCAT_WS(',', 'hello', 'world')` = CONCAT_WS(',', 'hello',"
-                + " 'world') | fields `CONCAT_WS(',', 'hello', 'world')`");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    String query = "source=test | eval `CONCAT_WS(',', 'hello', 'world')` = CONCAT_WS(',', 'hello',"
+            + " 'world') | fields `CONCAT_WS(',', 'hello', 'world')`";
+    testSimplePPL(query, List.of("hello,world"));
   }
 
   @Test
   public void testLength() {
-    String actual =
-        execute(
-            "source=test | eval `LENGTH('helloworld')` = LENGTH('helloworld') | fields"
-                + " `LENGTH('helloworld')`");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    String query = "source=test | eval `LENGTH('helloworld')` = LENGTH('helloworld') | fields" +
+            " `LENGTH('helloworld')`";
+    testSimplePPL(query, List.of(10));
   }
 
   @Test
   public void testLike() {
+    String query = "source=test | eval `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ELLO%') | fields `LIKE('hello world', '_ello%')`";
+    testSimplePPL(query, List.of(true));
     String actual =
         execute(
             "source=test | eval `LIKE('hello world', '_ELLO%')` = LIKE('hello world', '_ELLO%'), "
                 + " `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ello%')");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
   }
 
   @Test
   public void testLower() {
-    String actual =
-        execute(
-            "source=test | eval `LOWER('helloworld')` = LOWER('helloworld'), `LOWER('HELLOWORLD')`"
-                + " = LOWER('HELLOWORLD') | fields `LOWER('helloworld')`, `LOWER('HELLOWORLD')`");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    String query = "source=test | eval `LOWER('helloworld')` = LOWER('helloworld'), `LOWER('HELLOWORLD')`"
+            + " = LOWER('HELLOWORLD') | fields `LOWER('helloworld')`, `LOWER('HELLOWORLD')`";
+    testSimplePPL(query, List.of("helloworld", "helloworld"));
   }
 
   @Test
   public void testLtrim() {
-    String actual = execute("source=test | eval a = LTRIM(' hello')");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    String query = "source=test | eval `LTRIM('   hello')` = LTRIM('   hello'), `LTRIM('hello   ')` = LTRIM('hello   ') | fields `LTRIM('   hello')`, `LTRIM('hello   ')`";
+    testSimplePPL(query, List.of("hello", "hello   "));
   }
 
   @Test
   public void testPosition() {
-    String actual =
-        execute(
-            "source=test | eval `POSITION('world' IN 'helloworld')` = POSITION('world' IN"
-                + " 'helloworld'), `POSITION('invalid' IN 'helloworld')`= POSITION('invalid' IN"
-                + " 'helloworld')  | fields `POSITION('world' IN 'helloworld')`,"
-                + " `POSITION('invalid' IN 'helloworld')`");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    String query = "source=test | eval `POSITION('world' IN 'helloworld')` = POSITION('world' IN 'helloworld'), `POSITION('invalid' IN 'helloworld')`= POSITION('invalid' IN 'helloworld')  | fields `POSITION('world' IN 'helloworld')`, `POSITION('invalid' IN 'helloworld')`";
+    testSimplePPL(query, List.of(6, 0));
   }
 
   @Test
   public void testReverse() {
-    String actual =
-        execute(
-            "source=test | eval `REVERSE('abcde')` = REVERSE('abcde') | fields `REVERSE('abcde')`");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    String query = "source=test | eval `REVERSE('abcde')` = REVERSE('abcde') | fields `REVERSE('abcde')`";
+    testSimplePPL(query, List.of("edcba"));
   }
 
   @Test
   public void testRight() {
-    String actual =
-        execute(
-            "source=test | eval `RIGHT('helloworld', 5)` = RIGHT('helloworld', 5),"
-                + " `RIGHT('HELLOWORLD', 0)` = RIGHT('HELLOWORLD', 0) | fields `RIGHT('helloworld',"
-                + " 5)`, `RIGHT('HELLOWORLD', 0)`");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    List<Object> expected = new ArrayList<>();
+    expected.add("world");
+    expected.add(null);
+    String query = "source=test | eval `RIGHT('helloworld', 5)` = RIGHT('helloworld', 5), `RIGHT('HELLOWORLD', 0)` = RIGHT('HELLOWORLD', 0) | fields `RIGHT('helloworld', 5)`, `RIGHT('HELLOWORLD', 0)`";
+    testSimplePPL(query, expected);
   }
 
   @Test
   public void testRtrim() {
-    String actual =
-        execute(
-            "source=test | eval `RTRIM('   hello')` = RTRIM('   hello'), `RTRIM('hello   ')` ="
-                + " RTRIM('hello   ') | fields `RTRIM('   hello')`, `RTRIM('hello   ')`");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    String query = "source=test | eval `RTRIM('   hello')` = RTRIM('   hello'), `RTRIM('hello   ')` = RTRIM('hello   ') | fields `RTRIM('   hello')`, `RTRIM('hello   ')`";
+    testSimplePPL(query, List.of("   hello", "hello"));
   }
 
   @Test
   public void testSubstring() {
-    String actual =
-        execute(
-            "source=test | eval `SUBSTRING('helloworld', 5)` = SUBSTRING('helloworld', 5),"
-                + " `SUBSTRING('helloworld', 5, 3)` = SUBSTRING('helloworld', 5, 3) | fields"
-                + " `SUBSTRING('helloworld', 5)`, `SUBSTRING('helloworld', 5, 3)`");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    String query = "source=test | eval `SUBSTRING('helloworld', 5)` = SUBSTRING('helloworld', 5), `SUBSTRING('helloworld', 5, 3)` = SUBSTRING('helloworld', 5, 3) | fields `SUBSTRING('helloworld', 5)`, `SUBSTRING('helloworld', 5, 3)`";
+    testSimplePPL(query, List.of("oworld", "owo"));
   }
 
   @Test
   public void testTrim() {
-    String actual = execute("source=test | eval `TRIM('   hello', ' ')` = TRIM('   hello')");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    String query = "source=test | eval `TRIM('   hello')` = TRIM('   hello'), `TRIM('hello   ')` = TRIM('hello   ') | fields `TRIM('   hello')`, `TRIM('hello   ')`";
+    testSimplePPL(query, List.of("hello", "hello"));
   }
 
   @Test
   public void testUpper() {
-    String actual =
-        execute(
-            "source=test | eval `UPPER('helloworld')` = UPPER('helloworld'), `UPPER('HELLOWORLD')`"
-                + " = UPPER('HELLOWORLD') | fields `UPPER('helloworld')`, `UPPER('HELLOWORLD')`");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    String query = "source=test | eval `UPPER('helloworld')` = UPPER('helloworld'), `UPPER('HELLOWORLD')` = UPPER('HELLOWORLD') | fields `UPPER('helloworld')`, `UPPER('HELLOWORLD')`";
+    testSimplePPL(query, List.of("HELLOWORLD", "HELLOWORLD"));
   }
 
   @Test
@@ -1221,20 +952,30 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     return dataRows.get(0).getAsJsonArray();
   }
 
-  private void testMathPPL(String query, List<? extends Number> expectedValues) {
+  private void testSimplePPL(String query, List<Object> expectedValues) {
     String execResult = execute(query);
     JsonArray dataRow = parseAndGetFirstDataRow(execResult);
     assertEquals(expectedValues.size(), dataRow.size());
     for (int i = 0; i < expectedValues.size(); i++) {
-      Number expected = expectedValues.get(i);
-      Number actual = dataRow.get(i).getAsNumber();
+      Object expected = expectedValues.get(i);
       if (expected instanceof BigDecimal) {
+        Number actual = dataRow.get(i).getAsNumber();
         assertEquals(expected, actual);
       } else if (expected instanceof Double || expected instanceof Float) {
-        assertDoubleUlpEquals(expected.doubleValue(), actual.doubleValue(), 8);
+        Number actual = dataRow.get(i).getAsNumber();
+        assertDoubleUlpEquals(((Number)expected).doubleValue(), actual.doubleValue(), 8);
       } else if (expected instanceof Long || expected instanceof Integer) {
-        assertEquals(expected.longValue(), actual.longValue());
-      } else {
+        Number actual = dataRow.get(i).getAsNumber();
+        assertEquals(((Number)expected).longValue(), actual.longValue());
+      } else if (expected instanceof String) {
+        String actual = dataRow.get(i).getAsString();
+        assertEquals(expected, actual);
+      }
+      else if (expected instanceof Boolean) {
+        Boolean actual = dataRow.get(i).getAsBoolean();
+        assertEquals(expected, actual);
+      }
+      else {
         fail("Unsupported number type: " + expected.getClass().getName());
       }
     }
@@ -1243,22 +984,22 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   @Test
   public void testAbs() {
     String absPpl = "source=people | eval `ABS(-1)` = ABS(-1) | fields `ABS(-1)`";
-    List<Integer> expected = List.of(1);
-    testMathPPL(absPpl, expected);
+    List<Object> expected = List.of(1);
+    testSimplePPL(absPpl, expected);
   }
 
   @Test
   public void testAcos() {
     String acosPpl = "source=people | eval `ACOS(0)` = ACOS(0) | fields `ACOS(0)`";
-    List<Double> expected = List.of(Math.PI / 2);
-    testMathPPL(acosPpl, expected);
+    List<Object> expected = List.of(Math.PI / 2);
+    testSimplePPL(acosPpl, expected);
   }
 
   @Test
   public void testAsin() {
     String asinPpl = "source=people | eval `ASIN(0)` = ASIN(0) | fields `ASIN(0)`";
-    List<Double> expected = List.of(0.0);
-    testMathPPL(asinPpl, expected);
+    List<Object> expected = List.of(0.0);
+    testSimplePPL(asinPpl, expected);
   }
 
   @Test
@@ -1266,7 +1007,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     // TODO: Error while preparing plan [LogicalProject(ATAN(2)=[ATAN(2)], ATAN(2, 3)=[ATAN(2, 3)])
     // ATAN defined in OpenSearch accepts single and double arguments, while that defined in SQL
     // standard library accepts only single argument.
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `ATAN(2)` = ATAN(2), `ATAN(2, 3)` = ATAN(2, 3) | fields `ATAN(2)`,"
             + " `ATAN(2, 3)`",
         List.of(Math.atan(2), Math.atan2(2, 3)));
@@ -1274,19 +1015,19 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testAtan2() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `ATAN2(2, 3)` = ATAN2(2, 3) | fields `ATAN2(2, 3)`",
         List.of(Math.atan2(2, 3)));
   }
 
   @Test
   public void testCeiling() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `CEILING(0)` = CEILING(0), `CEILING(50.00005)` = CEILING(50.00005),"
             + " `CEILING(-50.00005)` = CEILING(-50.00005) | fields `CEILING(0)`,"
             + " `CEILING(50.00005)`, `CEILING(-50.00005)`",
         List.of(Math.ceil(0.0), Math.ceil(50.00005), Math.ceil(-50.00005)));
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `CEILING(3147483647.12345)` = CEILING(3147483647.12345),"
             + " `CEILING(113147483647.12345)` = CEILING(113147483647.12345),"
             + " `CEILING(3147483647.00001)` = CEILING(3147483647.00001) | fields"
@@ -1320,26 +1061,26 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testCos() {
-    testMathPPL("source=people | eval `COS(0)` = COS(0) | fields `COS(0)`", List.of(1.0));
+    testSimplePPL("source=people | eval `COS(0)` = COS(0) | fields `COS(0)`", List.of(1.0));
   }
 
   @Test
   public void testCot() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `COT(1)` = COT(1) | fields `COT(1)`", List.of(1.0 / Math.tan(1)));
   }
 
   @Test
   public void testCrc32() {
     // TODO: No corresponding built-in implementation
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `CRC32('MySQL')` = CRC32('MySQL') | fields `CRC32('MySQL')`",
         List.of(3259397556L));
   }
 
   @Test
   public void testDegrees() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `DEGREES(1.57)` = DEGREES(1.57) | fields `DEGREES(1.57)`",
         List.of(Math.toDegrees(1.57)));
   }
@@ -1347,22 +1088,22 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   @Test
   public void testEuler() {
     // TODO: No corresponding built-in implementation
-    testMathPPL("source=people | eval `E()` = E() | fields `E()`", List.of(Math.E));
+    testSimplePPL("source=people | eval `E()` = E() | fields `E()`", List.of(Math.E));
   }
 
   @Test
   public void testExp() {
-    testMathPPL("source=people | eval `EXP(2)` = EXP(2) | fields `EXP(2)`", List.of(Math.exp(2)));
+    testSimplePPL("source=people | eval `EXP(2)` = EXP(2) | fields `EXP(2)`", List.of(Math.exp(2)));
   }
 
   @Test
   public void testFloor() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `FLOOR(0)` = FLOOR(0), `FLOOR(50.00005)` = FLOOR(50.00005),"
             + " `FLOOR(-50.00005)` = FLOOR(-50.00005) | fields `FLOOR(0)`, `FLOOR(50.00005)`,"
             + " `FLOOR(-50.00005)`",
         List.of(Math.floor(0.0), Math.floor(50.00005), Math.floor(-50.00005)));
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `FLOOR(3147483647.12345)` = FLOOR(3147483647.12345),"
             + " `FLOOR(113147483647.12345)` = FLOOR(113147483647.12345), `FLOOR(3147483647.00001)`"
             + " = FLOOR(3147483647.00001) | fields `FLOOR(3147483647.12345)`,"
@@ -1371,7 +1112,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             Math.floor(3147483647.12345),
             Math.floor(113147483647.12345),
             Math.floor(3147483647.00001)));
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `FLOOR(282474973688888.022)` = FLOOR(282474973688888.022),"
             + " `FLOOR(9223372036854775807.022)` = FLOOR(9223372036854775807.022),"
             + " `FLOOR(9223372036854775807.0000001)` = FLOOR(9223372036854775807.0000001) | fields"
@@ -1385,13 +1126,13 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testLn() {
-    testMathPPL("source=people | eval `LN(2)` = LN(2) | fields `LN(2)`", List.of(Math.log(2)));
+    testSimplePPL("source=people | eval `LN(2)` = LN(2) | fields `LN(2)`", List.of(Math.log(2)));
   }
 
   @Test
   public void testLog() {
     // TODO: No built-in function for 2-operand log
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `LOG(2)` = LOG(2), `LOG(2, 8)` = LOG(2, 8) | fields `LOG(2)`, `LOG(2,"
             + " 8)`",
         List.of(Math.log(2), Math.log(8) / Math.log(2)));
@@ -1399,14 +1140,14 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testLog2() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `LOG2(8)` = LOG2(8) | fields `LOG2(8)`",
         List.of(Math.log(8) / Math.log(2)));
   }
 
   @Test
   public void testLog10() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `LOG10(100)` = LOG10(100) | fields `LOG10(100)`",
         List.of(Math.log10(100)));
   }
@@ -1416,7 +1157,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   public void testMod() {
     // TODO: There is a difference between MOD in OpenSearch and SQL standard library
     // For MOD in Calcite, MOD(3.1, 2) = 1
-    testMathPPL(
+    testSimplePPL(
             "source=people | eval `MOD(3, 2)` = MOD(3, 2), `MOD(3.1, 2)` = MOD(3.1, 2) | fields `MOD(3,"
                     + " 2)`, `MOD(3.1, 2)`",
             List.of(1, 1.1));
@@ -1425,16 +1166,16 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testPi() {
-    testMathPPL("source=people | eval `PI()` = PI() | fields `PI()`", List.of(Math.PI));
+    testSimplePPL("source=people | eval `PI()` = PI() | fields `PI()`", List.of(Math.PI));
   }
 
   @Test
   public void testPowAndPower() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `POW(3, 2)` = POW(3, 2), `POW(-3, 2)` = POW(-3, 2), `POW(3, -2)` ="
             + " POW(3, -2) | fields `POW(3, 2)`, `POW(-3, 2)`, `POW(3, -2)`",
         List.of(Math.pow(3, 2), Math.pow(-3, 2), Math.pow(3, -2)));
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `POWER(3, 2)` = POWER(3, 2), `POWER(-3, 2)` = POWER(-3, 2), `POWER(3,"
             + " -2)` = POWER(3, -2) | fields `POWER(3, 2)`, `POWER(-3, 2)`, `POWER(3, -2)`",
         List.of(Math.pow(3, 2), Math.pow(-3, 2), Math.pow(3, -2)));
@@ -1442,7 +1183,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testRadians() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `RADIANS(90)` = RADIANS(90) | fields `RADIANS(90)`",
         List.of(Math.toRadians(90)));
   }
@@ -1459,7 +1200,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testRound() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `ROUND(12.34)` = ROUND(12.34), `ROUND(12.34, 1)` = ROUND(12.34, 1),"
             + " `ROUND(12.34, -1)` = ROUND(12.34, -1), `ROUND(12, 1)` = ROUND(12, 1) | fields"
             + " `ROUND(12.34)`, `ROUND(12.34, 1)`, `ROUND(12.34, -1)`, `ROUND(12, 1)`",
@@ -1472,7 +1213,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testSign() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `SIGN(1)` = SIGN(1), `SIGN(0)` = SIGN(0), `SIGN(-1.1)` = SIGN(-1.1) |"
             + " fields `SIGN(1)`, `SIGN(0)`, `SIGN(-1.1)`",
         List.of(1, 0, -1));
@@ -1480,12 +1221,12 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testSin() {
-    testMathPPL("source=people | eval `SIN(0)` = SIN(0) | fields `SIN(0)`", List.of(Math.sin(0.0)));
+    testSimplePPL("source=people | eval `SIN(0)` = SIN(0) | fields `SIN(0)`", List.of(Math.sin(0.0)));
   }
 
   @Test
   public void testSqrt() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `SQRT(4)` = SQRT(4), `SQRT(4.41)` = SQRT(4.41) | fields `SQRT(4)`,"
             + " `SQRT(4.41)`",
         List.of(Math.sqrt(4), Math.sqrt(4.41)));
@@ -1493,7 +1234,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testCbrt() {
-    testMathPPL(
+    testSimplePPL(
         "source=people | eval `CBRT(8)` = CBRT(8), `CBRT(9.261)` = CBRT(9.261), `CBRT(-27)` ="
             + " CBRT(-27) | fields `CBRT(8)`, `CBRT(9.261)`, `CBRT(-27)`",
         List.of(Math.cbrt(8), Math.cbrt(9.261), Math.cbrt(-27)));
