@@ -39,7 +39,6 @@ public class DefaultCursorTest {
     MockitoAnnotations.openMocks(this);
     // Required for Pagination queries using PIT instead of Scroll
     doReturn(Collections.emptyList()).when(settings).getSettings();
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
     LocalClusterState.state().setPluginSettings(settings);
 
     // Mock the toXContent method of SearchSourceBuilder
@@ -62,25 +61,6 @@ public class DefaultCursorTest {
     DefaultCursor cursor = new DefaultCursor();
     cursor.setRowsLeft(50);
     cursor.setPitId("dbdskbcdjksbcjkdsbcjk+//");
-    cursor.setIndexPattern("myIndex");
-    cursor.setFetchSize(500);
-    cursor.setFieldAliasMap(Collections.emptyMap());
-    cursor.setColumns(new ArrayList<>());
-
-    // Set the mocked SearchSourceBuilder to the cursor
-    cursor.setSearchSourceBuilder(sourceBuilder);
-
-    assertThat(cursor.generateCursorId(), startsWith(cursor.getType().getId() + ":"));
-  }
-
-  @Test
-  public void cursorShouldStartWithCursorTypeIDForScroll() {
-    // Disable PIT for pagination and use scroll instead
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(false);
-
-    DefaultCursor cursor = new DefaultCursor();
-    cursor.setRowsLeft(50);
-    cursor.setScrollId("dbdskbcdjksbcjkdsbcjk+//");
     cursor.setIndexPattern("myIndex");
     cursor.setFetchSize(500);
     cursor.setFieldAliasMap(Collections.emptyMap());

@@ -95,11 +95,7 @@ public class OpenSearchRequestBuilder {
       int maxResultWindow,
       TimeValue cursorKeepAlive,
       OpenSearchClient client) {
-    if (this.settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)) {
-      return buildRequestWithPit(indexName, maxResultWindow, cursorKeepAlive, client);
-    } else {
-      return buildRequestWithScroll(indexName, maxResultWindow, cursorKeepAlive);
-    }
+    return buildRequestWithPit(indexName, maxResultWindow, cursorKeepAlive, client);
   }
 
   private OpenSearchRequest buildRequestWithPit(

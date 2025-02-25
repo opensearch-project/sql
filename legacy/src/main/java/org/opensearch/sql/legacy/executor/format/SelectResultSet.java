@@ -574,24 +574,13 @@ public class SelectResultSet extends ResultSet {
     long rowsLeft = rowsLeft(cursor.getFetchSize(), cursor.getLimit());
     if (rowsLeft <= 0) {
       // Delete Point In Time ID
-      if (LocalClusterState.state().getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)) {
-        String pitId = cursor.getPitId();
-        PointInTimeHandler pit = new PointInTimeHandlerImpl(client, pitId);
-        try {
-          pit.delete();
-        } catch (RuntimeException e) {
-          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-          LOG.info("Error deleting point in time {} ", pitId);
-        }
-      } else {
-        // close the cursor
-        String scrollId = cursor.getScrollId();
-        ClearScrollResponse clearScrollResponse =
-            client.prepareClearScroll().addScrollId(scrollId).get();
-        if (!clearScrollResponse.isSucceeded()) {
-          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-          LOG.error("Error closing the cursor context {} ", scrollId);
-        }
+      String pitId = cursor.getPitId();
+      PointInTimeHandler pit = new PointInTimeHandlerImpl(client, pitId);
+      try {
+        pit.delete();
+      } catch (RuntimeException e) {
+        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+        LOG.info("Error deleting point in time {} ", pitId);
       }
       return;
     }

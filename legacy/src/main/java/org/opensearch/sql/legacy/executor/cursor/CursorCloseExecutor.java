@@ -6,7 +6,6 @@
 package org.opensearch.sql.legacy.executor.cursor;
 
 import static org.opensearch.core.rest.RestStatus.OK;
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
 
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
@@ -18,7 +17,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.legacy.cursor.CursorType;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
@@ -83,26 +81,14 @@ public class CursorCloseExecutor implements CursorRestExecutor {
   }
 
   private String handleDefaultCursorCloseRequest(Client client, DefaultCursor cursor) {
-    if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-      String pitId = cursor.getPitId();
-      PointInTimeHandler pit = new PointInTimeHandlerImpl(client, pitId);
-      try {
-        pit.delete();
-        return SUCCEEDED_TRUE;
-      } catch (RuntimeException e) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        return SUCCEEDED_FALSE;
-      }
-    } else {
-      String scrollId = cursor.getScrollId();
-      ClearScrollResponse clearScrollResponse =
-          client.prepareClearScroll().addScrollId(scrollId).get();
-      if (clearScrollResponse.isSucceeded()) {
-        return SUCCEEDED_TRUE;
-      } else {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        return SUCCEEDED_FALSE;
-      }
+    String pitId = cursor.getPitId();
+    PointInTimeHandler pit = new PointInTimeHandlerImpl(client, pitId);
+    try {
+      pit.delete();
+      return SUCCEEDED_TRUE;
+    } catch (RuntimeException e) {
+      Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+      return SUCCEEDED_FALSE;
     }
   }
 }

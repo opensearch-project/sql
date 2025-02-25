@@ -7,7 +7,7 @@ package org.opensearch.sql.legacy.unittest.planner;
 
 import static java.util.Collections.emptyList;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -30,18 +30,24 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.opensearch.action.search.ClearScrollRequestBuilder;
-import org.opensearch.action.search.ClearScrollResponse;
+import org.opensearch.action.search.CreatePitAction;
+import org.opensearch.action.search.CreatePitRequest;
+import org.opensearch.action.search.CreatePitResponse;
+import org.opensearch.action.search.DeletePitAction;
+import org.opensearch.action.search.DeletePitRequest;
+import org.opensearch.action.search.DeletePitResponse;
+import org.opensearch.action.search.SearchAction;
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequestBuilder;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.ClusterSettings;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.search.DocValueFormat;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.domain.JoinSelect;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
@@ -65,10 +71,10 @@ public abstract class QueryPlannerTest {
   @Mock protected Client client;
 
   @Mock private SearchResponse response1;
-  private static final String SCROLL_ID1 = "1";
+  private static final String PIT_ID1 = "1";
 
   @Mock private SearchResponse response2;
-  private static final String SCROLL_ID2 = "2";
+  private static final String PIT_ID2 = "2";
 
   @Mock private ClusterSettings clusterSettings;
 
@@ -96,7 +102,7 @@ public abstract class QueryPlannerTest {
   */
 
   @Before
-  public void init() {
+  public void init() throws Exception {
     MockitoAnnotations.initMocks(this);
     when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
     OpenSearchSettings settings = spy(new OpenSearchSettings(clusterSettings));
@@ -105,75 +111,72 @@ public abstract class QueryPlannerTest {
     // to mock.
     // In this case, default value in Setting will be returned all the time.
     doReturn(emptyList()).when(settings).getSettings();
-    doReturn(false).when(settings).getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER);
     LocalClusterState.state().setPluginSettings(settings);
-
-    ActionFuture mockFuture = mock(ActionFuture.class);
-    when(client.execute(any(), any())).thenReturn(mockFuture);
-
-    // Differentiate response for Scroll-1/2 by call count and scroll ID.
-    when(mockFuture.actionGet())
-        .thenAnswer(
-            new Answer<SearchResponse>() {
-              private int callCnt;
-
-              @Override
-              public SearchResponse answer(InvocationOnMock invocation) {
-                /*
-                 * This works based on assumption that first call comes from Scroll-1, all the following calls come from Scroll-2.
-                 * Because Scroll-1 only open scroll once and must be ahead of Scroll-2 which opens multiple times later.
-                 */
-                return callCnt++ == 0 ? response1 : response2;
-              }
-            });
-
-    doReturn(SCROLL_ID1).when(response1).getScrollId();
-    doReturn(SCROLL_ID2).when(response2).getScrollId();
-
-    // Avoid NPE in empty SearchResponse
-    doReturn(0).when(response1).getFailedShards();
-    doReturn(0).when(response2).getFailedShards();
-    doReturn(false).when(response1).isTimedOut();
-    doReturn(false).when(response2).isTimedOut();
-
-    returnMockResponse(SCROLL_ID1, response1);
-    returnMockResponse(SCROLL_ID2, response2);
 
     Metrics.getInstance().registerDefaultMetrics();
   }
 
-  private void returnMockResponse(String scrollId, SearchResponse response) {
-    SearchScrollRequestBuilder mockReqBuilder = mock(SearchScrollRequestBuilder.class);
-    when(client.prepareSearchScroll(scrollId)).thenReturn(mockReqBuilder);
-    when(mockReqBuilder.setScroll(any(TimeValue.class))).thenReturn(mockReqBuilder);
-    when(mockReqBuilder.get()).thenReturn(response);
-  }
-
-  protected SearchHits query(String sql, MockSearchHits mockHits1, MockSearchHits mockHits2) {
-    doAnswer(mockHits1).when(response1).getHits();
-    doAnswer(mockHits2).when(response2).getHits();
+  protected SearchHits query(String sql, MockSearchResponse mockResponse1, MockSearchResponse mockResponse2) {
+    when(client.execute(eq(SearchAction.INSTANCE), any())).thenAnswer(invocation -> {
+      SearchRequest request = invocation.getArgument(1, SearchRequest.class);
+      ActionFuture mockFuture = mock(ActionFuture.class);
+      if (request.source().pointInTimeBuilder().getId().equals(PIT_ID1)) {
+        when(mockFuture.actionGet()).thenAnswer(mockResponse1);
+      } else {
+        when(mockFuture.actionGet()).thenAnswer(mockResponse2);
+      }
+      return mockFuture;
+    });
 
     try (MockedStatic<BackOffRetryStrategy> backOffRetryStrategyMocked =
         Mockito.mockStatic(BackOffRetryStrategy.class)) {
       backOffRetryStrategyMocked.when(BackOffRetryStrategy::isHealthy).thenReturn(true);
 
-      ClearScrollRequestBuilder mockReqBuilder = mock(ClearScrollRequestBuilder.class);
-      when(client.prepareClearScroll()).thenReturn(mockReqBuilder);
-      when(mockReqBuilder.addScrollId(any())).thenReturn(mockReqBuilder);
-      when(mockReqBuilder.get())
-          .thenAnswer(
-              new Answer<ClearScrollResponse>() {
-                @Override
-                public ClearScrollResponse answer(InvocationOnMock invocation) throws Throwable {
-                  mockHits2.reset();
-                  return new ClearScrollResponse(true, 0);
-                }
-              });
+      mockCreatePit(PIT_ID1, PIT_ID2);
+      mockDeletePit(mockResponse1, mockResponse2);
 
       List<SearchHit> hits = plan(sql).execute();
       return new SearchHits(
           hits.toArray(new SearchHit[0]), new TotalHits(hits.size(), Relation.EQUAL_TO), 0);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
+  }
+
+  private void mockCreatePit(String pitId1, String pitId2) throws Exception {
+    ActionFuture<CreatePitResponse> actionFuture1 = mockCreatePitResponse(pitId1);
+    ActionFuture<CreatePitResponse> actionFuture2 = mockCreatePitResponse(pitId2);
+    when(client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
+        .thenReturn(actionFuture1)
+        .thenReturn(actionFuture2);
+  }
+
+  private ActionFuture<CreatePitResponse> mockCreatePitResponse(String pitId) throws Exception {
+    ActionFuture<CreatePitResponse> actionFuture = mock(ActionFuture.class);
+    CreatePitResponse createPitResponse = mock(CreatePitResponse.class);
+    when(createPitResponse.getId()).thenReturn(pitId);
+    when(actionFuture.get()).thenReturn(createPitResponse);
+    return actionFuture;
+  }
+
+  private void mockDeletePit(MockSearchResponse response1, MockSearchResponse response2) throws Exception {
+    ActionFuture<DeletePitResponse> actionFuture = mock(ActionFuture.class);
+    DeletePitResponse deletePitResponse = mock(DeletePitResponse.class);
+    RestStatus restStatus = mock(RestStatus.class);
+    when(client.execute(eq(DeletePitAction.INSTANCE), any()))
+        .thenAnswer(
+            instance -> {
+              DeletePitRequest deletePitRequest = instance.getArgument(1, DeletePitRequest.class);
+              if (deletePitRequest.getPitIds().getFirst().equals(PIT_ID1)) {
+                response1.reset();
+              } else if (deletePitRequest.getPitIds().getFirst().equals(PIT_ID2)) {
+                response2.reset();
+              }
+              return actionFuture;
+            });
+    when(actionFuture.get()).thenReturn(deletePitResponse);
+    when(deletePitResponse.status()).thenReturn(restStatus);
+    when(restStatus.getStatus()).thenReturn(200);
   }
 
   protected QueryPlanner plan(String sql) {
@@ -207,8 +210,8 @@ public abstract class QueryPlannerTest {
     return expr;
   }
 
-  /** Mock SearchHits and slice and return in batch. */
-  protected static class MockSearchHits implements Answer<SearchHits> {
+  /** Mock SearchResponse and return each batch in sequence */
+  protected static class MockSearchResponse implements Answer<SearchResponse> {
 
     private final SearchHit[] allHits;
 
@@ -216,13 +219,13 @@ public abstract class QueryPlannerTest {
 
     private int callCnt;
 
-    MockSearchHits(SearchHit[] allHits, int batchSize) {
+    MockSearchResponse(SearchHit[] allHits, int batchSize) {
       this.allHits = allHits;
       this.batchSize = batchSize;
     }
 
     @Override
-    public SearchHits answer(InvocationOnMock invocation) {
+    public SearchResponse answer(InvocationOnMock invocationOnMock) {
       SearchHit[] curBatch;
       if (isNoMoreBatch()) {
         curBatch = new SearchHit[0];
@@ -230,7 +233,14 @@ public abstract class QueryPlannerTest {
         curBatch = currentBatch();
         callCnt++;
       }
-      return new SearchHits(curBatch, new TotalHits(allHits.length, Relation.EQUAL_TO), 0);
+
+      SearchResponse response = mock(SearchResponse.class);
+      when(response.getFailedShards()).thenReturn(0);
+      when(response.isTimedOut()).thenReturn(false);
+      when(response.getTotalShards()).thenReturn(1);
+      when(response.getHits()).thenReturn(new SearchHits(curBatch, new TotalHits(allHits.length, Relation.EQUAL_TO), 0));
+
+      return response;
     }
 
     private boolean isNoMoreBatch() {
@@ -254,20 +264,20 @@ public abstract class QueryPlannerTest {
     }
   }
 
-  protected MockSearchHits employees(SearchHit... mockHits) {
+  protected MockSearchResponse employees(SearchHit... mockHits) {
     return employees(5, mockHits);
   }
 
-  protected MockSearchHits employees(int pageSize, SearchHit... mockHits) {
-    return new MockSearchHits(mockHits, pageSize);
+  protected MockSearchResponse employees(int pageSize, SearchHit... mockHits) {
+    return new MockSearchResponse(mockHits, pageSize);
   }
 
-  protected MockSearchHits departments(SearchHit... mockHits) {
+  protected MockSearchResponse departments(SearchHit... mockHits) {
     return departments(5, mockHits);
   }
 
-  protected MockSearchHits departments(int pageSize, SearchHit... mockHits) {
-    return new MockSearchHits(mockHits, pageSize);
+  protected MockSearchResponse departments(int pageSize, SearchHit... mockHits) {
+    return new MockSearchResponse(mockHits, pageSize);
   }
 
   protected SearchHit employee(int docId, String lastname, String departmentId) {
@@ -281,6 +291,7 @@ public abstract class QueryPlannerTest {
           new BytesArray(
               "{\"lastname\":\"" + lastname + "\",\"departmentId\":\"" + departmentId + "\"}"));
     }
+    hit.sortValues(new Object[] {docId}, new DocValueFormat[] {DocValueFormat.RAW});
     return hit;
   }
 
@@ -293,6 +304,7 @@ public abstract class QueryPlannerTest {
     } else {
       hit.sourceRef(new BytesArray("{\"id\":\"" + id + "\",\"name\":\"" + name + "\"}"));
     }
+    hit.sortValues(new Object[] {docId}, new DocValueFormat[] {DocValueFormat.RAW});
     return hit;
   }
 }
