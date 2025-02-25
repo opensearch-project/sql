@@ -39,7 +39,6 @@ import org.opensearch.action.search.DeletePitResponse;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.action.search.SearchScrollRequestBuilder;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.ClusterSettings;
@@ -116,17 +115,20 @@ public abstract class QueryPlannerTest {
     Metrics.getInstance().registerDefaultMetrics();
   }
 
-  protected SearchHits query(String sql, MockSearchResponse mockResponse1, MockSearchResponse mockResponse2) {
-    when(client.execute(eq(SearchAction.INSTANCE), any())).thenAnswer(invocation -> {
-      SearchRequest request = invocation.getArgument(1, SearchRequest.class);
-      ActionFuture mockFuture = mock(ActionFuture.class);
-      if (request.source().pointInTimeBuilder().getId().equals(PIT_ID1)) {
-        when(mockFuture.actionGet()).thenAnswer(mockResponse1);
-      } else {
-        when(mockFuture.actionGet()).thenAnswer(mockResponse2);
-      }
-      return mockFuture;
-    });
+  protected SearchHits query(
+      String sql, MockSearchResponse mockResponse1, MockSearchResponse mockResponse2) {
+    when(client.execute(eq(SearchAction.INSTANCE), any()))
+        .thenAnswer(
+            invocation -> {
+              SearchRequest request = invocation.getArgument(1, SearchRequest.class);
+              ActionFuture mockFuture = mock(ActionFuture.class);
+              if (request.source().pointInTimeBuilder().getId().equals(PIT_ID1)) {
+                when(mockFuture.actionGet()).thenAnswer(mockResponse1);
+              } else {
+                when(mockFuture.actionGet()).thenAnswer(mockResponse2);
+              }
+              return mockFuture;
+            });
 
     try (MockedStatic<BackOffRetryStrategy> backOffRetryStrategyMocked =
         Mockito.mockStatic(BackOffRetryStrategy.class)) {
@@ -159,7 +161,8 @@ public abstract class QueryPlannerTest {
     return actionFuture;
   }
 
-  private void mockDeletePit(MockSearchResponse response1, MockSearchResponse response2) throws Exception {
+  private void mockDeletePit(MockSearchResponse response1, MockSearchResponse response2)
+      throws Exception {
     ActionFuture<DeletePitResponse> actionFuture = mock(ActionFuture.class);
     DeletePitResponse deletePitResponse = mock(DeletePitResponse.class);
     RestStatus restStatus = mock(RestStatus.class);
@@ -238,7 +241,9 @@ public abstract class QueryPlannerTest {
       when(response.getFailedShards()).thenReturn(0);
       when(response.isTimedOut()).thenReturn(false);
       when(response.getTotalShards()).thenReturn(1);
-      when(response.getHits()).thenReturn(new SearchHits(curBatch, new TotalHits(allHits.length, Relation.EQUAL_TO), 0));
+      when(response.getHits())
+          .thenReturn(
+              new SearchHits(curBatch, new TotalHits(allHits.length, Relation.EQUAL_TO), 0));
 
       return response;
     }

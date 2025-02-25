@@ -25,7 +25,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.Field;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.metrics.MetricName;

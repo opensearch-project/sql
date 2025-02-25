@@ -12,7 +12,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.opensearch.OpenSearchException;
-import org.opensearch.action.search.ClearScrollResponse;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.legacy.cursor.CursorType;

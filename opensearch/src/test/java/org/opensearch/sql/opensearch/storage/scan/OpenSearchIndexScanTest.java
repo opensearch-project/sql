@@ -57,7 +57,6 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
-import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;

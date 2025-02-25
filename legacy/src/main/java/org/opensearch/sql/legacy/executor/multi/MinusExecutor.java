@@ -27,7 +27,6 @@ import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.Where;
 import org.opensearch.sql.legacy.domain.hints.Hint;
 import org.opensearch.sql.legacy.domain.hints.HintType;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.metrics.MetricName;

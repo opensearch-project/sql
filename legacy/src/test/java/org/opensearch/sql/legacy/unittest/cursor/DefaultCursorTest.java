@@ -23,7 +23,6 @@ import org.mockito.MockitoAnnotations;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.cursor.CursorType;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
