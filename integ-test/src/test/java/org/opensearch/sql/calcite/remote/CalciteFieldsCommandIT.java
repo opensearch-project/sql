@@ -32,11 +32,4 @@ public class CalciteFieldsCommandIT extends FieldsCommandIT {
   public void testMetadataFields() throws IOException {
     super.testMetadataFields();
   }
-
-  @Override
-  @Test
-  @Ignore("https://github.com/opensearch-project/sql/issues/3341")
-  public void testSelectDateTypeField() throws IOException {
-    super.testSelectDateTypeField();
-  }
 }

@@ -54,14 +54,14 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     OpenSearchResponse response = client.search(request);
     if (!response.isEmpty()) {
       iterator = response.iterator();
-    } else if (iterator == null){
+    } else if (iterator == null) {
       iterator = Collections.emptyIterator();
     }
   }
 
   @Override
   public Object current() {
-    Object[] p = fields.stream().map(k -> current.tupleValue().get(k).value()).toArray();
+    Object[] p = fields.stream().map(k -> current.tupleValue().get(k).valueForCalcite()).toArray();
     return p;
   }
 

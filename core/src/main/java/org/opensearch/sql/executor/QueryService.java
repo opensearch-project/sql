@@ -8,6 +8,8 @@
 
 package org.opensearch.sql.executor;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.List;
@@ -78,7 +80,8 @@ public class QueryService {
               (PrivilegedAction<Void>)
                   () -> {
                     final FrameworkConfig config = buildFrameworkConfig();
-                    final CalcitePlanContext context = new CalcitePlanContext(config);
+                    final CalcitePlanContext context =
+                        CalcitePlanContext.create(config, TYPE_FACTORY);
                     executePlanByCalcite(analyze(plan, context), context, listener);
                     return null;
                   });

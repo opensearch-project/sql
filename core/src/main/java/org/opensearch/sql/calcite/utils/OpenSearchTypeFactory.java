@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -113,29 +114,10 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     }
     return TYPE_FACTORY.createStructType(typeList, fieldNameList, true);
   }
-  //
-  //  @Override
-  //  public Type getJavaClass(RelDataType type) {
-  //    if (type instanceof JavaType) {
-  //      JavaType javaType = (JavaType) type;
-  //      return javaType.getJavaClass();
-  //    }
-  //    if (type instanceof BasicSqlType || type instanceof IntervalSqlType) {
-  //      switch (type.getSqlTypeName()) {
-  //        case DATE:
-  //          return Date.class;
-  //        case TIME:
-  //        case TIME_WITH_LOCAL_TIME_ZONE:
-  //        case TIME_TZ:
-  //          return Time.class;
-  //        case TIMESTAMP:
-  //        case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-  //        case TIMESTAMP_TZ:
-  //          return Timestamp.class;
-  //        default:
-  //          break;
-  //      }
-  //    }
-  //    return super.getJavaClass(type);
-  //  }
+
+  /** not in use for now, but let's keep this code for future reference. */
+  @Override
+  public Type getJavaClass(RelDataType type) {
+    return super.getJavaClass(type);
+  }
 }

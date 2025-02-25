@@ -5,24 +5,14 @@
 
 package org.opensearch.sql.calcite.remote;
 
-import org.junit.Ignore;
-import org.junit.jupiter.api.Test;
+import java.io.IOException;
 import org.opensearch.sql.ppl.SearchCommandIT;
 
-import java.io.IOException;
-
 public class CalciteSearchCommandIT extends SearchCommandIT {
-    @Override
-    public void init() throws IOException {
-        enableCalcite();
-        disallowCalciteFallback();
-        super.init();
-    }
-
-    @Override
-    @Test
-    @Ignore("https://github.com/opensearch-project/sql/issues/3341")
-    public void testSearchCommandWithoutSearchKeyword() throws IOException {
-        super.testSearchCommandWithoutSearchKeyword();
-    }
+  @Override
+  public void init() throws IOException {
+    enableCalcite();
+    disallowCalciteFallback();
+    super.init();
+  }
 }

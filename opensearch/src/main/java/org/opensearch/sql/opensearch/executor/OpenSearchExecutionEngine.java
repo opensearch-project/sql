@@ -17,10 +17,10 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.tools.RelRunners;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -39,7 +39,6 @@ import org.opensearch.sql.storage.TableScanOperator;
 /** OpenSearch execution engine implementation. */
 @RequiredArgsConstructor
 public class OpenSearchExecutionEngine implements ExecutionEngine {
-  private static final Logger LOG = LogManager.getLogger();
 
   private final OpenSearchClient client;
 
@@ -113,9 +112,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     AccessController.doPrivileged(
         (PrivilegedAction<Void>)
             () -> {
-              try (PreparedStatement statement = RelRunners.run(rel)) {
+              try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
                 ResultSet result = statement.executeQuery();
-                buildResultSet(result, listener);
+                buildResultSet(result, rel.getRowType(), listener);
                 return null;
               } catch (SQLException e) {
                 throw new RuntimeException(e);
@@ -123,12 +122,14 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             });
   }
 
-  private void buildResultSet(ResultSet resultSet, ResponseListener<QueryResponse> listener)
+  private void buildResultSet(
+      ResultSet resultSet, RelDataType rowTypes, ResponseListener<QueryResponse> listener)
       throws SQLException {
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
-
+    List<RelDataType> fieldTypes =
+        rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();
     List<ExprValue> values = new ArrayList<>();
     // Iterate through the ResultSet
     while (resultSet.next()) {
@@ -137,8 +138,10 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       for (int i = 1; i <= columnCount; i++) {
         String columnName = metaData.getColumnName(i);
         int sqlType = metaData.getColumnType(i);
+        RelDataType fieldType = fieldTypes.get(i - 1);
         ExprValue exprValue =
-            JdbcOpenSearchDataTypeConvertor.getExprValueFromSqlType(resultSet, i, sqlType);
+            JdbcOpenSearchDataTypeConvertor.getExprValueFromSqlType(
+                resultSet, i, sqlType, fieldType);
         row.put(columnName, exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
@@ -148,6 +151,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     for (int i = 1; i <= columnCount; ++i) {
       String columnName = metaData.getColumnName(i);
       int sqlType = metaData.getColumnType(i);
+      RelDataType fieldType = fieldTypes.get(i - 1);
       ExprType exprType = JdbcOpenSearchDataTypeConvertor.getExprTypeFromSqlType(sqlType);
       columns.add(new Column(columnName, null, exprType));
     }
