@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.utils;
 
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedAggFunction;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.PERCENTILE_APPROX;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -20,7 +19,8 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.PercentileApproxFunction;
+import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
+import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 public interface AggregateUtils {
@@ -64,6 +64,14 @@ public interface AggregateUtils {
             List.of(field),
             argList,
             context.relBuilder);
+      case TAKE:
+        return TransferUserDefinedAggFunction(
+                TakeAggFunction.class,
+                "take",
+                UserDefineFunctionUtils.getReturnTypeInference(),
+                List.of(field),
+                argList,
+                context.relBuilder);
     }
     throw new IllegalStateException("Not Supported value: " + agg.getFuncName());
   }

@@ -1,6 +1,8 @@
-package org.opensearch.sql.calcite.udf;
+package org.opensearch.sql.calcite.udf.mathUDF;
 
-public class ModFunction implements UserDefinedFunction{
+import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+
+public class ModFunction implements UserDefinedFunction {
     @Override
     public Object eval(Object... args) {
         if (args.length < 2) {

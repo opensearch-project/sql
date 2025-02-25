@@ -1,0 +1,57 @@
+package org.opensearch.sql.calcite.udf.udaf;
+
+import org.opensearch.sql.calcite.udf.Accumulator;
+import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class TakeAggFunction implements UserDefinedAggFunction<TakeAggFunction.TakeAccumulator> {
+
+    @Override
+    public TakeAccumulator init() {
+        return new TakeAccumulator();
+    }
+
+    @Override
+    public Object result(TakeAccumulator accumulator) {
+        return accumulator.result();
+    }
+
+    @Override
+    public TakeAccumulator add(TakeAccumulator acc, Object... values) {
+        Object candidateValue = values[0];
+        int size = 0;
+        if (values.length > 1) {
+            size = (int) values[1];
+        } else {
+            size = 10;
+        }
+        if (size > acc.size()) {
+            acc.add(candidateValue);
+        }
+        return acc;
+    }
+
+
+    public static class TakeAccumulator implements Accumulator {
+        private List<Object> hits;
+
+        public TakeAccumulator() {
+            hits = new ArrayList<>();
+        }
+
+        @Override
+        public Object result() {
+            return hits;
+        }
+
+        public void add(Object value) {
+            hits.add(value);
+        }
+
+        public int size() {
+            return hits.size();
+        }
+    }
+}

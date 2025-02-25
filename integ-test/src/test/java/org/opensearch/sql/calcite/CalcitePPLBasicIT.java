@@ -23,10 +23,10 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   public void init() throws IOException {
     super.init();
     Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
-    request1.setJsonEntity("{\"name\": null, \"age\": 20}");
+    request1.setJsonEntity("{\"name\": \"world\", \"age\": 20}");
     client().performRequest(request1);
     Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
-    request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
+    request2.setJsonEntity("{\"name\": \"world2\", \"age\": 30}");
     client().performRequest(request2);
     Request request3 = new Request("PUT", "/people/_doc/2?refresh=true");
     request3.setJsonEntity("{\"name\": \"DummyEntityForMathVerification\", \"age\": 24}");
@@ -63,6 +63,29 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + "}",
         actual);
   }
+
+  public void testTakeAggregation() {
+    String actual =
+            execute("source=test | stats take(name, 2)");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"median\",\n"
+                    + "      \"type\": \"double\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      25.0\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 1,\n"
+                    + "  \"size\": 1\n"
+                    + "}",
+            actual);
+  }
+
 
   @Test
   public void testSourceFieldQuery() {
@@ -1109,6 +1132,89 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         actual);
   }
 
+  @Test
+  public void testIf() {
+    String actual =
+            execute(
+                    "source=test | eval result = if(like(name, '%d2%'), 'noway', name)");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testIfNull() {
+    String actual =
+            execute(
+                    "source=test | eval defaultName=ifnull(name, 'default')");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+  @Test
+  public void testNullIf() {
+    String actual =
+            execute(
+                    "source=test | eval defaultName=nullif(name, 'world')");
+    assertEquals(
+            "{\n"
+                    + "  \"schema\": [\n"
+                    + "    {\n"
+                    + "      \"name\": \"name\",\n"
+                    + "      \"type\": \"string\"\n"
+                    + "    }\n"
+                    + "  ],\n"
+                    + "  \"datarows\": [\n"
+                    + "    [\n"
+                    + "      \"hello\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"world\"\n"
+                    + "    ]\n"
+                    + "  ],\n"
+                    + "  \"total\": 2,\n"
+                    + "  \"size\": 2\n"
+                    + "}",
+            actual);
+  }
+
+
+
   private static JsonArray parseAndGetFirstDataRow(String executionResult) {
     JsonObject sqrtResJson = JsonParser.parseString(executionResult).getAsJsonObject();
     JsonArray dataRows = sqrtResJson.getAsJsonArray("datarows");
@@ -1392,4 +1498,5 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + " CBRT(-27) | fields `CBRT(8)`, `CBRT(9.261)`, `CBRT(-27)`",
         List.of(Math.cbrt(8), Math.cbrt(9.261), Math.cbrt(-27)));
   }
+
 }

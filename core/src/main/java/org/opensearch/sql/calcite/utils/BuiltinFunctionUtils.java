@@ -12,6 +12,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
@@ -19,9 +21,14 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.ModFunction;
+import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
+import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
+import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 
 public interface BuiltinFunctionUtils {
 
@@ -82,15 +89,38 @@ public interface BuiltinFunctionUtils {
         // Built-in condition Functions
         // case "IFNULL":
         //  return SqlLibraryOperators.IFNULL;
-        // case "IF":
-        //  return SqlLibraryOperators.IF;
+      case "IF":
+        SqlReturnTypeInference dynamicReturnType = opBinding -> {
+          RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+
+          // Get argument types
+          List<RelDataType> argTypes = opBinding.collectOperandTypes();
+
+          if (argTypes.isEmpty()) {
+            throw new IllegalArgumentException("Function requires at least one argument.");
+          }
+
+          // Infer return type based on the first argument type (Modify as needed)
+          RelDataType firstArgType = argTypes.get(1);
+
+          if (firstArgType.getSqlTypeName() == SqlTypeName.INTEGER) {
+            return typeFactory.createSqlType(SqlTypeName.INTEGER);
+          } else if (firstArgType.getSqlTypeName() == SqlTypeName.DOUBLE ||
+                  firstArgType.getSqlTypeName() == SqlTypeName.FLOAT) {
+            return typeFactory.createSqlType(SqlTypeName.DOUBLE);
+          } else {
+            return typeFactory.createSqlType(SqlTypeName.ANY);
+          }
+        };
+        return TransferUserDefinedFunction(IfFunction.class, "if", dynamicReturnType);
+      case "IFNULL":
+        return TransferUserDefinedFunction(IfNullFunction.class, "ifnull", IfNullFunction.getReturnTypeInference());
+      case "NULLIF":
+        return TransferUserDefinedFunction(NullIfFunction.class, "ifnull", NullIfFunction.getReturnTypeInference());
       case "IS NOT NULL":
         return SqlStdOperatorTable.IS_NOT_NULL;
       case "IS NULL":
         return SqlStdOperatorTable.IS_NULL;
-        // case "NULLIF":
-        //  return SqlStdOperatorTable.NULLIF;
-        // Built-in Math Functions
       case "ABS":
         return SqlStdOperatorTable.ABS;
       case "ACOS":
@@ -138,7 +168,7 @@ public interface BuiltinFunctionUtils {
       case "SIN":
         return SqlStdOperatorTable.SIN;
       case "SQRT":
-        return SqlStdOperatorTable.SQRT;
+        return TransferUserDefinedFunction(SqrtFunction.class, "sqrt", ReturnTypes.DOUBLE);
       case "CBRT":
         return SqlStdOperatorTable.CBRT;
         // Built-in Date Functions
