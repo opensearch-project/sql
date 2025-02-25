@@ -6,22 +6,16 @@
 package org.opensearch.sql.opensearch.planner.physical;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
-import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.Project;
-import org.apache.calcite.rel.logical.LogicalProject;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalTableScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteOpenSearchIndexScan;
 
 /**
- * Rule to convert a {@link LogicalProject} to an {@link EnumerableProject}. You may provide a
- * custom config to convert other nodes that extend {@link Project}.
- *
- * @see EnumerableRules#ENUMERABLE_PROJECT_RULE
+ * Rule to convert a {@link CalciteLogicalTableScan} to a {@link CalciteOpenSearchIndexScan}.
  */
 public class EnumerableIndexScanRule extends ConverterRule {
   /** Default configuration. */

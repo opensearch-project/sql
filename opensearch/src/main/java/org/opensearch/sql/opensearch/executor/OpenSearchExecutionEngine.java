@@ -36,6 +36,8 @@ import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertRelDataTypeToExprType;
+
 /** OpenSearch execution engine implementation. */
 @RequiredArgsConstructor
 public class OpenSearchExecutionEngine implements ExecutionEngine {
@@ -150,9 +152,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     List<Column> columns = new ArrayList<>(metaData.getColumnCount());
     for (int i = 1; i <= columnCount; ++i) {
       String columnName = metaData.getColumnName(i);
-      int sqlType = metaData.getColumnType(i);
       RelDataType fieldType = fieldTypes.get(i - 1);
-      ExprType exprType = JdbcOpenSearchDataTypeConvertor.getExprTypeFromSqlType(sqlType);
+      ExprType exprType = convertRelDataTypeToExprType(fieldType);
       columns.add(new Column(columnName, null, exprType));
     }
     Schema schema = new Schema(columns);
