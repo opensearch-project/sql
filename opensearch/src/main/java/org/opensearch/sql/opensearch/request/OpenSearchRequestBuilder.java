@@ -132,32 +132,6 @@ public class OpenSearchRequestBuilder {
     }
   }
 
-  private OpenSearchRequest buildRequestWithScroll(
-      OpenSearchRequest.IndexName indexName, int maxResultWindow, TimeValue cursorKeepAlive) {
-    int size = requestedTotalSize;
-    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
-    List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
-
-    if (pageSize == null) {
-      if (startFrom + size > maxResultWindow) {
-        sourceBuilder.size(maxResultWindow - startFrom);
-        return new OpenSearchScrollRequest(
-            indexName, cursorKeepAlive, sourceBuilder, exprValueFactory, includes);
-      } else {
-        sourceBuilder.from(startFrom);
-        sourceBuilder.size(requestedTotalSize);
-        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
-      }
-    } else {
-      if (startFrom != 0) {
-        throw new UnsupportedOperationException("Non-zero offset is not supported with pagination");
-      }
-      sourceBuilder.size(pageSize);
-      return new OpenSearchScrollRequest(
-          indexName, cursorKeepAlive, sourceBuilder, exprValueFactory, includes);
-    }
-  }
-
   private String createPit(
       OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
     // Create PIT ID for request
