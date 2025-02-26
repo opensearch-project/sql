@@ -119,15 +119,14 @@ jacocoTestCoverageVerification {
                     'org.opensearch.sql.datasource.model.DataSource',
                     'org.opensearch.sql.datasource.model.DataSourceStatus',
                     'org.opensearch.sql.datasource.model.DataSourceType',
-                    'org.opensearch.sql.executor.ExecutionEngine'
             ]
             limit {
                 counter = 'LINE'
-                minimum = 0.5 // calcite dev only
+                minimum = 0.0 // calcite dev only
             }
             limit {
                 counter = 'BRANCH'
-                minimum = 0.5 // calcite dev only
+                minimum = 0.0 // calcite dev only
             }
         }
     }

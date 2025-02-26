@@ -57,6 +57,11 @@ public class ExprTimestampValue extends AbstractExprValue {
   }
 
   @Override
+  public Long valueForCalcite() {
+    return timestamp.toEpochMilli();
+  }
+
+  @Override
   public ExprType type() {
     return ExprCoreType.TIMESTAMP;
   }
