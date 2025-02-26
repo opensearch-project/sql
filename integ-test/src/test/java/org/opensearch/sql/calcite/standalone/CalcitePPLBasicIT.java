@@ -6,18 +6,13 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
-import static org.opensearch.sql.util.MatcherUtils.schema;
-import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-
-import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 
-public class CalcitePPLBasicIT extends CalcitePPLTestCase {
+public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Override
   public void init() throws IOException {

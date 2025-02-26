@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.planner.physical;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
-import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
@@ -14,9 +13,7 @@ import org.apache.calcite.rel.convert.ConverterRule;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalTableScan;
 import org.opensearch.sql.opensearch.storage.scan.CalciteOpenSearchIndexScan;
 
-/**
- * Rule to convert a {@link CalciteLogicalTableScan} to a {@link CalciteOpenSearchIndexScan}.
- */
+/** Rule to convert a {@link CalciteLogicalTableScan} to a {@link CalciteOpenSearchIndexScan}. */
 public class EnumerableIndexScanRule extends ConverterRule {
   /** Default configuration. */
   public static final Config DEFAULT_CONFIG =

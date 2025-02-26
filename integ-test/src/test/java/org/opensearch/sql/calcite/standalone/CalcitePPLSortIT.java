@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 /** testSortXXAndXX could fail. TODO Remove this @Ignore when the issue fixed. */
 // @Ignore
-public class CalcitePPLSortIT extends CalcitePPLTestCase {
+public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
 
   @Override
   public void init() throws IOException {

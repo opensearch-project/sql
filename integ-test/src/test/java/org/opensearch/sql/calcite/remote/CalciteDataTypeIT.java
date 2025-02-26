@@ -6,15 +6,9 @@
 package org.opensearch.sql.calcite.remote;
 
 import java.io.IOException;
-
-import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.DataTypeIT;
-
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
-import static org.opensearch.sql.util.MatcherUtils.schema;
-import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 public class CalciteDataTypeIT extends DataTypeIT {
 

@@ -68,12 +68,13 @@ import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
  * This abstract test case provide a standalone env to run PPL query, IT extends this class could
  * debug the service side execution of PPL in IDE.
  */
-public abstract class CalcitePPLTestCase extends PPLIntegTestCase {
+public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
   protected PPLService pplService;
 
   @Override
   public void init() throws IOException {
-    RestHighLevelClient restClient = new CalcitePPLTestCase.InternalRestHighLevelClient(client());
+    RestHighLevelClient restClient =
+        new CalcitePPLIntegTestCase.InternalRestHighLevelClient(client());
     OpenSearchClient client = new OpenSearchRestClient(restClient);
     DataSourceService dataSourceService =
         new DataSourceServiceImpl(
@@ -86,8 +87,8 @@ public abstract class CalcitePPLTestCase extends PPLIntegTestCase {
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(
-        new CalcitePPLTestCase.StandaloneModule(
-            new CalcitePPLTestCase.InternalRestHighLevelClient(client()),
+        new CalcitePPLIntegTestCase.StandaloneModule(
+            new CalcitePPLIntegTestCase.InternalRestHighLevelClient(client()),
             defaultSettings(),
             dataSourceService));
     Injector injector = modules.createInjector();

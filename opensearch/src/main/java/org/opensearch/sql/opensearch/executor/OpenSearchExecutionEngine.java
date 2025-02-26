@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.executor;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertRelDataTypeToExprType;
+
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.sql.PreparedStatement;
@@ -35,8 +37,6 @@ import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
-
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertRelDataTypeToExprType;
 
 /** OpenSearch execution engine implementation. */
 @RequiredArgsConstructor

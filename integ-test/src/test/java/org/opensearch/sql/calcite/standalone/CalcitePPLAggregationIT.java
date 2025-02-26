@@ -12,7 +12,7 @@ import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 
-public class CalcitePPLAggregationIT extends CalcitePPLTestCase {
+public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
 
   @Override
   public void init() throws IOException {
