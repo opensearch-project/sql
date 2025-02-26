@@ -8,15 +8,14 @@
 
 package org.opensearch.sql.executor;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.jdbc.CalciteConnection;
-import org.apache.calcite.jdbc.CalciteJdbc41Factory;
 import org.apache.calcite.jdbc.CalciteSchema;
-import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
@@ -80,33 +79,20 @@ public class QueryService {
           AccessController.doPrivileged(
               (PrivilegedAction<Void>)
                   () -> {
-                    // Use simple calcite schema since we don't compute tables in advance of the
-                    // query.
-                    CalciteSchema rootSchema = CalciteSchema.createRootSchema(true, false);
-                    CalciteJdbc41Factory factory = new CalciteJdbc41Factory();
-                    CalciteConnection connection =
-                        factory.newConnection(
-                            new Driver(),
-                            factory,
-                            "",
-                            new java.util.Properties(),
-                            rootSchema,
-                            null);
-                    final SchemaPlus defaultSchema =
-                        connection
-                            .getRootSchema()
-                            .add(
-                                OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME,
-                                new OpenSearchSchema(dataSourceService));
-                    // Set opensearch schema as the default schema in config, otherwise we need to
-                    // explicitly
-                    // add schema path 'OpenSearch' before the opensearch table name
-                    final FrameworkConfig config = buildFrameworkConfig(defaultSchema);
-                    final CalcitePlanContext context = new CalcitePlanContext(config, connection);
+                    final FrameworkConfig config = buildFrameworkConfig();
+                    final CalcitePlanContext context =
+                        CalcitePlanContext.create(config, TYPE_FACTORY);
                     executePlanByCalcite(analyze(plan, context), context, listener);
                     return null;
                   });
         } catch (Exception e) {
+          boolean fallbackAllowed = true;
+          if (settings != null) {
+            fallbackAllowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
+          }
+          if (!fallbackAllowed) {
+            throw e;
+          }
           LOG.warn("Fallback to V2 query engine since got exception", e);
           executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
         }
@@ -174,10 +160,15 @@ public class QueryService {
     return relNodeVisitor.analyze(plan, context);
   }
 
-  private FrameworkConfig buildFrameworkConfig(SchemaPlus defaultSchema) {
+  private FrameworkConfig buildFrameworkConfig() {
+    // Use simple calcite schema since we don't compute tables in advance of the query.
+    final SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, false).plus();
+    final SchemaPlus opensearchSchema =
+        rootSchema.add(
+            OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME, new OpenSearchSchema(dataSourceService));
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT) // TODO check
-        .defaultSchema(defaultSchema)
+        .defaultSchema(opensearchSchema)
         .traitDefs((List<RelTraitDef>) null)
         .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
         .typeSystem(OpenSearchTypeSystem.INSTANCE)
