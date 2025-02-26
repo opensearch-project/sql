@@ -99,7 +99,7 @@ public class PrometheusDescribeMetricRequest implements PrometheusSystemRequest 
       results.add(
           row(
               entry.getKey(),
-              entry.getValue().legacyTypeName().toLowerCase(),
+              entry.getValue().typeName().toLowerCase(),
               dataSourceSchemaName));
     }
     return results;

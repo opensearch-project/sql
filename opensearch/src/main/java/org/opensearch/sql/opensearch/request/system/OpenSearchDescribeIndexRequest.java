@@ -80,7 +80,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
           row(
               entry.getKey(),
               (langSpec.language() == LangSpec.LangType.PPL
-                      ? langSpec.typeName(entry.getValue())
+                      ? langSpec.typeName(entry.getValue().getExprType())
                       : entry.getValue().legacyTypeName())
                   .toLowerCase(Locale.ROOT),
               pos++,
