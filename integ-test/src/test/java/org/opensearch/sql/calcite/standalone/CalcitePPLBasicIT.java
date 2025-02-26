@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite;
+package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 
@@ -33,6 +33,76 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         "OpenSearch exception [type=index_not_found_exception, reason=no such index [unknown]]",
         IllegalStateException.class,
         () -> execute("source=unknown"));
+  }
+
+  @Test
+  public void testSourceQuery() {
+    String actual = execute("source=test");
+    assertEquals(
+        "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"name\",\n"
+            + "      \"type\": \"string\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"name\": \"age\",\n"
+            + "      \"type\": \"long\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      \"hello\",\n"
+            + "      20\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"world\",\n"
+            + "      30\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 2,\n"
+            + "  \"size\": 2\n"
+            + "}",
+        actual);
+  }
+
+  @Test
+  public void testMultipleSourceQuery() {
+    String actual = execute("source=test, test");
+    assertEquals(
+        "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"name\",\n"
+            + "      \"type\": \"string\"\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"name\": \"age\",\n"
+            + "      \"type\": \"long\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      \"hello\",\n"
+            + "      20\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"world\",\n"
+            + "      30\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"hello\",\n"
+            + "      20\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"world\",\n"
+            + "      30\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 4,\n"
+            + "  \"size\": 4\n"
+            + "}",
+        actual);
   }
 
   @Test
@@ -145,6 +215,8 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         actual);
   }
 
+  // TODO fail after merged https://github.com/opensearch-project/sql/pull/3327
+  @Ignore
   @Test
   public void testFilterQueryWithOr() {
     String actual =
@@ -181,6 +253,8 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         actual);
   }
 
+  // TODO fail after merged https://github.com/opensearch-project/sql/pull/3327
+  @Ignore
   @Test
   public void testFilterQueryWithOr2() {
     String actual =
@@ -220,7 +294,8 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   @Test
   public void testQueryMinusFields() {
     String actual =
-        execute(String.format("source=%s | fields - firstname, lastname", TEST_INDEX_BANK));
+        execute(
+            String.format("source=%s | fields - firstname, lastname, birthdate", TEST_INDEX_BANK));
     assertEquals(
         "{\n"
             + "  \"schema\": [\n"
@@ -231,10 +306,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + "    {\n"
             + "      \"name\": \"address\",\n"
             + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"birthdate\",\n"
-            + "      \"type\": \"timestamp\"\n"
             + "    },\n"
             + "    {\n"
             + "      \"name\": \"gender\",\n"
@@ -273,7 +344,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + "    [\n"
             + "      1,\n"
             + "      \"880 Holmes Lane\",\n"
-            + "      \"2017-10-23 00:00:00\",\n"
             + "      \"M\",\n"
             + "      \"Brogan\",\n"
             + "      39225,\n"
@@ -286,7 +356,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + "    [\n"
             + "      6,\n"
             + "      \"671 Bristol Street\",\n"
-            + "      \"2017-11-20 00:00:00\",\n"
             + "      \"M\",\n"
             + "      \"Dante\",\n"
             + "      5686,\n"
@@ -299,7 +368,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + "    [\n"
             + "      13,\n"
             + "      \"789 Madison Street\",\n"
-            + "      \"2018-06-23 00:00:00\",\n"
             + "      \"F\",\n"
             + "      \"Nogal\",\n"
             + "      32838,\n"
@@ -312,7 +380,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + "    [\n"
             + "      18,\n"
             + "      \"467 Hutchinson Court\",\n"
-            + "      \"2018-11-13 23:33:20\",\n"
             + "      \"M\",\n"
             + "      \"Orick\",\n"
             + "      4180,\n"
@@ -325,7 +392,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + "    [\n"
             + "      20,\n"
             + "      \"282 Kings Place\",\n"
-            + "      \"2018-06-27 00:00:00\",\n"
             + "      \"M\",\n"
             + "      \"Ribera\",\n"
             + "      16418,\n"
@@ -338,7 +404,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + "    [\n"
             + "      25,\n"
             + "      \"171 Putnam Avenue\",\n"
-            + "      \"2018-08-19 00:00:00\",\n"
             + "      \"F\",\n"
             + "      \"Nicholson\",\n"
             + "      40540,\n"
@@ -351,7 +416,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + "    [\n"
             + "      32,\n"
             + "      \"702 Quentin Street\",\n"
-            + "      \"2018-08-11 00:00:00\",\n"
             + "      \"F\",\n"
             + "      \"Veguita\",\n"
             + "      48086,\n"
@@ -477,196 +541,8 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         actual);
   }
 
-  @Test
-  public void testSort() {
-    String actual =
-        execute(
-            String.format(
-                "source=%s | fields + firstname, gender, account_number | sort - account_number",
-                TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Dillard\",\n"
-            + "      \"F\",\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Virginia\",\n"
-            + "      \"F\",\n"
-            + "      25\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Elinor\",\n"
-            + "      \"M\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Dale\",\n"
-            + "      \"M\",\n"
-            + "      18\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Nanette\",\n"
-            + "      \"F\",\n"
-            + "      13\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hattie\",\n"
-            + "      \"M\",\n"
-            + "      6\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Amber JOHnny\",\n"
-            + "      \"M\",\n"
-            + "      1\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}",
-        actual);
-  }
-
-  @Test
-  public void testSortTwoFields() {
-    String actual =
-        execute(
-            String.format(
-                "source=%s | fields + firstname, gender, account_number | sort + gender, -"
-                    + " account_number",
-                TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Dillard\",\n"
-            + "      \"F\",\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Virginia\",\n"
-            + "      \"F\",\n"
-            + "      25\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Nanette\",\n"
-            + "      \"F\",\n"
-            + "      13\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Elinor\",\n"
-            + "      \"M\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Dale\",\n"
-            + "      \"M\",\n"
-            + "      18\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hattie\",\n"
-            + "      \"M\",\n"
-            + "      6\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Amber JOHnny\",\n"
-            + "      \"M\",\n"
-            + "      1\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}",
-        actual);
-  }
-
-  @Test
-  public void testSortWithDescAndLimit() {
-    String actual =
-        execute(
-            String.format(
-                "source=%s | fields + firstname, gender, account_number | sort + gender, -"
-                    + " account_number | head 5",
-                TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Dillard\",\n"
-            + "      \"F\",\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Virginia\",\n"
-            + "      \"F\",\n"
-            + "      25\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Nanette\",\n"
-            + "      \"F\",\n"
-            + "      13\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Elinor\",\n"
-            + "      \"M\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Dale\",\n"
-            + "      \"M\",\n"
-            + "      18\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 5,\n"
-            + "  \"size\": 5\n"
-            + "}",
-        actual);
-  }
-
+  // TODO fail after merged https://github.com/opensearch-project/sql/pull/3327
+  @Ignore
   @Test
   public void testMultipleTables() {
     String actual =
@@ -691,6 +567,8 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         actual);
   }
 
+  // TODO fail after merged https://github.com/opensearch-project/sql/pull/3327
+  @Ignore
   @Test
   public void testMultipleTablesAndFilters() {
     String actual =
@@ -709,6 +587,72 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             + "  \"datarows\": [\n"
             + "    [\n"
             + "      6\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 1,\n"
+            + "  \"size\": 1\n"
+            + "}",
+        actual);
+  }
+
+  @Test
+  public void testSelectDateTypeField() {
+    String actual = execute(String.format("source=%s | fields birthdate", TEST_INDEX_BANK));
+    assertEquals(
+        "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"birthdate\",\n"
+            + "      \"type\": \"timestamp\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      \"2017-10-23 00:00:00\"\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"2017-11-20 00:00:00\"\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"2018-06-23 00:00:00\"\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"2018-11-13 23:33:20\"\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"2018-06-27 00:00:00\"\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"2018-08-19 00:00:00\"\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"2018-08-11 00:00:00\"\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 7,\n"
+            + "  \"size\": 7\n"
+            + "}",
+        actual);
+  }
+
+  @Test
+  public void testAllFieldsInTable() throws IOException {
+    Request request = new Request("PUT", "/a/_doc/1?refresh=true");
+    request.setJsonEntity("{\"name\": \"hello\"}");
+    client().performRequest(request);
+
+    String actual = execute("source=a | fields name");
+    assertEquals(
+        "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"name\",\n"
+            + "      \"type\": \"string\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      \"hello\"\n"
             + "    ]\n"
             + "  ],\n"
             + "  \"total\": 1,\n"

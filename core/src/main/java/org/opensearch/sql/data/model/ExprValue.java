@@ -24,6 +24,9 @@ public interface ExprValue extends Serializable, Comparable<ExprValue> {
   /** Get the Object value of the Expression Value. */
   Object value();
 
+  /** Get the Object for Calcite engine compatibility */
+  Object valueForCalcite();
+
   /** Get the {@link ExprCoreType} of the Expression Value. */
   ExprType type();
 

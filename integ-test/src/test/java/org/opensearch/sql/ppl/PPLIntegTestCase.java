@@ -17,6 +17,7 @@ import org.junit.Assert;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /** OpenSearch Rest integration test base for PPL testing. */
@@ -50,6 +51,14 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String executeCsvQuery(String query) throws IOException {
     return executeCsvQuery(query, true);
+  }
+
+  protected void failWithMessage(String query, String message) {
+    try {
+      client().performRequest(buildRequest(query, QUERY_API_ENDPOINT));
+    } catch (IOException e) {
+      Assert.assertTrue(e.getMessage().contains(message));
+    }
   }
 
   protected Request buildRequest(String query, String endpoint) {
@@ -111,5 +120,29 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     } catch (JSONException e) {
       throw new IllegalStateException(String.format("Failed to transform %s to JSON format", text));
     }
+  }
+
+  protected static void enableCalcite() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "true"));
+  }
+
+  protected static void disableCalcite() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
+  }
+
+  protected static void allowCalciteFallback() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "true"));
+  }
+
+  protected static void disallowCalciteFallback() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
   }
 }

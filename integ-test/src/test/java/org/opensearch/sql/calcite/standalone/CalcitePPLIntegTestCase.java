@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite;
+package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
@@ -26,6 +26,7 @@ import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
+import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -63,6 +64,10 @@ import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
 
+/**
+ * This abstract test case provide a standalone env to run PPL query, IT extends this class could
+ * debug the service side execution of PPL in IDE.
+ */
 public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
   protected PPLService pplService;
 
@@ -98,6 +103,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               .put(Key.SQL_PAGINATION_API_SEARCH_AFTER, true)
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
+              .put(Key.CALCITE_FALLBACK_ALLOWED, false)
               .build();
 
       @Override
