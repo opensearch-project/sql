@@ -40,7 +40,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsSum() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats sum(balance)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("sum(balance)", null, "long"));
+    verifySchema(response, schema("sum(balance)", null, "bigint"));
     verifyDataRows(response, rows(25714837));
   }
 
@@ -48,7 +48,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsCount() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count(account_number)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("count(account_number)", null, "integer"));
+    verifySchema(response, schema("count(account_number)", null, "int"));
     verifyDataRows(response, rows(1000));
   }
 
@@ -56,7 +56,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsCountAll() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count()", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("count()", null, "integer"));
+    verifySchema(response, schema("count()", null, "int"));
     verifyDataRows(response, rows(1000));
   }
 
@@ -64,11 +64,11 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsDistinctCount() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats distinct_count(gender)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("distinct_count(gender)", null, "integer"));
+    verifySchema(response, schema("distinct_count(gender)", null, "int"));
     verifyDataRows(response, rows(2));
 
     response = executeQuery(String.format("source=%s | stats dc(age)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("dc(age)", null, "integer"));
+    verifySchema(response, schema("dc(age)", null, "int"));
     verifyDataRows(response, rows(21));
   }
 
@@ -76,7 +76,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsMin() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats min(age)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("min(age)", null, "long"));
+    verifySchema(response, schema("min(age)", null, "bigint"));
     verifyDataRows(response, rows(20));
   }
 
@@ -84,7 +84,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsMax() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats max(age)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("max(age)", null, "long"));
+    verifySchema(response, schema("max(age)", null, "bigint"));
     verifyDataRows(response, rows(40));
   }
 
@@ -112,7 +112,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats sum(balance) as a by state | where a > 780000",
                 TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("a", null, "long"), schema("state", null, "string"));
+    verifySchema(response, schema("a", null, "bigint"), schema("state", null, "string"));
     verifyDataRows(response, rows(782199, "TX"));
   }
 
@@ -122,7 +122,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats avg(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
-    verifySchema(response, schema("a", null, "double"), schema("age", null, "integer"));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "int"));
     verifyDataRows(
         response,
         rows(null, null),
@@ -139,7 +139,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testMultipleAggregationFunction() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats min(age), max(age)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("min(age)", null, "long"), schema("max(age)", null, "long"));
+    verifySchema(response, schema("min(age)", null, "bigint"), schema("max(age)", null, "bigint"));
     verifyDataRows(response, rows(20, 40));
   }
 
@@ -165,7 +165,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count() by span(age,10)", TEST_INDEX_BANK));
     verifySchema(
-        response, schema("count()", null, "integer"), schema("span(age,10)", null, "integer"));
+        response, schema("count()", null, "int"), schema("span(age,10)", null, "int"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 
@@ -176,7 +176,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
             String.format("source=%s | stats count() by span(birthdate,1y)", TEST_INDEX_BANK));
     verifySchema(
         response,
-        schema("count()", null, "integer"),
+        schema("count()", null, "int"),
         schema("span(birthdate,1y)", null, "timestamp"));
     verifyDataRows(response, rows(2, "2017-01-01 00:00:00"), rows(5, "2018-01-01 00:00:00"));
   }
@@ -188,7 +188,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats count() by span(age,10) as age_bucket", TEST_INDEX_BANK));
     verifySchema(
-        response, schema("count()", null, "integer"), schema("age_bucket", null, "integer"));
+        response, schema("count()", null, "int"), schema("age_bucket", null, "int"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 
@@ -200,8 +200,8 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | stats count() by span(age,10), gender, state", TEST_INDEX_BANK));
     verifySchemaInOrder(
         response,
-        schema("count()", null, "integer"),
-        schema("span(age,10)", null, "integer"),
+        schema("count()", null, "int"),
+        schema("span(age,10)", null, "int"),
         schema("gender", null, "string"),
         schema("state", null, "string"));
     verifyDataRowsInOrder(
@@ -225,8 +225,8 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | stats count() by gender, state, span(age,10)", TEST_INDEX_BANK));
     verifySchemaInOrder(
         response,
-        schema("count()", null, "integer"),
-        schema("span(age,10)", null, "integer"),
+        schema("count()", null, "int"),
+        schema("span(age,10)", null, "int"),
         schema("gender", null, "string"),
         schema("state", null, "string"));
     verifyDataRowsInOrder(
@@ -244,7 +244,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsPercentile() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats percentile(balance, 50)", TEST_INDEX_BANK));
-    verifySchema(response, schema("percentile(balance, 50)", null, "long"));
+    verifySchema(response, schema("percentile(balance, 50)", null, "bigint"));
     verifyDataRows(response, rows(32838));
   }
 
@@ -254,7 +254,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats percentile(balance, 50)", TEST_INDEX_BANK_WITH_NULL_VALUES));
-    verifySchema(response, schema("percentile(balance, 50)", null, "long"));
+    verifySchema(response, schema("percentile(balance, 50)", null, "bigint"));
     verifyDataRows(response, rows(39225));
   }
 
@@ -263,7 +263,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
     JSONObject response =
         executeQuery(
             String.format("source=%s | stats percentile(balance, 50, 1)", TEST_INDEX_BANK));
-    verifySchema(response, schema("percentile(balance, 50, 1)", null, "long"));
+    verifySchema(response, schema("percentile(balance, 50, 1)", null, "bigint"));
     verifyDataRows(response, rows(32838));
   }
 
@@ -274,7 +274,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats percentile(balance, 50) as p50 by state | where p50 > 40000",
                 TEST_INDEX_BANK));
-    verifySchema(response, schema("p50", null, "long"), schema("state", null, "string"));
+    verifySchema(response, schema("p50", null, "bigint"), schema("state", null, "string"));
     verifyDataRows(response, rows(48086, "IN"), rows(40540, "PA"));
   }
 
@@ -285,7 +285,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats percentile(balance, 50) as p50 by age",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
-    verifySchema(response, schema("p50", null, "long"), schema("age", null, "integer"));
+    verifySchema(response, schema("p50", null, "bigint"), schema("age", null, "int"));
     verifyDataRows(
         response,
         rows(0, null),
@@ -303,7 +303,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats percentile(balance, 50) as p50 by span(age, 10) as age_bucket",
                 TEST_INDEX_BANK));
-    verifySchema(response, schema("p50", null, "long"), schema("age_bucket", null, "integer"));
+    verifySchema(response, schema("p50", null, "bigint"), schema("age_bucket", null, "int"));
     verifyDataRows(response, rows(32838, 20), rows(39225, 30));
   }
 }

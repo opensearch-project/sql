@@ -51,7 +51,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format("source=%s | stats count() by city.name", TEST_INDEX_DEEP_NESTED));
-    verifySchema(result, schema("count()", "integer"), schema("city.name", "string"));
+    verifySchema(result, schema("count()", "int"), schema("city.name", "string"));
     verifyDataRows(result, rows(1, "Seattle"));
   }
 
