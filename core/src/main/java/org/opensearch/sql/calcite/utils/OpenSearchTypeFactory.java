@@ -33,12 +33,13 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.OpenSearchTypeSystem;
 import org.opensearch.sql.storage.Table;
 
 /** This class is used to create RelDataType and map RelDataType to Java data type */
 public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public static final OpenSearchTypeFactory TYPE_FACTORY =
-      new OpenSearchTypeFactory(RelDataTypeSystem.DEFAULT);
+      new OpenSearchTypeFactory(OpenSearchTypeSystem.INSTANCE);
 
   private OpenSearchTypeFactory(RelDataTypeSystem typeSystem) {
     super(typeSystem);
