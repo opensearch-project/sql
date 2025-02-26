@@ -181,6 +181,7 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
     }
   }
 
+  // TODO: deprecate json
   protected static void wipeAllOpenSearchIndices(RestClient client) throws IOException {
     // include all the indices, included hidden indices.
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/cat-indices.html#cat-indices-api-query-params

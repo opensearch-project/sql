@@ -25,7 +25,7 @@ public class ActionRequestRestExecutorFactory {
     switch (format) {
       case CSV:
         return new AsyncRestExecutor(new CSVResultRestExecutor());
-      case JSON:
+      case JSON: // TODO: deprecate json
         return new AsyncRestExecutor(
             new ElasticDefaultRestExecutor(queryAction),
             action -> isJoin(action) || isUnionMinus(action));

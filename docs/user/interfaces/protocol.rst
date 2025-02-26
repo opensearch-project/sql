@@ -208,6 +208,7 @@ Result set::
 	  "status" : 400
 	}
 
+// TODO: deprecate json
 OpenSearch DSL
 ==============
 

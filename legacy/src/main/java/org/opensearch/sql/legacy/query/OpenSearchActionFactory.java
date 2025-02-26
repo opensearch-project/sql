@@ -63,6 +63,7 @@ public class OpenSearchActionFactory {
 
   public static QueryAction create(Client client, String sql)
       throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureDisabledException {
+    // TODO: deprecate json
     return create(client, new QueryActionRequest(sql, new ColumnTypeProvider(), Format.JSON));
   }
 
@@ -192,6 +193,7 @@ public class OpenSearchActionFactory {
 
   @VisibleForTesting
   public static boolean shouldMigrateToQueryPlan(SQLQueryExpr expr, Format format) {
+    // TODO: deprecate json
     // The JSON format will return the OpenSearch aggregation result, which is not supported by the
     // QueryPlanner.
     if (format == Format.JSON) {

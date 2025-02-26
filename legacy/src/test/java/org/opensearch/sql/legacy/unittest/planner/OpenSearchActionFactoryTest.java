@@ -14,6 +14,7 @@ import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.util.SqlParserUtils;
 
 public class OpenSearchActionFactoryTest {
+  // TODO: deprecate json
   @Test
   public void josnOutputRequestShouldNotMigrateToQueryPlan() {
     String sql = "SELECT age, MAX(balance) FROM account GROUP BY age";

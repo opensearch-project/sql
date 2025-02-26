@@ -41,6 +41,7 @@ public class SqlRequestParamTest {
     assertFalse(SqlRequestParam.isPrettyFormat(ImmutableMap.of(QUERY_PARAMS_PRETTY, "unknown")));
   }
 
+  // TODO: deprecate json
   @Test
   public void shouldReturnJSONIfFormatParamsIsJSON() {
     assertEquals(
