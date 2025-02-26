@@ -97,9 +97,15 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
 
   @Override
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    // Avoid optimizing the java row type since the scan will always return an array.
+    /* In Calcite enumerable operators, row of single column will be optimized to a scalar value.
+     * See {@link PhysTypeImpl}.
+     * Since we need to combine this operator with their original ones,
+     * let's follow this convention to apply the optimization here and ensure `scan` method
+     * returns the correct data format for single column rows.
+     * See {@link OpenSearchIndexEnumerator}
+     */
     PhysType physType =
-        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray(), false);
+        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray());
 
     Expression scanOperator = implementor.stash(this, CalciteOpenSearchIndexScan.class);
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
