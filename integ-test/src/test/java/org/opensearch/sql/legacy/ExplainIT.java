@@ -136,24 +136,6 @@ public class ExplainIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void deleteSanity() throws IOException {
-
-    String expectedOutputFilePath =
-        TestUtils.getResourceFilePath("src/test/resources/expectedOutput/delete_explain.json");
-    String expectedOutput =
-        Files.toString(new File(expectedOutputFilePath), StandardCharsets.UTF_8)
-            .replaceAll("\r", "");
-    ;
-
-    String result =
-        explainQuery(
-            String.format(
-                "DELETE FROM %s WHERE firstname LIKE 'A%%' AND age > 20", TEST_INDEX_ACCOUNT));
-    Assert.assertThat(
-        result.replaceAll("\\s+", ""), equalTo(expectedOutput.replaceAll("\\s+", "")));
-  }
-
-  @Test
   public void spatialFilterExplainTest() throws IOException {
 
     String expectedOutputFilePath =

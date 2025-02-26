@@ -17,8 +17,6 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
-import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.legacy.utils.StringUtils;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 
 public class PluginIT extends SQLIntegTestCase {
@@ -56,31 +54,6 @@ public class PluginIT extends SQLIntegTestCase {
             "Either plugins.sql.enabled or rest.action.multi.allow_explicit_index setting is"
                 + " false"));
     assertThat(error.getString("type"), equalTo("SQLFeatureDisabledException"));
-    wipeAllClusterSettings();
-  }
-
-  @Test
-  public void sqlDeleteSettingsTest() throws IOException {
-    updateClusterSettings(
-        new ClusterSetting(PERSISTENT, Settings.Key.SQL_DELETE_ENABLED.getKeyValue(), "false"));
-
-    String deleteQuery = StringUtils.format("DELETE FROM %s", TestsConstants.TEST_INDEX_ACCOUNT);
-    final ResponseException exception =
-        expectThrows(ResponseException.class, () -> executeQuery(deleteQuery));
-    JSONObject actual = new JSONObject(TestUtils.getResponseBody(exception.getResponse()));
-    JSONObject expected =
-        new JSONObject(
-            "{\n"
-                + "  \"error\": {\n"
-                + "    \"reason\": \"Invalid SQL query\",\n"
-                + "    \"details\": \"DELETE clause is disabled by default and will be deprecated."
-                + " Using the plugins.sql.delete.enabled setting to enable it\",\n"
-                + "    \"type\": \"SQLFeatureDisabledException\"\n"
-                + "  },\n"
-                + "  \"status\": 400\n"
-                + "}");
-    assertTrue(actual.toString(), actual.similar(expected));
-
     wipeAllClusterSettings();
   }
 

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.legacy.TestsConstants.SYNTAX_EX_MSG_FRAGMENT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 
 import java.io.IOException;
@@ -14,7 +15,6 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 public class QueryAnalysisIT extends PPLIntegTestCase {
-
   @Override
   public void init() throws IOException {
     loadIndex(Index.ACCOUNT);
@@ -82,25 +82,25 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
   @Test
   public void queryNotStartingWithSearchCommandShouldFailSyntaxCheck() {
     String query = "fields firstname";
-    queryShouldThrowSyntaxException(query, "Failed to parse query due to offending symbol");
+    queryShouldThrowSyntaxException(query, SYNTAX_EX_MSG_FRAGMENT);
   }
 
   @Test
   public void queryWithIncorrectCommandShouldFailSyntaxCheck() {
     String query = String.format("search source=%s | field firstname", TEST_INDEX_ACCOUNT);
-    queryShouldThrowSyntaxException(query, "Failed to parse query due to offending symbol");
+    queryShouldThrowSyntaxException(query, SYNTAX_EX_MSG_FRAGMENT);
   }
 
   @Test
   public void queryWithIncorrectKeywordsShouldFailSyntaxCheck() {
     String query = String.format("search sources=%s", TEST_INDEX_ACCOUNT);
-    queryShouldThrowSyntaxException(query, "Failed to parse query due to offending symbol");
+    queryShouldThrowSyntaxException(query, SYNTAX_EX_MSG_FRAGMENT);
   }
 
   @Test
   public void unsupportedAggregationFunctionShouldFailSyntaxCheck() {
     String query = String.format("search source=%s | stats range(age)", TEST_INDEX_ACCOUNT);
-    queryShouldThrowSyntaxException(query, "Failed to parse query due to offending symbol");
+    queryShouldThrowSyntaxException(query, SYNTAX_EX_MSG_FRAGMENT);
   }
 
   /** Commands that fail semantic analysis should throw {@link SemanticCheckException}. */

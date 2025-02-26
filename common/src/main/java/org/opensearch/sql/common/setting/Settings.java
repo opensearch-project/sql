@@ -22,7 +22,6 @@ public abstract class Settings {
     SQL_ENABLED("plugins.sql.enabled"),
     SQL_SLOWLOG("plugins.sql.slowlog"),
     SQL_CURSOR_KEEP_ALIVE("plugins.sql.cursor.keep_alive"),
-    SQL_DELETE_ENABLED("plugins.sql.delete.enabled"),
 
     /** PPL Settings. */
     PPL_ENABLED("plugins.ppl.enabled"),
