@@ -92,13 +92,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
-    List<RexNode> projectList =
-        node.getProjectList().stream()
-            .filter(expr -> !(expr instanceof AllFields))
-            .map(expr -> rexVisitor.analyze(expr, context))
-            .collect(Collectors.toList());
-    if (projectList.isEmpty()) {
+    List<RexNode> projectList;
+    if (node.getProjectList().stream().anyMatch(e -> e instanceof AllFields)) {
       return context.relBuilder.peek();
+    } else {
+      projectList =
+          node.getProjectList().stream()
+              .map(expr -> rexVisitor.analyze(expr, context))
+              .collect(Collectors.toList());
     }
     if (node.isExcluded()) {
       context.relBuilder.projectExcept(projectList);

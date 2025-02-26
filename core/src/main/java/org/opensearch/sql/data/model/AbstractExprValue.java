@@ -82,4 +82,9 @@ public abstract class AbstractExprValue implements ExprValue {
 
   /** The expression value equal. */
   public abstract boolean equal(ExprValue other);
+
+  @Override
+  public Object valueForCalcite() {
+    return value();
+  }
 }

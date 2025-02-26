@@ -38,6 +38,15 @@ public class ExprTupleValue extends AbstractExprValue {
   }
 
   @Override
+  public Object valueForCalcite() {
+    LinkedHashMap<String, Object> resultMap = new LinkedHashMap<>();
+    for (Entry<String, ExprValue> entry : valueMap.entrySet()) {
+      resultMap.put(entry.getKey(), entry.getValue().valueForCalcite());
+    }
+    return resultMap;
+  }
+
+  @Override
   public ExprType type() {
     return ExprCoreType.STRUCT;
   }

@@ -250,35 +250,43 @@ public class PredicateAnalyzer {
       }
 
       switch (syntax) {
-        case BINARY, INTERNAL:
+        case BINARY:
+        case INTERNAL:
           return binary(call);
+
         case POSTFIX:
           return postfix(call);
+
         case PREFIX:
           return prefix(call);
+
         case SPECIAL:
-          return switch (call.getKind()) {
-            case CAST -> toCastExpression(call);
-            case LIKE, CONTAINS -> binary(call);
-            default -> {
+          switch (call.getKind()) {
+            case CAST:
+              return toCastExpression(call);
+            case LIKE:
+            case CONTAINS:
+              return binary(call);
+            default:
               String message = String.format(Locale.ROOT, "Unsupported call: [%s]", call);
               throw new PredicateAnalyzerException(message);
-            }
-          };
+          }
+
         case FUNCTION:
           if (call.getOperator().getName().equalsIgnoreCase("CONTAINS")) {
             List<Expression> operands = visitList(call.getOperands());
             String query =
-                convertQueryString(
-                    operands.subList(0, operands.size() - 1), operands.get(operands.size() - 1));
+                    convertQueryString(
+                            operands.subList(0, operands.size() - 1), operands.get(operands.size() - 1));
             return QueryExpression.create(new NamedFieldExpression()).queryString(query);
           }
           // fall through
+
         default:
-          String message =
-              format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]", syntax, call);
+          String message = format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]", syntax, call);
           throw new PredicateAnalyzerException(message);
       }
+
     }
 
     private static String convertQueryString(List<Expression> fields, Expression query) {
