@@ -14,9 +14,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
@@ -39,14 +41,27 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
   /** {@link OpenSearchRequest.IndexName}. */
   private final OpenSearchRequest.IndexName indexName;
 
+  private final LangSpec langSpec;
+
   public OpenSearchDescribeIndexRequest(OpenSearchClient client, String indexName) {
     this(client, new OpenSearchRequest.IndexName(indexName));
   }
 
   public OpenSearchDescribeIndexRequest(
+      OpenSearchClient client, String indexName, LangSpec langSpec) {
+    this(client, new OpenSearchRequest.IndexName(indexName), langSpec);
+  }
+
+  public OpenSearchDescribeIndexRequest(
       OpenSearchClient client, OpenSearchRequest.IndexName indexName) {
+    this(client, indexName, LangSpec.SQL_SPEC);
+  }
+
+  public OpenSearchDescribeIndexRequest(
+      OpenSearchClient client, OpenSearchRequest.IndexName indexName, LangSpec langSpec) {
     this.client = client;
     this.indexName = indexName;
+    this.langSpec = langSpec;
   }
 
   /**
@@ -64,7 +79,10 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
       results.add(
           row(
               entry.getKey(),
-              entry.getValue().legacyTypeName().toLowerCase(),
+              (langSpec.language() == LangSpec.LangType.PPL
+                      ? langSpec.typeName(entry.getValue())
+                      : entry.getValue().legacyTypeName())
+                  .toLowerCase(Locale.ROOT),
               pos++,
               clusterName(meta)));
     }
