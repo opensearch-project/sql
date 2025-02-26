@@ -32,6 +32,7 @@ import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchTableScan;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
@@ -85,8 +86,10 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
   @Override
   public void register(RelOptPlanner planner) {
     super.register(planner);
-    for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
-      planner.addRule(rule);
+    if (osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
+      for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
+        planner.addRule(rule);
+      }
     }
   }
 
