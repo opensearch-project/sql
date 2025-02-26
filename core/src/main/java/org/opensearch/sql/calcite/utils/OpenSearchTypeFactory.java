@@ -5,6 +5,23 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
+import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -12,15 +29,18 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.storage.Table;
 
-public class OpenSearchRelDataTypes extends JavaTypeFactoryImpl {
-  public static final OpenSearchRelDataTypes TYPE_FACTORY =
-      new OpenSearchRelDataTypes(RelDataTypeSystem.DEFAULT);
+/** This class is used to create RelDataType and map RelDataType to Java data type */
+public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
+  public static final OpenSearchTypeFactory TYPE_FACTORY =
+      new OpenSearchTypeFactory(RelDataTypeSystem.DEFAULT);
 
-  private OpenSearchRelDataTypes(RelDataTypeSystem typeSystem) {
+  private OpenSearchTypeFactory(RelDataTypeSystem typeSystem) {
     super(typeSystem);
   }
 
@@ -41,12 +61,12 @@ public class OpenSearchRelDataTypes extends JavaTypeFactoryImpl {
     return createTypeWithNullability(super.createMapType(keyType, valueType), nullable);
   }
 
-  public static RelDataType convertSchemaField(ExprType field) {
-    return convertSchemaField(field, true);
+  public static RelDataType convertExprTypeToRelDataType(ExprType field) {
+    return convertExprTypeToRelDataType(field, true);
   }
 
   /** Converts a OpenSearch ExprCoreType field to relational type. */
-  public static RelDataType convertSchemaField(ExprType fieldType, boolean nullable) {
+  public static RelDataType convertExprTypeToRelDataType(ExprType fieldType, boolean nullable) {
     if (fieldType instanceof ExprCoreType) {
       switch ((ExprCoreType) fieldType) {
         case UNDEFINED:
@@ -95,11 +115,50 @@ public class OpenSearchRelDataTypes extends JavaTypeFactoryImpl {
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("text")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("ip")) {
-        return TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, nullable);
+        return TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, nullable); // TODO UDT
       } else {
         throw new IllegalArgumentException(
             "Unsupported conversion for OpenSearch Data type: " + fieldType.typeName());
       }
+    }
+  }
+
+  /** Converts a Calcite data type to OpenSearch ExprCoreType. */
+  public static ExprType convertRelDataTypeToExprType(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+      case TINYINT:
+        return BYTE;
+      case SMALLINT:
+        return SHORT;
+      case INTEGER:
+        return INTEGER;
+      case BIGINT:
+        return LONG;
+      case REAL:
+        return FLOAT;
+      case DOUBLE:
+        return DOUBLE;
+      case VARCHAR:
+        return STRING;
+      case BOOLEAN:
+        return BOOLEAN;
+      case DATE:
+        return DATE;
+      case TIME:
+        return TIME;
+      case TIMESTAMP:
+        return TIMESTAMP;
+      case GEOMETRY:
+        return IP;
+      case ARRAY:
+        return ARRAY;
+      case MAP:
+        return STRUCT;
+      case NULL:
+        return UNDEFINED;
+      default:
+        throw new IllegalArgumentException(
+            "Unsupported conversion for Relational Data type: " + type.getSqlTypeName());
     }
   }
 
@@ -108,8 +167,14 @@ public class OpenSearchRelDataTypes extends JavaTypeFactoryImpl {
     List<RelDataType> typeList = new ArrayList<>();
     for (Map.Entry<String, ExprType> entry : table.getFieldTypes().entrySet()) {
       fieldNameList.add(entry.getKey());
-      typeList.add(OpenSearchRelDataTypes.convertSchemaField(entry.getValue()));
+      typeList.add(OpenSearchTypeFactory.convertExprTypeToRelDataType(entry.getValue()));
     }
     return TYPE_FACTORY.createStructType(typeList, fieldNameList, true);
+  }
+
+  /** not in use for now, but let's keep this code for future reference. */
+  @Override
+  public Type getJavaClass(RelDataType type) {
+    return super.getJavaClass(type);
   }
 }

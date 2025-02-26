@@ -9,15 +9,20 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import lombok.experimental.UtilityClass;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
+/** This class is used to convert the data type from JDBC to OpenSearch data type. */
 @UtilityClass
-public class JdbcUtil {
+public class JdbcOpenSearchDataTypeConvertor {
   private static final Logger LOG = LogManager.getLogger();
 
   public static ExprType getExprTypeFromSqlType(int sqlType) {
@@ -48,8 +53,8 @@ public class JdbcUtil {
     }
   }
 
-  public static ExprValue getExprValueFromSqlType(ResultSet rs, int i, int sqlType)
-      throws SQLException {
+  public static ExprValue getExprValueFromSqlType(
+      ResultSet rs, int i, int sqlType, RelDataType fieldType) throws SQLException {
     Object value;
     switch (sqlType) {
       case Types.VARCHAR:
@@ -74,11 +79,11 @@ public class JdbcUtil {
         value = rs.getFloat(i);
         break;
       case Types.DATE:
-        value = rs.getDate(i);
-        break;
+        return new ExprDateValue(rs.getString(i));
+      case Types.TIME:
+        return new ExprTimeValue(rs.getString(i));
       case Types.TIMESTAMP:
-        value = rs.getTimestamp(i);
-        break;
+        return new ExprTimestampValue(rs.getString(i));
       case Types.BOOLEAN:
         value = rs.getBoolean(i);
         break;
