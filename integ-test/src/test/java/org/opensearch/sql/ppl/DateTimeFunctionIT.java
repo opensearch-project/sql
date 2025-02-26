@@ -1473,7 +1473,10 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                     + "eval f3 = to_seconds(TIMESTAMP('2020-09-16 07:40:00')) | fields f1, f2, f3",
                 TEST_INDEX_DATE));
     verifySchema(
-        result, schema("f1", null, "bigint"), schema("f2", null, "bigint"), schema("f3", null, "bigint"));
+        result,
+        schema("f1", null, "bigint"),
+        schema("f2", null, "bigint"),
+        schema("f3", null, "bigint"));
     verifySome(result.getJSONArray("datarows"), rows(63390556800L, 63767461200L, 63767461200L));
   }
 

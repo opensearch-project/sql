@@ -164,8 +164,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsBySpan() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count() by span(age,10)", TEST_INDEX_BANK));
-    verifySchema(
-        response, schema("count()", null, "int"), schema("span(age,10)", null, "int"));
+    verifySchema(response, schema("count()", null, "int"), schema("span(age,10)", null, "int"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 
@@ -175,9 +174,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format("source=%s | stats count() by span(birthdate,1y)", TEST_INDEX_BANK));
     verifySchema(
-        response,
-        schema("count()", null, "int"),
-        schema("span(birthdate,1y)", null, "timestamp"));
+        response, schema("count()", null, "int"), schema("span(birthdate,1y)", null, "timestamp"));
     verifyDataRows(response, rows(2, "2017-01-01 00:00:00"), rows(5, "2018-01-01 00:00:00"));
   }
 
@@ -187,8 +184,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count() by span(age,10) as age_bucket", TEST_INDEX_BANK));
-    verifySchema(
-        response, schema("count()", null, "int"), schema("age_bucket", null, "int"));
+    verifySchema(response, schema("count()", null, "int"), schema("age_bucket", null, "int"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 
