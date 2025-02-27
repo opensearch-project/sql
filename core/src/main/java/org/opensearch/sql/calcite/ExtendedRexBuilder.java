@@ -5,9 +5,13 @@
 
 package org.opensearch.sql.calcite;
 
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.opensearch.sql.ast.expression.SpanUnit;
 
 public class ExtendedRexBuilder extends RexBuilder {
 
@@ -21,5 +25,50 @@ public class ExtendedRexBuilder extends RexBuilder {
 
   public RexNode equals(RexNode n1, RexNode n2) {
     return this.makeCall(SqlStdOperatorTable.EQUALS, n1, n2);
+  }
+
+  public SqlIntervalQualifier createIntervalUntil(SpanUnit unit) {
+    TimeUnit timeUnit;
+    switch (unit) {
+      case MILLISECOND:
+      case MS:
+        timeUnit = TimeUnit.MILLISECOND;
+        break;
+      case SECOND:
+      case S:
+        timeUnit = TimeUnit.SECOND;
+        break;
+      case MINUTE:
+      case m:
+        timeUnit = TimeUnit.MINUTE;
+        break;
+      case HOUR:
+      case H:
+        timeUnit = TimeUnit.HOUR;
+        break;
+      case DAY:
+      case D:
+        timeUnit = TimeUnit.DAY;
+        break;
+      case WEEK:
+      case W:
+        timeUnit = TimeUnit.WEEK;
+        break;
+      case MONTH:
+      case M:
+        timeUnit = TimeUnit.MONTH;
+        break;
+      case QUARTER:
+      case Q:
+        timeUnit = TimeUnit.QUARTER;
+        break;
+      case YEAR:
+      case Y:
+        timeUnit = TimeUnit.YEAR;
+        break;
+      default:
+        timeUnit = TimeUnit.EPOCH;
+    }
+    return new SqlIntervalQualifier(timeUnit, timeUnit, SqlParserPos.ZERO);
   }
 }
