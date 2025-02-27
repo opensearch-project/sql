@@ -15,7 +15,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -60,18 +59,18 @@ public interface AggregateUtils {
         return TransferUserDefinedAggFunction(
             PercentileApproxFunction.class,
             "percentile_approx",
-                UserDefineFunctionUtils.getReturnTypeInference(0),
+            UserDefineFunctionUtils.getReturnTypeInference(0),
             List.of(field),
             argList,
             context.relBuilder);
       case TAKE:
         return TransferUserDefinedAggFunction(
-                TakeAggFunction.class,
-                "take",
-                UserDefineFunctionUtils.getReturnTypeInferenceForArray(),
-                List.of(field),
-                argList,
-                context.relBuilder);
+            TakeAggFunction.class,
+            "take",
+            UserDefineFunctionUtils.getReturnTypeInferenceForArray(),
+            List.of(field),
+            argList,
+            context.relBuilder);
     }
     throw new IllegalStateException("Not Supported value: " + agg.getFuncName());
   }

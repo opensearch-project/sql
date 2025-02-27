@@ -12,8 +12,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
@@ -21,15 +19,14 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
+import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
-import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 
 public interface BuiltinFunctionUtils {
@@ -92,11 +89,14 @@ public interface BuiltinFunctionUtils {
         // case "IFNULL":
         //  return SqlLibraryOperators.IFNULL;
       case "IF":
-        return TransferUserDefinedFunction(IfFunction.class, "if", UserDefineFunctionUtils.getReturnTypeInference(1));
+        return TransferUserDefinedFunction(
+            IfFunction.class, "if", UserDefineFunctionUtils.getReturnTypeInference(1));
       case "IFNULL":
-        return TransferUserDefinedFunction(IfNullFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(1));
+        return TransferUserDefinedFunction(
+            IfNullFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(1));
       case "NULLIF":
-        return TransferUserDefinedFunction(NullIfFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(0));
+        return TransferUserDefinedFunction(
+            NullIfFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(0));
       case "IS NOT NULL":
         return SqlStdOperatorTable.IS_NOT_NULL;
       case "IS NULL":

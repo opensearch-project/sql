@@ -163,7 +163,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return ARRAY;
       case MAP:
         return STRUCT;
-        case NULL:
+      case NULL:
         return UNDEFINED;
       default:
         throw new IllegalArgumentException(

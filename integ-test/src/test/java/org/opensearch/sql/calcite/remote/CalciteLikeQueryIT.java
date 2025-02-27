@@ -66,5 +66,4 @@ public class CalciteLikeQueryIT extends LikeQueryIT {
   public void test_convert_field_text_to_keyword() throws IOException {
     super.test_convert_field_text_to_keyword();
   }
-
 }

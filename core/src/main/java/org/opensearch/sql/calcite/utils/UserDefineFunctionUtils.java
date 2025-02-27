@@ -1,5 +1,7 @@
 package org.opensearch.sql.calcite.utils;
 
+import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,15 +17,12 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
-
-import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 
 public class UserDefineFunctionUtils {
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
@@ -90,5 +89,4 @@ public class UserDefineFunctionUtils {
       return createArrayType(typeFactory, firstArgType, true);
     };
   }
-
 }

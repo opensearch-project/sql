@@ -9,9 +9,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.avatica.util.ArrayImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -95,7 +92,7 @@ public class JdbcOpenSearchDataTypeConvertor {
       case Types.ARRAY:
         value = rs.getArray(i);
         if (value instanceof ArrayImpl) {
-          value = Arrays.asList((Object[])((ArrayImpl) value).getArray());
+          value = Arrays.asList((Object[]) ((ArrayImpl) value).getArray());
         }
         break;
       default:
