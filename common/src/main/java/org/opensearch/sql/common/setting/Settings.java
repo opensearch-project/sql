@@ -31,6 +31,7 @@ public abstract class Settings {
     /** Enable Calcite as execution engine */
     CALCITE_ENGINE_ENABLED("plugins.calcite.enabled"),
     CALCITE_FALLBACK_ALLOWED("plugins.calcite.fallback.allowed"),
+    CALCITE_PUSHDOWN_ENABLED("plugins.calcite.pushdown.enabled"),
 
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),
