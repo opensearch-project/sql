@@ -75,7 +75,7 @@ public interface BuiltinFunctionUtils {
       case "LTRIM", "RTRIM", "TRIM":
         return SqlStdOperatorTable.TRIM;
       case "LENGTH":
-        return SqlLibraryOperators.LENGTH;
+        return SqlStdOperatorTable.CHAR_LENGTH;
       case "LOWER":
         return SqlStdOperatorTable.LOWER;
       case "POSITION":

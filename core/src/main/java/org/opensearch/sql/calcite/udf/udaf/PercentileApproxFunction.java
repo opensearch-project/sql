@@ -24,7 +24,7 @@ public class PercentileApproxFunction
       return acc;
     }
     Number percentileValue = (Number) allValues.get(1);
-    acc.add(((Number) targetValue).doubleValue(), percentileValue.intValue());
+    acc.evaluate(((Number) targetValue).doubleValue(), percentileValue.intValue());
     return acc;
   }
 
@@ -46,7 +46,7 @@ public class PercentileApproxFunction
       this.percent = 1.0;
     }
 
-    public void add(float value, int percent) {
+    public void evaluate(double value, int percent) {
       this.percent = percent / 100.0;
       this.add(value);
     }

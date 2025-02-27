@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.standalone;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -20,20 +18,34 @@ import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 
+import static org.opensearch.sql.legacy.TestsConstants.*;
+
 public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Override
   public void init() throws IOException {
     super.init();
     Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
-    request1.setJsonEntity("{\"name\": \"world\", \"age\": 20}");
+    request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
     client().performRequest(request1);
     Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
-    request2.setJsonEntity("{\"name\": \"world2\", \"age\": 30}");
+    request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
     client().performRequest(request2);
-    Request request3 = new Request("PUT", "/people/_doc/2?refresh=true");
-    request3.setJsonEntity("{\"name\": \"DummyEntityForMathVerification\", \"age\": 24}");
+
+    Request request3 = new Request("PUT", "/test_name_null/_doc/1?refresh=true");
+    request3.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
     client().performRequest(request3);
+    Request request4 = new Request("PUT", "/test_name_null/_doc/2?refresh=true");
+    request4.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
+    client().performRequest(request4);
+    Request request5 = new Request("PUT", "/test_name_null/_doc/3?refresh=true");
+    request5.setJsonEntity("{\"name\": null, \"age\": 30}");
+    client().performRequest(request5);
+
+    Request request6 = new Request("PUT", "/people/_doc/2?refresh=true");
+    request6.setJsonEntity("{\"name\": \"DummyEntityForMathVerification\", \"age\": 24}");
+    client().performRequest(request6);
+
     loadIndex(Index.BANK);
   }
 
@@ -52,13 +64,13 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             "{\n"
                     + "  \"schema\": [\n"
                     + "    {\n"
-                    + "      \"name\": \"[take(name, 2)]\",\n"
+                    + "      \"name\": \"take(name, 2)\",\n"
                     + "      \"type\": \"array\"\n"
                     + "    }\n"
                     + "  ],\n"
                     + "  \"datarows\": [\n"
                     + "    [\n"
-                    + "      [\"world\", \"world2\"]\n"
+                    + "      [\"hello\", \"world\"]\n"
                     + "    ]\n"
                     + "  ],\n"
                     + "  \"total\": 1,\n"
@@ -140,7 +152,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testSourceFieldQuery() {
-    String actual = execute("source=test | where age =30");
+    String actual = execute("source=test | fields name");
     assertEquals(
         "{\n"
             + "  \"schema\": [\n"
@@ -733,16 +745,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testLike() {
-    String query = "source=test | eval `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ELLO%') | fields `LIKE('hello world', '_ello%')`";
-    testSimplePPL(query, List.of(true));
-    String actual =
-        execute(
-            "source=test | eval `LIKE('hello world', '_ELLO%')` = LIKE('hello world', '_ELLO%'), "
-                + " `LIKE('hello world', '_ello%')` = LIKE('hello world', '_ello%')");
-  }
-
-  @Test
   public void testLower() {
     String query = "source=test | eval `LOWER('helloworld')` = LOWER('helloworld'), `LOWER('HELLOWORLD')`"
             + " = LOWER('HELLOWORLD') | fields `LOWER('helloworld')`, `LOWER('HELLOWORLD')`";
@@ -778,6 +780,14 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testLike() {
+    String query =
+            "source="
+                    + TEST_INDEX_WILDCARD
+                    + " | WHERE Like(KeywordBody, '\\\\_test wildcard%') | fields KeywordBody";
+  }
+
+  @Test
   public void testRtrim() {
     String query = "source=test | eval `RTRIM('   hello')` = RTRIM('   hello'), `RTRIM('hello   ')` = RTRIM('hello   ') | fields `RTRIM('   hello')`, `RTRIM('hello   ')`";
     testSimplePPL(query, List.of("   hello", "hello"));
@@ -805,25 +815,28 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   public void testIf() {
     String actual =
             execute(
-                    "source=test | eval result = if(like(name, '%d2%'), 'noway', name)");
+                    "source=test_name_null | eval result = if(like(name, '%he%'), 'default', name) | fields result");
     assertEquals(
             "{\n"
                     + "  \"schema\": [\n"
                     + "    {\n"
-                    + "      \"name\": \"name\",\n"
+                    + "      \"name\": \"result\",\n"
                     + "      \"type\": \"string\"\n"
                     + "    }\n"
                     + "  ],\n"
                     + "  \"datarows\": [\n"
                     + "    [\n"
-                    + "      \"hello\"\n"
+                    + "      \"default\"\n"
                     + "    ],\n"
                     + "    [\n"
-                    + "      \"world\"\n"
+                    + "      \"default\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"default\"\n"
                     + "    ]\n"
                     + "  ],\n"
-                    + "  \"total\": 2,\n"
-                    + "  \"size\": 2\n"
+                    + "  \"total\": 3,\n"
+                    + "  \"size\": 3\n"
                     + "}",
             actual);
   }
@@ -832,12 +845,12 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   public void testIfNull() {
     String actual =
             execute(
-                    "source=test | eval defaultName=ifnull(name, 'default')");
+                    "source=test_name_null | eval defaultName=ifnull(name, 'default') | fields defaultName") ;
     assertEquals(
             "{\n"
                     + "  \"schema\": [\n"
                     + "    {\n"
-                    + "      \"name\": \"name\",\n"
+                    + "      \"name\": \"defaultName\",\n"
                     + "      \"type\": \"string\"\n"
                     + "    }\n"
                     + "  ],\n"
@@ -847,10 +860,13 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
                     + "    ],\n"
                     + "    [\n"
                     + "      \"world\"\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      \"default\"\n"
                     + "    ]\n"
                     + "  ],\n"
-                    + "  \"total\": 2,\n"
-                    + "  \"size\": 2\n"
+                    + "  \"total\": 3,\n"
+                    + "  \"size\": 3\n"
                     + "}",
             actual);
   }
@@ -859,12 +875,12 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   public void testNullIf() {
     String actual =
             execute(
-                    "source=test | eval defaultName=nullif(name, 'world')");
+                    "source=test_name_null | eval defaultName=nullif(name, 'world') | fields defaultName");
     assertEquals(
             "{\n"
                     + "  \"schema\": [\n"
                     + "    {\n"
-                    + "      \"name\": \"name\",\n"
+                    + "      \"name\": \"defaultName\",\n"
                     + "      \"type\": \"string\"\n"
                     + "    }\n"
                     + "  ],\n"
@@ -873,11 +889,14 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
                     + "      \"hello\"\n"
                     + "    ],\n"
                     + "    [\n"
-                    + "      \"world\"\n"
+                    + "      null\n"
+                    + "    ],\n"
+                    + "    [\n"
+                    + "      null\n"
                     + "    ]\n"
                     + "  ],\n"
-                    + "  \"total\": 2,\n"
-                    + "  \"size\": 2\n"
+                    + "  \"total\": 3,\n"
+                    + "  \"size\": 3\n"
                     + "}",
             actual);
   }
