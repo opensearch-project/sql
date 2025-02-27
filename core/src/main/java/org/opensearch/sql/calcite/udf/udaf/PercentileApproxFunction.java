@@ -6,6 +6,7 @@ import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class PercentileApproxFunction
     implements UserDefinedAggFunction<PercentileApproxFunction.PencentileApproAccumulator> {
@@ -18,7 +19,12 @@ public class PercentileApproxFunction
   @Override
   public PencentileApproAccumulator add(PencentileApproAccumulator acc, Object... values) {
     List<Object> allValues = Arrays.asList(values);
-    acc.add((float) allValues.get(0), (int) allValues.get(1));
+    Object targetValue = allValues.get(0);
+    if (Objects.isNull(targetValue)) {
+      return acc;
+    }
+    Number percentileValue = (Number) allValues.get(1);
+    acc.add(((Number) targetValue).doubleValue(), percentileValue.intValue());
     return acc;
   }
 

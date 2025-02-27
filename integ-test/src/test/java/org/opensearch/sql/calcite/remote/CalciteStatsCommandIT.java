@@ -10,7 +10,7 @@ import org.junit.Ignore;
 import org.opensearch.sql.ppl.StatsCommandIT;
 
 // TODO
-@Ignore("Not all agg functions are supported in Calcite now")
+//@Ignore("Not all agg functions are supported in Calcite now")
 public class CalciteStatsCommandIT extends StatsCommandIT {
   @Override
   public void init() throws IOException {

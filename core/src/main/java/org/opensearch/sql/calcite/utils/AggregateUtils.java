@@ -68,7 +68,7 @@ public interface AggregateUtils {
         return TransferUserDefinedAggFunction(
                 TakeAggFunction.class,
                 "take",
-                UserDefineFunctionUtils.getReturnTypeInference(),
+                UserDefineFunctionUtils.getReturnTypeInferenceForArray(),
                 List.of(field),
                 argList,
                 context.relBuilder);

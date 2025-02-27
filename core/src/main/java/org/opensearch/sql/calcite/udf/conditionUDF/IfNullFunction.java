@@ -19,29 +19,4 @@ public class IfNullFunction implements UserDefinedFunction {
         }
         return conditionValue;
     }
-
-    public static SqlReturnTypeInference getReturnTypeInference() {
-        return opBinding -> {
-            RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-
-            // Get argument types
-            List<RelDataType> argTypes = opBinding.collectOperandTypes();
-
-            if (argTypes.isEmpty()) {
-                throw new IllegalArgumentException("Function requires at least one argument.");
-            }
-
-            // Infer return type based on the first argument type (Modify as needed)
-            RelDataType firstArgType = argTypes.get(1);
-
-            if (firstArgType.getSqlTypeName() == SqlTypeName.INTEGER) {
-                return typeFactory.createSqlType(SqlTypeName.INTEGER);
-            } else if (firstArgType.getSqlTypeName() == SqlTypeName.DOUBLE ||
-                    firstArgType.getSqlTypeName() == SqlTypeName.FLOAT) {
-                return typeFactory.createSqlType(SqlTypeName.DOUBLE);
-            } else {
-                return typeFactory.createSqlType(SqlTypeName.ANY);
-            }
-        };
-    }
 }

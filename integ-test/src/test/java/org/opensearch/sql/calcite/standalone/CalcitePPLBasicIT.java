@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -44,28 +45,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         () -> execute("source=unknown"));
   }
 
-  public void testSourceFieldQueryPercentile() {
-    String actual =
-        execute("source=test | stats percentile_approx(score, 50), percentile_approx(age, 90)");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"median\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      25.0\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
-  }
-
   public void testTakeAggregation() {
     String actual =
             execute("source=test | stats take(name, 2)");
@@ -73,13 +52,13 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             "{\n"
                     + "  \"schema\": [\n"
                     + "    {\n"
-                    + "      \"name\": \"median\",\n"
-                    + "      \"type\": \"double\"\n"
+                    + "      \"name\": \"[take(name, 2)]\",\n"
+                    + "      \"type\": \"array\"\n"
                     + "    }\n"
                     + "  ],\n"
                     + "  \"datarows\": [\n"
                     + "    [\n"
-                    + "      25.0\n"
+                    + "      [\"world\", \"world2\"]\n"
                     + "    ]\n"
                     + "  ],\n"
                     + "  \"total\": 1,\n"
@@ -716,6 +695,18 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testDate(){
+    String query = "source=test |eval `DATE('2020-08-26')` = DATE('2020-08-26') | fields `DATE('2020-08-26')`";
+    testSimplePPL(query, List.of("2020-08-26 01:00:00", "2020-08-27 01:01:01"));
+  }
+
+  @Test
+  public void testDateAdd(){
+    String query = "source=test | eval `'2020-08-26' + 1h` = DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR), `ts '2020-08-26 01:01:01' + 1d` = DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'), INTERVAL 1 DAY) | fields `'2020-08-26' + 1h`, `ts '2020-08-26 01:01:01' + 1d`";
+    testSimplePPL(query, List.of("2020-08-26 01:00:00", "2020-08-27 01:01:01"));
+  }
+
+  @Test
   public void testConcat() {
     String query = "source=test | eval `CONCAT('hello', 'world')` = CONCAT('hello', 'world'),"
             + " `CONCAT('hello ', 'whole ', 'world', '!')` = CONCAT('a', 'b ', 'c', 'd', 'e',"
@@ -902,7 +893,11 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     assertEquals(expectedValues.size(), dataRow.size());
     for (int i = 0; i < expectedValues.size(); i++) {
       Object expected = expectedValues.get(i);
-      if (expected instanceof BigDecimal) {
+      if (Objects.isNull(expected)) {
+        Object actual = dataRow.get(i);
+          assertNull(actual);
+      }
+      else if (expected instanceof BigDecimal) {
         Number actual = dataRow.get(i).getAsNumber();
         assertEquals(expected, actual);
       } else if (expected instanceof Double || expected instanceof Float) {

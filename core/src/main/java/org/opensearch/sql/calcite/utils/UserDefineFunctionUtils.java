@@ -23,6 +23,8 @@ import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
+import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+
 public class UserDefineFunctionUtils {
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,
@@ -59,10 +61,34 @@ public class UserDefineFunctionUtils {
         udfLtrimIdentifier, SqlKind.OTHER_FUNCTION, returnType, null, null, udfFunction);
   }
 
-  public static SqlReturnTypeInference getReturnTypeInference() {
+  public static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-      return typeFactory.createSqlType(SqlTypeName.ANY);
+
+      // Get argument types
+      List<RelDataType> argTypes = opBinding.collectOperandTypes();
+
+      if (argTypes.isEmpty()) {
+        throw new IllegalArgumentException("Function requires at least one argument.");
+      }
+      RelDataType firstArgType = argTypes.get(targetPosition);
+      return typeFactory.createSqlType(firstArgType.getSqlTypeName());
     };
   }
+
+  public static SqlReturnTypeInference getReturnTypeInferenceForArray() {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+
+      // Get argument types
+      List<RelDataType> argTypes = opBinding.collectOperandTypes();
+
+      if (argTypes.isEmpty()) {
+        throw new IllegalArgumentException("Function requires at least one argument.");
+      }
+      RelDataType firstArgType = argTypes.getFirst();
+      return createArrayType(typeFactory, firstArgType, true);
+    };
+  }
+
 }

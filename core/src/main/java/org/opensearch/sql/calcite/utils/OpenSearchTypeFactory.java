@@ -138,7 +138,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return FLOAT;
       case DOUBLE:
         return DOUBLE;
-      case VARCHAR:
+      case VARCHAR, CHAR:
         return STRING;
       case BOOLEAN:
         return BOOLEAN;
@@ -154,7 +154,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return ARRAY;
       case MAP:
         return STRUCT;
-      case NULL:
+        case NULL:
         return UNDEFINED;
       default:
         throw new IllegalArgumentException(

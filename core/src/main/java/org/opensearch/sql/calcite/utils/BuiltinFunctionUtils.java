@@ -92,33 +92,11 @@ public interface BuiltinFunctionUtils {
         // case "IFNULL":
         //  return SqlLibraryOperators.IFNULL;
       case "IF":
-        SqlReturnTypeInference dynamicReturnType = opBinding -> {
-          RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-
-          // Get argument types
-          List<RelDataType> argTypes = opBinding.collectOperandTypes();
-
-          if (argTypes.isEmpty()) {
-            throw new IllegalArgumentException("Function requires at least one argument.");
-          }
-
-          // Infer return type based on the first argument type (Modify as needed)
-          RelDataType firstArgType = argTypes.get(1);
-
-          if (firstArgType.getSqlTypeName() == SqlTypeName.INTEGER) {
-            return typeFactory.createSqlType(SqlTypeName.INTEGER);
-          } else if (firstArgType.getSqlTypeName() == SqlTypeName.DOUBLE ||
-                  firstArgType.getSqlTypeName() == SqlTypeName.FLOAT) {
-            return typeFactory.createSqlType(SqlTypeName.DOUBLE);
-          } else {
-            return typeFactory.createSqlType(SqlTypeName.ANY);
-          }
-        };
-        return TransferUserDefinedFunction(IfFunction.class, "if", dynamicReturnType);
+        return TransferUserDefinedFunction(IfFunction.class, "if", UserDefineFunctionUtils.getReturnTypeInference(1));
       case "IFNULL":
-        return TransferUserDefinedFunction(IfNullFunction.class, "ifnull", IfNullFunction.getReturnTypeInference());
+        return TransferUserDefinedFunction(IfNullFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(1));
       case "NULLIF":
-        return TransferUserDefinedFunction(NullIfFunction.class, "ifnull", NullIfFunction.getReturnTypeInference());
+        return TransferUserDefinedFunction(NullIfFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(0));
       case "IS NOT NULL":
         return SqlStdOperatorTable.IS_NOT_NULL;
       case "IS NULL":
