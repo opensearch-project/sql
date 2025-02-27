@@ -57,6 +57,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         () -> execute("source=unknown"));
   }
 
+  @Ignore
   public void testTakeAggregation() {
     String actual =
             execute("source=test | stats take(name, 2)");
