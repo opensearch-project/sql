@@ -102,7 +102,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> CALCITE_PUSHDOWN_ENABLED_SETTING =
       Setting.boolSetting(
           Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
-          true,
+          false,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -309,6 +309,12 @@ public class OpenSearchSettings extends Settings {
         Key.CALCITE_FALLBACK_ALLOWED,
         CALCITE_FALLBACK_ALLOWED_SETTING,
         new Updater(Key.CALCITE_FALLBACK_ALLOWED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_PUSHDOWN_ENABLED,
+        CALCITE_PUSHDOWN_ENABLED_SETTING,
+        new Updater(Key.CALCITE_PUSHDOWN_ENABLED));
     register(
         settingBuilder,
         clusterSettings,

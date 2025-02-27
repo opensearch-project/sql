@@ -30,7 +30,6 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -146,7 +145,7 @@ public class QueryService {
    *
    * @param osPlan Logical Plan derived from OpenSearch PPL
    */
-  private static @NotNull RelNode convertToCalcitePlan(RelNode osPlan) {
+  private static RelNode convertToCalcitePlan(RelNode osPlan) {
     RelNode calcitePlan = osPlan;
 
     /* Calcite only ensures collation of the final result produced from the root sort operator.

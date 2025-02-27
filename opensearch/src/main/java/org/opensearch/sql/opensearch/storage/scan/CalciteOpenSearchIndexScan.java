@@ -47,7 +47,11 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
   // changed by push down operations.
   private final RelDataType schema;
-
+  // This context maintains all the push down actions, which will be applied to the requestBuilder
+  // when it begins to scan data from OpenSearch.
+  // Because OpenSearchRequestBuilder doesn't support deep copy while we want to keep the
+  // requestBuilder independent among different plans produced in the optimization process,
+  // so we cannot apply these actions right away.
   private final PushDownContext pushDownContext;
 
   /**
@@ -59,7 +63,7 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
    */
   public CalciteOpenSearchIndexScan(
       RelOptCluster cluster, RelOptTable table, OpenSearchIndex index) {
-    this(cluster, table, index, table.getRowType(), null);
+    this(cluster, table, index, table.getRowType(), new PushDownContext());
   }
 
   private CalciteOpenSearchIndexScan(
@@ -71,7 +75,7 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
     super(cluster, table);
     this.osIndex = requireNonNull(index, "OpenSearch index");
     this.schema = schema;
-    this.pushDownContext = pushDownContext == null ? new PushDownContext() : pushDownContext;
+    this.pushDownContext = pushDownContext;
   }
 
   public CalciteOpenSearchIndexScan copy() {

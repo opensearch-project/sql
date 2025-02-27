@@ -8,11 +8,8 @@ package org.opensearch.sql.calcite.standalone;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 
 import java.io.IOException;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
-/** testSortXXAndXX could fail. TODO Remove this @Ignore when the issue fixed. */
-@Ignore
 public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
 
   @Override
