@@ -15,7 +15,11 @@ import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.plan.RelTraitDef;
+import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -129,7 +133,31 @@ public class QueryService {
       RelNode plan,
       CalcitePlanContext context,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    executionEngine.execute(optimize(plan), context, listener);
+    executionEngine.execute(convertToCalcitePlan(optimize(plan)), context, listener);
+  }
+
+  /**
+   * Convert OpenSearch Plan to Calcite Plan. Although both plans consist of Calcite RelNodes, there
+   * are some differences in the topological structures or semantics between them.
+   *
+   * @param osPlan Logical Plan derived from OpenSearch PPL
+   */
+  private static RelNode convertToCalcitePlan(RelNode osPlan) {
+    RelNode calcitePlan = osPlan;
+
+    /* Calcite only ensures collation of the final result produced from the root sort operator.
+     * While we expect that the collation can be preserved through the pipes over PPL, we need to
+     * explicitly add a sort operator on top of the original plan
+     * to ensure the correct collation of the final result.
+     * See logic in ${@link CalcitePrepareImpl}
+     * For the redundant sort, we rely on Calcite optimizer to eliminate
+     */
+    RelCollation collation = osPlan.getTraitSet().getCollation();
+    if (!(osPlan instanceof Sort) && collation != RelCollations.EMPTY) {
+      calcitePlan = LogicalSort.create(osPlan, collation, null, null);
+    }
+
+    return calcitePlan;
   }
 
   /**

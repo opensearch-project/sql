@@ -11,7 +11,6 @@ import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.calcite.linq4j.Enumerator;
-import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
@@ -62,11 +61,13 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public Object current() {
-    Object[] p =
-        fields.stream()
-            .map(k -> current.tupleValue().getOrDefault(k, ExprNullValue.of()).valueForCalcite())
-            .toArray();
-    return p;
+    /* In Calcite enumerable operators, row of single column will be optimized to a scalar value.
+     * See {@link PhysTypeImpl}
+     */
+    if (fields.size() == 1) {
+      return current.tupleValue().get(fields.getFirst()).valueForCalcite();
+    }
+    return fields.stream().map(k -> current.tupleValue().get(k).valueForCalcite()).toArray();
   }
 
   @Override
