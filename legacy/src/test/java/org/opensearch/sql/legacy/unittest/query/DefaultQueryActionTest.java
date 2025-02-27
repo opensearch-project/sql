@@ -130,8 +130,7 @@ public class DefaultQueryActionTest {
     doReturn(settingFetchSize).when(mockSqlRequest).fetchSize();
     queryAction.setSqlRequest(mockSqlRequest);
 
-    // TODO: deprecate json
-    Format[] formats = new Format[] {Format.CSV, Format.RAW, Format.JSON, Format.TABLE};
+    Format[] formats = new Format[] {Format.CSV, Format.RAW, Format.TABLE};
     for (Format format : formats) {
       queryAction.setFormat(format);
       queryAction.checkAndSetScroll();

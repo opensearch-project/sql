@@ -14,21 +14,12 @@ import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.util.SqlParserUtils;
 
 public class OpenSearchActionFactoryTest {
-  // TODO: deprecate json
-  @Test
-  public void josnOutputRequestShouldNotMigrateToQueryPlan() {
-    String sql = "SELECT age, MAX(balance) FROM account GROUP BY age";
-
-    assertFalse(
-        OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JSON));
-  }
-
   @Test
   public void nestQueryShouldNotMigrateToQueryPlan() {
     String sql = "SELECT age, nested(balance) FROM account GROUP BY age";
 
     assertFalse(
-        OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
+        OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql)));
   }
 
   @Test
@@ -36,7 +27,7 @@ public class OpenSearchActionFactoryTest {
     String sql = "SELECT age FROM account ";
 
     assertFalse(
-        OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
+        OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql)));
   }
 
   @Test
@@ -44,7 +35,7 @@ public class OpenSearchActionFactoryTest {
     String sql = "SELECT age, COUNT(balance) FROM account ";
 
     assertTrue(
-        OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
+        OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql)));
   }
 
   @Test
@@ -52,7 +43,7 @@ public class OpenSearchActionFactoryTest {
     String sql = "SELECT age, MAX(balance) - MIN(balance) FROM account ";
 
     assertTrue(
-        OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
+        OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql)));
   }
 
   @Test
@@ -60,6 +51,6 @@ public class OpenSearchActionFactoryTest {
     String sql = "SELECT CAST(age AS DOUBLE) as alias FROM account GROUP BY alias";
 
     assertTrue(
-        OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql), Format.JDBC));
+        OpenSearchActionFactory.shouldMigrateToQueryPlan(SqlParserUtils.parse(sql)));
   }
 }

@@ -245,7 +245,6 @@ public class ExplainIT extends SQLIntegTestCase {
         result.replaceAll("\\s+", ""), equalTo(expectedOutput.replaceAll("\\s+", "")));
   }
 
-  // TODO: is this test running without @Test?
   public void testContentTypeOfExplainRequestShouldBeJson() throws IOException {
     String query = makeRequest("SELECT firstname FROM opensearch-sql_test_index_account");
     Request request = getSqlRequest(query, true);

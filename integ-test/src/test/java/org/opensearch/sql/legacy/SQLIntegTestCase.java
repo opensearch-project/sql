@@ -228,10 +228,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     loadIndex(index, client());
   }
 
-  // TODO: deprecate json
-  // Note that explain queries are still supposed to return json
   protected Request getSqlRequest(String request, boolean explain) {
-    return getSqlRequest(request, explain, "json");
+    return getSqlRequest(request, explain, "jdbc");
   }
 
   protected Request getSqlRequest(String request, boolean explain, String requestType) {
@@ -268,12 +266,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     }
   }
 
-  // DONE: verified all usages have requestType="jdbc" except in CsvFormatIT and RawFormatIT
   protected String executeQuery(String query, String requestType) {
     return executeQuery(query, requestType, Map.of());
   }
 
-  // DONE: verified usages don't contain requestType="json"
   protected String executeQuery(String query, String requestType, Map<String, String> params) {
     try {
       String endpoint = "/_plugins/_sql?format=" + requestType;
@@ -297,7 +293,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return new JSONObject(executeQuery(query, "jdbc"));
   }
 
-  // DONE: verified usages don't contain requestType="json"
   protected String executeFetchQuery(String query, int fetchSize, String requestType)
       throws IOException {
     String endpoint = "/_plugins/_sql?format=" + requestType;
@@ -322,7 +317,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return executeQueryTemplate(queryTemplate, index, 4);
   }
 
-  // DONE: verified usages don't contain requestType="json"
   protected String executeFetchLessQuery(String query, String requestType) throws IOException {
 
     String endpoint = "/_plugins/_sql?format=" + requestType;
@@ -348,10 +342,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
       Assert.fail(utf8CharsetName + " not available");
     }
 
-    // TODO: deprecate json
     final String requestUrl =
         String.format(
-            Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT, urlEncodedQuery, "json");
+            Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT, urlEncodedQuery, "jdbc");
     return new Request("GET", requestUrl);
   }
 
@@ -401,7 +394,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return executeRequest(request, client());
   }
 
-  // TODO: this returns json. Only used in GetEndpointQueryIT
   protected JSONObject executeQueryWithGetRequest(final String sqlQuery) throws IOException {
 
     final Request request = buildGetEndpointRequest(sqlQuery);

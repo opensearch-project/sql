@@ -18,30 +18,17 @@ public class ActionRequestRestExecutorFactory {
    * call if necessary.
    *
    * @param format format of response
-   * @param queryAction query action
    * @return executor
    */
-  public static RestExecutor createExecutor(Format format, QueryAction queryAction) {
+  public static RestExecutor createExecutor(Format format) {
     switch (format) {
       case CSV:
         return new AsyncRestExecutor(new CSVResultRestExecutor());
-      case JSON: // TODO: deprecate json
-        return new AsyncRestExecutor(
-            new ElasticDefaultRestExecutor(queryAction),
-            action -> isJoin(action) || isUnionMinus(action));
       case JDBC:
       case RAW:
       case TABLE:
       default:
         return new AsyncRestExecutor(new PrettyFormatRestExecutor(format.getFormatName()));
     }
-  }
-
-  private static boolean isJoin(QueryAction queryAction) {
-    return queryAction instanceof OpenSearchJoinQueryAction;
-  }
-
-  private static boolean isUnionMinus(QueryAction queryAction) {
-    return queryAction instanceof MultiQueryAction;
   }
 }
