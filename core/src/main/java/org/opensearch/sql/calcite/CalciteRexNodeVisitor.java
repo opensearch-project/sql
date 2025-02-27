@@ -18,7 +18,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -30,7 +29,6 @@ import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
-import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -243,13 +241,5 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
     return context.rexBuilder.makeCall(
         BuiltinFunctionUtils.translate(node.getFuncName()), arguments);
-  }
-
-  @Override
-  public RexNode visitInterval(Interval node, CalcitePlanContext context) {
-    RexNode field = analyze(node.getValue(), context);
-    return context.rexBuilder.makeIntervalLiteral(
-        new BigDecimal(field.toString()),
-        new SqlIntervalQualifier(node.getUnit().name(), SqlParserPos.ZERO));
   }
 }
