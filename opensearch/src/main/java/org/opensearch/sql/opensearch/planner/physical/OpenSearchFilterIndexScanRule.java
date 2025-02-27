@@ -42,8 +42,9 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
   }
 
   protected void apply(RelOptRuleCall call, Filter filter, CalciteOpenSearchIndexScan scan) {
-    if (scan.pushDownFilter(filter)) {
-      call.transformTo(scan);
+    CalciteOpenSearchIndexScan newScan = scan.pushDownFilter(filter);
+    if (newScan != null) {
+      call.transformTo(newScan);
     }
   }
 
