@@ -12,6 +12,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
 import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.SHORT;
@@ -33,12 +34,13 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.OpenSearchTypeSystem;
 import org.opensearch.sql.storage.Table;
 
 /** This class is used to create RelDataType and map RelDataType to Java data type */
 public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public static final OpenSearchTypeFactory TYPE_FACTORY =
-      new OpenSearchTypeFactory(RelDataTypeSystem.DEFAULT);
+      new OpenSearchTypeFactory(OpenSearchTypeSystem.INSTANCE);
 
   private OpenSearchTypeFactory(RelDataTypeSystem typeSystem) {
     super(typeSystem);
@@ -150,6 +152,13 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return TIMESTAMP;
       case GEOMETRY:
         return IP;
+      case INTERVAL_YEAR:
+      case INTERVAL_MONTH:
+      case INTERVAL_DAY:
+      case INTERVAL_HOUR:
+      case INTERVAL_MINUTE:
+      case INTERVAL_SECOND:
+        return INTERVAL;
       case ARRAY:
         return ARRAY;
       case MAP:

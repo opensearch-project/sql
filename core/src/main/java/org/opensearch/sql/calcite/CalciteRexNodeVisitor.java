@@ -19,7 +19,7 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
@@ -40,7 +40,6 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
-import org.opensearch.sql.calcite.utils.DataTypeTransformer;
 
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {
 
@@ -199,13 +198,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     RelDataTypeFactory typeFactory = context.rexBuilder.getTypeFactory();
     SpanUnit unit = node.getUnit();
     if (isTimeBased(unit)) {
-      String datetimeUnitString = DataTypeTransformer.translate(unit);
-      RexNode interval =
-          context.rexBuilder.makeIntervalLiteral(
-              new BigDecimal(value.toString()),
-              new SqlIntervalQualifier(datetimeUnitString, SqlParserPos.ZERO));
-      // TODO not supported yet
-      return interval;
+      SqlIntervalQualifier intervalQualifier = context.rexBuilder.createIntervalUntil(unit);
+      long millis = SqlParserUtil.intervalToMillis(value.toString(), intervalQualifier);
+      return context.rexBuilder.makeIntervalLiteral(new BigDecimal(millis), intervalQualifier);
     } else {
       // if the unit is not time base - create a math expression to bucket the span partitions
       return context.rexBuilder.makeCall(
