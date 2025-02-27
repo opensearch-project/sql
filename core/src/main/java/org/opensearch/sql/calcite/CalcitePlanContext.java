@@ -5,10 +5,11 @@
 
 package org.opensearch.sql.calcite;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+
 import java.sql.Connection;
 import java.util.function.BiFunction;
 import lombok.Getter;
-import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
@@ -24,10 +25,10 @@ public class CalcitePlanContext {
 
   @Getter private boolean isResolvingJoinCondition = false;
 
-  private CalcitePlanContext(FrameworkConfig config, JavaTypeFactory typeFactory) {
+  private CalcitePlanContext(FrameworkConfig config) {
     this.config = config;
-    this.connection = CalciteToolsHelper.connect(config, typeFactory);
-    this.relBuilder = CalciteToolsHelper.create(config, typeFactory, connection);
+    this.connection = CalciteToolsHelper.connect(config, TYPE_FACTORY);
+    this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
   }
 
@@ -41,10 +42,6 @@ public class CalcitePlanContext {
   }
 
   public static CalcitePlanContext create(FrameworkConfig config) {
-    return new CalcitePlanContext(config, null);
-  }
-
-  public static CalcitePlanContext create(FrameworkConfig config, JavaTypeFactory typeFactory) {
-    return new CalcitePlanContext(config, typeFactory);
+    return new CalcitePlanContext(config);
   }
 }

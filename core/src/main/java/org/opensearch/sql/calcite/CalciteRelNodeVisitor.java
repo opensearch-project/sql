@@ -196,12 +196,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       groupByList.add(spanRex);
       // add span's group alias field (most recent added expression)
     }
-    //        List<RexNode> aggList = node.getAggExprList().stream()
-    //            .map(expr -> rexVisitor.analyze(expr, context))
-    //            .collect(Collectors.toList());
-    //        relBuilder.aggregate(relBuilder.groupKey(groupByList),
-    //            aggList.stream().map(rex -> (MyAggregateCall) rex)
-    //                .map(MyAggregateCall::getCall).collect(Collectors.toList()));
     context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggList);
     return context.relBuilder.peek();
   }
