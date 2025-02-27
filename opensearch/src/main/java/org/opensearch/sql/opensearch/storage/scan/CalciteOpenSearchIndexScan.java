@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayDeque;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
@@ -32,11 +33,10 @@ import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchTableScan;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
-import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ExpressionNotAnalyzableException;
-import org.opensearch.sql.opensearch.request.PredicateAnalyzer.PredicateAnalyzerException;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** Relational expression representing a scan of an OpenSearchIndex type. */
@@ -44,8 +44,15 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
   private static final Logger LOG = LogManager.getLogger(CalciteOpenSearchIndexScan.class);
 
   private final OpenSearchIndex osIndex;
-  private final OpenSearchRequestBuilder requestBuilder;
+  // The schema of this scan operator, it's initialized with the row type of the table, but may be
+  // changed by push down operations.
   private final RelDataType schema;
+  // This context maintains all the push down actions, which will be applied to the requestBuilder
+  // when it begins to scan data from OpenSearch.
+  // Because OpenSearchRequestBuilder doesn't support deep copy while we want to keep the
+  // requestBuilder independent among different plans produced in the optimization process,
+  // so we cannot apply these actions right away.
+  private final PushDownContext pushDownContext;
 
   /**
    * Creates an CalciteOpenSearchIndexScan.
@@ -56,24 +63,31 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
    */
   public CalciteOpenSearchIndexScan(
       RelOptCluster cluster, RelOptTable table, OpenSearchIndex index) {
-    this(cluster, table, index, index.createRequestBuilder(), table.getRowType());
+    this(cluster, table, index, table.getRowType(), new PushDownContext());
   }
 
-  public CalciteOpenSearchIndexScan(
+  private CalciteOpenSearchIndexScan(
       RelOptCluster cluster,
       RelOptTable table,
       OpenSearchIndex index,
-      OpenSearchRequestBuilder requestBuilder,
-      RelDataType schema) {
+      RelDataType schema,
+      PushDownContext pushDownContext) {
     super(cluster, table);
     this.osIndex = requireNonNull(index, "OpenSearch index");
-    this.requestBuilder = requestBuilder;
     this.schema = schema;
+    this.pushDownContext = pushDownContext;
+  }
+
+  public CalciteOpenSearchIndexScan copy() {
+    return new CalciteOpenSearchIndexScan(
+        getCluster(), table, osIndex, this.schema, pushDownContext.clone());
   }
 
   public CalciteOpenSearchIndexScan copyWithNewSchema(RelDataType schema) {
-    // TODO: need to do deep-copy on requestBuilder in case non-idempotent push down.
-    return new CalciteOpenSearchIndexScan(getCluster(), table, osIndex, requestBuilder, schema);
+    // Do shallow copy for requestBuilder, thus requestBuilder among different plans produced in the
+    // optimization process won't affect each other.
+    return new CalciteOpenSearchIndexScan(
+        getCluster(), table, osIndex, schema, pushDownContext.clone());
   }
 
   @Override
@@ -85,8 +99,10 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
   @Override
   public void register(RelOptPlanner planner) {
     super.register(planner);
-    for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
-      planner.addRule(rule);
+    if (osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
+      for (RelOptRule rule : OpenSearchIndexRules.OPEN_SEARCH_INDEX_SCAN_RULES) {
+        planner.addRule(rule);
+      }
     }
   }
 
@@ -97,15 +113,23 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
 
   @Override
   public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-    // Avoid optimizing the java row type since the scan will always return an array.
+    /* In Calcite enumerable operators, row of single column will be optimized to a scalar value.
+     * See {@link PhysTypeImpl}.
+     * Since we need to combine this operator with their original ones,
+     * let's follow this convention to apply the optimization here and ensure `scan` method
+     * returns the correct data format for single column rows.
+     * See {@link OpenSearchIndexEnumerator}
+     */
     PhysType physType =
-        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray(), false);
+        PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray());
 
     Expression scanOperator = implementor.stash(this, CalciteOpenSearchIndexScan.class);
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
   public Enumerable<@Nullable Object> scan() {
+    OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
+    pushDownContext.forEach(action -> action.apply(requestBuilder));
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
@@ -118,17 +142,18 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
     };
   }
 
-  public boolean pushDownFilter(Filter filter) {
+  public CalciteOpenSearchIndexScan pushDownFilter(Filter filter) {
     try {
+      CalciteOpenSearchIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
       QueryBuilder filterBuilder = PredicateAnalyzer.analyze(filter.getCondition(), schema);
-      requestBuilder.pushDownFilter(filterBuilder);
+      newScan.pushDownContext.add(requestBuilder -> requestBuilder.pushDownFilter(filterBuilder));
       // TODO: handle the case where condition contains a score function
-      return true;
-    } catch (ExpressionNotAnalyzableException | PredicateAnalyzerException e) {
+      return newScan;
+    } catch (Exception e) {
       LOG.warn("Cannot analyze the filter condition {}", filter.getCondition(), e);
     }
-    return false;
+    return null;
   }
 
   /**
@@ -143,7 +168,19 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
     }
     RelDataType newSchema = builder.build();
     CalciteOpenSearchIndexScan newScan = this.copyWithNewSchema(newSchema);
-    newScan.requestBuilder.pushDownProjectStream(newSchema.getFieldNames().stream());
+    newScan.pushDownContext.add(
+        requestBuilder -> requestBuilder.pushDownProjectStream(newSchema.getFieldNames().stream()));
     return newScan;
+  }
+
+  static class PushDownContext extends ArrayDeque<PushDownAction> {
+    @Override
+    public PushDownContext clone() {
+      return (PushDownContext) super.clone();
+    }
+  }
+
+  private interface PushDownAction {
+    void apply(OpenSearchRequestBuilder requestBuilder);
   }
 }
