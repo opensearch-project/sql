@@ -68,7 +68,10 @@ public class OpenSearchActionFactory {
 
   public static QueryAction create(Client client, String sql, boolean bypassMigrateToQueryPlan)
       throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureDisabledException {
-    return create(client, new QueryActionRequest(sql, new ColumnTypeProvider(), Format.JDBC), bypassMigrateToQueryPlan);
+    return create(
+        client,
+        new QueryActionRequest(sql, new ColumnTypeProvider(), Format.JDBC),
+        bypassMigrateToQueryPlan);
   }
 
   /**
@@ -78,7 +81,8 @@ public class OpenSearchActionFactory {
    * @param bypassMigrateToQueryPlan Avoid using QueryPlan.
    * @return Query object.
    */
-  public static QueryAction create(Client client, QueryActionRequest request, boolean bypassMigrateToQueryPlan)
+  public static QueryAction create(
+      Client client, QueryActionRequest request, boolean bypassMigrateToQueryPlan)
       throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureDisabledException {
     String sql = request.getSql();
     // Remove line breaker anywhere and semicolon at the end
