@@ -1,0 +1,24 @@
+{
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "keyword"
+      },
+      "country": {
+        "type": "text"
+      },
+      "hobby": {
+        "type": "text"
+      },
+      "language": {
+        "type": "keyword"
+      },
+      "year": {
+        "type": "integer"
+      },
+      "month": {
+        "type": "integer"
+      }
+    }
+  }
+}
