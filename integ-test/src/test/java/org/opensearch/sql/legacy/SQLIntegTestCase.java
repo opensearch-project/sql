@@ -229,9 +229,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /**
-   * TODO: Decide what to do with legacy tests using json response format.
-   * OpenSearch DSL format is deprecated. Need to ensure that requests in legacy tests using the json response format
-   * are not invoked.
+   * TODO: Decide what to do with legacy tests using json response format. OpenSearch DSL format is
+   * deprecated. Need to ensure that requests in legacy tests using the json response format are not
+   * invoked.
    */
   protected Request getSqlRequest(String request, boolean explain) {
     return getSqlRequest(request, explain, "json");
@@ -336,9 +336,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /**
-   * TODO: Decide what to do with legacy tests using json response format.
-   * OpenSearch DSL format is deprecated. Need to ensure that requests in legacy tests using the json response format
-   * are not invoked.
+   * TODO: Decide what to do with legacy tests using json response format. OpenSearch DSL format is
+   * deprecated. Need to ensure that requests in legacy tests using the json response format are not
+   * invoked.
    */
   protected Request buildGetEndpointRequest(final String sqlQuery) {
 

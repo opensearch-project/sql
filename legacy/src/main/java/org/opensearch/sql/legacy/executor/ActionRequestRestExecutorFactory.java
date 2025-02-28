@@ -7,9 +7,6 @@ package org.opensearch.sql.legacy.executor;
 
 import org.opensearch.sql.legacy.executor.csv.CSVResultRestExecutor;
 import org.opensearch.sql.legacy.executor.format.PrettyFormatRestExecutor;
-import org.opensearch.sql.legacy.query.QueryAction;
-import org.opensearch.sql.legacy.query.join.OpenSearchJoinQueryAction;
-import org.opensearch.sql.legacy.query.multi.MultiQueryAction;
 
 /** Created by Eliran on 26/12/2015. */
 public class ActionRequestRestExecutorFactory {
