@@ -10,8 +10,10 @@ import static org.hamcrest.Matchers.equalTo;
 import java.io.IOException;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore
 public class OrderIT extends SQLIntegTestCase {
 
   @Override

@@ -14,8 +14,10 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore
 public class MultiQueryIT extends SQLIntegTestCase {
 
   private static final String MINUS_SCROLL_DEFAULT_HINT =

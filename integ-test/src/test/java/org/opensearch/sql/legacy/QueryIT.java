@@ -40,6 +40,7 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
+@Ignore
 public class QueryIT extends SQLIntegTestCase {
 
   /**

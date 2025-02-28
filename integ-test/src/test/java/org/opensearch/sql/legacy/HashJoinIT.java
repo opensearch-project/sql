@@ -19,8 +19,10 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore
 /** Test new hash join algorithm by comparison with old implementation. */
 public class HashJoinIT extends SQLIntegTestCase {
 

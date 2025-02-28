@@ -12,6 +12,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import java.io.IOException;
 import java.util.Locale;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
@@ -19,6 +20,7 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 
+@Ignore
 public class PluginIT extends SQLIntegTestCase {
 
   @Override

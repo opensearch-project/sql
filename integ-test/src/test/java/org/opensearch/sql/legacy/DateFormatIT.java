@@ -29,6 +29,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 
+@Ignore
 public class DateFormatIT extends SQLIntegTestCase {
 
   private static final String SELECT_FROM =

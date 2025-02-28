@@ -228,8 +228,13 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     loadIndex(index, client());
   }
 
+  /**
+   * TODO: Decide what to do with legacy tests using json response format.
+   * OpenSearch DSL format is deprecated. Need to ensure that requests in legacy tests using the json response format
+   * are not invoked.
+   */
   protected Request getSqlRequest(String request, boolean explain) {
-    return getSqlRequest(request, explain, "jdbc");
+    return getSqlRequest(request, explain, "json");
   }
 
   protected Request getSqlRequest(String request, boolean explain, String requestType) {
@@ -330,6 +335,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return responseString;
   }
 
+  /**
+   * TODO: Decide what to do with legacy tests using json response format.
+   * OpenSearch DSL format is deprecated. Need to ensure that requests in legacy tests using the json response format
+   * are not invoked.
+   */
   protected Request buildGetEndpointRequest(final String sqlQuery) {
 
     final String utf8CharsetName = StandardCharsets.UTF_8.name();
@@ -344,7 +354,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
     final String requestUrl =
         String.format(
-            Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT, urlEncodedQuery, "jdbc");
+            Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT, urlEncodedQuery, "json");
     return new Request("GET", requestUrl);
   }
 
@@ -385,6 +395,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected static String executeRequest(final Request request, RestClient client)
       throws IOException {
+    if (request.getParameters().get("format") == "json") {
+      throw new IOException("request type is json");
+    }
     Response response = client.performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     return getResponseBody(response);

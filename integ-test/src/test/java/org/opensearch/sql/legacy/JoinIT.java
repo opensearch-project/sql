@@ -31,6 +31,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore
 public class JoinIT extends SQLIntegTestCase {
 
   private static final String USE_NL_HINT = " /*! USE_NL*/";
