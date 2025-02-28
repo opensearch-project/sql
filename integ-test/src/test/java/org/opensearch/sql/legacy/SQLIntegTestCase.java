@@ -395,9 +395,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected static String executeRequest(final Request request, RestClient client)
       throws IOException {
-    if (request.getParameters().get("format") == "json") {
-      throw new IOException("request type is json");
-    }
     Response response = client.performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     return getResponseBody(response);
