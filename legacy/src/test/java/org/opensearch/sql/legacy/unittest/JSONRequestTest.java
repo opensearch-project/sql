@@ -435,7 +435,7 @@ public class JSONRequestTest {
     CheckScriptContents.stubMockClient(mockClient);
     QueryAction queryAction =
         OpenSearchActionFactory.create(
-            mockClient, new QueryActionRequest(sql, columnTypeProvider, Format.JDBC));
+            mockClient, new QueryActionRequest(sql, columnTypeProvider, Format.JDBC), false);
 
     SqlRequest sqlRequest = new SqlRequest(sql, jsonRequest);
     queryAction.setSqlRequest(sqlRequest);
