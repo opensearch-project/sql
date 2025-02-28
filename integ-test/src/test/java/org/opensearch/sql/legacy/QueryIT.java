@@ -94,6 +94,7 @@ public class QueryIT extends SQLIntegTestCase {
         executeQuery(
             String.format(
                 Locale.ROOT, "SELECT * FROM %s LIMIT 1000", TestsConstants.TEST_INDEX_PHRASE));
+    Assert.assertTrue(response.has("hits"));
     Assert.assertEquals(6, getTotalHits(response));
   }
 
@@ -106,6 +107,7 @@ public class QueryIT extends SQLIntegTestCase {
                 "SELECT * FROM %s, %s LIMIT 2000",
                 TestsConstants.TEST_INDEX_BANK,
                 TestsConstants.TEST_INDEX_BANK_TWO));
+    Assert.assertTrue(response.has("hits"));
     Assert.assertEquals(14, getTotalHits(response));
   }
 
@@ -130,7 +132,7 @@ public class QueryIT extends SQLIntegTestCase {
   @Test
   public void selectAllWithMultipleFields() throws IOException {
     JSONObject response =
-        executeQuery( // TODO: Multiple entries with same key: age=32 and age=32
+        executeQuery(
             StringUtils.format(
                 "SELECT *, age, address FROM %s LIMIT 5", TestsConstants.TEST_INDEX_BANK));
 
@@ -150,7 +152,7 @@ public class QueryIT extends SQLIntegTestCase {
   @Test
   public void selectAllWithFieldAndGroupBy() throws IOException {
     JSONObject response =
-        executeQuery( // TODO: Multiple entries with same key: age=28 and age=28
+        executeQuery(
             StringUtils.format(
                 "SELECT *, age FROM %s GROUP BY age LIMIT 10", TestsConstants.TEST_INDEX_BANK));
 
@@ -648,11 +650,11 @@ public class QueryIT extends SQLIntegTestCase {
   @Test
   public void inTest() throws IOException {
     JSONObject response =
-        executeQuery( // TODO: can't resolve Symbol(namespace=FIELD_NAME, name=age) in type env
+        executeQuery(
             String.format(
                 Locale.ROOT,
                 "SELECT age FROM %s WHERE age IN (20, 22) LIMIT 1000",
-                TestsConstants.TEST_INDEX_PHRASE)); // change to PEOPLE?
+                TestsConstants.TEST_INDEX_PHRASE));
 
     JSONArray hits = getHits(response);
     for (int i = 0; i < hits.length(); i++) {
@@ -1184,7 +1186,6 @@ public class QueryIT extends SQLIntegTestCase {
     checkResponseSize(response, BANK_INDEX_MALE_FALSE);
   }
 
-  // TODO: aggregation format is different. check in json format first
   @Test
   public void testWhereWithBoolIsFalse() throws IOException {
     JSONObject response =
@@ -1369,7 +1370,6 @@ public class QueryIT extends SQLIntegTestCase {
     Assert.assertEquals(1, getTotalHits(response));
 
     JSONObject hit = hits.getJSONObject(0);
-    // TODO: JSONObject["parents"] not found.
     Assert.assertEquals("Eddard", getSource(hit).getJSONObject("parents").getString("father"));
   }
 
@@ -1826,7 +1826,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONArray hits = getHits(response);
     for (int i = 0; i < hits.length(); i++) {
       JSONObject hit = hits.getJSONObject(i);
-      JSONObject highlightFields = hit.getJSONObject("highlight"); // TODO: JSONObject["highlight"] not found.
+      JSONObject highlightFields = hit.getJSONObject("highlight");
 
       String phrase = highlightFields.getJSONArray("phrase").getString(0);
       Assert.assertTrue(phrase.contains("<b>fox</b>"));
@@ -1963,8 +1963,6 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject hit = getHits(response).getJSONObject(0);
     String age = hit.query("/_source/age").toString();
     String cases = age.equals("30") ? "1" : age.equals("40") ? "2" : "0";
-    // TODO: Cannot invoke "Object.toString()" because the return value of "org.json.JSONObject.query(String)" is null
-    // TODO: search for hit.query
 
     assertThat(cases, equalTo(hit.query("/fields/cases/0")));
   }

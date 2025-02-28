@@ -493,55 +493,17 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return String.format("{\"cursor\":\"%s\"}", cursor);
   }
 
-  /**
-   * Following methods adapts the jdbc response format to maintain compatibility with existing code that
-   * expects legacy json (hits) structure. Instead of refactoring all dependent testing code to work with
-   * the jdbc (schema/datarows) format, this adapter transforms the jdbc format into the json structure.
-   * Jdbc format:
-   * {
-   *   "schema": [{"name": "field1", "type": "text"}, ...],
-   *   "datarows": [[value1, value2, ...], ...]
-   * }
-   *
-   * Transformed to legacy json format:
-   * {
-   *   "hits": [{
-   *     "_source": {"field1": value1, ...}
-   *   }, ...]
-   * }
-   */
   protected JSONArray getHits(JSONObject response) {
-    Assert.assertTrue(response.has("schema"));
-    Assert.assertTrue(response.has("datarows"));
+    Assert.assertTrue(response.getJSONObject("hits").has("hits"));
 
-    JSONArray schema = response.getJSONArray("schema");
-    JSONArray datarows = response.getJSONArray("datarows");
-    JSONArray hits = new JSONArray();
-
-    for (int i = 0; i < datarows.length(); i++) {
-      JSONObject hit = new JSONObject();
-      JSONObject source = new JSONObject();
-      JSONArray row = datarows.getJSONArray(i);
-
-      for (int j = 0; j < schema.length(); j++) {
-        JSONObject schemaField = schema.getJSONObject(j);
-        String fieldName = schemaField.getString("name");
-        Object value = row.get(j);
-        if (value != JSONObject.NULL) { // TODO: need this?
-          source.put(fieldName, value);
-        }
-      }
-
-      hit.put("_source", source);
-      hits.put(hit);
-    }
-
-    return hits;
+    return response.getJSONObject("hits").getJSONArray("hits");
   }
 
   protected int getTotalHits(JSONObject response) {
-    Assert.assertTrue(response.has("total"));
-    return response.getInt("total");
+    Assert.assertTrue(response.getJSONObject("hits").has("total"));
+    Assert.assertTrue(response.getJSONObject("hits").getJSONObject("total").has("value"));
+
+    return response.getJSONObject("hits").getJSONObject("total").getInt("value");
   }
 
   protected JSONObject getSource(JSONObject hit) {
