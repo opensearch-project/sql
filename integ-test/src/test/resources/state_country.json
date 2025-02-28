@@ -1,0 +1,16 @@
+{"index":{"_id":"1"}}
+{"name":"Jake","age":70,"state":"California","country":"USA","year":2023,"month":4}
+{"index":{"_id":"2"}}
+{"name":"Hello","age":30,"state":"New York","country":"USA","year":2023,"month":4}
+{"index":{"_id":"3"}}
+{"name":"John","age":25,"state":"Ontario","country":"Canada","year":2023,"month":4}
+{"index":{"_id":"4"}}
+{"name":"Jane","age":20,"state":"Quebec","country":"Canada","year":2023,"month":4}
+{"index":{"_id":"5"}}
+{"name":"Jim","age":27,"state":"B.C","country":"Canada","year":2023,"month":4}
+{"index":{"_id":"6"}}
+{"name":"Peter","age":57,"state":"B.C","country":"Canada","year":2023,"month":4}
+{"index":{"_id":"7"}}
+{"name":"Rick","age":70,"state":"B.C","country":"Canada","year":2023,"month":4}
+{"index":{"_id":"8"}}
+{"name":"David","age":40,"state":"Washington","country":"USA","year":2023,"month":4}
