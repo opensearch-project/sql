@@ -102,7 +102,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> CALCITE_PUSHDOWN_ENABLED_SETTING =
       Setting.boolSetting(
           Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
-          false,
+          true,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 

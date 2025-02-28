@@ -24,6 +24,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -97,6 +98,12 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
   }
 
   @Override
+  public RelWriter explainTerms(RelWriter pw) {
+    return super.explainTerms(pw)
+        .itemIf("PushDownContext", pushDownContext, !pushDownContext.isEmpty());
+  }
+
+  @Override
   public void register(RelOptPlanner planner) {
     super.register(planner);
     if (osIndex.getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED)) {
@@ -147,7 +154,12 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
       CalciteOpenSearchIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
       QueryBuilder filterBuilder = PredicateAnalyzer.analyze(filter.getCondition(), schema);
-      newScan.pushDownContext.add(requestBuilder -> requestBuilder.pushDownFilter(filterBuilder));
+      newScan.pushDownContext.add(
+          PushDownAction.of(
+              PushDownType.FILTER,
+              filter.getCondition(),
+              requestBuilder -> requestBuilder.pushDownFilter(filterBuilder)));
+
       // TODO: handle the case where condition contains a score function
       return newScan;
     } catch (Exception e) {
@@ -169,10 +181,15 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
     RelDataType newSchema = builder.build();
     CalciteOpenSearchIndexScan newScan = this.copyWithNewSchema(newSchema);
     newScan.pushDownContext.add(
-        requestBuilder -> requestBuilder.pushDownProjectStream(newSchema.getFieldNames().stream()));
+        PushDownAction.of(
+            PushDownType.PROJECT,
+            newSchema.getFieldNames(),
+            requestBuilder ->
+                requestBuilder.pushDownProjectStream(newSchema.getFieldNames().stream())));
     return newScan;
   }
 
+  // TODO: should we consider equivalent among PushDownContexts with different push down sequence?
   static class PushDownContext extends ArrayDeque<PushDownAction> {
     @Override
     public PushDownContext clone() {
@@ -180,7 +197,31 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
     }
   }
 
-  private interface PushDownAction {
+  private enum PushDownType {
+    FILTER,
+    PROJECT,
+    // AGGREGATION,
+    // SORT,
+    // LIMIT,
+    // HIGHLIGHT,
+    // NESTED
+  }
+
+  private record PushDownAction(PushDownType type, Object digest, AbstractAction action) {
+    static PushDownAction of(PushDownType type, Object digest, AbstractAction action) {
+      return new PushDownAction(type, digest, action);
+    }
+
+    public String toString() {
+      return type + ":" + digest;
+    }
+
+    void apply(OpenSearchRequestBuilder requestBuilder) {
+      action.apply(requestBuilder);
+    }
+  }
+
+  private interface AbstractAction {
     void apply(OpenSearchRequestBuilder requestBuilder);
   }
 }
