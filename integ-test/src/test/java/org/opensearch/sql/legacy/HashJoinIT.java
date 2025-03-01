@@ -22,8 +22,10 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore
 /** Test new hash join algorithm by comparison with old implementation. */
+@Ignore(
+    "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
+        + " response for now. Need to decide what to do with these test cases.")
 public class HashJoinIT extends SQLIntegTestCase {
 
   /** Hint to use old join algorithm */

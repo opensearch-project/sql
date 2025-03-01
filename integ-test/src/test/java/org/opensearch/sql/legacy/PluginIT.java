@@ -20,7 +20,9 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 
-@Ignore
+@Ignore(
+    "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
+        + " response for now. Need to decide what to do with these test cases.")
 public class PluginIT extends SQLIntegTestCase {
 
   @Override

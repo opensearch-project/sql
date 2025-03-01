@@ -26,7 +26,9 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
 
-@Ignore
+@Ignore(
+    "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
+        + " response for now. Need to decide what to do with these test cases.")
 public class DateFunctionsIT extends SQLIntegTestCase {
 
   private static final String FROM = "FROM " + TestsConstants.TEST_INDEX_ONLINE;
