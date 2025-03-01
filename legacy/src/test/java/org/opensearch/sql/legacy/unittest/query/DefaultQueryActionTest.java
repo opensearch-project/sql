@@ -136,7 +136,7 @@ public class DefaultQueryActionTest {
       queryAction.checkAndSetScroll();
     }
 
-    Mockito.verify(mockRequestBuilder, times(4)).setSize(limit);
+    Mockito.verify(mockRequestBuilder, times(3)).setSize(limit);
     Mockito.verify(mockRequestBuilder, never()).setScroll(any(TimeValue.class));
 
     queryAction.setFormat(Format.JDBC);
