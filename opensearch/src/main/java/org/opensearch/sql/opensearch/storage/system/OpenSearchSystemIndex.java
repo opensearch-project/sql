@@ -77,7 +77,8 @@ public class OpenSearchSystemIndex implements Table {
     } else {
       return Pair.of(
           OpenSearchSystemIndexSchema.SYS_TABLE_MAPPINGS,
-          new OpenSearchDescribeIndexRequest(client, systemTable.getTableName()));
+          new OpenSearchDescribeIndexRequest(
+              client, systemTable.getTableName(), systemTable.getLangSpec()));
     }
   }
 }

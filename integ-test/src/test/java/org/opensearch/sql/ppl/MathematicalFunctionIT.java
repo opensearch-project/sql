@@ -31,7 +31,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testAbs() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = abs(age) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
   }
 
@@ -39,7 +39,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testCeil() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = ceil(age) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
   }
 
@@ -48,7 +48,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format("source=%s | eval f = ceiling(age) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
   }
 
@@ -88,7 +88,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testFloor() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = floor(age) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
   }
 
@@ -188,7 +188,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format("source=%s | eval f = crc32(firstname) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifyDataRows(
         result,
         rows(324249283),
@@ -205,7 +205,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format("source=%s | eval f = mod(age, 10) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(2), rows(6), rows(8), rows(3), rows(6), rows(9), rows(4));
   }
 
@@ -243,13 +243,13 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testRound() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = round(age) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
 
     result =
         executeQuery(
             String.format("source=%s | eval f = round(age, -1) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifyDataRows(result, rows(30), rows(40), rows(30), rows(30), rows(40), rows(40), rows(30));
   }
 
@@ -257,7 +257,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   public void testSign() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = sign(age) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(1), rows(1), rows(1), rows(1), rows(1), rows(1), rows(1));
   }
 
@@ -308,13 +308,13 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format("source=%s | eval f = truncate(age, 1) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifyDataRows(result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(39), rows(34));
 
     result =
         executeQuery(
             String.format("source=%s | eval f = truncate(age, -1) | fields f", TEST_INDEX_BANK));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifyDataRows(result, rows(30), rows(30), rows(20), rows(30), rows(30), rows(30), rows(30));
   }
 
