@@ -41,6 +41,7 @@ import static org.opensearch.index.query.QueryBuilders.termsQuery;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -905,15 +906,15 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression in(LiteralExpression literal) {
-      Iterable<?> iterable = (Iterable<?>) literal.value();
-      builder = termsQuery(getFieldReference(), iterable);
+      Collection<?> collection = (Collection<?>) literal.value();
+      builder = termsQuery(getFieldReference(), collection);
       return this;
     }
 
     @Override
     public QueryExpression notIn(LiteralExpression literal) {
-      Iterable<?> iterable = (Iterable<?>) literal.value();
-      builder = boolQuery().mustNot(termsQuery(getFieldReference(), iterable));
+      Collection<?> collection = (Collection<?>) literal.value();
+      builder = boolQuery().mustNot(termsQuery(getFieldReference(), collection));
       return this;
     }
   }
