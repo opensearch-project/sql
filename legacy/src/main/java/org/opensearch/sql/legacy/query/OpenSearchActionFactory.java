@@ -78,7 +78,7 @@ public class OpenSearchActionFactory {
    * Create the compatible Query object based on the SQL query.
    *
    * @param request The SQL query.
-   * @param bypassMigrateToQueryPlan Avoid using QueryPlan.
+   * @param bypassMigrateToQueryPlan Avoid using QueryPlan for testing.
    * @return Query object.
    */
   public static QueryAction create(
