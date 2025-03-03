@@ -52,7 +52,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testDate() {
     String query =
-        "source=people | eval `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26 13:49:00')) | fields `DATE(TIMESTAMP('2020-08-26 13:49:00'))`";
+        "source=people | eval `DATE('2020-08-26')` = DATE('2020-08-26') | fields `DATE('2020-08-26')`";
     testSimplePPL(query, List.of("2020-08-26"));
   }
 
@@ -93,8 +93,29 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testTimestamp() {
     String query =
-            "source=people | eval `TIMESTAMP('2020-08-26 13:49:00')` = TIMESTAMP('2020-08-26 13:49:00')| fields `TIMESTAMP('2020-08-26 13:49:00')`";
-    testSimplePPL(query, List.of("2020-08-26 13:49:00"));
+            "source=people | eval `TIMESTAMP('2020-08-26 13:49:00', '2020-08-26 13:49:02')` = TIMESTAMP('2020-08-26 13:49:00', '2020-08-26 13:49:02')| fields `TIMESTAMP('2020-08-26 13:49:00', '2020-08-26 13:49:02')`";
+    testSimplePPL(query, List.of("2020-08-27 03:38:02"));
+  }
+
+  @Test
+  public void testMonthName() {
+    String query =
+            "source=people | eval `MONTHNAME(DATE('2020-08-26'))` = MONTHNAME(DATE('2020-08-26')) | fields `MONTHNAME(DATE('2020-08-26'))`";
+    testSimplePPL(query, List.of("Aug"));
+  }
+
+  @Test
+  public void testLastDay() {
+    String query =
+            "source=people | eval `last_day('2023-02-06')` = last_day('2023-02-06') | fields `last_day('2023-02-06')`";
+    testSimplePPL(query, List.of("2023-02-28"));
+  }
+
+  @Test
+  public void testDayName() {
+    String query =
+            "source=people | eval `DAYNAME(DATE('2020-08-26'))` = DAYNAME(DATE('2020-08-26')) | fields `DAYNAME(DATE('2020-08-26'))`";
+    testSimplePPL(query, List.of("Wed"));
   }
 
   @Test
@@ -115,6 +136,13 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     testSimplePPL(query, List.of("2020-08-26 01:00:00", "2020-08-27 01:01:01"));
   }
 
+  @Test
+  public void testYear() {
+    String query =
+            "source=people | eval `YEAR(DATE('2020-08-26'))` = YEAR(DATE('2020-08-26')) | fields `YEAR(DATE('2020-08-26'))`";
+    testSimplePPL(query, List.of("2020"));
+  }
+
 
   // String functions
   @Test
@@ -126,13 +154,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
             + " 'whole ', 'world', '!')`";
 
     testSimplePPL(query, List.of("helloworld", "ab cdefg12"));
-  }
-
-  @Test
-  public void testYear() {
-    String query =
-            "source=people | eval `YEAR(DATE('2020-08-26'))` = YEAR(DATE('2020-08-26')) | fields `YEAR(DATE('2020-08-26'))`";
-    testSimplePPL(query, List.of("2020"));
   }
 
   @Test

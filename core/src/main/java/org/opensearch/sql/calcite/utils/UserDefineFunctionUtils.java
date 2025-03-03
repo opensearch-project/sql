@@ -8,7 +8,10 @@ package org.opensearch.sql.calcite.utils;
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
+import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,6 +31,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
@@ -102,6 +106,18 @@ public class UserDefineFunctionUtils {
     LocalDate date = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
+  }
+
+  public static List<Integer> transferStringExprToDateValue(String timeExpr) {
+    if (timeExpr.contains(":")) {
+      // A timestamp
+      LocalDateTime localDateTime = LocalDateTime.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+      return List.of(localDateTime.getYear(), localDateTime.getMonthValue(), localDateTime.getDayOfMonth());
+    }
+    else {
+      LocalDate localDate = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+      return List.of(localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth());
+    }
   }
 
 }

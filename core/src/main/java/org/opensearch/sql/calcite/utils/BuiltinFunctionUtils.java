@@ -6,9 +6,15 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
+import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.*;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -21,11 +27,15 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.DateString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.utcDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.utcTimeFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.utcTimeStampFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
@@ -171,16 +181,25 @@ public interface BuiltinFunctionUtils {
         // TODO Add more, ref RexImpTable
       case "DATE_SUB":
         return SqlLibraryOperators.DATE_SUB;
+      case "DAYNAME":
+        return SqlLibraryOperators.DAYNAME;
+      case "MONTHNAME":
+        return SqlLibraryOperators.MONTHNAME;
+      case "LAST_DAY":
+        return SqlStdOperatorTable.LAST_DAY;
+      case "TIME":
+        return SqlLibraryOperators.TIME;
       case "TIMESTAMP":
-        return SqlLibraryOperators.TIMESTAMP;
+        //return SqlLibraryOperators.TIMESTAMP;
+        return TransferUserDefinedFunction(timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
       case "WEEK", "YEAR", "MINUTE", "HOUR":
         return SqlLibraryOperators.DATE_PART;
       case "UTC_TIMESTAMP":
-        return TransferUserDefinedFunction(utcTimeFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
+        return TransferUserDefinedFunction(utcTimeStampFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
       case "UTC_TIME":
         return TransferUserDefinedFunction(utcTimeFunction.class, "utc_time", ReturnTypes.TIME);
       case "UTC_DATE":
-        return TransferUserDefinedFunction(utcTimeFunction.class, "utc_date", ReturnTypes.DATE);
+        return TransferUserDefinedFunction(utcDateFunction.class, "utc_date", ReturnTypes.DATE);
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);
     }
@@ -241,13 +260,33 @@ public interface BuiltinFunctionUtils {
         if (timestampExpr instanceof RexLiteral) {
           RexLiteral dateLiteral = (RexLiteral) timestampExpr;
           String dateStringValue = dateLiteral.getValueAs(String.class);
-          RexNode millisecondsExpr = context.rexBuilder.makeBigintLiteral(BigDecimal.valueOf(UserDefineFunctionUtils.transferDateExprToMilliSeconds(dateStringValue)));
-          DateArgs.add(millisecondsExpr);
+          List<Integer> dateValueList = transferStringExprToDateValue(dateStringValue);
+          DateArgs.add(context.rexBuilder.makeLiteral(dateValueList.get(0),
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
+          DateArgs.add(context.rexBuilder.makeLiteral(dateValueList.get(1),
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
+          DateArgs.add(context.rexBuilder.makeLiteral(dateValueList.get(2),
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
         }
         else {
           DateArgs.add(timestampExpr);
         }
         return DateArgs;
+      case "LAST_DAY":
+        List<RexNode> LastDateArgs = new ArrayList<>();
+        RexNode lastDayTimestampExpr = argList.get(0);
+        if (lastDayTimestampExpr instanceof RexLiteral) {
+          RexLiteral dateLiteral = (RexLiteral) lastDayTimestampExpr;
+          String dateStringValue = dateLiteral.getValueAs(String.class);
+          List<Integer> dateValues = transferStringExprToDateValue(dateStringValue);
+          DateString dateString = new DateString(dateValues.get(0), dateValues.get(1), dateValues.get(2));
+          RexNode dateNode = context.rexBuilder.makeDateLiteral(dateString);
+          LastDateArgs.add(dateNode);
+        }
+        else {
+          LastDateArgs.add(lastDayTimestampExpr);
+        }
+        return LastDateArgs;
       case "YEAR", "MINUTE", "HOUR", "DAY":
         List<RexNode> extractArgs = new ArrayList<>();
         extractArgs.add(context.rexBuilder.makeLiteral(op));
