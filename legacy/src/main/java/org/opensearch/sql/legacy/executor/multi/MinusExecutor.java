@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.legacy.executor.multi;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,7 +27,6 @@ import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.Where;
 import org.opensearch.sql.legacy.domain.hints.Hint;
 import org.opensearch.sql.legacy.domain.hints.HintType;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -68,15 +65,13 @@ public class MinusExecutor extends ElasticHitsExecutor {
   @Override
   public void run() throws SqlParseException {
     try {
-      if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-        pit =
-            new PointInTimeHandlerImpl(
-                client,
-                ArrayUtils.concat(
-                    builder.getOriginalSelect(true).getIndexArr(),
-                    builder.getOriginalSelect(false).getIndexArr()));
-        pit.create();
-      }
+      pit =
+          new PointInTimeHandlerImpl(
+              client,
+              ArrayUtils.concat(
+                  builder.getOriginalSelect(true).getIndexArr(),
+                  builder.getOriginalSelect(false).getIndexArr()));
+      pit.create();
 
       if (this.useTermsOptimization && this.fieldsOrderFirstTable.length != 1) {
         throw new SqlParseException(
@@ -121,13 +116,11 @@ public class MinusExecutor extends ElasticHitsExecutor {
     } catch (Exception e) {
       LOG.error("Failed during multi query run.", e);
     } finally {
-      if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-        try {
-          pit.delete();
-        } catch (RuntimeException e) {
-          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-          LOG.info("Error deleting point in time {} ", pit);
-        }
+      try {
+        pit.delete();
+      } catch (RuntimeException e) {
+        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+        LOG.info("Error deleting point in time {} ", pit);
       }
     }
   }

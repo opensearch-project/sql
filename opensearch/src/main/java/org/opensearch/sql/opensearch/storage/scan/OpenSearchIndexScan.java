@@ -14,14 +14,12 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.core.common.io.stream.BytesStreamInput;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NoCursorException;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
-import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.planner.SerializablePlan;
@@ -124,15 +122,8 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
             ((PlanSerializer.CursorDeserializationStream) in).resolveObject("engine");
 
     client = engine.getClient();
-    boolean pointInTimeEnabled =
-        Boolean.parseBoolean(
-            client.meta().get(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER.getKeyValue()));
     try (BytesStreamInput bsi = new BytesStreamInput(requestStream)) {
-      if (pointInTimeEnabled) {
-        request = new OpenSearchQueryRequest(bsi, engine);
-      } else {
-        request = new OpenSearchScrollRequest(bsi, engine);
-      }
+      request = new OpenSearchQueryRequest(bsi, engine);
     }
     maxResponseSize = in.readInt();
   }

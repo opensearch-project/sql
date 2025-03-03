@@ -22,7 +22,6 @@ public abstract class Settings {
     SQL_ENABLED("plugins.sql.enabled"),
     SQL_SLOWLOG("plugins.sql.slowlog"),
     SQL_CURSOR_KEEP_ALIVE("plugins.sql.cursor.keep_alive"),
-    SQL_PAGINATION_API_SEARCH_AFTER("plugins.sql.pagination.api"),
 
     /** PPL Settings. */
     PPL_ENABLED("plugins.ppl.enabled"),
