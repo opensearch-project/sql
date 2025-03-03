@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
+import org.json.JSONObject;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.inject.AbstractModule;
@@ -130,6 +131,28 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
             QueryResult result = new QueryResult(response.getSchema(), response.getResults());
             String json = new SimpleJsonResponseFormatter(PRETTY).format(result);
             actual.set(json);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            throw new IllegalStateException("Exception happened during execution", e);
+          }
+        });
+    return actual.get();
+  }
+
+  @Override
+  protected JSONObject executeQuery(String query) {
+    AtomicReference<JSONObject> actual = new AtomicReference<>();
+    pplService.execute(
+        new PPLQueryRequest(query, null, null),
+        new ResponseListener<ExecutionEngine.QueryResponse>() {
+
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse response) {
+            QueryResult result = new QueryResult(response.getSchema(), response.getResults());
+            String json = new SimpleJsonResponseFormatter(PRETTY).format(result);
+            actual.set(jsonify(json));
           }
 
           @Override
