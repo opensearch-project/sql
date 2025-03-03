@@ -7,8 +7,16 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Instant;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Objects;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -18,6 +26,12 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Override
   public void init() throws IOException {
     super.init();
+    Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
+    request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
+    client().performRequest(request1);
+    Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
+    request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
+    client().performRequest(request2);
     Request request3 = new Request("PUT", "/test_name_null/_doc/1?refresh=true");
     request3.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
     client().performRequest(request3);
@@ -34,13 +48,62 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.BANK);
   }
 
-  @Ignore
+
   @Test
   public void testDate() {
     String query =
-        "source=test |eval `DATE('2020-08-26')` = DATE('2020-08-26') | fields `DATE('2020-08-26')`";
-    testSimplePPL(query, List.of("2020-08-26 01:00:00", "2020-08-27 01:01:01"));
+        "source=people | eval `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26 13:49:00')) | fields `DATE(TIMESTAMP('2020-08-26 13:49:00'))`";
+    testSimplePPL(query, List.of("2020-08-26"));
   }
+
+  @Test
+  public void testUTCTIMESTAMP() {
+    Instant utcTimestamp = Instant.now();
+    String query =
+            "source=people | eval `UTC_TIMESTAMP()` = UTC_TIMESTAMP() | fields `UTC_TIMESTAMP()`";
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            .withZone(ZoneId.of("UTC"));
+    String formattedString = formatter.format(utcTimestamp);
+    testSimplePPL(query, List.of(formattedString));
+  }
+
+
+  @Test
+  public void testUTCTIME() {
+    Instant utcTimestamp = Instant.now();
+    LocalTime time = utcTimestamp.atZone(ZoneId.of("UTC")).toLocalTime();
+
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+    String formattedTime = time.format(formatter);
+    String query =
+            "source=people | eval `UTC_TIME()` = UTC_TIME() | fields `UTC_TIME()`";
+    testSimplePPL(query, List.of(formattedTime.toString()));
+  }
+
+  @Test
+  public void testUTCDATE() {
+    Instant utcTimestamp = Instant.now();
+    LocalDate localDate = utcTimestamp.atZone(ZoneId.of("UTC")).toLocalDate();
+    String query =
+            "source=people | eval `UTC_DATE()` = UTC_DATE() | fields `UTC_DATE()`";
+    testSimplePPL(query, List.of(localDate.toString()));
+  }
+
+
+  @Test
+  public void testTimestamp() {
+    String query =
+            "source=people | eval `TIMESTAMP('2020-08-26 13:49:00')` = TIMESTAMP('2020-08-26 13:49:00')| fields `TIMESTAMP('2020-08-26 13:49:00')`";
+    testSimplePPL(query, List.of("2020-08-26 13:49:00"));
+  }
+
+  @Test
+  public void testHour() {
+    String query =
+            "source=people | eval `HOUR(TIMESTAMP('2020-08-26 01:02:03'))` = HOUR(TIMESTAMP('2020-08-26 01:02:03')) | fields `HOUR(TIMESTAMP('2020-08-26 01:02:03'))`";
+    testSimplePPL(query, List.of(1));
+  }
+
 
   @Ignore
   @Test
@@ -52,6 +115,8 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     testSimplePPL(query, List.of("2020-08-26 01:00:00", "2020-08-27 01:01:01"));
   }
 
+
+  // String functions
   @Test
   public void testConcat() {
     String query =
@@ -61,6 +126,13 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
             + " 'whole ', 'world', '!')`";
 
     testSimplePPL(query, List.of("helloworld", "ab cdefg12"));
+  }
+
+  @Test
+  public void testYear() {
+    String query =
+            "source=people | eval `YEAR(DATE('2020-08-26'))` = YEAR(DATE('2020-08-26')) | fields `YEAR(DATE('2020-08-26'))`";
+    testSimplePPL(query, List.of("2020"));
   }
 
   @Test

@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -24,6 +25,7 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.utcTimeFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
@@ -169,10 +171,16 @@ public interface BuiltinFunctionUtils {
         // TODO Add more, ref RexImpTable
       case "DATE_SUB":
         return SqlLibraryOperators.DATE_SUB;
-      case "HOUR":
-        return SqlStdOperatorTable.HOUR;
-      case "MINUTE":
-        return SqlStdOperatorTable.MINUTE;
+      case "TIMESTAMP":
+        return SqlLibraryOperators.TIMESTAMP;
+      case "WEEK", "YEAR", "MINUTE", "HOUR":
+        return SqlLibraryOperators.DATE_PART;
+      case "UTC_TIMESTAMP":
+        return TransferUserDefinedFunction(utcTimeFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
+      case "UTC_TIME":
+        return TransferUserDefinedFunction(utcTimeFunction.class, "utc_time", ReturnTypes.TIME);
+      case "UTC_DATE":
+        return TransferUserDefinedFunction(utcTimeFunction.class, "utc_date", ReturnTypes.DATE);
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);
     }
@@ -227,6 +235,24 @@ public interface BuiltinFunctionUtils {
           throw new IllegalArgumentException("Log cannot accept argument list: " + argList);
         }
         return LogArgs;
+      case "DATE":
+        List<RexNode> DateArgs = new ArrayList<>();
+        RexNode timestampExpr = argList.get(0);
+        if (timestampExpr instanceof RexLiteral) {
+          RexLiteral dateLiteral = (RexLiteral) timestampExpr;
+          String dateStringValue = dateLiteral.getValueAs(String.class);
+          RexNode millisecondsExpr = context.rexBuilder.makeBigintLiteral(BigDecimal.valueOf(UserDefineFunctionUtils.transferDateExprToMilliSeconds(dateStringValue)));
+          DateArgs.add(millisecondsExpr);
+        }
+        else {
+          DateArgs.add(timestampExpr);
+        }
+        return DateArgs;
+      case "YEAR", "MINUTE", "HOUR", "DAY":
+        List<RexNode> extractArgs = new ArrayList<>();
+        extractArgs.add(context.rexBuilder.makeLiteral(op));
+        extractArgs.add(argList.getFirst());
+        return extractArgs;
       default:
         return argList;
     }

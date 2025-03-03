@@ -148,7 +148,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return DATE;
       case TIME:
         return TIME;
-      case TIMESTAMP:
+      case TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE:
         return TIMESTAMP;
       case GEOMETRY:
         return IP;

@@ -6,7 +6,10 @@
 package org.opensearch.sql.calcite.utils;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -94,4 +97,11 @@ public class UserDefineFunctionUtils {
       return createArrayType(typeFactory, firstArgType, true);
     };
   }
+
+  public static Long transferDateExprToMilliSeconds(String timeExpr) {
+    LocalDate date = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+    return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+  }
+
 }
