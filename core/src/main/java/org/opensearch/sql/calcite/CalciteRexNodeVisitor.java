@@ -253,10 +253,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<RexNode> arguments =
-            node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
+        node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
     return context.rexBuilder.makeCall(
-            BuiltinFunctionUtils.translate(node.getFuncName()),
-            translateArgument(node.getFuncName(), arguments, context));
+        BuiltinFunctionUtils.translate(node.getFuncName()),
+        translateArgument(node.getFuncName(), arguments, context));
   }
 
   @Override

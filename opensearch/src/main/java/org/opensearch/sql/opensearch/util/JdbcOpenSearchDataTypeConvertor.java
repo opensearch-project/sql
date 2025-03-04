@@ -9,7 +9,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
-
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.avatica.util.ArrayImpl;
 import org.apache.calcite.rel.type.RelDataType;

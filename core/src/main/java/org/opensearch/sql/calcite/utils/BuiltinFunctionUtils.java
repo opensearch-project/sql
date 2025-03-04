@@ -5,11 +5,12 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -17,8 +18,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
-
-import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
 
 public interface BuiltinFunctionUtils {
 
@@ -85,7 +84,7 @@ public interface BuiltinFunctionUtils {
   }
 
   static List<RexNode> translateArgument(
-          String op, List<RexNode> argList, CalcitePlanContext context) {
+      String op, List<RexNode> argList, CalcitePlanContext context) {
     switch (op.toUpperCase(Locale.ROOT)) {
       case "ATAN":
         List<RexNode> AtanArgs = new ArrayList<>(argList);
@@ -98,5 +97,4 @@ public interface BuiltinFunctionUtils {
         return argList;
     }
   }
-
 }

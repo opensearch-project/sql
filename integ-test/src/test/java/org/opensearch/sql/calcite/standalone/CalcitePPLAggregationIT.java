@@ -13,7 +13,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import java.util.List;
-
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -225,14 +224,11 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTake(){
+  public void testTake() {
     JSONObject actual =
-            executeQuery(
-                    String.format(
-                            "source=%s | stats take(firstname, 2) as take",
-                            TEST_INDEX_BANK));
+        executeQuery(
+            String.format("source=%s | stats take(firstname, 2) as take", TEST_INDEX_BANK));
     verifySchema(actual, schema("take", "array"));
     verifyDataRows(actual, rows(List.of("Amber JOHnny", "Hattie")));
   }
-
 }

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -12,9 +14,6 @@ import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.AggregateUtils;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalcitePlanContext> {
   private final CalciteRexNodeVisitor rexNodeVisitor;

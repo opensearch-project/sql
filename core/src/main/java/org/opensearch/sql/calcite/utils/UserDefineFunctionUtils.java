@@ -6,13 +6,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -36,53 +30,53 @@ import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
 public class UserDefineFunctionUtils {
-    public static RelBuilder.AggCall TransferUserDefinedAggFunction(
-            Class<? extends UserDefinedAggFunction> UDAF,
-            String functionName,
-            SqlReturnTypeInference returnType,
-            List<RexNode> fields,
-            List<RexNode> argList,
-            RelBuilder relBuilder) {
-        SqlUserDefinedAggFunction sqlUDAF =
-                new SqlUserDefinedAggFunction(
-                        new SqlIdentifier(functionName, SqlParserPos.ZERO),
-                        SqlKind.OTHER_FUNCTION,
-                        returnType,
-                        null,
-                        null,
-                        AggregateFunctionImpl.create(UDAF),
-                        false,
-                        false,
-                        Optionality.FORBIDDEN);
-        List<RexNode> addArgList = new ArrayList<>(fields);
-        addArgList.addAll(argList);
-        return relBuilder.aggregateCall(sqlUDAF, addArgList);
-    }
+  public static RelBuilder.AggCall TransferUserDefinedAggFunction(
+      Class<? extends UserDefinedAggFunction> UDAF,
+      String functionName,
+      SqlReturnTypeInference returnType,
+      List<RexNode> fields,
+      List<RexNode> argList,
+      RelBuilder relBuilder) {
+    SqlUserDefinedAggFunction sqlUDAF =
+        new SqlUserDefinedAggFunction(
+            new SqlIdentifier(functionName, SqlParserPos.ZERO),
+            SqlKind.OTHER_FUNCTION,
+            returnType,
+            null,
+            null,
+            AggregateFunctionImpl.create(UDAF),
+            false,
+            false,
+            Optionality.FORBIDDEN);
+    List<RexNode> addArgList = new ArrayList<>(fields);
+    addArgList.addAll(argList);
+    return relBuilder.aggregateCall(sqlUDAF, addArgList);
+  }
 
-    public static SqlOperator TransferUserDefinedFunction(
-            Class<? extends UserDefinedFunction> UDF,
-            String functionName,
-            SqlReturnTypeInference returnType) {
-        final ScalarFunction udfFunction =
-                ScalarFunctionImpl.create(Types.lookupMethod(UDF, "eval", Object[].class));
-        SqlIdentifier udfLtrimIdentifier =
-                new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
-        return new SqlUserDefinedFunction(
-                udfLtrimIdentifier, SqlKind.OTHER_FUNCTION, returnType, null, null, udfFunction);
-    }
+  public static SqlOperator TransferUserDefinedFunction(
+      Class<? extends UserDefinedFunction> UDF,
+      String functionName,
+      SqlReturnTypeInference returnType) {
+    final ScalarFunction udfFunction =
+        ScalarFunctionImpl.create(Types.lookupMethod(UDF, "eval", Object[].class));
+    SqlIdentifier udfLtrimIdentifier =
+        new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
+    return new SqlUserDefinedFunction(
+        udfLtrimIdentifier, SqlKind.OTHER_FUNCTION, returnType, null, null, udfFunction);
+  }
 
-    public static SqlReturnTypeInference getReturnTypeInferenceForArray() {
-        return opBinding -> {
-            RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+  public static SqlReturnTypeInference getReturnTypeInferenceForArray() {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
-            // Get argument types
-            List<RelDataType> argTypes = opBinding.collectOperandTypes();
+      // Get argument types
+      List<RelDataType> argTypes = opBinding.collectOperandTypes();
 
-            if (argTypes.isEmpty()) {
-                throw new IllegalArgumentException("Function requires at least one argument.");
-            }
-            RelDataType firstArgType = argTypes.getFirst();
-            return createArrayType(typeFactory, firstArgType, true);
-        };
-    }
+      if (argTypes.isEmpty()) {
+        throw new IllegalArgumentException("Function requires at least one argument.");
+      }
+      RelDataType firstArgType = argTypes.getFirst();
+      return createArrayType(typeFactory, firstArgType, true);
+    };
+  }
 }

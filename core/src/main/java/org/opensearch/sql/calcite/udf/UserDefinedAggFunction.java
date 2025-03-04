@@ -6,10 +6,10 @@
 package org.opensearch.sql.calcite.udf;
 
 public interface UserDefinedAggFunction<S extends Accumulator> {
-    S init();
+  S init();
 
-    Object result(S accumulator);
+  Object result(S accumulator);
 
-    // Add values to the accumulator
-    S add(S acc, Object... values);
+  // Add values to the accumulator
+  S add(S acc, Object... values);
 }
