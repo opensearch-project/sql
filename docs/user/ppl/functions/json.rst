@@ -22,18 +22,19 @@ Return type: BOOLEAN
 
 Example::
 
-    > source=json_test | eval is_valid = json_valid(json_string) | fields test_name, json_string, is_valid
-    fetched rows / total rows = 6/6
-    +---------------------+---------------------------------+----------+
-    | test_name           | json_string                     | is_valid |
-    |---------------------|---------------------------------|----------|
-    | json nested object  | {"a":"1","b":{"c":"2","d":"3"}} | True     |
-    | json object         | {"a":"1","b":"2"}               | True     |
-    | json array          | [1, 2, 3, 4]                    | True     |
-    | json scalar string  | "abc"                           | True     |
-    | json empty string   |                                 | True     |
-    | json invalid object | {"invalid":"json", "string"}    | False    |
-    +---------------------+---------------------------------+----------+
+    os> source=json_test | eval is_valid = json_valid(json_string) | fields test_name, json_string, is_valid
+    fetched rows / total rows = 7/7
+    +---------------------+--------------------------------------+----------+
+    | test_name           | json_string                          | is_valid |
+    |---------------------+--------------------------------------+----------|
+    | json nested object  | {"a":"1","b":{"c":"2","d":"3"}}      | True     |
+    | json nested list    | {"a":"1","b":[{"c":"2"}, {"c":"3"}]} | True     |
+    | json object         | {"a":"1","b":"2"}                    | True     |
+    | json array          | [1, 2, 3, 4]                         | True     |
+    | json scalar string  | "abc"                                | True     |
+    | json empty string   |                                      | True     |
+    | json invalid object | {"invalid":"json", "string"}         | False    |
+    +---------------------+--------------------------------------+----------+
 
 JSON
 ----------
@@ -49,14 +50,101 @@ Return type: BOOLEAN/DOUBLE/INTEGER/NULL/STRUCT/ARRAY
 
 Example::
 
-    > source=json_test | where json_valid(json_string) | eval json=json(json_string) | fields test_name, json_string, json
-    fetched rows / total rows = 5/5
-    +---------------------+---------------------------------+-------------------------+
-    | test_name           | json_string                     | json                    |
-    |---------------------|---------------------------------|-------------------------|
-    | json nested object  | {"a":"1","b":{"c":"2","d":"3"}} | {a:"1",b:{c:"2",d:"3"}} |
-    | json object         | {"a":"1","b":"2"}               | {a:"1",b:"2"}           |
-    | json array          | [1, 2, 3, 4]                    | [1,2,3,4]               |
-    | json scalar string  | "abc"                           | "abc"                   |
-    | json empty string   |                                 | null                    |
-    +---------------------+---------------------------------+-------------------------+
+    os> source=json_test | where json_valid(json_string) | eval json=json(json_string) | fields test_name, json_string, json
+    fetched rows / total rows = 6/6
+    +--------------------+--------------------------------------+-------------------------------------------+
+    | test_name          | json_string                          | json                                      |
+    |--------------------+--------------------------------------+-------------------------------------------|
+    | json nested object | {"a":"1","b":{"c":"2","d":"3"}}      | {'a': '1', 'b': {'c': '2', 'd': '3'}}     |
+    | json nested list   | {"a":"1","b":[{"c":"2"}, {"c":"3"}]} | {'a': '1', 'b': [{'c': '2'}, {'c': '3'}]} |
+    | json object        | {"a":"1","b":"2"}                    | {'a': '1', 'b': '2'}                      |
+    | json array         | [1, 2, 3, 4]                         | [1,2,3,4]                                 |
+    | json scalar string | "abc"                                | abc                                       |
+    | json empty string  |                                      | null                                      |
+    +--------------------+--------------------------------------+-------------------------------------------+
+
+JSON_EXTRACT
+____________
+
+Description
+>>>>>>>>>>>
+
+Usage: `json_extract(doc, path[, path])` Extracts a JSON value from a json document based on the path specified.
+
+Argument type: STRING, STRING
+
+Return type: STRING/BOOLEAN/DOUBLE/INTEGER/NULL/STRUCT/ARRAY
+
+- Up to 3 paths can be provided, and results of each `path` with be returned in an ARRAY.
+- Returns an ARRAY if `path` points to multiple results (e.g. $.a[*]) or if the `path` points to an array.
+- Return null if `path` is not valid, or if JSON `doc` is MISSING or NULL.
+- Throws SemanticCheckException if `doc` or `path` is malformed.
+- Throws ExpressionEvaluationException if `path` is missing.
+
+Example::
+
+    os> source=json_test | where json_valid(json_string) | eval json_extract=json_extract(json_string, '$.b') | fields test_name, json_string, json_extract
+    fetched rows / total rows = 6/6
+    +--------------------+--------------------------------------+-------------------------+
+    | test_name          | json_string                          | json_extract            |
+    |--------------------+--------------------------------------+-------------------------|
+    | json nested object | {"a":"1","b":{"c":"2","d":"3"}}      | {'c': '2', 'd': '3'}    |
+    | json nested list   | {"a":"1","b":[{"c":"2"}, {"c":"3"}]} | [{'c': '2'},{'c': '3'}] |
+    | json object        | {"a":"1","b":"2"}                    | 2                       |
+    | json array         | [1, 2, 3, 4]                         | null                    |
+    | json scalar string | "abc"                                | null                    |
+    | json empty string  |                                      | null                    |
+    +--------------------+--------------------------------------+-------------------------+
+
+    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract(json_string, '$.b[1].c') | fields test_name, json_string, json_extract
+    fetched rows / total rows = 1/1
+    +------------------+--------------------------------------+--------------+
+    | test_name        | json_string                          | json_extract |
+    |------------------+--------------------------------------+--------------|
+    | json nested list | {"a":"1","b":[{"c":"2"}, {"c":"3"}]} | 3            |
+    +------------------+--------------------------------------+--------------+
+
+    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract(json_string, '$.b[*].c') | fields test_name, json_string, json_extract
+    fetched rows / total rows = 1/1
+    +------------------+--------------------------------------+--------------+
+    | test_name        | json_string                          | json_extract |
+    |------------------+--------------------------------------+--------------|
+    | json nested list | {"a":"1","b":[{"c":"2"}, {"c":"3"}]} | [2,3]        |
+    +------------------+--------------------------------------+--------------+
+
+    os> source=json_test | where test_name="json nested list" | eval json_extract=json_extract(json_string, '$.a', '$.b[*].c') | fields test_name, json_string, json_extract
+    fetched rows / total rows = 1/1
+    +------------------+--------------------------------------+--------------+
+    | test_name        | json_string                          | json_extract |
+    |------------------+--------------------------------------+--------------|
+    | json nested list | {"a":"1","b":[{"c":"2"}, {"c":"3"}]} | [1,[2,3]]    |
+    +------------------+--------------------------------------+--------------+
+
+
+
+JSON_SET
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: `json_set(json_string, json_path, value)` Perform value insertion or override with provided Json path and value. Returns the updated JSON object if valid, null otherwise.
+
+Argument type: STRING, STRING, BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE/STRING/BOOLEAN/DATE/TIME/TIMESTAMP/INTERVAL/IP/STRUCT/ARRAY
+
+Return type: STRING
+
+Example::
+
+    os> source=json_test | eval updated=json_set(json_string, "$.c.innerProperty", "test_value") | fields test_name, updated
+    fetched rows / total rows = 6/6
+    +---------------------+--------------------------------------------------------------------+
+    | test_name           | updated                                                            |
+    |---------------------+--------------------------------------------------------------------|
+    | json nested object  | {"a":"1","b":{"c":"2","d":"3"},"c":{"innerProperty":"test_value"}} |
+    | json object         | {"a":"1","b":"2","c":{"innerProperty":"test_value"}}               |
+    | json array          | null                                                               |
+    | json scalar string  | null                                                               |
+    | json empty string   | null                                                               |
+    | json invalid object | null                                                               |
+    +---------------------+--------------------------------------------------------------------+
