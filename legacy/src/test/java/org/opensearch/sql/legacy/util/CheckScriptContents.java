@@ -63,8 +63,7 @@ public class CheckScriptContents {
     try {
       Client mockClient = mock(Client.class);
       stubMockClient(mockClient);
-      // Avoid creating QueryPlanQueryAction so that scriptFields is available
-      QueryAction queryAction = OpenSearchActionFactory.create(mockClient, query, true);
+      QueryAction queryAction = OpenSearchActionFactory.create(mockClient, query);
       SqlElasticRequestBuilder requestBuilder = queryAction.explain();
 
       SearchRequestBuilder request = (SearchRequestBuilder) requestBuilder.getBuilder();

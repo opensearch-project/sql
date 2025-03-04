@@ -26,8 +26,7 @@ public class StringOperatorsTest {
   @Test
   public void substringTest() {
     String query =
-        "SELECT substring(lastname, 2, 1) FROM accounts WHERE substring(lastname, 2, 1) = 'a' "
-            + "GROUP BY substring(lastname, 2, 1) ORDER BY substring(lastname, 2, 1)";
+        "SELECT substring(lastname, 2, 1) FROM accounts WHERE substring(lastname, 2, 1) = 'a'";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(
@@ -52,8 +51,7 @@ public class StringOperatorsTest {
   @Test
   public void lengthTest() {
     String query =
-        "SELECT length(lastname) FROM accounts WHERE length(lastname) = 5 "
-            + "GROUP BY length(lastname) ORDER BY length(lastname)";
+        "SELECT length(lastname) FROM accounts WHERE length(lastname) = 5";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(
@@ -67,8 +65,7 @@ public class StringOperatorsTest {
   @Test
   public void replaceTest() {
     String query =
-        "SELECT replace(lastname, 'a', 'A') FROM accounts WHERE replace(lastname, 'a', 'A') = 'aba'"
-            + " GROUP BY replace(lastname, 'a', 'A') ORDER BY replace(lastname, 'a', 'A')";
+        "SELECT replace(lastname, 'a', 'A') FROM accounts WHERE replace(lastname, 'a', 'A') = 'aba'";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(
@@ -84,8 +81,7 @@ public class StringOperatorsTest {
   @Test
   public void locateTest() {
     String query =
-        "SELECT locate('a', lastname, 1) FROM accounts WHERE locate('a', lastname, 1) = 4 "
-            + "GROUP BY locate('a', lastname, 1) ORDER BY locate('a', lastname, 1)";
+        "SELECT locate('a', lastname, 1) FROM accounts WHERE locate('a', lastname, 1) = 4";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(
@@ -101,8 +97,7 @@ public class StringOperatorsTest {
   @Test
   public void ltrimTest() {
     String query =
-        "SELECT ltrim(lastname) FROM accounts WHERE ltrim(lastname) = 'abc' "
-            + "GROUP BY ltrim(lastname) ORDER BY ltrim(lastname)";
+        "SELECT ltrim(lastname) FROM accounts WHERE ltrim(lastname) = 'abc'";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(
@@ -118,8 +113,7 @@ public class StringOperatorsTest {
   @Test
   public void rtrimTest() {
     String query =
-        "SELECT rtrim(lastname) FROM accounts WHERE rtrim(lastname) = 'cba' "
-            + "GROUP BY rtrim(lastname) ORDER BY rtrim(lastname)";
+        "SELECT rtrim(lastname) FROM accounts WHERE rtrim(lastname) = 'cba'";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(
@@ -135,8 +129,7 @@ public class StringOperatorsTest {
   @Test
   public void asciiTest() {
     String query =
-        "SELECT ascii(lastname) FROM accounts WHERE ascii(lastname) = 108 "
-            + "GROUP BY ascii(lastname) ORDER BY ascii(lastname)";
+        "SELECT ascii(lastname) FROM accounts WHERE ascii(lastname) = 108";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(

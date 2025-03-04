@@ -45,6 +45,6 @@ public class SearchDao {
    */
   public QueryAction explain(QueryActionRequest queryActionRequest)
       throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureDisabledException {
-    return OpenSearchActionFactory.create(client, queryActionRequest, false);
+    return OpenSearchActionFactory.create(client, queryActionRequest);
   }
 }

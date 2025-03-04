@@ -63,26 +63,16 @@ public class OpenSearchActionFactory {
 
   public static QueryAction create(Client client, String sql)
       throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureDisabledException {
-    return create(client, sql, false);
-  }
-
-  public static QueryAction create(Client client, String sql, boolean bypassMigrateToQueryPlan)
-      throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureDisabledException {
-    return create(
-        client,
-        new QueryActionRequest(sql, new ColumnTypeProvider(), Format.JDBC),
-        bypassMigrateToQueryPlan);
+    return create(client, new QueryActionRequest(sql, new ColumnTypeProvider(), Format.JDBC));
   }
 
   /**
    * Create the compatible Query object based on the SQL query.
    *
    * @param request The SQL query.
-   * @param bypassMigrateToQueryPlan Avoid using QueryPlan for testing.
    * @return Query object.
    */
-  public static QueryAction create(
-      Client client, QueryActionRequest request, boolean bypassMigrateToQueryPlan)
+  public static QueryAction create(Client client, QueryActionRequest request)
       throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureDisabledException {
     String sql = request.getSql();
     // Remove line breaker anywhere and semicolon at the end
@@ -126,7 +116,7 @@ public class OpenSearchActionFactory {
         } else {
           sqlExpr.accept(new TermFieldRewriter());
           // migrate aggregation to query planner framework.
-          if (!bypassMigrateToQueryPlan && shouldMigrateToQueryPlan(sqlExpr)) {
+          if (shouldMigrateToQueryPlan(sqlExpr)) {
             return new QueryPlanQueryAction(
                 new QueryPlanRequestBuilder(
                     new BindingTupleQueryPlanner(client, sqlExpr, request.getTypeProvider())));
