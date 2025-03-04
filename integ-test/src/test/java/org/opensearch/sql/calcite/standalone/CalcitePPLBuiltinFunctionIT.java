@@ -63,7 +63,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                         + "  ],\n"
                         + "  \"datarows\": [\n"
                         + "    [\n"
-                        + "      [\"hello\"]\n"
+                        + "      [\n        \"hello\"\n      ]\n"
                         + "    ]\n"
                         + "  ],\n"
                         + "  \"total\": 1,\n"

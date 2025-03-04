@@ -60,7 +60,7 @@ public interface BuiltinFunctionUtils {
       case "ABS":
         return SqlStdOperatorTable.ABS;
       case "SQRT":
-        return TransferUserDefinedFunction(SqrtFunction.class, "sqrt", ReturnTypes.DOUBLE);
+        return TransferUserDefinedFunction(SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE);
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP":
         return SqlStdOperatorTable.CURRENT_TIMESTAMP;

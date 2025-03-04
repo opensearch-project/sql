@@ -42,4 +42,24 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String expectedSparkSql = "" + "SELECT ABS(-30) `SAL0`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 10";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testsqrtWithOverriding() {
+    String ppl = "source=EMP | eval SQRT = sqrt(4) | head 2 | fields SQRT";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+            "LogicalProject(SQRT=[$8])\n"
+                    + "  LogicalSort(fetch=[2])\n"
+                    + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+                    + " COMM=[$6], DEPTNO=[$7], SQRT=[SQRT(4)])\n"
+                    + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult =
+            "SQRT=2.0\n"
+                    + "SQRT=2.0\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "" + "SELECT SQRT(4) `SQRT`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

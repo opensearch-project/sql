@@ -58,7 +58,7 @@ public interface AggregateUtils {
       case TAKE:
         return TransferUserDefinedAggFunction(
                 TakeAggFunction.class,
-                "take",
+                "TAKE",
                 UserDefineFunctionUtils.getReturnTypeInferenceForArray(),
                 List.of(field),
                 argList,
