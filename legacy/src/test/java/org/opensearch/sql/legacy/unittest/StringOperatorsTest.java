@@ -50,8 +50,7 @@ public class StringOperatorsTest {
 
   @Test
   public void lengthTest() {
-    String query =
-        "SELECT length(lastname) FROM accounts WHERE length(lastname) = 5";
+    String query = "SELECT length(lastname) FROM accounts WHERE length(lastname) = 5";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(
@@ -65,7 +64,8 @@ public class StringOperatorsTest {
   @Test
   public void replaceTest() {
     String query =
-        "SELECT replace(lastname, 'a', 'A') FROM accounts WHERE replace(lastname, 'a', 'A') = 'aba'";
+        "SELECT replace(lastname, 'a', 'A') FROM accounts WHERE replace(lastname, 'a', 'A') ="
+            + " 'aba'";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(
@@ -96,8 +96,7 @@ public class StringOperatorsTest {
 
   @Test
   public void ltrimTest() {
-    String query =
-        "SELECT ltrim(lastname) FROM accounts WHERE ltrim(lastname) = 'abc'";
+    String query = "SELECT ltrim(lastname) FROM accounts WHERE ltrim(lastname) = 'abc'";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(
@@ -112,8 +111,7 @@ public class StringOperatorsTest {
 
   @Test
   public void rtrimTest() {
-    String query =
-        "SELECT rtrim(lastname) FROM accounts WHERE rtrim(lastname) = 'cba'";
+    String query = "SELECT rtrim(lastname) FROM accounts WHERE rtrim(lastname) = 'cba'";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(
@@ -128,8 +126,7 @@ public class StringOperatorsTest {
 
   @Test
   public void asciiTest() {
-    String query =
-        "SELECT ascii(lastname) FROM accounts WHERE ascii(lastname) = 108";
+    String query = "SELECT ascii(lastname) FROM accounts WHERE ascii(lastname) = 108";
 
     ScriptField scriptField = CheckScriptContents.getScriptFieldFromQuery(query);
     assertTrue(
