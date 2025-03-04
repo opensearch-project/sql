@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
-public class utcDateFunction implements UserDefinedFunction {
+public class UtcDateFunction implements UserDefinedFunction {
     @Override
     public Object eval(Object... args) {
         var zdt =

@@ -48,11 +48,25 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.BANK);
   }
 
+  @Test
+  public void testUnixTimestamp() {
+    String query =
+            "source=people | eval `UNIX_TIMESTAMP(double)` = UNIX_TIMESTAMP(), `UNIX_TIMESTAMP(timestamp)` = UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42')) | fields `UNIX_TIMESTAMP(double)`, `UNIX_TIMESTAMP(timestamp)`";
+    testSimplePPL(query, List.of(3404817525.0, 848077542.0));
+  }
+
 
   @Test
   public void testDate() {
     String query =
         "source=people | eval `DATE('2020-08-26')` = DATE('2020-08-26') | fields `DATE('2020-08-26')`";
+    testSimplePPL(query, List.of("2020-08-26"));
+  }
+
+  @Test
+  public void testDate2() {
+    String query =
+            "source=people |eval `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26 13:49:00')) | fields `DATE(TIMESTAMP('2020-08-26 13:49:00'))`";
     testSimplePPL(query, List.of("2020-08-26"));
   }
 

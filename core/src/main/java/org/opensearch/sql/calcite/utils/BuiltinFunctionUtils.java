@@ -8,16 +8,12 @@ package org.opensearch.sql.calcite.utils;
 import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.*;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -32,10 +28,11 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.utcDateFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.utcTimeFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.utcTimeStampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeStampFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
@@ -187,19 +184,19 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.MONTHNAME;
       case "LAST_DAY":
         return SqlStdOperatorTable.LAST_DAY;
-      case "TIME":
-        return SqlLibraryOperators.TIME;
+      case "UNIX_TIMESTAMP":
+        return TransferUserDefinedFunction(UnixTimeStampFunction.class, "unix_timestamp", ReturnTypes.DOUBLE);
       case "TIMESTAMP":
         //return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
       case "WEEK", "YEAR", "MINUTE", "HOUR":
         return SqlLibraryOperators.DATE_PART;
       case "UTC_TIMESTAMP":
-        return TransferUserDefinedFunction(utcTimeStampFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
+        return TransferUserDefinedFunction(UtcTimeStampFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
       case "UTC_TIME":
-        return TransferUserDefinedFunction(utcTimeFunction.class, "utc_time", ReturnTypes.TIME);
+        return TransferUserDefinedFunction(UtcTimeFunction.class, "utc_time", ReturnTypes.TIME);
       case "UTC_DATE":
-        return TransferUserDefinedFunction(utcDateFunction.class, "utc_date", ReturnTypes.DATE);
+        return TransferUserDefinedFunction(UtcDateFunction.class, "utc_date", ReturnTypes.DATE);
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);
     }
@@ -292,6 +289,18 @@ public interface BuiltinFunctionUtils {
         extractArgs.add(context.rexBuilder.makeLiteral(op));
         extractArgs.add(argList.getFirst());
         return extractArgs;
+      case "UNIX_TIMESTAMP":
+        List<RexNode> UnixArgs = new ArrayList<>(argList);
+        if (argList.size() == 1) {
+          if (argList.getFirst() instanceof RexLiteral) {
+            // It's a double input
+            UnixArgs.add(context.rexBuilder.makeLiteral("double input"));
+          }
+          else {
+            UnixArgs.add(context.rexBuilder.makeLiteral("time input input"));
+          }
+          return UnixArgs;
+        }
       default:
         return argList;
     }
