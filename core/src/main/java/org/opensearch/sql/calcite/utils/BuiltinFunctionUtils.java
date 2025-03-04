@@ -5,10 +5,19 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ReturnTypes;
+import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 
 public interface BuiltinFunctionUtils {
 
@@ -51,6 +60,12 @@ public interface BuiltinFunctionUtils {
         // Built-in Math Functions
       case "ABS":
         return SqlStdOperatorTable.ABS;
+      case "SQRT":
+        return TransferUserDefinedFunction(SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE);
+      case "ATAN", "ATAN2":
+        return SqlStdOperatorTable.ATAN2;
+      case "POW", "POWER":
+        return SqlStdOperatorTable.POWER;
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP":
         return SqlStdOperatorTable.CURRENT_TIMESTAMP;
@@ -65,6 +80,34 @@ public interface BuiltinFunctionUtils {
         // TODO Add more, ref RexImpTable
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);
+    }
+  }
+
+  /**
+   * Translates function arguments to align with Calcite's expectations, ensuring compatibility with
+   * PPL (Piped Processing Language). This is necessary because Calcite's input argument order or
+   * default values may differ from PPL's function definitions.
+   *
+   * @param op The function name as a string.
+   * @param argList A list of {@link RexNode} representing the parsed arguments from the PPL
+   *     statement.
+   * @param context The {@link CalcitePlanContext} providing necessary utilities such as {@code
+   *     rexBuilder}.
+   * @return A modified list of {@link RexNode} that correctly maps to Calcite’s function
+   *     expectations.
+   */
+  static List<RexNode> translateArgument(
+      String op, List<RexNode> argList, CalcitePlanContext context) {
+    switch (op.toUpperCase(Locale.ROOT)) {
+      case "ATAN":
+        List<RexNode> AtanArgs = new ArrayList<>(argList);
+        if (AtanArgs.size() == 1) {
+          BigDecimal divideNumber = BigDecimal.valueOf(1);
+          AtanArgs.add(context.rexBuilder.makeBigintLiteral(divideNumber));
+        }
+        return AtanArgs;
+      default:
+        return argList;
     }
   }
 }
