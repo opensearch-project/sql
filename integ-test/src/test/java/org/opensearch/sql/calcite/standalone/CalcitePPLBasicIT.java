@@ -84,6 +84,27 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testFilterOnTextField() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where gender = 'F' | fields firstname, lastname", TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("lastname", "string"));
+    verifyDataRows(
+        actual, rows("Nanette", "Bates"), rows("Virginia", "Ayala"), rows("Dillard", "Mcpherson"));
+  }
+
+  @Test
+  public void testFilterOnTextFieldWithKeywordSubField() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where state = 'VA' | fields firstname, lastname", TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("lastname", "string"));
+    verifyDataRows(actual, rows("Nanette", "Bates"));
+  }
+
+  @Test
   public void testFilterQueryWithOr() {
     JSONObject actual =
         executeQuery(

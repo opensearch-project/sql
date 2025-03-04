@@ -5,7 +5,7 @@
         "type": "keyword"
       },
       "occupation": {
-        "type": "keyword"
+        "type": "text"
       },
       "country": {
         "type": "text"
