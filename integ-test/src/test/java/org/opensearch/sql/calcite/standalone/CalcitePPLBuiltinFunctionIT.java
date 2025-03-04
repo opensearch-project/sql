@@ -51,7 +51,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testUnixTimestamp() {
     String query =
-            "source=people | eval `UNIX_TIMESTAMP(double)` = UNIX_TIMESTAMP(), `UNIX_TIMESTAMP(timestamp)` = UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42')) | fields `UNIX_TIMESTAMP(double)`, `UNIX_TIMESTAMP(timestamp)`";
+            "source=people | eval `UNIX_TIMESTAMP(double)` = UNIX_TIMESTAMP(20771122143845), `UNIX_TIMESTAMP(timestamp)` = UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42')) | fields `UNIX_TIMESTAMP(double)`, `UNIX_TIMESTAMP(timestamp)`";
     testSimplePPL(query, List.of(3404817525.0, 848077542.0));
   }
 

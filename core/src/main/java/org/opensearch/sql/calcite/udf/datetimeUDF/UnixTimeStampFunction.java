@@ -2,12 +2,18 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
+import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
+
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.transferUnixTimeStampFromDoubleInput;
+import static org.opensearch.sql.utils.DateTimeFormatters.*;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
 
 public class UnixTimeStampFunction implements UserDefinedFunction {
     @Override
@@ -22,8 +28,8 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
             // return null
             // what if calcite sql timestamp?
             // number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
-            if (inputTypes.equals("double")) {
-                return null;
+            if (inputTypes.contains("double")) {
+                return transferUnixTimeStampFromDoubleInput(((Number) input).doubleValue());
             } else {
                 LocalDateTime localDateTime = Instant.ofEpochMilli(((long) input)).atZone(ZoneId.systemDefault()).toLocalDateTime();
                 return localDateTime.toEpochSecond(ZoneOffset.UTC);

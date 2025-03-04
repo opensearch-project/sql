@@ -2119,6 +2119,45 @@ public class DateTimeFunctions {
     return new ExprDoubleValue(res);
   }
 
+  public static Double transferUnixTimeStampFromDoubleInput(Double value){
+    var format = new DecimalFormat("0.#");
+    format.setMinimumFractionDigits(0);
+    format.setMaximumFractionDigits(6);
+    String input = format.format(value);
+    double fraction = 0;
+    if (input.contains(".")) {
+      // Keeping fraction second part and adding it to the result, don't parse it
+      // Because `toEpochSecond` returns only `long`
+      // input = 12345.6789 becomes input = 12345 and fraction = 0.6789
+      fraction = value - Math.round(Math.ceil(value));
+      input = input.substring(0, input.indexOf('.'));
+    }
+    try {
+      var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_SHORT_YEAR);
+      return res.toEpochSecond(ZoneOffset.UTC) + fraction;
+    } catch (DateTimeParseException ignored) {
+      // nothing to do, try another format
+    }
+    try {
+      var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_LONG_YEAR);
+      return res.toEpochSecond(ZoneOffset.UTC) + fraction;
+    } catch (DateTimeParseException ignored) {
+      // nothing to do, try another format
+    }
+    try {
+      var res = LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);
+      return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+    } catch (DateTimeParseException ignored) {
+      // nothing to do, try another format
+    }
+    try {
+      var res = LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);
+      return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+    } catch (DateTimeParseException ignored) {
+      return null;
+    }
+  }
+
   private Double unixTimeStampOfImpl(ExprValue value) {
     // Also, according to MySQL documentation:
     //    The date argument may be a DATE, DATETIME, or TIMESTAMP ...
@@ -2131,43 +2170,7 @@ public class DateTimeFunctions {
         //     ... or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
         //     If the argument includes a time part, it may optionally include a fractional
         //     seconds part.
-
-        var format = new DecimalFormat("0.#");
-        format.setMinimumFractionDigits(0);
-        format.setMaximumFractionDigits(6);
-        String input = format.format(value.doubleValue());
-        double fraction = 0;
-        if (input.contains(".")) {
-          // Keeping fraction second part and adding it to the result, don't parse it
-          // Because `toEpochSecond` returns only `long`
-          // input = 12345.6789 becomes input = 12345 and fraction = 0.6789
-          fraction = value.doubleValue() - Math.round(Math.ceil(value.doubleValue()));
-          input = input.substring(0, input.indexOf('.'));
-        }
-        try {
-          var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_SHORT_YEAR);
-          return res.toEpochSecond(ZoneOffset.UTC) + fraction;
-        } catch (DateTimeParseException ignored) {
-          // nothing to do, try another format
-        }
-        try {
-          var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_LONG_YEAR);
-          return res.toEpochSecond(ZoneOffset.UTC) + fraction;
-        } catch (DateTimeParseException ignored) {
-          // nothing to do, try another format
-        }
-        try {
-          var res = LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);
-          return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
-        } catch (DateTimeParseException ignored) {
-          // nothing to do, try another format
-        }
-        try {
-          var res = LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);
-          return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
-        } catch (DateTimeParseException ignored) {
-          return null;
-        }
+        return transferUnixTimeStampFromDoubleInput(value.doubleValue());
     }
   }
 

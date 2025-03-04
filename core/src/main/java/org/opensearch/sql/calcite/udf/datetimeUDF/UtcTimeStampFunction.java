@@ -12,8 +12,6 @@ public class UtcTimeStampFunction implements UserDefinedFunction {
         var zdt =
                 ZonedDateTime.now()
                         .withZoneSameInstant(ZoneOffset.UTC);
-        Long milli = zdt.toInstant().toEpochMilli();
-        Timestamp timestamp = new Timestamp(milli);
         return zdt.toInstant().toEpochMilli();
     }
 }
