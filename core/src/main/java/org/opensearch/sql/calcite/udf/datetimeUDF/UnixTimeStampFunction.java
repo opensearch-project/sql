@@ -31,7 +31,7 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
             if (inputTypes.contains("double")) {
                 return transferUnixTimeStampFromDoubleInput(((Number) input).doubleValue());
             } else {
-                LocalDateTime localDateTime = Instant.ofEpochMilli(((long) input)).atZone(ZoneId.systemDefault()).toLocalDateTime();
+                LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli((long) input), ZoneOffset.UTC);
                 return localDateTime.toEpochSecond(ZoneOffset.UTC);
             }
         }
