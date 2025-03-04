@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -61,6 +63,10 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.ABS;
       case "SQRT":
         return TransferUserDefinedFunction(SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE);
+      case "ATAN", "ATAN2":
+        return SqlStdOperatorTable.ATAN2;
+      case "POW", "POWER":
+        return SqlStdOperatorTable.POWER;
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP":
         return SqlStdOperatorTable.CURRENT_TIMESTAMP;
@@ -81,6 +87,13 @@ public interface BuiltinFunctionUtils {
   static List<RexNode> translateArgument(
           String op, List<RexNode> argList, CalcitePlanContext context) {
     switch (op.toUpperCase(Locale.ROOT)) {
+      case "ATAN":
+        List<RexNode> AtanArgs = new ArrayList<>(argList);
+        if (AtanArgs.size() == 1) {
+          BigDecimal divideNumber = BigDecimal.valueOf(1);
+          AtanArgs.add(context.rexBuilder.makeBigintLiteral(divideNumber));
+        }
+        return AtanArgs;
       default:
         return argList;
     }
