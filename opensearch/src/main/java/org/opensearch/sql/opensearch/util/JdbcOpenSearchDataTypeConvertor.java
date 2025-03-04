@@ -13,6 +13,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -79,11 +80,14 @@ public class JdbcOpenSearchDataTypeConvertor {
         value = rs.getFloat(i);
         break;
       case Types.DATE:
-        return new ExprDateValue(rs.getString(i));
+        value = rs.getString(i);
+        return value == null ? ExprNullValue.of() : new ExprDateValue((String) value);
       case Types.TIME:
-        return new ExprTimeValue(rs.getString(i));
+        value = rs.getString(i);
+        return value == null ? ExprNullValue.of() : new ExprTimeValue((String) value);
       case Types.TIMESTAMP:
-        return new ExprTimestampValue(rs.getString(i));
+        value = rs.getString(i);
+        return value == null ? ExprNullValue.of() : new ExprTimestampValue((String) value);
       case Types.BOOLEAN:
         value = rs.getBoolean(i);
         break;
@@ -94,6 +98,6 @@ public class JdbcOpenSearchDataTypeConvertor {
             sqlType,
             value.getClass().getTypeName());
     }
-    return ExprValueUtils.fromObjectValue(value);
+    return value == null ? ExprNullValue.of() : ExprValueUtils.fromObjectValue(value);
   }
 }

@@ -112,6 +112,10 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return TYPE_FACTORY.createSqlType(SqlTypeName.BINARY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("timestamp")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP, nullable);
+      } else if (fieldType.legacyTypeName().equalsIgnoreCase("date")) {
+        return TYPE_FACTORY.createSqlType(SqlTypeName.DATE, nullable);
+      } else if (fieldType.legacyTypeName().equalsIgnoreCase("time")) {
+        return TYPE_FACTORY.createSqlType(SqlTypeName.TIME, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("geo_point")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.GEOMETRY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("text")) {
