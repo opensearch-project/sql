@@ -778,6 +778,10 @@ public class PredicateAnalyzer {
       return rel.getReference();
     }
 
+    private String getFieldReferenceForTermQuery() {
+      return rel.getReferenceForTermQuery();
+    }
+
     private SimpleQueryExpression(NamedFieldExpression rel) {
       this.rel = rel;
     }
@@ -841,7 +845,7 @@ public class PredicateAnalyzer {
                 .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value)))
                 .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lte(value)));
       } else {
-        builder = termQuery(getFieldReference(), value);
+        builder = termQuery(getFieldReferenceForTermQuery(), value);
       }
       return this;
     }
@@ -859,7 +863,7 @@ public class PredicateAnalyzer {
             boolQuery()
                 // NOT LIKE should return false when field is NULL
                 .must(existsQuery(getFieldReference()))
-                .mustNot(termQuery(getFieldReference(), value));
+                .mustNot(termQuery(getFieldReferenceForTermQuery(), value));
       }
       return this;
     }
@@ -899,21 +903,21 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression isTrue() {
-      builder = termQuery(getFieldReference(), true);
+      builder = termQuery(getFieldReferenceForTermQuery(), true);
       return this;
     }
 
     @Override
     public QueryExpression in(LiteralExpression literal) {
       Collection<?> collection = (Collection<?>) literal.value();
-      builder = termsQuery(getFieldReference(), collection);
+      builder = termsQuery(getFieldReferenceForTermQuery(), collection);
       return this;
     }
 
     @Override
     public QueryExpression notIn(LiteralExpression literal) {
       Collection<?> collection = (Collection<?>) literal.value();
-      builder = boolQuery().mustNot(termsQuery(getFieldReference(), collection));
+      builder = boolQuery().mustNot(termsQuery(getFieldReferenceForTermQuery(), collection));
       return this;
     }
   }
@@ -1018,6 +1022,10 @@ public class PredicateAnalyzer {
     }
 
     String getReference() {
+      return getRootName();
+    }
+
+    String getReferenceForTermQuery() {
       if (isTextType()) {
         return toKeywordSubField();
       }
