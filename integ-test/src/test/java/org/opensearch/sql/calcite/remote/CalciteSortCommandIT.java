@@ -9,12 +9,6 @@ import java.io.IOException;
 import org.junit.Ignore;
 import org.opensearch.sql.ppl.SortCommandIT;
 
-/**
- * TODO there seems a bug in Calcite planner with sort. Fix {@link
- * org.opensearch.sql.calcite.standalone.CalcitePPLSortIT} first. then enable this IT and remove
- * this java doc.
- */
-@Ignore
 public class CalciteSortCommandIT extends SortCommandIT {
   @Override
   public void init() throws IOException {
@@ -22,4 +16,16 @@ public class CalciteSortCommandIT extends SortCommandIT {
     disallowCalciteFallback();
     super.init();
   }
+
+  // TODO: Unsupported conversion for OpenSearch Data type: IP, addressed by issue:
+  // https://github.com/opensearch-project/sql/issues/3322
+  @Ignore
+  @Override
+  public void testSortIpField() throws IOException {}
+
+  // TODO: Fix incorrect results for NULL values, addressed by issue:
+  // https://github.com/opensearch-project/sql/issues/3375
+  @Ignore
+  @Override
+  public void testSortWithNullValue() throws IOException {}
 }
