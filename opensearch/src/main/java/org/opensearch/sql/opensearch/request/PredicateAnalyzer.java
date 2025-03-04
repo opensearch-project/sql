@@ -1005,7 +1005,7 @@ public class PredicateAnalyzer {
     }
 
     String toKeywordSubField() {
-      if (isTextType()) {
+      if (type instanceof OpenSearchTextType) {
         OpenSearchTextType textType = (OpenSearchTextType) type;
         // Find the first subfield with type keyword, return null if non-exist.
         return textType.getFields().entrySet().stream()
