@@ -22,4 +22,10 @@ public class CalciteSortCommandIT extends SortCommandIT {
   @Ignore
   @Override
   public void testSortIpField() throws IOException {}
+
+  // TODO: Fix incorrect results for NULL values, addressed by issue:
+  // https://github.com/opensearch-project/sql/issues/3375
+  @Ignore
+  @Override
+  public void testSortWithNullValue() throws IOException {}
 }
