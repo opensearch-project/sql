@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
+import org.json.JSONObject;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.inject.AbstractModule;
@@ -27,6 +28,7 @@ import org.opensearch.common.inject.Singleton;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -34,6 +36,9 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.exception.NoCursorException;
+import org.opensearch.sql.exception.QueryEngineException;
+import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
@@ -135,6 +140,38 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
           @Override
           public void onFailure(Exception e) {
             throw new IllegalStateException("Exception happened during execution", e);
+          }
+        });
+    return actual.get();
+  }
+
+  @Override
+  protected JSONObject executeQuery(String query) {
+    AtomicReference<JSONObject> actual = new AtomicReference<>();
+    pplService.execute(
+        new PPLQueryRequest(query, null, null),
+        new ResponseListener<ExecutionEngine.QueryResponse>() {
+
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse response) {
+            QueryResult result = new QueryResult(response.getSchema(), response.getResults());
+            String json = new SimpleJsonResponseFormatter(PRETTY).format(result);
+            actual.set(jsonify(json));
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            if (e instanceof SyntaxCheckException) {
+              throw (SyntaxCheckException) e;
+            } else if (e instanceof QueryEngineException) {
+              throw (QueryEngineException) e;
+            } else if (e instanceof UnsupportedCursorRequestException) {
+              throw (UnsupportedCursorRequestException) e;
+            } else if (e instanceof NoCursorException) {
+              throw (NoCursorException) e;
+            } else {
+              throw new IllegalStateException("Exception happened during execution", e);
+            }
           }
         });
     return actual.get();

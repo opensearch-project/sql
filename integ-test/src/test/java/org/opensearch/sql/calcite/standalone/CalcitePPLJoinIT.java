@@ -8,8 +8,13 @@ package org.opensearch.sql.calcite.standalone;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_HOBBIES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -26,908 +31,287 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testJoinWithCondition() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s | inner join left=a, right=b ON a.name = b.name AND a.year = 2023"
                     + " AND a.month = 4 AND b.year = 2023 AND b.month = 4 %s | fields a.name,"
                     + " a.age, a.state, a.country, b.occupation, b.country, b.salary",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"state\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"occupation\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country0\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"salary\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Jake\",\n"
-            + "      70,\n"
-            + "      \"California\",\n"
-            + "      \"USA\",\n"
-            + "      \"Engineer\",\n"
-            + "      \"England\",\n"
-            + "      100000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hello\",\n"
-            + "      30,\n"
-            + "      \"New York\",\n"
-            + "      \"USA\",\n"
-            + "      \"Artist\",\n"
-            + "      \"USA\",\n"
-            + "      70000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"John\",\n"
-            + "      25,\n"
-            + "      \"Ontario\",\n"
-            + "      \"Canada\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"Canada\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Jane\",\n"
-            + "      20,\n"
-            + "      \"Quebec\",\n"
-            + "      \"Canada\",\n"
-            + "      \"Scientist\",\n"
-            + "      \"Canada\",\n"
-            + "      90000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      40,\n"
-            + "      \"Washington\",\n"
-            + "      \"USA\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"USA\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      40,\n"
-            + "      \"Washington\",\n"
-            + "      \"USA\",\n"
-            + "      \"Unemployed\",\n"
-            + "      \"Canada\",\n"
-            + "      0\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 6,\n"
-            + "  \"size\": 6\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "integer"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("occupation", "string"),
+        schema("country0", "string"),
+        schema("salary", "integer"));
+    verifyDataRows(
+        actual,
+        rows("Jake", 70, "California", "USA", "Engineer", "England", 100000),
+        rows("Hello", 30, "New York", "USA", "Artist", "USA", 70000),
+        rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000),
+        rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
+        rows("David", 40, "Washington", "USA", "Doctor", "USA", 120000),
+        rows("David", 40, "Washington", "USA", "Unemployed", "Canada", 0));
   }
 
   @Test
   public void testJoinWithTwoJoinConditions() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | inner join left=a, right=b ON a.name = b.name AND a.country ="
                     + " b.country AND a.year = 2023 AND a.month = 4 AND b.year = 2023 AND b.month ="
                     + " 4 %s | fields a.name, a.age, a.state, a.country, b.occupation, b.country,"
                     + " b.salary",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"state\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"occupation\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country0\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"salary\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Hello\",\n"
-            + "      30,\n"
-            + "      \"New York\",\n"
-            + "      \"USA\",\n"
-            + "      \"Artist\",\n"
-            + "      \"USA\",\n"
-            + "      70000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"John\",\n"
-            + "      25,\n"
-            + "      \"Ontario\",\n"
-            + "      \"Canada\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"Canada\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Jane\",\n"
-            + "      20,\n"
-            + "      \"Quebec\",\n"
-            + "      \"Canada\",\n"
-            + "      \"Scientist\",\n"
-            + "      \"Canada\",\n"
-            + "      90000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      40,\n"
-            + "      \"Washington\",\n"
-            + "      \"USA\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"USA\",\n"
-            + "      120000\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 4,\n"
-            + "  \"size\": 4\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "integer"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("occupation", "string"),
+        schema("country0", "string"),
+        schema("salary", "integer"));
+    verifyDataRows(
+        actual,
+        rows("Hello", 30, "New York", "USA", "Artist", "USA", 70000),
+        rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000),
+        rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
+        rows("David", 40, "Washington", "USA", "Doctor", "USA", 120000));
   }
 
   @Test
   public void testJoinTwoColumnsAndDisjointFilters() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | inner join left=a, right=b ON a.name = b.name AND a.country ="
                     + " b.country AND a.year = 2023 AND a.month = 4 AND b.salary > 100000 %s |"
                     + " fields a.name, a.age, a.state, a.country, b.occupation, b.country,"
                     + " b.salary",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"state\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"occupation\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country0\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"salary\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"John\",\n"
-            + "      25,\n"
-            + "      \"Ontario\",\n"
-            + "      \"Canada\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"Canada\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      40,\n"
-            + "      \"Washington\",\n"
-            + "      \"USA\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"USA\",\n"
-            + "      120000\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "integer"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("occupation", "string"),
+        schema("country0", "string"),
+        schema("salary", "integer"));
+    verifyDataRows(
+        actual,
+        rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000),
+        rows("David", 40, "Washington", "USA", "Doctor", "USA", 120000));
   }
 
   @Test
   public void testJoinThenStats() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | inner join left=a, right=b ON a.name = b.name %s | stats avg(salary)"
                     + " by span(age, 10) as age_span",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"age_span\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"avg(salary)\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      70.0,\n"
-            + "      100000.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      40.0,\n"
-            + "      60000.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      20.0,\n"
-            + "      105000.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      30.0,\n"
-            + "      70000.0\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 4,\n"
-            + "  \"size\": 4\n"
-            + "}",
-        actual);
+    verifySchema(actual, schema("age_span", "double"), schema("avg(salary)", "double"));
+    verifyDataRows(
+        actual,
+        rows(70.0, 100000.0),
+        rows(40.0, 60000.0),
+        rows(20.0, 105000.0),
+        rows(30.0, 70000.0));
   }
 
   @Test
   public void testJoinThenStatsWithGroupBy() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | inner join left=a, right=b ON a.name = b.name %s | stats avg(salary)"
                     + " by span(age, 10) as age_span, b.country",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"b.country\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age_span\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"avg(salary)\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Canada\",\n"
-            + "      40.0,\n"
-            + "      0.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Canada\",\n"
-            + "      20.0,\n"
-            + "      105000.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"USA\",\n"
-            + "      40.0,\n"
-            + "      120000.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"England\",\n"
-            + "      70.0,\n"
-            + "      100000.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"USA\",\n"
-            + "      30.0,\n"
-            + "      70000.0\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 5,\n"
-            + "  \"size\": 5\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("b.country", "string"),
+        schema("age_span", "double"),
+        schema("avg(salary)", "double"));
+    verifyDataRows(
+        actual,
+        rows("Canada", 40.0, 0.0),
+        rows("Canada", 20.0, 105000.0),
+        rows("USA", 40.0, 120000.0),
+        rows("England", 70.0, 100000.0),
+        rows("USA", 30.0, 70000.0));
   }
 
   @Test
   public void testComplexInnerJoin() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | where country = 'USA' OR country = 'England' | inner join left=a,"
                     + " right=b ON a.name = b.name %s | stats avg(salary) by span(age, 10) as"
                     + " age_span, b.country",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"b.country\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age_span\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"avg(salary)\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Canada\",\n"
-            + "      40.0,\n"
-            + "      0.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"USA\",\n"
-            + "      40.0,\n"
-            + "      120000.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"England\",\n"
-            + "      70.0,\n"
-            + "      100000.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"USA\",\n"
-            + "      30.0,\n"
-            + "      70000.0\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 4,\n"
-            + "  \"size\": 4\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("b.country", "string"),
+        schema("age_span", "double"),
+        schema("avg(salary)", "double"));
+    verifyDataRows(
+        actual,
+        rows("Canada", 40.0, 0.0),
+        rows("USA", 40.0, 120000.0),
+        rows("England", 70.0, 100000.0),
+        rows("USA", 30.0, 70000.0));
   }
 
   @Test
   public void testComplexLeftJoin() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | where country = 'Canada' OR country = 'England' | left join left=a,"
                     + " right=b ON a.name = b.name %s | sort a.age | fields a.name, a.age, a.state,"
                     + " a.country, b.occupation, b.country, b.salary",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"state\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"occupation\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country0\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"salary\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Jane\",\n"
-            + "      20,\n"
-            + "      \"Quebec\",\n"
-            + "      \"Canada\",\n"
-            + "      \"Scientist\",\n"
-            + "      \"Canada\",\n"
-            + "      90000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"John\",\n"
-            + "      25,\n"
-            + "      \"Ontario\",\n"
-            + "      \"Canada\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"Canada\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Jim\",\n"
-            + "      27,\n"
-            + "      \"B.C\",\n"
-            + "      \"Canada\",\n"
-            + "      null,\n"
-            + "      null,\n"
-            + "      0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Peter\",\n"
-            + "      57,\n"
-            + "      \"B.C\",\n"
-            + "      \"Canada\",\n"
-            + "      null,\n"
-            + "      null,\n"
-            + "      0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Rick\",\n"
-            + "      70,\n"
-            + "      \"B.C\",\n"
-            + "      \"Canada\",\n"
-            + "      null,\n"
-            + "      null,\n"
-            + "      0\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 5,\n"
-            + "  \"size\": 5\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "integer"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("occupation", "string"),
+        schema("country0", "string"),
+        schema("salary", "integer"));
+    verifyDataRows(
+        actual,
+        rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
+        rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000),
+        rows("Jim", 27, "B.C", "Canada", null, null, 0),
+        rows("Peter", 57, "B.C", "Canada", null, null, 0),
+        rows("Rick", 70, "B.C", "Canada", null, null, 0));
   }
 
   @Test
   public void testComplexRightJoin() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | where country = 'Canada' OR country = 'England' | right join left=a,"
                     + " right=b ON a.name = b.name %s | sort a.age | fields a.name, a.age, a.state,"
                     + " a.country, b.occupation, b.country, b.salary",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"state\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"occupation\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country0\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"salary\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Jane\",\n"
-            + "      20,\n"
-            + "      \"Quebec\",\n"
-            + "      \"Canada\",\n"
-            + "      \"Scientist\",\n"
-            + "      \"Canada\",\n"
-            + "      90000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"John\",\n"
-            + "      25,\n"
-            + "      \"Ontario\",\n"
-            + "      \"Canada\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"Canada\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null,\n"
-            + "      0,\n"
-            + "      null,\n"
-            + "      null,\n"
-            + "      \"Engineer\",\n"
-            + "      \"England\",\n"
-            + "      100000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null,\n"
-            + "      0,\n"
-            + "      null,\n"
-            + "      null,\n"
-            + "      \"Artist\",\n"
-            + "      \"USA\",\n"
-            + "      70000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null,\n"
-            + "      0,\n"
-            + "      null,\n"
-            + "      null,\n"
-            + "      \"Doctor\",\n"
-            + "      \"USA\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      null,\n"
-            + "      0,\n"
-            + "      null,\n"
-            + "      null,\n"
-            + "      \"Unemployed\",\n"
-            + "      \"Canada\",\n"
-            + "      0\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 6,\n"
-            + "  \"size\": 6\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "integer"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("occupation", "string"),
+        schema("country0", "string"),
+        schema("salary", "integer"));
+    verifyDataRows(
+        actual,
+        rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
+        rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000),
+        rows(null, 0, null, null, "Engineer", "England", 100000),
+        rows(null, 0, null, null, "Artist", "USA", 70000),
+        rows(null, 0, null, null, "Doctor", "USA", 120000),
+        rows(null, 0, null, null, "Unemployed", "Canada", 0));
   }
 
   @Test
   public void testComplexSemiJoin() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | where country = 'Canada' OR country = 'England' | left semi join"
                     + " left=a, right=b ON a.name = b.name %s | sort a.age",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"state\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"month\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"year\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Jane\",\n"
-            + "      \"Canada\",\n"
-            + "      \"Quebec\",\n"
-            + "      4,\n"
-            + "      2023,\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"John\",\n"
-            + "      \"Canada\",\n"
-            + "      \"Ontario\",\n"
-            + "      4,\n"
-            + "      2023,\n"
-            + "      25\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "integer"),
+        schema("year", "integer"),
+        schema("age", "integer"));
+    verifyDataRows(
+        actual,
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20),
+        rows("John", "Canada", "Ontario", 4, 2023, 25));
   }
 
   @Test
   public void testComplexAntiJoin() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | where country = 'Canada' OR country = 'England' | left anti join"
                     + " left=a, right=b ON a.name = b.name %s | sort a.age",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"state\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"month\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"year\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Jim\",\n"
-            + "      \"Canada\",\n"
-            + "      \"B.C\",\n"
-            + "      4,\n"
-            + "      2023,\n"
-            + "      27\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Peter\",\n"
-            + "      \"Canada\",\n"
-            + "      \"B.C\",\n"
-            + "      4,\n"
-            + "      2023,\n"
-            + "      57\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Rick\",\n"
-            + "      \"Canada\",\n"
-            + "      \"B.C\",\n"
-            + "      4,\n"
-            + "      2023,\n"
-            + "      70\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 3,\n"
-            + "  \"size\": 3\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "integer"),
+        schema("year", "integer"),
+        schema("age", "integer"));
+    verifyDataRows(
+        actual,
+        rows("Jim", "Canada", "B.C", 4, 2023, 27),
+        rows("Peter", "Canada", "B.C", 4, 2023, 57),
+        rows("Rick", "Canada", "B.C", 4, 2023, 70));
   }
 
   @Test
   public void testComplexCrossJoin() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | where country = 'Canada' OR country = 'England' | join left=a,"
                     + " right=b %s | sort a.age | stats count()",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"count()\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      30\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
+    verifySchema(actual, schema("count()", "long"));
+    verifyDataRows(actual, rows(30));
   }
 
   @Test
   public void testNonEquiJoin() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | where country = 'USA' OR country = 'England' | inner join left=a,"
                     + " right=b ON age < salary %s |  where occupation = 'Doctor' OR occupation ="
                     + " 'Engineer' | fields a.name, age, state, a.country, occupation, b.country,"
                     + " salary",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"state\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"occupation\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"country0\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"salary\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Jake\",\n"
-            + "      70,\n"
-            + "      \"California\",\n"
-            + "      \"USA\",\n"
-            + "      \"Engineer\",\n"
-            + "      \"England\",\n"
-            + "      100000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Jake\",\n"
-            + "      70,\n"
-            + "      \"California\",\n"
-            + "      \"USA\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"Canada\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Jake\",\n"
-            + "      70,\n"
-            + "      \"California\",\n"
-            + "      \"USA\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"USA\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hello\",\n"
-            + "      30,\n"
-            + "      \"New York\",\n"
-            + "      \"USA\",\n"
-            + "      \"Engineer\",\n"
-            + "      \"England\",\n"
-            + "      100000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hello\",\n"
-            + "      30,\n"
-            + "      \"New York\",\n"
-            + "      \"USA\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"Canada\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hello\",\n"
-            + "      30,\n"
-            + "      \"New York\",\n"
-            + "      \"USA\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"USA\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      40,\n"
-            + "      \"Washington\",\n"
-            + "      \"USA\",\n"
-            + "      \"Engineer\",\n"
-            + "      \"England\",\n"
-            + "      100000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      40,\n"
-            + "      \"Washington\",\n"
-            + "      \"USA\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"Canada\",\n"
-            + "      120000\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      40,\n"
-            + "      \"Washington\",\n"
-            + "      \"USA\",\n"
-            + "      \"Doctor\",\n"
-            + "      \"USA\",\n"
-            + "      120000\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 9,\n"
-            + "  \"size\": 9\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("age", "integer"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("occupation", "string"),
+        schema("country0", "string"),
+        schema("salary", "integer"));
+    verifyDataRows(
+        actual,
+        rows("Jake", 70, "California", "USA", "Engineer", "England", 100000),
+        rows("Jake", 70, "California", "USA", "Doctor", "Canada", 120000),
+        rows("Jake", 70, "California", "USA", "Doctor", "USA", 120000),
+        rows("Hello", 30, "New York", "USA", "Engineer", "England", 100000),
+        rows("Hello", 30, "New York", "USA", "Doctor", "Canada", 120000),
+        rows("Hello", 30, "New York", "USA", "Doctor", "USA", 120000),
+        rows("David", 40, "Washington", "USA", "Engineer", "England", 100000),
+        rows("David", 40, "Washington", "USA", "Doctor", "Canada", 120000),
+        rows("David", 40, "Washington", "USA", "Doctor", "USA", 120000));
   }
 
   @Test
@@ -949,8 +333,8 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
 
   @Ignore // TODO seems a calcite bug
   public void testMultipleJoins() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 """
                    source = %s
@@ -985,13 +369,12 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_HOBBIES,
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_STATE_COUNTRY));
-    assertEquals("30", actual);
   }
 
   @Test
   public void testMultipleJoinsWithoutTableAliases() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | JOIN ON %s.name = %s.name %s | JOIN ON %s.name = %s.name %s | fields"
                     + " %s.name, %s.name, %s.name",
@@ -1005,128 +388,42 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY,
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_HOBBIES));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"name0\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"name1\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      \"David\",\n"
-            + "      \"David\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      \"David\",\n"
-            + "      \"David\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hello\",\n"
-            + "      \"Hello\",\n"
-            + "      \"Hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Jake\",\n"
-            + "      \"Jake\",\n"
-            + "      \"Jake\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Jane\",\n"
-            + "      \"Jane\",\n"
-            + "      \"Jane\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"John\",\n"
-            + "      \"John\",\n"
-            + "      \"John\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 6,\n"
-            + "  \"size\": 6\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual, schema("name", "string"), schema("name0", "string"), schema("name1", "string"));
+    verifyDataRows(
+        actual,
+        rows("David", "David", "David"),
+        rows("David", "David", "David"),
+        rows("Hello", "Hello", "Hello"),
+        rows("Jake", "Jake", "Jake"),
+        rows("Jane", "Jane", "Jane"),
+        rows("John", "John", "John"));
   }
 
   @Test
   public void testMultipleJoinsWithPartTableAliases() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name %s | JOIN right = t3"
                     + " ON t1.name = t3.name %s | fields t1.name, t2.name, t3.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION, TEST_INDEX_HOBBIES));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"name0\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"name1\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      \"David\",\n"
-            + "      \"David\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      \"David\",\n"
-            + "      \"David\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hello\",\n"
-            + "      \"Hello\",\n"
-            + "      \"Hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Jake\",\n"
-            + "      \"Jake\",\n"
-            + "      \"Jake\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Jane\",\n"
-            + "      \"Jane\",\n"
-            + "      \"Jane\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"John\",\n"
-            + "      \"John\",\n"
-            + "      \"John\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 6,\n"
-            + "  \"size\": 6\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual, schema("name", "string"), schema("name0", "string"), schema("name1", "string"));
+    verifyDataRows(
+        actual,
+        rows("David", "David", "David"),
+        rows("David", "David", "David"),
+        rows("Hello", "Hello", "Hello"),
+        rows("Jake", "Jake", "Jake"),
+        rows("Jane", "Jane", "Jane"),
+        rows("John", "John", "John"));
   }
 
   @Test
   public void testMultipleJoinsWithSelfJoin1() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name %s | JOIN right = t3"
                     + " ON t1.name = t3.name %s | JOIN right = t4 ON t1.name = t4.name %s | fields"
@@ -1135,75 +432,26 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_HOBBIES,
                 TEST_INDEX_STATE_COUNTRY));
-    assertEquals(
-        ""
-            + "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"name0\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"name1\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"name2\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      \"David\",\n"
-            + "      \"David\",\n"
-            + "      \"David\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"David\",\n"
-            + "      \"David\",\n"
-            + "      \"David\",\n"
-            + "      \"David\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hello\",\n"
-            + "      \"Hello\",\n"
-            + "      \"Hello\",\n"
-            + "      \"Hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Jake\",\n"
-            + "      \"Jake\",\n"
-            + "      \"Jake\",\n"
-            + "      \"Jake\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Jane\",\n"
-            + "      \"Jane\",\n"
-            + "      \"Jane\",\n"
-            + "      \"Jane\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"John\",\n"
-            + "      \"John\",\n"
-            + "      \"John\",\n"
-            + "      \"John\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 6,\n"
-            + "  \"size\": 6\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("name0", "string"),
+        schema("name1", "string"),
+        schema("name2", "string"));
+    verifyDataRows(
+        actual,
+        rows("David", "David", "David", "David"),
+        rows("David", "David", "David", "David"),
+        rows("Hello", "Hello", "Hello", "Hello"),
+        rows("Jake", "Jake", "Jake", "Jake"),
+        rows("Jane", "Jane", "Jane", "Jane"),
+        rows("John", "John", "John", "John"));
   }
 
-  @Ignore // TODO subquery not support
+  @Ignore // TODO table subquery not support
   public void testMultipleJoinsWithSelfJoin2() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name %s | JOIN right = t3"
                     + " ON t1.name = t3.name %s | JOIN ON t1.name = t4.name [ source = %s ] as t4 |"
@@ -1212,7 +460,6 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_HOBBIES,
                 TEST_INDEX_STATE_COUNTRY));
-    assertEquals("", actual);
   }
 
   @Test
@@ -1252,7 +499,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     assertEquals(res4, res5);
   }
 
-  @Ignore // TODO subquery not support
+  @Ignore // TODO table subquery not support
   public void testCheckAccessTheReferenceByAliases2() {
     String res1 =
         execute(

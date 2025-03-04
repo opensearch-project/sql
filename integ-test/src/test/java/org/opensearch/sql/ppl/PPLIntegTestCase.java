@@ -104,7 +104,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     }
   }
 
-  private JSONObject jsonify(String text) {
+  protected JSONObject jsonify(String text) {
     try {
       return new JSONObject(text);
     } catch (JSONException e) {
