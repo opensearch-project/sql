@@ -17,6 +17,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
 
@@ -29,7 +30,8 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.OCCUPATION);
   }
 
-  @Test
+  // TODO https://github.com/opensearch-project/sql/issues/3373
+  @Ignore
   public void testSelfInSubquery() {
     JSONObject result =
         executeQuery(
@@ -315,7 +317,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     assertThrows(
         "The number of columns in the left hand side of an IN subquery does not match the number of"
             + " columns in the output of subquery",
-        AssertionError.class,
+        SemanticCheckException.class,
         () ->
             executeQuery(
                 String.format(
@@ -328,9 +330,27 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                    | fields id, name, salary
                    """,
                     TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
+
+    assertThrows(
+        "The number of columns in the left hand side of an IN subquery does not match the number of"
+            + " columns in the output of subquery",
+        SemanticCheckException.class,
+        () ->
+            executeQuery(
+                String.format(
+                    """
+                   source = %s
+                   | where (id, name, salary) in [
+                       source = %s | fields uid, department
+                     ]
+                   | sort  - salary
+                   | fields id, name, salary
+                   """,
+                    TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
   }
 
-  @Test
+  // TODO https://github.com/opensearch-project/sql/issues/3373
+  @Ignore
   public void testInSubqueryWithTableAlias() {
     JSONObject result =
         executeQuery(

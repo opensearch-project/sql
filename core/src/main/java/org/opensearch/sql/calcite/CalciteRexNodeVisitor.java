@@ -43,6 +43,7 @@ import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 @RequiredArgsConstructor
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {
@@ -262,16 +263,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     UnresolvedPlan subquery = node.getQuery();
     RelNode subqueryRel = subquery.accept(planVisitor, context);
     context.relBuilder.build();
-    return context.relBuilder.in(subqueryRel, nodes);
-    // TODO
-    // The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
-    // only support one expression. Change to follow code after calcite fixed.
-    //    return context.relBuilder.in(
-    //        nodes.getFirst(),
-    //        b -> {
-    //          RelNode subqueryRel = subquery.accept(planVisitor, context);
-    //          b.build();
-    //          return subqueryRel;
-    //        });
+    try {
+      return context.relBuilder.in(subqueryRel, nodes);
+      // TODO
+      // The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
+      // only support one expression. Change to follow code after calcite fixed.
+      //    return context.relBuilder.in(
+      //        nodes.getFirst(),
+      //        b -> {
+      //          RelNode subqueryRel = subquery.accept(planVisitor, context);
+      //          b.build();
+      //          return subqueryRel;
+      //        });
+    } catch (AssertionError e) {
+      throw new SemanticCheckException(
+          "The number of columns in the left hand side of an IN subquery does not match the number"
+              + " of columns in the output of subquery");
+    }
   }
 }

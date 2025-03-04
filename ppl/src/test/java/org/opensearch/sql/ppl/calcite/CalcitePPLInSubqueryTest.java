@@ -5,9 +5,12 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertThrows;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
 
@@ -233,5 +236,22 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "WHERE `SAL` > 1000)\n"
             + "ORDER BY `EMP`.`EMPNO` DESC NULLS FIRST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void failWhenNumOfColumnsNotMatchOutputOfSubquery() {
+    String less =
+        """
+            source=EMP | where (DEPTNO) in [ source=DEPT | fields DEPTNO, DNAME ]
+            | sort - EMPNO | fields EMPNO, ENAME
+            """;
+    assertThrows(SemanticCheckException.class, () -> getRelNode(less));
+
+    String more =
+        """
+            source=EMP | where (DEPTNO, ENAME) in [ source=DEPT | fields DEPTNO, DNAME, LOC ]
+            | sort - EMPNO | fields EMPNO, ENAME
+            """;
+    assertThrows(SemanticCheckException.class, () -> getRelNode(more));
   }
 }
