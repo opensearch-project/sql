@@ -84,14 +84,17 @@ public interface BuiltinFunctionUtils {
   }
 
   /**
-   * Translates function arguments to align with Calcite's expectations, ensuring compatibility
-   * with PPL (Piped Processing Language). This is necessary because Calcite's input argument
-   * order or default values may differ from PPL's function definitions.
+   * Translates function arguments to align with Calcite's expectations, ensuring compatibility with
+   * PPL (Piped Processing Language). This is necessary because Calcite's input argument order or
+   * default values may differ from PPL's function definitions.
    *
-   * @param op       The function name as a string.
-   * @param argList  A list of {@link RexNode} representing the parsed arguments from the PPL statement.
-   * @param context  The {@link CalcitePlanContext} providing necessary utilities such as {@code rexBuilder}.
-   * @return A modified list of {@link RexNode} that correctly maps to Calcite’s function expectations.
+   * @param op The function name as a string.
+   * @param argList A list of {@link RexNode} representing the parsed arguments from the PPL
+   *     statement.
+   * @param context The {@link CalcitePlanContext} providing necessary utilities such as {@code
+   *     rexBuilder}.
+   * @return A modified list of {@link RexNode} that correctly maps to Calcite’s function
+   *     expectations.
    */
   static List<RexNode> translateArgument(
       String op, List<RexNode> argList, CalcitePlanContext context) {
