@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
@@ -64,6 +65,9 @@ import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
@@ -92,8 +96,8 @@ public class PredicateAnalyzer {
   }
 
   /**
-   * Exception that is thrown when a {@link org.apache.calcite.rel.RelNode} expression cannot be
-   * processed (or converted into an OpenSearch query).
+   * Exception that is thrown when a {@link RelNode} expression cannot be processed (or converted
+   * into an OpenSearch query).
    */
   public static class ExpressionNotAnalyzableException extends Exception {
     ExpressionNotAnalyzableException(String message, Throwable cause) {
@@ -112,15 +116,19 @@ public class PredicateAnalyzer {
    * filters.
    *
    * @param expression expression to analyze
+   * @param schema current schema of scan operator
+   * @param typeMapping mapping of OpenSearch field name to OpenSearchDataType
    * @return search query which can be used to query OS cluster
    * @throws ExpressionNotAnalyzableException when expression can't processed by this analyzer
    */
-  public static QueryBuilder analyze(RexNode expression, List<String> schema)
+  public static QueryBuilder analyze(
+      RexNode expression, List<String> schema, Map<String, OpenSearchDataType> typeMapping)
       throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
-      QueryExpression queryExpression = (QueryExpression) expression.accept(new Visitor(schema));
+      QueryExpression queryExpression =
+          (QueryExpression) expression.accept(new Visitor(schema, typeMapping));
 
       if (queryExpression != null && queryExpression.isPartial()) {
         throw new UnsupportedOperationException(
@@ -137,15 +145,17 @@ public class PredicateAnalyzer {
   private static class Visitor extends RexVisitorImpl<Expression> {
 
     List<String> schema;
+    Map<String, OpenSearchDataType> typeMapping;
 
-    private Visitor(List<String> schema) {
+    private Visitor(List<String> schema, Map<String, OpenSearchDataType> typeMapping) {
       super(true);
       this.schema = schema;
+      this.typeMapping = typeMapping;
     }
 
     @Override
     public Expression visitInputRef(RexInputRef inputRef) {
-      return new NamedFieldExpression(inputRef, schema);
+      return new NamedFieldExpression(inputRef, schema, typeMapping);
     }
 
     @Override
@@ -246,7 +256,7 @@ public class PredicateAnalyzer {
 
       SqlSyntax syntax = call.getOperator().getSyntax();
       if (!supportedRexCall(call)) {
-        String message = String.format(Locale.ROOT, "Unsupported call: [%s]", call);
+        String message = format(Locale.ROOT, "Unsupported call: [%s]", call);
         throw new PredicateAnalyzerException(message);
       }
 
@@ -262,7 +272,7 @@ public class PredicateAnalyzer {
             case CAST -> toCastExpression(call);
             case LIKE, CONTAINS -> binary(call);
             default -> {
-              String message = String.format(Locale.ROOT, "Unsupported call: [%s]", call);
+              String message = format(Locale.ROOT, "Unsupported call: [%s]", call);
               throw new PredicateAnalyzerException(message);
             }
           };
@@ -291,7 +301,7 @@ public class PredicateAnalyzer {
       for (Expression expr : fields) {
         if (expr instanceof NamedFieldExpression) {
           NamedFieldExpression field = (NamedFieldExpression) expr;
-          String fieldIndexString = String.format(Locale.ROOT, "$%d", index++);
+          String fieldIndexString = format(Locale.ROOT, "$%d", index++);
           fieldMap.put(fieldIndexString, field.getReference());
         }
       }
@@ -307,7 +317,7 @@ public class PredicateAnalyzer {
           call.getKind() == SqlKind.NOT, "Expected %s got %s", SqlKind.NOT, call.getKind());
 
       if (call.getOperands().size() != 1) {
-        String message = String.format(Locale.ROOT, "Unsupported NOT operator: [%s]", call);
+        String message = format(Locale.ROOT, "Unsupported NOT operator: [%s]", call);
         throw new PredicateAnalyzerException(message);
       }
 
@@ -318,7 +328,7 @@ public class PredicateAnalyzer {
     private QueryExpression postfix(RexCall call) {
       checkArgument(call.getKind() == SqlKind.IS_NULL || call.getKind() == SqlKind.IS_NOT_NULL);
       if (call.getOperands().size() != 1) {
-        String message = String.format(Locale.ROOT, "Unsupported operator: [%s]", call);
+        String message = format(Locale.ROOT, "Unsupported operator: [%s]", call);
         throw new PredicateAnalyzerException(message);
       }
       Expression a = call.getOperands().get(0).accept(this);
@@ -407,7 +417,7 @@ public class PredicateAnalyzer {
         default:
           break;
       }
-      String message = String.format(Locale.ROOT, "Unable to handle call: [%s]", call);
+      String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
       throw new PredicateAnalyzerException(message);
     }
 
@@ -438,8 +448,7 @@ public class PredicateAnalyzer {
             if (firstError != null) {
               throw firstError;
             } else {
-              final String message =
-                  String.format(Locale.ROOT, "Unable to handle call: [%s]", call);
+              final String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
               throw new PredicateAnalyzerException(message);
             }
           }
@@ -447,7 +456,7 @@ public class PredicateAnalyzer {
         case AND:
           return CompoundQueryExpression.and(partial, expressions);
         default:
-          String message = String.format(Locale.ROOT, "Unable to handle call: [%s]", call);
+          String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
           throw new PredicateAnalyzerException(message);
       }
     }
@@ -506,7 +515,7 @@ public class PredicateAnalyzer {
 
       if (literal == null || terminal == null) {
         String message =
-            String.format(
+            format(
                 Locale.ROOT,
                 "Unexpected combination of expressions [left: %s] [right: %s]",
                 left,
@@ -610,7 +619,7 @@ public class PredicateAnalyzer {
       if (expression instanceof NamedFieldExpression) {
         return new SimpleQueryExpression((NamedFieldExpression) expression);
       } else {
-        String message = String.format(Locale.ROOT, "Unsupported expression: [%s]", expression);
+        String message = format(Locale.ROOT, "Unsupported expression: [%s]", expression);
         throw new PredicateAnalyzerException(message);
       }
     }
@@ -832,8 +841,6 @@ public class PredicateAnalyzer {
                 .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).gte(value)))
                 .must(addFormatIfNecessary(literal, rangeQuery(getFieldReference()).lte(value)));
       } else {
-        // TODO: equal(textFieldType, "value") should not rewrite as termQuery,
-        //  it should be addressed by issue: https://github.com/opensearch-project/sql/issues/3334
         builder = termQuery(getFieldReference(), value);
       }
       return this;
@@ -962,22 +969,48 @@ public class PredicateAnalyzer {
   static final class NamedFieldExpression implements TerminalExpression {
 
     private final String name;
+    private final OpenSearchDataType type;
 
     private NamedFieldExpression() {
       this.name = null;
+      this.type = null;
     }
 
-    private NamedFieldExpression(RexInputRef ref, List<String> schema) {
+    private NamedFieldExpression(
+        RexInputRef ref, List<String> schema, Map<String, OpenSearchDataType> typeMapping) {
       this.name =
           (ref == null || ref.getIndex() >= schema.size()) ? null : schema.get(ref.getIndex());
+      this.type = typeMapping.get(name);
     }
 
     private NamedFieldExpression(RexLiteral literal) {
       this.name = literal == null ? null : RexLiteral.stringValue(literal);
+      this.type = null;
     }
 
     String getRootName() {
       return name;
+    }
+
+    OpenSearchDataType getOpenSearchDataType() {
+      return type;
+    }
+
+    boolean isTextType() {
+      return type != null && type.getMappingType() == OpenSearchDataType.MappingType.Text;
+    }
+
+    String toKeywordSubField() {
+      if (isTextType()) {
+        OpenSearchTextType textType = (OpenSearchTextType) type;
+        // Find the first subfield with type keyword, return null if non-exist.
+        return textType.getFields().entrySet().stream()
+            .filter(e -> e.getValue().getMappingType() == MappingType.Keyword)
+            .findFirst()
+            .map(e -> name + "." + e.getKey())
+            .orElse(null);
+      }
+      return null;
     }
 
     boolean isMetaField() {
@@ -985,6 +1018,9 @@ public class PredicateAnalyzer {
     }
 
     String getReference() {
+      if (isTextType()) {
+        return toKeywordSubField();
+      }
       return getRootName();
     }
   }
