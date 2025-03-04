@@ -9,6 +9,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Map;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
@@ -35,6 +36,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.calcite.plan.OpenSearchTableScan;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.planner.physical.OpenSearchIndexRules;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
@@ -153,7 +155,9 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
     try {
       CalciteOpenSearchIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
-      QueryBuilder filterBuilder = PredicateAnalyzer.analyze(filter.getCondition(), schema);
+      Map<String, OpenSearchDataType> typeMapping = this.osIndex.getFieldOpenSearchTypes();
+      QueryBuilder filterBuilder =
+          PredicateAnalyzer.analyze(filter.getCondition(), schema, typeMapping);
       newScan.pushDownContext.add(
           PushDownAction.of(
               PushDownType.FILTER,
