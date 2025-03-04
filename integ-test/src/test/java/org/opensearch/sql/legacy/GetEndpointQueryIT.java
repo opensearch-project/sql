@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.client.ResponseException;
 
-/** Tests to cover requests with "?format=csv" parameter */
 public class GetEndpointQueryIT extends SQLIntegTestCase {
 
   @Rule public final ExpectedException rule = ExpectedException.none();
