@@ -17,6 +17,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.Request;
 
 @Ignore
 public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
@@ -28,6 +29,26 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.OCCUPATION);
     loadIndex(Index.HOBBIES);
+    Request request1 =
+        new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/5?refresh=true");
+    request1.setJsonEntity(
+        "{\"name\":\"Jim\",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
+    client().performRequest(request1);
+    Request request2 =
+        new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/6?refresh=true");
+    request2.setJsonEntity(
+        "{\"name\":\"Peter\",\"age\":57,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
+    client().performRequest(request2);
+    Request request3 =
+        new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/7?refresh=true");
+    request3.setJsonEntity(
+        "{\"name\":\"Rick\",\"age\":70,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
+    client().performRequest(request3);
+    Request request4 =
+        new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/8?refresh=true");
+    request4.setJsonEntity(
+        "{\"name\":\"David\",\"age\":40,\"state\":\"Washington\",\"country\":\"USA\",\"year\":2023,\"month\":4}");
+    client().performRequest(request4);
   }
 
   @Test
