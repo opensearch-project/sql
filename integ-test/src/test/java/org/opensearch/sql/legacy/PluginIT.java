@@ -20,9 +20,6 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 
-@Ignore(
-    "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
-        + " response for now. Need to decide what to do with these test cases.")
 public class PluginIT extends SQLIntegTestCase {
 
   @Override
@@ -30,6 +27,9 @@ public class PluginIT extends SQLIntegTestCase {
     wipeAllClusterSettings();
   }
 
+  @Ignore(
+      "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
+          + " response for now. Need to decide what to do with these test cases.")
   @Test
   public void sqlEnableSettingsTest() throws IOException {
     loadIndex(Index.ACCOUNT);

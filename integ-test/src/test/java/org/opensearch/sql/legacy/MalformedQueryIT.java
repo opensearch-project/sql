@@ -11,13 +11,9 @@ import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.json.JSONObject;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.opensearch.client.ResponseException;
 
 /** Tests for clean handling of various types of invalid queries */
-@Ignore(
-    "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
-        + " response for now. Need to decide what to do with these test cases.")
 public class MalformedQueryIT extends SQLIntegTestCase {
   @Override
   protected void init() throws Exception {
