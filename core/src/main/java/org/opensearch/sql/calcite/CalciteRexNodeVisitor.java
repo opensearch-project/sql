@@ -160,18 +160,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       if (parts.size() == 1) {
         // Handle the case of `id = cid`
         try {
-          // TODO what if there is join clause in InSubquery in join condition
-          // for subquery in join condition
-          return context.relBuilder.field(parts.get(0));
-        } catch (IllegalArgumentException e) {
-          try {
-            return context.relBuilder.field(2, 0, parts.get(0));
-          } catch (IllegalArgumentException ee) {
-            return context.relBuilder.field(2, 1, parts.get(0));
-          }
+          return context.relBuilder.field(2, 0, parts.getFirst());
+        } catch (IllegalArgumentException ee) {
+          return context.relBuilder.field(2, 1, parts.getFirst());
         }
-      } else if (parts.size()
-          == 2) { // Handle the case of `t1.id = t2.id` or `alias1.id = alias2.id`
+      } else if (parts.size() == 2) {
+        // Handle the case of `t1.id = t2.id` or `alias1.id = alias2.id`
         return context.relBuilder.field(2, parts.get(0), parts.get(1));
       } else if (parts.size() == 3) {
         throw new UnsupportedOperationException("Unsupported qualified name: " + node);
@@ -183,7 +177,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return context.relBuilder.field(qualifiedName);
     } else if (node.getParts().size() == 2) {
       List<String> parts = node.getParts();
-      return context.relBuilder.field(1, parts.get(0), parts.get(1));
+      return context.relBuilder.field(parts.get(0), parts.get(1));
     } else if (currentFields.stream().noneMatch(f -> f.startsWith(qualifiedName))) {
       return context.relBuilder.field(qualifiedName);
     }
@@ -260,9 +254,20 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitInSubquery(InSubquery node, CalcitePlanContext context) {
     List<RexNode> nodes = node.getChild().stream().map(child -> analyze(child, context)).toList();
+    // clear and store the outer state
+    boolean isResolvingJoinConditionOuter = context.isResolvingJoinCondition();
+    if (isResolvingJoinConditionOuter) {
+      context.setResolvingJoinCondition(false);
+    }
     UnresolvedPlan subquery = node.getQuery();
+
     RelNode subqueryRel = subquery.accept(planVisitor, context);
+    // pop the inner plan
     context.relBuilder.build();
+    // restore to the previous state
+    if (isResolvingJoinConditionOuter) {
+      context.setResolvingJoinCondition(true);
+    }
     try {
       return context.relBuilder.in(subqueryRel, nodes);
       // TODO
