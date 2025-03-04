@@ -33,6 +33,23 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testTakeAgg() {
+    String ppl = "source=EMP | stats take(JOB, 2) as c";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalAggregate(group=[{}], c=[TAKE($0, $1)])\n"
+            + "  LogicalProject(JOB=[$2], $f8=[2])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult = "c=[CLERK, SALESMAN]\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql = "" + "SELECT `TAKE`(`JOB`, 2) `c`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testSimpleAvg() {
     String ppl = "source=EMP | stats avg(SAL)";
     RelNode root = getRelNode(ppl);
