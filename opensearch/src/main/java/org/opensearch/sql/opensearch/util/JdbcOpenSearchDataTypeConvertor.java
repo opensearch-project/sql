@@ -8,7 +8,10 @@ package org.opensearch.sql.opensearch.util;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Arrays;
+
 import lombok.experimental.UtilityClass;
+import org.apache.calcite.avatica.util.ArrayImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -90,6 +93,13 @@ public class JdbcOpenSearchDataTypeConvertor {
         return value == null ? ExprNullValue.of() : new ExprTimestampValue((String) value);
       case Types.BOOLEAN:
         value = rs.getBoolean(i);
+        break;
+      case Types.ARRAY:
+        value = rs.getArray(i);
+        // For calcite
+        if (value instanceof ArrayImpl) {
+          value = Arrays.asList((Object[]) ((ArrayImpl) value).getArray());
+        }
         break;
       default:
         value = rs.getObject(i);
