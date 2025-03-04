@@ -51,7 +51,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final CalciteAggCallVisitor aggVisitor;
 
   public CalciteRelNodeVisitor() {
-    this.rexVisitor = new CalciteRexNodeVisitor();
+    this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
   }
 

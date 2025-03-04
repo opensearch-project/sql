@@ -6,9 +6,13 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import org.junit.Ignore;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 
@@ -37,602 +41,265 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testSourceQuery() {
-    String actual = execute("source=test");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\",\n"
-            + "      30\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    JSONObject actual = executeQuery("source=test");
+    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifyDataRows(actual, rows("hello", 20), rows("world", 30));
   }
 
   @Test
   public void testMultipleSourceQuery() {
-    String actual = execute("source=test, test");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\",\n"
-            + "      30\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"hello\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\",\n"
-            + "      30\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 4,\n"
-            + "  \"size\": 4\n"
-            + "}",
-        actual);
+    JSONObject actual = executeQuery("source=test, test");
+    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifyDataRows(
+        actual, rows("hello", 20), rows("world", 30), rows("hello", 20), rows("world", 30));
   }
 
   @Test
   public void testSourceFieldQuery() {
-    String actual = execute("source=test | fields name");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    JSONObject actual = executeQuery("source=test | fields name");
+    verifySchema(actual, schema("name", "string"));
+    verifyDataRows(actual, rows("hello"), rows("world"));
   }
 
   @Test
   public void testFilterQuery1() {
-    String actual = execute("source=test | where age = 30 | fields name, age");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"world\",\n"
-            + "      30\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
+    JSONObject actual = executeQuery("source=test | where age = 30 | fields name, age");
+    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifyDataRows(actual, rows("world", 30));
   }
 
   @Test
   public void testFilterQuery2() {
-    String actual = execute("source=test | where age = 20 | fields name, age");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\",\n"
-            + "      20\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
+    JSONObject actual = executeQuery("source=test | where age = 20 | fields name, age");
+    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifyDataRows(actual, rows("hello", 20));
   }
 
   @Test
   public void testFilterQuery3() {
-    String actual = execute("source=test | where age > 10 AND age < 100 | fields name, age");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"world\",\n"
-            + "      30\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    JSONObject actual =
+        executeQuery("source=test | where age > 10 AND age < 100 | fields name, age");
+    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifyDataRows(actual, rows("hello", 20), rows("world", 30));
   }
 
-  // TODO fail after merged https://github.com/opensearch-project/sql/pull/3327
-  @Ignore
   @Test
   public void testFilterQueryWithOr() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
-                "source=%s | where (account_number = 25 or balance > 10000) and gender = 'M' |"
+                "source=%s | where (account_number = 20 or city = 'Brogan') and balance > 10000 |"
                     + " fields firstname, lastname",
                 TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"lastname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Amber JOHnny\",\n"
-            + "      \"Duke Willmington\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Elinor\",\n"
-            + "      \"Ratliff\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    verifySchema(actual, schema("firstname", "string"), schema("lastname", "string"));
+    verifyDataRows(actual, rows("Amber JOHnny", "Duke Willmington"), rows("Elinor", "Ratliff"));
   }
 
-  // TODO fail after merged https://github.com/opensearch-project/sql/pull/3327
-  @Ignore
   @Test
   public void testFilterQueryWithOr2() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
-                "source=%s (account_number = 25 or balance > 10000) and gender = 'M' |"
+                "source=%s (account_number = 20 or city = 'Brogan') and balance > 10000 |"
                     + " fields firstname, lastname",
                 TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"lastname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Amber JOHnny\",\n"
-            + "      \"Duke Willmington\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Elinor\",\n"
-            + "      \"Ratliff\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
+    verifySchema(actual, schema("firstname", "string"), schema("lastname", "string"));
+    verifyDataRows(actual, rows("Amber JOHnny", "Duke Willmington"), rows("Elinor", "Ratliff"));
   }
 
   @Test
   public void testQueryMinusFields() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format("source=%s | fields - firstname, lastname, birthdate", TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"address\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"city\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"balance\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"employer\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"state\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"email\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"male\",\n"
-            + "      \"type\": \"boolean\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      1,\n"
-            + "      \"880 Holmes Lane\",\n"
-            + "      \"M\",\n"
-            + "      \"Brogan\",\n"
-            + "      39225,\n"
-            + "      \"Pyrami\",\n"
-            + "      \"IL\",\n"
-            + "      32,\n"
-            + "      \"amberduke@pyrami.com\",\n"
-            + "      true\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      6,\n"
-            + "      \"671 Bristol Street\",\n"
-            + "      \"M\",\n"
-            + "      \"Dante\",\n"
-            + "      5686,\n"
-            + "      \"Netagy\",\n"
-            + "      \"TN\",\n"
-            + "      36,\n"
-            + "      \"hattiebond@netagy.com\",\n"
-            + "      true\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      13,\n"
-            + "      \"789 Madison Street\",\n"
-            + "      \"F\",\n"
-            + "      \"Nogal\",\n"
-            + "      32838,\n"
-            + "      \"Quility\",\n"
-            + "      \"VA\",\n"
-            + "      28,\n"
-            + "      \"nanettebates@quility.com\",\n"
-            + "      false\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      18,\n"
-            + "      \"467 Hutchinson Court\",\n"
-            + "      \"M\",\n"
-            + "      \"Orick\",\n"
-            + "      4180,\n"
-            + "      \"Boink\",\n"
-            + "      \"MD\",\n"
-            + "      33,\n"
-            + "      \"daleadams@boink.com\",\n"
-            + "      true\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      20,\n"
-            + "      \"282 Kings Place\",\n"
-            + "      \"M\",\n"
-            + "      \"Ribera\",\n"
-            + "      16418,\n"
-            + "      \"Scentric\",\n"
-            + "      \"WA\",\n"
-            + "      36,\n"
-            + "      \"elinorratliff@scentric.com\",\n"
-            + "      true\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      25,\n"
-            + "      \"171 Putnam Avenue\",\n"
-            + "      \"F\",\n"
-            + "      \"Nicholson\",\n"
-            + "      40540,\n"
-            + "      \"Filodyne\",\n"
-            + "      \"PA\",\n"
-            + "      39,\n"
-            + "      \"virginiaayala@filodyne.com\",\n"
-            + "      false\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      32,\n"
-            + "      \"702 Quentin Street\",\n"
-            + "      \"F\",\n"
-            + "      \"Veguita\",\n"
-            + "      48086,\n"
-            + "      \"Quailcom\",\n"
-            + "      \"IN\",\n"
-            + "      34,\n"
-            + "      \"dillardmcpherson@quailcom.com\",\n"
-            + "      false\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("account_number", "long"),
+        schema("address", "string"),
+        schema("gender", "string"),
+        schema("city", "string"),
+        schema("balance", "long"),
+        schema("employer", "string"),
+        schema("state", "string"),
+        schema("age", "integer"),
+        schema("email", "string"),
+        schema("male", "boolean"));
+    verifyDataRows(
+        actual,
+        rows(
+            1,
+            "880 Holmes Lane",
+            "M",
+            "Brogan",
+            39225,
+            "Pyrami",
+            "IL",
+            32,
+            "amberduke@pyrami.com",
+            true),
+        rows(
+            6,
+            "671 Bristol Street",
+            "M",
+            "Dante",
+            5686,
+            "Netagy",
+            "TN",
+            36,
+            "hattiebond@netagy.com",
+            true),
+        rows(
+            13,
+            "789 Madison Street",
+            "F",
+            "Nogal",
+            32838,
+            "Quility",
+            "VA",
+            28,
+            "nanettebates@quility.com",
+            false),
+        rows(
+            18,
+            "467 Hutchinson Court",
+            "M",
+            "Orick",
+            4180,
+            "Boink",
+            "MD",
+            33,
+            "daleadams@boink.com",
+            true),
+        rows(
+            20,
+            "282 Kings Place",
+            "M",
+            "Ribera",
+            16418,
+            "Scentric",
+            "WA",
+            36,
+            "elinorratliff@scentric.com",
+            true),
+        rows(
+            25,
+            "171 Putnam Avenue",
+            "F",
+            "Nicholson",
+            40540,
+            "Filodyne",
+            "PA",
+            39,
+            "virginiaayala@filodyne.com",
+            false),
+        rows(
+            32,
+            "702 Quentin Street",
+            "F",
+            "Veguita",
+            48086,
+            "Quailcom",
+            "IN",
+            34,
+            "dillardmcpherson@quailcom.com",
+            false));
   }
 
-  // TODO bug: shouldn't return empty
-  @Ignore
+  @Test
   public void testQueryMinusFieldsWithFilter() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
-                "source=%s | where (account_number = 25 or balance > 10000) and gender = 'M' |"
+                "source=%s | where (account_number = 20 or city = 'Brogan') and balance > 10000 |"
                     + " fields - firstname, lastname",
                 TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"address\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"birthdate\",\n"
-            + "      \"type\": \"timestamp\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"city\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"balance\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"employer\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"state\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"email\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"male\",\n"
-            + "      \"type\": \"boolean\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [],\n"
-            + "  \"total\": 0,\n"
-            + "  \"size\": 0\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("account_number", "long"),
+        schema("address", "string"),
+        schema("birthdate", "timestamp"),
+        schema("gender", "string"),
+        schema("city", "string"),
+        schema("balance", "long"),
+        schema("employer", "string"),
+        schema("state", "string"),
+        schema("age", "integer"),
+        schema("email", "string"),
+        schema("male", "boolean"));
+    verifyDataRows(
+        actual,
+        rows(
+            1,
+            "880 Holmes Lane",
+            "2017-10-23 00:00:00",
+            "M",
+            "Brogan",
+            39225,
+            "Pyrami",
+            "IL",
+            32,
+            "amberduke@pyrami.com",
+            true),
+        rows(
+            20,
+            "282 Kings Place",
+            "2018-06-27 00:00:00",
+            "M",
+            "Ribera",
+            16418,
+            "Scentric",
+            "WA",
+            36,
+            "elinorratliff@scentric.com",
+            true));
   }
 
   @Test
   public void testFieldsPlusThenMinus() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s | fields + firstname, lastname, account_number | fields - firstname,"
                     + " lastname",
                 TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      1\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      6\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      13\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      18\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      25\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      32\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}",
-        actual);
+    verifySchema(actual, schema("account_number", "long"));
+    verifyDataRows(actual, rows(1), rows(6), rows(13), rows(18), rows(20), rows(25), rows(32));
   }
 
-  // TODO fail after merged https://github.com/opensearch-project/sql/pull/3327
-  @Ignore
   @Test
   public void testMultipleTables() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format("source=%s, %s | stats count() as c", TEST_INDEX_BANK, TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"c\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      14\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
+    verifySchema(actual, schema("c", "long"));
+    verifyDataRows(actual, rows(14));
   }
 
-  // TODO fail after merged https://github.com/opensearch-project/sql/pull/3327
-  @Ignore
   @Test
   public void testMultipleTablesAndFilters() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s, %s gender = 'F' | stats count() as c",
                 TEST_INDEX_BANK, TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"c\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      6\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
+    verifySchema(actual, schema("c", "long"));
+    verifyDataRows(actual, rows(6));
   }
 
   @Test
   public void testSelectDateTypeField() {
-    String actual = execute(String.format("source=%s | fields birthdate", TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"birthdate\",\n"
-            + "      \"type\": \"timestamp\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"2017-10-23 00:00:00\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"2017-11-20 00:00:00\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"2018-06-23 00:00:00\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"2018-11-13 23:33:20\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"2018-06-27 00:00:00\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"2018-08-19 00:00:00\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"2018-08-11 00:00:00\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}",
-        actual);
+    JSONObject actual =
+        executeQuery(String.format("source=%s | fields birthdate", TEST_INDEX_BANK));
+    verifySchema(actual, schema("birthdate", "timestamp"));
+    verifyDataRows(
+        actual,
+        rows("2017-10-23 00:00:00"),
+        rows("2017-11-20 00:00:00"),
+        rows("2018-06-23 00:00:00"),
+        rows("2018-11-13 23:33:20"),
+        rows("2018-06-27 00:00:00"),
+        rows("2018-08-19 00:00:00"),
+        rows("2018-08-11 00:00:00"));
   }
 
   @Test
@@ -641,23 +308,8 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     request.setJsonEntity("{\"name\": \"hello\"}");
     client().performRequest(request);
 
-    String actual = execute("source=a | fields name");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"name\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"hello\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
+    JSONObject actual = executeQuery("source=a | fields name");
+    verifySchema(actual, schema("name", "string"));
+    verifyDataRows(actual, rows("hello"));
   }
 }

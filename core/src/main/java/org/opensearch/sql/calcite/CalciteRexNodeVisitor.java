@@ -12,6 +12,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -38,9 +40,14 @@ import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 
+@RequiredArgsConstructor
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {
+  private final CalciteRelNodeVisitor planVisitor;
 
   public RexNode analyze(UnresolvedExpression unresolved, CalcitePlanContext context) {
     return unresolved.accept(this, context);
@@ -150,11 +157,18 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
     if (context.isResolvingJoinCondition()) {
       List<String> parts = node.getParts();
-      if (parts.size() == 1) { // Handle the case of `id = cid`
+      if (parts.size() == 1) {
+        // Handle the case of `id = cid`
         try {
-          return context.relBuilder.field(2, 0, parts.get(0));
-        } catch (IllegalArgumentException i) {
-          return context.relBuilder.field(2, 1, parts.get(0));
+          // TODO what if there is join clause in InSubquery in join condition
+          // for subquery in join condition
+          return context.relBuilder.field(parts.get(0));
+        } catch (IllegalArgumentException e) {
+          try {
+            return context.relBuilder.field(2, 0, parts.get(0));
+          } catch (IllegalArgumentException ee) {
+            return context.relBuilder.field(2, 1, parts.get(0));
+          }
         }
       } else if (parts.size()
           == 2) { // Handle the case of `t1.id = t2.id` or `alias1.id = alias2.id`
@@ -241,5 +255,30 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
     return context.rexBuilder.makeCall(
         BuiltinFunctionUtils.translate(node.getFuncName()), arguments);
+  }
+
+  @Override
+  public RexNode visitInSubquery(InSubquery node, CalcitePlanContext context) {
+    List<RexNode> nodes = node.getChild().stream().map(child -> analyze(child, context)).toList();
+    UnresolvedPlan subquery = node.getQuery();
+    RelNode subqueryRel = subquery.accept(planVisitor, context);
+    context.relBuilder.build();
+    try {
+      return context.relBuilder.in(subqueryRel, nodes);
+      // TODO
+      // The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
+      // only support one expression. Change to follow code after calcite fixed.
+      //    return context.relBuilder.in(
+      //        nodes.getFirst(),
+      //        b -> {
+      //          RelNode subqueryRel = subquery.accept(planVisitor, context);
+      //          b.build();
+      //          return subqueryRel;
+      //        });
+    } catch (AssertionError e) {
+      throw new SemanticCheckException(
+          "The number of columns in the left hand side of an IN subquery does not match the number"
+              + " of columns in the output of subquery");
+    }
   }
 }

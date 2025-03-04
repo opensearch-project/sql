@@ -1,0 +1,21 @@
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "name": {
+        "type": "keyword"
+      },
+      "occupation": {
+        "type": "text"
+      },
+      "country": {
+        "type": "text"
+      },
+      "salary": {
+        "type": "integer"
+      }
+    }
+  }
+}
