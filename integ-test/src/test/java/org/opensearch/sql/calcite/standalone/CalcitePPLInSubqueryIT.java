@@ -31,8 +31,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.OCCUPATION);
   }
 
-  // TODO https://github.com/opensearch-project/sql/issues/3373
-  @Ignore
+  @Test
   public void testSelfInSubquery() {
     JSONObject result =
         executeQuery(
@@ -249,8 +248,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                     TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
   }
 
-  // TODO https://github.com/opensearch-project/sql/issues/3373
-  @Ignore
+  @Test
   public void testInSubqueryWithTableAlias() {
     JSONObject result =
         executeQuery(
