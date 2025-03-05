@@ -17,6 +17,9 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
+import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 
 public interface BuiltinFunctionUtils {
@@ -60,12 +63,58 @@ public interface BuiltinFunctionUtils {
         // Built-in Math Functions
       case "ABS":
         return SqlStdOperatorTable.ABS;
-      case "SQRT":
-        return TransferUserDefinedFunction(SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE);
+      case "ACOS":
+        return SqlStdOperatorTable.ACOS;
+      case "ASIN":
+        return SqlStdOperatorTable.ASIN;
       case "ATAN", "ATAN2":
         return SqlStdOperatorTable.ATAN2;
+      case "CEILING":
+        return SqlStdOperatorTable.CEIL;
+      case "CONV":
+        return SqlStdOperatorTable.CONVERT;
+      case "COS":
+        return SqlStdOperatorTable.COS;
+      case "COT":
+        return SqlStdOperatorTable.COT;
+      case "CRC32":
+        return TransferUserDefinedFunction(CRC32Function.class, "crc32", ReturnTypes.BIGINT);
+      case "DEGREES":
+        return SqlStdOperatorTable.DEGREES;
+      case "E":
+        return TransferUserDefinedFunction(EulerFunction.class, "e", ReturnTypes.DOUBLE);
+      case "EXP":
+        return SqlStdOperatorTable.EXP;
+      case "FLOOR":
+        return SqlStdOperatorTable.FLOOR;
+      case "LN":
+        return SqlStdOperatorTable.LN;
+      case "LOG":
+        return SqlLibraryOperators.LOG;
+      case "LOG2":
+        return SqlLibraryOperators.LOG2;
+      case "LOG10":
+        return SqlStdOperatorTable.LOG10;
+      case "MOD":
+        return TransferUserDefinedFunction(ModFunction.class, "mod", ReturnTypes.DOUBLE);
+      case "PI":
+        return SqlStdOperatorTable.PI;
       case "POW", "POWER":
         return SqlStdOperatorTable.POWER;
+      case "RADIANS":
+        return SqlStdOperatorTable.RADIANS;
+      case "RAND":
+        return SqlStdOperatorTable.RAND;
+      case "ROUND":
+        return SqlStdOperatorTable.ROUND;
+      case "SIGN":
+        return SqlStdOperatorTable.SIGN;
+      case "SIN":
+        return SqlStdOperatorTable.SIN;
+      case "SQRT":
+        return TransferUserDefinedFunction(SqrtFunction.class, "sqrt", ReturnTypes.DOUBLE);
+      case "CBRT":
+        return SqlStdOperatorTable.CBRT;
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP":
         return SqlStdOperatorTable.CURRENT_TIMESTAMP;
