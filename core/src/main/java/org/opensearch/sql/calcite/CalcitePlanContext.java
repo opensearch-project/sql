@@ -10,6 +10,7 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTOR
 import java.sql.Connection;
 import java.util.function.BiFunction;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
@@ -23,7 +24,7 @@ public class CalcitePlanContext {
   public final RelBuilder relBuilder;
   public final ExtendedRexBuilder rexBuilder;
 
-  @Getter private boolean isResolvingJoinCondition = false;
+  @Getter @Setter private boolean isResolvingJoinCondition = false;
 
   private CalcitePlanContext(FrameworkConfig config) {
     this.config = config;
