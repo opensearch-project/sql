@@ -17,6 +17,9 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
+import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
+import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 
 public interface BuiltinFunctionUtils {
@@ -77,6 +80,20 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.DATE_ADD_SPARK;
       case "DATE_ADD":
         return SqlLibraryOperators.DATEADD;
+      // Built-in condition functions
+      case "IF":
+        return TransferUserDefinedFunction(
+                IfFunction.class, "if", UserDefineFunctionUtils.getReturnTypeInference(1));
+      case "IFNULL":
+        return TransferUserDefinedFunction(
+                IfNullFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(1));
+      case "NULLIF":
+        return TransferUserDefinedFunction(
+                NullIfFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(0));
+      case "IS NOT NULL":
+        return SqlStdOperatorTable.IS_NOT_NULL;
+      case "IS NULL":
+        return SqlStdOperatorTable.IS_NULL;
         // TODO Add more, ref RexImpTable
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);

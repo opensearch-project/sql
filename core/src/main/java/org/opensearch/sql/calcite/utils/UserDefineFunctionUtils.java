@@ -79,4 +79,19 @@ public class UserDefineFunctionUtils {
       return createArrayType(typeFactory, firstArgType, true);
     };
   }
+
+  public static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+
+      // Get argument types
+      List<RelDataType> argTypes = opBinding.collectOperandTypes();
+
+      if (argTypes.isEmpty()) {
+        throw new IllegalArgumentException("Function requires at least one argument.");
+      }
+      RelDataType firstArgType = argTypes.get(targetPosition);
+      return typeFactory.createSqlType(firstArgType.getSqlTypeName());
+    };
+  }
 }
