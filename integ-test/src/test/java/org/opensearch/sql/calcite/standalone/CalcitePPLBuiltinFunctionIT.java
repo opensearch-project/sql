@@ -12,7 +12,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
-public class CalcitePPLMathFunctionsIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Override
   public void init() throws IOException {
     super.init();
@@ -205,7 +205,7 @@ public class CalcitePPLMathFunctionsIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
             executeQuery(
                     String.format(
-                            "source=%s | where age = floor(exp(3.4011973816621555)) | fields name, age",
+                            "source=%s | where age = floor(exp(3.41)) | fields name, age",
                             TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
