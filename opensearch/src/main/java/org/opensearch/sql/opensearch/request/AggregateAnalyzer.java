@@ -218,6 +218,11 @@ public class AggregateAnalyzer {
       case STDDEV_POP -> Pair.of(
           AggregationBuilders.extendedStats(aggField).field(argStr),
           new StatsParser(ExtendedStats::getStdDeviationPopulation, aggField));
+        // TODO: below UDAF should support push down once implemented
+        // https://github.com/opensearch-project/sql/issues/3385
+        // case take
+        // case percentile
+        // case percentile_approx
       default -> throw new AggregateAnalyzerException(
           String.format("unsupported aggregator %s", aggCall.getAggregation()));
     };
