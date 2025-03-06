@@ -51,6 +51,8 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
     final RelOptTable table = scan.getTable();
     requireNonNull(table.unwrap(OpenSearchIndex.class));
 
+    // TODO: support script pushdown for project instead of only reference
+    // https://github.com/opensearch-project/sql/issues/3387
     final List<Integer> selectedColumns = new ArrayList<>();
     final RexVisitorImpl<Void> visitor =
         new RexVisitorImpl<Void>(true) {

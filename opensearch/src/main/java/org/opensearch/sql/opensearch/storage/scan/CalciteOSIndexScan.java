@@ -101,7 +101,7 @@ public abstract class CalciteOSIndexScan extends TableScan {
     }
 
     public String toString() {
-      return null;
+      return type + ":" + digest;
     }
 
     public void apply(OpenSearchRequestBuilder requestBuilder) {
