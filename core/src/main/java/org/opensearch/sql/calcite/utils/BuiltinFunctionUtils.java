@@ -165,12 +165,14 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.SIN;
       case "SQRT":
         return TransferUserDefinedFunction(SqrtFunction.class, "sqrt", ReturnTypes.DOUBLE);
+      case "DATE_FORMAT":
+        return SqlLibraryOperators.FORMAT_TIMESTAMP;
       case "CBRT":
         return SqlStdOperatorTable.CBRT;
         // Built-in Date Functions
-      case "CURRENT_TIMESTAMP":
+      case "CURRENT_TIMESTAMP", "NOW":
         return SqlStdOperatorTable.CURRENT_TIMESTAMP;
-      case "CURRENT_DATE":
+      case "CURRENT_DATE", "CURDATE":
         return SqlStdOperatorTable.CURRENT_DATE;
       case "DATE":
         return SqlLibraryOperators.DATE;
@@ -295,7 +297,7 @@ public interface BuiltinFunctionUtils {
         List<RexNode> timestampArgs = new ArrayList<>(argList);
         timestampArgs.addAll(argList.stream().
                 map(p -> context.rexBuilder.makeFlag(p.getType().getSqlTypeName())).collect(Collectors.toList()));
-
+        return timestampArgs;
       case "DAYNAME", "MONTHNAME":
         List<RexNode> periodNameArgs = new ArrayList<>();
         periodNameArgs.add(argList.getFirst());
