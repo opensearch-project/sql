@@ -98,7 +98,11 @@ public class CalciteLogicalOSIndexScan extends CalciteOSIndexScan {
       // TODO: handle the case where condition contains a score function
       return newScan;
     } catch (Exception e) {
-      LOG.warn("Cannot analyze the filter condition {}", filter.getCondition(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the filter condition {}", filter.getCondition(), e);
+      } else {
+        LOG.warn("Cannot pushdown the filter condition {}, ", filter.getCondition());
+      }
     }
     return null;
   }
@@ -151,7 +155,11 @@ public class CalciteLogicalOSIndexScan extends CalciteOSIndexScan {
               }));
       return newScan;
     } catch (Exception e) {
-      LOG.debug("Cannot analyze the aggregate {}", aggregate, e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the aggregate {}", aggregate, e);
+      } else {
+        LOG.warn("Cannot pushdown the aggregate {}, ", aggregate);
+      }
     }
     return null;
   }
