@@ -10,7 +10,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
@@ -166,14 +165,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             ? Optional.of(internalVisitExpression(ctx.sideAlias().leftAlias).toString())
             : Optional.empty();
     Optional<String> rightAlias = Optional.empty();
-    if (ctx.tableSourceClause().alias != null) {
-      rightAlias = Optional.of(internalVisitExpression(ctx.tableSourceClause().alias).toString());
+    if (ctx.tableOrSubqueryClause().alias != null) {
+      rightAlias =
+          Optional.of(internalVisitExpression(ctx.tableOrSubqueryClause().alias).toString());
     }
     if (ctx.sideAlias().rightAlias != null) {
       rightAlias = Optional.of(internalVisitExpression(ctx.sideAlias().rightAlias).toString());
     }
 
-    UnresolvedPlan rightRelation = visit(ctx.tableSourceClause());
+    UnresolvedPlan rightRelation = visit(ctx.tableOrSubqueryClause());
     // Add a SubqueryAlias to the right plan when the right alias is present and no duplicated alias
     // existing in right.
     UnresolvedPlan right;
@@ -406,11 +406,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         groupList);
   }
 
-  /** From clause. */
   @Override
-  public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
-    if (ctx.tableFunction() != null) {
-      return visitTableFunction(ctx.tableFunction());
+  public UnresolvedPlan visitTableOrSubqueryClause(
+      OpenSearchPPLParser.TableOrSubqueryClauseContext ctx) {
+    if (ctx.subSearch() != null) {
+      return ctx.alias != null
+          ? new SubqueryAlias(
+              internalVisitExpression(ctx.alias).toString(), visitSubSearch(ctx.subSearch()))
+          : visitSubSearch(ctx.subSearch());
     } else {
       return visitTableSourceClause(ctx.tableSourceClause());
     }

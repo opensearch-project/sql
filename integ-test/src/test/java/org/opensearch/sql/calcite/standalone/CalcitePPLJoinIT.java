@@ -18,6 +18,7 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestsConstants;
 
 public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
 
@@ -29,22 +30,22 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.OCCUPATION);
     loadIndex(Index.HOBBIES);
     Request request1 =
-        new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/5?refresh=true");
+        new Request("PUT", "/" + TestsConstants.TEST_INDEX_STATE_COUNTRY + "/_doc/5?refresh=true");
     request1.setJsonEntity(
         "{\"name\":\"Jim\",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
     client().performRequest(request1);
     Request request2 =
-        new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/6?refresh=true");
+        new Request("PUT", "/" + TestsConstants.TEST_INDEX_STATE_COUNTRY + "/_doc/6?refresh=true");
     request2.setJsonEntity(
         "{\"name\":\"Peter\",\"age\":57,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
     client().performRequest(request2);
     Request request3 =
-        new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/7?refresh=true");
+        new Request("PUT", "/" + TestsConstants.TEST_INDEX_STATE_COUNTRY + "/_doc/7?refresh=true");
     request3.setJsonEntity(
         "{\"name\":\"Rick\",\"age\":70,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
     client().performRequest(request3);
     Request request4 =
-        new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/8?refresh=true");
+        new Request("PUT", "/" + TestsConstants.TEST_INDEX_STATE_COUNTRY + "/_doc/8?refresh=true");
     request4.setJsonEntity(
         "{\"name\":\"David\",\"age\":40,\"state\":\"Washington\",\"country\":\"USA\",\"year\":2023,\"month\":4}");
     client().performRequest(request4);
@@ -213,9 +214,9 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         actual,
         rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
         rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000),
-        rows("Jim", 27, "B.C", "Canada", null, null, 0),
-        rows("Peter", 57, "B.C", "Canada", null, null, 0),
-        rows("Rick", 70, "B.C", "Canada", null, null, 0));
+        rows("Jim", 27, "B.C", "Canada", null, null, null),
+        rows("Peter", 57, "B.C", "Canada", null, null, null),
+        rows("Rick", 70, "B.C", "Canada", null, null, null));
   }
 
   @Test
@@ -240,10 +241,10 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         actual,
         rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
         rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000),
-        rows(null, 0, null, null, "Engineer", "England", 100000),
-        rows(null, 0, null, null, "Artist", "USA", 70000),
-        rows(null, 0, null, null, "Doctor", "USA", 120000),
-        rows(null, 0, null, null, "Unemployed", "Canada", 0));
+        rows(null, null, null, null, "Engineer", "England", 100000),
+        rows(null, null, null, null, "Artist", "USA", 70000),
+        rows(null, null, null, null, "Doctor", "USA", 120000),
+        rows(null, null, null, null, "Unemployed", "Canada", 0));
   }
 
   @Test
@@ -392,6 +393,54 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY));
   }
 
+  @Ignore // TODO seems a calcite bug
+  public void testMultipleJoinsWithRelationSubquery() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                """
+                   source = %s
+                   | where country = 'Canada' OR country = 'England'
+                   | inner join left=a, right=b
+                       ON a.name = b.name AND a.year = 2023 AND a.month = 4 AND b.year = 2023 AND b.month = 4
+                       [
+                         source = %s
+                       ]
+                   | eval a_name = a.name
+                   | eval a_country = a.country
+                   | eval b_country = b.country
+                   | fields a_name, age, state, a_country, occupation, b_country, salary
+                   | left join left=a, right=b
+                       ON a.a_name = b.name
+                       [
+                         source = %s
+                       ]
+                   | eval aa_country = a.a_country
+                   | eval ab_country = a.b_country
+                   | eval bb_country = b.country
+                   | fields a_name, age, state, aa_country, occupation, ab_country, salary, bb_country, hobby, language
+                   | cross join left=a, right=b
+                       [
+                         source = %s
+                       ]
+                   | eval new_country = a.aa_country
+                   | eval new_salary = b.salary
+                   | stats avg(new_salary) as avg_salary by span(age, 5) as age_span, state
+                   | left semi join left=a, right=b
+                       ON a.state = b.state
+                       [
+                         source = %s
+                       ]
+                   | eval new_avg_salary = floor(avg_salary)
+                   | fields state, age_span, new_avg_salary
+                   """,
+                TEST_INDEX_STATE_COUNTRY,
+                TEST_INDEX_OCCUPATION,
+                TEST_INDEX_HOBBIES,
+                TEST_INDEX_OCCUPATION,
+                TEST_INDEX_STATE_COUNTRY));
+  }
+
   @Test
   public void testMultipleJoinsWithoutTableAliases() {
     JSONObject actual =
@@ -442,7 +491,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleJoinsWithSelfJoin1() {
+  public void testMultipleJoinsWithSelfJoin() {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -469,8 +518,8 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         rows("John", "John", "John", "John"));
   }
 
-  @Ignore // TODO table subquery not support
-  public void testMultipleJoinsWithSelfJoin2() {
+  @Test
+  public void testMultipleJoinsWithSubquerySelfJoin() {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -481,10 +530,24 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_HOBBIES,
                 TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("name0", "string"),
+        schema("name1", "string"),
+        schema("name2", "string"));
+    verifyDataRows(
+        actual,
+        rows("David", "David", "David", "David"),
+        rows("David", "David", "David", "David"),
+        rows("Hello", "Hello", "Hello", "Hello"),
+        rows("Jake", "Jake", "Jake", "Jake"),
+        rows("Jane", "Jane", "Jane", "Jane"),
+        rows("John", "John", "John", "John"));
   }
 
   @Test
-  public void testCheckAccessTheReferenceByAliases1() {
+  public void testCheckAccessTheReferenceByAliases() {
     String res1 =
         execute(
             String.format(
@@ -520,8 +583,8 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     assertEquals(res4, res5);
   }
 
-  @Ignore // TODO table subquery not support
-  public void testCheckAccessTheReferenceByAliases2() {
+  @Test
+  public void testCheckAccessTheReferenceBySubqueryAliases() {
     String res1 =
         execute(
             String.format(
@@ -559,7 +622,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCheckAccessTheReferenceByAliases3() {
+  public void testCheckAccessTheReferenceByOverrideAliases() {
     String res1 =
         execute(
             String.format(
@@ -580,5 +643,110 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
     assertEquals(res1, res2);
     assertEquals(res1, res3);
+  }
+
+  @Test
+  public void testCheckAccessTheReferenceByOverrideSubqueryAliases() {
+    String res1 =
+        execute(
+            String.format(
+                "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
+                    + " | fields tt.name",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    String res2 =
+        execute(
+            String.format(
+                "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
+                    + " as t2 | fields tt.name",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    String res3 =
+        execute(
+            String.format(
+                "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s ] as tt"
+                    + " | fields tt.name",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    assertEquals(res1, res2);
+    assertEquals(res1, res3);
+  }
+
+  @Test
+  public void testCheckAccessTheReferenceByOverrideSubqueryAliases2() {
+    String res1 =
+        execute(
+            String.format(
+                "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
+                    + " | fields t2.name",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    String res2 =
+        execute(
+            String.format(
+                "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
+                    + " as t2 | fields t2.name",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    String res3 =
+        execute(
+            String.format(
+                "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s ] as tt"
+                    + " | fields t2.name",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    assertEquals(res1, res2);
+    assertEquals(res1, res3);
+  }
+
+  @Test
+  public void testInnerJoinWithRelationSubquery() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                """
+                   source = %s
+                   | where country = 'USA' OR country = 'England'
+                   | inner join left=a, right=b
+                       ON a.name = b.name
+                       [
+                         source = %s
+                         | where salary > 0
+                         | fields name, country, salary
+                         | sort salary
+                         | head 3
+                       ]
+                   | stats avg(salary) by span(age, 10) as age_span, b.country
+                   """,
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    verifySchema(
+        actual,
+        schema("b.country", "string"),
+        schema("age_span", "double"),
+        schema("avg(salary)", "double"));
+    verifyDataRows(actual, rows("USA", 30, 70000.0), rows("England", 70, 100000));
+  }
+
+  @Test
+  public void testLeftJoinWithRelationSubquery() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                """
+                   source = %s
+                   | where country = 'USA' OR country = 'England'
+                   | left join left=a, right=b
+                       ON a.name = b.name
+                       [
+                         source = %s
+                         | where salary > 0
+                         | fields name, country, salary
+                         | sort salary
+                         | head 3
+                       ]
+                   | stats avg(salary) by span(age, 10) as age_span, b.country
+                   """,
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+    verifySchema(
+        actual,
+        schema("b.country", "string"),
+        schema("age_span", "double"),
+        schema("avg(salary)", "double"));
+    verifyDataRows(
+        actual, rows("USA", 30, 70000.0), rows("England", 70, 100000), rows(null, 40, 0));
   }
 }
