@@ -337,4 +337,48 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + "    LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(getRelNode(ppl3), expectedLogical3);
   }
+
+  @Test
+  public void testTableAlias() {
+    String ppl =
+        "source=EMP as e | where (e.DEPTNO = 20 or e.MGR = 30) and e.SAL > 1000 | fields e.EMPNO,"
+            + " e.ENAME";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalFilter(condition=[AND(OR(=($7, 20), =($3, 30)), >($5, 1000))])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE (`DEPTNO` = 20 OR `MGR` = 30) AND `SAL` > 1000";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRelationSubqueryAlias() {
+    String ppl = "source=EMP as e | join on e.DEPTNO = d.DEPTNO [ source=DEPT | head 10 ] as d";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalSort(fetch=[10])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT *\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "LIMIT 10) `t` ON `EMP`.`DEPTNO` = `t`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
