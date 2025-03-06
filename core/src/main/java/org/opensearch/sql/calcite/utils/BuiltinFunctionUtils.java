@@ -12,7 +12,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
@@ -162,8 +161,8 @@ public interface BuiltinFunctionUtils {
         if (argList.size() == 1) {
           LogArgs.add(argList.getFirst());
           LogArgs.add(
-                  context.rexBuilder.makeExactLiteral(
-                          BigDecimal.valueOf(E), typeFactory.createSqlType(SqlTypeName.DOUBLE)));
+              context.rexBuilder.makeExactLiteral(
+                  BigDecimal.valueOf(E), typeFactory.createSqlType(SqlTypeName.DOUBLE)));
         } else if (argList.size() == 2) {
           LogArgs.add(argList.get(1));
           LogArgs.add(argList.get(0));

@@ -47,16 +47,16 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testAcosWithOverriding() {
     String ppl = "source=EMP | eval ACOS = acos(0) | head 2 | fields ACOS";
     RelNode root = getRelNode(ppl);
-    String expectedLogical = "LogicalProject(ACOS=[$8])\n" +
-            "  LogicalSort(fetch=[2])\n" +
-            "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4]," +
-            " SAL=[$5], COMM=[$6], DEPTNO=[$7], ACOS=[ACOS(0)])\n" +
-            "      LogicalTableScan(table=[[scott, EMP]])\n";
+    String expectedLogical =
+        "LogicalProject(ACOS=[$8])\n"
+            + "  LogicalSort(fetch=[2])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], ACOS=[ACOS(0)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "ACOS=1.5707963267948966\n" + "ACOS=1.5707963267948966\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT ACOS(0) `ACOS`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT ACOS(0) `ACOS`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -74,8 +74,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String expectedResult = "ASIN=0.0\n" + "ASIN=0.0\n";
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql =
-        "" + "SELECT ASIN(0) `ASIN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "" + "SELECT ASIN(0) `ASIN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -131,8 +130,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String expectedResult = "CBRT=3.0\n" + "CBRT=3.0\n";
     verifyResult(root, expectedResult);
 
-    String expectedSparkSql =
-        "" + "SELECT CBRT(27) `CBRT`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "" + "SELECT CBRT(27) `CBRT`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -141,16 +139,16 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval CEILING = ceiling(4.5) | head 2 | fields CEILING";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-            "LogicalProject(CEILING=[$8])\n"
-                    + "  LogicalSort(fetch=[2])\n"
-                    + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-                    + " SAL=[$5], COMM=[$6], DEPTNO=[$7], CEILING=[CEIL(4.5E0:DOUBLE)])\n"
-                    + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(CEILING=[$8])\n"
+            + "  LogicalSort(fetch=[2])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], CEILING=[CEIL(4.5E0:DOUBLE)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "CEILING=5.0\n" + "CEILING=5.0\n";
     verifyResult(root, expectedResult);
     String expectedSparkSql =
-            "" + "SELECT CEIL(4.5E0) `CEILING`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+        "" + "SELECT CEIL(4.5E0) `CEILING`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -185,8 +183,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "COS=1.0\n" + "COS=1.0\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT COS(0) `COS`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT COS(0) `COS`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -210,17 +207,17 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval CRC32TEST = crc32('test') | head 2 | fields CRC32TEST";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-            "LogicalProject(CRC32TEST=[$8])\n"
-                    + "  LogicalSort(fetch=[2])\n"
-                    + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-                    + " SAL=[$5], COMM=[$6], DEPTNO=[$7], CRC32TEST=[CRC32('test')])\n"
-                    + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(CRC32TEST=[$8])\n"
+            + "  LogicalSort(fetch=[2])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], CRC32TEST=[CRC32('test')])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "CRC32TEST=3632233996\n" + "CRC32TEST=3632233996\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-            "SELECT `CRC32`('test') `CRC32TEST`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+        "SELECT `CRC32`('test') `CRC32TEST`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -255,8 +252,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "EULER=2.718281828459045\n" + "EULER=2.718281828459045\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT `E`() `EULER`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT `E`() `EULER`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -273,20 +269,22 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "EXP=7.38905609893065\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT EXP(2) `EXP`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT EXP(2) `EXP`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
   public void testFloorWithOverriding() {
-    String ppl = "source=EMP | eval FLOOR1 = floor(50.00005), FLOOR2 = floor(-50.0005) | head 1 | fields FLOOR1, FLOOR2";
+    String ppl =
+        "source=EMP | eval FLOOR1 = floor(50.00005), FLOOR2 = floor(-50.0005) | head 1 | fields"
+            + " FLOOR1, FLOOR2";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(FLOOR1=[$8], FLOOR2=[$9])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], FLOOR1=[FLOOR(50.00005E0:DOUBLE)], FLOOR2=[FLOOR(-50.0005E0:DOUBLE)])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], FLOOR1=[FLOOR(50.00005E0:DOUBLE)],"
+            + " FLOOR2=[FLOOR(-50.0005E0:DOUBLE)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "FLOOR1=50.0; FLOOR2=-51.0\n";
@@ -311,8 +309,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "LN=0.6931471805599453\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT LN(2) `LN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT LN(2) `LN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -329,8 +326,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "LOG=0.6931471805599453\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT LOG(2, 2.718281828459045) `LOG`\nFROM `scott`.`EMP`\nLIMIT 1";
+    String expectedSparkSql = "SELECT LOG(2, 2.718281828459045) `LOG`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -347,8 +343,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "LOG2=1.0\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT LOG2(2) `LOG2`\nFROM `scott`.`EMP`\nLIMIT 1";
+    String expectedSparkSql = "SELECT LOG2(2) `LOG2`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -365,8 +360,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "LOG10=2.0\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT LOG10(100) `LOG10`\nFROM `scott`.`EMP`\nLIMIT 1";
+    String expectedSparkSql = "SELECT LOG10(100) `LOG10`\nFROM `scott`.`EMP`\nLIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -383,8 +377,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "MOD=1.0\n" + "MOD=1.0\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "" + "SELECT MOD(10, 3) `MOD`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "" + "SELECT MOD(10, 3) `MOD`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -401,14 +394,14 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "PI=3.141592653589793\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "" + "SELECT PI `PI`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "" + "SELECT PI `PI`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
   public void testPowAndPowerWithOverriding() {
-    String ppl = "source=EMP | eval POW = POW(3, 2), POWER = POWER(2, 2) | head 1 | fields POW, POWER";
+    String ppl =
+        "source=EMP | eval POW = POW(3, 2), POWER = POWER(2, 2) | head 1 | fields POW, POWER";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(POW=[$8], POWER=[$9])\n"
@@ -420,9 +413,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String expectedResult = "POW=9.0; POWER=4.0\n";
     verifyResult(root, expectedResult);
     String expectedSparkSql =
-        "SELECT POWER(3, 2) `POW`, POWER(2, 2) `POWER`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "LIMIT 1";
+        "SELECT POWER(3, 2) `POW`, POWER(2, 2) `POWER`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -455,8 +446,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
             + " SAL=[$5], COMM=[$6], DEPTNO=[$7], RAND=[RAND(1)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql =
-        "SELECT RAND(1) `RAND`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT RAND(1) `RAND`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -473,8 +463,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "ROUND=2.0\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT ROUND(1.5E0) `ROUND`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT ROUND(1.5E0) `ROUND`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -491,8 +480,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "SIGN=-1\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT SIGN(-1) `SIGN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT SIGN(-1) `SIGN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -509,8 +497,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     verifyLogical(root, expectedLogical);
     String expectedResult = "SIN=0.0\n";
     verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT SIN(0) `SIN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT SIN(0) `SIN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -519,11 +506,11 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval SQRT = sqrt(4) | head 2 | fields SQRT";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-            "LogicalProject(SQRT=[$8])\n"
-                    + "  LogicalSort(fetch=[2])\n"
-                    + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-                    + " SAL=[$5], COMM=[$6], DEPTNO=[$7], SQRT=[SQRT(4)])\n"
-                    + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(SQRT=[$8])\n"
+            + "  LogicalSort(fetch=[2])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], SQRT=[SQRT(4)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "SQRT=2.0\n" + "SQRT=2.0\n";
     verifyResult(root, expectedResult);
@@ -531,6 +518,4 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String expectedSparkSql = "" + "SELECT SQRT(4) `SQRT`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
-
-
 }
