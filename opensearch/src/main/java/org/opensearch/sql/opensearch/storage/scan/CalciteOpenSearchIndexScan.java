@@ -167,7 +167,7 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
       // TODO: handle the case where condition contains a score function
       return newScan;
     } catch (Exception e) {
-      LOG.warn("Cannot analyze the filter condition {}", filter.getCondition(), e);
+      LOG.warn("Cannot pushdown the filter condition {}, ", filter.getCondition());
     }
     return null;
   }

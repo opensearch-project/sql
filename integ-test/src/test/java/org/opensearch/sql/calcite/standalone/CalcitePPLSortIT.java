@@ -6,9 +6,11 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -24,6 +26,7 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
     super.init();
 
     loadIndex(Index.BANK);
+    loadIndex(Index.BANK_WITH_NULL_VALUES);
   }
 
   @Test
@@ -192,5 +195,23 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
         rows("Dale", 33),
         rows("Amber JOHnny", 32),
         rows("Nanette", 28));
+  }
+
+  @Test
+  public void testSortWithNullValue() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort balance | fields firstname, balance",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyOrder(
+        result,
+        rows("Dale", 4180),
+        rows("Nanette", 32838),
+        rows("Amber JOHnny", 39225),
+        rows("Dillard", 48086),
+        rows("Hattie", null),
+        rows("Elinor", null),
+        rows("Virginia", null));
   }
 }
