@@ -44,7 +44,7 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
-String baseVersion = "2.17.0"
+String baseVersion = "2.17.1"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
@@ -199,7 +199,7 @@ dependencies {
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
 
     // Needed for BWC tests
-    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "3.0.0.0-alpha1-SNAPSHOT"
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-sql-plugin', version: "${bwcVersion}-SNAPSHOT"
 }
 

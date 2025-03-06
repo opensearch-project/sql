@@ -120,26 +120,26 @@ public interface BuiltinFunctionUtils {
     switch (op.toUpperCase(Locale.ROOT)) {
       case "TRIM":
         List<RexNode> trimArgs =
-                new ArrayList<>(
-                        List.of(
-                                context.rexBuilder.makeFlag(SqlTrimFunction.Flag.BOTH),
-                                context.rexBuilder.makeLiteral(" ")));
+            new ArrayList<>(
+                List.of(
+                    context.rexBuilder.makeFlag(SqlTrimFunction.Flag.BOTH),
+                    context.rexBuilder.makeLiteral(" ")));
         trimArgs.addAll(argList);
         return trimArgs;
       case "LTRIM":
         List<RexNode> LTrimArgs =
-                new ArrayList<>(
-                        List.of(
-                                context.rexBuilder.makeFlag(SqlTrimFunction.Flag.LEADING),
-                                context.rexBuilder.makeLiteral(" ")));
+            new ArrayList<>(
+                List.of(
+                    context.rexBuilder.makeFlag(SqlTrimFunction.Flag.LEADING),
+                    context.rexBuilder.makeLiteral(" ")));
         LTrimArgs.addAll(argList);
         return LTrimArgs;
       case "RTRIM":
         List<RexNode> RTrimArgs =
-                new ArrayList<>(
-                        List.of(
-                                context.rexBuilder.makeFlag(SqlTrimFunction.Flag.TRAILING),
-                                context.rexBuilder.makeLiteral(" ")));
+            new ArrayList<>(
+                List.of(
+                    context.rexBuilder.makeFlag(SqlTrimFunction.Flag.TRAILING),
+                    context.rexBuilder.makeLiteral(" ")));
         RTrimArgs.addAll(argList);
         return RTrimArgs;
       case "ATAN":
