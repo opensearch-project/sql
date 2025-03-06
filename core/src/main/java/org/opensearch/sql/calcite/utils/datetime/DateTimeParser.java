@@ -1,4 +1,4 @@
-package org.opensearch.sql.calcite.utils;
+package org.opensearch.sql.calcite.utils.datetime;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -138,10 +138,9 @@ public class DateTimeParser {
         // This ensures we know exactly how to handle the parsed result.
 
         DateTimeFormatter[] dateTimePatterns = {
-                // datetime with fractional seconds
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"),
-                // datetime without fractional seconds
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
         };
 
         for (DateTimeFormatter dtf : dateTimePatterns) {
@@ -167,10 +166,9 @@ public class DateTimeParser {
         }
 
         DateTimeFormatter[] timePatterns = {
-                // time with fractional seconds
                 DateTimeFormatter.ofPattern("HH:mm:ss.SSS"),
-                // time without fractional seconds
-                DateTimeFormatter.ofPattern("HH:mm:ss")
+                DateTimeFormatter.ofPattern("HH:mm:ss"),
+                DateTimeFormatter.ofPattern("HH:mm")
         };
 
         for (DateTimeFormatter tp : timePatterns) {

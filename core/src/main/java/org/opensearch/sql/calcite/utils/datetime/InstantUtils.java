@@ -3,7 +3,9 @@ package org.opensearch.sql.calcite.utils.datetime;
 import java.time.*;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-public class InstantUtils {
+public final class InstantUtils {
+    private InstantUtils() {}
+
     /**
      * Convert epoch milliseconds to Instant.
      *
