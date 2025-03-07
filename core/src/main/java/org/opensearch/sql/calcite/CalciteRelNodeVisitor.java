@@ -32,12 +32,11 @@ import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
-import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
@@ -111,31 +110,38 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private boolean containsExistsSubquery(Object condition) {
-    if (condition instanceof ExistsSubquery) {
+  private boolean containsExistsSubquery(Node expr) {
+    if (expr == null) {
+      return false;
+    }
+    if (expr instanceof ExistsSubquery) {
       return true;
     }
-    if (condition instanceof Not n) {
-      return containsExistsSubquery(n.getExpression());
+    if (expr instanceof Let l) {
+      return containsExistsSubquery(l.getExpression());
     }
-    if (condition instanceof Compare c) {
-      return containsExistsSubquery(c.getLeft()) || containsExistsSubquery(c.getRight());
+    for (Node child : expr.getChild()) {
+      if (containsExistsSubquery(child)) {
+        return true;
+      }
     }
     return false;
   }
 
-  private boolean containsScalarSubquery(Object expr) {
+  private boolean containsScalarSubquery(Node expr) {
+    if (expr == null) {
+      return false;
+    }
     if (expr instanceof ScalarSubquery) {
       return true;
-    }
-    if (expr instanceof Not n) {
-      return containsScalarSubquery(n.getExpression());
     }
     if (expr instanceof Let l) {
       return containsScalarSubquery(l.getExpression());
     }
-    if (expr instanceof Compare c) {
-      return containsScalarSubquery(c.getLeft()) || containsScalarSubquery(c.getRight());
+    for (Node child : expr.getChild()) {
+      if (containsScalarSubquery(child)) {
+        return true;
+      }
     }
     return false;
   }

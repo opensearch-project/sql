@@ -18,7 +18,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
 
-public class CalcitePPLScalaSubqueryIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLScalarSubqueryIT extends CalcitePPLIntegTestCase {
 
   @Override
   public void init() throws IOException {
@@ -244,7 +244,7 @@ public class CalcitePPLScalaSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testTwoCorrelatedScalarSubqueriesInOr() {
+  public void testTwoUncorrelatedScalarSubqueriesInOr() {
     JSONObject result =
         executeQuery(
             String.format(
@@ -260,6 +260,31 @@ public class CalcitePPLScalaSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "integer"), schema("name", "string"));
     verifyDataRows(result, rows(1002, "John"), rows(1006, "Tommy"));
+  }
+
+  @Test
+  public void testTwoCorrelatedScalarSubqueriesInOr() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                """
+                   source = %s
+                   | where id = [
+                       source = %s | where id = uid | stats max(uid)
+                     ] OR id = [
+                       source = %s | sort uid | where department = 'DATA' | stats min(uid)
+                     ]
+                   | fields id, name
+                   """,
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
+    verifySchema(result, schema("id", "integer"), schema("name", "string"));
+    verifyDataRows(
+        result,
+        rows(1000, "Jake"),
+        rows(1002, "John"),
+        rows(1003, "David"),
+        rows(1005, "Jane"),
+        rows(1006, "Tommy"));
   }
 
   @Test

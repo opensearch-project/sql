@@ -258,7 +258,7 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "  LogicalSort(sort0=[$2], dir0=[DESC])\n"
             + "    LogicalFilter(condition=[>($1, 1000.0E0:DOUBLE)])\n"
             + "      LogicalTableScan(table=[[scott, SALGRADE]])\n"
-            + "})))])\n"
+            + "})))], variablesSet=[[$cor0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
