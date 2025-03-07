@@ -230,6 +230,19 @@ public class PPLQueryDataAnonymizerTest {
         anonymize("source=t | where exists [source=s | where id = uid ] | fields id"));
   }
 
+  @Test
+  public void testScalarSubquery() {
+    assertEquals(
+        "source=t | where id = [ source=s | stats max(b) ] | fields + id",
+        anonymize("source=t |  where id = [ source=s | stats max(b) ] | fields id"));
+    assertEquals(
+        "source=t | eval id=[ source=s | stats max(b) ] | fields + id",
+        anonymize("source=t |  eval id = [ source=s | stats max(b) ] | fields id"));
+    assertEquals(
+        "source=t | where id > [ source=s | where id = uid | stats max(b) ] | fields + id",
+        anonymize("source=t id > [ source=s | where id = uid | stats max(b) ] | fields id"));
+  }
+
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(query);
     return anonymize(astBuilder.visit(parser.parse(query)));
