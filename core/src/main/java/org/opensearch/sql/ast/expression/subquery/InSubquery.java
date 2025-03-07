@@ -15,9 +15,9 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 
 @Getter
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 @RequiredArgsConstructor
-public class InSubquery extends UnresolvedExpression {
+public class InSubquery extends SubqueryExpression {
   private final List<UnresolvedExpression> value;
   private final UnresolvedPlan query;
 

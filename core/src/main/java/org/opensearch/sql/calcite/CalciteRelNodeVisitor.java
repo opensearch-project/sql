@@ -39,8 +39,7 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
-import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
+import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -93,15 +92,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitFilter(Filter node, CalcitePlanContext context) {
     visitChildren(node, context);
-    boolean containsExistsSubquery = containsExistsSubquery(node.getCondition());
-    boolean containsScalarSubquery = containsScalarSubquery(node.getCondition());
+    boolean containsSubqueryExpression = containsSubqueryExpression(node.getCondition());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-    if (containsExistsSubquery || containsScalarSubquery) {
+    if (containsSubqueryExpression) {
       context.relBuilder.variable(v::set);
       context.pushCorrelVar(v.get());
     }
     RexNode condition = rexVisitor.analyze(node.getCondition(), context);
-    if (containsExistsSubquery || containsScalarSubquery) {
+    if (containsSubqueryExpression) {
       context.relBuilder.filter(ImmutableList.of(v.get().id), condition);
       context.popCorrelVar();
     } else {
@@ -110,36 +108,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private boolean containsExistsSubquery(Node expr) {
+  private boolean containsSubqueryExpression(Node expr) {
     if (expr == null) {
       return false;
     }
-    if (expr instanceof ExistsSubquery) {
+    if (expr instanceof SubqueryExpression) {
       return true;
     }
     if (expr instanceof Let l) {
-      return containsExistsSubquery(l.getExpression());
+      return containsSubqueryExpression(l.getExpression());
     }
     for (Node child : expr.getChild()) {
-      if (containsExistsSubquery(child)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private boolean containsScalarSubquery(Node expr) {
-    if (expr == null) {
-      return false;
-    }
-    if (expr instanceof ScalarSubquery) {
-      return true;
-    }
-    if (expr instanceof Let l) {
-      return containsScalarSubquery(l.getExpression());
-    }
-    for (Node child : expr.getChild()) {
-      if (containsScalarSubquery(child)) {
+      if (containsSubqueryExpression(child)) {
         return true;
       }
     }
@@ -213,15 +193,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         node.getExpressionList().stream()
             .map(
                 expr -> {
-                  boolean containsExistsSubquery = containsExistsSubquery(expr);
-                  boolean containsScalarSubquery = containsScalarSubquery(expr);
+                  boolean containsSubqueryExpression = containsSubqueryExpression(expr);
                   final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-                  if (containsExistsSubquery || containsScalarSubquery) {
+                  if (containsSubqueryExpression) {
                     context.relBuilder.variable(v::set);
                     context.pushCorrelVar(v.get());
                   }
                   RexNode eval = rexVisitor.analyze(expr, context);
-                  if (containsExistsSubquery || containsScalarSubquery) {
+                  if (containsSubqueryExpression) {
                     // RelBuilder.projectPlus doesn't have a parameter with variablesSet:
                     // projectPlus(Iterable<CorrelationId> variablesSet, RexNode... nodes)
                     context.relBuilder.project(
