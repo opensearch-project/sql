@@ -179,6 +179,21 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testVarSampVarPop() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats var_samp(balance) as vs, var_pop(balance) as vp by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual, schema("gender", "string"), schema("vs", "double"), schema("vp", "double"));
+    verifyDataRows(
+        actual,
+        rows("F", 58127404, 38751602.666666664),
+        rows("M", 261699024.91666666, 196274268.6875));
+  }
+
+  @Test
   public void testStddevSampStddevPop() {
     JSONObject actual =
         executeQuery(

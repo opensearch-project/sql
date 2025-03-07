@@ -6,17 +6,17 @@ package org.opensearch.sql.opensearch.planner.physical;
 
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
-import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.immutables.value.Value;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
-/** Planner rule that push a {@link LogicalFilter} down to {@link CalciteLogicalIndexScan} */
+/** Planner rule that push a {@link LogicalAggregate} down to {@link CalciteLogicalIndexScan} */
 @Value.Enclosing
-public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndexScanRule.Config> {
+public class OpenSearchAggregateIndexScanRule
+    extends RelRule<OpenSearchAggregateIndexScanRule.Config> {
 
-  /** Creates a OpenSearchFilterIndexScanRule. */
-  protected OpenSearchFilterIndexScanRule(Config config) {
+  /** Creates a OpenSearchAggregateIndexScanRule. */
+  protected OpenSearchAggregateIndexScanRule(Config config) {
     super(config);
   }
 
@@ -24,9 +24,9 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
   public void onMatch(RelOptRuleCall call) {
     if (call.rels.length == 2) {
       // the ordinary variant
-      final LogicalFilter filter = call.rel(0);
+      final LogicalAggregate aggregate = call.rel(0);
       final CalciteLogicalIndexScan scan = call.rel(1);
-      apply(call, filter, scan);
+      apply(call, aggregate, scan);
     } else {
       throw new AssertionError(
           String.format(
@@ -35,8 +35,9 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
     }
   }
 
-  protected void apply(RelOptRuleCall call, Filter filter, CalciteLogicalIndexScan scan) {
-    CalciteLogicalIndexScan newScan = scan.pushDownFilter(filter);
+  protected void apply(
+      RelOptRuleCall call, LogicalAggregate aggregate, CalciteLogicalIndexScan scan) {
+    CalciteLogicalIndexScan newScan = scan.pushDownAggregate(aggregate);
     if (newScan != null) {
       call.transformTo(newScan);
     }
@@ -45,13 +46,13 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    /** Config that matches Filter on CalciteLogicalIndexScan. */
+    /** Config that matches Aggregate on OpenSearchProjectIndexScanRule. */
     Config DEFAULT =
-        ImmutableOpenSearchFilterIndexScanRule.Config.builder()
+        ImmutableOpenSearchAggregateIndexScanRule.Config.builder()
             .build()
             .withOperandSupplier(
                 b0 ->
-                    b0.operand(LogicalFilter.class)
+                    b0.operand(LogicalAggregate.class)
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
@@ -59,8 +60,8 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
                                     .noInputs()));
 
     @Override
-    default OpenSearchFilterIndexScanRule toRule() {
-      return new OpenSearchFilterIndexScanRule(this);
+    default OpenSearchAggregateIndexScanRule toRule() {
+      return new OpenSearchAggregateIndexScanRule(this);
     }
   }
 }
