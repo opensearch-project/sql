@@ -11,12 +11,14 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATI
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.Request;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 @Ignore
@@ -29,6 +31,13 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.OCCUPATION);
+
+    // {"index":{"_id":"7"}}
+    // {"id":1006,"name":"Tommy","occupation":"Teacher","country":"USA","salary":30000}
+    Request request1 = new Request("PUT", "/" + TEST_INDEX_WORKER + "/_doc/7?refresh=true");
+    request1.setJsonEntity(
+        "{\"id\":1006,\"name\":\"Tommy\",\"occupation\":\"Teacher\",\"country\":\"USA\",\"salary\":30000}");
+    client().performRequest(request1);
   }
 
   @Test
@@ -60,10 +69,10 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         result,
-        rows(1003, "David", 120000),
         rows(1002, "John", 120000),
+        rows(1003, "David", 120000),
         rows(1000, "Jake", 100000),
         rows(1005, "Jane", 90000),
         rows(1006, "Tommy", 30000));
@@ -78,10 +87,10 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         result,
-        rows(1003, "David", 120000),
         rows(1002, "John", 120000),
+        rows(1003, "David", 120000),
         rows(1000, "Jake", 100000),
         rows(1005, "Jane", 90000),
         rows(1006, "Tommy", 30000));
@@ -103,17 +112,17 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
         result1, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
     verifySchema(
         result2, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         result1,
-        rows(1003, "David", 120000),
         rows(1002, "John", 120000),
+        rows(1003, "David", 120000),
         rows(1000, "Jake", 100000),
         rows(1005, "Jane", 90000),
         rows(1006, "Tommy", 30000));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         result2,
-        rows(1003, "David", 120000),
         rows(1002, "John", 120000),
+        rows(1003, "David", 120000),
         rows(1000, "Jake", 100000),
         rows(1005, "Jane", 90000),
         rows(1006, "Tommy", 30000));
@@ -128,10 +137,10 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         result,
-        rows(1003, "David", 120000),
         rows(1002, "John", 120000),
+        rows(1003, "David", 120000),
         rows(1000, "Jake", 100000),
         rows(1005, "Jane", 90000));
   }
@@ -145,7 +154,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
-    verifyDataRows(result, rows(1001, "Hello", 70000), rows(1004, "David", 0));
+    verifyDataRowsInOrder(result, rows(1001, "Hello", 70000), rows(1004, "David", 0));
   }
 
   @Test
@@ -157,7 +166,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
-    verifyDataRows(result, rows(1001, "Hello", 70000), rows(1004, "David", 0));
+    verifyDataRowsInOrder(result, rows(1001, "Hello", 70000), rows(1004, "David", 0));
   }
 
   @Test
@@ -169,8 +178,8 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
-    verifyDataRows(
-        result, rows(1001, "Hello", 70000), rows(1004, "David", 0), rows(1006, "Tommy", 30000));
+    verifyDataRowsInOrder(
+        result, rows(1001, "Hello", 70000), rows(1006, "Tommy", 30000), rows(1004, "David", 0));
   }
 
   @Test
@@ -182,15 +191,15 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         result,
-        rows(1000, "Jake", 100000),
-        rows(1001, "Hello", 70000),
         rows(1002, "John", 120000),
         rows(1003, "David", 120000),
-        rows(1004, "David", 0),
+        rows(1000, "Jake", 100000),
         rows(1005, "Jane", 90000),
-        rows(1006, "Tommy", 30000));
+        rows(1001, "Hello", 70000),
+        rows(1006, "Tommy", 30000),
+        rows(1004, "David", 0));
   }
 
   @Test
@@ -202,10 +211,10 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         result,
-        rows(1003, "David", 120000),
         rows(1002, "John", 120000),
+        rows(1003, "David", 120000),
         rows(1006, "Tommy", 30000));
   }
 
@@ -218,7 +227,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_OCCUPATION, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         result,
         rows(1003, "David", 120000),
         rows(1002, "John", 120000),
@@ -257,6 +266,6 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
-    verifyDataRows(result, rows(1002, "John", 120000), rows(1005, "Jane", 90000));
+    verifyDataRowsInOrder(result, rows(1002, "John", 120000), rows(1005, "Jane", 90000));
   }
 }
