@@ -766,6 +766,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "hobbies",
         getHobbiesIndexMapping(),
         "src/test/resources/hobbies.json"),
+    // It's "people" table in Spark PPL ITs, to avoid conflicts, rename to "worker" here
     WORKER(
         TestsConstants.TEST_INDEX_WORKER,
         "worker",
