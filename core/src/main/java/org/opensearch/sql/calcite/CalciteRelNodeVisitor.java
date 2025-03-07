@@ -13,6 +13,7 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -35,10 +36,12 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -92,13 +95,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitFilter(Filter node, CalcitePlanContext context) {
     visitChildren(node, context);
     boolean containsExistsSubquery = containsExistsSubquery(node.getCondition());
+    boolean containsScalarSubquery = containsScalarSubquery(node.getCondition());
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-    if (containsExistsSubquery) {
+    if (containsExistsSubquery || containsScalarSubquery) {
       context.relBuilder.variable(v::set);
       context.pushCorrelVar(v.get());
     }
     RexNode condition = rexVisitor.analyze(node.getCondition(), context);
-    if (containsExistsSubquery) {
+    if (containsExistsSubquery || containsScalarSubquery) {
       context.relBuilder.filter(ImmutableList.of(v.get().id), condition);
       context.popCorrelVar();
     } else {
@@ -116,6 +120,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     if (condition instanceof Compare c) {
       return containsExistsSubquery(c.getLeft()) || containsExistsSubquery(c.getRight());
+    }
+    return false;
+  }
+
+  private boolean containsScalarSubquery(Object expr) {
+    if (expr instanceof ScalarSubquery) {
+      return true;
+    }
+    if (expr instanceof Not n) {
+      return containsScalarSubquery(n.getExpression());
+    }
+    if (expr instanceof Let l) {
+      return containsScalarSubquery(l.getExpression());
+    }
+    if (expr instanceof Compare c) {
+      return containsScalarSubquery(c.getLeft()) || containsScalarSubquery(c.getRight());
     }
     return false;
   }
@@ -187,8 +207,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         node.getExpressionList().stream()
             .map(
                 expr -> {
+                  boolean containsExistsSubquery = containsExistsSubquery(expr);
+                  boolean containsScalarSubquery = containsScalarSubquery(expr);
+                  final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+                  if (containsExistsSubquery || containsScalarSubquery) {
+                    context.relBuilder.variable(v::set);
+                    context.pushCorrelVar(v.get());
+                  }
                   RexNode eval = rexVisitor.analyze(expr, context);
-                  context.relBuilder.projectPlus(eval);
+                  if (containsExistsSubquery || containsScalarSubquery) {
+                    // RelBuilder.projectPlus doesn't have a parameter with variablesSet:
+                    // projectPlus(Iterable<CorrelationId> variablesSet, RexNode... nodes)
+                    context.relBuilder.project(
+                        Iterables.concat(context.relBuilder.fields(), ImmutableList.of(eval)),
+                        ImmutableList.of(),
+                        false,
+                        ImmutableList.of(v.get().id));
+                    context.popCorrelVar();
+                  } else {
+                    context.relBuilder.projectPlus(eval);
+                  }
                   return eval;
                 })
             .collect(Collectors.toList());
