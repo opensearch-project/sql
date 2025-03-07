@@ -10,5 +10,3 @@
 {"id":1004,"name":"David","country":"Canada","salary":0}
 {"index":{"_id":"6"}}
 {"id":1005,"name":"Jane","occupation":"Scientist","country":"Canada","salary":90000}
-{"index":{"_id":"7"}}
-{"id":1006,"name":"Tommy","occupation":"Teacher","country":"USA","salary":30000}

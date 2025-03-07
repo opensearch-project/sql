@@ -38,13 +38,11 @@ import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 
 public class CalcitePPLAbstractTest {
   @Getter private final Frameworks.ConfigBuilder config;
-  @Getter private final CalcitePlanContext context;
   private final CalciteRelNodeVisitor planTransformer;
   private final RelToSqlConverter converter;
 
   public CalcitePPLAbstractTest(CalciteAssert.SchemaSpec... schemaSpecs) {
     this.config = config(schemaSpecs);
-    this.context = createBuilderContext();
     this.planTransformer = new CalciteRelNodeVisitor();
     this.converter = new RelToSqlConverter(SparkSqlDialect.DEFAULT);
   }
@@ -74,6 +72,7 @@ public class CalcitePPLAbstractTest {
 
   /** Get the root RelNode of the given PPL query */
   public RelNode getRelNode(String ppl) {
+    CalcitePlanContext context = createBuilderContext();
     Query query = (Query) plan(pplParser, ppl);
     planTransformer.analyze(query.getPlan(), context);
     RelNode root = context.relBuilder.build();

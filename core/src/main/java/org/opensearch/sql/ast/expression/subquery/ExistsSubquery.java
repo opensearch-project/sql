@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ast.expression.subquery;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -17,22 +18,21 @@ import org.opensearch.sql.common.utils.StringUtils;
 @Getter
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
-public class InSubquery extends UnresolvedExpression {
-  private final List<UnresolvedExpression> value;
+public class ExistsSubquery extends UnresolvedExpression {
   private final UnresolvedPlan query;
 
   @Override
-  public List<UnresolvedExpression> getChild() {
-    return value;
+  public <R, C> R accept(AbstractNodeVisitor<R, C> nodeVisitor, C context) {
+    return nodeVisitor.visitExistsSubquery(this, context);
   }
 
   @Override
-  public <R, C> R accept(AbstractNodeVisitor<R, C> nodeVisitor, C context) {
-    return nodeVisitor.visitInSubquery(this, context);
+  public List<UnresolvedExpression> getChild() {
+    return ImmutableList.of();
   }
 
   @Override
   public String toString() {
-    return StringUtils.format("%s in ( %s )", value, query);
+    return StringUtils.format("exists ( %s )", query);
   }
 }

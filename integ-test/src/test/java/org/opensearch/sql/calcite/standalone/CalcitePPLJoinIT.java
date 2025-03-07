@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -211,7 +212,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("occupation", "string"),
         schema("country0", "string"),
         schema("salary", "integer"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         actual,
         rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
         rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000),
@@ -238,7 +239,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("occupation", "string"),
         schema("country0", "string"),
         schema("salary", "integer"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         actual,
         rows("Jane", 20, "Quebec", "Canada", "Scientist", "Canada", 90000),
         rows("John", 25, "Ontario", "Canada", "Doctor", "Canada", 120000),
@@ -264,7 +265,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("month", "integer"),
         schema("year", "integer"),
         schema("age", "integer"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         actual,
         rows("Jane", "Canada", "Quebec", 4, 2023, 20),
         rows("John", "Canada", "Ontario", 4, 2023, 25));
@@ -286,7 +287,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("month", "integer"),
         schema("year", "integer"),
         schema("age", "integer"));
-    verifyDataRows(
+    verifyDataRowsInOrder(
         actual,
         rows("Jim", "Canada", "B.C", 4, 2023, 27),
         rows("Peter", "Canada", "B.C", 4, 2023, 57),
@@ -302,7 +303,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                     + " right=b %s | sort a.age | stats count()",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
     verifySchema(actual, schema("count()", "long"));
-    verifyDataRows(actual, rows(30));
+    verifyDataRowsInOrder(actual, rows(30));
   }
 
   @Test
@@ -692,7 +693,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("b.country", "string"),
         schema("age_span", "double"),
         schema("avg(salary)", "double"));
-    verifyDataRows(actual, rows("USA", 30, 70000.0), rows("England", 70, 100000));
+    verifyDataRowsInOrder(actual, rows("England", 70, 100000), rows("USA", 30, 70000.0));
   }
 
   @Test
@@ -720,7 +721,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("b.country", "string"),
         schema("age_span", "double"),
         schema("avg(salary)", "double"));
-    verifyDataRows(
-        actual, rows("USA", 30, 70000.0), rows("England", 70, 100000), rows(null, 40, 0));
+    verifyDataRowsInOrder(
+        actual, rows(null, 40, 0), rows("England", 70, 100000), rows("USA", 30, 70000.0));
   }
 }
