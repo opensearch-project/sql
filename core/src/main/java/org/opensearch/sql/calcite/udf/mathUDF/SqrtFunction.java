@@ -9,6 +9,11 @@ import static java.lang.Math.sqrt;
 
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
+/**
+ * Calculate the square root of a non-negative number x<br>
+ * The supported signature is<br>
+ * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+ */
 public class SqrtFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
@@ -16,10 +21,8 @@ public class SqrtFunction implements UserDefinedFunction {
       throw new IllegalArgumentException("At least one argument is required");
     }
 
-    // Get the input value
     Object input = args[0];
 
-    // Handle numbers dynamically
     if (input instanceof Number) {
       double num = ((Number) input).doubleValue();
 
@@ -27,7 +30,7 @@ public class SqrtFunction implements UserDefinedFunction {
         throw new ArithmeticException("Cannot compute square root of a negative number");
       }
 
-      return sqrt(num); // Computes sqrt using Math.sqrt()
+      return sqrt(num);
     } else {
       throw new IllegalArgumentException("Invalid argument type: Expected a numeric value");
     }

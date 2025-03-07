@@ -7,18 +7,31 @@ package org.opensearch.sql.calcite.udf.mathUDF;
 
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
-public class ConvFunction implements UserDefinedFunction {
-  @Override
-  public Object eval(Object... args) {
-    Object number = args[0];
-    Object fromBase = args[1];
-    Object toBase = args[2];
+import java.math.BigInteger;
 
-    String numStr = number.toString();
-    int fromBaseInt = Integer.parseInt(fromBase.toString());
-    int toBaseInt = Integer.parseInt(toBase.toString());
-    return conv(numStr, fromBaseInt, toBaseInt);
-  }
+/**
+ * Convert number x from base a to base b<br>
+ * The supported signature of floor function is<br>
+ * (STRING, INTEGER, INTEGER) -> STRING<br>
+ * (INTEGER, INTEGER, INTEGER) -> STRING
+ */
+public class ConvFunction implements UserDefinedFunction {
+    @Override
+    public Object eval(Object... args) {
+        if (args.length != 3) {
+            throw new IllegalArgumentException(
+                    String.format("CONV function requires exactly three arguments, but got %d", args.length));
+        }
+
+        Object number = args[0];
+        Object fromBase = args[1];
+        Object toBase = args[2];
+
+        String numStr = number.toString();
+        int fromBaseInt = Integer.parseInt(fromBase.toString());
+        int toBaseInt = Integer.parseInt(toBase.toString());
+        return conv(numStr, fromBaseInt, toBaseInt);
+    }
 
     /**
      * Convert numStr from fromBase to toBase
