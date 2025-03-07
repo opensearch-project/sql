@@ -141,7 +141,7 @@ public class PredicateAnalyzer {
     }
   }
 
-  /** Traverses {@link RexNode} tree and builds ES query. */
+  /** Traverses {@link RexNode} tree and builds OpenSearch query. */
   private static class Visitor extends RexVisitorImpl<Expression> {
 
     List<String> schema;
@@ -982,6 +982,12 @@ public class PredicateAnalyzer {
 
     private final String name;
     private final OpenSearchDataType type;
+
+    NamedFieldExpression(
+        int refIndex, List<String> schema, Map<String, OpenSearchDataType> typeMapping) {
+      this.name = refIndex >= schema.size() ? null : schema.get(refIndex);
+      this.type = typeMapping.get(name);
+    }
 
     private NamedFieldExpression() {
       this.name = null;

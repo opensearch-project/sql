@@ -47,6 +47,10 @@ public interface AggregateUtils {
         //            case STDDEV:
         //                return context.relBuilder.aggregateCall(SqlStdOperatorTable.STDDEV,
         // field);
+      case VARSAMP:
+        return context.relBuilder.aggregateCall(SqlStdOperatorTable.VAR_SAMP, field);
+      case VARPOP:
+        return context.relBuilder.aggregateCall(SqlStdOperatorTable.VAR_POP, field);
       case STDDEV_POP:
         return context.relBuilder.aggregateCall(SqlStdOperatorTable.STDDEV_POP, field);
       case STDDEV_SAMP:
