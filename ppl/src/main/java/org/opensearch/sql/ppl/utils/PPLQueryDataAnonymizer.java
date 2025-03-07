@@ -31,6 +31,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
@@ -411,6 +412,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
           node.getChild().stream().map(c -> analyze(c, context)).collect(Collectors.joining(","));
       String subquery = queryAnonymizer.anonymizeData(node.getQuery());
       return StringUtils.format("(%s) in [ %s ]", nodes, subquery);
+    }
+
+    @Override
+    public String visitScalarSubquery(ScalarSubquery node, String context) {
+      String subquery = queryAnonymizer.anonymizeData(node.getQuery());
+      return StringUtils.format("[ %s ]", subquery);
     }
 
     @Override
