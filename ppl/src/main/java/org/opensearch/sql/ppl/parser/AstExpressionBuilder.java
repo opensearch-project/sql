@@ -55,6 +55,7 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -424,6 +425,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
                 .collect(Collectors.toList()),
             astBuilder.visitSubSearch(ctx.subSearch()));
     return ctx.NOT() != null ? new Not(expr) : expr;
+  }
+
+  @Override
+  public UnresolvedExpression visitScalarSubqueryExpr(
+      OpenSearchPPLParser.ScalarSubqueryExprContext ctx) {
+    return new ScalarSubquery(astBuilder.visitSubSearch(ctx.subSearch()));
   }
 
   @Override

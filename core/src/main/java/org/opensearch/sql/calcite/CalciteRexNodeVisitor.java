@@ -18,17 +18,14 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
-import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
@@ -46,6 +43,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -283,7 +281,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitInSubquery(InSubquery node, CalcitePlanContext context) {
     List<RexNode> nodes = node.getChild().stream().map(child -> analyze(child, context)).toList();
     UnresolvedPlan subquery = node.getQuery();
-    RelNode subqueryRel = resolveSubqueryPlan(subquery, false, context);
+    RelNode subqueryRel = resolveSubqueryPlan(subquery, context);
     try {
       return context.relBuilder.in(subqueryRel, nodes);
       // TODO
@@ -304,17 +302,24 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   @Override
-  public RexNode visitExistsSubquery(ExistsSubquery node, CalcitePlanContext context) {
-    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-    return context.relBuilder.exists(
+  public RexNode visitScalarSubquery(ScalarSubquery node, CalcitePlanContext context) {
+    return context.relBuilder.scalarQuery(
         b -> {
           UnresolvedPlan subquery = node.getQuery();
-          return resolveSubqueryPlan(subquery, true, context);
+          return resolveSubqueryPlan(subquery, context);
         });
   }
 
-  private RelNode resolveSubqueryPlan(
-      UnresolvedPlan subquery, boolean isExists, CalcitePlanContext context) {
+  @Override
+  public RexNode visitExistsSubquery(ExistsSubquery node, CalcitePlanContext context) {
+    return context.relBuilder.exists(
+        b -> {
+          UnresolvedPlan subquery = node.getQuery();
+          return resolveSubqueryPlan(subquery, context);
+        });
+  }
+
+  private RelNode resolveSubqueryPlan(UnresolvedPlan subquery, CalcitePlanContext context) {
     // clear and store the outer state
     boolean isResolvingJoinConditionOuter = context.isResolvingJoinCondition();
     if (isResolvingJoinConditionOuter) {
