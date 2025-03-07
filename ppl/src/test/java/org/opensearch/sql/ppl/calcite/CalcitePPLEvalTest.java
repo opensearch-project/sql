@@ -168,19 +168,19 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
         "source=EMP | eval SAL = DEPTNO + 10000 | sort - EMPNO | fields EMPNO, SAL | head 3";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], SAL0=[$7])\n"
+        "LogicalProject(EMPNO=[$0], SAL=[$7])\n"
             + "  LogicalSort(sort0=[$0], dir0=[DESC], fetch=[3])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " COMM=[$6], DEPTNO=[$7], SAL0=[+($7, 10000)])\n"
+            + " COMM=[$6], DEPTNO=[$7], SAL=[+($7, 10000)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
-        "" + "EMPNO=7934; SAL0=10010\n" + "EMPNO=7902; SAL0=10020\n" + "EMPNO=7900; SAL0=10030\n";
+        "" + "EMPNO=7934; SAL=10010\n" + "EMPNO=7902; SAL=10020\n" + "EMPNO=7900; SAL=10030\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         ""
-            + "SELECT `EMPNO`, `DEPTNO` + 10000 `SAL0`\n"
+            + "SELECT `EMPNO`, `DEPTNO` + 10000 `SAL`\n"
             + "FROM `scott`.`EMP`\n"
             + "ORDER BY `EMPNO` DESC NULLS FIRST\n"
             + "LIMIT 3";

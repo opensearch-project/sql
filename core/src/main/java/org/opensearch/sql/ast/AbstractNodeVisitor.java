@@ -36,6 +36,7 @@ import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
@@ -344,6 +345,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitSubqueryAlias(SubqueryAlias node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitExistsSubquery(ExistsSubquery node, C context) {
     return visitChildren(node, context);
   }
 }

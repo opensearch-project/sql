@@ -12,6 +12,7 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -22,16 +23,22 @@ import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
+import org.apache.calcite.util.Holder;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -84,9 +91,33 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitFilter(Filter node, CalcitePlanContext context) {
     visitChildren(node, context);
+    boolean containsExistsSubquery = containsExistsSubquery(node.getCondition());
+    final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+    if (containsExistsSubquery) {
+      context.relBuilder.variable(v::set);
+      context.pushCorrelVar(v.get());
+    }
     RexNode condition = rexVisitor.analyze(node.getCondition(), context);
-    context.relBuilder.filter(condition);
+    if (containsExistsSubquery) {
+      context.relBuilder.filter(ImmutableList.of(v.get().id), condition);
+      context.popCorrelVar();
+    } else {
+      context.relBuilder.filter(condition);
+    }
     return context.relBuilder.peek();
+  }
+
+  private boolean containsExistsSubquery(Object condition) {
+    if (condition instanceof ExistsSubquery) {
+      return true;
+    }
+    if (condition instanceof Not n) {
+      return containsExistsSubquery(n.getExpression());
+    }
+    if (condition instanceof Compare c) {
+      return containsExistsSubquery(c.getLeft()) || containsExistsSubquery(c.getRight());
+    }
+    return false;
   }
 
   @Override
@@ -174,6 +205,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (!overriding.isEmpty()) {
       List<RexNode> toDrop = context.relBuilder.fields(overriding);
       context.relBuilder.projectExcept(toDrop);
+
+      // the overriding field in Calcite will add a numeric suffix, for example:
+      // `| eval SAL = SAL + 1` creates a field SAL0 to replace SAL, so we rename it back to SAL,
+      // or query `| eval SAL=SAL + 1 | where exists [ source=DEPT | where emp.SAL=HISAL ]` fails.
+      List<String> newNames =
+          context.relBuilder.peek().getRowType().getFieldNames().stream()
+              .map(
+                  cur -> {
+                    String noNumericSuffix = cur.replaceAll("\\d", "");
+                    if (overriding.contains(noNumericSuffix)) {
+                      return noNumericSuffix;
+                    } else {
+                      return cur;
+                    }
+                  })
+              .toList();
+      context.relBuilder.rename(newNames);
     }
     return context.relBuilder.peek();
   }

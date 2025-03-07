@@ -98,6 +98,7 @@ ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
 IN:                                 'IN';
+EXISTS:                             'EXISTS';
 
 // LOGICAL KEYWORDS
 NOT:                                'NOT';
