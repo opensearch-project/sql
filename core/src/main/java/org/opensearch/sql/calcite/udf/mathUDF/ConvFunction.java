@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.udf.mathUDF;
 
-import java.math.BigInteger;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
 public class ConvFunction implements UserDefinedFunction {
@@ -21,50 +20,16 @@ public class ConvFunction implements UserDefinedFunction {
     return conv(numStr, fromBaseInt, toBaseInt);
   }
 
-  /**
-   * Convert numStr from fromBase to toBase
-   *
-   * @param numStr the number to convert (case-insensitive for alphanumeric digits, may have a
-   *     leading '-')
-   * @param fromBase base of the input number (2 to 36)
-   * @param toBase target base (2 to 36)
-   * @return the converted number in the target base (uppercase), "0" if the input is invalid, or
-   *     null if bases are out of range.
-   */
-  private static String conv(String numStr, int fromBase, int toBase) {
-    // Validate base ranges
-    if (fromBase < 2 || fromBase > 36 || toBase < 2 || toBase > 36) {
-      return null;
+    /**
+     * Convert numStr from fromBase to toBase
+     * @param numStr   the number to convert (case-insensitive for alphanumeric digits, may have a leading '-')
+     * @param fromBase base of the input number (2 to 36)
+     * @param toBase   target base (2 to 36)
+     * @return         the converted number in the target base (uppercase),
+     *                 "0" if the input is invalid, or null if bases are out of range.
+     */
+    private static String conv(String numStr, int fromBase, int toBase) {
+        return Long.toString(
+                Long.parseLong(numStr, fromBase), toBase);
     }
-
-    // Check for sign
-    boolean negative = false;
-    if (numStr.startsWith("-")) {
-      negative = true;
-      numStr = numStr.substring(1);
-    }
-
-    // Normalize input (e.g., remove extra whitespace, convert to uppercase)
-    numStr = numStr.trim().toUpperCase();
-
-    // Try parsing the input as a BigInteger of 'fromBase'
-    BigInteger value;
-    try {
-      value = new BigInteger(numStr, fromBase);
-    } catch (NumberFormatException e) {
-      // If numStr contains invalid characters for fromBase
-      return "0";
-    }
-
-    // Re-apply sign if needed
-    if (negative) {
-      value = value.negate();
-    }
-
-    // Convert to the target base; BigInteger's toString(...) yields lowercase above 9
-    String result = value.toString(toBase);
-
-    // Convert to uppercase to align with MySQL's behavior
-    return result.toUpperCase();
-  }
 }

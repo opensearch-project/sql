@@ -135,6 +135,13 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
     verifyDataRows(actual, rows("Hello", 30));
+
+    JSONObject negateActual = executeQuery(
+            String.format(
+                    "source=%s | head 1 | eval hello = conv('29234652', 10, 36), negate = conv('-29234652', 10, 36) | fields hello, negate",
+                    TEST_INDEX_STATE_COUNTRY
+            ));
+    verifyDataRows(negateActual, rows("hello", "-hello"));
   }
 
   @Test

@@ -6,7 +6,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
-import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -72,7 +72,7 @@ public interface BuiltinFunctionUtils {
       case "CEILING":
         return SqlStdOperatorTable.CEIL;
       case "CONV":
-        return TransferUserDefinedFunction(ConvFunction.class, "CONVERT", ReturnTypes.BIGINT);
+        return TransferUserDefinedFunction(ConvFunction.class, "CONVERT", ReturnTypes.VARCHAR);
       case "COS":
         return SqlStdOperatorTable.COS;
       case "COT":

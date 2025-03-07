@@ -29,7 +29,7 @@ import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
-public class UserDefineFunctionUtils {
+public class UserDefinedFunctionUtils {
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,
       String functionName,
