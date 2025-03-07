@@ -21,19 +21,20 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** Relational expression representing a scan of an OpenSearchIndex type. */
-public abstract class CalciteOSIndexScan extends TableScan {
-  @Getter protected final OpenSearchIndex osIndex;
+@Getter
+public abstract class CalciteIndexScan extends TableScan {
+  protected final OpenSearchIndex osIndex;
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
   // changed by push down operations.
-  @Getter protected final RelDataType schema;
+  protected final RelDataType schema;
   // This context maintains all the push down actions, which will be applied to the requestBuilder
   // when it begins to scan data from OpenSearch.
   // Because OpenSearchRequestBuilder doesn't support deep copy while we want to keep the
   // requestBuilder independent among different plans produced in the optimization process,
   // so we cannot apply these actions right away.
-  @Getter protected final PushDownContext pushDownContext;
+  protected final PushDownContext pushDownContext;
 
-  protected CalciteOSIndexScan(
+  protected CalciteIndexScan(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       List<RelHint> hints,
@@ -43,7 +44,6 @@ public abstract class CalciteOSIndexScan extends TableScan {
       PushDownContext pushDownContext) {
     super(cluster, traitSet, hints, table);
     this.osIndex = requireNonNull(osIndex, "OpenSearch index");
-    ;
     this.schema = schema;
     this.pushDownContext = pushDownContext;
   }
@@ -70,7 +70,7 @@ public abstract class CalciteOSIndexScan extends TableScan {
 
     @Override
     public boolean add(PushDownAction pushDownAction) {
-      // Defense check. I never do push down to this context after aggregate push-down.
+      // Defense check. It should never do push down to this context after aggregate push-down.
       assert !isAggregatePushed : "Aggregate has already been pushed!";
       if (pushDownAction.type == PushDownType.AGGREGATION) {
         isAggregatePushed = true;

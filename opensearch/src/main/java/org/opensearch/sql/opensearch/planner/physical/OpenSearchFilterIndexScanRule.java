@@ -9,9 +9,9 @@ import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.logical.LogicalFilter;
 import org.immutables.value.Value;
-import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalOSIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
-/** Planner rule that push a {@link LogicalFilter} down to {@link CalciteLogicalOSIndexScan} */
+/** Planner rule that push a {@link LogicalFilter} down to {@link CalciteLogicalIndexScan} */
 @Value.Enclosing
 public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndexScanRule.Config> {
 
@@ -25,7 +25,7 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
     if (call.rels.length == 2) {
       // the ordinary variant
       final LogicalFilter filter = call.rel(0);
-      final CalciteLogicalOSIndexScan scan = call.rel(1);
+      final CalciteLogicalIndexScan scan = call.rel(1);
       apply(call, filter, scan);
     } else {
       throw new AssertionError(
@@ -35,8 +35,8 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
     }
   }
 
-  protected void apply(RelOptRuleCall call, Filter filter, CalciteLogicalOSIndexScan scan) {
-    CalciteLogicalOSIndexScan newScan = scan.pushDownFilter(filter);
+  protected void apply(RelOptRuleCall call, Filter filter, CalciteLogicalIndexScan scan) {
+    CalciteLogicalIndexScan newScan = scan.pushDownFilter(filter);
     if (newScan != null) {
       call.transformTo(newScan);
     }
@@ -45,7 +45,7 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
   /** Rule configuration. */
   @Value.Immutable
   public interface Config extends RelRule.Config {
-    /** Config that matches Filter on CalciteLogicalOSIndexScan. */
+    /** Config that matches Filter on CalciteLogicalIndexScan. */
     Config DEFAULT =
         ImmutableOpenSearchFilterIndexScanRule.Config.builder()
             .build()
@@ -54,7 +54,7 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
                     b0.operand(LogicalFilter.class)
                         .oneInput(
                             b1 ->
-                                b1.operand(CalciteLogicalOSIndexScan.class)
+                                b1.operand(CalciteLogicalIndexScan.class)
                                     .predicate(OpenSearchIndexScanRule::test)
                                     .noInputs()));
 

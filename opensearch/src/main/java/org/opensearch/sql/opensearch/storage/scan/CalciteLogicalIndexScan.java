@@ -38,10 +38,10 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 @Getter
-public class CalciteLogicalOSIndexScan extends CalciteOSIndexScan {
-  private static final Logger LOG = LogManager.getLogger(CalciteLogicalOSIndexScan.class);
+public class CalciteLogicalIndexScan extends CalciteIndexScan {
+  private static final Logger LOG = LogManager.getLogger(CalciteLogicalIndexScan.class);
 
-  public CalciteLogicalOSIndexScan(
+  public CalciteLogicalIndexScan(
       RelOptCluster cluster, RelOptTable table, OpenSearchIndex osIndex) {
     this(
         cluster,
@@ -53,7 +53,7 @@ public class CalciteLogicalOSIndexScan extends CalciteOSIndexScan {
         new PushDownContext());
   }
 
-  protected CalciteLogicalOSIndexScan(
+  protected CalciteLogicalIndexScan(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       List<RelHint> hints,
@@ -64,10 +64,10 @@ public class CalciteLogicalOSIndexScan extends CalciteOSIndexScan {
     super(cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
   }
 
-  public CalciteLogicalOSIndexScan copyWithNewSchema(RelDataType schema) {
+  public CalciteLogicalIndexScan copyWithNewSchema(RelDataType schema) {
     // Do shallow copy for requestBuilder, thus requestBuilder among different plans produced in the
     // optimization process won't affect each other.
-    return new CalciteLogicalOSIndexScan(
+    return new CalciteLogicalIndexScan(
         getCluster(), traitSet, hints, table, osIndex, schema, pushDownContext.clone());
   }
 
@@ -82,9 +82,9 @@ public class CalciteLogicalOSIndexScan extends CalciteOSIndexScan {
     }
   }
 
-  public CalciteLogicalOSIndexScan pushDownFilter(Filter filter) {
+  public CalciteLogicalIndexScan pushDownFilter(Filter filter) {
     try {
-      CalciteLogicalOSIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
+      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(filter.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, OpenSearchDataType> typeMapping = this.osIndex.getFieldOpenSearchTypes();
       QueryBuilder filterBuilder =
@@ -108,17 +108,17 @@ public class CalciteLogicalOSIndexScan extends CalciteOSIndexScan {
   }
 
   /**
-   * When pushing down a project, we need to create a new CalciteLogicalOSIndexScan with the updated
+   * When pushing down a project, we need to create a new CalciteLogicalIndexScan with the updated
    * schema since we cannot override getRowType() which is defined to be final.
    */
-  public CalciteLogicalOSIndexScan pushDownProject(List<Integer> selectedColumns) {
+  public CalciteLogicalIndexScan pushDownProject(List<Integer> selectedColumns) {
     final RelDataTypeFactory.Builder builder = getCluster().getTypeFactory().builder();
     final List<RelDataTypeField> fieldList = this.getRowType().getFieldList();
     for (int project : selectedColumns) {
       builder.add(fieldList.get(project));
     }
     RelDataType newSchema = builder.build();
-    CalciteLogicalOSIndexScan newScan = this.copyWithNewSchema(newSchema);
+    CalciteLogicalIndexScan newScan = this.copyWithNewSchema(newSchema);
     newScan.pushDownContext.add(
         PushDownAction.of(
             PushDownType.PROJECT,
@@ -128,9 +128,9 @@ public class CalciteLogicalOSIndexScan extends CalciteOSIndexScan {
     return newScan;
   }
 
-  public CalciteLogicalOSIndexScan pushDownAggregate(Aggregate aggregate) {
+  public CalciteLogicalIndexScan pushDownAggregate(Aggregate aggregate) {
     try {
-      CalciteLogicalOSIndexScan newScan = this.copyWithNewSchema(aggregate.getRowType());
+      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(aggregate.getRowType());
       List<String> schema = this.getRowType().getFieldNames();
       Map<String, OpenSearchDataType> typeMapping = this.osIndex.getFieldOpenSearchTypes();
       List<String> outputFields = aggregate.getRowType().getFieldNames();

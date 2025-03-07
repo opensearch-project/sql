@@ -32,8 +32,8 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
 /** Relational expression representing a scan of an OpenSearchIndex type. */
-public class CalciteEnumerableOSIndexScan extends CalciteOSIndexScan implements EnumerableRel {
-  private static final Logger LOG = LogManager.getLogger(CalciteEnumerableOSIndexScan.class);
+public class CalciteEnumerableIndexScan extends CalciteIndexScan implements EnumerableRel {
+  private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);
 
   /**
    * Creates an CalciteOpenSearchIndexScan.
@@ -42,7 +42,7 @@ public class CalciteEnumerableOSIndexScan extends CalciteOSIndexScan implements 
    * @param table Table
    * @param osIndex OpenSearch index
    */
-  public CalciteEnumerableOSIndexScan(
+  public CalciteEnumerableIndexScan(
       RelOptCluster cluster,
       List<RelHint> hints,
       RelOptTable table,
@@ -82,7 +82,7 @@ public class CalciteEnumerableOSIndexScan extends CalciteOSIndexScan implements 
     PhysType physType =
         PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray());
 
-    Expression scanOperator = implementor.stash(this, CalciteEnumerableOSIndexScan.class);
+    Expression scanOperator = implementor.stash(this, CalciteEnumerableIndexScan.class);
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
