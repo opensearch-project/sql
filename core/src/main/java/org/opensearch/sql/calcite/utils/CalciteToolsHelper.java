@@ -95,8 +95,7 @@ public class CalciteToolsHelper {
           config.getTypeSystem().getClass().getName());
     }
     try {
-      return new OpenSearchDriver()
-          .connect("jdbc:calcite:conformance=STRICT_2003", info, null, typeFactory);
+      return new OpenSearchDriver().connect("jdbc:calcite:", info, null, typeFactory);
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
