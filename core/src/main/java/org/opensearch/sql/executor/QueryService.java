@@ -8,8 +8,6 @@
 
 package org.opensearch.sql.executor;
 
-import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.LEGACY_PPL_OPERATOR_TABLE;
-
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.List;
@@ -200,18 +198,6 @@ public class QueryService {
             .traitDefs((List<RelTraitDef>) null)
             .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
             .typeSystem(OpenSearchTypeSystem.INSTANCE);
-    if (settings != null) {
-      // Make Calcite aligned with the V2 engine's behaviour.
-      // for example, count() in PPL v2 return integer but in Calcite it returns bigint
-      // TODO seems not work
-      if (settings.getSettingValue(Settings.Key.CALCITE_LEGACY_ENABLED)) {
-        LOG.info(
-            "Enable legacy in Calcite to align some behaviours of PPL V2 engine. For example,"
-                + " count() in PPL v2 return INTEGER but in Calcite it returns BIGINT");
-        configBuilder.operatorTable(LEGACY_PPL_OPERATOR_TABLE);
-      }
-    }
-
     return configBuilder.build();
   }
 

@@ -53,16 +53,6 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows(7));
   }
 
-  @Ignore // TODO enable legacy in Calcite not work yet
-  public void testSimpleCountLegacyEnabled() throws IOException {
-    enableLegacyInCalcite();
-    JSONObject actual =
-        executeQuery(String.format("source=%s | stats count() as c", TEST_INDEX_BANK));
-    verifySchema(actual, schema("c", "integer"));
-    verifyDataRows(actual, rows(7));
-    disableLegacyInCalcite();
-  }
-
   @Test
   public void testSimpleAvg() {
     JSONObject actual =

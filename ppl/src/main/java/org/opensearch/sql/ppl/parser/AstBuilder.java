@@ -5,14 +5,12 @@
 
 package org.opensearch.sql.ppl.parser;
 
-import static java.util.Collections.emptyList;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFilterFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
@@ -21,7 +19,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
@@ -38,10 +35,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -49,8 +43,6 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.RareAggregation;
-import org.opensearch.sql.ast.expression.TopAggregation;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
@@ -66,8 +58,6 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
-import org.opensearch.sql.ast.tree.RareTopN;
-import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
@@ -90,8 +80,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   private final AstExpressionBuilder expressionBuilder;
 
-  private final Settings settings;
-
   /**
    * PPL query to get original token text. This is necessary because token.getText() returns text
    * without whitespaces or other characters discarded by lexer.
@@ -104,7 +92,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   public AstBuilder(String query, Settings settings) {
     this.expressionBuilder = new AstExpressionBuilder(this);
-    this.settings = settings;
     this.query = query;
   }
 
@@ -362,200 +349,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .map(field -> (Field) internalVisitExpression(field))
         .collect(Collectors.toList());
   }
-
-  /** Rare command. */
-  @Override
-  public UnresolvedPlan visitRareCommand(RareCommandContext ctx) {
-    if (settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED)) {
-      return visitRareThroughAggregate(ctx);
-    }
-    List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
-    return new RareTopN(
-        CommandType.RARE,
-        ArgumentFactory.getArgumentList(ctx),
-        getFieldList(ctx.fieldList()),
-        groupList);
-  }
-
-  /** Top command. */
-  @Override
-  public UnresolvedPlan visitTopCommand(TopCommandContext ctx) {
-    if (settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED)) {
-      return visitTopThroughAggregate(ctx);
-    }
-    List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
-    return new RareTopN(
-        CommandType.TOP,
-        ArgumentFactory.getArgumentList(ctx),
-        getFieldList(ctx.fieldList()),
-        groupList);
-  }
-
-  private abstract class AggregateVisitor<T> {
-    protected ImmutableList<UnresolvedExpression> buildAggregateList(FieldListContext fieldList) {
-      ImmutableList.Builder<UnresolvedExpression> builder = new ImmutableList.Builder<>();
-      fieldList
-          .fieldExpression()
-          .forEach(
-              field -> {
-                AggregateFunction aggExpression = createAggregateFunction(field);
-                String name = field.qualifiedName().getText();
-                Alias alias = new Alias("count_" + name, aggExpression);
-                builder.add(alias);
-              });
-      return builder.build();
-    }
-
-    protected ImmutableList<UnresolvedExpression> buildGroupList(
-        FieldListContext fieldList, OpenSearchPPLParser.ByClauseContext byClause) {
-      ImmutableList.Builder<UnresolvedExpression> builder = new ImmutableList.Builder<>();
-
-      // Add optional group by fields first
-      List<UnresolvedExpression> optionalGroups =
-          Optional.ofNullable(byClause)
-              .map(OpenSearchPPLParser.ByClauseContext::fieldList)
-              .map(
-                  expr ->
-                      expr.fieldExpression().stream()
-                          .map(AstBuilder.this::internalVisitExpression)
-                          .collect(Collectors.toList()))
-              .orElse(emptyList());
-      builder.addAll(optionalGroups);
-
-      // then add mandatory group by fields
-      fieldList.fieldExpression().forEach(field -> builder.add(internalVisitExpression(field)));
-
-      return builder.build();
-    }
-
-    private AggregateFunction createAggregateFunction(
-        OpenSearchPPLParser.FieldExpressionContext field) {
-      return new AggregateFunction(
-          "count",
-          internalVisitExpression(field),
-          Collections.singletonList(new Argument("countParam", new Literal(1, DataType.INTEGER))));
-    }
-  }
-
-  private UnresolvedPlan visitRareThroughAggregate(RareCommandContext ctx) {
-    AggregateVisitor<RareCommandContext> visitor = new AggregateVisitor<>() {};
-    ImmutableList<UnresolvedExpression> aggregateList = visitor.buildAggregateList(ctx.fieldList());
-    ImmutableList<UnresolvedExpression> groupList =
-        visitor.buildGroupList(ctx.fieldList(), ctx.byClause());
-
-    UnresolvedExpression expectedResults =
-        ctx.number != null ? internalVisitExpression(ctx.number) : null;
-
-    return new RareAggregation(
-        Optional.ofNullable((Literal) expectedResults), aggregateList, aggregateList, groupList);
-  }
-
-  private UnresolvedPlan visitTopThroughAggregate(TopCommandContext ctx) {
-    AggregateVisitor<TopCommandContext> visitor = new AggregateVisitor<>() {};
-    ImmutableList<UnresolvedExpression> aggregateList = visitor.buildAggregateList(ctx.fieldList());
-    ImmutableList<UnresolvedExpression> groupList =
-        visitor.buildGroupList(ctx.fieldList(), ctx.byClause());
-
-    UnresolvedExpression expectedResults =
-        ctx.number != null ? internalVisitExpression(ctx.number) : null;
-
-    return new TopAggregation(
-        Optional.ofNullable((Literal) expectedResults), aggregateList, aggregateList, groupList);
-  }
-
-  //  private UnresolvedPlan visitRareThroughAggregate(RareCommandContext ctx) {
-  //    ImmutableList.Builder<UnresolvedExpression> aggListBuilder = new ImmutableList.Builder<>();
-  //    ImmutableList.Builder<UnresolvedExpression> groupListBuilder = new
-  // ImmutableList.Builder<>();
-  //    //    String funcName = ctx.RARE_APPROX() != null ? "approx_count_distinct" : "count";
-  //    ctx.fieldList()
-  //        .fieldExpression()
-  //        .forEach(
-  //            field -> {
-  //              AggregateFunction aggExpression =
-  //                  new AggregateFunction(
-  //                      "count",
-  //                      internalVisitExpression(field),
-  //                      Collections.singletonList(
-  //                          new Argument("countParam", new Literal(1, DataType.INTEGER))));
-  //              String name = field.qualifiedName().getText();
-  //              Alias alias = new Alias("count_" + name, aggExpression);
-  //              aggListBuilder.add(alias);
-  //              // group by the `field-list` as the mandatory groupBy fields
-  //              groupListBuilder.add(internalVisitExpression(field));
-  //            });
-  //
-  //    // group by the `by-clause` as the optional groupBy fields
-  //    groupListBuilder.addAll(
-  //        Optional.ofNullable(ctx.byClause())
-  //            .map(OpenSearchPPLParser.ByClauseContext::fieldList)
-  //            .map(
-  //                expr ->
-  //                    expr.fieldExpression().stream()
-  //                        .map(
-  //                            groupCtx ->
-  //                                (UnresolvedExpression)
-  //                                    new Alias(
-  //                                        getTextInQuery(groupCtx),
-  //                                        internalVisitExpression(groupCtx)))
-  //                        .collect(Collectors.toList()))
-  //            .orElse(emptyList()));
-  //    UnresolvedExpression expectedResults =
-  //        (ctx.number != null ? internalVisitExpression(ctx.number) : null);
-  //    return new RareAggregation(
-  //        Optional.ofNullable((Literal) expectedResults),
-  //        aggListBuilder.build(),
-  //        aggListBuilder.build(),
-  //        groupListBuilder.build());
-  //  }
-  //
-  //  private UnresolvedPlan visitTopThroughAggregate(TopCommandContext ctx) {
-  //    ImmutableList.Builder<UnresolvedExpression> aggListBuilder = new ImmutableList.Builder<>();
-  //    ImmutableList.Builder<UnresolvedExpression> groupListBuilder = new
-  // ImmutableList.Builder<>();
-  //    //    String funcName = ctx.TOP_APPROX() != null ? "approx_count_distinct" : "count";
-  //    ctx.fieldList()
-  //        .fieldExpression()
-  //        .forEach(
-  //            field -> {
-  //              AggregateFunction aggExpression =
-  //                  new AggregateFunction(
-  //                      "count",
-  //                      internalVisitExpression(field),
-  //                      Collections.singletonList(
-  //                          new Argument("countParam", new Literal(1, DataType.INTEGER))));
-  //              String name = field.qualifiedName().getText();
-  //              Alias alias = new Alias("count_" + name, aggExpression);
-  //              aggListBuilder.add(alias);
-  //              // group by the `field-list` as the mandatory groupBy fields
-  //              groupListBuilder.add(internalVisitExpression(field));
-  //            });
-  //
-  //    // group by the `by-clause` as the optional groupBy fields
-  //    groupListBuilder.addAll(
-  //        Optional.ofNullable(ctx.byClause())
-  //            .map(OpenSearchPPLParser.ByClauseContext::fieldList)
-  //            .map(
-  //                expr ->
-  //                    expr.fieldExpression().stream()
-  //                        .map(
-  //                            groupCtx ->
-  //                                (UnresolvedExpression)
-  //                                    new Alias(
-  //                                        getTextInQuery(groupCtx),
-  //                                        internalVisitExpression(groupCtx)))
-  //                        .collect(Collectors.toList()))
-  //            .orElse(emptyList()));
-  //    UnresolvedExpression expectedResults =
-  //        (ctx.number != null ? internalVisitExpression(ctx.number) : null);
-  //    return new TopAggregation(
-  //        Optional.ofNullable((Literal) expectedResults),
-  //        aggListBuilder.build(),
-  //        aggListBuilder.build(),
-  //        groupListBuilder.build());
-  //  }
 
   @Override
   public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {

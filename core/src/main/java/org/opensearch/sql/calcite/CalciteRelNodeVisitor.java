@@ -28,7 +28,6 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
@@ -37,12 +36,10 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
-import org.opensearch.sql.ast.expression.CountedAggregation;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.TopAggregation;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -301,62 +298,39 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggList);
 
-    if (node instanceof CountedAggregation c) {
-      // handle top and rare through aggregate
-      List<RexNode> sortWithAliasList;
-      if (node instanceof TopAggregation) {
-        sortWithAliasList =
-            node.getSortExprList().stream()
-                .map(expr -> rexVisitor.analyze(expr, context))
-                .map(s -> context.relBuilder.call(SqlStdOperatorTable.DESC, s))
-                .toList();
-      } else {
-        sortWithAliasList =
-            node.getSortExprList().stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
-      }
-      List<RexNode> sortList = removeAliasForSort(sortWithAliasList, context);
+    // handle normal aggregate
+    // TODO Should we keep alignment with V2 behaviour in new Calcite implementation?
+    // TODO how about add a legacy enable config to control behaviour in Calcite?
+    // Some behaviours between PPL and Databases are different.
+    // As an example, in command `stats count() by colA, colB`:
+    // 1. the sequence of output schema is different:
+    // In PPL v2, the sequence of output schema is "count, colA, colB".
+    // But in most databases, the sequence of output schema is "colA, colB, count".
+    // 2. the output order is different:
+    // In PPL v2, the order of output results is ordered by "colA + colB".
+    // But in most databases, the output order is random.
+    // User must add ORDER BY clause after GROUP BY clause to keep the results aligning.
+    // Following logic is to align with the PPL legacy behaviour.
 
-      if (c.getResults().isPresent()) {
-        context.relBuilder.sortLimit(0, (Integer) c.getResults().get().getValue(), sortList);
-      } else {
-        context.relBuilder.sort(sortList);
-      }
-      // remove the sort list from projects in Top and Rare
-      context.relBuilder.projectExcept(sortList);
-    } else {
-      // handle normal aggregate
-      // TODO Should we keep alignment with V2 behaviour in new Calcite implementation?
-      // TODO how about add a legacy enable config to control behaviour in Calcite?
-      // Some behaviours between PPL and Databases are different.
-      // As an example, in command `stats count() by colA, colB`:
-      // 1. the sequence of output schema is different:
-      // In PPL v2, the sequence of output schema is "count, colA, colB".
-      // But in most databases, the sequence of output schema is "colA, colB, count".
-      // 2. the output order is different:
-      // In PPL v2, the order of output results is ordered by "colA + colB".
-      // But in most databases, the output order is random.
-      // User must add ORDER BY clause after GROUP BY clause to keep the results aligning.
-      // Following logic is to align with the PPL legacy behaviour.
+    // alignment for 1.sequence of output schema: adding order-by
+    // we use the groupByList instead of node.getSortExprList as input because
+    // the groupByList may include span column.
+    List<RexNode> groupByListWithoutAlias = removeAliasForSort(groupByList, context);
+    context.relBuilder.sort(groupByListWithoutAlias);
 
-      // alignment for 1.sequence of output schema: adding order-by
-      // we use the groupByList instead of node.getSortExprList as input because
-      // the groupByList may include span column.
-      List<RexNode> groupByListWithoutAlias = removeAliasForSort(groupByList, context);
-      context.relBuilder.sort(groupByListWithoutAlias);
+    // alignment for 2.the output order: schema reordering
+    List<RexNode> outputFields = context.relBuilder.fields();
+    int numOfOutputFields = outputFields.size();
+    int numOfAggList = aggList.size();
+    List<RexNode> reordered = new ArrayList<>(numOfOutputFields);
+    // Add aggregation results first
+    List<RexNode> aggRexList =
+        outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
+    reordered.addAll(aggRexList);
+    // Add group by columns
+    reordered.addAll(groupByListWithoutAlias);
+    context.relBuilder.project(reordered);
 
-      // alignment for 2.the output order: schema reordering
-      List<RexNode> outputFields = context.relBuilder.fields();
-      int numOfOutputFields = outputFields.size();
-      int numOfAggList = aggList.size();
-      List<RexNode> reordered = new ArrayList<>(numOfOutputFields);
-      // Add aggregation results first
-      List<RexNode> aggRexList =
-          outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
-      reordered.addAll(aggRexList);
-      // Add group by columns
-      reordered.addAll(groupByListWithoutAlias);
-      context.relBuilder.project(reordered);
-    }
     return context.relBuilder.peek();
   }
 

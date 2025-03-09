@@ -142,16 +142,4 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
         new SQLIntegTestCase.ClusterSetting(
             "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
   }
-
-  protected static void enableLegacyInCalcite() throws IOException {
-    updateClusterSettings(
-        new SQLIntegTestCase.ClusterSetting(
-            "persistent", Settings.Key.CALCITE_LEGACY_ENABLED.getKeyValue(), "true"));
-  }
-
-  protected static void disableLegacyInCalcite() throws IOException {
-    updateClusterSettings(
-        new SQLIntegTestCase.ClusterSetting(
-            "persistent", Settings.Key.CALCITE_LEGACY_ENABLED.getKeyValue(), "false"));
-  }
 }

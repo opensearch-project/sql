@@ -15,7 +15,6 @@ public class CalciteStatsCommandIT extends StatsCommandIT {
   public void init() throws IOException {
     enableCalcite();
     disallowCalciteFallback();
-    enableLegacyInCalcite();
     super.init();
   }
 

@@ -27,7 +27,6 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import com.google.common.collect.ImmutableList;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -59,16 +58,12 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
-import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
-import org.apache.calcite.sql.util.ListSqlOperatorTable;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Util;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.LegacyPPLCountAggFunction;
 
 /**
  * Calcite Tools Helper. This class is used to create customized: 1. Connection 2. JavaTypeFactory
@@ -210,9 +205,4 @@ public class CalciteToolsHelper {
       }
     }
   }
-
-  public static SqlOperatorTable LEGACY_PPL_OPERATOR_TABLE =
-      new ChainedSqlOperatorTable(
-          ImmutableList.of(
-              new ListSqlOperatorTable(ImmutableList.of(new LegacyPPLCountAggFunction()))));
 }
