@@ -140,13 +140,9 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 "source = %s | inner join left=a, right=b ON a.name = b.name %s | stats avg(salary)"
                     + " by span(age, 10) as age_span",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    verifySchema(actual, schema("age_span", "double"), schema("avg(salary)", "double"));
+    verifySchema(actual, schema("avg(salary)", "double"), schema("age_span", "integer"));
     verifyDataRows(
-        actual,
-        rows(70.0, 100000.0),
-        rows(40.0, 60000.0),
-        rows(20.0, 105000.0),
-        rows(30.0, 70000.0));
+        actual, rows(105000.0, 20), rows(70000.0, 30), rows(60000.0, 40), rows(100000.0, 70));
   }
 
   @Test
@@ -159,16 +155,16 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
-        schema("b.country", "string"),
-        schema("age_span", "double"),
-        schema("avg(salary)", "double"));
+        schema("avg(salary)", "double"),
+        schema("age_span", "integer"),
+        schema("b.country", "string"));
     verifyDataRows(
         actual,
-        rows("Canada", 40.0, 0.0),
-        rows("Canada", 20.0, 105000.0),
-        rows("USA", 40.0, 120000.0),
-        rows("England", 70.0, 100000.0),
-        rows("USA", 30.0, 70000.0));
+        rows(105000.0, 20, "Canada"),
+        rows(70000.0, 30, "USA"),
+        rows(0.0, 40, "Canada"),
+        rows(120000.0, 40, "USA"),
+        rows(100000.0, 70, "England"));
   }
 
   @Test
@@ -182,15 +178,15 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
-        schema("b.country", "string"),
-        schema("age_span", "double"),
-        schema("avg(salary)", "double"));
+        schema("avg(salary)", "double"),
+        schema("age_span", "integer"),
+        schema("b.country", "string"));
     verifyDataRows(
         actual,
-        rows("Canada", 40.0, 0.0),
-        rows("USA", 40.0, 120000.0),
-        rows("England", 70.0, 100000.0),
-        rows("USA", 30.0, 70000.0));
+        rows(70000.0, 30, "USA"),
+        rows(0.0, 40, "Canada"),
+        rows(120000.0, 40, "USA"),
+        rows(100000.0, 70, "England"));
   }
 
   @Test
@@ -716,10 +712,10 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
     verifySchema(
         actual,
-        schema("b.country", "string"),
-        schema("age_span", "double"),
-        schema("avg(salary)", "double"));
-    verifyDataRowsInOrder(actual, rows("England", 70, 100000), rows("USA", 30, 70000.0));
+        schema("avg(salary)", "double"),
+        schema("age_span", "integer"),
+        schema("b.country", "string"));
+    verifyDataRowsInOrder(actual, rows(70000.0, 30, "USA"), rows(100000, 70, "England"));
   }
 
   @Test
@@ -745,9 +741,9 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("b.country", "string"),
-        schema("age_span", "double"),
+        schema("age_span", "integer"),
         schema("avg(salary)", "double"));
     verifyDataRowsInOrder(
-        actual, rows(null, 40, 0), rows("England", 70, 100000), rows("USA", 30, 70000.0));
+        actual, rows(70000.0, 30, "USA"), rows(0, 40, null), rows(100000, 70, "England"));
   }
 }

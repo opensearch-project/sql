@@ -110,6 +110,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               .put(Key.CALCITE_ENGINE_ENABLED, true)
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)
               .put(Key.CALCITE_PUSHDOWN_ENABLED, true)
+              .put(Key.CALCITE_LEGACY_ENABLED, false)
               .build();
 
       @Override
@@ -169,6 +170,9 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               throw (UnsupportedCursorRequestException) e;
             } else if (e instanceof NoCursorException) {
               throw (NoCursorException) e;
+            } else if (e instanceof IllegalArgumentException) {
+              // most exceptions thrown by Calcite when resolve a plan.
+              throw (IllegalArgumentException) e;
             } else {
               throw new IllegalStateException("Exception happened during execution", e);
             }
@@ -263,7 +267,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
 
     @Provides
     public PPLService pplService(QueryManager queryManager, QueryPlanFactory queryPlanFactory) {
-      return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory);
+      return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory, settings);
     }
 
     @Provides
