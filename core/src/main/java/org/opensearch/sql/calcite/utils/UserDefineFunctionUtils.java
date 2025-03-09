@@ -91,7 +91,7 @@ public class UserDefineFunctionUtils {
         throw new IllegalArgumentException("Function requires at least one argument.");
       }
       RelDataType firstArgType = argTypes.get(targetPosition);
-      return typeFactory.createSqlType(firstArgType.getSqlTypeName());
+      return typeFactory.createTypeWithNullability(typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
     };
   }
 }

@@ -144,7 +144,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return FLOAT;
       case DOUBLE:
         return DOUBLE;
-      case VARCHAR:
+      case VARCHAR, CHAR:
         return STRING;
       case BOOLEAN:
         return BOOLEAN;
