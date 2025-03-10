@@ -8,6 +8,8 @@ package org.opensearch.sql.ppl.calcite;
 import static org.apache.calcite.test.Matchers.hasTree;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -32,6 +34,7 @@ import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
@@ -40,11 +43,13 @@ public class CalcitePPLAbstractTest {
   @Getter private final Frameworks.ConfigBuilder config;
   private final CalciteRelNodeVisitor planTransformer;
   private final RelToSqlConverter converter;
+  private final Settings settings;
 
   public CalcitePPLAbstractTest(CalciteAssert.SchemaSpec... schemaSpecs) {
     this.config = config(schemaSpecs);
     this.planTransformer = new CalciteRelNodeVisitor();
     this.converter = new RelToSqlConverter(SparkSqlDialect.DEFAULT);
+    this.settings = mock(Settings.class);
   }
 
   public PPLSyntaxParser pplParser = new PPLSyntaxParser();
@@ -81,9 +86,11 @@ public class CalcitePPLAbstractTest {
   }
 
   private Node plan(PPLSyntaxParser parser, String query) {
+    doReturn(true).when(settings).getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
     final AstStatementBuilder builder =
         new AstStatementBuilder(
-            new AstBuilder(query), AstStatementBuilder.StatementBuilderContext.builder().build());
+            new AstBuilder(query, settings),
+            AstStatementBuilder.StatementBuilderContext.builder().build());
     return builder.visit(parser.parse(query));
   }
 

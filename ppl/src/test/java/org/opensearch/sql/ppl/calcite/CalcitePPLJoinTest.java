@@ -429,28 +429,30 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
-            + "LogicalAggregate(group=[{2}], cnt=[COUNT($3)])\n"
-            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "    LogicalSort(sort0=[$0], dir0=[DESC], fetch=[10])\n"
-            + "      LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
-            + "        LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO'))])\n"
-            + "          LogicalTableScan(table=[[scott, DEPT]])\n";
+            + "LogicalProject(cnt=[$1], JOB=[$0])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
+            + "    LogicalAggregate(group=[{2}], cnt=[COUNT($3)])\n"
+            + "      LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "        LogicalSort(sort0=[$0], dir0=[DESC], fetch=[10])\n"
+            + "          LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "            LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO'))])\n"
+            + "              LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult =
-        "" + "JOB=SALESMAN; cnt=4\n" + "JOB=CLERK; cnt=1\n" + "JOB=MANAGER; cnt=1\n";
+    String expectedResult = "cnt=1; JOB=CLERK\ncnt=1; JOB=MANAGER\ncnt=4; JOB=SALESMAN\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         ""
-            + "SELECT `EMP`.`JOB`, COUNT(`EMP`.`MGR`) `cnt`\n"
+            + "SELECT COUNT(`EMP`.`MGR`) `cnt`, `EMP`.`JOB`\n"
             + "FROM `scott`.`EMP`\n"
             + "INNER JOIN (SELECT `DEPTNO`, `DNAME`\n"
             + "FROM `scott`.`DEPT`\n"
             + "WHERE `DEPTNO` > 10 AND `LOC` = 'CHICAGO'\n"
             + "ORDER BY `DEPTNO` DESC NULLS FIRST\n"
             + "LIMIT 10) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`\n"
-            + "GROUP BY `EMP`.`JOB`";
+            + "GROUP BY `EMP`.`JOB`\n"
+            + "ORDER BY `EMP`.`JOB` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

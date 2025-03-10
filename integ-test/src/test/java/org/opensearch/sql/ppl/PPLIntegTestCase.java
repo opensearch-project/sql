@@ -22,6 +22,7 @@ import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
+  private static boolean calciteEnabled = false;
 
   protected JSONObject executeQuery(String query) throws IOException {
     return jsonify(executeQueryToString(query));
@@ -116,12 +117,18 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "true"));
+    calciteEnabled = true;
   }
 
   protected static void disableCalcite() throws IOException {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
+    calciteEnabled = false;
+  }
+
+  protected static boolean isCalciteEnabled() throws IOException {
+    return calciteEnabled;
   }
 
   protected static void allowCalciteFallback() throws IOException {

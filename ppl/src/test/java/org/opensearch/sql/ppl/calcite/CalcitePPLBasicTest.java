@@ -381,4 +381,20 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + "LIMIT 10) `t` ON `EMP`.`DEPTNO` = `t`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testRename() {
+    String ppl = "source=EMP | rename DEPTNO as DEPTNO_E";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO_E=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO` `DEPTNO_E`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }
