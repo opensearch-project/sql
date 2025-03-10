@@ -18,11 +18,6 @@ public class CalciteStatsCommandIT extends StatsCommandIT {
     super.init();
   }
 
-  @Ignore("https://github.com/opensearch-project/sql/issues/3404")
-  public void testGroupByNullValue() throws IOException {
-    super.testGroupByNullValue();
-  }
-
   @Ignore("Percentile is unsupported in Calcite now")
   @Override
   public void testStatsPercentile() throws IOException {

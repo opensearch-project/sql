@@ -333,8 +333,25 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows(List.of("Amber JOHnny", "Hattie")));
   }
 
-  @Ignore
-  public void testGroupByNullValue() throws IOException {
+  @Test
+  public void testSumGroupByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats sum(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "long"), schema("age", null, "integer"));
+    verifyDataRows(
+        response,
+        rows(null, null),
+        rows(32838, 28),
+        rows(39225, 32),
+        rows(4180, 33),
+        rows(48086, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testAvgGroupByNullValue() throws IOException {
     JSONObject response =
         executeQuery(
             String.format(
@@ -343,10 +360,10 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     verifyDataRows(
         response,
         rows(null, null),
-        rows(32838D, 28),
-        rows(39225D, 32),
-        rows(4180D, 33),
-        rows(48086D, 34),
+        rows(32838, 28),
+        rows(39225, 32),
+        rows(4180, 33),
+        rows(48086, 34),
         rows(null, 36));
   }
 }

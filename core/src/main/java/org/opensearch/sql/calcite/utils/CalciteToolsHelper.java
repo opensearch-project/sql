@@ -27,6 +27,9 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import static org.apache.calcite.linq4j.Nullness.castNonNull;
+
+import com.google.common.collect.ImmutableList;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -56,8 +59,12 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
@@ -145,7 +152,41 @@ public class CalciteToolsHelper {
     public OpenSearchRelBuilder(Context context, RelOptCluster cluster, RelOptSchema relOptSchema) {
       super(context, cluster, relOptSchema);
     }
+
+    @Override
+    public AggCall sum(boolean distinct, String alias, RexNode operand) {
+      return aggregateCall(
+          SUM_NULLABLE,
+          distinct,
+          false,
+          false,
+          null,
+          null,
+          ImmutableList.of(),
+          alias,
+          ImmutableList.of(),
+          ImmutableList.of(operand));
+    }
+
+    @Override
+    public AggCall avg(boolean distinct, String alias, RexNode operand) {
+      return aggregateCall(
+          SqlParserPos.ZERO,
+          AVG_NULLABLE,
+          distinct,
+          false,
+          false,
+          null,
+          null,
+          ImmutableList.of(),
+          alias,
+          ImmutableList.of(),
+          ImmutableList.of(operand));
+    }
   }
+
+  public static final SqlAggFunction SUM_NULLABLE = new OpenSearchSqlSumFunction(castNonNull(null));
+  public static final SqlAggFunction AVG_NULLABLE = new OpenSearchSqlAvgAggFunction(SqlKind.AVG);
 
   public static class OpenSearchPrepareImpl extends CalcitePrepareImpl {
     /**
