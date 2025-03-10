@@ -13,6 +13,7 @@ import org.opensearch.sql.calcite.udf.UserDefinedFunction;
  * Calculate the square root of a non-negative number x<br>
  * The supported signature is<br>
  * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+ * It returns null if a negative parameter is provided
  */
 public class SqrtFunction implements UserDefinedFunction {
   @Override
@@ -27,10 +28,10 @@ public class SqrtFunction implements UserDefinedFunction {
       double num = ((Number) input).doubleValue();
 
       if (num < 0) {
-        throw new ArithmeticException("Cannot compute square root of a negative number");
+        return null;
       }
 
-      return sqrt(num);
+      return (Double) sqrt((Double) num);
     } else {
       throw new IllegalArgumentException("Invalid argument type: Expected a numeric value");
     }

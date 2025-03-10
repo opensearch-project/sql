@@ -30,19 +30,27 @@ public class ModFunction implements UserDefinedFunction {
                             arg0.getClass().getSimpleName(), arg1.getClass().getSimpleName()));
         }
 
-        if (num1.doubleValue() == 0.0) {
+        // TODO: This precision check is arbitrary.
+        if (Math.abs(num1.doubleValue()) < 0.0000001) {
             return null;
         }
 
         if (isIntegral(num0) && isIntegral(num1)) {
             long l0 = num0.longValue();
             long l1 = num1.longValue();
-            return l0 % l1;
+            // Java returns negative values if the dividend is negative.
+            // We make it return positive values to align with V2's behavior
+            long result = (l0 % l1 + l1) % l1;
+            // Return the wider type between l0 and l1
+            if (num0 instanceof Integer && num1 instanceof Integer) {
+                return (int) result;
+            }
+            return result;
         }
 
         double d0 = num0.doubleValue();
         double d1 = num1.doubleValue();
-        return d0 % d1;
+        return (d0 % d1 + d1) % d1;
     }
 
     private boolean isIntegral(Number n) {
