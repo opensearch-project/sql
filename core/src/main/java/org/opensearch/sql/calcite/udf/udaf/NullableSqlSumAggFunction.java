@@ -25,7 +25,7 @@
  * limitations under the License.
  */
 
-package org.opensearch.sql.calcite.utils;
+package org.opensearch.sql.calcite.udf.udaf;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -41,7 +41,7 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Optionality;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public class OpenSearchSqlSumFunction extends SqlAggFunction {
+public class NullableSqlSumAggFunction extends SqlAggFunction {
 
   // ~ Instance fields --------------------------------------------------------
 
@@ -50,12 +50,12 @@ public class OpenSearchSqlSumFunction extends SqlAggFunction {
 
   // ~ Constructors -----------------------------------------------------------
 
-  public OpenSearchSqlSumFunction(RelDataType type) {
+  public NullableSqlSumAggFunction(RelDataType type) {
     super(
         "SUM",
         null,
         SqlKind.SUM,
-        AGG_SUM_NULLABLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+        AGG_SUM_NULLABLE,
         null,
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,
@@ -97,7 +97,7 @@ public class OpenSearchSqlSumFunction extends SqlAggFunction {
     return this;
   }
 
-  public static final SqlReturnTypeInference AGG_SUM_NULLABLE =
+  private static final SqlReturnTypeInference AGG_SUM =
       opBinding -> {
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
         final RelDataType type =
@@ -109,4 +109,7 @@ public class OpenSearchSqlSumFunction extends SqlAggFunction {
           return type;
         }
       };
+
+  private static final SqlReturnTypeInference AGG_SUM_NULLABLE =
+      AGG_SUM.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 }

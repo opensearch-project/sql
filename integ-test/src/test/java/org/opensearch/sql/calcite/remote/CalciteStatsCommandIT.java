@@ -12,10 +12,10 @@ import org.opensearch.sql.ppl.StatsCommandIT;
 
 public class CalciteStatsCommandIT extends StatsCommandIT {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     enableCalcite();
     disallowCalciteFallback();
-    super.init();
   }
 
   @Ignore("Percentile is unsupported in Calcite now")

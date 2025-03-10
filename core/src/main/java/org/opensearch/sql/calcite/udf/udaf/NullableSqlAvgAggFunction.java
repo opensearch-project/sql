@@ -25,7 +25,7 @@
  * limitations under the License.
  */
 
-package org.opensearch.sql.calcite.utils;
+package org.opensearch.sql.calcite.udf.udaf;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -40,21 +40,21 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Optionality;
 
-public class OpenSearchSqlAvgAggFunction extends SqlAggFunction {
+public class NullableSqlAvgAggFunction extends SqlAggFunction {
 
   // ~ Constructors -----------------------------------------------------------
 
-  /** Creates a SqlAvgAggFunction. */
-  public OpenSearchSqlAvgAggFunction(SqlKind kind) {
+  /** Creates a NullableSqlAvgAggFunction. */
+  public NullableSqlAvgAggFunction(SqlKind kind) {
     this(kind.name(), kind);
   }
 
-  OpenSearchSqlAvgAggFunction(String name, SqlKind kind) {
+  NullableSqlAvgAggFunction(String name, SqlKind kind) {
     super(
         name,
         null,
         kind,
-        AVG_AGG_NULLABLE.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+        AVG_AGG_NULLABLE,
         null,
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,
@@ -86,7 +86,7 @@ public class OpenSearchSqlAvgAggFunction extends SqlAggFunction {
     VAR_SAMP
   }
 
-  public static final SqlReturnTypeInference AVG_AGG_NULLABLE =
+  private static final SqlReturnTypeInference AVG_AGG =
       opBinding -> {
         final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
         final RelDataType relDataType =
@@ -99,4 +99,7 @@ public class OpenSearchSqlAvgAggFunction extends SqlAggFunction {
           return relDataType;
         }
       };
+
+  private static final SqlReturnTypeInference AVG_AGG_NULLABLE =
+      AVG_AGG.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 }

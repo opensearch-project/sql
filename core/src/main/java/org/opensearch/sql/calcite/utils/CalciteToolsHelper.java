@@ -71,6 +71,8 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Util;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.NullableSqlSumAggFunction;
 
 /**
  * Calcite Tools Helper. This class is used to create customized: 1. Connection 2. JavaTypeFactory
@@ -185,8 +187,17 @@ public class CalciteToolsHelper {
     }
   }
 
-  public static final SqlAggFunction SUM_NULLABLE = new OpenSearchSqlSumFunction(castNonNull(null));
-  public static final SqlAggFunction AVG_NULLABLE = new OpenSearchSqlAvgAggFunction(SqlKind.AVG);
+  public static final SqlAggFunction SUM_NULLABLE =
+      new NullableSqlSumAggFunction(castNonNull(null));
+  public static final SqlAggFunction AVG_NULLABLE = new NullableSqlAvgAggFunction(SqlKind.AVG);
+  public static final SqlAggFunction STDDEV_POP_NULLABLE =
+      new NullableSqlAvgAggFunction(SqlKind.STDDEV_POP);
+  public static final SqlAggFunction STDDEV_SAMP_NULLABLE =
+      new NullableSqlAvgAggFunction(SqlKind.STDDEV_SAMP);
+  public static final SqlAggFunction VAR_POP_NULLABLE =
+      new NullableSqlAvgAggFunction(SqlKind.VAR_POP);
+  public static final SqlAggFunction VAR_SAMP_NULLABLE =
+      new NullableSqlAvgAggFunction(SqlKind.VAR_SAMP);
 
   public static class OpenSearchPrepareImpl extends CalcitePrepareImpl {
     /**
