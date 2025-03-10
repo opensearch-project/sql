@@ -69,11 +69,14 @@ public class Lookup extends UnresolvedPlan {
   }
 
   /**
-   * Lookup mapping field map. For example: 1. When mapping is "name AS cName", the original key
-   * will be Alias(cName, Field(name)), the original value will be Field(cName). Returns a map which
-   * left join key is Field(name), right join key is Field(cName) 2. When mapping is "dept", the
-   * original key is Alias(dept, Field(dept)), the original value is Field(dept). Returns a map
-   * which left join key is Field(dept), the right join key is Field(dept) too.
+   * Lookup mapping field map. For example:<br>
+   * <br>
+   * 1. When mapping is "name AS cName", the original key will be Alias(cName, Field(name)), the
+   * original value will be Field(cName). Returns a map which left join key is Field(name), right
+   * join key is Field(cName) <br>
+   * 2. When mapping is "dept", the original key is Alias(dept, Field(dept)), the original value is
+   * Field(dept). Returns a map which left join key is Field(dept), the right join key is
+   * Field(dept) too.
    */
   public Map<Field, Field> getLookupMappingMap() {
     return lookupMappingMap.entrySet().stream()

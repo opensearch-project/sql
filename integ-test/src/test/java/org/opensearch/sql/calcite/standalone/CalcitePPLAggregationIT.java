@@ -325,6 +325,15 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testGroupByNullValue() {
+    String response =
+        execute(
+            String.format(
+                "source=%s | stats AVG(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    assertEquals("", response);
+  }
+
+  @Test
   public void testTake() {
     JSONObject actual =
         executeQuery(

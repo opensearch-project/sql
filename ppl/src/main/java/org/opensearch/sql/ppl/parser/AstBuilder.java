@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static java.util.Collections.emptyMap;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
@@ -36,6 +37,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -55,6 +57,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
@@ -407,6 +410,48 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
 
     return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
+  }
+
+  /** Lookup command */
+  @Override
+  public UnresolvedPlan visitLookupCommand(OpenSearchPPLParser.LookupCommandContext ctx) {
+    Relation lookupRelation =
+        new Relation(Collections.singletonList(this.internalVisitExpression(ctx.tableSource())));
+    Lookup.OutputStrategy strategy =
+        ctx.APPEND() != null ? Lookup.OutputStrategy.APPEND : Lookup.OutputStrategy.REPLACE;
+    java.util.Map<Alias, Field> lookupMappingList =
+        buildLookupPair(ctx.lookupMappingList().lookupPair());
+    java.util.Map<Alias, Field> outputCandidateList =
+        ctx.APPEND() == null && ctx.REPLACE() == null
+            ? emptyMap()
+            : buildLookupPair(ctx.outputCandidateList().lookupPair());
+    return new Lookup(
+        new SubqueryAlias(lookupRelation, "_l"), lookupMappingList, strategy, outputCandidateList);
+  }
+
+  private java.util.Map<Alias, Field> buildLookupPair(
+      List<OpenSearchPPLParser.LookupPairContext> ctx) {
+    return ctx.stream()
+        .map(expressionBuilder::visitLookupPair)
+        .map(And.class::cast)
+        .collect(
+            Collectors.toMap(
+                and -> (Alias) and.getLeft(),
+                and -> (Field) and.getRight(),
+                (x, y) -> y,
+                LinkedHashMap::new));
+  }
+
+  /** Top command. */
+  @Override
+  public UnresolvedPlan visitTopCommand(TopCommandContext ctx) {
+    List<UnresolvedExpression> groupList =
+        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
+    return new RareTopN(
+        CommandType.TOP,
+        ArgumentFactory.getArgumentList(ctx),
+        getFieldList(ctx.fieldList()),
+        groupList);
   }
 
   @Override

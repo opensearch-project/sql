@@ -11,6 +11,7 @@ import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.translateArg
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -177,7 +178,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
 
     // 2. resolve QualifiedName in non-join condition
-    String qualifiedName = node.toString();
+    String qualifiedName = node.toString().toLowerCase(Locale.ROOT);
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     if (currentFields.contains(qualifiedName)) {
       // 2.1 resolve QualifiedName from stack top
