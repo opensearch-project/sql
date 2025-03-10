@@ -83,15 +83,18 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testAcosInvalidArgShouldReturnNull() {
+  public void testAsinAndAcosInvalidArgShouldReturnNull() {
     JSONObject actual =
             executeQuery(
                     String.format(
-                            "source=%s | head 1 | eval res = acos(-2) | fields res",
+                            "source=%s | head 1 | eval s = asin(10), c = acos(-2) | fields s, c",
                             TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("res", "double"));
-    verifyDataRows(actual, rows((Object) null));
+    verifySchema(
+            actual,
+            schema("s", "double"),
+            schema("c", "double"));
+    verifyDataRows(actual, rows(null, null));
   }
 
   @Test
@@ -297,6 +300,18 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
       verifySchema(actual, schema("name", "string"));
       verifyDataRows(actual, rows("Jake"), rows("Hello"), rows("Jane"), rows("John"));
+  }
+
+  @Test
+  public void testPowInvalidArgShouldReturnNull() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s | head 1 | eval res = pow(-3, 0.5)  | fields res",
+                            TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("res", "double"));
+    verifyDataRows(actual, rows((Object) null));
   }
 
     @Test

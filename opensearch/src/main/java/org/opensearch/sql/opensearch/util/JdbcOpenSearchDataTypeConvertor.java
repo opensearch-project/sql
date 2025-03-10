@@ -58,7 +58,10 @@ public class JdbcOpenSearchDataTypeConvertor {
 
   public static ExprValue getExprValueFromSqlType(
       ResultSet rs, int i, int sqlType, RelDataType fieldType) throws SQLException {
-    Object value;
+    Object value = rs.getObject(i);
+    if (null == value) {
+      return ExprNullValue.of();
+    }
     switch (sqlType) {
       case Types.VARCHAR:
       case Types.CHAR:
@@ -77,9 +80,15 @@ public class JdbcOpenSearchDataTypeConvertor {
         break;
       case Types.DOUBLE:
         value = rs.getDouble(i);
+        if (Double.isNaN((Double) value)) {
+          value = null;
+        }
         break;
       case Types.FLOAT:
         value = rs.getFloat(i);
+        if (Float.isNaN((Float) value)) {
+          value = null;
+        }
         break;
       case Types.DATE:
         value = rs.getString(i);
