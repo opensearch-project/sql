@@ -229,7 +229,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected Request getSqlRequest(String request, boolean explain) {
-    return getSqlRequest(request, explain, "json");
+    return getSqlRequest(request, explain, "jdbc");
   }
 
   protected Request getSqlRequest(String request, boolean explain, String requestType) {
@@ -344,7 +344,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
     final String requestUrl =
         String.format(
-            Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT, urlEncodedQuery, "json");
+            Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT, urlEncodedQuery, "jdbc");
     return new Request("GET", requestUrl);
   }
 

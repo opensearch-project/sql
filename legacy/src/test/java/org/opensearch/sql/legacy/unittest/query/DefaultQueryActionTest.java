@@ -130,13 +130,13 @@ public class DefaultQueryActionTest {
     doReturn(settingFetchSize).when(mockSqlRequest).fetchSize();
     queryAction.setSqlRequest(mockSqlRequest);
 
-    Format[] formats = new Format[] {Format.CSV, Format.RAW, Format.JSON, Format.TABLE};
+    Format[] formats = new Format[] {Format.CSV, Format.RAW, Format.TABLE};
     for (Format format : formats) {
       queryAction.setFormat(format);
       queryAction.checkAndSetScroll();
     }
 
-    Mockito.verify(mockRequestBuilder, times(4)).setSize(limit);
+    Mockito.verify(mockRequestBuilder, times(3)).setSize(limit);
     Mockito.verify(mockRequestBuilder, never()).setScroll(any(TimeValue.class));
 
     queryAction.setFormat(Format.JDBC);

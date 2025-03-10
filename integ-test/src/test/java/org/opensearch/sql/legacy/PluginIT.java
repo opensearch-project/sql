@@ -12,6 +12,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import java.io.IOException;
 import java.util.Locale;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
@@ -26,6 +27,9 @@ public class PluginIT extends SQLIntegTestCase {
     wipeAllClusterSettings();
   }
 
+  @Ignore(
+      "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
+          + " response for now. Need to decide what to do with these test cases.")
   @Test
   public void sqlEnableSettingsTest() throws IOException {
     loadIndex(Index.ACCOUNT);
