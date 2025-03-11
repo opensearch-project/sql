@@ -29,14 +29,12 @@ package org.opensearch.sql.calcite.udf.udaf;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlAvgAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Optionality;
 
@@ -54,7 +52,7 @@ public class NullableSqlAvgAggFunction extends SqlAggFunction {
         name,
         null,
         kind,
-        AVG_AGG_NULLABLE,
+        ReturnTypes.AVG_AGG_FUNCTION.andThen(SqlTypeTransforms.FORCE_NULLABLE),
         null,
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,
@@ -85,21 +83,4 @@ public class NullableSqlAvgAggFunction extends SqlAggFunction {
     VAR_POP,
     VAR_SAMP
   }
-
-  private static final SqlReturnTypeInference AVG_AGG =
-      opBinding -> {
-        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-        final RelDataType relDataType =
-            typeFactory.getTypeSystem().deriveAvgAggType(typeFactory, opBinding.getOperandType(0));
-        if (opBinding.getGroupCount() > 0
-            || opBinding.hasFilter()
-            || opBinding.getOperator().kind == SqlKind.STDDEV_SAMP) {
-          return typeFactory.createTypeWithNullability(relDataType, true);
-        } else {
-          return relDataType;
-        }
-      };
-
-  private static final SqlReturnTypeInference AVG_AGG_NULLABLE =
-      AVG_AGG.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 }

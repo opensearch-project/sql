@@ -9,7 +9,6 @@ import java.util.Optional;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -28,23 +27,7 @@ public class ExtendedRexBuilder extends RexBuilder {
     return this.makeCall(SqlStdOperatorTable.COALESCE, nodes);
   }
 
-  /** extract the reference from the node */
-  public Optional<RexInputRef> extractRef(RexNode node) {
-    if (node == null) {
-      return Optional.empty();
-    } else if (node.getKind() == SqlKind.INPUT_REF) {
-      return Optional.of((RexInputRef) node);
-    } else if (node instanceof RexCall call) {
-      return call.getOperands().stream()
-          .map(this::extractRef)
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .findFirst();
-    } else {
-      return Optional.empty();
-    }
-  }
-
+  /** extract the alias from the node */
   public Optional<RexLiteral> extractAlias(RexNode node) {
     if (node == null) {
       return Optional.empty();

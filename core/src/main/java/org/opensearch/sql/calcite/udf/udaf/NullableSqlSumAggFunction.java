@@ -36,7 +36,7 @@ import org.apache.calcite.sql.SqlFunctionCategory;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSplittableAggFunction;
 import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.Optionality;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -55,7 +55,7 @@ public class NullableSqlSumAggFunction extends SqlAggFunction {
         "SUM",
         null,
         SqlKind.SUM,
-        AGG_SUM_NULLABLE,
+        ReturnTypes.AGG_SUM.andThen(SqlTypeTransforms.FORCE_NULLABLE),
         null,
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,
@@ -96,20 +96,4 @@ public class NullableSqlSumAggFunction extends SqlAggFunction {
   public SqlAggFunction getRollup() {
     return this;
   }
-
-  private static final SqlReturnTypeInference AGG_SUM =
-      opBinding -> {
-        final RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-        final RelDataType type =
-            typeFactory.getTypeSystem().deriveSumType(typeFactory, opBinding.getOperandType(0));
-        if (opBinding.getGroupCount() > 0
-            || opBinding.hasFilter()) { // should nullable when group count > 0
-          return typeFactory.createTypeWithNullability(type, true);
-        } else {
-          return type;
-        }
-      };
-
-  private static final SqlReturnTypeInference AGG_SUM_NULLABLE =
-      AGG_SUM.andThen(SqlTypeTransforms.FORCE_NULLABLE);
 }

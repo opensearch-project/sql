@@ -315,7 +315,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // alignment for 1.sequence of output schema: adding order-by
     // we use the groupByList instead of node.getSortExprList as input because
     // the groupByList may include span column.
-    List<RexNode> groupByListWithoutAlias = removeAliasForSort(groupByList, context);
+    List<RexNode> groupByListWithoutAlias = analyzeAliasForSort(groupByList, context);
     context.relBuilder.sort(groupByListWithoutAlias);
 
     // alignment for 2.the output order: schema reordering
@@ -334,8 +334,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  /** TODO sort with aliased list will not work, so we add this converting */
-  private List<RexNode> removeAliasForSort(
+  private List<RexNode> analyzeAliasForSort(
       List<RexNode> rexWithAliasList, CalcitePlanContext context) {
     return rexWithAliasList.stream()
         .map(context.rexBuilder::extractAlias)
