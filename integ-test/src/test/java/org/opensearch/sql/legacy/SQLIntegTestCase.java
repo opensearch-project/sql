@@ -758,6 +758,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "occupation",
         getOccupationIndexMapping(),
         "src/test/resources/occupation.json"),
+    OCCUPATION_TOP_RARE(
+        TestsConstants.TEST_INDEX_OCCUPATION_TOP_RARE,
+        "occupation_top_rare",
+        getOccupationIndexMapping(), // same mapping with above
+        "src/test/resources/occupation_top_rare.json"),
     HOBBIES(
         TestsConstants.TEST_INDEX_HOBBIES,
         "hobbies",

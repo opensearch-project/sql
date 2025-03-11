@@ -11,7 +11,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCo
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFilterFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
@@ -20,7 +19,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
@@ -69,6 +67,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
@@ -90,6 +89,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   private final String query;
 
   public AstBuilder(String query) {
+    this(query, null);
+  }
+
+  public AstBuilder(String query, Settings settings) {
     this.expressionBuilder = new AstExpressionBuilder(this);
     this.query = query;
   }
@@ -297,7 +300,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Aggregation aggregation =
         new Aggregation(
             aggListBuilder.build(),
-            Collections.emptyList(),
+            groupList,
             groupList,
             span,
             ArgumentFactory.getArgumentList(ctx));
@@ -350,11 +353,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /** Rare command. */
   @Override
-  public UnresolvedPlan visitRareCommand(RareCommandContext ctx) {
+  public UnresolvedPlan visitRareCommand(OpenSearchPPLParser.RareCommandContext ctx) {
     List<UnresolvedExpression> groupList =
         ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
     return new RareTopN(
         CommandType.RARE,
+        ArgumentFactory.getArgumentList(ctx),
+        getFieldList(ctx.fieldList()),
+        groupList);
+  }
+
+  /** Top command. */
+  @Override
+  public UnresolvedPlan visitTopCommand(OpenSearchPPLParser.TopCommandContext ctx) {
+    List<UnresolvedExpression> groupList =
+        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
+    return new RareTopN(
+        CommandType.TOP,
         ArgumentFactory.getArgumentList(ctx),
         getFieldList(ctx.fieldList()),
         groupList);
@@ -391,18 +406,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
 
     return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
-  }
-
-  /** Top command. */
-  @Override
-  public UnresolvedPlan visitTopCommand(TopCommandContext ctx) {
-    List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
-    return new RareTopN(
-        CommandType.TOP,
-        ArgumentFactory.getArgumentList(ctx),
-        getFieldList(ctx.fieldList()),
-        groupList);
   }
 
   @Override

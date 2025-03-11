@@ -50,7 +50,8 @@ public class PPLServiceTest {
     queryManager = DefaultQueryManager.defaultQueryManager();
 
     pplService =
-        new PPLService(new PPLSyntaxParser(), queryManager, new QueryPlanFactory(queryService));
+        new PPLService(
+            new PPLSyntaxParser(), queryManager, new QueryPlanFactory(queryService), null);
   }
 
   @After
