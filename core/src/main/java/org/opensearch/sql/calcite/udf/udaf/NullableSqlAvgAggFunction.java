@@ -52,7 +52,7 @@ public class NullableSqlAvgAggFunction extends SqlAggFunction {
         name,
         null,
         kind,
-        ReturnTypes.AVG_AGG_FUNCTION.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+        ReturnTypes.AVG_AGG_FUNCTION.andThen(SqlTypeTransforms.FORCE_NULLABLE), // modified here
         null,
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,

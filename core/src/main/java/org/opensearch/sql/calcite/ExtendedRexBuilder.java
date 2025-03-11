@@ -5,14 +5,10 @@
 
 package org.opensearch.sql.calcite;
 
-import java.util.Optional;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.opensearch.sql.ast.expression.SpanUnit;
@@ -25,23 +21,6 @@ public class ExtendedRexBuilder extends RexBuilder {
 
   public RexNode coalesce(RexNode... nodes) {
     return this.makeCall(SqlStdOperatorTable.COALESCE, nodes);
-  }
-
-  /** extract the alias from the node */
-  public Optional<RexLiteral> extractAlias(RexNode node) {
-    if (node == null) {
-      return Optional.empty();
-    } else if (node.getKind() == SqlKind.AS) {
-      return Optional.of((RexLiteral) ((RexCall) node).getOperands().get(1));
-    } else if (node instanceof RexCall call) {
-      return call.getOperands().stream()
-          .map(this::extractAlias)
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .findFirst();
-    } else {
-      return Optional.empty();
-    }
   }
 
   public RexNode equals(RexNode n1, RexNode n2) {

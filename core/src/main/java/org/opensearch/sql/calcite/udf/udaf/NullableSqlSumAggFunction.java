@@ -55,7 +55,7 @@ public class NullableSqlSumAggFunction extends SqlAggFunction {
         "SUM",
         null,
         SqlKind.SUM,
-        ReturnTypes.AGG_SUM.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+        ReturnTypes.AGG_SUM.andThen(SqlTypeTransforms.FORCE_NULLABLE), // modified here
         null,
         OperandTypes.NUMERIC,
         SqlFunctionCategory.NUMERIC,

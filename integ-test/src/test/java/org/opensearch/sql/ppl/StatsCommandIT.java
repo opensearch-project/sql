@@ -286,6 +286,17 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSumWithNull() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | where age = 36 | stats sum(balance)",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("sum(balance)", null, "long"));
+    verifyDataRows(response, rows(0));
+  }
+
+  @Test
   public void testStatsWithMissing() throws IOException {
     JSONObject response =
         executeQuery(

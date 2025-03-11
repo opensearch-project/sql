@@ -366,4 +366,59 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
         rows(48086, 34),
         rows(null, 36));
   }
+
+  @Test
+  public void testSumEmpty() {
+    String response =
+        execute(
+            String.format(
+                "source=%s | where 1=2 | stats sum(balance)", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    assertEquals(
+        ""
+            + "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"sum(balance)\",\n"
+            + "      \"type\": \"long\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      null\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 1,\n"
+            + "  \"size\": 1\n"
+            + "}",
+        response);
+  }
+
+  // TODO https://github.com/opensearch-project/sql/issues/3408
+  // In most databases, below test returns null instead of 0.
+  @Test
+  public void testSumNull() {
+    String response =
+        execute(
+            String.format(
+                "source=%s | where age = 36 | stats sum(balance)",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    assertEquals(
+        ""
+            + "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"sum(balance)\",\n"
+            + "      \"type\": \"long\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      0\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 1,\n"
+            + "  \"size\": 1\n"
+            + "}",
+        response);
+  }
 }

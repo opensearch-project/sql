@@ -28,12 +28,14 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
@@ -315,8 +317,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // alignment for 1.sequence of output schema: adding order-by
     // we use the groupByList instead of node.getSortExprList as input because
     // the groupByList may include span column.
-    List<RexNode> groupByListWithoutAlias = analyzeAliasForSort(groupByList, context);
-    context.relBuilder.sort(groupByListWithoutAlias);
+    node.getGroupExprList()
+        .forEach(
+            g -> {
+              // node.getGroupExprList() should all be instance of Alias
+              // which defined in AstBuilder.
+              assert g instanceof Alias;
+            });
+    List<String> aliasesFromGroupByList =
+        groupByList.stream()
+            .map(this::extractAliasLiteral)
+            .flatMap(Optional::stream)
+            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
+            .toList();
+    List<RexNode> aliasedGroupByList =
+        aliasesFromGroupByList.stream()
+            .map(context.relBuilder::field)
+            .map(f -> (RexNode) f)
+            .toList();
+    context.relBuilder.sort(aliasedGroupByList);
 
     // alignment for 2.the output order: schema reordering
     List<RexNode> outputFields = context.relBuilder.fields();
@@ -328,21 +347,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
     reordered.addAll(aggRexList);
     // Add group by columns
-    reordered.addAll(groupByListWithoutAlias);
+    reordered.addAll(aliasedGroupByList);
     context.relBuilder.project(reordered);
 
     return context.relBuilder.peek();
   }
 
-  private List<RexNode> analyzeAliasForSort(
-      List<RexNode> rexWithAliasList, CalcitePlanContext context) {
-    return rexWithAliasList.stream()
-        .map(context.rexBuilder::extractAlias)
-        .flatMap(Optional::stream)
-        .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
-        .map(context.relBuilder::field)
-        .map(f -> (RexNode) f)
-        .toList();
+  /** extract the RexLiteral of Alias from a node */
+  private Optional<RexLiteral> extractAliasLiteral(RexNode node) {
+    if (node == null) {
+      return Optional.empty();
+    } else if (node.getKind() == SqlKind.AS) {
+      return Optional.of((RexLiteral) ((RexCall) node).getOperands().get(1));
+    } else {
+      return Optional.empty();
+    }
   }
 
   @Override
