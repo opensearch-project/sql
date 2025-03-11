@@ -5,6 +5,14 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import static java.lang.Math.E;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getLeastRestrictiveReturnTypeAmongArgsAt;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
@@ -12,23 +20,12 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
-import static java.lang.Math.E;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getLeastRestrictiveReturnTypeAmongArgsAt;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getReturnTypeBasedOnArgAt;
 
 public interface BuiltinFunctionUtils {
 
@@ -106,9 +103,13 @@ public interface BuiltinFunctionUtils {
       case "LOG10":
         return SqlStdOperatorTable.LOG10;
       case "MOD":
-        // The MOD function in PPL supports floating-point parameters, e.g., MOD(5.5, 2) = 1.5, MOD(3.1, 2.1) = 1.1,
+        // The MOD function in PPL supports floating-point parameters, e.g., MOD(5.5, 2) = 1.5,
+        // MOD(3.1, 2.1) = 1.1,
         // whereas SqlStdOperatorTable.MOD supports only integer / long parameters.
-        return TransferUserDefinedFunction(ModFunction.class, "MOD", getLeastRestrictiveReturnTypeAmongArgsAt(List.of(0, 1), true));
+        return TransferUserDefinedFunction(
+            ModFunction.class,
+            "MOD",
+            getLeastRestrictiveReturnTypeAmongArgsAt(List.of(0, 1), true));
       case "PI":
         return SqlStdOperatorTable.PI;
       case "POW", "POWER":
@@ -124,8 +125,10 @@ public interface BuiltinFunctionUtils {
       case "SIN":
         return SqlStdOperatorTable.SIN;
       case "SQRT":
-        // SqlStdOperatorTable.SQRT is declared but not implemented, therefore we use a custom implementation.
-        return TransferUserDefinedFunction(SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE_FORCE_NULLABLE);
+        // SqlStdOperatorTable.SQRT is declared but not implemented, therefore we use a custom
+        // implementation.
+        return TransferUserDefinedFunction(
+            SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE_FORCE_NULLABLE);
       case "CBRT":
         return SqlStdOperatorTable.CBRT;
         // Built-in Date Functions
