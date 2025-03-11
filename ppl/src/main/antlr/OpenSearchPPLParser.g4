@@ -716,6 +716,7 @@ positionFunctionName
 
 jsonFunctionName
    : JSON
+   | JSON_EXTRACT
    ;
 
 // operators
