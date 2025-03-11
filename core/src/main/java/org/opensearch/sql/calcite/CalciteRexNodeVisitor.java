@@ -11,7 +11,6 @@ import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.translateArg
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -157,6 +156,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.rexBuilder.equals(left, right);
   }
 
+  /** Resolve qualified name. Note, the name should be case-sensitive. */
   @Override
   public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
     // 1. resolve QualifiedName in join condition
@@ -178,7 +178,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
 
     // 2. resolve QualifiedName in non-join condition
-    String qualifiedName = node.toString().toLowerCase(Locale.ROOT);
+    String qualifiedName = node.toString();
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     if (currentFields.contains(qualifiedName)) {
       // 2.1 resolve QualifiedName from stack top

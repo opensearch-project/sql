@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -33,10 +34,10 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testInvalidTable() {
-    assertThrows(
-        "OpenSearch exception [type=index_not_found_exception, reason=no such index [unknown]]",
-        IllegalStateException.class,
-        () -> execute("source=unknown"));
+    IllegalStateException e =
+        assertThrows(IllegalStateException.class, () -> execute("source=unknown"));
+    verifyErrorMessageContains(
+        e, "OpenSearch exception [type=index_not_found_exception, reason=no such index [unknown]]");
   }
 
   @Test
@@ -59,6 +60,13 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     JSONObject actual = executeQuery("source=test | fields name");
     verifySchema(actual, schema("name", "string"));
     verifyDataRows(actual, rows("hello"), rows("world"));
+  }
+
+  @Test
+  public void testFieldsShouldBeCaseSensitive() {
+    IllegalStateException e =
+        assertThrows(IllegalStateException.class, () -> execute("source=test | fields NAME"));
+    verifyErrorMessageContains(e, "field [NAME] not found; input fields are: [name, age]");
   }
 
   @Test

@@ -108,12 +108,8 @@ public interface JoinAndLookupUtils {
       } else {
         child = inputCol;
       }
-      // The result output project list we build here is used to replace the source output,
-      // for the unmatched rows of left outer join, the outputs are null, so fall back to source
-      // output.
-      RexNode nullSafeOutput = context.rexBuilder.coalesce(child, outputCol);
-      RexNode withAlias = context.relBuilder.alias(nullSafeOutput, inputFieldWithAlias.getName());
-      outputProjectList.add(withAlias);
+      RexNode output = context.relBuilder.alias(child, inputFieldWithAlias.getName());
+      outputProjectList.add(output);
     }
     return outputProjectList;
   }
