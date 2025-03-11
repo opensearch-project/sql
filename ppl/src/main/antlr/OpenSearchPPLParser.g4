@@ -677,6 +677,7 @@ conditionFunctionName
    | ISNOTNULL
    | CIDRMATCH
    | JSON_VALID
+   | JSON_SET
    ;
 
 // flow control function return non-boolean value
@@ -716,6 +717,7 @@ positionFunctionName
 
 jsonFunctionName
    : JSON
+   | JSON_EXTRACT
    ;
 
 // operators
