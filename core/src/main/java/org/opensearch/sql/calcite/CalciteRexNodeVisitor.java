@@ -235,16 +235,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return context.rexBuilder.makeIntervalLiteral(new BigDecimal(millis), intervalQualifier);
     } else {
       // if the unit is not time base - create a math expression to bucket the span partitions
+      SqlTypeName type = field.getType().getSqlTypeName();
       return context.rexBuilder.makeCall(
-          typeFactory.createSqlType(SqlTypeName.DOUBLE),
+          typeFactory.createSqlType(type),
           SqlStdOperatorTable.MULTIPLY,
           List.of(
               context.rexBuilder.makeCall(
-                  typeFactory.createSqlType(SqlTypeName.DOUBLE),
+                  typeFactory.createSqlType(type),
                   SqlStdOperatorTable.FLOOR,
                   List.of(
                       context.rexBuilder.makeCall(
-                          typeFactory.createSqlType(SqlTypeName.DOUBLE),
+                          typeFactory.createSqlType(type),
                           SqlStdOperatorTable.DIVIDE,
                           List.of(field, value)))),
               value));

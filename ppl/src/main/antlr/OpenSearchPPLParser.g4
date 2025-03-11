@@ -109,7 +109,7 @@ topCommand
    ;
 
 rareCommand
-   : RARE fieldList (byClause)?
+   : RARE (number = integerLiteral)? fieldList (byClause)?
    ;
 
 grokCommand

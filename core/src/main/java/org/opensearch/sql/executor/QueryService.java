@@ -191,13 +191,14 @@ public class QueryService {
     final SchemaPlus opensearchSchema =
         rootSchema.add(
             OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME, new OpenSearchSchema(dataSourceService));
-    return Frameworks.newConfigBuilder()
-        .parserConfig(SqlParser.Config.DEFAULT) // TODO check
-        .defaultSchema(opensearchSchema)
-        .traitDefs((List<RelTraitDef>) null)
-        .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
-        .typeSystem(OpenSearchTypeSystem.INSTANCE)
-        .build();
+    Frameworks.ConfigBuilder configBuilder =
+        Frameworks.newConfigBuilder()
+            .parserConfig(SqlParser.Config.DEFAULT) // TODO check
+            .defaultSchema(opensearchSchema)
+            .traitDefs((List<RelTraitDef>) null)
+            .programs(Programs.calc(DefaultRelMetadataProvider.INSTANCE))
+            .typeSystem(OpenSearchTypeSystem.INSTANCE);
+    return configBuilder.build();
   }
 
   /** Translate {@link LogicalPlan} to {@link PhysicalPlan}. */

@@ -298,13 +298,14 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalFilter(condition=[=($5, $SCALAR_QUERY({\n"
-            + "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(max_hisal=[$1])\n"
+            + "LogicalProject(max_hisal=[$1])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[ASC], fetch=[1])\n"
             + "    LogicalAggregate(group=[{0}], max_hisal=[MAX($2)])\n"
             + "      LogicalFilter(condition=[=($2, $SCALAR_QUERY({\n"
             + "LogicalProject(max_sal=[$1])\n"
-            + "  LogicalAggregate(group=[{2}], max_sal=[MAX($5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
+            + "    LogicalAggregate(group=[{2}], max_sal=[MAX($5)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n"
             + "}))], variablesSet=[[$cor1]])\n"
             + "        LogicalTableScan(table=[[scott, SALGRADE]])\n"
             + "}))], variablesSet=[[$cor0]])\n"
@@ -332,8 +333,10 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `HISAL` = (((SELECT MAX(`SAL`) `max_sal`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `JOB`)))\n"
+            + "GROUP BY `JOB`\n"
+            + "ORDER BY `JOB` NULLS LAST)))\n"
             + "GROUP BY `GRADE`\n"
+            + "ORDER BY `GRADE` NULLS LAST\n"
             + "LIMIT 1)))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
