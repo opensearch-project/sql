@@ -30,7 +30,7 @@ public class SqrtFunction implements UserDefinedFunction {
         return null;
       }
 
-      return (Double) sqrt((Double) num);
+      return sqrt(num);
     } else {
       throw new IllegalArgumentException("Invalid argument type: Expected a numeric value");
     }
