@@ -246,42 +246,23 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
   @Test
   public void testMultipleTables() {
     String ppl = "source=EMP, EMP";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        ""
-            + "LogicalUnion(all=[true])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-    verifyResultCount(root, 28);
+    try {
+      RelNode root = getRelNode(ppl);
+      fail("expected error, got " + root);
+    } catch (Exception e) {
+      assertThat(e.getMessage(), is("Table 'EMP,EMP' not found"));
+    }
   }
 
   @Test
   public void testMultipleTablesAndFilters() {
     String ppl = "source=EMP, EMP DEPTNO = 20 | fields EMPNO, DEPTNO, SAL";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        ""
-            + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])\n"
-            + "  LogicalFilter(condition=[=($7, 20)])\n"
-            + "    LogicalUnion(all=[true])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-    String expectedResult =
-        ""
-            + "EMPNO=7369; DEPTNO=20; SAL=800.00\n"
-            + "EMPNO=7566; DEPTNO=20; SAL=2975.00\n"
-            + "EMPNO=7788; DEPTNO=20; SAL=3000.00\n"
-            + "EMPNO=7876; DEPTNO=20; SAL=1100.00\n"
-            + "EMPNO=7902; DEPTNO=20; SAL=3000.00\n"
-            + "EMPNO=7369; DEPTNO=20; SAL=800.00\n"
-            + "EMPNO=7566; DEPTNO=20; SAL=2975.00\n"
-            + "EMPNO=7788; DEPTNO=20; SAL=3000.00\n"
-            + "EMPNO=7876; DEPTNO=20; SAL=1100.00\n"
-            + "EMPNO=7902; DEPTNO=20; SAL=3000.00\n";
-
-    verifyResult(root, expectedResult);
+    try {
+      RelNode root = getRelNode(ppl);
+      fail("expected error, got " + root);
+    } catch (Exception e) {
+      assertThat(e.getMessage(), is("Table 'EMP,EMP' not found"));
+    }
   }
 
   @Ignore
