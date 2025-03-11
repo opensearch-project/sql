@@ -4,9 +4,14 @@
  */
 package org.opensearch.sql.calcite.standalone;
 
+import static org.hamcrest.CoreMatchers.is;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
-import static org.opensearch.sql.util.MatcherUtils.*;
+import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -19,106 +24,96 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.STATE_COUNTRY);
   }
 
+  private static boolean containsMessage(Throwable throwable, String message) {
+    while (throwable != null) {
+      if (throwable.getMessage() != null && throwable.getMessage().contains(message)) {
+        return true;
+      }
+      throwable = throwable.getCause();
+    }
+    return false;
+  }
+
   @Test
-  public void testSqrtAndPow() {
+  public void testSqrtAndCbrtAndPow() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where sqrt(pow(age, 2)) = 30.0 | fields name, age",
+                "source=%s | where sqrt(pow(age, 2)) = 30.0 and cbrt(pow(month, 3)) = 4 | fields"
+                    + " name, age, month",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Hello", 30));
+    verifySchema(
+        actual, schema("name", "string"), schema("age", "integer"), schema("month", "integer"));
+    verifyDataRows(actual, rows("Hello", 30, 4));
   }
 
   @Test
-  public void testAbs() {
+  public void testSqrtNegativeArgShouldReturnNull() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where age = abs(-30) | fields name, age", TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Hello", 30));
+                "source=%s | head 1 | eval neg = sqrt(-1) | fields neg", TEST_INDEX_STATE_COUNTRY));
+    verifyDataRows(actual, rows((Object) null));
   }
 
   @Test
-  public void testAbsWithField() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where abs(age) = 30 | fields name, age", TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Hello", 30));
+  public void testSqrtNanArgShouldThrowError() {
+    Exception nanException =
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | head 1 | eval neg = sqrt('1') | fields neg",
+                        TEST_INDEX_STATE_COUNTRY)));
+    assertTrue(containsMessage(nanException, "Invalid argument type: Expected a numeric value"));
   }
 
   @Test
-  public void testAcos() {
+  public void testSinAndCosAndAsinAndAcos() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval acos = acos(1) | head 1 | fields acos",
+                "source=%s | eval res = acos(cos(asin(sin(1)))) | head 1 | fields res",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("acos", "double"));
-    verifyDataRows(actual, rows(0.0));
+    verifySchema(actual, schema("res", "double"));
+    verifyDataRows(actual, closeTo(1.0));
   }
 
   @Test
-  public void testAsin() {
+  public void testAsinAndAcosInvalidArgShouldReturnNull() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval asin = asin(0.5) | head 1 | fields asin",
+                "source=%s | head 1 | eval s = asin(10), c = acos(-2) | fields s, c",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("asin", "double"));
-    verifyDataRows(actual, closeTo(0.5235987755982988));
+    verifySchema(actual, schema("s", "double"), schema("c", "double"));
+    verifyDataRows(actual, rows(null, null));
   }
 
   @Test
-  public void testAtan() {
+  public void testAtanAndAtan2WithSort() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where age = atan(0) + 30 | fields name, age",
+                "source=%s | where month = atan(0) + 4 and age >= 30 + atan2(0, 1) | sort age |"
+                    + " fields name, age, month",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Hello", 30));
+    verifySchema(
+        actual, schema("name", "string"), schema("age", "integer"), schema("month", "integer"));
+    verifyDataRowsInOrder(actual, rows("Hello", 30, 4), rows("Jake", 70, 4));
   }
 
   @Test
-  public void testAtan2() {
+  public void testCeilingAndFloor() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where age = atan2(0, 1) + 30 | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Hello", 30));
-  }
-
-  @Test
-  public void testCbrt() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where age = cbrt(27000) | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Hello", 30));
-  }
-
-  @Test
-  public void testCeiling() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where age = ceiling(29.7) | fields name, age",
+                "source=%s | where age = ceiling(29.7) and month = floor(4.9) | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
@@ -138,15 +133,27 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCos() {
+  public void testConvNegateValue() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where age = cos(0) + 19 | fields name, age",
+                "source=%s | head 1 | eval hello = conv('29234652', 10, 36), negate ="
+                    + " conv(-29234652, 10, 36) | fields hello, negate",
                 TEST_INDEX_STATE_COUNTRY));
+    verifyDataRows(actual, rows("hello", "-hello"));
+  }
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Jane", 20));
+  @Test
+  public void testConvWithInvalidRadix() {
+    IllegalStateException e =
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval invalid = conv('0000', 1, 36) | fields invalid",
+                        TEST_INDEX_STATE_COUNTRY)));
+    assertThat(e.getCause().getCause().getMessage(), is("radix 1 less than Character.MIN_RADIX"));
   }
 
   @Test
@@ -162,27 +169,16 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCrc32() {
+  public void testCrc32AndAbs() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where crc32(name) = 1516115372 | fields name",
+                "source=%s | eval crc_name = crc32('Jane') | where crc32(name) = abs(0 - crc_name)"
+                    + " | fields crc_name, name",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"));
-    verifyDataRows(actual, rows("Jane"));
-  }
-
-  @Test
-  public void testDegrees() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval degrees = degrees(0.5235987755982988) | head 1 | fields degrees",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("degrees", "double"));
-    verifyDataRows(actual, closeTo(30.0));
+    verifySchema(actual, schema("crc_name", "long"), schema("name", "string"));
+    verifyDataRows(actual, rows(1516115372L, "Jane"));
   }
 
   @Test
@@ -210,75 +206,75 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testLog() {
+  public void testLogAndLog2AndLog10() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where log(age, 900) = 2 | fields name, age",
+                "source=%s | head 1 | eval log =  log(30, 900), log2 = log2(4), log10 = log10(1000)"
+                    + "  | fields log, log2, log10",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(
+        actual, schema("log", "double"), schema("log2", "double"), schema("log10", "double"));
+    verifyDataRows(actual, closeTo(2, 2, 3));
+  }
+
+  @Test
+  public void testModWithSortAndFields() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where mod(age, 10) = 0 | sort -age | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Hello", 30));
+
+    verifyDataRowsInOrder(actual, rows("Jake", 70), rows("Hello", 30), rows("Jane", 20));
   }
 
   @Test
-  public void testLog2() {
+  public void testModFloatAndNegative() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where log2(age + 2) = 5 | fields name, age",
+                "source=%s | head 1 | eval f = mod(3.1, 2), n = mod(-3, 2) | fields f, n",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(actual, schema("f", "double"), schema("n", "integer"));
+    verifyDataRows(actual, closeTo(1.1, 1));
+  }
+
+  @Test
+  public void testModShouldReturnWiderType() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval i = mod(2147483647, 2), l = mod(2147483648, 2), "
+                    + "d = mod(3, 2.1) | fields i, l, d",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(actual, schema("i", "integer"), schema("l", "long"), schema("d", "double"));
+    verifyDataRows(actual, closeTo(1, 0, 0.9));
+  }
+
+  @Test
+  public void testModByZeroShouldReturnNull() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval z = mod(5, 0) | fields z", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(actual, schema("z", "integer"));
+    verifyDataRows(actual, rows((Object) null));
+  }
+
+  @Test
+  public void testRadiansAndDegrees() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval r = radians(degrees(0.5)) | fields r",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Hello", 30));
-  }
-
-  @Test
-  public void testLog10() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where log10(age + 30) = 2 | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Jake", 70));
-  }
-
-  @Test
-  public void testLn() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where ln(age) > 4 | fields name, age", TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-
-    verifyDataRows(actual, rows("Jake", 70));
-  }
-
-  @Test
-  public void testMod() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where mod(age, 10) = 0 | fields name, age", TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-
-    verifyDataRows(actual, rows("Jake", 70), rows("Hello", 30), rows("Jane", 20));
-  }
-
-  @Test
-  public void testRadians() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval radians = radians(30) | head 1 | fields radians",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("radians", "double"));
-    verifyDataRows(actual, closeTo(0.5235987755982988));
+    verifySchema(actual, schema("r", "double"));
+    verifyDataRows(actual, closeTo(0.5));
   }
 
   @Test
@@ -294,38 +290,28 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testRound() {
+  public void testPowInvalidArgShouldReturnNull() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where age = round(29.7) | fields name, age",
+                "source=%s | head 1 | eval res = pow(-3, 0.5)  | fields res",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Hello", 30));
+    verifySchema(actual, schema("res", "double"));
+    verifyDataRows(actual, rows((Object) null));
   }
 
   @Test
-  public void testSign() {
+  public void testSignAndRound() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where age = sign(-3) + 31 | fields name, age",
+                "source=%s | eval thirty_one = round(30.9) |  where age = sign(-3) + thirty_one | "
+                    + "fields name, age, thirty_one",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Hello", 30));
-  }
-
-  @Test
-  public void testSin() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where age = sin(0) + 20 | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
-
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Jane", 20));
+    verifySchema(
+        actual, schema("name", "string"), schema("age", "integer"), schema("thirty_one", "double"));
+    verifyDataRows(actual, rows("Hello", 30, 31));
   }
 }

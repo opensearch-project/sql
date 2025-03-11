@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedAggFunction;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -58,7 +58,7 @@ public interface AggregateUtils {
         return TransferUserDefinedAggFunction(
             TakeAggFunction.class,
             "TAKE",
-            UserDefineFunctionUtils.getReturnTypeInferenceForArray(),
+            UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
             List.of(field),
             argList,
             context.relBuilder);

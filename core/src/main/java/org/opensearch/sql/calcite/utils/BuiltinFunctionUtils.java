@@ -6,7 +6,8 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
-import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getLeastRestrictiveReturnTypeAmongArgsAt;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -20,7 +21,11 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.mathUDF.*;
+import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
+import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 
 public interface BuiltinFunctionUtils {
 
@@ -72,7 +77,9 @@ public interface BuiltinFunctionUtils {
       case "CEILING":
         return SqlStdOperatorTable.CEIL;
       case "CONV":
-        return TransferUserDefinedFunction(ConvFunction.class, "CONVERT", ReturnTypes.BIGINT);
+        // The CONV function in PPL converts between numerical bases,
+        // while SqlStdOperatorTable.CONVERT converts between charsets.
+        return TransferUserDefinedFunction(ConvFunction.class, "CONVERT", ReturnTypes.VARCHAR);
       case "COS":
         return SqlStdOperatorTable.COS;
       case "COT":
@@ -96,7 +103,13 @@ public interface BuiltinFunctionUtils {
       case "LOG10":
         return SqlStdOperatorTable.LOG10;
       case "MOD":
-        return TransferUserDefinedFunction(ModFunction.class, "MOD", ReturnTypes.DOUBLE);
+        // The MOD function in PPL supports floating-point parameters, e.g., MOD(5.5, 2) = 1.5,
+        // MOD(3.1, 2.1) = 1.1,
+        // whereas SqlStdOperatorTable.MOD supports only integer / long parameters.
+        return TransferUserDefinedFunction(
+            ModFunction.class,
+            "MOD",
+            getLeastRestrictiveReturnTypeAmongArgsAt(List.of(0, 1), true));
       case "PI":
         return SqlStdOperatorTable.PI;
       case "POW", "POWER":
@@ -112,7 +125,10 @@ public interface BuiltinFunctionUtils {
       case "SIN":
         return SqlStdOperatorTable.SIN;
       case "SQRT":
-        return TransferUserDefinedFunction(SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE);
+        // SqlStdOperatorTable.SQRT is declared but not implemented, therefore we use a custom
+        // implementation.
+        return TransferUserDefinedFunction(
+            SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE_FORCE_NULLABLE);
       case "CBRT":
         return SqlStdOperatorTable.CBRT;
         // Built-in Date Functions
@@ -126,7 +142,6 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.DATE_ADD_SPARK;
       case "DATE_ADD":
         return SqlLibraryOperators.DATEADD;
-        // TODO Add more, ref RexImpTable
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);
     }

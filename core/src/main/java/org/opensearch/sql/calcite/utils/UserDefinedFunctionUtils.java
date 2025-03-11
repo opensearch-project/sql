@@ -29,7 +29,7 @@ import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
-public class UserDefineFunctionUtils {
+public class UserDefinedFunctionUtils {
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,
       String functionName,
@@ -77,6 +77,55 @@ public class UserDefineFunctionUtils {
       }
       RelDataType firstArgType = argTypes.getFirst();
       return createArrayType(typeFactory, firstArgType, true);
+    };
+  }
+
+  /**
+   * Infer return argument type as the type of the argument at pos
+   *
+   * @param position The argument position
+   * @param nullable Whether the returned value is nullable
+   * @return SqlReturnTypeInference
+   */
+  public static SqlReturnTypeInference getReturnTypeBasedOnArgAt(int position, boolean nullable) {
+    return opBinding -> {
+      if (position < 0 || position >= opBinding.getOperandCount()) {
+        throw new IllegalArgumentException("Invalid argument position: " + position);
+      }
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      RelDataType type = opBinding.getOperandType(position);
+      return typeFactory.createTypeWithNullability(type, nullable);
+    };
+  }
+
+  /**
+   * Infer return argument type as the widest return type among arguments as specified positions.
+   * E.g. (Integer, Long) -> Long; (Double, Float, SHORT) -> Double
+   *
+   * @param positions positions where the return type should be inferred from
+   * @param nullable whether the returned value is nullable
+   * @return The type inference
+   */
+  public static SqlReturnTypeInference getLeastRestrictiveReturnTypeAmongArgsAt(
+      List<Integer> positions, boolean nullable) {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      List<RelDataType> types = new ArrayList<>();
+
+      for (int position : positions) {
+        if (position < 0 || position >= opBinding.getOperandCount()) {
+          throw new IllegalArgumentException("Invalid argument position: " + position);
+        }
+        types.add(opBinding.getOperandType(position));
+      }
+
+      RelDataType widerType = typeFactory.leastRestrictive(types);
+      if (widerType == null) {
+        throw new IllegalArgumentException(
+            "Cannot determine a common type for the given positions.");
+      }
+
+      return typeFactory.createTypeWithNullability(widerType, nullable);
     };
   }
 }

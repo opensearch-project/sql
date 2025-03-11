@@ -17,505 +17,290 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testAbsWithOverriding() {
-    String ppl = "source=EMP | eval SAL = abs(-30) | head 10 | fields SAL";
+    String ppl = "source=EMP | eval SAL = abs(-30) | fields SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(SAL0=[$7])\n"
-            + "  LogicalSort(fetch=[10])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " COMM=[$6], DEPTNO=[$7], SAL0=[ABS(-30)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(SAL0=[ABS(-30)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult =
-        "SAL0=30\n"
-            + "SAL0=30\n"
-            + "SAL0=30\n"
-            + "SAL0=30\n"
-            + "SAL0=30\n"
-            + "SAL0=30\n"
-            + "SAL0=30\n"
-            + "SAL0=30\n"
-            + "SAL0=30\n"
-            + "SAL0=30\n";
-    verifyResult(root, expectedResult);
-
-    String expectedSparkSql = "" + "SELECT ABS(-30) `SAL0`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 10";
+    String expectedSparkSql = "SELECT ABS(-30) `SAL0`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testAcosWithOverriding() {
-    String ppl = "source=EMP | eval ACOS = acos(0) | head 2 | fields ACOS";
-    RelNode root = getRelNode(ppl);
+  public void testAcos() {
+    RelNode root = getRelNode("source=EMP | eval ACOS = acos(0) | fields ACOS");
     String expectedLogical =
-        "LogicalProject(ACOS=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], ACOS=[ACOS(0)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(ACOS=[ACOS(0)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "ACOS=1.5707963267948966\n" + "ACOS=1.5707963267948966\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "SELECT ACOS(0) `ACOS`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT ACOS(0) `ACOS`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testAsinWithOverriding() {
-    String ppl = "source=EMP | eval ASIN = asin(0) | head 2 | fields ASIN";
-    RelNode root = getRelNode(ppl);
+  public void testAsin() {
+    RelNode root = getRelNode("source=EMP | eval ASIN = asin(0) |  fields ASIN");
     String expectedLogical =
-        "LogicalProject(ASIN=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], ASIN=[ASIN(0)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(ASIN=[ASIN(0)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "ASIN=0.0\n" + "ASIN=0.0\n";
-    verifyResult(root, expectedResult);
-
-    String expectedSparkSql = "" + "SELECT ASIN(0) `ASIN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT ASIN(0) `ASIN`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testAtanWithOverriding() {
-    String ppl = "source=EMP | eval ATAN = atan(2) | head 2 | fields ATAN";
-    RelNode root = getRelNode(ppl);
+  public void testAtan() {
+    RelNode root = getRelNode("source=EMP | eval ATAN = atan(2) | fields ATAN");
     String expectedLogical =
-        "LogicalProject(ATAN=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], ATAN=[ATAN2(2, 1:BIGINT)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(ATAN=[ATAN2(2, 1:BIGINT)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "ATAN=1.1071487177940904\n" + "ATAN=1.1071487177940904\n";
-    verifyResult(root, expectedResult);
-
-    String expectedSparkSql =
-        "" + "SELECT ATAN2(2, 1) `ATAN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT ATAN2(2, 1) `ATAN`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testAtan2WithOverriding() {
-    String ppl = "source=EMP | eval ATAN2 = atan(2, 3) | head 2 | fields ATAN";
-    RelNode root = getRelNode(ppl);
+  public void testAtan2() {
+    RelNode root = getRelNode("source=EMP | eval ATAN2 = atan(2, 3) | fields ATAN2");
     String expectedLogical =
-        "LogicalProject(ATAN2=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], ATAN2=[ATAN2(2, 3)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(ATAN2=[ATAN2(2, 3)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "ATAN2=0.5880026035475675\n" + "ATAN2=0.5880026035475675\n";
-    verifyResult(root, expectedResult);
-
-    String expectedSparkSql =
-        "" + "SELECT ATAN2(2, 3) `ATAN2`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT ATAN2(2, 3) `ATAN2`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testCbrtWithOverriding() {
-    String ppl = "source=EMP | eval CBRT = cbrt(27) | head 2 | fields CBRT";
-    RelNode root = getRelNode(ppl);
+  public void testCbrt() {
+    RelNode root = getRelNode("source=EMP | eval CBRT = cbrt(27) | fields CBRT");
     String expectedLogical =
-        "LogicalProject(CBRT=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], CBRT=[CBRT(27)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(CBRT=[CBRT(27)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "CBRT=3.0\n" + "CBRT=3.0\n";
-    verifyResult(root, expectedResult);
-
-    String expectedSparkSql = "" + "SELECT CBRT(27) `CBRT`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT CBRT(27) `CBRT`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testCeilingWithOverriding() {
-    String ppl = "source=EMP | eval CEILING = ceiling(4.5) | head 2 | fields CEILING";
-    RelNode root = getRelNode(ppl);
+  public void testCeiling() {
+    RelNode root = getRelNode("source=EMP | eval CEILING = ceiling(4.5) | fields CEILING");
     String expectedLogical =
-        "LogicalProject(CEILING=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], CEILING=[CEIL(4.5E0:DOUBLE)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(CEILING=[CEIL(4.5E0:DOUBLE)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "CEILING=5.0\n" + "CEILING=5.0\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "" + "SELECT CEIL(4.5E0) `CEILING`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT CEIL(4.5E0) `CEILING`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testConvWithOverriding() {
-    String ppl = "source=EMP | eval CONV = conv(10, 10, 2) | head 2 | fields CONV";
-    RelNode root = getRelNode(ppl);
+  public void testConv() {
+    RelNode root = getRelNode("source=EMP | eval CONV = conv(10, 10, 2) | fields CONV");
     String expectedLogical =
-        "LogicalProject(CONV=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], CONV=[CONVERT(10, 10, 2)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(CONV=[CONVERT(10, 10, 2)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "CONV=1010\n" + "CONV=1010\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "" + "SELECT CONVERT(10, 10, 2) `CONV`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT CONVERT(10, 10, 2) `CONV`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testCosWithOverriding() {
-    String ppl = "source=EMP | eval COS = cos(0) | head 2 | fields COS";
-    RelNode root = getRelNode(ppl);
+  public void testCos() {
+    RelNode root = getRelNode("source=EMP | eval COS = cos(0) | fields COS");
     String expectedLogical =
-        "LogicalProject(COS=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], COS=[COS(0)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(COS=[COS(0)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "COS=1.0\n" + "COS=1.0\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "SELECT COS(0) `COS`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT COS(0) `COS`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testCotWithOverriding() {
-    String ppl = "source=EMP | eval COT = cot(1) | head 2 | fields COT";
-    RelNode root = getRelNode(ppl);
+  public void testCot() {
+    RelNode root = getRelNode("source=EMP | eval COT = cot(1) | fields COT");
     String expectedLogical =
-        "LogicalProject(COT=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], COT=[COT(1)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(COT=[COT(1)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "COT=0.6420926159343306\n" + "COT=0.6420926159343306\n";
-    verifyResult(root, expectedResult);
-  }
-
-  @Test
-  public void testCrc32WithOverrding() {
-    String ppl = "source=EMP | eval CRC32TEST = crc32('test') | head 2 | fields CRC32TEST";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalProject(CRC32TEST=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], CRC32TEST=[CRC32('test')])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-    String expectedResult = "CRC32TEST=3632233996\n" + "CRC32TEST=3632233996\n";
-    verifyResult(root, expectedResult);
-
-    String expectedSparkSql =
-        "SELECT `CRC32`('test') `CRC32TEST`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT COT(1) `COT`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testDegreesWithOverriding() {
-    String ppl = "source=EMP | eval DEGREES = degrees(1.57) | head 2 | fields DEGREES";
-    RelNode root = getRelNode(ppl);
+  public void testCrc32() {
+    RelNode root = getRelNode("source=EMP | eval CRC32TEST = crc32('test') | fields CRC32TEST");
     String expectedLogical =
-        "LogicalProject(DEGREES=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], DEGREES=[DEGREES(1.57E0:DOUBLE)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(CRC32TEST=[CRC32('test')])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "DEGREES=89.95437383553924\n" + "DEGREES=89.95437383553924\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT DEGREES(1.57E0) `DEGREES`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT `CRC32`('test') `CRC32TEST`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testEulerWithOverriding() {
-    String ppl = "source=EMP | eval EULER = e() | head 2 | fields EULER";
-    RelNode root = getRelNode(ppl);
+  public void testDegrees() {
+    RelNode root = getRelNode("source=EMP | eval DEGREES = degrees(1.57) | fields DEGREES");
     String expectedLogical =
-        "LogicalProject(EULER=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], EULER=[E()])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(DEGREES=[DEGREES(1.57E0:DOUBLE)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "EULER=2.718281828459045\n" + "EULER=2.718281828459045\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "SELECT `E`() `EULER`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT DEGREES(1.57E0) `DEGREES`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testExpWithOverriding() {
-    String ppl = "source=EMP | eval EXP = exp(2) | head 1 | fields EXP";
-    RelNode root = getRelNode(ppl);
+  public void testEuler() {
+    RelNode root = getRelNode("source=EMP | eval EULER = e()| fields EULER");
     String expectedLogical =
-        "LogicalProject(EXP=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], EXP=[EXP(2)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(EULER=[E()])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "EXP=7.38905609893065\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "SELECT EXP(2) `EXP`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT `E`() `EULER`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testFloorWithOverriding() {
-    String ppl =
-        "source=EMP | eval FLOOR1 = floor(50.00005), FLOOR2 = floor(-50.0005) | head 1 | fields"
-            + " FLOOR1, FLOOR2";
-    RelNode root = getRelNode(ppl);
+  public void testExp() {
+    RelNode root = getRelNode("source=EMP | eval EXP = exp(2) | fields EXP");
     String expectedLogical =
-        "LogicalProject(FLOOR1=[$8], FLOOR2=[$9])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], FLOOR1=[FLOOR(50.00005E0:DOUBLE)],"
-            + " FLOOR2=[FLOOR(-50.0005E0:DOUBLE)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(EXP=[EXP(2)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "FLOOR1=50.0; FLOOR2=-51.0\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT FLOOR(5.000005E1) `FLOOR1`, FLOOR(-5.00005E1) `FLOOR2`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "LIMIT 1";
+    String expectedSparkSql = "SELECT EXP(2) `EXP`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testLnWithOverriding() {
-    String ppl = "source=EMP | eval LN = ln(2) | head 1 | fields LN";
-    RelNode root = getRelNode(ppl);
+  public void testFloor() {
+    RelNode root = getRelNode("source=EMP | eval FLOOR1 = floor(50.00005) | fields FLOOR1");
     String expectedLogical =
-        "LogicalProject(LN=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], LN=[LN(2)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(FLOOR1=[FLOOR(50.00005E0:DOUBLE)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "LN=0.6931471805599453\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "SELECT LN(2) `LN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT FLOOR(5.000005E1) `FLOOR1`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testLogWithOverriding() {
-    String ppl = "source=EMP | eval LOG = log(2) | head 1 | fields LOG";
-    RelNode root = getRelNode(ppl);
+  public void testLn() {
+    RelNode root = getRelNode("source=EMP | eval LN = ln(2) | fields LN");
     String expectedLogical =
-        "LogicalProject(LOG=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], LOG=[LOG(2, 2.718281828459045:DOUBLE)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(LN=[LN(2)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "LOG=0.6931471805599453\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "SELECT LOG(2, 2.718281828459045) `LOG`\nFROM `scott`.`EMP`\nLIMIT 1";
+    String expectedSparkSql = "SELECT LN(2) `LN`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testLog2WithOverriding() {
-    String ppl = "source=EMP | eval LOG2 = log2(2) | head 1 | fields LOG2";
-    RelNode root = getRelNode(ppl);
+  public void testLog() {
+    RelNode root = getRelNode("source=EMP | eval LOG = log(2) | fields LOG");
     String expectedLogical =
-        "LogicalProject(LOG2=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], LOG2=[LOG2(2)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(LOG=[LOG(2, 2.718281828459045:DOUBLE)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "LOG2=1.0\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "SELECT LOG2(2) `LOG2`\nFROM `scott`.`EMP`\nLIMIT 1";
+    String expectedSparkSql = "SELECT LOG(2, 2.718281828459045) `LOG`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testLog10WithOverriding() {
-    String ppl = "source=EMP | eval LOG10 = log10(100) | head 1 | fields LOG10";
-    RelNode root = getRelNode(ppl);
+  public void testLog2() {
+    RelNode root = getRelNode("source=EMP | eval LOG2 = log2(2) | fields LOG2");
     String expectedLogical =
-        "LogicalProject(LOG10=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], LOG10=[LOG10(100)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(LOG2=[LOG2(2)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "LOG10=2.0\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "SELECT LOG10(100) `LOG10`\nFROM `scott`.`EMP`\nLIMIT 1";
+    String expectedSparkSql = "SELECT LOG2(2) `LOG2`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testModWithOverriding() {
-    String ppl = "source=EMP | eval MOD = mod(10, 3) | head 2 | fields MOD";
-    RelNode root = getRelNode(ppl);
+  public void testLog10() {
+    RelNode root = getRelNode("source=EMP | eval LOG10 = log10(100) | fields LOG10");
     String expectedLogical =
-        "LogicalProject(MOD=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], MOD=[MOD(10, 3)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(LOG10=[LOG10(100)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "MOD=1.0\n" + "MOD=1.0\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "" + "SELECT MOD(10, 3) `MOD`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+    String expectedSparkSql = "SELECT LOG10(100) `LOG10`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testPiWithOverriding() {
-    String ppl = "source=EMP | eval PI = pi() | head 1 | fields PI";
-    RelNode root = getRelNode(ppl);
+  public void testMod() {
+    RelNode root = getRelNode("source=EMP | eval MOD = mod(10, 3) | fields MOD");
     String expectedLogical =
-        "LogicalProject(PI=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], PI=[PI])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(MOD=[MOD(10, 3)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "PI=3.141592653589793\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "" + "SELECT PI `PI`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT MOD(10, 3) `MOD`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testPowAndPowerWithOverriding() {
-    String ppl =
-        "source=EMP | eval POW = POW(3, 2), POWER = POWER(2, 2) | head 1 | fields POW, POWER";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        "LogicalProject(POW=[$8], POWER=[$9])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], POW=[POWER(3, 2)], POWER=[POWER(2, 2)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+  public void testPi() {
+    RelNode root = getRelNode("source=EMP | eval PI = pi() | fields PI");
+    String expectedLogical = "LogicalProject(PI=[PI])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "POW=9.0; POWER=4.0\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT POWER(3, 2) `POW`, POWER(2, 2) `POWER`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT PI `PI`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testRadiansWithOverriding() {
-    String ppl = "source=EMP | eval RADIANS = radians(180) | head 1 | fields RADIANS";
+  public void testPowAndPower() {
+    String ppl = "source=EMP | eval POW = POW(3, 2), POWER = POWER(2, 2) | fields POW, POWER";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(RADIANS=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], RADIANS=[RADIANS(180)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(POW=[POWER(3, 2)], POWER=[POWER(2, 2)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "RADIANS=3.141592653589793\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql =
-        "SELECT RADIANS(180) `RADIANS`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT POWER(3, 2) `POW`, POWER(2, 2) `POWER`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testRandWithOverriding() {
-    String ppl = "source=EMP | eval RAND = rand(1) | head 1 | fields RAND";
+  public void testRadians() {
+    String ppl = "source=EMP | eval RADIANS = radians(180)  | fields RADIANS";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(RAND=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], RAND=[RAND(1)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(RADIANS=[RADIANS(180)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT RAND(1) `RAND`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT RADIANS(180) `RADIANS`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testRoundWithOverriding() {
-    String ppl = "source=EMP | eval ROUND = round(1.5) | head 1 | fields ROUND";
+  public void testRand() {
+    String ppl = "source=EMP | eval RAND = rand(1) | fields RAND";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(ROUND=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], ROUND=[ROUND(1.5E0:DOUBLE)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(RAND=[RAND(1)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "ROUND=2.0\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "SELECT ROUND(1.5E0) `ROUND`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT RAND(1) `RAND`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testSignWithOverriding() {
-    String ppl = "source=EMP | eval SIGN = sign(-1) | head 1 | fields SIGN";
+  public void testRound() {
+    String ppl = "source=EMP | eval ROUND = round(1.5) | fields ROUND";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(SIGN=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], SIGN=[SIGN(-1)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(ROUND=[ROUND(1.5E0:DOUBLE)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "SIGN=-1\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "SELECT SIGN(-1) `SIGN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT ROUND(1.5E0) `ROUND`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testSinWithOverriding() {
-    String ppl = "source=EMP | eval SIN = sin(0) | head 1 | fields SIN";
+  public void testSign() {
+    String ppl = "source=EMP | eval SIGN = sign(-1) | fields SIGN";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(SIN=[$8])\n"
-            + "  LogicalSort(fetch=[1])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], SIN=[SIN(0)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(SIGN=[SIGN(-1)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "SIN=0.0\n";
-    verifyResult(root, expectedResult);
-    String expectedSparkSql = "SELECT SIN(0) `SIN`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
+    String expectedSparkSql = "SELECT SIGN(-1) `SIGN`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
   @Test
-  public void testSqrtWithOverriding() {
-    String ppl = "source=EMP | eval SQRT = sqrt(4) | head 2 | fields SQRT";
-    RelNode root = getRelNode(ppl);
+  public void testSin() {
+    RelNode root = getRelNode("source=EMP | eval SIN = sin(0) | fields SIN");
     String expectedLogical =
-        "LogicalProject(SQRT=[$8])\n"
-            + "  LogicalSort(fetch=[2])\n"
-            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], SQRT=[SQRT(4)])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(SIN=[SIN(0)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "SQRT=2.0\n" + "SQRT=2.0\n";
-    verifyResult(root, expectedResult);
+    String expectedSparkSql = "SELECT SIN(0) `SIN`\nFROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 
-    String expectedSparkSql = "" + "SELECT SQRT(4) `SQRT`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 2";
+  @Test
+  public void testSqrt() {
+    RelNode root = getRelNode("source=EMP | eval SQRT = sqrt(4) | fields SQRT");
+    String expectedLogical =
+        "LogicalProject(SQRT=[SQRT(4)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedSparkSql = "SELECT SQRT(4) `SQRT`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
