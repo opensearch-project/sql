@@ -41,7 +41,6 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Map;
-import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -75,12 +74,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitRelation(Relation node, CalcitePlanContext context) {
-    for (QualifiedName qualifiedName : node.getQualifiedNames()) {
-      context.relBuilder.scan(qualifiedName.getParts());
-    }
-    if (node.getQualifiedNames().size() > 1) {
-      context.relBuilder.union(true, node.getQualifiedNames().size());
-    }
+    context.relBuilder.scan(node.getTableQualifiedName().getParts());
     return context.relBuilder.peek();
   }
 
