@@ -216,19 +216,23 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         "source=people | eval `'2008-12-12' + 0` = ADDTIME(DATE('2008-12-12'), DATE('2008-11-15'))"
             + " | fields `'2008-12-12' + 0`",
         List.of("2008-12-12 00:00:00"));
-    //    testSimplePPL("source=people | eval `'23:59:59' + 0` = ADDTIME(TIME('23:59:59'),
-    // DATE('2004-01-01')) | fields `'23:59:59' + 0`",
-    //            List.of("23:59:59"));
-    //    testSimplePPL("source=people | eval `'2004-01-01' + '23:59:59'` =
-    // ADDTIME(DATE('2004-01-01'), TIME('23:59:59')) | fields `'2004-01-01' + '23:59:59'`",
-    //            List.of("2004-01-01 23:59:59"));
-    //    testSimplePPL("source=people | eval `'10:20:30' + '00:05:42'` = ADDTIME(TIME('10:20:30'),
-    // TIME('00:05:42')) | fields `'10:20:30' + '00:05:42'`",
-    //            List.of("10:26:12"));
-    //    testSimplePPL("source=people | eval `'2007-02-28 10:20:30' + '20:40:50'` =
-    // ADDTIME(TIMESTAMP('2007-02-28 10:20:30'), TIMESTAMP('2002-03-04 20:40:50')) | fields
-    // `'2007-02-28 10:20:30' + '20:40:50'`",
-    //            List.of("2007-03-01 07:01:20"));
+    testSimplePPL(
+        "source=people | eval `'23:59:59' + 0` = ADDTIME(TIME('23:59:59'), DATE('2004-01-01')) |"
+            + " fields `'23:59:59' + 0`",
+        List.of("23:59:59"));
+    testSimplePPL(
+        "source=people | eval `'2004-01-01' + '23:59:59'` = ADDTIME(DATE('2004-01-01'),"
+            + " TIME('23:59:59')) | fields `'2004-01-01' + '23:59:59'`",
+        List.of("2004-01-01 23:59:59"));
+    testSimplePPL(
+        "source=people | eval `'10:20:30' + '00:05:42'` = ADDTIME(TIME('10:20:30'),"
+            + " TIME('00:05:42')) | fields `'10:20:30' + '00:05:42'`",
+        List.of("10:26:12"));
+    testSimplePPL(
+        "source=people | eval `'2007-02-28 10:20:30' + '20:40:50'` = ADDTIME(TIMESTAMP('2007-02-28"
+            + " 10:20:30'), TIMESTAMP('2002-03-04 20:40:50')) | fields `'2007-02-28 10:20:30' +"
+            + " '20:40:50'`",
+        List.of("2007-03-01 07:01:20"));
   }
 
   @Test

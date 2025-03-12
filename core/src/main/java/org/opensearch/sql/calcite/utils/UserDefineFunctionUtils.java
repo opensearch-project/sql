@@ -100,7 +100,7 @@ public class UserDefineFunctionUtils {
     };
   }
 
-  public static SqlReturnTypeInference getReturnTypeInferenceForDatetime() {
+  public static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(0);
       SqlTypeName typeName = operandType0.getSqlTypeName();

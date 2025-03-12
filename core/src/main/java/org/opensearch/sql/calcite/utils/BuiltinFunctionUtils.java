@@ -193,7 +193,9 @@ public interface BuiltinFunctionUtils {
             DateAddSubFunction.class, "DATE_SUB", ReturnTypes.TIMESTAMP);
       case "ADDTIME":
         return TransferUserDefinedFunction(
-            TimeAddSubFunction.class, "ADDTIME", ReturnTypes.TIMESTAMP);
+            TimeAddSubFunction.class,
+            "ADDTIME",
+            UserDefineFunctionUtils.getReturnTypeForTimeAddSub());
         // TODO Add more, ref RexImpTable
       case "DAYNAME":
         return TransferUserDefinedFunction(periodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
