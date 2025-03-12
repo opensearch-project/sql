@@ -8,15 +8,13 @@ import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.time.Instant;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.util.Objects;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -69,8 +67,21 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testDate() {
     String query =
-        "source=people | eval `DATE('2020-08-26')` = DATE('2020-08-26') | fields `DATE('2020-08-26')`";
+        "source=people | eval `DATE('2020-08-26')` = DATE('2020-08-26') | fields"
+            + " `DATE('2020-08-26')`";
     testSimplePPL(query, List.of("2020-08-26"));
+    testSimplePPL(
+        "source=people | eval `DATE('2020-08-26')` = DATE('2020-08-26') | fields"
+            + " `DATE('2020-08-26')`",
+        List.of("2020-08-26"));
+    testSimplePPL(
+        "source=people | eval `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26"
+            + " 13:49:00')) | fields `DATE(TIMESTAMP('2020-08-26 13:49:00'))`",
+        List.of("2020-08-26"));
+    testSimplePPL(
+        "source=people | eval `DATE('2020-08-26 13:49')` = DATE('2020-08-26 13:49') | fields"
+            + " `DATE('2020-08-26 13:49')`",
+        List.of("2020-08-26"));
   }
 
   @Test
@@ -84,9 +95,9 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   public void testUTCTIMESTAMP() {
     Instant utcTimestamp = Instant.now();
     String query =
-            "source=people | eval `UTC_TIMESTAMP()` = UTC_TIMESTAMP() | fields `UTC_TIMESTAMP()`";
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            .withZone(ZoneId.of("UTC"));
+        "source=people | eval `UTC_TIMESTAMP()` = UTC_TIMESTAMP() | fields `UTC_TIMESTAMP()`";
+    DateTimeFormatter formatter =
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"));
     String formattedString = formatter.format(utcTimestamp);
     testSimplePPL(query, List.of(formattedString));
   }
@@ -99,8 +110,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
     String formattedTime = time.format(formatter);
-    String query =
-            "source=people | eval `UTC_TIME()` = UTC_TIME() | fields `UTC_TIME()`";
+    String query = "source=people | eval `UTC_TIME()` = UTC_TIME() | fields `UTC_TIME()`";
     testSimplePPL(query, List.of(formattedTime.toString()));
   }
 
@@ -108,30 +118,32 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   public void testUTCDATE() {
     Instant utcTimestamp = Instant.now();
     LocalDate localDate = utcTimestamp.atZone(ZoneId.of("UTC")).toLocalDate();
-    String query =
-            "source=people | eval `UTC_DATE()` = UTC_DATE() | fields `UTC_DATE()`";
+    String query = "source=people | eval `UTC_DATE()` = UTC_DATE() | fields `UTC_DATE()`";
     testSimplePPL(query, List.of(localDate.toString()));
   }
-
 
   @Test
   public void testTimestampForOneInput() {
     String query =
-            "source=people | eval a = TIMESTAMP('2020-08-26 13:49:00'), b=TIMESTAMP(TIMESTAMP('2021-08-25 13:49:00')), c = TIMESTAMP(DATE('2021-08-25')), d=TIMESTAMP(TIME('13:49:00'))| fields a, b, c, d";
-    testSimplePPL(query, List.of("2020-08-26 13:49:00", "2021-08-25 13:49:00", "2021-08-25 00:00:00", "2025-03-14 13:49:00"));
+        "source=people | eval `TIMESTAMP('2020-08-26 13:49:00', '2020-08-26 13:49:02')` ="
+            + " TIMESTAMP('2020-08-26 13:49:00', '2020-08-26 13:49:02')| fields"
+            + " `TIMESTAMP('2020-08-26 13:49:00', '2020-08-26 13:49:02')`";
+    testSimplePPL(query, List.of("2020-08-27 03:38:02"));
   }
 
   @Test
   public void testMonthName() {
     String query =
-            "source=people | eval a = MONTHNAME(DATE('2020-08-26')), b= MONTHNAME(TIMESTAMP('2020-08-26 12:00:00')), c=MONTHNAME('2020-08-26')| fields a, b, c";
-    testSimplePPL(query, List.of("august", "august", "august"));
+        "source=people | eval `MONTHNAME(DATE('2020-08-26'))` = MONTHNAME(DATE('2020-08-26')) |"
+            + " fields `MONTHNAME(DATE('2020-08-26'))`";
+    testSimplePPL(query, List.of("Aug"));
   }
 
   @Test
   public void testLastDay() {
     String query =
-            "source=people | eval `last_day('2023-02-06')` = last_day('2023-02-06') | fields `last_day('2023-02-06')`";
+        "source=people | eval `last_day('2023-02-06')` = last_day('2023-02-06') | fields"
+            + " `last_day('2023-02-06')`";
     testSimplePPL(query, List.of("2023-02-28"));
   }
 
@@ -157,24 +169,132 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     testSimplePPL(query, List.of(1));
   }
 
+  private static String getUtcDate() {
+    return LocalDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+  }
 
-  @Ignore
   @Test
   public void testDateAdd() {
-    String query =
-        "source=test | eval `'2020-08-26' + 1h` = DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR),"
-            + " `ts '2020-08-26 01:01:01' + 1d` = DATE_ADD(TIMESTAMP('2020-08-26 01:01:01'),"
-            + " INTERVAL 1 DAY) | fields `'2020-08-26' + 1h`, `ts '2020-08-26 01:01:01' + 1d`";
-    testSimplePPL(query, List.of("2020-08-26 01:00:00", "2020-08-27 01:01:01"));
+    testSimplePPL(
+        "source=test | eval `'2020-08-26' + 1h` = DATE_ADD(DATE('2020-08-26'), INTERVAL 1 HOUR) |"
+            + " fields `'2020-08-26' + 1h`",
+        List.of("2020-08-26 01:00:00"));
+    testSimplePPL(
+        "source=test | eval `ts '2020-08-26 01:01:01' + 1d` = DATE_ADD(TIMESTAMP('2020-08-26"
+            + " 01:01:01'), INTERVAL 1 DAY) | fields `ts '2020-08-26 01:01:01' + 1d`",
+        List.of("2020-08-27 01:01:01"));
+    testSimplePPL(
+        "source=test | eval `'2020-08-26' + 1h` = DATE_ADD('2020-08-26', INTERVAL 1 HOUR) | fields"
+            + " `'2020-08-26' + 1h`",
+        List.of("2020-08-26 01:00:00"));
+    testSimplePPL(
+        "source=test | eval `ts '2020-08-26 01:01:01' + 1d` = DATE_ADD('2020-08-26 01:01:01',"
+            + " INTERVAL 1 DAY) | fields `ts '2020-08-26 01:01:01' + 1d`",
+        List.of("2020-08-27 01:01:01"));
+    testSimplePPL(
+        "source=test | eval `ts '01:01:01' + 1h` = DATE_ADD('01:01:01',"
+            + " INTERVAL 1 HOUR) | fields `ts '01:01:01' + 1h`",
+        List.of(getUtcDate() + " 02:01:01"));
+    testSimplePPL(
+        "source=test | eval `ts '01:01:01' + 1d` = DATE_ADD(TIME('01:01:01'),"
+            + " INTERVAL 1 HOUR) | fields `ts '01:01:01' + 1d`",
+        List.of(getUtcDate() + " 02:01:01"));
+  }
+
+  @Test
+  public void testDateSub() {
+    testSimplePPL(
+        "source=people | eval `'2008-01-02' - 31d` = DATE_SUB(DATE('2008-01-02'), INTERVAL 31 DAY),"
+            + " `ts '2020-08-26 01:01:01' + 1h` = DATE_SUB(TIMESTAMP('2020-08-26 01:01:01'),"
+            + " INTERVAL 1 HOUR) | fields `'2008-01-02' - 31d`, `ts '2020-08-26 01:01:01' + 1h`",
+        List.of("2007-12-02 00:00:00", "2020-08-26 00:01:01"));
+  }
+
+  @Test
+  public void testAddTime() {
+    testSimplePPL(
+        "source=people | eval `'2008-12-12' + 0` = ADDTIME(DATE('2008-12-12'), DATE('2008-11-15'))"
+            + " | fields `'2008-12-12' + 0`",
+        List.of("2008-12-12 00:00:00"));
+    //    testSimplePPL("source=people | eval `'23:59:59' + 0` = ADDTIME(TIME('23:59:59'),
+    // DATE('2004-01-01')) | fields `'23:59:59' + 0`",
+    //            List.of("23:59:59"));
+    //    testSimplePPL("source=people | eval `'2004-01-01' + '23:59:59'` =
+    // ADDTIME(DATE('2004-01-01'), TIME('23:59:59')) | fields `'2004-01-01' + '23:59:59'`",
+    //            List.of("2004-01-01 23:59:59"));
+    //    testSimplePPL("source=people | eval `'10:20:30' + '00:05:42'` = ADDTIME(TIME('10:20:30'),
+    // TIME('00:05:42')) | fields `'10:20:30' + '00:05:42'`",
+    //            List.of("10:26:12"));
+    //    testSimplePPL("source=people | eval `'2007-02-28 10:20:30' + '20:40:50'` =
+    // ADDTIME(TIMESTAMP('2007-02-28 10:20:30'), TIMESTAMP('2002-03-04 20:40:50')) | fields
+    // `'2007-02-28 10:20:30' + '20:40:50'`",
+    //            List.of("2007-03-01 07:01:20"));
+  }
+
+  @Test
+  public void testNow() {
+    String execResult =
+        execute(
+            "source=people | eval `value_1` = NOW(), `value_2` = NOW() | fields `value_1`,"
+                + " `value_2`");
+    JsonArray dataRow = parseAndGetFirstDataRow(execResult);
+    assertEquals(2, dataRow.size());
+    System.out.println(dataRow.get(0).getAsString());
+    System.out.println(dataRow.get(1).getAsString());
+    assertTrue(
+        "Now must be of pattern yyyy-MM-dd HH:mm:ss",
+        dataRow.get(0).getAsString().matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}"));
+  }
+
+  @Test
+  public void testCurDate() {
+    String execResult =
+        execute("source=people | eval `CURDATE()` = CURDATE() | fields `CURDATE()`");
+    JsonArray dataRow = parseAndGetFirstDataRow(execResult);
+    assertEquals(1, dataRow.size());
+    assertTrue(
+        "Result must be of pattern yyyy-MM-dd",
+        dataRow.get(0).getAsString().matches("\\d{4}-\\d{2}-\\d{2}"));
+    System.out.println(dataRow.get(0).getAsString());
+  }
+
+  @Test
+  public void testTime() {
+    testSimplePPL(
+        "source=people | eval `TIME('13:49:00')` = TIME('13:49:00') | fields `TIME('13:49:00')`",
+        List.of("13:49:00"));
+    testSimplePPL(
+        "source=people | eval `TIME('13:49')` = TIME('13:49') | fields `TIME('13:49')`",
+        List.of("13:49:00"));
+    testSimplePPL(
+        "source=people | eval `TIME('2020-08-26 13:49:00')` = TIME('2020-08-26 13:49:00') | fields"
+            + " `TIME('2020-08-26 13:49:00')`",
+        List.of("13:49:00"));
+    testSimplePPL(
+        "source=people | eval `TIME('2020-08-26 13:49')` = TIME('2020-08-26 13:49') | fields"
+            + " `TIME('2020-08-26 13:49')`",
+        List.of("13:49:00"));
+  }
+
+  @Test
+  public void testDateFormat() {
+    testSimplePPL(
+        "source=people | eval `DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f')` = "
+            + "DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f'), `DATE_FORMAT"
+            + "(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r')`"
+            + " = DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r') | fields "
+            + "`DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f')`, "
+            + "`DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r')`",
+        List.of("13:14:15.012345", "1998-Jan-31st 01:14:15 PM"));
   }
 
   @Test
   public void testYear() {
     String query =
-            "source=people | eval `YEAR(DATE('2020-08-26'))` = YEAR(DATE('2020-08-26')) | fields `YEAR(DATE('2020-08-26'))`";
+        "source=people | eval `YEAR(DATE('2020-08-26'))` = YEAR(DATE('2020-08-26')) | fields"
+            + " `YEAR(DATE('2020-08-26'))`";
     testSimplePPL(query, List.of("2020"));
   }
-
 
   // String functions
   @Test

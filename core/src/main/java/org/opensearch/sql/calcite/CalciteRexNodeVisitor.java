@@ -98,6 +98,32 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
   }
 
+  private static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
+    return switch (unit) {
+      case MICROSECOND -> SpanUnit.MILLISECOND;
+      case SECOND -> SpanUnit.SECOND;
+      case MINUTE -> SpanUnit.MINUTE;
+      case HOUR -> SpanUnit.HOUR;
+      case DAY -> SpanUnit.DAY;
+      case WEEK -> SpanUnit.WEEK;
+      case MONTH -> SpanUnit.MONTH;
+      case QUARTER -> SpanUnit.QUARTER;
+      case YEAR -> SpanUnit.YEAR;
+      case UNKNOWN -> SpanUnit.UNKNOWN;
+      default -> throw new UnsupportedOperationException("Unsupported interval unit: " + unit);
+    };
+  }
+
+  @Override
+  public RexNode visitInterval(
+      org.opensearch.sql.ast.expression.Interval node, CalcitePlanContext context) {
+    RexNode value = analyze(node.getValue(), context);
+    SqlIntervalQualifier intervalQualifier =
+        context.rexBuilder.createIntervalUntil(intervalUnitToSpanUnit(node.getUnit()));
+    return context.rexBuilder.makeIntervalLiteral(
+        new BigDecimal(value.toString()), intervalQualifier);
+  }
+
   @Override
   public RexNode visitAnd(And node, CalcitePlanContext context) {
     final RelDataType booleanType =

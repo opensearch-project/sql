@@ -185,6 +185,15 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.DATE;
       case "ADDDATE":
         return SqlLibraryOperators.DATE_ADD_SPARK;
+      case "DATE_ADD":
+        return TransferUserDefinedFunction(
+            DateAddSubFunction.class, "DATE_ADD", ReturnTypes.TIMESTAMP);
+      case "DATE_SUB":
+        return TransferUserDefinedFunction(
+            DateAddSubFunction.class, "DATE_SUB", ReturnTypes.TIMESTAMP);
+      case "ADDTIME":
+        return TransferUserDefinedFunction(
+            TimeAddSubFunction.class, "ADDTIME", ReturnTypes.TIMESTAMP);
         // TODO Add more, ref RexImpTable
       case "DAYNAME":
         return TransferUserDefinedFunction(periodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
@@ -197,6 +206,9 @@ public interface BuiltinFunctionUtils {
       case "TIMESTAMP":
         //return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
+        //        return SqlLibraryOperators.TIMESTAMP;
+        return TransferUserDefinedFunction(
+            timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
       case "WEEK", "YEAR", "MINUTE", "HOUR":
         return SqlLibraryOperators.DATE_PART;
       case "FROM_UNIXTIME":
@@ -268,14 +280,19 @@ public interface BuiltinFunctionUtils {
           RexLiteral dateLiteral = (RexLiteral) timestampExpr;
           String dateStringValue = dateLiteral.getValueAs(String.class);
           List<Integer> dateValueList = transferStringExprToDateValue(dateStringValue);
-          DateArgs.add(context.rexBuilder.makeLiteral(dateValueList.get(0),
+          DateArgs.add(
+              context.rexBuilder.makeLiteral(
+                  dateValueList.get(0),
                   context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
-          DateArgs.add(context.rexBuilder.makeLiteral(dateValueList.get(1),
+          DateArgs.add(
+              context.rexBuilder.makeLiteral(
+                  dateValueList.get(1),
                   context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
-          DateArgs.add(context.rexBuilder.makeLiteral(dateValueList.get(2),
+          DateArgs.add(
+              context.rexBuilder.makeLiteral(
+                  dateValueList.get(2),
                   context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
-        }
-        else {
+        } else {
           DateArgs.add(timestampExpr);
         }
         return DateArgs;
@@ -319,14 +336,22 @@ public interface BuiltinFunctionUtils {
         List<RexNode> dateAddArgs = transformDateManipulationArgs(argList, context.rexBuilder);
         dateAddArgs.add(context.rexBuilder.makeLiteral(true));
         return dateAddArgs;
+      case "ADDTIME":
+        SqlTypeName arg0Type = argList.getFirst().getType().getSqlTypeName();
+        SqlTypeName arg1Type = argList.get(1).getType().getSqlTypeName();
+        RexNode type0 = context.rexBuilder.makeFlag(arg0Type);
+        RexNode type1 = context.rexBuilder.makeFlag(arg1Type);
+        RexNode isAdd = context.rexBuilder.makeLiteral(true);
+        return List.of(argList.getFirst(), type0, argList.get(1), type1, isAdd);
       case "TIME":
         List<RexNode> timeArgs = new ArrayList<>();
-        RexNode timeExpr = argList.get(0);
+        RexNode timeExpr = argList.getFirst();
         if (timeExpr instanceof RexLiteral timeLiteral) {
           // Convert time string to milliseconds that can be recognized by the builtin TIME function
           String timeStringValue = Objects.requireNonNull(timeLiteral.getValueAs(String.class));
           LocalDateTime dateTime = DateTimeParser.parse(timeStringValue);
-          RexNode timestampNode = context.rexBuilder.makeBigintLiteral(
+          RexNode timestampNode =
+              context.rexBuilder.makeBigintLiteral(
                   BigDecimal.valueOf(dateTime.toInstant(ZoneOffset.UTC).toEpochMilli()));
           timeArgs.add(timestampNode);
         } else {
@@ -340,11 +365,11 @@ public interface BuiltinFunctionUtils {
         // Convert to timestamp
         if (dateExpr instanceof RexLiteral dateLiteral) {
           String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
-          timestampNode = context.rexBuilder.makeTimestampLiteral(
-                  new TimestampString(dateStringValue),
-                  RelDataType.PRECISION_NOT_SPECIFIED);
+          timestampNode =
+              context.rexBuilder.makeTimestampLiteral(
+                  new TimestampString(dateStringValue), RelDataType.PRECISION_NOT_SPECIFIED);
         } else {
-            timestampNode = dateExpr;
+          timestampNode = dateExpr;
         }
         return List.of(dateFormatPatternExpr, timestampNode);
       case "UNIX_TIMESTAMP":
@@ -356,29 +381,35 @@ public interface BuiltinFunctionUtils {
     }
   }
 
-  private static List<RexNode> transformDateManipulationArgs(List<RexNode> argList, ExtendedRexBuilder rexBuilder) {
+  private static List<RexNode> transformDateManipulationArgs(
+      List<RexNode> argList, ExtendedRexBuilder rexBuilder) {
     List<RexNode> dateAddArgs = new ArrayList<>();
     RexNode baseTimestampExpr = argList.get(0);
     RexNode intervalExpr = argList.get(1);
     // 1. Add time unit
-    RexLiteral timeFrameName = rexBuilder.makeFlag(Objects.requireNonNull(intervalExpr.getType().getIntervalQualifier()).getUnit());
+    RexLiteral timeFrameName =
+        rexBuilder.makeFlag(
+            Objects.requireNonNull(intervalExpr.getType().getIntervalQualifier()).getUnit());
     dateAddArgs.add(timeFrameName);
     // 2. Add interval
-    RexLiteral intervalArg = rexBuilder.makeBigintLiteral(((RexLiteral) intervalExpr).getValueAs(BigDecimal.class));
+    RexLiteral intervalArg =
+        rexBuilder.makeBigintLiteral(((RexLiteral) intervalExpr).getValueAs(BigDecimal.class));
     dateAddArgs.add(intervalArg);
     // 3. Add timestamp
     if (baseTimestampExpr instanceof RexLiteral dateLiteral) {
       String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
       LocalDateTime dateTime = Objects.requireNonNull(DateTimeParser.parse(dateStringValue));
-      TimestampString timestampString = new TimestampString(
-              dateTime.getYear(),
-              dateTime.getMonthValue(),
-              dateTime.getDayOfMonth(),
-              dateTime.getHour(),
-              dateTime.getMinute(),
-              dateTime.getSecond()
-      ).withNanos(dateTime.getNano());
-      RexNode timestampNode = rexBuilder.makeTimestampLiteral(timestampString, RelDataType.PRECISION_NOT_SPECIFIED);
+      TimestampString timestampString =
+          new TimestampString(
+                  dateTime.getYear(),
+                  dateTime.getMonthValue(),
+                  dateTime.getDayOfMonth(),
+                  dateTime.getHour(),
+                  dateTime.getMinute(),
+                  dateTime.getSecond())
+              .withNanos(dateTime.getNano());
+      RexNode timestampNode =
+          rexBuilder.makeTimestampLiteral(timestampString, RelDataType.PRECISION_NOT_SPECIFIED);
       dateAddArgs.add(timestampNode);
       // 4. Add timestamp type
       dateAddArgs.add(rexBuilder.makeFlag(SqlTypeName.TIMESTAMP));
