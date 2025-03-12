@@ -149,7 +149,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
             executeQuery(
                     String.format(
-                            "source=%s | eval judge = if(Like(name, 'He%'), 1.0, 0.0) | fields judge, name",
+                            "source=%s | eval judge = if(Like(name, 'He%%'), 1.0, 0.0) | fields judge, name",
                             TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(
@@ -159,10 +159,10 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
     verifyDataRows(
             actual,
-            rows("John", 0.0),
-            rows("Jane", 0.0),
-            rows("Jake", 0.0),
-            rows("Hello", 1.0));
+            rows(0.0, "John"),
+            rows(0.0, "Jane"),
+            rows(0.0, "Jake"),
+            rows(1.0, "Hello"));
   }
 
 }
