@@ -757,10 +757,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         getStateCountryIndexMapping(),
         "src/test/resources/state_country.json"),
     STATE_COUNTRY_WITH_NULL(
-            TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL,
-            "state_country_with_null",
-            getStateCountryIndexMapping(), //with null index use the same schema
-            "src/test/resources/state_country_with_null.json"),
+        TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL,
+        "state_country_with_null",
+        getStateCountryIndexMapping(), // with null index use the same schema
+        "src/test/resources/state_country_with_null.json"),
     OCCUPATION(
         TestsConstants.TEST_INDEX_OCCUPATION,
         "occupation",

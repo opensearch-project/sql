@@ -22,7 +22,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
@@ -92,7 +91,8 @@ public class UserDefineFunctionUtils {
         throw new IllegalArgumentException("Function requires at least one argument.");
       }
       RelDataType firstArgType = argTypes.get(targetPosition);
-      return typeFactory.createTypeWithNullability(typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
     };
   }
 }
