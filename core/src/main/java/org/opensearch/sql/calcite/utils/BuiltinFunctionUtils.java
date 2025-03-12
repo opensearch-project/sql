@@ -64,7 +64,8 @@ public interface BuiltinFunctionUtils {
       case "ABS":
         return SqlStdOperatorTable.ABS;
       case "SQRT":
-        return TransferUserDefinedFunction(SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE);
+        return TransferUserDefinedFunction(
+                SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE_FORCE_NULLABLE);
       case "ATAN", "ATAN2":
         return SqlStdOperatorTable.ATAN2;
       case "POW", "POWER":
@@ -89,7 +90,7 @@ public interface BuiltinFunctionUtils {
                 IfNullFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(1));
       case "NULLIF":
         return TransferUserDefinedFunction(
-                NullIfFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(0));
+                NullIfFunction.class, "ifnull", ReturnTypes.DOUBLE_FORCE_NULLABLE);
       case "IS NOT NULL":
         return SqlStdOperatorTable.IS_NOT_NULL;
       case "IS NULL":

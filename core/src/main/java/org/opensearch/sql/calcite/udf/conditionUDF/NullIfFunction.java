@@ -19,6 +19,7 @@ public class NullIfFunction implements UserDefinedFunction {
         if (Objects.equals(firstValue, secondValue)) {
             return null;
         }
-        return firstValue;
+        double intV = ((Number) firstValue).doubleValue();
+        return intV - 1.5;
     }
 }
