@@ -109,7 +109,7 @@ topCommand
    ;
 
 rareCommand
-   : RARE fieldList (byClause)?
+   : RARE (number = integerLiteral)? fieldList (byClause)?
    ;
 
 grokCommand
@@ -202,10 +202,15 @@ mlArg
 
 // clauses
 fromClause
-   : SOURCE EQUAL tableSourceClause
-   | INDEX EQUAL tableSourceClause
+   : SOURCE EQUAL tableOrSubqueryClause
+   | INDEX EQUAL tableOrSubqueryClause
    | SOURCE EQUAL tableFunction
    | INDEX EQUAL tableFunction
+   ;
+
+tableOrSubqueryClause
+   : LT_SQR_PRTHS subSearch RT_SQR_PRTHS (AS alias = qualifiedName)?
+   | tableSourceClause
    ;
 
 tableSourceClause
@@ -214,7 +219,7 @@ tableSourceClause
 
 // join
 joinCommand
-   : (joinType) JOIN sideAlias joinHintList? joinCriteria? right = tableSourceClause
+   : (joinType) JOIN sideAlias joinHintList? joinCriteria? right = tableOrSubqueryClause
    ;
 
 joinType
@@ -338,7 +343,6 @@ logicalExpression
 comparisonExpression
    : left = valueExpression comparisonOperator right = valueExpression  # compareExpr
    | valueExpression IN valueList                                       # inExpr
-   | valueExpressionList NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS    # inSubqueryExpr
    ;
 
 valueExpressionList
@@ -355,6 +359,7 @@ valueExpression
    | getFormatFunction                                                                          # getFormatFunctionCall
    | timestampFunction                                                                          # timestampFunctionCall
    | LT_PRTHS valueExpression RT_PRTHS                                                          # parentheticValueExpr
+   | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                        # scalarSubqueryExpr
    ;
 
 primaryExpression
@@ -369,7 +374,9 @@ positionFunction
    ;
 
 booleanExpression
-   : booleanFunctionCall
+   : booleanFunctionCall                                                # booleanFunctionCallExpr
+   | valueExpressionList NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS    # inSubqueryExpr
+   | EXISTS LT_SQR_PRTHS subSearch RT_SQR_PRTHS                         # existsSubqueryExpr
    ;
 
 relevanceExpression
@@ -936,6 +943,8 @@ keywordsCanBeId
    | ML
    | TRENDLINE
    // commands assist keywords
+   | IN
+   | EXISTS
    | SOURCE
    | INDEX
    | DESC

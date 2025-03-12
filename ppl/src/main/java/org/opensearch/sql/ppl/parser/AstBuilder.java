@@ -10,9 +10,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupComma
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFilterFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
@@ -21,7 +19,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
@@ -70,6 +67,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
@@ -91,6 +89,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   private final String query;
 
   public AstBuilder(String query) {
+    this(query, null);
+  }
+
+  public AstBuilder(String query, Settings settings) {
     this.expressionBuilder = new AstExpressionBuilder(this);
     this.query = query;
   }
@@ -166,14 +168,15 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             ? Optional.of(internalVisitExpression(ctx.sideAlias().leftAlias).toString())
             : Optional.empty();
     Optional<String> rightAlias = Optional.empty();
-    if (ctx.tableSourceClause().alias != null) {
-      rightAlias = Optional.of(internalVisitExpression(ctx.tableSourceClause().alias).toString());
+    if (ctx.tableOrSubqueryClause().alias != null) {
+      rightAlias =
+          Optional.of(internalVisitExpression(ctx.tableOrSubqueryClause().alias).toString());
     }
     if (ctx.sideAlias().rightAlias != null) {
       rightAlias = Optional.of(internalVisitExpression(ctx.sideAlias().rightAlias).toString());
     }
 
-    UnresolvedPlan rightRelation = visit(ctx.tableSourceClause());
+    UnresolvedPlan rightRelation = visit(ctx.tableOrSubqueryClause());
     // Add a SubqueryAlias to the right plan when the right alias is present and no duplicated alias
     // existing in right.
     UnresolvedPlan right;
@@ -298,7 +301,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Aggregation aggregation =
         new Aggregation(
             aggListBuilder.build(),
-            Collections.emptyList(),
+            groupList,
             groupList,
             span,
             ArgumentFactory.getArgumentList(ctx));
@@ -351,11 +354,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /** Rare command. */
   @Override
-  public UnresolvedPlan visitRareCommand(RareCommandContext ctx) {
+  public UnresolvedPlan visitRareCommand(OpenSearchPPLParser.RareCommandContext ctx) {
     List<UnresolvedExpression> groupList =
         ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
     return new RareTopN(
         CommandType.RARE,
+        ArgumentFactory.getArgumentList(ctx),
+        getFieldList(ctx.fieldList()),
+        groupList);
+  }
+
+  /** Top command. */
+  @Override
+  public UnresolvedPlan visitTopCommand(OpenSearchPPLParser.TopCommandContext ctx) {
+    List<UnresolvedExpression> groupList =
+        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
+    return new RareTopN(
+        CommandType.TOP,
         ArgumentFactory.getArgumentList(ctx),
         getFieldList(ctx.fieldList()),
         groupList);
@@ -394,23 +409,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
   }
 
-  /** Top command. */
   @Override
-  public UnresolvedPlan visitTopCommand(TopCommandContext ctx) {
-    List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
-    return new RareTopN(
-        CommandType.TOP,
-        ArgumentFactory.getArgumentList(ctx),
-        getFieldList(ctx.fieldList()),
-        groupList);
-  }
-
-  /** From clause. */
-  @Override
-  public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
-    if (ctx.tableFunction() != null) {
-      return visitTableFunction(ctx.tableFunction());
+  public UnresolvedPlan visitTableOrSubqueryClause(
+      OpenSearchPPLParser.TableOrSubqueryClauseContext ctx) {
+    if (ctx.subSearch() != null) {
+      return ctx.alias != null
+          ? new SubqueryAlias(
+              internalVisitExpression(ctx.alias).toString(), visitSubSearch(ctx.subSearch()))
+          : visitSubSearch(ctx.subSearch());
     } else {
       return visitTableSourceClause(ctx.tableSourceClause());
     }

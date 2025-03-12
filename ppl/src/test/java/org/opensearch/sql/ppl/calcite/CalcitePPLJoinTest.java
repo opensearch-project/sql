@@ -407,4 +407,235 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "INNER JOIN `scott`.`EMP` `EMP0` ON `EMP`.`DEPTNO` = `EMP0`.`DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  // +-----------------------------+
+  // | join with relation subquery |
+  // +-----------------------------+
+
+  @Test
+  public void testJoinWithRelationSubquery() {
+    String ppl =
+        """
+        source=EMP | join left = t1 right = t2 ON t1.DEPTNO = t2.DEPTNO
+          [
+            source = DEPT
+            | where DEPTNO > 10 and LOC = 'CHICAGO'
+            | fields DEPTNO, DNAME
+            | sort - DEPTNO
+            | head 10
+          ]
+        | stats count(MGR) as cnt by JOB
+        """;
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(cnt=[$1], JOB=[$0])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
+            + "    LogicalAggregate(group=[{2}], cnt=[COUNT($3)])\n"
+            + "      LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "        LogicalSort(sort0=[$0], dir0=[DESC], fetch=[10])\n"
+            + "          LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "            LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO'))])\n"
+            + "              LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    String expectedResult = "cnt=1; JOB=CLERK\ncnt=1; JOB=MANAGER\ncnt=4; JOB=SALESMAN\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT COUNT(`EMP`.`MGR`) `cnt`, `EMP`.`JOB`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN (SELECT `DEPTNO`, `DNAME`\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "WHERE `DEPTNO` > 10 AND `LOC` = 'CHICAGO'\n"
+            + "ORDER BY `DEPTNO` DESC NULLS FIRST\n"
+            + "LIMIT 10) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`\n"
+            + "GROUP BY `EMP`.`JOB`\n"
+            + "ORDER BY `EMP`.`JOB` NULLS LAST";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMultipleJoinsWithRelationSubquery() {
+    String ppl =
+        """
+        source=EMP
+        | head 10
+        | inner join left = l right = r ON l.DEPTNO = r.DEPTNO
+          [
+            source = DEPT
+            | where DEPTNO > 10 and LOC = 'CHICAGO'
+          ]
+        | left join left = l right = r ON l.JOB = r.JOB
+          [
+            source = BONUS
+            | where JOB = 'SALESMAN'
+          ]
+        | cross join left = l right = r
+          [
+            source = SALGRADE
+            | where LOSAL <= 1500
+            | sort - GRADE
+          ]
+        """;
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalJoin(condition=[true], joinType=[inner])\n"
+            + "  LogicalJoin(condition=[=($2, $12)], joinType=[left])\n"
+            + "    LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "      LogicalSort(fetch=[10])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "      LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO'))])\n"
+            + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "    LogicalFilter(condition=[=($1, 'SALESMAN')])\n"
+            + "      LogicalTableScan(table=[[scott, BONUS]])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "    LogicalFilter(condition=[<=($1, 1500)])\n"
+            + "      LogicalTableScan(table=[[scott, SALGRADE]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 15);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT *\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 10) `t`\n"
+            + "INNER JOIN (SELECT *\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "WHERE `DEPTNO` > 10 AND `LOC` = 'CHICAGO') `t0` ON `t`.`DEPTNO` = `t0`.`DEPTNO`\n"
+            + "LEFT JOIN (SELECT *\n"
+            + "FROM `scott`.`BONUS`\n"
+            + "WHERE `JOB` = 'SALESMAN') `t1` ON `t`.`JOB` = `t1`.`JOB`\n"
+            + "CROSS JOIN (SELECT `GRADE`, `LOSAL`, `HISAL`\n"
+            + "FROM `scott`.`SALGRADE`\n"
+            + "WHERE `LOSAL` <= 1500\n"
+            + "ORDER BY `GRADE` DESC NULLS FIRST) `t3`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMultipleJoinsWithRelationSubqueryWithAlias() {
+    String ppl =
+        """
+        source=EMP as t1
+        | head 10
+        | inner join ON t1.DEPTNO = t2.DEPTNO
+          [
+            source = DEPT as t2
+            | where DEPTNO > 10 and LOC = 'CHICAGO'
+          ]
+        | left join ON t1.JOB = t3.JOB
+          [
+            source = BONUS as t3
+            | where JOB = 'SALESMAN'
+          ]
+        | cross join
+          [
+            source = SALGRADE as t4
+            | where LOSAL <= 1500
+            | sort - GRADE
+          ]
+        """;
+
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalJoin(condition=[true], joinType=[inner])\n"
+            + "  LogicalJoin(condition=[=($2, $12)], joinType=[left])\n"
+            + "    LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "      LogicalSort(fetch=[10])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "      LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO'))])\n"
+            + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "    LogicalFilter(condition=[=($1, 'SALESMAN')])\n"
+            + "      LogicalTableScan(table=[[scott, BONUS]])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "    LogicalFilter(condition=[<=($1, 1500)])\n"
+            + "      LogicalTableScan(table=[[scott, SALGRADE]])\n";
+    verifyLogical(root, expectedLogical);
+
+    verifyResultCount(root, 15);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT *\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 10) `t`\n"
+            + "INNER JOIN (SELECT *\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "WHERE `DEPTNO` > 10 AND `LOC` = 'CHICAGO') `t0` ON `t`.`DEPTNO` = `t0`.`DEPTNO`\n"
+            + "LEFT JOIN (SELECT *\n"
+            + "FROM `scott`.`BONUS`\n"
+            + "WHERE `JOB` = 'SALESMAN') `t1` ON `t`.`JOB` = `t1`.`JOB`\n"
+            + "CROSS JOIN (SELECT `GRADE`, `LOSAL`, `HISAL`\n"
+            + "FROM `scott`.`SALGRADE`\n"
+            + "WHERE `LOSAL` <= 1500\n"
+            + "ORDER BY `GRADE` DESC NULLS FIRST) `t3`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMultipleJoinsWithRelationSubqueryWithAlias2() {
+    String ppl =
+        """
+        source=EMP as t1
+        | head 10
+        | inner join left = l right = r ON t1.DEPTNO = t2.DEPTNO
+          [
+            source = DEPT as t2
+            | where DEPTNO > 10 and LOC = 'CHICAGO'
+          ]
+        | left join left = l right = r ON t1.JOB = t3.JOB
+          [
+            source = BONUS as t3
+            | where JOB = 'SALESMAN'
+          ]
+        | cross join
+          [
+            source = SALGRADE as t4
+            | where LOSAL <= 1500
+            | sort - GRADE
+          ]
+        """;
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalJoin(condition=[true], joinType=[inner])\n"
+            + "  LogicalJoin(condition=[=($2, $12)], joinType=[left])\n"
+            + "    LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "      LogicalSort(fetch=[10])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "      LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO'))])\n"
+            + "        LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "    LogicalFilter(condition=[=($1, 'SALESMAN')])\n"
+            + "      LogicalTableScan(table=[[scott, BONUS]])\n"
+            + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
+            + "    LogicalFilter(condition=[<=($1, 1500)])\n"
+            + "      LogicalTableScan(table=[[scott, SALGRADE]])\n";
+    verifyLogical(root, expectedLogical);
+
+    verifyResultCount(root, 15);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT *\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 10) `t`\n"
+            + "INNER JOIN (SELECT *\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "WHERE `DEPTNO` > 10 AND `LOC` = 'CHICAGO') `t0` ON `t`.`DEPTNO` = `t0`.`DEPTNO`\n"
+            + "LEFT JOIN (SELECT *\n"
+            + "FROM `scott`.`BONUS`\n"
+            + "WHERE `JOB` = 'SALESMAN') `t1` ON `t`.`JOB` = `t1`.`JOB`\n"
+            + "CROSS JOIN (SELECT `GRADE`, `LOSAL`, `HISAL`\n"
+            + "FROM `scott`.`SALGRADE`\n"
+            + "WHERE `LOSAL` <= 1500\n"
+            + "ORDER BY `GRADE` DESC NULLS FIRST) `t3`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
 }

@@ -33,7 +33,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "    LogicalFilter(condition=[IN($7, {\n"
             + "LogicalProject(DEPTNO=[$0])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "})])\n"
+            + "})], variablesSet=[[$cor0]])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -66,7 +66,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "LogicalProject(MGR=[$3])\n"
             + "  LogicalFilter(condition=[=($7, 10)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "})])\n"
+            + "})], variablesSet=[[$cor0]])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -95,7 +95,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "    LogicalFilter(condition=[IN($7, $1, {\n"
             + "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "})])\n"
+            + "})], variablesSet=[[$cor0]])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -124,7 +124,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "    LogicalFilter(condition=[IN($7, $1, {\n"
             + "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "})])\n"
+            + "})], variablesSet=[[$cor0]])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -153,7 +153,7 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "    LogicalFilter(condition=[NOT(IN($7, $1, {\n"
             + "LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
-            + "}))])\n"
+            + "}))], variablesSet=[[$cor0]])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -184,9 +184,9 @@ public class CalcitePPLInSubqueryTest extends CalcitePPLAbstractTest {
             + "  LogicalFilter(condition=[IN($1, {\n"
             + "LogicalProject(ENAME=[$0])\n"
             + "  LogicalTableScan(table=[[scott, BONUS]])\n"
-            + "})])\n"
+            + "})], variablesSet=[[$cor1]])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "})])\n"
+            + "})], variablesSet=[[$cor0]])\n"
             + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
 
