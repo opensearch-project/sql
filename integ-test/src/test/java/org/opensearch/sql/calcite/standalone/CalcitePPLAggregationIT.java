@@ -413,7 +413,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
             + "  ],\n"
             + "  \"datarows\": [\n"
             + "    [\n"
-            + "      0\n"
+            + (isPushdownEnabled() ? "      0\n" : "      null\n")
             + "    ]\n"
             + "  ],\n"
             + "  \"total\": 1,\n"
