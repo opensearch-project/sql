@@ -236,6 +236,35 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testDayOfWeek() {
+    testSimplePPL(
+        "source=people | head 1 | eval `DAY_OF_WEEK(DATE('2020-08-26'))` ="
+            + " DAY_OF_WEEK(DATE('2020-08-26')) | fields `DAY_OF_WEEK(DATE('2020-08-26'))`",
+        List.of(4));
+    testSimplePPL(
+        "source=people | head 1 | eval `DAY_OF_WEEK(DATE('2020-08-26'))` ="
+            + " DAY_OF_WEEK(TIMESTAMP('2020-08-26 13:04:12')) | fields"
+            + " `DAY_OF_WEEK(DATE('2020-08-26'))`",
+        List.of(4));
+    testSimplePPL(
+        "source=people | head 1 | eval `DAY_OF_WEEK(DATE('2020-08-26'))` ="
+            + " DAY_OF_WEEK('2020-08-26') | fields `DAY_OF_WEEK(DATE('2020-08-26'))`",
+        List.of(4));
+    testSimplePPL(
+        "source=people | head 1 | eval `DAY_OF_WEEK(DATE('2020-08-26'))` = DAY_OF_WEEK('2020-08-26"
+            + " 13:04:12') | fields `DAY_OF_WEEK(DATE('2020-08-26'))`",
+        List.of(4));
+  }
+
+  @Test
+  public void testDayOfYear() {
+    testSimplePPL(
+        "source=people | eval `DAY_OF_YEAR(DATE('2020-08-26'))` = DAY_OF_YEAR(DATE('2020-08-26')) |"
+            + " fields `DAY_OF_YEAR(DATE('2020-08-26'))`",
+        List.of(239));
+  }
+
+  @Test
   public void testNow() {
     String execResult =
         execute(

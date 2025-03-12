@@ -16,16 +16,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import org.apache.calcite.avatica.util.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -196,6 +200,11 @@ public interface BuiltinFunctionUtils {
             TimeAddSubFunction.class,
             "ADDTIME",
             UserDefineFunctionUtils.getReturnTypeForTimeAddSub());
+      case "DAY_OF_WEEK", "DAY_OF_YEAR":
+        // SqlStdOperatorTable.DAYOFWEEK, SqlStdOperatorTable.DAYOFYEAR is not implemented in
+        // RexTableImpl. Therefore, we replace it with their lower-level
+        // calls SqlStdOperatorTable.EXTRACT and convert the arguments accordingly.
+        return SqlStdOperatorTable.EXTRACT;
         // TODO Add more, ref RexImpTable
       case "DAYNAME":
         return TransferUserDefinedFunction(periodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
@@ -378,9 +387,31 @@ public interface BuiltinFunctionUtils {
         List<RexNode> UnixArgs = new ArrayList<>(argList);
         UnixArgs.add(context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return UnixArgs;
+      case "DAY_OF_WEEK":
+        RexNode dow =
+            context.rexBuilder.makeIntervalLiteral(
+                new SqlIntervalQualifier(TimeUnit.DOW, null, SqlParserPos.ZERO));
+        return List.of(dow, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
+      case "DAY_OF_YEAR":
+        RexNode dom =
+            context.rexBuilder.makeIntervalLiteral(
+                new SqlIntervalQualifier(TimeUnit.DOY, null, SqlParserPos.ZERO));
+        return List.of(dom, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
       default:
         return argList;
     }
+  }
+
+  private static RexNode convertToDateLiteralIfString(
+      RexBuilder rexBuilder, RexNode dateOrTimestampExpr) {
+    if (dateOrTimestampExpr instanceof RexLiteral dateLiteral) {
+      String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
+      List<Integer> dateValues = transferStringExprToDateValue(dateStringValue);
+      DateString dateString =
+          new DateString(dateValues.get(0), dateValues.get(1), dateValues.get(2));
+      return rexBuilder.makeDateLiteral(dateString);
+    }
+    return dateOrTimestampExpr;
   }
 
   private static List<RexNode> transformDateManipulationArgs(
