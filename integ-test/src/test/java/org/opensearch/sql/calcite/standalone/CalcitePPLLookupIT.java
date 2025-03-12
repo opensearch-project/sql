@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATI
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -369,5 +370,97 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result = executeQuery("source = s | LOOKUP l id | fields id, col1, col2, col3");
     verifyDataRows(
         result, rows(1, "x", "b", "y"), rows(2, null, "bb", null), rows(3, "xx", "ccc", "yy"));
+
+    result =
+        executeQuery(
+            "source = s | LOOKUP l id REPLACE id, col1, col3 | fields id, col1, col2, col3");
+    verifyDataRows(
+        result, rows(1, "x", "b", "y"), rows(null, null, "bb", null), rows(3, "xx", "ccc", "yy"));
+    result =
+        executeQuery(
+            "source = s | LOOKUP l id APPEND id, col1, col3 | fields id, col1, col2, col3");
+    verifyDataRows(
+        result, rows(1, "a", "b", "y"), rows(2, "aa", "bb", null), rows(3, "xx", "ccc", "yy"));
+    result = executeQuery("source = s | LOOKUP l id REPLACE col1 | fields id, col1, col2");
+    verifyDataRows(result, rows(1, "x", "b"), rows(2, null, "bb"), rows(3, "xx", "ccc"));
+    result = executeQuery("source = s | LOOKUP l id APPEND col1 | fields id, col1, col2");
+    verifyDataRows(result, rows(1, "a", "b"), rows(2, "aa", "bb"), rows(3, "xx", "ccc"));
+    result = executeQuery("source = s | LOOKUP l id REPLACE col1 as col2 | fields id, col1, col2");
+    verifyDataRows(result, rows(1, "a", "x"), rows(2, "aa", null), rows(3, null, "xx"));
+    result = executeQuery("source = s | LOOKUP l id APPEND col1 as col2 | fields id, col1, col2");
+    verifyDataRows(result, rows(1, "a", "b"), rows(2, "aa", "bb"), rows(3, null, "ccc"));
+    result =
+        executeQuery("source = s | LOOKUP l id REPLACE col1 as colA | fields id, col1, col2, colA");
+    verifyDataRows(
+        result, rows(1, "a", "b", "x"), rows(2, "aa", "bb", null), rows(3, null, "ccc", "xx"));
+    // source = s | LOOKUP l id APPEND col1 as colA | fields id, col1, col2, colA throw exception
+  }
+
+  @Test
+  public void testNameReplaceOccupation2() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                """
+                   source = %s
+                   | LOOKUP %s name REPLACE occupation
+                   """,
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifySchema(
+        result,
+        schema("id", "integer"),
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("salary", "integer"),
+        schema("occupation", "string"));
+    verifyDataRows(
+        result,
+        rows(1000, "Jake", "England", 100000, "Engineer"),
+        rows(1001, "Hello", "USA", 70000, null),
+        rows(1002, "John", "Canada", 120000, "Scientist"),
+        rows(1003, "David", null, 120000, "Doctor"),
+        rows(1004, "David", "Canada", 0, "Doctor"),
+        rows(1005, "Jane", "Canada", 90000, "Engineer"));
+  }
+
+  @Test
+  public void testNameReplaceOccupationAsNewName() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                """
+                   source = %s
+                   | LOOKUP %s name REPLACE occupation AS new_col
+                   """,
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifySchema(
+        result,
+        schema("id", "integer"),
+        schema("name", "string"),
+        schema("occupation", "string"),
+        schema("country", "string"),
+        schema("salary", "integer"),
+        schema("new_col", "string"));
+    verifyDataRows(
+        result,
+        rows(1000, "Jake", "Engineer", "England", 100000, "Engineer"),
+        rows(1001, "Hello", "Artist", "USA", 70000, null),
+        rows(1002, "John", "Doctor", "Canada", 120000, "Scientist"),
+        rows(1003, "David", "Doctor", null, 120000, "Doctor"),
+        rows(1004, "David", null, "Canada", 0, "Doctor"),
+        rows(1005, "Jane", "Scientist", "Canada", 90000, "Engineer"));
+  }
+
+  @Test
+  public void testRnameAsIdShouldnWork() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                """
+                   source = %s
+                   | rename name as l_name | LOOKUP %s name as id REPLACE occupation as new_col | rename l_name as name
+                   """,
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 6);
   }
 }

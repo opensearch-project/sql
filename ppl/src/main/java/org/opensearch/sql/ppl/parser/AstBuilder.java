@@ -442,18 +442,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                 LinkedHashMap::new));
   }
 
-  /** Top command. */
-  @Override
-  public UnresolvedPlan visitTopCommand(TopCommandContext ctx) {
-    List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
-    return new RareTopN(
-        CommandType.TOP,
-        ArgumentFactory.getArgumentList(ctx),
-        getFieldList(ctx.fieldList()),
-        groupList);
-  }
-
   @Override
   public UnresolvedPlan visitTableOrSubqueryClause(
       OpenSearchPPLParser.TableOrSubqueryClauseContext ctx) {
