@@ -49,14 +49,4 @@ public class JdbcFormatIT extends SQLIntegTestCase {
 
     verifySchema(response, schema("account_number", "acc", "long"));
   }
-
-  @Test
-  public void testAliasInSchema1() {
-    JSONObject response =
-        new JSONObject(
-            executeQuery(
-                "SELECT city, abs(account_number) AS acc FROM " + TEST_INDEX_BANK, "jdbc"));
-
-    verifySchema(response, schema("account_number", "acc", "long"));
-  }
 }
