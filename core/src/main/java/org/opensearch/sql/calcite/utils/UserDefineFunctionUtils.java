@@ -79,4 +79,27 @@ public class UserDefineFunctionUtils {
       return createArrayType(typeFactory, firstArgType, true);
     };
   }
+
+  /**
+   * For some udf/udaf, when giving a list of arguments, we need to infer the return type from the
+   * arguments.
+   *
+   * @param targetPosition
+   * @return a inference function
+   */
+  public static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+
+      // Get argument types
+      List<RelDataType> argTypes = opBinding.collectOperandTypes();
+
+      if (argTypes.isEmpty()) {
+        throw new IllegalArgumentException("Function requires at least one argument.");
+      }
+      RelDataType firstArgType = argTypes.get(targetPosition);
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
+    };
+  }
 }
