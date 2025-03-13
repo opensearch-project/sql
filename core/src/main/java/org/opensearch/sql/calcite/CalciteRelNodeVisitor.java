@@ -28,6 +28,8 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
@@ -43,6 +45,7 @@ import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
@@ -457,6 +460,79 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         sourceFieldsNames.size() - duplicatedSourceFields.size(),
         context);
 
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitDedupe(Dedupe node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    List<Argument> options = node.getOptions();
+    Integer allowedDuplication = (Integer) options.get(0).getValue().getValue();
+    Boolean keepEmpty = (Boolean) options.get(1).getValue().getValue();
+    Boolean consecutive = (Boolean) options.get(2).getValue().getValue();
+    if (allowedDuplication <= 0) {
+      throw new IllegalArgumentException("Number of duplicate events must be greater than 0");
+    }
+    if (consecutive) {
+      throw new UnsupportedOperationException("Consecutive deduplication is not supported");
+    }
+    // Columns to deduplicate
+    List<RexNode> dedupeFields =
+        node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
+
+    RelNode root = context.relBuilder.peek();
+
+    /*
+     * | dedup 2 a, b keepempty=false
+     * DropColumns('_row_number_)
+     * +- Filter ('_row_number_ <= n)
+     *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+     *       +- Filter (isnotnull('a) AND isnotnull('b))
+     *          +- ...
+     */
+    // Filter (isnotnull('a) AND isnotnull('b))
+    context.relBuilder.filter(
+        context.relBuilder.and(dedupeFields.stream().map(context.relBuilder::isNotNull).toList()));
+    // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
+    // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS
+    // FIRST, 'b ASC NULLS FIRST]
+    RexNode rowNumber =
+        context
+            .relBuilder
+            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+            .over()
+            .partitionBy(dedupeFields)
+            .orderBy(dedupeFields)
+            .rowsTo(RexWindowBounds.CURRENT_ROW)
+            .as("_row_number_");
+    context.relBuilder.projectPlus(rowNumber);
+    RexNode _row_number_ = context.relBuilder.field("_row_number_");
+    // Filter ('_row_number_ <= n)
+    context.relBuilder.filter(
+        context.relBuilder.lessThanOrEqual(
+            _row_number_, context.relBuilder.literal(allowedDuplication)));
+    // DropColumns('_row_number_)
+    context.relBuilder.projectExcept(_row_number_);
+    if (keepEmpty) {
+      /*
+       * | dedup 2 a, b keepempty=true
+       * Union
+       * :- DataFrameDropColumns('_row_number_)
+       * :  +- Filter ('_row_number_ <= 2)
+       * :     +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+       * :        +- Filter (isnotnull('a) AND isnotnull('b))
+       * :           +- ...
+       * :              +- UnresolvedRelation
+       * +- Filter (isnull('a) OR isnull('b))
+       *    +- ...
+       *       +- UnresolvedRelation
+       */
+      context.relBuilder.push(root);
+      // Filter (isnull('a) OR isnull('b))
+      context.relBuilder.filter(
+          context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).toList()));
+      context.relBuilder.union(true);
+    }
     return context.relBuilder.peek();
   }
 
