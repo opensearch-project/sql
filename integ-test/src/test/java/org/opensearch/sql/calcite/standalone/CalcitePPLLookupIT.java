@@ -15,7 +15,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 
@@ -209,6 +208,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 """
                    source = %s
                    | LOOKUP %s uid AS id, name
+                   | fields id, name, country, salary, department, occupation
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
@@ -317,7 +317,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
         rows(1005, "Jane", "Canada", 90000, 1005, "DATA", "Engineer"));
   }
 
-  @Ignore("rename not support")
+  @Test
   public void testIdWithRename() {
     // rename country to department for verify the case if search side is not a table
     // and its output has diffed from the original fields of source table
@@ -404,6 +404,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 """
                    source = %s
                    | LOOKUP %s name REPLACE occupation
+                   | fields id, name, country, salary, occupation
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
@@ -431,6 +432,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
                 """
                    source = %s
                    | LOOKUP %s name REPLACE occupation AS new_col
+                   | fields id, name, occupation, country, salary, new_col
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
@@ -458,7 +460,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
             String.format(
                 """
                    source = %s
-                   | rename name as l_name | LOOKUP %s name as id REPLACE occupation as new_col | rename l_name as name
+                   | rename name as l_name | LOOKUP %s uid as id REPLACE occupation as new_col | rename l_name as name
                    """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifyNumOfRows(result, 6);

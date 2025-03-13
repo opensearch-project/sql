@@ -11,12 +11,12 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
-import static org.opensearch.sql.calcite.utils.JoinAndLookupUtils.buildFieldWithLookupSubqueryAlias;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
@@ -41,7 +42,6 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
-import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
@@ -51,6 +51,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
+import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
@@ -158,7 +159,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     List<String> originalNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> newNames = new ArrayList<>(originalNames);
-    for (Map renameMap : node.getRenameList()) {
+    for (org.opensearch.sql.ast.expression.Map renameMap : node.getRenameList()) {
       if (renameMap.getTarget() instanceof Field t) {
         String newName = t.getField().toString();
         RexNode check = rexVisitor.analyze(renameMap.getOrigin(), context);
@@ -396,91 +397,92 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 2. resolve lookup table
     analyze(node.getLookupRelation(), context);
 
+    // 3. Add projection if needed
     // If the output fields are specified, build a project list for lookup table.
     // The mapping fields of lookup table should be added in this project list, otherwise join will
     // fail.
-    // So the mapping fields of lookup table should be dropped after join.
     List<RexNode> projectList =
         JoinAndLookupUtils.buildLookupRelationProjectList(node, rexVisitor, context);
-    if (!projectList.isEmpty()) {
+    if (!projectList.isEmpty() && projectList.size() != context.relBuilder.fields().size()) {
       context.relBuilder.project(projectList);
     }
+    // Get lookupColumns from top of stack (after above potential projection).
+    List<String> lookupTableFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
 
-    // get lookupColumns from top of stack
-    List<String> lookupFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    List<String> mappingFieldNames =
+        node.getLookupMappingMap().keySet().stream()
+            .map(alias -> ((Field) alias.getDelegated()).getField().toString())
+            .toList();
+    Map<String, String> outputFieldMapping = node.getOutputMapping();
+    // The mapping fields of lookup table should be dropped after join
+    // unless they are explicitly put in the output fields
+    List<String> toBeRemovedFieldNames =
+        mappingFieldNames.stream().filter(k -> !outputFieldMapping.containsKey(k)).toList();
+    List<String> providedFieldNames =
+        lookupTableFieldNames.stream().filter(k -> !toBeRemovedFieldNames.contains(k)).toList();
+    List<String> newProvidedFieldNames =
+        providedFieldNames.stream().map(k -> outputFieldMapping.getOrDefault(k, k)).toList();
+    // duplicated fields mapping, input in source maps to output in lookup table
+    java.util.Map<String, String> duplicatedFieldsMapping =
+        providedFieldNames.stream()
+            .map(k -> Pair.of(outputFieldMapping.getOrDefault(k, k), k))
+            .filter(pair -> sourceFieldsNames.contains(pair.getKey()))
+            .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+
+    // outputFieldMapping.putAll(lookupFieldMapping);
+    // List<String> newLookupTableFieldNames = lookupTableFieldNames.stream().map(fieldName ->
+    // outputFieldMapping.getOrDefault(fieldName, fieldName)).toList();
+    // context.relBuilder.rename(newLookupTableFieldNames);
 
     // 3. resolve join condition
     RexNode joinCondition =
         JoinAndLookupUtils.buildLookupMappingCondition(node)
             .map(c -> rexVisitor.analyzeJoinCondition(c, context))
             .orElse(context.relBuilder.literal(true));
+    context.relBuilder.join(JoinRelType.LEFT, joinCondition);
 
-    // 4. When no output field is specified, all fields except mapping fields from lookup table are
-    // applied to output.
-    // If some output fields from source side duplicate to fields of lookup table, these fields will
-    // be replaced by fields from lookup table in output.
-    // For example, the lookup table contains fields [id, col1, col3] and source side fields are
-    // [id, col1, col2].
-    // For query "index = sourceTable | fields id, col1, col2 | LOOKUP lookupTable id",
-    // the col1 is duplicated field and id is mapping key (and duplicated).
-    // The query outputs 4 fields: [id, col1, col2, col3]. Among them, `col2` is the original field
-    // from source,
-    // the matched values of `col1` from lookup table will replace to the values of `col1` from
-    // source.
-    if (node.allFieldsShouldAppliedToOutputList()) {
-      context.relBuilder.join(JoinRelType.LEFT, joinCondition);
-      List<RexNode> duplicatedSourceFields =
-          sourceFieldsNames.stream()
-              .filter(lookupFieldNames::contains)
-              .map(d -> context.relBuilder.field(node.getSourceSubqueryAliasName(), d))
+    // 4. remove lookup fields which won't be used as update fields either:
+    List<RexNode> toBeRemovedLookupFields =
+        toBeRemovedFieldNames.stream()
+            .map(d -> context.relBuilder.field(node.getLookupSubqueryAliasName(), d))
+            .toList();
+    List<RexNode> removedFields = new ArrayList<>(toBeRemovedLookupFields);
+
+    List<Pair<RexNode, RexNode>> updatePairList =
+        duplicatedFieldsMapping.entrySet().stream()
+            .map(
+                entry -> {
+                  RexNode inputCol =
+                      context.relBuilder.field(node.getSourceSubqueryAliasName(), entry.getKey());
+                  RexNode outputCol =
+                      context.relBuilder.field(node.getLookupSubqueryAliasName(), entry.getValue());
+                  return Pair.of(inputCol, outputCol);
+                })
+            .toList();
+    List<RexNode> duplicatedSourceFields = updatePairList.stream().map(Pair::getKey).toList();
+    List<RexNode> provideFields = updatePairList.stream().map(Pair::getValue).toList();
+    removedFields.addAll(duplicatedSourceFields);
+    if (node.getOutputStrategy() == OutputStrategy.APPEND) {
+      List<RexNode> newCoalesceList =
+          updatePairList.stream()
+              .map(pair -> context.rexBuilder.coalesce(pair.getKey(), pair.getValue()))
               .toList();
-      context.relBuilder.projectExcept(duplicatedSourceFields);
-      return context.relBuilder.peek();
-    } else {
-      // 5. push join to stack
-      context.relBuilder.join(JoinRelType.LEFT, joinCondition);
-
-      // 6. Drop the mapping fields of lookup table in result:
-      // For example, in command "LOOKUP lookTbl Field1 AS Field2, Field3",
-      // the Field1 and Field3 are projection fields and join keys which will be dropped in result.
-      List<Field> mappingFieldsOfLookup =
-          node.getLookupMappingMap().entrySet().stream()
-              .map(
-                  kv ->
-                      kv.getKey().getField() == kv.getValue().getField()
-                          ? buildFieldWithLookupSubqueryAlias(node, kv.getKey())
-                          : kv.getKey())
-              .collect(Collectors.toList());
-      List<RexNode> dropListOfLookupMappingFields =
-          JoinAndLookupUtils.buildProjectListFromFields(mappingFieldsOfLookup, rexVisitor, context);
-      // Drop the $sourceOutputField if existing
-      List<RexNode> dropListOfSourceFields =
-          node.getFieldListWithSourceSubqueryAlias().stream()
-              .map(
-                  field -> {
-                    try {
-                      return rexVisitor.analyze(field, context);
-                    } catch (RuntimeException e) {
-                      // If the field is not found in the source, skip it
-                      return null;
-                    }
-                  })
-              .filter(Objects::nonNull)
-              .toList();
-      List<RexNode> toDrop = new ArrayList<>(dropListOfLookupMappingFields);
-      toDrop.addAll(dropListOfSourceFields);
-
-      // 7. build final outputs
-      List<RexNode> outputFields = new ArrayList<>(sourceOutputFields);
-      // Add new columns based on different strategies:
-      // Append:  coalesce($outputField, $"inputField").as(outputFieldName)
-      // Replace: $outputField.as(outputFieldName)
-      outputFields.addAll(JoinAndLookupUtils.buildOutputProjectList(node, rexVisitor, context));
-      outputFields.removeAll(toDrop);
-
-      context.relBuilder.project(outputFields);
-
-      return context.relBuilder.peek();
+      context.relBuilder.projectPlus(newCoalesceList);
+      removedFields.addAll(provideFields);
+      List<String> list2 =
+          new ArrayList<>(
+              newProvidedFieldNames.stream()
+                  .filter(k -> !duplicatedFieldsMapping.containsKey(k))
+                  .toList());
+      list2.addAll(duplicatedFieldsMapping.keySet());
+      newProvidedFieldNames = list2;
     }
+    context.relBuilder.projectExcept(removedFields);
+    List<String> oldFields = context.relBuilder.peek().getRowType().getFieldNames();
+    List<String> newFields = new ArrayList<>(oldFields.size());
+    newFields.addAll(oldFields.subList(0, oldFields.size() - newProvidedFieldNames.size()));
+    newFields.addAll(newProvidedFieldNames);
+    context.relBuilder.rename(newFields);
+    return context.relBuilder.peek();
   }
 }

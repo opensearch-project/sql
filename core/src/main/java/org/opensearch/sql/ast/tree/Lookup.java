@@ -78,7 +78,7 @@ public class Lookup extends UnresolvedPlan {
    * Field(dept). Returns a map which left join key is Field(dept), the right join key is
    * Field(dept) too.
    */
-  public Map<Field, Field> getLookupMappingMap() {
+  public Map<Field, Field> getLookupMappingMapWithoutAlias() {
     return lookupMappingMap.entrySet().stream()
         .collect(
             Collectors.toMap(
@@ -100,7 +100,7 @@ public class Lookup extends UnresolvedPlan {
   }
 
   /** Return the input field list instead of Alias list */
-  public List<Field> getInputFieldList() {
+  public List<Field> getOutputFieldList() {
     return getOutputCandidateMap().keySet().stream()
         .map(alias -> (Field) alias.getDelegated())
         .collect(Collectors.toList());
@@ -108,5 +108,21 @@ public class Lookup extends UnresolvedPlan {
 
   public boolean allFieldsShouldAppliedToOutputList() {
     return getOutputCandidateMap().isEmpty();
+  }
+
+  public Map<String, String> getLookupMapping() {
+    return lookupMappingMap.entrySet().stream()
+        .collect(
+            Collectors.toMap(
+                entry -> ((Field) (entry.getKey()).getDelegated()).getField().toString(),
+                entry -> entry.getValue().getField().toString()));
+  }
+
+  public Map<String, String> getOutputMapping() {
+    return getOutputCandidateMap().entrySet().stream()
+        .collect(
+            Collectors.toMap(
+                entry -> ((Field) (entry.getKey()).getDelegated()).getField().toString(),
+                entry -> entry.getValue().getField().toString()));
   }
 }

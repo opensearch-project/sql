@@ -7,11 +7,13 @@ package org.opensearch.sql.calcite.utils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
@@ -47,16 +49,10 @@ public interface JoinAndLookupUtils {
   static Optional<UnresolvedExpression> buildLookupMappingCondition(Lookup node) {
     // only equi-join conditions are accepted in lookup command
     List<UnresolvedExpression> equiConditions = new ArrayList<>();
-    for (Map.Entry<Field, Field> entry : node.getLookupMappingMap().entrySet()) {
-      EqualTo equalTo;
-      if (entry.getKey().getField() == entry.getValue().getField()) {
-        Field lookupWithAlias = buildFieldWithLookupSubqueryAlias(node, entry.getKey());
-        Field sourceWithAlias = buildFieldWithSourceSubqueryAlias(node, entry.getValue());
-        equalTo = new EqualTo(sourceWithAlias, lookupWithAlias);
-      } else {
-        equalTo = new EqualTo(entry.getValue(), entry.getKey());
-      }
-
+    for (Map.Entry<Field, Field> entry : node.getLookupMappingMapWithoutAlias().entrySet()) {
+      Field lookupWithAlias = buildFieldWithLookupSubqueryAlias(node, entry.getKey());
+      Field sourceWithAlias = buildFieldWithSourceSubqueryAlias(node, entry.getValue());
+      EqualTo equalTo = new EqualTo(sourceWithAlias, lookupWithAlias);
       equiConditions.add(equalTo);
     }
     return equiConditions.stream().reduce(And::new);
@@ -72,17 +68,27 @@ public interface JoinAndLookupUtils {
         QualifiedName.of(node.getSourceSubqueryAliasName(), field.getField().toString()));
   }
 
+  static Map<RexNode, RexNode> buildLookupRelationMapping(
+      Lookup node, CalciteRexNodeVisitor rexVisitor, CalcitePlanContext context) {
+    List<Alias> lookupMappingFields = new ArrayList<>(node.getLookupMappingMap().keySet());
+    return lookupMappingFields.stream()
+        .map(expr -> (RexCall) rexVisitor.analyze(expr, context))
+        .collect(Collectors.toMap(e -> e.getOperands().get(0), e -> e));
+  }
+
   /** lookup mapping fields + input fields */
   static List<RexNode> buildLookupRelationProjectList(
       Lookup node, CalciteRexNodeVisitor rexVisitor, CalcitePlanContext context) {
-    List<Field> lookupMappingFields = new ArrayList<>(node.getLookupMappingMap().keySet());
-    List<Field> inputFields = new ArrayList<>(node.getInputFieldList());
-    if (inputFields.isEmpty()) {
+    List<Field> outputFields = new ArrayList<>(node.getOutputFieldList());
+    if (outputFields.isEmpty()) {
       // All fields will be applied to the output if no input field is specified.
       return Collections.emptyList();
     }
-    lookupMappingFields.addAll(inputFields);
-    return buildProjectListFromFields(lookupMappingFields, rexVisitor, context);
+    // there may be duplicated fields between lookup mapping fields and output fields
+    HashSet<Field> lookupMappingFields =
+        new HashSet<>(node.getLookupMappingMapWithoutAlias().keySet());
+    lookupMappingFields.addAll(outputFields);
+    return buildProjectListFromFields(lookupMappingFields.stream().toList(), rexVisitor, context);
   }
 
   static List<RexNode> buildProjectListFromFields(
