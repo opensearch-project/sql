@@ -5,7 +5,6 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
@@ -33,5 +32,4 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
     verifyDataRows(actual, rows("Hello", 30));
   }
-
 }

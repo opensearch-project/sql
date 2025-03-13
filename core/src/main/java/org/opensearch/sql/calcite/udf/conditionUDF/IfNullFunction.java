@@ -12,7 +12,7 @@ public class IfNullFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     if (args.length != 2) {
-      throw new IllegalArgumentException("Null if function expects two arguments");
+      throw new IllegalArgumentException("If null function expects two arguments");
     }
     Object conditionValue = args[0];
     Object defaultValue = args[1];
