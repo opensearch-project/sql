@@ -9,6 +9,7 @@ import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.transferStringExprToDateValue;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -202,9 +203,11 @@ public interface BuiltinFunctionUtils {
             UserDefineFunctionUtils.getReturnTypeForTimeAddSub());
       case "DAY_OF_WEEK", "DAY_OF_YEAR":
         // SqlStdOperatorTable.DAYOFWEEK, SqlStdOperatorTable.DAYOFYEAR is not implemented in
-        // RexTableImpl. Therefore, we replace it with their lower-level
+        // RexImpTable. Therefore, we replace it with their lower-level
         // calls SqlStdOperatorTable.EXTRACT and convert the arguments accordingly.
         return SqlStdOperatorTable.EXTRACT;
+      case "DATEDIFF":
+        return SqlStdOperatorTable.TIMESTAMP_DIFF;
         // TODO Add more, ref RexImpTable
       case "DAYNAME":
         return TransferUserDefinedFunction(periodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
@@ -388,18 +391,43 @@ public interface BuiltinFunctionUtils {
         UnixArgs.add(context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return UnixArgs;
       case "DAY_OF_WEEK":
-        RexNode dow =
+        RexNode dowUnit =
             context.rexBuilder.makeIntervalLiteral(
                 new SqlIntervalQualifier(TimeUnit.DOW, null, SqlParserPos.ZERO));
-        return List.of(dow, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
+        return List.of(
+            dowUnit, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
       case "DAY_OF_YEAR":
-        RexNode dom =
+        RexNode domUnit =
             context.rexBuilder.makeIntervalLiteral(
                 new SqlIntervalQualifier(TimeUnit.DOY, null, SqlParserPos.ZERO));
-        return List.of(dom, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
+        return List.of(
+            domUnit, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
+      case "DATEDIFF":
+        RexNode dayUnit = context.rexBuilder.makeLiteral(TimeUnit.DAY.toString());
+        RexNode ts1 = convertToDateIfNecessary(context.rexBuilder, argList.getFirst());
+        RexNode ts2 = convertToDateIfNecessary(context.rexBuilder, argList.get(1));
+        // TimeFrameSet.diffDate calculates difference as op2 - op1.
+        // See
+        // @link{https://github.com/apache/calcite/blob/618e601b136e92db933523f77dd7af3c1dfe2779/core/src/main/java/org/apache/calcite/runtime/SqlFunctions.java#L5746}
+        return ImmutableList.of(dayUnit, ts2, ts1);
       default:
         return argList;
     }
+  }
+
+  static RelDataType deriveReturnType(
+      String funcName, RexBuilder rexBuilder, SqlOperator operator, List<? extends RexNode> exprs) {
+    return switch (funcName) {
+      case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+      default -> rexBuilder.deriveReturnType(operator, exprs);
+    };
+  }
+
+  private static RexNode convertToDateIfNecessary(RexBuilder rexBuilder, RexNode expr) {
+    if (!expr.getType().getSqlTypeName().equals(SqlTypeName.DATE)) {
+      return rexBuilder.makeCall(SqlLibraryOperators.DATE, ImmutableList.of(expr));
+    }
+    return expr;
   }
 
   private static RexNode convertToDateLiteralIfString(

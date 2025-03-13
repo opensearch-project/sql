@@ -265,6 +265,17 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testDateDiff() {
+    testSimplePPL(
+        "source=people | eval `'2000-01-02' - '2000-01-01'` = DATEDIFF(TIMESTAMP('2000-01-02"
+            + " 00:00:00'), TIMESTAMP('2000-01-01 23:59:59')), `'2001-02-01' - '2004-01-01'` ="
+            + " DATEDIFF(DATE('2001-02-01'), TIMESTAMP('2004-01-01 00:00:00')), `today - today` ="
+            + " DATEDIFF(TIME('23:59:59'), TIME('00:00:00')) | fields `'2000-01-02' -"
+            + " '2000-01-01'`, `'2001-02-01' - '2004-01-01'`, `today - today`",
+        List.of(1, -1064, 0));
+  }
+
+  @Test
   public void testNow() {
     String execResult =
         execute(
