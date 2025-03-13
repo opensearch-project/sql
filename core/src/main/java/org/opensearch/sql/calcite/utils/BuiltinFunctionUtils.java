@@ -18,6 +18,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.SpanFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 
 public interface BuiltinFunctionUtils {
@@ -96,6 +97,9 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.DATE_ADD_SPARK;
       case "DATE_ADD":
         return SqlLibraryOperators.DATEADD;
+        // UDF Functions
+      case "SPAN":
+        return TransferUserDefinedFunction(SpanFunction.class, "SPAN", ReturnTypes.ARG0);
         // TODO Add more, ref RexImpTable
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);

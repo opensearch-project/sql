@@ -225,16 +225,22 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows(32838.0, 20, "F"), rows(44313.0, 30, "F"), rows(16377.25, 30, "M"));
   }
 
-  @Ignore("https://github.com/opensearch-project/sql/issues/3354")
+  @Test
   public void testAvgByTimeSpanAndFields() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats avg(balance) by span(birthdate, 1 day) as age_balance",
+                "source=%s | stats avg(balance) by span(birthdate, 1 month) as age_balance",
                 TEST_INDEX_BANK));
-    verifySchema(
-        actual, schema("span(birthdate, 1 day)", "string"), schema("age_balance", "double"));
-    verifyDataRows(actual, rows("F", 3L), rows("M", 4L));
+    System.out.println(actual.getJSONArray("datarows"));
+    verifySchema(actual, schema("age_balance", "timestamp"), schema("avg(balance)", "double"));
+    verifyDataRows(
+        actual,
+        rows("2017-10-01 00:00:00", 39225),
+        rows("2018-06-01 00:00:00", 24628),
+        rows("2018-11-01 00:00:00", 4180),
+        rows("2018-08-01 00:00:00", 44313),
+        rows("2017-11-01 00:00:00", 5686));
   }
 
   @Test
