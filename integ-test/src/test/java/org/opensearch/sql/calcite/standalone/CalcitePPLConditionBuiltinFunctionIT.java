@@ -9,7 +9,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
-public class CalcitePPLConditionBultinFunctionIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Override
   public void init() throws IOException {
     super.init();

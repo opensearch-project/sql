@@ -80,6 +80,13 @@ public class UserDefineFunctionUtils {
     };
   }
 
+  /**
+   * For some udf/udaf, when giving a list of arguments, we need to infer the return type from the
+   * arguments.
+   *
+   * @param targetPosition
+   * @return a inference function
+   */
   public static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
