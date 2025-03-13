@@ -1,0 +1,10 @@
+{"index":{"_id":"1"}}
+{"name":"Jake","age":70,"state":"California","country":"USA","year":2023,"month":4}
+{"index":{"_id":"2"}}
+{"name":"Hello","age":30,"state":"New York","country":"USA","year":2023,"month":4}
+{"index":{"_id":"3"}}
+{"name":"John","age":25,"state":"Ontario","country":"Canada","year":2023,"month":4}
+{"index":{"_id":"4"}}
+{"name":"Jane","age":20,"state":"Quebec","country":"Canada","year":2023,"month":4}
+{"index":{"_id":"5"}}
+{"name":null,"age":10,"state":null,"country":"Canada","year":2023,"month":4}
