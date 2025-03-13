@@ -125,28 +125,24 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitLookup(Lookup node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     String lookupTable = ((Relation) node.getLookupRelation()).getTableQualifiedName().toString();
-    String mappingFields =
-        node.getMappingAliasMap().entrySet().stream()
-            .map(
-                entry ->
-                    Objects.equals(entry.getKey(), entry.getValue())
-                        ? entry.getKey()
-                        : StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
-            .collect(Collectors.joining(","));
+    String mappingFields = formatFieldAlias(node.getMappingAliasMap());
     String strategy =
         node.getOutputAliasMap().isEmpty()
             ? ""
             : String.format(" %s ", node.getOutputStrategy().toString().toLowerCase());
-    String outputFields =
-        node.getOutputAliasMap().entrySet().stream()
-            .map(
-                entry ->
-                    Objects.equals(entry.getKey(), entry.getValue())
-                        ? entry.getKey()
-                        : StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
-            .collect(Collectors.joining(","));
+    String outputFields = formatFieldAlias(node.getOutputAliasMap());
     return StringUtils.format(
         "%s | lookup %s %s%s%s", child, lookupTable, mappingFields, strategy, outputFields);
+  }
+
+  private String formatFieldAlias(java.util.Map<String, String> fieldMap) {
+    return fieldMap.entrySet().stream()
+        .map(
+            entry ->
+                Objects.equals(entry.getKey(), entry.getValue())
+                    ? entry.getKey()
+                    : StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
+        .collect(Collectors.joining(", "));
   }
 
   @Override

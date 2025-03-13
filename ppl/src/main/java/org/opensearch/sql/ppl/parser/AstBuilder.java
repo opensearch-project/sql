@@ -435,8 +435,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .collect(
             Collectors.toMap(
                 pair -> pair.inputField.getText(),
-                pair ->
-                    pair.AS() != null ? pair.outputField.getText() : pair.inputField.getText()));
+                pair -> pair.AS() != null ? pair.outputField.getText() : pair.inputField.getText(),
+                (x, y) -> y,
+                LinkedHashMap::new));
   }
 
   @Override

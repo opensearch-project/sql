@@ -231,6 +231,11 @@ public class PPLQueryDataAnonymizerTest {
         "source=EMP | lookup DEPT DEPTNO append LOC as JOB",
         anonymize("source=EMP | lookup DEPT DEPTNO append LOC as JOB"));
     assertEquals("source=EMP | lookup DEPT DEPTNO", anonymize("source=EMP | lookup DEPT DEPTNO"));
+    assertEquals(
+        "source=EMP | lookup DEPT DEPTNO as EMPNO, ID append ID, LOC as JOB, COUNTRY as COUNTRY2",
+        anonymize(
+            "source=EMP | lookup DEPT DEPTNO as EMPNO, ID append ID, LOC as JOB, COUNTRY as"
+                + " COUNTRY2"));
   }
 
   @Test
