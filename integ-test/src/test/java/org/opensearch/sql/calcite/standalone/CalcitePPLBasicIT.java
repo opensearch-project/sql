@@ -28,6 +28,10 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
     request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
     client().performRequest(request2);
+    // PUT index test1
+    Request request3 = new Request("PUT", "/test1/_doc/1?refresh=true");
+    request3.setJsonEntity("{\"name\": \"HELLO\", \"alias\": \"Hello\"}");
+    client().performRequest(request3);
 
     loadIndex(Index.BANK);
   }
@@ -48,11 +52,28 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleSourceQuery() {
+  public void testMultipleSourceQuery_SameTable() {
     JSONObject actual = executeQuery("source=test, test");
     verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifyDataRows(actual, rows("hello", 20), rows("world", 30));
+  }
+
+  @Test
+  public void testMultipleSourceQuery_DifferentTables() {
+    JSONObject actual = executeQuery("source=test, test1");
+    verifySchema(
+        actual, schema("name", "string"), schema("age", "long"), schema("alias", "string"));
     verifyDataRows(
-        actual, rows("hello", 20), rows("world", 30), rows("hello", 20), rows("world", 30));
+        actual, rows("hello", null, 20), rows("world", null, 30), rows("HELLO", "Hello", null));
+  }
+
+  @Test
+  public void testIndexPatterns() {
+    JSONObject actual = executeQuery("source=test*");
+    verifySchema(
+        actual, schema("name", "string"), schema("age", "long"), schema("alias", "string"));
+    verifyDataRows(
+        actual, rows("hello", null, 20), rows("world", null, 30), rows("HELLO", "Hello", null));
   }
 
   @Test
@@ -296,23 +317,48 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMultipleTables() {
+  public void testMultipleTables_SameTable() {
     JSONObject actual =
         executeQuery(
             String.format("source=%s, %s | stats count() as c", TEST_INDEX_BANK, TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "long"));
-    verifyDataRows(actual, rows(14));
+    verifyDataRows(actual, rows(7));
   }
 
   @Test
-  public void testMultipleTablesAndFilters() {
+  public void testMultipleTablesAndFilters_SameTable() {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s, %s gender = 'F' | stats count() as c",
                 TEST_INDEX_BANK, TEST_INDEX_BANK));
     verifySchema(actual, schema("c", "long"));
-    verifyDataRows(actual, rows(6));
+    verifyDataRows(actual, rows(3));
+  }
+
+  @Test
+  public void testMultipleTables_DifferentTables() {
+    JSONObject actual =
+        executeQuery(String.format("source=%s, test | stats count() as c", TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "long"));
+    verifyDataRows(actual, rows(9));
+  }
+
+  @Test
+  public void testMultipleTables_WithIndexPattern() {
+    JSONObject actual =
+        executeQuery(String.format("source=%s, test* | stats count() as c", TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "long"));
+    verifyDataRows(actual, rows(10));
+  }
+
+  @Test
+  public void testMultipleTablesAndFilters_WithIndexPattern() {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s, test* gender = 'F' | stats count() as c", TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "long"));
+    verifyDataRows(actual, rows(3));
   }
 
   @Test

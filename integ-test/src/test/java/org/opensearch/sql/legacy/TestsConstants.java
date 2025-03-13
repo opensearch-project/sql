@@ -60,6 +60,8 @@ public class TestsConstants {
   public static final String TEST_INDEX_GEOPOINT = TEST_INDEX + "_geopoint";
   public static final String DATASOURCES = ".ql-datasources";
   public static final String TEST_INDEX_STATE_COUNTRY = TEST_INDEX + "_state_country";
+  public static final String TEST_INDEX_STATE_COUNTRY_WITH_NULL =
+      TEST_INDEX + "_state_country_with_null";
   public static final String TEST_INDEX_OCCUPATION = TEST_INDEX + "_occupation";
   public static final String TEST_INDEX_OCCUPATION_TOP_RARE = TEST_INDEX + "_occupation_top_rare";
   public static final String TEST_INDEX_HOBBIES = TEST_INDEX + "_hobbies";

@@ -135,11 +135,13 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "true"));
+    System.out.println(Settings.Key.CALCITE_FALLBACK_ALLOWED.name() + " enabled");
   }
 
   protected static void disallowCalciteFallback() throws IOException {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
+    System.out.println(Settings.Key.CALCITE_FALLBACK_ALLOWED.name() + " disabled");
   }
 }
