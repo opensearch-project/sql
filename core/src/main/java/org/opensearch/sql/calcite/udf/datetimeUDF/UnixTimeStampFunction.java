@@ -1,5 +1,6 @@
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
 import java.text.DecimalFormat;
@@ -23,29 +24,16 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
             return localDateTime.toEpochSecond(ZoneOffset.UTC);
         }
         Object input = args[0];
-        String inputTypes = args[1].toString();
-        if (input instanceof Number) {
-            // return null
-            // what if calcite sql timestamp?
-            // number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
-            if (inputTypes.contains("double")) {
-                return transferUnixTimeStampFromDoubleInput(((Number) input).doubleValue());
-            } else {
-                LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli((long) input), ZoneOffset.UTC);
-                return localDateTime.toEpochSecond(ZoneOffset.UTC);
-            }
-        }
-        else if (input instanceof java.sql.Date) {
+        SqlTypeName inputTypes = (SqlTypeName) args[1];
+        if (inputTypes == SqlTypeName.DATE) {
             LocalDate localDate = ((java.sql.Date) input).toLocalDate();
             return localDate.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC);
-        }
-        else if (input instanceof java.sql.Timestamp) {
+        } else if (inputTypes == SqlTypeName.TIMESTAMP) {
             LocalDateTime localDateTime = ((java.sql.Timestamp) input).toLocalDateTime();
             return localDateTime.toEpochSecond(ZoneOffset.UTC);
         }
-
-        return null;
-
-
+        else {
+            return transferUnixTimeStampFromDoubleInput(((Number) input).doubleValue());
+        }
     }
 }

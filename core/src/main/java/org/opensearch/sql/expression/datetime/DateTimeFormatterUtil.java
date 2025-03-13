@@ -32,7 +32,7 @@ import org.opensearch.sql.expression.function.FunctionProperties;
  * This class converts a SQL style DATE_FORMAT format specifier and converts it to a Java
  * SimpleDateTime format.
  */
-class DateTimeFormatterUtil {
+public class DateTimeFormatterUtil {
   private static final int SUFFIX_SPECIAL_START_TH = 11;
   private static final int SUFFIX_SPECIAL_END_TH = 13;
   private static final String SUFFIX_SPECIAL_TH = "th";
@@ -48,7 +48,7 @@ class DateTimeFormatterUtil {
     String getFormat(LocalDateTime date);
   }
 
-  private static final Map<String, DateTimeFormatHandler> DATE_HANDLERS =
+  public static final Map<String, DateTimeFormatHandler> DATE_HANDLERS =
       ImmutableMap.<String, DateTimeFormatHandler>builder()
           .put("%a", (date) -> "EEE") // %a => EEE - Abbreviated weekday name (Sun..Sat)
           .put("%b", (date) -> "LLL") // %b => LLL - Abbreviated month name (Jan..Dec)
@@ -215,7 +215,7 @@ class DateTimeFormatterUtil {
    * @param datetime The datetime argument being formatted
    * @return A formatted string expression
    */
-  static ExprValue getFormattedString(
+  public static ExprValue getFormattedString(
       ExprValue formatExpr, Map<String, DateTimeFormatHandler> handler, LocalDateTime datetime) {
     StringBuffer cleanFormat = getCleanFormat(formatExpr);
 

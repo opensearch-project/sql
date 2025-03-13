@@ -114,8 +114,8 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testMonthName() {
     String query =
-            "source=people | eval `MONTHNAME(DATE('2020-08-26'))` = MONTHNAME(DATE('2020-08-26')) | fields `MONTHNAME(DATE('2020-08-26'))`";
-    testSimplePPL(query, List.of("Aug"));
+            "source=people | eval a = MONTHNAME(DATE('2020-08-26')), b= MONTHNAME(TIMESTAMP('2020-08-26 12:00:00')), c=MONTHNAME('2020-08-26')| fields a, b, c";
+    testSimplePPL(query, List.of("august", "august", "august"));
   }
 
   @Test
@@ -128,9 +128,17 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testDayName() {
     String query =
-            "source=people | eval `DAYNAME(DATE('2020-08-26'))` = DAYNAME(DATE('2020-08-26')) | fields `DAYNAME(DATE('2020-08-26'))`";
-    testSimplePPL(query, List.of("Wed"));
+            "source=people | eval a = DAYNAME(DATE('2020-08-26')), b= DAYNAME(TIMESTAMP('2020-08-26 12:00:00')), c=DAYNAME('2020-08-26')| fields a, b, c";
+    testSimplePPL(query, List.of("wednesday", "wednesday", "wednesday"));
   }
+
+  @Test
+  public void testFromUnixTime() {
+    String query =
+            "source=people |  eval `FROM_UNIXTIME(1220249547)` = FROM_UNIXTIME(1220249547), `FROM_UNIXTIME(1220249547, '%T')` = FROM_UNIXTIME(1220249547, '%T') | fields `FROM_UNIXTIME(1220249547)`, `FROM_UNIXTIME(1220249547, '%T')`";
+    testSimplePPL(query, List.of(1));
+  }
+
 
   @Test
   public void testHour() {

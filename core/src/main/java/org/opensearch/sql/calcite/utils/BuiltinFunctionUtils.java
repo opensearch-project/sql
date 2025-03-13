@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexLiteral;
@@ -29,6 +30,8 @@ import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeFunction;
@@ -179,9 +182,9 @@ public interface BuiltinFunctionUtils {
       case "DATE_SUB":
         return SqlLibraryOperators.DATE_SUB;
       case "DAYNAME":
-        return SqlLibraryOperators.DAYNAME;
+        return TransferUserDefinedFunction(periodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
       case "MONTHNAME":
-        return SqlLibraryOperators.MONTHNAME;
+        return TransferUserDefinedFunction(periodNameFunction.class, "MONTHNAME", ReturnTypes.CHAR);
       case "LAST_DAY":
         return SqlStdOperatorTable.LAST_DAY;
       case "UNIX_TIMESTAMP":
@@ -191,6 +194,8 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
       case "WEEK", "YEAR", "MINUTE", "HOUR":
         return SqlLibraryOperators.DATE_PART;
+      case "FROM_UNIXTIME":
+        return TransferUserDefinedFunction(fromUnixTimestampFunction.class, "FROM_UNIXTIME", fromUnixTimestampFunction.interReturnTypes());
       case "UTC_TIMESTAMP":
         return TransferUserDefinedFunction(UtcTimeStampFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
       case "UTC_TIME":
@@ -284,6 +289,17 @@ public interface BuiltinFunctionUtils {
           LastDateArgs.add(lastDayTimestampExpr);
         }
         return LastDateArgs;
+      case "TIMESTAMP":
+        List<RexNode> timestampArgs = new ArrayList<>(argList);
+        timestampArgs.addAll(argList.stream().
+                map(p -> context.rexBuilder.makeFlag(p.getType().getSqlTypeName())).collect(Collectors.toList()));
+
+      case "DAYNAME", "MONTHNAME":
+        List<RexNode> periodNameArgs = new ArrayList<>();
+        periodNameArgs.add(argList.getFirst());
+        periodNameArgs.add(context.rexBuilder.makeLiteral(op));
+        periodNameArgs.add(context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
+        return periodNameArgs;
       case "YEAR", "MINUTE", "HOUR", "DAY":
         List<RexNode> extractArgs = new ArrayList<>();
         extractArgs.add(context.rexBuilder.makeLiteral(op));
@@ -291,16 +307,8 @@ public interface BuiltinFunctionUtils {
         return extractArgs;
       case "UNIX_TIMESTAMP":
         List<RexNode> UnixArgs = new ArrayList<>(argList);
-        if (argList.size() == 1) {
-          if (argList.getFirst() instanceof RexLiteral) {
-            // It's a double input
-            UnixArgs.add(context.rexBuilder.makeLiteral("double input"));
-          }
-          else {
-            UnixArgs.add(context.rexBuilder.makeLiteral("time input input"));
-          }
-          return UnixArgs;
-        }
+        UnixArgs.add(context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
+        return UnixArgs;
       default:
         return argList;
     }
