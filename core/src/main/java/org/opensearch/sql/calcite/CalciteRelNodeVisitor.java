@@ -15,8 +15,8 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -392,7 +392,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     // get sourceOutputFields from top of stack which is used to build final output
     List<String> sourceFieldsNames = context.relBuilder.peek().getRowType().getFieldNames();
-    List<RexNode> sourceOutputFields = context.relBuilder.fields();
 
     // 2. resolve lookup table
     analyze(node.getLookupRelation(), context);
@@ -401,88 +400,109 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // If the output fields are specified, build a project list for lookup table.
     // The mapping fields of lookup table should be added in this project list, otherwise join will
     // fail.
-    List<RexNode> projectList =
-        JoinAndLookupUtils.buildLookupRelationProjectList(node, rexVisitor, context);
-    if (!projectList.isEmpty() && projectList.size() != context.relBuilder.fields().size()) {
-      context.relBuilder.project(projectList);
+    List<String> mappingField = node.getMappingAliasMap().keySet().stream().toList();
+    List<String> outputField = node.getOutputAliasMap().keySet().stream().toList();
+    if (!outputField.isEmpty()) {
+      HashSet<String> lookupMappingFields = new HashSet<>(outputField);
+      lookupMappingFields.addAll(mappingField);
+      if (lookupMappingFields.size() != context.relBuilder.fields().size()) {
+        List<RexNode> projectList =
+            lookupMappingFields.stream()
+                .map(fieldName -> (RexNode) context.relBuilder.field(fieldName))
+                .toList();
+        context.relBuilder.project(projectList);
+      }
     }
     // Get lookupColumns from top of stack (after above potential projection).
     List<String> lookupTableFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
 
-    List<String> mappingFieldNames =
-        node.getLookupMappingMap().keySet().stream()
-            .map(alias -> ((Field) alias.getDelegated()).getField().toString())
-            .toList();
-    Map<String, String> outputFieldMapping = node.getOutputMapping();
-    // The mapping fields of lookup table should be dropped after join
+    // 3. Find fields which should be removed in lookup-table.
+    // For lookup table, the mapping fields should be dropped after join
     // unless they are explicitly put in the output fields
     List<String> toBeRemovedFieldNames =
-        mappingFieldNames.stream().filter(k -> !outputFieldMapping.containsKey(k)).toList();
+        mappingField.stream().filter(k -> !node.getOutputAliasMap().containsKey(k)).toList();
     List<String> providedFieldNames =
         lookupTableFieldNames.stream().filter(k -> !toBeRemovedFieldNames.contains(k)).toList();
-    List<String> newProvidedFieldNames =
-        providedFieldNames.stream().map(k -> outputFieldMapping.getOrDefault(k, k)).toList();
-    // duplicated fields mapping, input in source maps to output in lookup table
-    java.util.Map<String, String> duplicatedFieldsMapping =
-        providedFieldNames.stream()
-            .map(k -> Pair.of(outputFieldMapping.getOrDefault(k, k), k))
-            .filter(pair -> sourceFieldsNames.contains(pair.getKey()))
-            .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
-
-    // outputFieldMapping.putAll(lookupFieldMapping);
-    // List<String> newLookupTableFieldNames = lookupTableFieldNames.stream().map(fieldName ->
-    // outputFieldMapping.getOrDefault(fieldName, fieldName)).toList();
-    // context.relBuilder.rename(newLookupTableFieldNames);
-
-    // 3. resolve join condition
-    RexNode joinCondition =
-        JoinAndLookupUtils.buildLookupMappingCondition(node)
-            .map(c -> rexVisitor.analyzeJoinCondition(c, context))
-            .orElse(context.relBuilder.literal(true));
-    context.relBuilder.join(JoinRelType.LEFT, joinCondition);
-
-    // 4. remove lookup fields which won't be used as update fields either:
     List<RexNode> toBeRemovedLookupFields =
         toBeRemovedFieldNames.stream()
-            .map(d -> context.relBuilder.field(node.getLookupSubqueryAliasName(), d))
+            .map(d -> (RexNode) context.relBuilder.field(2, 1, d))
             .toList();
-    List<RexNode> removedFields = new ArrayList<>(toBeRemovedLookupFields);
+    List<RexNode> toBeRemovedFields = new ArrayList<>(toBeRemovedLookupFields);
 
-    List<Pair<RexNode, RexNode>> updatePairList =
-        duplicatedFieldsMapping.entrySet().stream()
+    // 4. Find duplicated fields between source table fields and lookup table provided fields.
+    // Construct a duplicated field map: Key comes from providedFieldNames -> Value comes from
+    // sourceFieldsNames.
+    // A provided field is detected to be duplicated if it has the same name with a source field
+    // after alias mapping.
+    java.util.Map<String, String> duplicatedFieldNamesMap =
+        providedFieldNames.stream()
+            .map(k -> Pair.of(node.getOutputAliasMap().getOrDefault(k, k), k))
+            .filter(pair -> sourceFieldsNames.contains(pair.getKey()))
+            .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+    List<Pair<RexNode, RexNode>> duplicatedFieldsPair =
+        duplicatedFieldNamesMap.entrySet().stream()
             .map(
                 entry -> {
-                  RexNode inputCol =
-                      context.relBuilder.field(node.getSourceSubqueryAliasName(), entry.getKey());
-                  RexNode outputCol =
-                      context.relBuilder.field(node.getLookupSubqueryAliasName(), entry.getValue());
+                  RexNode inputCol = context.relBuilder.field(2, 0, entry.getKey());
+                  RexNode outputCol = context.relBuilder.field(2, 1, entry.getValue());
                   return Pair.of(inputCol, outputCol);
                 })
             .toList();
-    List<RexNode> duplicatedSourceFields = updatePairList.stream().map(Pair::getKey).toList();
-    List<RexNode> provideFields = updatePairList.stream().map(Pair::getValue).toList();
-    removedFields.addAll(duplicatedSourceFields);
+    List<RexNode> duplicatedSourceFields = duplicatedFieldsPair.stream().map(Pair::getKey).toList();
+    List<RexNode> duplicatedProvidedFields =
+        duplicatedFieldsPair.stream().map(Pair::getValue).toList();
+    // Duplicated fields in source-field should always be removed.
+    toBeRemovedFields.addAll(duplicatedSourceFields);
+
+    // 5. Resolve join condition. Note, this operation should be done after finishing all analyze.
+    RexNode joinCondition =
+        node.getMappingAliasMap().entrySet().stream()
+            .map(
+                entry -> {
+                  RexNode sourceKey = context.relBuilder.field(2, 0, entry.getValue());
+                  RexNode lookupKey = context.relBuilder.field(2, 1, entry.getKey());
+                  return context.rexBuilder.equals(sourceKey, lookupKey);
+                })
+            .reduce(context.rexBuilder::and)
+            .orElse(context.relBuilder.literal(true));
+    context.relBuilder.join(JoinRelType.LEFT, joinCondition);
+
+    // Construct a new field name for the new provided-fields.
+    List<String> expectedProvidedFieldNames =
+        providedFieldNames.stream().map(k -> node.getOutputAliasMap().getOrDefault(k, k)).toList();
+
     if (node.getOutputStrategy() == OutputStrategy.APPEND) {
       List<RexNode> newCoalesceList =
-          updatePairList.stream()
+          duplicatedFieldsPair.stream()
               .map(pair -> context.rexBuilder.coalesce(pair.getKey(), pair.getValue()))
               .toList();
       context.relBuilder.projectPlus(newCoalesceList);
-      removedFields.addAll(provideFields);
-      List<String> list2 =
+
+      // For APPEND strategy, it needs to replace duplicated provided-fields with the new
+      // constructed coalesced fields.
+      // Hence, we need to remove the duplicated provided-fields as well and adjust the expected
+      // provided-field names since new added fields are appended to the end of the project list.
+      toBeRemovedFields.addAll(duplicatedProvidedFields);
+      List<String> newExpectedFieldNames =
           new ArrayList<>(
-              newProvidedFieldNames.stream()
-                  .filter(k -> !duplicatedFieldsMapping.containsKey(k))
+              expectedProvidedFieldNames.stream()
+                  .filter(k -> !duplicatedFieldNamesMap.containsKey(k))
                   .toList());
-      list2.addAll(duplicatedFieldsMapping.keySet());
-      newProvidedFieldNames = list2;
+      newExpectedFieldNames.addAll(duplicatedFieldNamesMap.keySet());
+      expectedProvidedFieldNames = newExpectedFieldNames;
     }
-    context.relBuilder.projectExcept(removedFields);
+
+    // NOTE: Need to lazy invoke projectExcept until finishing all analyzing,
+    // otherwise the field names may have changed because of field name duplication.
+    context.relBuilder.projectExcept(toBeRemovedFields);
+
+    // 6. Rename the fields to the expected names.
     List<String> oldFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> newFields = new ArrayList<>(oldFields.size());
-    newFields.addAll(oldFields.subList(0, oldFields.size() - newProvidedFieldNames.size()));
-    newFields.addAll(newProvidedFieldNames);
+    newFields.addAll(oldFields.subList(0, oldFields.size() - expectedProvidedFieldNames.size()));
+    newFields.addAll(expectedProvidedFieldNames);
     context.relBuilder.rename(newFields);
+
     return context.relBuilder.peek();
   }
 }

@@ -439,18 +439,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new ExistsSubquery(astBuilder.visitSubSearch(ctx.subSearch()));
   }
 
-  /** Lookup. */
-  @Override
-  public UnresolvedExpression visitLookupPair(OpenSearchPPLParser.LookupPairContext ctx) {
-    Field inputField = (Field) visitFieldExpression(ctx.inputField);
-    if (ctx.AS() != null) {
-      Field outputField = (Field) visitFieldExpression(ctx.outputField);
-      return new And(new Alias(ctx.outputField.getText(), inputField), outputField);
-    } else {
-      return new And(new Alias(ctx.inputField.getText(), inputField), inputField);
-    }
-  }
-
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
     return new QualifiedName(
         ctx.stream()

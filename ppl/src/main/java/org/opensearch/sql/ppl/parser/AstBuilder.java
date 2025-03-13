@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
@@ -37,7 +38,6 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -77,6 +77,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldListContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 
@@ -293,7 +294,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                                         StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
                                         internalVisitExpression(groupCtx)))
                         .collect(Collectors.toList()))
-            .orElse(Collections.emptyList());
+            .orElse(emptyList());
 
     UnresolvedExpression span =
         Optional.ofNullable(ctx.statsByClause())
@@ -359,7 +360,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitRareCommand(OpenSearchPPLParser.RareCommandContext ctx) {
     List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
+        ctx.byClause() == null ? emptyList() : getGroupByList(ctx.byClause());
     return new RareTopN(
         CommandType.RARE,
         ArgumentFactory.getArgumentList(ctx),
@@ -371,7 +372,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitTopCommand(OpenSearchPPLParser.TopCommandContext ctx) {
     List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
+        ctx.byClause() == null ? emptyList() : getGroupByList(ctx.byClause());
     return new RareTopN(
         CommandType.TOP,
         ArgumentFactory.getArgumentList(ctx),
@@ -419,27 +420,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         new Relation(Collections.singletonList(this.internalVisitExpression(ctx.tableSource())));
     Lookup.OutputStrategy strategy =
         ctx.APPEND() != null ? Lookup.OutputStrategy.APPEND : Lookup.OutputStrategy.REPLACE;
-    java.util.Map<Alias, Field> lookupMappingList =
-        buildLookupPair(ctx.lookupMappingList().lookupPair());
-    java.util.Map<Alias, Field> outputCandidateList =
-        ctx.APPEND() == null && ctx.REPLACE() == null
+    java.util.Map<String, String> mappingAliasMap =
+        buildFieldAliasMap(ctx.lookupMappingList().lookupPair());
+    java.util.Map<String, String> outputAliasMap =
+        ctx.outputCandidateList() == null
             ? emptyMap()
-            : buildLookupPair(ctx.outputCandidateList().lookupPair());
-    return new Lookup(
-        new SubqueryAlias(lookupRelation, "_l"), lookupMappingList, strategy, outputCandidateList);
+            : buildFieldAliasMap(ctx.outputCandidateList().lookupPair());
+    return new Lookup(lookupRelation, mappingAliasMap, strategy, outputAliasMap);
   }
 
-  private java.util.Map<Alias, Field> buildLookupPair(
-      List<OpenSearchPPLParser.LookupPairContext> ctx) {
-    return ctx.stream()
-        .map(expressionBuilder::visitLookupPair)
-        .map(And.class::cast)
+  private java.util.Map<String, String> buildFieldAliasMap(
+      List<LookupPairContext> lookupPairContext) {
+    return lookupPairContext.stream()
         .collect(
             Collectors.toMap(
-                and -> (Alias) and.getLeft(),
-                and -> (Field) and.getRight(),
-                (x, y) -> y,
-                LinkedHashMap::new));
+                pair -> pair.inputField.getText(),
+                pair ->
+                    pair.AS() != null ? pair.outputField.getText() : pair.inputField.getText()));
   }
 
   @Override
