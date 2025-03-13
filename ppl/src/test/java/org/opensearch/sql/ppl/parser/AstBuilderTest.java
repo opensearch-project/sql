@@ -45,8 +45,8 @@ import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.window;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
-import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -74,6 +74,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.utils.SystemIndexUtils;
 
 public class AstBuilderTest {
 
@@ -884,5 +885,9 @@ public class AstBuilderTest {
   private Node plan(String query) {
     AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), settings, query);
     return astBuilder.visit(parser.parse(query));
+  }
+
+  private String mappingTable(String indexName) {
+    return SystemIndexUtils.mappingTable(indexName, PPL_SPEC);
   }
 }

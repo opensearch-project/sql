@@ -52,7 +52,7 @@ public class TextFunctionIT extends PPLIntegTestCase {
             "source=%s | eval f=%s(%sname%s) | fields f",
             TEST_INDEX_STRINGS, command, initialArgs, additionalArgs);
     JSONObject result = executeQuery(query);
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(outputRow1), rows(outputRow2), rows(outputRow3));
   }
 
@@ -62,7 +62,7 @@ public class TextFunctionIT extends PPLIntegTestCase {
         String.format(
             "source=%s | eval f=name regexp '%s' | fields f", TEST_INDEX_STRINGS, pattern);
     JSONObject result = executeQuery(query);
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifyDataRows(result, rows(outputRow1), rows(outputRow2), rows(outputRow3));
   }
 

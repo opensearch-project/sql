@@ -136,7 +136,7 @@ public class PrometheusDescribeMetricRequestTest {
     valueMap.put("TABLE_SCHEMA", stringValue("default"));
     valueMap.put("TABLE_NAME", stringValue(METRIC_NAME));
     valueMap.put("COLUMN_NAME", stringValue("call"));
-    valueMap.put("DATA_TYPE", stringValue(ExprCoreType.STRING.legacyTypeName().toLowerCase()));
+    valueMap.put("DATA_TYPE", stringValue(ExprCoreType.STRING.typeName().toLowerCase()));
     return new ExprTupleValue(valueMap);
   }
 }
