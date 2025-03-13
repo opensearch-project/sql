@@ -418,6 +418,8 @@ public interface BuiltinFunctionUtils {
   static RelDataType deriveReturnType(
       String funcName, RexBuilder rexBuilder, SqlOperator operator, List<? extends RexNode> exprs) {
     return switch (funcName) {
+        // This effectively invalidates the operand type check, which leads to unnecessary
+        // incompatible parameter type errors
       case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
       default -> rexBuilder.deriveReturnType(operator, exprs);
     };
