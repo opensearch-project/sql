@@ -217,6 +217,23 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testLookup() {
+    assertEquals(
+        "source=EMP | lookup DEPT DEPTNO replace LOC",
+        anonymize("source=EMP | lookup DEPT DEPTNO replace LOC"));
+    assertEquals(
+        "source=EMP | lookup DEPT DEPTNO replace LOC as JOB",
+        anonymize("source=EMP | lookup DEPT DEPTNO replace LOC as JOB"));
+    assertEquals(
+        "source=EMP | lookup DEPT DEPTNO append LOC",
+        anonymize("source=EMP | lookup DEPT DEPTNO append LOC"));
+    assertEquals(
+        "source=EMP | lookup DEPT DEPTNO append LOC as JOB",
+        anonymize("source=EMP | lookup DEPT DEPTNO append LOC as JOB"));
+    assertEquals("source=EMP | lookup DEPT DEPTNO", anonymize("source=EMP | lookup DEPT DEPTNO"));
+  }
+
+  @Test
   public void testInSubquery() {
     assertEquals(
         "source=t | where (id) in [ source=s | fields + uid ] | fields + id",
