@@ -34,14 +34,14 @@ import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
-public class UserDefineFunctionUtils {
-  public static RelBuilder.AggCall TransferUserDefinedAggFunction(
-      Class<? extends UserDefinedAggFunction> UDAF,
-      String functionName,
-      SqlReturnTypeInference returnType,
-      List<RexNode> fields,
-      List<RexNode> argList,
-      RelBuilder relBuilder) {
+public interface UserDefineFunctionUtils {
+  static RelBuilder.AggCall TransferUserDefinedAggFunction(
+          Class<? extends UserDefinedAggFunction> UDAF,
+          String functionName,
+          SqlReturnTypeInference returnType,
+          List<RexNode> fields,
+          List<RexNode> argList,
+          RelBuilder relBuilder) {
     SqlUserDefinedAggFunction sqlUDAF =
         new SqlUserDefinedAggFunction(
             new SqlIdentifier(functionName, SqlParserPos.ZERO),
@@ -58,10 +58,10 @@ public class UserDefineFunctionUtils {
     return relBuilder.aggregateCall(sqlUDAF, addArgList);
   }
 
-  public static SqlOperator TransferUserDefinedFunction(
-      Class<? extends UserDefinedFunction> UDF,
-      String functionName,
-      SqlReturnTypeInference returnType) {
+  static SqlOperator TransferUserDefinedFunction(
+          Class<? extends UserDefinedFunction> UDF,
+          String functionName,
+          SqlReturnTypeInference returnType) {
     final ScalarFunction udfFunction =
         ScalarFunctionImpl.create(Types.lookupMethod(UDF, "eval", Object[].class));
     SqlIdentifier udfLtrimIdentifier =
@@ -70,7 +70,7 @@ public class UserDefineFunctionUtils {
         udfLtrimIdentifier, SqlKind.OTHER_FUNCTION, returnType, null, null, udfFunction);
   }
 
-  public static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
+  static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
@@ -85,7 +85,7 @@ public class UserDefineFunctionUtils {
     };
   }
 
-  public static SqlReturnTypeInference getReturnTypeInferenceForArray() {
+  static SqlReturnTypeInference getReturnTypeInferenceForArray() {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
@@ -100,7 +100,7 @@ public class UserDefineFunctionUtils {
     };
   }
 
-  public static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
+  static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(0);
       SqlTypeName typeName = operandType0.getSqlTypeName();
@@ -116,12 +116,12 @@ public class UserDefineFunctionUtils {
     };
   }
 
-  public static Long transferDateExprToMilliSeconds(String timeExpr) {
+  static Long transferDateExprToMilliSeconds(String timeExpr) {
     LocalDate date = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
   }
 
-  public static List<Integer> transferStringExprToDateValue(String timeExpr) {
+  static List<Integer> transferStringExprToDateValue(String timeExpr) {
     if (timeExpr.contains(":")) {
       // A timestamp
       LocalDateTime localDateTime =

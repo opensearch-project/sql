@@ -6,8 +6,8 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
-import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.transferStringExprToDateValue;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
+import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.transferStringExprToDateValue;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
@@ -220,9 +220,6 @@ public interface BuiltinFunctionUtils {
       case "TIMESTAMP":
         //return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
-        //        return SqlLibraryOperators.TIMESTAMP;
-        return TransferUserDefinedFunction(
-            timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
       case "WEEK", "YEAR", "MINUTE", "HOUR":
         return SqlLibraryOperators.DATE_PART;
       case "FROM_UNIXTIME":

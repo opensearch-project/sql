@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.calcite.utils.datetime;
 
 import com.google.common.collect.ImmutableList;
@@ -9,16 +14,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.opensearch.sql.utils.DateTimeFormatters;
 
-public class DateTimeParser {
+public interface DateTimeParser {
   /**
    * Parse a string into a LocalDateTime If only date is found, time is set to 00:00:00. If only
    * time is found, date is set to today.
    *
-   * @param input the date/time/timestamp string
-   * @return a LocalDateTime
+   * @param input A date/time/timestamp string
+   * @return A LocalDateTime
    * @throws IllegalArgumentException if parsing fails
    */
-  public static LocalDateTime parse(String input) {
+  static LocalDateTime parse(String input) {
 
     if (input == null || input.trim().isEmpty()) {
       throw new IllegalArgumentException("Cannot parse a null/empty date-time string.");

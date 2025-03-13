@@ -1,10 +1,14 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.calcite.utils.datetime;
 
 import java.time.*;
 import org.apache.calcite.sql.type.SqlTypeName;
 
-public final class InstantUtils {
-  private InstantUtils() {}
+public interface InstantUtils {
 
   /**
    * Convert epoch milliseconds to Instant.
@@ -22,7 +26,7 @@ public final class InstantUtils {
    * @param date internal date in days since epoch
    * @return Instant that represents the given date at timezone UTC at 00:00:00
    */
-  public static Instant fromInternalDate(int date) {
+  static Instant fromInternalDate(int date) {
     LocalDate localDate = LocalDate.ofEpochDay(date);
     return localDate.atStartOfDay(ZoneId.of("UTC")).toInstant();
   }
@@ -33,7 +37,7 @@ public final class InstantUtils {
    * @param time internal time in milliseconds
    * @return Instant that represents the current day with the given time at timezone UTC
    */
-  public static Instant fromInternalTime(int time) {
+  static Instant fromInternalTime(int time) {
     LocalDate todayUtc = LocalDate.now(ZoneId.of("UTC"));
     ZonedDateTime startOfDayUtc = todayUtc.atStartOfDay(ZoneId.of("UTC"));
     return startOfDayUtc.toInstant().plus(Duration.ofMillis(time));
@@ -47,7 +51,7 @@ public final class InstantUtils {
    * @param type type of the internalDatetime
    * @return Instant that represents the given internalDatetime
    */
-  public static Instant convertToInstant(Number internalDatetime, SqlTypeName type) {
+  static Instant convertToInstant(Number internalDatetime, SqlTypeName type) {
     return switch (type) {
       case TIME -> InstantUtils.fromInternalTime(internalDatetime.intValue());
       case TIMESTAMP -> InstantUtils.fromEpochMills(internalDatetime.longValue());
