@@ -459,9 +459,8 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 """
-                   source = %s
-                   | rename name as l_name | LOOKUP %s uid as id REPLACE occupation as new_col | rename l_name as name
-                   """,
+                 source = %s | eval uid =  id | LOOKUP %s uid as id REPLACE occupation as new_col
+                 """,
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifyNumOfRows(result, 6);
   }

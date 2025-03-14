@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -88,5 +89,19 @@ public interface JoinAndLookupUtils {
   static RexNode analyzeFieldsForLookUp(
       String fieldName, boolean isSourceTable, CalcitePlanContext context) {
     return context.relBuilder.field(2, isSourceTable ? 0 : 1, fieldName);
+  }
+
+  static void renameToExpectedFields(
+      List<String> expectedProvidedFieldNames,
+      int sourceFieldsCountLeft,
+      CalcitePlanContext context) {
+    List<String> oldFields = context.relBuilder.peek().getRowType().getFieldNames();
+    assert sourceFieldsCountLeft + expectedProvidedFieldNames.size() == oldFields.size()
+        : "The source fields count left plus new provided fields count must equal to the output"
+            + " fields count of current plan(i.e project-join).";
+    List<String> newFields = new ArrayList<>(oldFields.size());
+    newFields.addAll(oldFields.subList(0, sourceFieldsCountLeft));
+    newFields.addAll(expectedProvidedFieldNames);
+    context.relBuilder.rename(newFields);
   }
 }

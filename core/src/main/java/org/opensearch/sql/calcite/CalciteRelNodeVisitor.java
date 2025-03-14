@@ -440,11 +440,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     // 7. Rename the fields to the expected names.
-    List<String> oldFields = context.relBuilder.peek().getRowType().getFieldNames();
-    List<String> newFields = new ArrayList<>(oldFields.size());
-    newFields.addAll(oldFields.subList(0, oldFields.size() - expectedProvidedFieldNames.size()));
-    newFields.addAll(expectedProvidedFieldNames);
-    context.relBuilder.rename(newFields);
+    JoinAndLookupUtils.renameToExpectedFields(
+        expectedProvidedFieldNames,
+        sourceFieldsNames.size() - duplicatedSourceFields.size(),
+        context);
 
     return context.relBuilder.peek();
   }
