@@ -96,16 +96,14 @@ public class CalcitePPLAbstractTest {
 
   /** Verify the logical plan of the given RelNode */
   public void verifyLogical(RelNode rel, String expectedLogical) {
-    String normalized = expectedLogical.replace("\n", System.lineSeparator());
-    assertThat(rel, hasTree(normalized));
+    assertThat(rel, hasTree(expectedLogical));
   }
 
   /** Execute and verify the result of the given RelNode */
   public void verifyResult(RelNode rel, String expectedResult) {
-    String normalized = expectedResult.replace("\n", System.lineSeparator());
     try (PreparedStatement preparedStatement = RelRunners.run(rel)) {
       String s = CalciteAssert.toString(preparedStatement.executeQuery());
-      assertThat(s, is(normalized));
+      assertThat(s, is(expectedResult));
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
