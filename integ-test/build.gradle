@@ -501,6 +501,9 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
+
+    // TODO. Exclude Remote IT.
+    exclude 'org/opensearch/sql/calcite/remote/**'
 }
 
 

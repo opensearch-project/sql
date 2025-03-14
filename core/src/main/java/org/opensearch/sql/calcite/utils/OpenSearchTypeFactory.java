@@ -69,7 +69,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Converts a OpenSearch ExprCoreType field to relational type. */
   public static RelDataType convertExprTypeToRelDataType(ExprType fieldType, boolean nullable) {
-     if (fieldType instanceof ExprCoreType) {
+    if (fieldType instanceof ExprCoreType) {
       switch ((ExprCoreType) fieldType) {
         case UNDEFINED:
           return TYPE_FACTORY.createSqlType(SqlTypeName.NULL, nullable);
