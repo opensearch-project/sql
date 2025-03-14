@@ -1472,7 +1472,7 @@ public class DateTimeFunctions {
    * @param exprValue Day number N.
    * @return ExprValue.
    */
-  private ExprValue exprFromDays(ExprValue exprValue) {
+  public static ExprValue exprFromDays(ExprValue exprValue) {
     return new ExprDateValue(LocalDate.ofEpochDay(exprValue.longValue() - DAYS_0000_TO_1970));
   }
 

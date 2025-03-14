@@ -44,6 +44,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.FromDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
@@ -155,6 +156,8 @@ public interface BuiltinFunctionUtils {
       case "DATETIME":
         return TransferUserDefinedFunction(
             DatetimeFunction.class, "DATETIME", ReturnTypes.TIMESTAMP_NULLABLE);
+      case "FROM_DAYS":
+        return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", ReturnTypes.DATE);
       case "DATEDIFF":
         return SqlStdOperatorTable.TIMESTAMP_DIFF;
       case "DATE_FORMAT":

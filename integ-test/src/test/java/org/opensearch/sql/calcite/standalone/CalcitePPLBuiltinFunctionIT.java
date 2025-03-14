@@ -310,6 +310,13 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testFromDays() {
+    testSimplePPL(
+        "source=people | eval `FROM_DAYS(733687)` = FROM_DAYS(733687) | fields `FROM_DAYS(733687)`",
+        ImmutableList.of("2008-10-07"));
+  }
+
+  @Test
   public void testDateDiff() {
     testSimplePPL(
         "source=people | eval `'2000-01-02' - '2000-01-01'` = DATEDIFF(TIMESTAMP('2000-01-02"
