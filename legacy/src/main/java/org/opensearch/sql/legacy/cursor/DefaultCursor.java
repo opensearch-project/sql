@@ -6,7 +6,6 @@
 package org.opensearch.sql.legacy.cursor;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +37,6 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.SearchModule;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.format.Schema;
 
 /**
@@ -133,24 +131,20 @@ public class DefaultCursor implements Cursor {
     json.put(INDEX_PATTERN, indexPattern);
     json.put(SCHEMA_COLUMNS, getSchemaAsJson());
     json.put(FIELD_ALIAS_MAP, fieldAliasMap);
-    if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-      json.put(PIT_ID, pitId);
-      String sortFieldValue =
-          AccessController.doPrivileged(
-              (PrivilegedAction<String>)
-                  () -> {
-                    try {
-                      return objectMapper.writeValueAsString(sortFields);
-                    } catch (JsonProcessingException e) {
-                      throw new RuntimeException(
-                          "Failed to parse sort fields from JSON string.", e);
-                    }
-                  });
-      json.put(SORT_FIELDS, sortFieldValue);
-      setSearchRequestString(json, searchSourceBuilder);
-    } else {
-      json.put(SCROLL_ID, scrollId);
-    }
+    json.put(PIT_ID, pitId);
+    String sortFieldValue =
+        AccessController.doPrivileged(
+            (PrivilegedAction<String>)
+                () -> {
+                  try {
+                    return objectMapper.writeValueAsString(sortFields);
+                  } catch (JsonProcessingException e) {
+                    throw new RuntimeException("Failed to parse sort fields from JSON string.", e);
+                  }
+                });
+    json.put(SORT_FIELDS, sortFieldValue);
+    setSearchRequestString(json, searchSourceBuilder);
+
     return String.format("%s:%s", type.getId(), encodeCursor(json));
   }
 
@@ -169,9 +163,7 @@ public class DefaultCursor implements Cursor {
   }
 
   private boolean isCursorIdNullOrEmpty() {
-    return LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)
-        ? Strings.isNullOrEmpty(pitId)
-        : Strings.isNullOrEmpty(scrollId);
+    return Strings.isNullOrEmpty(pitId);
   }
 
   public static DefaultCursor from(String cursorId) {
@@ -184,11 +176,7 @@ public class DefaultCursor implements Cursor {
     cursor.setFetchSize(json.getInt(FETCH_SIZE));
     cursor.setRowsLeft(json.getLong(ROWS_LEFT));
     cursor.setIndexPattern(json.getString(INDEX_PATTERN));
-    if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-      populateCursorForPit(json, cursor);
-    } else {
-      cursor.setScrollId(json.getString(SCROLL_ID));
-    }
+    populateCursorForPit(json, cursor);
     cursor.setColumns(getColumnsFromSchema(json.getJSONArray(SCHEMA_COLUMNS)));
     cursor.setFieldAliasMap(fieldAliasMap(json.getJSONObject(FIELD_ALIAS_MAP)));
 

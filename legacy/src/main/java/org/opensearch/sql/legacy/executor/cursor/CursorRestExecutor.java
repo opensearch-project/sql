@@ -6,8 +6,8 @@
 package org.opensearch.sql.legacy.executor.cursor;
 
 import java.util.Map;
-import org.opensearch.client.Client;
 import org.opensearch.rest.RestChannel;
+import org.opensearch.transport.client.Client;
 
 /** Interface to execute cursor request. */
 public interface CursorRestExecutor {

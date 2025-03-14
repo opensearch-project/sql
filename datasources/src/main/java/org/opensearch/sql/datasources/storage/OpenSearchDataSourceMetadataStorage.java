@@ -31,7 +31,6 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -49,6 +48,7 @@ import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.utils.XContentParserUtils;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
+import org.opensearch.transport.client.Client;
 
 public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataStorage {
 

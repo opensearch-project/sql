@@ -15,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLFeatureNotSupportedException;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
@@ -23,6 +22,7 @@ import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.util.CheckScriptContents;
 import org.opensearch.sql.legacy.util.TestsConstants;
 import org.opensearch.sql.legacy.utils.StringUtils;
+import org.opensearch.transport.client.Client;
 
 public class WhereWithBoolConditionTest {
 

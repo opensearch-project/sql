@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.support.IndicesOptions;
-import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.json.JsonXContentParser;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -29,6 +28,7 @@ import org.opensearch.sql.legacy.domain.hints.HintType;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.request.SqlRequest;
+import org.opensearch.transport.client.Client;
 
 /**
  * Abstract class. used to transform Select object (Represents SQL query) to SearchRequestBuilder

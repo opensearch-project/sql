@@ -23,5 +23,5 @@
 ### Bugfixes
 * Bugfix [#310](https://github.com/opendistro-for-elasticsearch/sql/pull/310): Add DATETIME cast support (issue: [#268](https://github.com/opendistro-for-elasticsearch/sql/issues/268))
 * BugFix [#365](https://github.com/opendistro-for-elasticsearch/sql/pull/365): Return Correct Type Information for Fields (issue: [#316](https://github.com/opendistro-for-elasticsearch/sql/issues/316))
-* BugFix [#377](https://github.com/opendistro-for-elasticsearch/sql/pull/377): Return object type for field which has implicit object datatype when describe the table (issue:[sql-jdbc#57](https://github.com/opendistro-for-elasticsearch/sql-jdbc/issues/57))
+* BugFix [#377](https://github.com/opendistro-for-elasticsearch/sql/pull/377): Return object type for field which has implicit object datatype when describe the table (issue:[sql-jdbc#57](https://github.com/amazon-archives/sql-jdbc/issues/57))
 * BugFix [#381](https://github.com/opendistro-for-elasticsearch/sql/pull/381): FIX field function name letter case preserved in select with group by (issue: [#373](https://github.com/opendistro-for-elasticsearch/sql/issues/373))

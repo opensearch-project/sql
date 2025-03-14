@@ -148,19 +148,27 @@ parseCommand
    : PARSE (source_field = expression) (pattern = stringLiteral)
    ;
 
+patternsMethod
+   : PUNCT
+   | REGEX
+   ;
+
 patternsCommand
-   : PATTERNS (patternsParameter)* (source_field = expression)
+   : PATTERNS (patternsParameter)* (source_field = expression) (pattern_method = patternMethod)*
    ;
 
 patternsParameter
    : (NEW_FIELD EQUAL new_field = stringLiteral)
    | (PATTERN EQUAL pattern = stringLiteral)
+   | (VARIABLE_COUNT_THRESHOLD EQUAL variable_count_threshold = integerLiteral)
+   | (FREQUENCY_THRESHOLD_PERCENTAGE EQUAL frequency_threshold_percentage = decimalLiteral)
    ;
 
-patternsMethod
-   : PUNCT
-   | REGEX
+patternMethod
+   : SIMPLE_PATTERN
+   | BRAIN
    ;
+
 // lookup
 lookupCommand
    : LOOKUP tableSource lookupMappingList ((APPEND | REPLACE) outputCandidateList)?
@@ -509,6 +517,7 @@ convertedDataType
    | typeName = STRING
    | typeName = BOOLEAN
    | typeName = IP
+   | typeName = JSON
    ;
 
 evalFunctionName
@@ -519,6 +528,8 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
+   | jsonFunctionName
+   | geoipFunctionName
    ;
 
 functionArgs
@@ -618,6 +629,10 @@ mathematicalFunctionName
    | SQRT
    | TRUNCATE
    | trigonometricFunctionName
+   ;
+
+geoipFunctionName
+   : GEOIP
    ;
 
 trigonometricFunctionName
@@ -762,6 +777,7 @@ conditionFunctionName
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
+   | JSON_VALID
    ;
 
 // flow control function return non-boolean value
@@ -797,6 +813,10 @@ textFunctionName
 
 positionFunctionName
    : POSITION
+   ;
+
+jsonFunctionName
+   : JSON
    ;
 
 // operators

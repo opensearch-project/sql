@@ -37,6 +37,11 @@ AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 TRENDLINE:                          'TRENDLINE';
+PATTERN_METHOD:                     'PATTERN_METHOD';
+SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
+BRAIN:                              'BRAIN';
+VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
+FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';
@@ -97,6 +102,9 @@ APPEND:                             'APPEND';
 CASE:                               'CASE';
 IN:                                 'IN';
 EXISTS:                             'EXISTS';
+
+// Geo IP eval function
+GEOIP:                              'GEOIP';
 
 // LOGICAL KEYWORDS
 NOT:                                'NOT';
@@ -213,10 +221,6 @@ FIRST:                              'FIRST';
 LAST:                               'LAST';
 LIST:                               'LIST';
 VALUES:                             'VALUES';
-EARLIEST:                           'EARLIEST';
-EARLIEST_TIME:                      'EARLIEST_TIME';
-LATEST:                             'LATEST';
-LATEST_TIME:                        'LATEST_TIME';
 PER_DAY:                            'PER_DAY';
 PER_HOUR:                           'PER_HOUR';
 PER_MINUTE:                         'PER_MINUTE';
@@ -342,6 +346,10 @@ LIKE:                               'LIKE';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
+
+// JSON FUNCTIONS
+JSON_VALID:                         'JSON_VALID';
+JSON:                               'JSON';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';
