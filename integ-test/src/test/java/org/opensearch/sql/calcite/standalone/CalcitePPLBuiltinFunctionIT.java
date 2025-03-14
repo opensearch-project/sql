@@ -44,15 +44,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     request6.setJsonEntity("{\"name\": \"DummyEntityForMathVerification\", \"age\": 24}");
     client().performRequest(request6);
 
-    Request request7 = new Request("PUT", "/people3/");
-    request7.setJsonEntity("{\"mappings\": { \"properties\": {\"timestamp2\": { \"type\": \"date\", \"format\": \"strict_date_optional_time_nanos\"}}}}");
-    client().performRequest(request7);
-
-    Request request8 = new Request("PUT", "/people3/");
-    request8.setJsonEntity("{ \"mappings\": { \"properties\": {\"timestamp2\": {\"type\": \"date\"}}}}");
-    client().performRequest(request8);
-
-
     loadIndex(Index.BANK);
   }
 

@@ -40,6 +40,9 @@ import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.DateFormatFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
@@ -385,12 +388,11 @@ public interface BuiltinFunctionUtils {
           datetimeNode = dateExpr;
           datetimeType = context.rexBuilder.makeFlag(dateExpr.getType().getSqlTypeName());
         }
-        return List.of(dateFormatPatternExpr, timestampNode);
+        return ImmutableList.of(datetimeNode, datetimeType, dateFormatPatternExpr);
       case "UNIX_TIMESTAMP":
         List<RexNode> UnixArgs = new ArrayList<>(argList);
         UnixArgs.add(context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return UnixArgs;
-        return ImmutableList.of(datetimeNode, datetimeType, dateFormatPatternExpr);
       case "DAY_OF_WEEK":
         RexNode dowUnit =
             context.rexBuilder.makeIntervalLiteral(
