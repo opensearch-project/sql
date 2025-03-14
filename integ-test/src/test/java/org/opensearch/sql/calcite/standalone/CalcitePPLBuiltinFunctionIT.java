@@ -325,6 +325,16 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testMakeTime() {
+    testSimplePPL(
+        "source=people | eval `MAKETIME(20, 30, 40)` = MAKETIME(20, 30, 40), `MAKETIME(20.2, 49.5,"
+            + " 42.100502)` = MAKETIME(20.2, 49.5, 42.100502) | fields `MAKETIME(20, 30, 40)`,"
+            + " `MAKETIME(20.2, 49.5, 42.100502)`",
+        // TODO: Calcite return time in a fixed format (instead of 20:50:42.100502 for the second result)
+        ImmutableList.of("20:30:40", "20:50:42"));
+  }
+
+  @Test
   public void testDateDiff() {
     testSimplePPL(
         "source=people | eval `'2000-01-02' - '2000-01-01'` = DATEDIFF(TIMESTAMP('2000-01-02"

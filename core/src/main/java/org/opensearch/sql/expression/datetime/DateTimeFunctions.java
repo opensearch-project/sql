@@ -1598,7 +1598,7 @@ public class DateTimeFunctions {
    * @param secondExpr second
    * @return Time - ExprTimeValue object with LocalTime
    */
-  private ExprValue exprMakeTime(ExprValue hourExpr, ExprValue minuteExpr, ExprValue secondExpr) {
+  public static ExprValue exprMakeTime(ExprValue hourExpr, ExprValue minuteExpr, ExprValue secondExpr) {
     var hour = Math.round(hourExpr.doubleValue());
     var minute = Math.round(minuteExpr.doubleValue());
     var second = secondExpr.doubleValue();
