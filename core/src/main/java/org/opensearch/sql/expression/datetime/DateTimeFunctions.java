@@ -1276,7 +1276,7 @@ public class DateTimeFunctions {
    * @param toTz ExprValue of time zone, representing the time to convert to.
    * @return Timestamp that has been converted to the to_tz timezone.
    */
-  private ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
+  public static ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
       startingDateTime = exprDateTimeNoTimezone(startingDateTime);
     }
@@ -1433,7 +1433,7 @@ public class DateTimeFunctions {
    * @param timestamp the date to be formatted as an ExprValue.
    * @return is a LONG formatted according to the input arguments.
    */
-  public ExprLongValue formatExtractFunction(ExprValue part, ExprValue timestamp) {
+  public static ExprLongValue formatExtractFunction(ExprValue part, ExprValue timestamp) {
     String partName = part.stringValue().toUpperCase();
     LocalDateTime arg = timestamp.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();
     String text =

@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WILDCARD;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
+import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -266,6 +267,28 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         "source=people | eval `DAY_OF_YEAR(DATE('2020-08-26'))` = DAY_OF_YEAR(DATE('2020-08-26')) |"
             + " fields `DAY_OF_YEAR(DATE('2020-08-26'))`",
         List.of(239));
+  }
+
+  @Test
+  public void testExtract() {
+    testSimplePPL(
+        "source=people | eval res = extract(YEAR_MONTH FROM '2023-02-07 10:11:12') | fields res",
+        ImmutableList.of(202302));
+  }
+
+  @Test
+  public void testConvertTz() {
+    testSimplePPL(
+            "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')` = convert_tz('2008-05-15 12:00:00','+00:00','+10:00') | fields `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')`",
+            ImmutableList.of("2008-05-15 22:00:00"));
+    ArrayList<Object> expected = new ArrayList<>();
+    expected.add(null);
+//    testSimplePPL(
+//            "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')` = convert_tz('2008-05-15 12:00:00','+00:00','+15:00')| fields `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')`",
+//            expected);
+    testSimplePPL(
+            "source=people | eval `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')` = convert_tz('2008-05-15 12:00:00','+03:30','-10:00') | fields `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')`",
+            ImmutableList.of("2008-05-14 22:30:00"));
   }
 
   @Test
