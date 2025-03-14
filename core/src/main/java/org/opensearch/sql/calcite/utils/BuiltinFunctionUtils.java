@@ -32,7 +32,6 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -43,6 +42,7 @@ import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ConvertTZFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateFormatFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
@@ -148,11 +148,13 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.EXTRACT;
       case "EXTRACT":
         // Reuse OpenSearch PPL's implementation
-        return TransferUserDefinedFunction(
-            ExtractFunction.class, "EXTRACT", ReturnTypes.BIGINT);
+        return TransferUserDefinedFunction(ExtractFunction.class, "EXTRACT", ReturnTypes.BIGINT);
       case "CONVERT_TZ":
         return TransferUserDefinedFunction(
-            ConvertTZFunction.class, "CONVERT_TZ", ReturnTypes.TIMESTAMP);
+            ConvertTZFunction.class, "CONVERT_TZ", ReturnTypes.TIMESTAMP_NULLABLE);
+      case "DATETIME":
+        return TransferUserDefinedFunction(
+            DatetimeFunction.class, "DATETIME", ReturnTypes.TIMESTAMP_NULLABLE);
       case "DATEDIFF":
         return SqlStdOperatorTable.TIMESTAMP_DIFF;
       case "DATE_FORMAT":

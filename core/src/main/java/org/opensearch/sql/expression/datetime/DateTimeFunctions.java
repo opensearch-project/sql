@@ -1340,7 +1340,7 @@ public class DateTimeFunctions {
    * @param timeZone ExprValue of String type (or null).
    * @return ExprValue of date type.
    */
-  private ExprValue exprDateTime(ExprValue timestamp, ExprValue timeZone) {
+  public static ExprValue exprDateTime(ExprValue timestamp, ExprValue timeZone) {
     String defaultTimeZone = TimeZone.getDefault().getID();
 
     try {
@@ -1381,7 +1381,7 @@ public class DateTimeFunctions {
    * @param dateTime ExprValue of String type.
    * @return ExprValue of date type.
    */
-  private ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
+  public static ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
     return exprDateTime(dateTime, ExprNullValue.of());
   }
 

@@ -25,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -279,16 +280,33 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testConvertTz() {
     testSimplePPL(
-            "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')` = convert_tz('2008-05-15 12:00:00','+00:00','+10:00') | fields `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')`",
-            ImmutableList.of("2008-05-15 22:00:00"));
-    ArrayList<Object> expected = new ArrayList<>();
-    expected.add(null);
-//    testSimplePPL(
-//            "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')` = convert_tz('2008-05-15 12:00:00','+00:00','+15:00')| fields `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')`",
-//            expected);
+        "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')` ="
+            + " convert_tz('2008-05-15 12:00:00','+00:00','+10:00') | fields"
+            + " `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')`",
+        ImmutableList.of("2008-05-15 22:00:00"));
+    //    testSimplePPL(
+    //            "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')` =
+    // convert_tz('2008-05-15 12:00:00','+00:00','+15:00')| fields `convert_tz('2008-05-15
+    // 12:00:00','+00:00','+15:00')`",
+    //            ImmutableNullableList.of(null));
     testSimplePPL(
-            "source=people | eval `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')` = convert_tz('2008-05-15 12:00:00','+03:30','-10:00') | fields `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')`",
-            ImmutableList.of("2008-05-14 22:30:00"));
+        "source=people | eval `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')` ="
+            + " convert_tz('2008-05-15 12:00:00','+03:30','-10:00') | fields"
+            + " `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')`",
+        ImmutableList.of("2008-05-14 22:30:00"));
+  }
+
+  @Test
+  public void testDatetime() {
+    testSimplePPL(
+        "source=people | eval `DATETIME('2004-02-28 23:00:00-10:00', '+10:00')` ="
+            + " DATETIME('2004-02-28 23:00:00-10:00', '+10:00') | fields `DATETIME('2004-02-28"
+            + " 23:00:00-10:00', '+10:00')`",
+        ImmutableList.of("2004-02-29 19:00:00"));
+    testSimplePPL(
+        "source=people | eval  `DATETIME('2008-01-01 02:00:00', '-14:00')` = DATETIME('2008-01-01"
+            + " 02:00:00', '-14:00') | fields `DATETIME('2008-01-01 02:00:00', '-14:00')`",
+        ImmutableNullableList.of(null));
   }
 
   @Test
