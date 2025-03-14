@@ -229,7 +229,7 @@ public class AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Ignore(value = "disable sortby from the dedup command syntax")
+  @Test
   public void testStatsCommandWithByClause() {
     assertEqual(
         "source=t | stats count(a) by b DEDUP_SPLITVALUES=false",
@@ -241,7 +241,7 @@ public class AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Ignore(value = "disable sortby from the dedup command syntax")
+  @Test
   public void testStatsCommandWithByClauseInBackticks() {
     assertEqual(
         "source=t | stats count(a) by `b` DEDUP_SPLITVALUES=false",
@@ -288,7 +288,7 @@ public class AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Ignore(value = "disable sortby from the dedup command syntax")
+  @Test
   public void testStatsCommandWithSpan() {
     assertEqual(
         "source=t | stats avg(price) by span(timestamp, 1h)",
