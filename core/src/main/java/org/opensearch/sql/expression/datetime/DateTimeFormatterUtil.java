@@ -195,9 +195,20 @@ public class DateTimeFormatterUtil {
   private DateTimeFormatterUtil() {}
 
   static StringBuffer getCleanFormat(ExprValue formatExpr) {
+    return getCleanFormat(formatExpr.stringValue());
+  }
+
+  /**
+   * Cleans the given format string by wrapping characters that are not preceded by a '%' and are
+   * not part of the allowed date/time format specifiers in single quotes. This ensures that these
+   * characters are treated as literals in the date/time format.
+   *
+   * @param formatStr the format string to be cleaned
+   * @return a StringBuffer containing the cleaned format string
+   */
+  public static StringBuffer getCleanFormat(String formatStr) {
     final StringBuffer cleanFormat = new StringBuffer();
-    final Matcher m =
-        CHARACTERS_WITH_NO_MOD_LITERAL_BEHIND_PATTERN.matcher(formatExpr.stringValue());
+    final Matcher m = CHARACTERS_WITH_NO_MOD_LITERAL_BEHIND_PATTERN.matcher(formatStr);
 
     while (m.find()) {
       m.appendReplacement(cleanFormat, String.format("'%s'", m.group()));
@@ -241,6 +252,18 @@ public class DateTimeFormatterUtil {
     // 'Sat' instead of 'Sat.' etc
     return new ExprStringValue(
         datetime.format(DateTimeFormatter.ofPattern(format.toString(), Locale.ENGLISH)));
+  }
+
+  /**
+   * Format the datetime using the date format String.
+   *
+   * @param datetime the datetime to be formated
+   * @param formatStr the format of String type.
+   * @return Date formatted using format and returned as a String.
+   */
+  public static String getFormattedDatetime(LocalDateTime datetime, String formatStr) {
+    return getFormattedString(new ExprStringValue(formatStr), DATE_HANDLERS, datetime)
+        .stringValue();
   }
 
   /**

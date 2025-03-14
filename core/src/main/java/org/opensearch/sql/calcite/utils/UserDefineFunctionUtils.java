@@ -36,12 +36,12 @@ import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
 public interface UserDefineFunctionUtils {
   static RelBuilder.AggCall TransferUserDefinedAggFunction(
-          Class<? extends UserDefinedAggFunction> UDAF,
-          String functionName,
-          SqlReturnTypeInference returnType,
-          List<RexNode> fields,
-          List<RexNode> argList,
-          RelBuilder relBuilder) {
+      Class<? extends UserDefinedAggFunction> UDAF,
+      String functionName,
+      SqlReturnTypeInference returnType,
+      List<RexNode> fields,
+      List<RexNode> argList,
+      RelBuilder relBuilder) {
     SqlUserDefinedAggFunction sqlUDAF =
         new SqlUserDefinedAggFunction(
             new SqlIdentifier(functionName, SqlParserPos.ZERO),
@@ -59,9 +59,9 @@ public interface UserDefineFunctionUtils {
   }
 
   static SqlOperator TransferUserDefinedFunction(
-          Class<? extends UserDefinedFunction> UDF,
-          String functionName,
-          SqlReturnTypeInference returnType) {
+      Class<? extends UserDefinedFunction> UDF,
+      String functionName,
+      SqlReturnTypeInference returnType) {
     final ScalarFunction udfFunction =
         ScalarFunctionImpl.create(Types.lookupMethod(UDF, "eval", Object[].class));
     SqlIdentifier udfLtrimIdentifier =

@@ -177,8 +177,6 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.SIN;
       case "SQRT":
         return TransferUserDefinedFunction(SqrtFunction.class, "sqrt", ReturnTypes.DOUBLE);
-      case "DATE_FORMAT":
-        return SqlLibraryOperators.FORMAT_TIMESTAMP;
       case "CBRT":
         return SqlStdOperatorTable.CBRT;
         // Built-in Date Functions
@@ -208,6 +206,9 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.EXTRACT;
       case "DATEDIFF":
         return SqlStdOperatorTable.TIMESTAMP_DIFF;
+      case "DATE_FORMAT":
+        return TransferUserDefinedFunction(
+            DateFormatFunction.class, "DATE_FORMAT", ReturnTypes.VARCHAR);
         // TODO Add more, ref RexImpTable
       case "DAYNAME":
         return TransferUserDefinedFunction(periodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
@@ -372,21 +373,24 @@ public interface BuiltinFunctionUtils {
       case "DATE_FORMAT", "FORMAT_TIMESTAMP":
         RexNode dateExpr = argList.get(0);
         RexNode dateFormatPatternExpr = argList.get(1);
-        RexNode timestampNode;
-        // Convert to timestamp
+        RexNode datetimeNode;
+        RexNode datetimeType;
+        // Convert to timestamp if is string
         if (dateExpr instanceof RexLiteral dateLiteral) {
           String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
-          timestampNode =
-              context.rexBuilder.makeTimestampLiteral(
-                  new TimestampString(dateStringValue), RelDataType.PRECISION_NOT_SPECIFIED);
+          datetimeNode =
+              context.rexBuilder.makeTimestampLiteral(new TimestampString(dateStringValue), 6);
+          datetimeType = context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP);
         } else {
-          timestampNode = dateExpr;
+          datetimeNode = dateExpr;
+          datetimeType = context.rexBuilder.makeFlag(dateExpr.getType().getSqlTypeName());
         }
         return List.of(dateFormatPatternExpr, timestampNode);
       case "UNIX_TIMESTAMP":
         List<RexNode> UnixArgs = new ArrayList<>(argList);
         UnixArgs.add(context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return UnixArgs;
+        return ImmutableList.of(datetimeNode, datetimeType, dateFormatPatternExpr);
       case "DAY_OF_WEEK":
         RexNode dowUnit =
             context.rexBuilder.makeIntervalLiteral(

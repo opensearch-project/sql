@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import java.sql.Timestamp;
@@ -28,23 +33,18 @@ public class DateAddSubFunction implements UserDefinedFunction {
     long interval = ((Number) argNumInterval).longValue();
     SqlTypeName sqlTypeName = (SqlTypeName) argBaseType;
     boolean isAdd = (Boolean) argIsAdd;
-    Instant base;
-    switch (sqlTypeName) {
-      case DATE:
-        // Convert it to milliseconds
-        base = InstantUtils.fromInternalDate(((Number) argBase).intValue());
-        break;
-      case TIME:
-        // Add an offset of today's date at 00:00:00
-        base = InstantUtils.fromInternalTime(((Number) argBase).intValue());
-        break;
-      case TIMESTAMP:
-        base = InstantUtils.fromEpochMills(((Number) argBase).longValue());
-        break;
-      default:
-        throw new IllegalArgumentException(
-            "Invalid argument type. Must be DATE, TIME, or TIMESTAMP, but got " + sqlTypeName);
-    }
+    Instant base =
+        switch (sqlTypeName) {
+          case DATE ->
+          // Convert it to milliseconds
+          InstantUtils.fromInternalDate(((Number) argBase).intValue());
+          case TIME ->
+          // Add an offset of today's date at 00:00:00
+          InstantUtils.fromInternalTime(((Number) argBase).intValue());
+          case TIMESTAMP -> InstantUtils.fromEpochMills(((Number) argBase).longValue());
+          default -> throw new IllegalArgumentException(
+              "Invalid argument type. Must be DATE, TIME, or TIMESTAMP, but got " + sqlTypeName);
+        };
 
     Instant newInstant =
         DateTimeApplyUtils.applyInterval(

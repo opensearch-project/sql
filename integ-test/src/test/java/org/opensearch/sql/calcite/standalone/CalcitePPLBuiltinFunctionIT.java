@@ -165,7 +165,8 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testHour() {
     String query =
-            "source=people | eval `HOUR(TIMESTAMP('2020-08-26 01:02:03'))` = HOUR(TIMESTAMP('2020-08-26 01:02:03')) | fields `HOUR(TIMESTAMP('2020-08-26 01:02:03'))`";
+        "source=people | eval `HOUR(TIMESTAMP('2020-08-26 01:02:03'))` = HOUR(TIMESTAMP('2020-08-26"
+            + " 01:02:03')) | fields `HOUR(TIMESTAMP('2020-08-26 01:02:03'))`";
     testSimplePPL(query, List.of(1));
   }
 
@@ -318,6 +319,11 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         "source=people | eval `TIME('2020-08-26 13:49')` = TIME('2020-08-26 13:49') | fields"
             + " `TIME('2020-08-26 13:49')`",
         List.of("13:49:00"));
+    testSimplePPL(
+        "source=people | eval d = TIME(DATE('2020-08-26')) | fields d", List.of("00:00:00"));
+    testSimplePPL(
+        "source=people | eval t = TIME(TIMESTAMP('1998-01-31 13:14:15.012345')) | fields t",
+        List.of("13:14:15"));
   }
 
   @Test
