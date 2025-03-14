@@ -4,7 +4,6 @@ import com.tdunning.math.stats.AVLTreeDigest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import org.opensearch.sql.calcite.udf.Accumulator;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
 public class PercentileApproxFunction

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.utils;
 
-
 import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.transferStringExprToDateValue;
@@ -26,13 +25,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -57,17 +49,8 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
-import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
-import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
-import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
-import org.apache.calcite.sql.type.ReturnTypes;
-import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
-import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
-import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
-import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 
 public interface BuiltinFunctionUtils {
 

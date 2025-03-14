@@ -25,19 +25,4 @@ public class OpenSearchTypeSystem extends RelDataTypeSystemImpl {
       return argumentType;
     }
   }
-
-  @Override
-  public int getMaxPrecision(SqlTypeName typeName) {
-    switch (typeName) {
-      case TIME:
-      case TIME_WITH_LOCAL_TIME_ZONE:
-      case TIME_TZ:
-      case TIMESTAMP:
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      case TIMESTAMP_TZ:
-        return 9;
-      default:
-        return super.getMaxPrecision(typeName);
-    }
-  }
 }

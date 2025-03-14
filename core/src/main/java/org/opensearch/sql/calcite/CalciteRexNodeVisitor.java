@@ -7,7 +7,6 @@ package org.opensearch.sql.calcite;
 
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.translateArgument;
 
 import java.math.BigDecimal;
 import java.util.List;

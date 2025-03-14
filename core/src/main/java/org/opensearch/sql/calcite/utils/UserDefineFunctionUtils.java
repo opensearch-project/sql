@@ -11,7 +11,6 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VA
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +33,6 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
-
 
 public class UserDefineFunctionUtils {
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
@@ -72,68 +70,67 @@ public class UserDefineFunctionUtils {
         udfLtrimIdentifier, SqlKind.OTHER_FUNCTION, returnType, null, null, udfFunction);
   }
 
+  static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
-    static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
-        return opBinding -> {
-            RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      // Get argument types
+      List<RelDataType> argTypes = opBinding.collectOperandTypes();
 
-            // Get argument types
-            List<RelDataType> argTypes = opBinding.collectOperandTypes();
+      if (argTypes.isEmpty()) {
+        throw new IllegalArgumentException("Function requires at least one argument.");
+      }
+      RelDataType firstArgType = argTypes.get(targetPosition);
+      return typeFactory.createSqlType(firstArgType.getSqlTypeName());
+    };
+  }
 
-            if (argTypes.isEmpty()) {
-                throw new IllegalArgumentException("Function requires at least one argument.");
-            }
-            RelDataType firstArgType = argTypes.get(targetPosition);
-            return typeFactory.createSqlType(firstArgType.getSqlTypeName());
-        };
+  static SqlReturnTypeInference getReturnTypeInferenceForArray() {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+
+      // Get argument types
+      List<RelDataType> argTypes = opBinding.collectOperandTypes();
+
+      if (argTypes.isEmpty()) {
+        throw new IllegalArgumentException("Function requires at least one argument.");
+      }
+      RelDataType firstArgType = argTypes.getFirst();
+      return createArrayType(typeFactory, firstArgType, true);
+    };
+  }
+
+  static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
+    return opBinding -> {
+      RelDataType operandType0 = opBinding.getOperandType(0);
+      SqlTypeName typeName = operandType0.getSqlTypeName();
+      return switch (typeName) {
+        case DATE, TIMESTAMP ->
+        // Return TIMESTAMP
+        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+        case TIME ->
+        // Return TIME
+        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIME);
+        default -> throw new IllegalArgumentException("Unsupported type: " + typeName);
+      };
+    };
+  }
+
+  static Long transferDateExprToMilliSeconds(String timeExpr) {
+    LocalDate date = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+    return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+  }
+
+  static List<Integer> transferStringExprToDateValue(String timeExpr) {
+    if (timeExpr.contains(":")) {
+      // A timestamp
+      LocalDateTime localDateTime =
+          LocalDateTime.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+      return List.of(
+          localDateTime.getYear(), localDateTime.getMonthValue(), localDateTime.getDayOfMonth());
+    } else {
+      LocalDate localDate = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+      return List.of(localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth());
     }
-
-    static SqlReturnTypeInference getReturnTypeInferenceForArray() {
-        return opBinding -> {
-            RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-
-            // Get argument types
-            List<RelDataType> argTypes = opBinding.collectOperandTypes();
-
-            if (argTypes.isEmpty()) {
-                throw new IllegalArgumentException("Function requires at least one argument.");
-            }
-            RelDataType firstArgType = argTypes.getFirst();
-            return createArrayType(typeFactory, firstArgType, true);
-        };
-    }
-
-    static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
-        return opBinding -> {
-            RelDataType operandType0 = opBinding.getOperandType(0);
-            SqlTypeName typeName = operandType0.getSqlTypeName();
-            return switch (typeName) {
-                case DATE, TIMESTAMP ->
-                    // Return TIMESTAMP
-                        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
-                case TIME ->
-                    // Return TIME
-                        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIME);
-                default -> throw new IllegalArgumentException("Unsupported type: " + typeName);
-            };
-        };
-    }
-
-    static Long transferDateExprToMilliSeconds(String timeExpr) {
-        LocalDate date = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-        return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-    }
-
-    static List<Integer> transferStringExprToDateValue(String timeExpr) {
-        if (timeExpr.contains(":")) {
-            // A timestamp
-            LocalDateTime localDateTime =
-                    LocalDateTime.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-            return List.of(
-                    localDateTime.getYear(), localDateTime.getMonthValue(), localDateTime.getDayOfMonth());
-        } else {
-            LocalDate localDate = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-            return List.of(localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth());
-        }
-    }
+  }
 }
