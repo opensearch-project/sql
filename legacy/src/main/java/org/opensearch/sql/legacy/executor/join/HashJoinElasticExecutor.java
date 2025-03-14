@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Set;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.index.mapper.MapperService;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -31,6 +30,7 @@ import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.maker.QueryMaker;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 22/8/2015. */
 public class HashJoinElasticExecutor extends ElasticJoinExecutor {

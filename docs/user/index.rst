@@ -43,10 +43,6 @@ OpenSearch SQL enables you to extract insights out of OpenSearch using the famil
 
   - `Window Functions <dql/window.rst>`_
 
-* **Data Manipulation Language**
-
-  - `DELETE Statement <dml/delete.rst>`_
-
 * **Beyond SQL**
 
   - `PartiQL (JSON) Support <beyond/partiql.rst>`_

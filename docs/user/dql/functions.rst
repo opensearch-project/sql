@@ -4327,20 +4327,20 @@ Example boosting score::
 
     os> select id, title, author, _score from books where score(query('title:Pooh House', default_operator='AND'), 2.0);
     fetched rows / total rows = 1/1
-    +----+--------------------------+----------------------+-----------+
-    | id | title                    | author               | _score    |
-    |----+--------------------------+----------------------+-----------|
-    | 1  | The House at Pooh Corner | Alan Alexander Milne | 1.5884793 |
-    +----+--------------------------+----------------------+-----------+
+    +----+--------------------------+----------------------+----------+
+    | id | title                    | author               | _score   |
+    |----+--------------------------+----------------------+----------|
+    | 1  | The House at Pooh Corner | Alan Alexander Milne | 0.722036 |
+    +----+--------------------------+----------------------+----------+
 
     os> select id, title, author, _score from books where score(query('title:Pooh House', default_operator='AND'), 5.0) OR score(query('title:Winnie', default_operator='AND'), 1.5);
     fetched rows / total rows = 2/2
-    +----+--------------------------+----------------------+-----------+
-    | id | title                    | author               | _score    |
-    |----+--------------------------+----------------------+-----------|
-    | 1  | The House at Pooh Corner | Alan Alexander Milne | 3.9711983 |
-    | 2  | Winnie-the-Pooh          | Alan Alexander Milne | 1.1581701 |
-    +----+--------------------------+----------------------+-----------+
+    +----+--------------------------+----------------------+------------+
+    | id | title                    | author               | _score     |
+    |----+--------------------------+----------------------+------------|
+    | 1  | The House at Pooh Corner | Alan Alexander Milne | 1.8050902  |
+    | 2  | Winnie-the-Pooh          | Alan Alexander Milne | 0.52644086 |
+    +----+--------------------------+----------------------+------------+
 
 
 HIGHLIGHT

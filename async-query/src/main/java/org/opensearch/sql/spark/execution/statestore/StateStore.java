@@ -30,7 +30,6 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -60,6 +59,7 @@ import org.opensearch.sql.spark.execution.xcontent.XContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.XContentSerializerUtil;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
+import org.opensearch.transport.client.Client;
 
 /**
  * State Store maintain the state of Session and Statement. State State create/update/get doc on
@@ -260,7 +260,7 @@ public class StateStore {
       throw new RuntimeException(
           "Fetching job metadata information failed with status : " + searchResponse.status());
     } else {
-      return searchResponse.getHits().getTotalHits().value;
+      return searchResponse.getHits().getTotalHits().value();
     }
   }
 

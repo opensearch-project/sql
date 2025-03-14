@@ -175,7 +175,7 @@ Since we don't have column names similar to relational databases, `@timestamp` a
 
 ### Passthrough PromQL Support.
 * PromQL is easy to use powerful language over metrics and we want to support promQL queries from catalogs with prometheus connectors.
-* Function signature: source = ``promcatalog.nativeQuery(`promQLCommand`, startTime = "{{startTime}}", endTime="{{endTime}", step="{{resolution}}")``
+* Function signature: source = ``promcatalog.nativeQuery(`promQLCommand`, startTime = "{{startTime}}", endTime="{{endTime}}", step="{{resolution}}")``
 
 
 

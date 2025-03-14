@@ -15,7 +15,7 @@
         },
         "children": [
           {
-            "name": "EvalOperator",
+            "name": "OpenSearchEvalOperator",
             "description": {
               "expressions": {
                 "age2": "+(avg_age, 2)"

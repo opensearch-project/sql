@@ -44,6 +44,9 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 
+@Ignore(
+    "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
+        + " response for now. Need to decide what to do with these test cases.")
 /** Created by allwefantasy on 8/25/16. */
 public class SQLFunctionsIT extends SQLIntegTestCase {
 

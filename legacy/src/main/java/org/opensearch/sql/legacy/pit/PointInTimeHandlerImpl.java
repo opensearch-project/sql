@@ -18,9 +18,9 @@ import org.opensearch.action.search.CreatePitResponse;
 import org.opensearch.action.search.DeletePitAction;
 import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.action.search.DeletePitResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.transport.client.Client;
 
 /** Handler for Point In Time */
 public class PointInTimeHandlerImpl implements PointInTimeHandler {

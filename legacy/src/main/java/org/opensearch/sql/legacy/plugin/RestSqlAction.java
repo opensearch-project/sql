@@ -24,8 +24,6 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
-import org.opensearch.client.Client;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
@@ -64,6 +62,8 @@ import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
 import org.opensearch.sql.legacy.utils.JsonPrettyFormatter;
 import org.opensearch.sql.legacy.utils.QueryDataAnonymizer;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
+import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.node.NodeClient;
 
 public class RestSqlAction extends BaseRestHandler {
 
@@ -79,9 +79,6 @@ public class RestSqlAction extends BaseRestHandler {
 
   public static final String EXPLAIN_API_ENDPOINT = QUERY_API_ENDPOINT + "/_explain";
   public static final String CURSOR_CLOSE_ENDPOINT = QUERY_API_ENDPOINT + "/close";
-  public static final String LEGACY_QUERY_API_ENDPOINT = "/_opendistro/_sql";
-  public static final String LEGACY_EXPLAIN_API_ENDPOINT = LEGACY_QUERY_API_ENDPOINT + "/_explain";
-  public static final String LEGACY_CURSOR_CLOSE_ENDPOINT = LEGACY_QUERY_API_ENDPOINT + "/close";
 
   /** New SQL query request handler. */
   private final RestSQLQueryAction newSqlQueryHandler;
@@ -94,21 +91,10 @@ public class RestSqlAction extends BaseRestHandler {
 
   @Override
   public List<Route> routes() {
-    return ImmutableList.of();
-  }
-
-  @Override
-  public List<ReplacedRoute> replacedRoutes() {
     return ImmutableList.of(
-        new ReplacedRoute(
-            RestRequest.Method.POST, QUERY_API_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
-        new ReplacedRoute(
-            RestRequest.Method.POST, EXPLAIN_API_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT),
-        new ReplacedRoute(
-            RestRequest.Method.POST, CURSOR_CLOSE_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_CURSOR_CLOSE_ENDPOINT));
+        new Route(RestRequest.Method.POST, QUERY_API_ENDPOINT),
+        new Route(RestRequest.Method.POST, EXPLAIN_API_ENDPOINT),
+        new Route(RestRequest.Method.POST, CURSOR_CLOSE_ENDPOINT));
   }
 
   @Override
@@ -265,8 +251,7 @@ public class RestSqlAction extends BaseRestHandler {
       channel.sendResponse(new BytesRestResponse(OK, "application/json; charset=UTF-8", result));
     } else {
       RestExecutor restExecutor =
-          ActionRequestRestExecutorFactory.createExecutor(
-              SqlRequestParam.getFormat(params), queryAction);
+          ActionRequestRestExecutorFactory.createExecutor(SqlRequestParam.getFormat(params));
       // doing this hack because OpenSearch throws exception for un-consumed props
       Map<String, String> additionalParams = new HashMap<>();
       for (String paramName : responseParams()) {

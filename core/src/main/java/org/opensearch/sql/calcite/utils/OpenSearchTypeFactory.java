@@ -122,6 +122,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("ip")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, nullable); // TODO UDT
+      } else if (fieldType.getOriginalPath().isPresent()) {
+        return convertExprTypeToRelDataType(fieldType.getOriginalExprType(), nullable);
       } else {
         throw new IllegalArgumentException(
             "Unsupported conversion for OpenSearch Data type: " + fieldType.typeName());

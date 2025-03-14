@@ -9,7 +9,6 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.Condition;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.JoinSelect;
@@ -18,6 +17,7 @@ import org.opensearch.sql.legacy.domain.hints.Hint;
 import org.opensearch.sql.legacy.domain.hints.HintType;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 22/8/2015. */
 public class OpenSearchHashJoinQueryAction extends OpenSearchJoinQueryAction {

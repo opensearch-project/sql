@@ -108,3 +108,9 @@ There are a few limitations with parse command:
   ``where`` in the following command will not work::
 
     source=accounts | parse email '.+@(?<host>.+)' | stats avg(age) by host | where host=pyrami.com ;
+
+- Fields defined by parse will not appear in the final result unless the original source field is included in the ``fields`` command.
+
+  For example, the following query will not display the parsed fields ``host`` unless the source field ``email`` is also explicitly included::
+
+    source=accounts | parse email '.+@(?<host>.+)' | fields email, host ;

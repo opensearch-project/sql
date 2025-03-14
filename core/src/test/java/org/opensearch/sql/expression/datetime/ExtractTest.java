@@ -5,16 +5,21 @@
 
 package org.opensearch.sql.expression.datetime;
 
-import static java.time.temporal.ChronoField.ALIGNED_WEEK_OF_YEAR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.temporal.IsoFields;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -23,6 +28,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 class ExtractTest extends ExpressionTestBase {
 
@@ -82,9 +88,14 @@ class ExtractTest extends ExpressionTestBase {
   }
 
   private void datePartWithTimeArgQuery(String part, String time, long expected) {
+    datePartWithTimeArgQuery(functionProperties, part, time, expected);
+  }
+
+  private void datePartWithTimeArgQuery(
+      FunctionProperties properties, String part, String time, long expected) {
     ExprTimeValue timeValue = new ExprTimeValue(time);
     FunctionExpression datetimeExpression =
-        DSL.extract(functionProperties, DSL.literal(part), DSL.literal(timeValue));
+        DSL.extract(properties, DSL.literal(part), DSL.literal(timeValue));
 
     assertEquals(LONG, datetimeExpression.type());
     assertEquals(expected, eval(datetimeExpression).longValue());
@@ -96,19 +107,47 @@ class ExtractTest extends ExpressionTestBase {
 
     datePartWithTimeArgQuery("DAY", timeInput, now.getDayOfMonth());
 
-    // To avoid flaky test, skip the testing in December and January because the WEEK is ISO 8601
-    // week-of-week-based-year which is considered to start on a Monday and week 1 is the first week
-    // with >3 days. it is possible for early-January dates to be part of the 52nd or 53rd week of
-    // the previous year, and for late-December dates to be part of the first week of the next year.
-    // For example, 2005-01-02 is part of the 53rd week of year 2004, while 2012-12-31 is part of
-    // the first week of 2013
-    if (now.getMonthValue() > 2 && now.getMonthValue() != 12) {
-      datePartWithTimeArgQuery("WEEK", datetimeInput, now.get(ALIGNED_WEEK_OF_YEAR));
-    }
-
     datePartWithTimeArgQuery("MONTH", timeInput, now.getMonthValue());
 
     datePartWithTimeArgQuery("YEAR", timeInput, now.getYear());
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @ValueSource(
+      strings = {
+        "2009-12-26",
+        "2009-12-27",
+        "2008-12-28", // Week 52 of week-based-year 2008
+        "2009-12-29",
+        "2008-12-29", // Week 1 of week-based-year 2009
+        "2008-12-31", // Week 1 of week-based-year 2009
+        "2009-01-01", // Week 1 of week-based-year 2009
+        "2009-01-04", // Week 1 of week-based-year 2009
+        "2009-01-05", // Week 2 of week-based-year 2009
+        "2025-12-27", //  year with 52 weeks
+        "2026-01-01", // year starts on a THURSDAY
+        "2028-12-30", //  year with 53 weeks
+        "2028-12-31", // year starts in December
+        "2029-01-01",
+        "2033-12-31", // year with 53 weeks
+        "2034-01-01", // January 1st on a SUNDAY
+        "2034-12-30", // year with 52 weeks
+        "2034-12-31"
+      })
+  public void testExtractWeekPartWithTimeType(String arg) {
+
+    // setup default date/time properties for the extract function
+    ZoneId currentZoneId = ZoneId.systemDefault();
+    Instant nowInstant =
+        LocalDate.parse(arg).atTime(LocalTime.parse(timeInput)).atZone(currentZoneId).toInstant();
+    FunctionProperties properties = new FunctionProperties(nowInstant, currentZoneId);
+
+    // Expected WEEK value should be formated from week-of-week-based-year
+    LocalDateTime localDateTime = LocalDateTime.ofInstant(nowInstant, currentZoneId);
+    int expected = localDateTime.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+
+    // verify
+    datePartWithTimeArgQuery(properties, "WEEK", timeInput, expected);
   }
 
   @ParameterizedTest(name = "{0}")

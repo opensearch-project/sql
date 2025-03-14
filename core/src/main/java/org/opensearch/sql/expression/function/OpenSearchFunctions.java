@@ -173,4 +173,54 @@ public class OpenSearchFunctions {
       return String.format("%s(%s)", functionName, String.join(", ", args));
     }
   }
+
+  /**
+   * Static class to identify functional Expression which specifically designed for OpenSearch
+   * storage runtime
+   */
+  public static class OpenSearchExecutableFunction extends FunctionExpression {
+    private final FunctionName functionName;
+    private final List<Expression> arguments;
+    private final ExprType returnType;
+
+    public OpenSearchExecutableFunction(
+        FunctionName functionName, List<Expression> arguments, ExprType returnType) {
+      super(functionName, arguments);
+      this.functionName = functionName;
+      this.arguments = arguments;
+      this.returnType = returnType;
+    }
+
+    @Override
+    public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+      throw new UnsupportedOperationException(
+          String.format(
+              "OpenSearch defined function [%s] is only supported in Eval operation.",
+              functionName));
+    }
+
+    @Override
+    public ExprType type() {
+      return returnType;
+    }
+
+    /**
+     * Util method to generate probe implementation with given list of argument types, with marker
+     * class `OpenSearchFunction` to annotate this is an OpenSearch specific expression.
+     *
+     * @param returnType return type.
+     * @return Binary Function Implementation.
+     */
+    public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
+        openSearchImpl(ExprType returnType, List<ExprType> args) {
+      return functionName -> {
+        FunctionSignature functionSignature = new FunctionSignature(functionName, args);
+        FunctionBuilder functionBuilder =
+            (functionProperties, arguments) ->
+                new OpenSearchFunctions.OpenSearchExecutableFunction(
+                    functionName, arguments, returnType);
+        return Pair.of(functionSignature, functionBuilder);
+      };
+    }
+  }
 }

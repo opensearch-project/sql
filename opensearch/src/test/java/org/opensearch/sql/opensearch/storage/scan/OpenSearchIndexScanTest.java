@@ -57,7 +57,6 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
-import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
@@ -82,9 +81,6 @@ class OpenSearchIndexScanTest {
 
   @BeforeEach
   void setup() {
-    lenient()
-        .when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER))
-        .thenReturn(true);
     lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
   }
 
@@ -112,43 +108,6 @@ class OpenSearchIndexScanTest {
   @SneakyThrows
   @ParameterizedTest
   @ValueSource(ints = {0, 150})
-  void serialize(Integer numberOfIncludes) {
-    var searchSourceBuilder = new SearchSourceBuilder().size(4);
-
-    var factory = mock(OpenSearchExprValueFactory.class);
-    var engine = mock(OpenSearchStorageEngine.class);
-    var index = mock(OpenSearchIndex.class);
-    when(engine.getClient()).thenReturn(client);
-    when(engine.getTable(any(), any())).thenReturn(index);
-    var includes =
-        Stream.iterate(1, i -> i + 1)
-            .limit(numberOfIncludes)
-            .map(i -> "column" + i)
-            .collect(Collectors.toList());
-    var request =
-        new OpenSearchScrollRequest(
-            INDEX_NAME, CURSOR_KEEP_ALIVE, searchSourceBuilder, factory, includes);
-    request.setScrollId("valid-id");
-    // make a response, so OpenSearchResponse::isEmpty would return true and unset needClean
-    var response = mock(SearchResponse.class);
-    when(response.getAggregations()).thenReturn(mock());
-    var hits = mock(SearchHits.class);
-    when(response.getHits()).thenReturn(hits);
-    when(response.getScrollId()).thenReturn("valid-id");
-    when(hits.getHits()).thenReturn(new SearchHit[] {mock()});
-    request.search(null, (req) -> response);
-
-    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
-      var planSerializer = new PlanSerializer(engine);
-      var cursor = planSerializer.convertToCursor(indexScan);
-      var newPlan = planSerializer.convertToPlan(cursor.toString());
-      assertEquals(indexScan, newPlan);
-    }
-  }
-
-  @SneakyThrows
-  @ParameterizedTest
-  @ValueSource(ints = {0, 150})
   void serialize_PIT(Integer numberOfIncludes) {
     var searchSourceBuilder = new SearchSourceBuilder().size(4);
 
@@ -157,9 +116,6 @@ class OpenSearchIndexScanTest {
     var index = mock(OpenSearchIndex.class);
     when(engine.getClient()).thenReturn(client);
     when(engine.getTable(any(), any())).thenReturn(index);
-    Map map = mock(Map.class);
-    when(map.get(any(String.class))).thenReturn("true");
-    when(client.meta()).thenReturn(map);
     var includes =
         Stream.iterate(1, i -> i + 1)
             .limit(numberOfIncludes)
@@ -183,9 +139,6 @@ class OpenSearchIndexScanTest {
       var cursor = planSerializer.convertToCursor(indexScan);
       var newPlan = planSerializer.convertToPlan(cursor.toString());
       assertNotNull(newPlan);
-
-      verify(client).meta();
-      verify(map).get(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER.getKeyValue());
     }
   }
 

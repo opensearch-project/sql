@@ -48,7 +48,6 @@ sqlStatement
 
 dmlStatement
    : selectStatement
-   | deleteStatement
    ;
 
    // Data Manipulation Language
@@ -61,14 +60,8 @@ selectStatement
    | querySpecification minusStatement+ orderByClause? limitClause?     # minusSelect
    ;
 
-deleteStatement
-   : singleDeleteStatement
-   ;
 
 // Detailed DML Statements
-singleDeleteStatement
-   : DELETE FROM tableName (WHERE expression)? orderByClause? (LIMIT decimalLiteral)?
-   ;
 
 orderByClause
    : ORDER BY orderByExpression (',' orderByExpression)*

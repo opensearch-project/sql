@@ -80,9 +80,6 @@ class OpenSearchIndexTest {
   @BeforeEach
   void setUp() {
     this.index = new OpenSearchIndex(client, settings, "test");
-    lenient()
-        .when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER))
-        .thenReturn(true);
     lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
   }
 

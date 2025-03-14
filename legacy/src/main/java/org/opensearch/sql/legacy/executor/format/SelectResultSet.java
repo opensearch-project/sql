@@ -30,8 +30,6 @@ import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.opensearch.action.admin.indices.alias.get.GetAliasesResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
-import org.opensearch.action.search.ClearScrollResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.core.common.Strings;
 import org.opensearch.search.SearchHit;
@@ -42,7 +40,6 @@ import org.opensearch.search.aggregations.bucket.terms.Terms;
 import org.opensearch.search.aggregations.metrics.NumericMetricsAggregation;
 import org.opensearch.search.aggregations.metrics.Percentile;
 import org.opensearch.search.aggregations.metrics.Percentiles;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.cursor.Cursor;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
@@ -52,7 +49,6 @@ import org.opensearch.sql.legacy.domain.MethodField;
 import org.opensearch.sql.legacy.domain.Query;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.TableOnJoinSelect;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.esdomain.mapping.FieldMapping;
 import org.opensearch.sql.legacy.exception.SqlFeatureNotImplementedException;
 import org.opensearch.sql.legacy.executor.Format;
@@ -61,6 +57,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.utils.SQLFunctions;
+import org.opensearch.transport.client.Client;
 
 public class SelectResultSet extends ResultSet {
 
@@ -541,7 +538,7 @@ public class SelectResultSet extends ResultSet {
       this.rows = populateRows(searchHits);
       this.size = rows.size();
       this.internalTotalHits =
-          Optional.ofNullable(searchHits.getTotalHits()).map(th -> th.value).orElse(0L);
+          Optional.ofNullable(searchHits.getTotalHits()).map(th -> th.value()).orElse(0L);
       // size may be greater than totalHits after nested rows be flatten
       this.totalHits = Math.max(size, internalTotalHits);
     } else if (queryResult instanceof Aggregations) {
@@ -574,24 +571,13 @@ public class SelectResultSet extends ResultSet {
     long rowsLeft = rowsLeft(cursor.getFetchSize(), cursor.getLimit());
     if (rowsLeft <= 0) {
       // Delete Point In Time ID
-      if (LocalClusterState.state().getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)) {
-        String pitId = cursor.getPitId();
-        PointInTimeHandler pit = new PointInTimeHandlerImpl(client, pitId);
-        try {
-          pit.delete();
-        } catch (RuntimeException e) {
-          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-          LOG.info("Error deleting point in time {} ", pitId);
-        }
-      } else {
-        // close the cursor
-        String scrollId = cursor.getScrollId();
-        ClearScrollResponse clearScrollResponse =
-            client.prepareClearScroll().addScrollId(scrollId).get();
-        if (!clearScrollResponse.isSucceeded()) {
-          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-          LOG.error("Error closing the cursor context {} ", scrollId);
-        }
+      String pitId = cursor.getPitId();
+      PointInTimeHandler pit = new PointInTimeHandlerImpl(client, pitId);
+      try {
+        pit.delete();
+      } catch (RuntimeException e) {
+        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+        LOG.info("Error deleting point in time {} ", pitId);
       }
       return;
     }

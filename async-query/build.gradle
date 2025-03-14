@@ -28,13 +28,13 @@ dependencies {
     implementation group: 'org.json', name: 'json', version: '20231013'
     api group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: "${aws_java_sdk_version}"
     api group: 'com.amazonaws', name: 'aws-java-sdk-emrserverless', version: "${aws_java_sdk_version}"
-    implementation group: 'commons-io', name: 'commons-io', version: '2.14.0'
+    implementation group: 'commons-io', name: 'commons-io', version: "${commons_io_version}"
 
     testImplementation(platform("org.junit:junit-bom:5.9.3"))
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.7.0'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
 
     testCompileOnly('junit:junit:4.13.1') {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'

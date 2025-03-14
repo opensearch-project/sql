@@ -21,11 +21,11 @@ import lombok.SneakyThrows;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.transport.client.Client;
 
 /** Test Utility which provide the cluster have 2 indices. */
 public class MultipleIndexClusterUtils {

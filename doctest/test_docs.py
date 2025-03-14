@@ -30,6 +30,7 @@ WILDCARD = "wildcard"
 NESTED = "nested"
 DATASOURCES = ".ql-datasources"
 WEBLOGS = "weblogs"
+JSON_TEST = "json_test"
 
 class DocTestConnection(OpenSearchConnection):
 
@@ -123,6 +124,7 @@ def set_up_test_indices(test):
     load_file("nested_objects.json", index_name=NESTED)
     load_file("datasources.json", index_name=DATASOURCES)
     load_file("weblogs.json", index_name=WEBLOGS)
+    load_file("json_test.json", index_name=JSON_TEST)
 
 
 def load_file(filename, index_name):
@@ -151,7 +153,7 @@ def set_up(test):
 
 def tear_down(test):
     # drop leftover tables after each test
-    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS], ignore_unavailable=True)
+    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS, JSON_TEST], ignore_unavailable=True)
 
 
 docsuite = partial(doctest.DocFileSuite,

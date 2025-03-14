@@ -42,12 +42,6 @@ public class SqlRequestParamTest {
   }
 
   @Test
-  public void shouldReturnJSONIfFormatParamsIsJSON() {
-    assertEquals(
-        Format.JSON, SqlRequestParam.getFormat(ImmutableMap.of(QUERY_PARAMS_FORMAT, "json")));
-  }
-
-  @Test
   public void shouldReturnDefaultFormatIfNoFormatParams() {
     assertEquals(Format.JDBC, SqlRequestParam.getFormat(ImmutableMap.of()));
   }

@@ -57,7 +57,6 @@ CASE:                               'CASE';
 CAST:                               'CAST';
 CROSS:                              'CROSS';
 DATETIME:                           'DATETIME';
-DELETE:                             'DELETE';
 DESC:                               'DESC';
 DESCRIBE:                           'DESCRIBE';
 DISTINCT:                           'DISTINCT';

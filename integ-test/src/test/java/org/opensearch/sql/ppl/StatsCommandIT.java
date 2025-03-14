@@ -27,6 +27,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.BANK);
+    disableCalcite();
   }
 
   @Test

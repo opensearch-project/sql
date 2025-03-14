@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.validator;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -192,6 +193,10 @@ class SQLQueryValidatorTest {
     // Generator Functions
     GENERATOR_FUNCTIONS("SELECT explode(array(1, 2, 3));"),
 
+    // Other functions
+    NAMED_STRUCT("SELECT named_struct('a', 1);"),
+    PARSE_URL("SELECT parse_url(url) FROM my_table;"),
+
     // UDFs (User-Defined Functions)
     SCALAR_USER_DEFINED_FUNCTIONS("SELECT my_udf(name) FROM my_table;"),
     USER_DEFINED_AGGREGATE_FUNCTIONS("SELECT my_udaf(age) FROM my_table GROUP BY name;"),
@@ -208,14 +213,14 @@ class SQLQueryValidatorTest {
   void testAllowAllByDefault() {
     when(mockedProvider.getValidatorForDatasource(any()))
         .thenReturn(new DefaultGrammarElementValidator());
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
     Arrays.stream(TestElement.values()).forEach(v::ok);
   }
 
   @Test
   void testDenyAllValidator() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> false);
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
     // The elements which doesn't have validation will be accepted.
     // That's why there are some ok case
 
@@ -322,6 +327,10 @@ class SQLQueryValidatorTest {
 
     // Generator Functions
     v.ng(TestElement.GENERATOR_FUNCTIONS);
+
+    // Other Functions
+    v.ng(TestElement.NAMED_STRUCT);
+    v.ng(TestElement.PARSE_URL);
 
     // UDFs
     v.ng(TestElement.SCALAR_USER_DEFINED_FUNCTIONS);
@@ -439,6 +448,10 @@ class SQLQueryValidatorTest {
 
     // Generator Functions
     v.ok(TestElement.GENERATOR_FUNCTIONS);
+
+    // Other Functions
+    v.ok(TestElement.NAMED_STRUCT);
+    v.ok(TestElement.PARSE_URL);
 
     // UDFs
     v.ng(TestElement.SCALAR_USER_DEFINED_FUNCTIONS);
@@ -574,7 +587,7 @@ class SQLQueryValidatorTest {
   @Test
   void testInvalidIdentifier() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
     v.ng("SELECT a.b.c as a-b-c FROM abc");
     v.ok("SELECT a.b.c as `a-b-c` FROM abc");
     v.ok("SELECT a.b.c as a_b_c FROM abc");
@@ -588,7 +601,7 @@ class SQLQueryValidatorTest {
   @Test
   void testUnsupportedType() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
 
     v.ng("SELECT cast ( a as DateTime ) FROM tbl");
     v.ok("SELECT cast ( a as DATE ) FROM tbl");
@@ -599,7 +612,7 @@ class SQLQueryValidatorTest {
   @Test
   void testUnsupportedTypedLiteral() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
 
     v.ng("SELECT DATETIME '2024-10-11'");
     v.ok("SELECT DATE '2024-10-11'");
@@ -609,7 +622,7 @@ class SQLQueryValidatorTest {
   @Test
   void testUnsupportedHiveNativeCommand() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
-    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.SPARK);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
 
     v.ng("CREATE ROLE aaa");
     v.ng("SHOW GRANT");
@@ -619,6 +632,14 @@ class SQLQueryValidatorTest {
     v.ng("COMMIT");
     v.ng("ROLLBACK");
     v.ng("DFS");
+  }
+
+  @Test
+  void testException() {
+    when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> false);
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
+
+    v.ng("SELECT named_struct('a', 1);", "Other functions (named_struct) is not allowed.");
   }
 
   @AllArgsConstructor
@@ -643,6 +664,15 @@ class SQLQueryValidatorTest {
           IllegalArgumentException.class,
           () -> runValidate(query),
           "The query should throw: query=`" + query.toString() + "`");
+    }
+
+    public void ng(String query, String expectedMessage) {
+      Exception e =
+          assertThrows(
+              IllegalArgumentException.class,
+              () -> runValidate(query),
+              "The query should throw: query=`" + query.toString() + "`");
+      assertEquals(expectedMessage, e.getMessage());
     }
 
     void runValidate(String[] queries) {

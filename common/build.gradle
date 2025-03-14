@@ -36,8 +36,8 @@ dependencies {
     api "org.antlr:antlr4-runtime:4.7.1"
     api group: 'com.google.guava', name: 'guava', version: "${guava_version}"
     api group: 'org.apache.logging.log4j', name: 'log4j-core', version:"${versions.log4j}"
-    api group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
-    api group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
+    api group: 'org.apache.commons', name: 'commons-lang3', version: "${commons_lang3_version}"
+    api group: 'org.apache.commons', name: 'commons-text', version: "${commons_text_version}"
     api group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.12.0'
     implementation 'com.github.babbel:okhttp-aws-signer:1.0.2'
     api group: 'com.amazonaws', name: 'aws-java-sdk-core', version: "${aws_java_sdk_version}"
@@ -47,10 +47,10 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.9.1'
     testImplementation group: 'com.google.guava', name: 'guava', version: "${guava_version}"
-    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
+    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.7.0'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
     testImplementation group: 'com.squareup.okhttp3', name: 'mockwebserver', version: '4.12.0'
 }
 

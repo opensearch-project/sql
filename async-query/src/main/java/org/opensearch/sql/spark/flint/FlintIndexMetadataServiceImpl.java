@@ -22,9 +22,9 @@ import lombok.AllArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
-import org.opensearch.client.Client;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
+import org.opensearch.transport.client.Client;
 
 /** Implementation of {@link FlintIndexMetadataService} */
 @AllArgsConstructor

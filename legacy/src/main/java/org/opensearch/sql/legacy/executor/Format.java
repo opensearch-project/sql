@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum Format {
   JDBC("jdbc"),
-  JSON("json"),
   CSV("csv"),
   RAW("raw"),
   TABLE("table");

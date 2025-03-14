@@ -15,12 +15,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
 import org.opensearch.sql.legacy.expression.domain.BindingTuple;
 import org.opensearch.sql.legacy.query.planner.converter.SQLToOperatorConverter;
 import org.opensearch.sql.legacy.query.planner.physical.PhysicalOperator;
 import org.opensearch.sql.legacy.query.planner.physical.node.project.PhysicalProject;
+import org.opensearch.transport.client.Client;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SQLToOperatorConverterTest {

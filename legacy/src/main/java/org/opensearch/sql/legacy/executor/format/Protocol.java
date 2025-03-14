@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.cursor.Cursor;
 import org.opensearch.sql.legacy.cursor.NullCursor;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
@@ -29,6 +28,7 @@ import org.opensearch.sql.legacy.expression.domain.BindingTuple;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.planner.core.ColumnNode;
+import org.opensearch.transport.client.Client;
 
 public class Protocol {
 

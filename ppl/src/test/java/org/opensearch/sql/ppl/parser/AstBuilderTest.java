@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.parser;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
@@ -43,6 +44,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ast.dsl.AstDSL.window;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
@@ -55,11 +57,14 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.FillNull;
@@ -67,6 +72,8 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstBuilderTest {
@@ -74,6 +81,8 @@ public class AstBuilderTest {
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
   private final PPLSyntaxParser parser = new PPLSyntaxParser();
+
+  private final Settings settings = Mockito.mock(Settings.class);
 
   @Test
   public void testSearchCommand() {
@@ -606,33 +615,6 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testPatternsCommand() {
-    assertEqual(
-        "source=t | patterns new_field=\"custom_field\" " + "pattern=\"custom_pattern\" raw",
-        parse(
-            relation("t"),
-            ParseMethod.PATTERNS,
-            field("raw"),
-            stringLiteral("custom_pattern"),
-            ImmutableMap.<String, Literal>builder()
-                .put("new_field", stringLiteral("custom_field"))
-                .put("pattern", stringLiteral("custom_pattern"))
-                .build()));
-  }
-
-  @Test
-  public void testPatternsCommandWithoutArguments() {
-    assertEqual(
-        "source=t | patterns raw",
-        parse(
-            relation("t"),
-            ParseMethod.PATTERNS,
-            field("raw"),
-            stringLiteral(""),
-            ImmutableMap.of()));
-  }
-
-  @Test
   public void testKmeansCommand() {
     assertEqual(
         "source=t | kmeans centroids=3 iterations=2 distance_type='l1'",
@@ -845,6 +827,47 @@ public class AstBuilderTest {
     assertEqual("show datasources", describe(DATASOURCES_TABLE_NAME));
   }
 
+  @Test
+  public void testPatternsCommand() {
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    assertEqual(
+        "source=t | patterns new_field=\"custom_field\" pattern=\"custom_pattern\" raw",
+        window(
+            relation("t"),
+            PatternMethod.SIMPLE_PATTERN,
+            field("raw"),
+            "custom_field",
+            Arrays.asList(
+                new Argument("new_field", new Literal("custom_field", DataType.STRING)),
+                new Argument("pattern", new Literal("custom_pattern", DataType.STRING)))));
+
+    assertEqual(
+        "source=t | patterns variable_count_threshold=2 frequency_threshold_percentage=0.1 raw"
+            + " BRAIN",
+        window(
+            relation("t"),
+            PatternMethod.BRAIN,
+            field("raw"),
+            "patterns_field",
+            Arrays.asList(
+                new Argument("variable_count_threshold", new Literal(2, DataType.INTEGER)),
+                new Argument(
+                    "frequency_threshold_percentage", new Literal(0.1, DataType.DOUBLE)))));
+  }
+
+  @Test
+  public void testPatternsWithoutArguments() {
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    assertEqual(
+        "source=t | patterns raw",
+        window(
+            relation("t"),
+            PatternMethod.SIMPLE_PATTERN,
+            field("raw"),
+            "patterns_field",
+            Arrays.asList()));
+  }
+
   protected void assertEqual(String query, Node expectedPlan) {
     Node actualPlan = plan(query);
     assertEquals(expectedPlan, actualPlan);
@@ -856,7 +879,7 @@ public class AstBuilderTest {
   }
 
   private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(query);
+    AstBuilder astBuilder = new AstBuilder(query, settings);
     return astBuilder.visit(parser.parse(query));
   }
 }
