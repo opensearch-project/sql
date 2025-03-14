@@ -156,6 +156,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.rexBuilder.equals(left, right);
   }
 
+  /** Resolve qualified name. Note, the name should be case-sensitive. */
   @Override
   public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
     // 1. resolve QualifiedName in join condition
