@@ -2119,7 +2119,7 @@ public class DateTimeFunctions {
     return new ExprDoubleValue(res);
   }
 
-  public static Double transferUnixTimeStampFromDoubleInput(Double value){
+  public static Double transferUnixTimeStampFromDoubleInput(Double value) {
     var format = new DecimalFormat("0.#");
     format.setMinimumFractionDigits(0);
     format.setMaximumFractionDigits(6);

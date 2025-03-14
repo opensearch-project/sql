@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -14,7 +15,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.time.Instant;
 import java.util.Objects;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -44,25 +44,17 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     request6.setJsonEntity("{\"name\": \"DummyEntityForMathVerification\", \"age\": 24}");
     client().performRequest(request6);
 
-    Request request7 = new Request("PUT", "/people3/");
-    request7.setJsonEntity("{\"mappings\": { \"properties\": {\"timestamp2\": { \"type\": \"date\", \"format\": \"strict_date_optional_time_nanos\"}}}}");
-    client().performRequest(request7);
-
-    Request request8 = new Request("PUT", "/people3/");
-    request8.setJsonEntity("{ \"mappings\": { \"properties\": {\"timestamp2\": {\"type\": \"date\"}}}}");
-    client().performRequest(request8);
-
-
     loadIndex(Index.BANK);
   }
 
   @Test
   public void testUnixTimestamp() {
     String query =
-            "source=people | eval `UNIX_TIMESTAMP(double)` = UNIX_TIMESTAMP(20771122143845), `UNIX_TIMESTAMP(timestamp)` = UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42')) | fields `UNIX_TIMESTAMP(double)`, `UNIX_TIMESTAMP(timestamp)`";
+        "source=people | eval `UNIX_TIMESTAMP(double)` = UNIX_TIMESTAMP(20771122143845),"
+            + " `UNIX_TIMESTAMP(timestamp)` = UNIX_TIMESTAMP(TIMESTAMP('1996-11-15 17:05:42')) |"
+            + " fields `UNIX_TIMESTAMP(double)`, `UNIX_TIMESTAMP(timestamp)`";
     testSimplePPL(query, List.of(3404817525.0, 848077542.0));
   }
-
 
   @Test
   public void testDate() {
@@ -87,7 +79,8 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testDate2() {
     String query =
-            "source=people |eval `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26 13:49:00')) | fields `DATE(TIMESTAMP('2020-08-26 13:49:00'))`";
+        "source=people |eval `DATE(TIMESTAMP('2020-08-26 13:49:00'))` = DATE(TIMESTAMP('2020-08-26"
+            + " 13:49:00')) | fields `DATE(TIMESTAMP('2020-08-26 13:49:00'))`";
     testSimplePPL(query, List.of("2020-08-26"));
   }
 
@@ -101,7 +94,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     String formattedString = formatter.format(utcTimestamp);
     testSimplePPL(query, List.of(formattedString));
   }
-
 
   @Test
   public void testUTCTIME() {
@@ -150,17 +142,19 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testDayName() {
     String query =
-            "source=people | eval a = DAYNAME(DATE('2020-08-26')), b= DAYNAME(TIMESTAMP('2020-08-26 12:00:00')), c=DAYNAME('2020-08-26')| fields a, b, c";
+        "source=people | eval a = DAYNAME(DATE('2020-08-26')), b= DAYNAME(TIMESTAMP('2020-08-26"
+            + " 12:00:00')), c=DAYNAME('2020-08-26')| fields a, b, c";
     testSimplePPL(query, List.of("wednesday", "wednesday", "wednesday"));
   }
 
   @Test
   public void testFromUnixTime() {
     String query =
-            "source=people |  eval `FROM_UNIXTIME(1220249547)` = FROM_UNIXTIME(1220249547), `FROM_UNIXTIME(1220249547, '%T')` = FROM_UNIXTIME(1220249547, '%T') | fields `FROM_UNIXTIME(1220249547)`, `FROM_UNIXTIME(1220249547, '%T')`";
+        "source=people |  eval `FROM_UNIXTIME(1220249547)` = FROM_UNIXTIME(1220249547),"
+            + " `FROM_UNIXTIME(1220249547, '%T')` = FROM_UNIXTIME(1220249547, '%T') | fields"
+            + " `FROM_UNIXTIME(1220249547)`, `FROM_UNIXTIME(1220249547, '%T')`";
     testSimplePPL(query, List.of(1));
   }
-
 
   @Test
   public void testHour() {
@@ -324,6 +318,8 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     testSimplePPL(
         "source=people | eval t = TIME(TIMESTAMP('1998-01-31 13:14:15.012345')) | fields t",
         List.of("13:14:15"));
+    testSimplePPL(
+        "source=people | eval t = TIME(TIME('13:14:15.012345')) | fields t", List.of("13:14:15"));
   }
 
   @Test
