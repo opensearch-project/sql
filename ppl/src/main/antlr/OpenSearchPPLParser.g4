@@ -390,8 +390,9 @@ logicalExpression
    ;
 
 comparisonExpression
-   : left = valueExpression comparisonOperator right = valueExpression  # compareExpr
-   | valueExpression IN valueList                                       # inExpr
+   : left = valueExpression comparisonOperator right = valueExpression      # compareExpr
+   | valueExpression NOT? IN valueList                                      # inExpr
+   | valueExpression NOT? BETWEEN valueExpression AND valueExpression       # between
    ;
 
 valueExpressionList
@@ -965,6 +966,7 @@ keywordsCanBeId
    | comparisonOperator
    // commands assist keywords
    | IN
+   | BETWEEN
    | EXISTS
    | SOURCE
    | INDEX

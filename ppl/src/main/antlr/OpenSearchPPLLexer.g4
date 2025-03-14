@@ -342,6 +342,7 @@ LIKE:                               'LIKE';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
+BETWEEN:                            'BETWEEN';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';

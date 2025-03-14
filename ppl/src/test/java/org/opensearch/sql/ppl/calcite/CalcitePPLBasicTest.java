@@ -65,6 +65,25 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testFilterQueryWithBetween() {
+    String ppl = "source=EMP | where DEPTNO between 20 and 30 | fields EMPNO, ENAME";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalFilter(condition=[SEARCH($7, Sarg[[20..30]])])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` >= 20 AND `DEPTNO` <= 30";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testFilterQueryWithOr() {
     String ppl =
         "source=EMP | where (DEPTNO = 20 or MGR = 30) and SAL > 1000 | fields EMPNO, ENAME";

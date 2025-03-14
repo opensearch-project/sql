@@ -92,7 +92,7 @@ public class QueryService {
             fallbackAllowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
           }
           if (!fallbackAllowed) {
-            throw e;
+            listener.onFailure(e);
           }
           LOG.warn("Fallback to V2 query engine since got exception", e);
           executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
