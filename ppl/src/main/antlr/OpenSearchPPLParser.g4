@@ -51,11 +51,39 @@ commands
    | grokCommand
    | parseCommand
    | patternsCommand
+   | lookupCommand
    | kmeansCommand
    | adCommand
    | mlCommand
    | fillnullCommand
    | trendlineCommand
+   ;
+
+commandName
+   : SEARCH
+   | DESCRIBE
+   | SHOW
+   | WHERE
+   | FIELDS
+   | JOIN
+   | RENAME
+   | STATS
+   | DEDUP
+   | SORT
+   | EVAL
+   | HEAD
+   | TOP
+   | RARE
+   | GROK
+   | PARSE
+   | METHOD
+   | PATTERNS
+   | LOOKUP
+   | KMEANS
+   | AD
+   | ML
+   | FILLNULL
+   | TRENDLINE
    ;
 
 searchCommand
@@ -132,6 +160,26 @@ patternsParameter
 patternsMethod
    : PUNCT
    | REGEX
+   ;
+// lookup
+lookupCommand
+   : LOOKUP tableSource lookupMappingList ((APPEND | REPLACE) outputCandidateList)?
+   ;
+
+lookupMappingList
+   : lookupPair (COMMA lookupPair)*
+   ;
+
+outputCandidateList
+   : lookupPair (COMMA lookupPair)*
+   ;
+
+ // The lookup pair will generate a K-V pair.
+ // The format is Key -> Alias(outputFieldName, inputField), Value -> outputField. For example:
+ // 1. When lookupPair is "name AS cName", the key will be Alias(cName, Field(name)), the value will be Field(cName)
+ // 2. When lookupPair is "dept", the key is Alias(dept, Field(dept)), value is Field(dept)
+lookupPair
+   : inputField = fieldExpression (AS outputField = fieldExpression)?
    ;
 
 fillnullCommand
@@ -305,6 +353,7 @@ statsFunctionName
    | STDDEV_SAMP
    | STDDEV_POP
    | PERCENTILE
+   | PERCENTILE_APPROX
    ;
 
 takeAggFunction
@@ -909,39 +958,11 @@ keywordsCanBeId
    | evalFunctionName
    | relevanceArgName
    | intervalUnit
-   | dateTimeFunctionName
-   | textFunctionName
-   | mathematicalFunctionName
-   | positionFunctionName
-   | conditionFunctionName
-   // commands
-   | SEARCH
-   | DESCRIBE
-   | SHOW
-   | FROM
-   | WHERE
-   | FIELDS
-   | RENAME
-   | STATS
-   | DEDUP
-   | SORT
-   | EVAL
-   | FILLNULL
-   | HEAD
-   | TOP
-   | RARE
-   | PARSE
-   | METHOD
-   | REGEX
-   | PUNCT
-   | GROK
-   | PATTERN
-   | PATTERNS
-   | NEW_FIELD
-   | KMEANS
-   | AD
-   | ML
-   | TRENDLINE
+   | trendlineType
+   | singleFieldRelevanceFunctionName
+   | multiFieldRelevanceFunctionName
+   | commandName
+   | comparisonOperator
    // commands assist keywords
    | IN
    | EXISTS
@@ -949,8 +970,18 @@ keywordsCanBeId
    | INDEX
    | DESC
    | DATASOURCES
-   // CLAUSEKEYWORDS
-   | SORTBY
+   | FROM
+   | PATTERN
+   | NEW_FIELD
+   | REGEX
+   | PUNCT
+   | USING
+   | CAST
+   | GET_FORMAT
+   | EXTRACT
+   | INTERVAL
+   | PLUS
+   | MINUS
    // SORT FIELD KEYWORDS
    | AUTO
    | STR
@@ -978,26 +1009,19 @@ keywordsCanBeId
    | TRAINING_DATA_SIZE
    | ANOMALY_SCORE_THRESHOLD
    // AGGREGATIONS
-   | AVG
-   | COUNT
+   | statsFunctionName
    | DISTINCT_COUNT
    | ESTDC
    | ESTDC_ERROR
-   | MAX
    | MEAN
    | MEDIAN
-   | MIN
    | MODE
    | RANGE
    | STDEV
    | STDEVP
-   | SUM
    | SUMSQ
    | VAR_SAMP
    | VAR_POP
-   | STDDEV_SAMP
-   | STDDEV_POP
-   | PERCENTILE
    | TAKE
    | FIRST
    | LAST

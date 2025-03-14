@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -42,6 +43,7 @@ import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -117,6 +119,30 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         node.getJoinCondition().map(c -> expressionAnalyzer.analyze(c, context)).orElse("true");
     return StringUtils.format(
         "%s | %s join%s%s on %s %s", left, joinType, leftAlias, rightAlias, condition, right);
+  }
+
+  @Override
+  public String visitLookup(Lookup node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String lookupTable = ((Relation) node.getLookupRelation()).getTableQualifiedName().toString();
+    String mappingFields = formatFieldAlias(node.getMappingAliasMap());
+    String strategy =
+        node.getOutputAliasMap().isEmpty()
+            ? ""
+            : String.format(" %s ", node.getOutputStrategy().toString().toLowerCase());
+    String outputFields = formatFieldAlias(node.getOutputAliasMap());
+    return StringUtils.format(
+        "%s | lookup %s %s%s%s", child, lookupTable, mappingFields, strategy, outputFields);
+  }
+
+  private String formatFieldAlias(java.util.Map<String, String> fieldMap) {
+    return fieldMap.entrySet().stream()
+        .map(
+            entry ->
+                Objects.equals(entry.getKey(), entry.getValue())
+                    ? entry.getKey()
+                    : StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
+        .collect(Collectors.joining(", "));
   }
 
   @Override
