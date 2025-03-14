@@ -8,8 +8,6 @@ package org.opensearch.sql.calcite.utils;
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
-import java.sql.Date;
-import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -28,16 +26,16 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
-public class UserDefineFunctionUtils {
-  public static RelBuilder.AggCall TransferUserDefinedAggFunction(
+public interface UserDefineFunctionUtils {
+  static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,
       String functionName,
       SqlReturnTypeInference returnType,
@@ -60,7 +58,7 @@ public class UserDefineFunctionUtils {
     return relBuilder.aggregateCall(sqlUDAF, addArgList);
   }
 
-  public static SqlOperator TransferUserDefinedFunction(
+  static SqlOperator TransferUserDefinedFunction(
       Class<? extends UserDefinedFunction> UDF,
       String functionName,
       SqlReturnTypeInference returnType) {
@@ -72,7 +70,7 @@ public class UserDefineFunctionUtils {
         udfLtrimIdentifier, SqlKind.OTHER_FUNCTION, returnType, null, null, udfFunction);
   }
 
-  public static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
+  static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
@@ -87,7 +85,7 @@ public class UserDefineFunctionUtils {
     };
   }
 
-  public static SqlReturnTypeInference getReturnTypeInferenceForArray() {
+  static SqlReturnTypeInference getReturnTypeInferenceForArray() {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
@@ -102,22 +100,37 @@ public class UserDefineFunctionUtils {
     };
   }
 
-  public static Long transferDateExprToMilliSeconds(String timeExpr) {
-    LocalDate date = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-    return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-
+  static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
+    return opBinding -> {
+      RelDataType operandType0 = opBinding.getOperandType(0);
+      SqlTypeName typeName = operandType0.getSqlTypeName();
+      return switch (typeName) {
+        case DATE, TIMESTAMP ->
+        // Return TIMESTAMP
+        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+        case TIME ->
+        // Return TIME
+        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIME);
+        default -> throw new IllegalArgumentException("Unsupported type: " + typeName);
+      };
+    };
   }
 
-  public static List<Integer> transferStringExprToDateValue(String timeExpr) {
+  static Long transferDateExprToMilliSeconds(String timeExpr) {
+    LocalDate date = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+    return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+  }
+
+  static List<Integer> transferStringExprToDateValue(String timeExpr) {
     if (timeExpr.contains(":")) {
       // A timestamp
-      LocalDateTime localDateTime = LocalDateTime.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-      return List.of(localDateTime.getYear(), localDateTime.getMonthValue(), localDateTime.getDayOfMonth());
-    }
-    else {
+      LocalDateTime localDateTime =
+          LocalDateTime.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+      return List.of(
+          localDateTime.getYear(), localDateTime.getMonthValue(), localDateTime.getDayOfMonth());
+    } else {
       LocalDate localDate = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
       return List.of(localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth());
     }
   }
-
 }

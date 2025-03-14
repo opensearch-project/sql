@@ -2,7 +2,6 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
-import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
