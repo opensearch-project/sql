@@ -32,6 +32,7 @@ import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -137,6 +138,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitNot(Not node, CalcitePlanContext context) {
     final RexNode expr = analyze(node.getExpression(), context);
     return context.relBuilder.not(expr);
+  }
+
+  @Override
+  public RexNode visitIn(In node, CalcitePlanContext context) {
+    final RexNode field = analyze(node.getField(), context);
+    return context.rexBuilder.makeIn(
+        field,
+        node.getValueList().stream()
+            .map(value -> analyze(value, context))
+            .collect(Collectors.toList()));
   }
 
   @Override

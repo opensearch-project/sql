@@ -21,6 +21,7 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
@@ -384,6 +385,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       String left = analyze(node.getLeft(), context);
       String right = analyze(node.getRight(), context);
       return StringUtils.format("%s %s %s", left, node.getOperator(), right);
+    }
+
+    @Override
+    public String visitIn(In node, String context) {
+      String field = analyze(node.getField(), context);
+      return StringUtils.format("%s in (%s)", field, MASK_LITERAL);
     }
 
     @Override
