@@ -431,7 +431,7 @@ integTest {
     }
 
     testLogging {
-        events "passed", "skipped", "failed"
+        events "failed"
     }
 
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
