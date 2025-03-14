@@ -1276,7 +1276,7 @@ public class DateTimeFunctions {
    * @param toTz ExprValue of time zone, representing the time to convert to.
    * @return Timestamp that has been converted to the to_tz timezone.
    */
-  private ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
+  public static ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
       startingDateTime = exprDateTimeNoTimezone(startingDateTime);
     }

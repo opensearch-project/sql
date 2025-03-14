@@ -268,6 +268,21 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testConvertTz() {
+    testSimplePPL(
+            "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')` = convert_tz('2008-05-15 12:00:00','+00:00','+10:00') | fields `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')`",
+            ImmutableList.of("2008-05-15 22:00:00"));
+    ArrayList<Object> expected = new ArrayList<>();
+    expected.add(null);
+//    testSimplePPL(
+//            "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')` = convert_tz('2008-05-15 12:00:00','+00:00','+15:00')| fields `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')`",
+//            expected);
+    testSimplePPL(
+            "source=people | eval `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')` = convert_tz('2008-05-15 12:00:00','+03:30','-10:00') | fields `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')`",
+            ImmutableList.of("2008-05-14 22:30:00"));
+  }
+
+  @Test
   public void testDateDiff() {
     testSimplePPL(
         "source=people | eval `'2000-01-02' - '2000-01-01'` = DATEDIFF(TIMESTAMP('2000-01-02"

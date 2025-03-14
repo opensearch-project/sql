@@ -21,10 +21,9 @@ public class ExtractFunction implements UserDefinedFunction {
     Object argTimestamp = args[1];
 
     Instant datetimeInstant = InstantUtils.fromEpochMills(((Number) argTimestamp).longValue());
-    LocalDateTime datetime = LocalDateTime.ofInstant(datetimeInstant, ZoneOffset.UTC);
 
     return DateTimeFunctions.formatExtractFunction(
-            new ExprStringValue(argPart.toString()), new ExprTimestampValue(datetime))
+            new ExprStringValue(argPart.toString()), new ExprTimestampValue(datetimeInstant))
         .longValue();
   }
 }

@@ -32,6 +32,7 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -39,6 +40,7 @@ import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.ConvertTZFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunction;
@@ -209,7 +211,11 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.EXTRACT;
       case "EXTRACT":
         // Reuse OpenSearch PPL's implementation
-        return TransferUserDefinedFunction(ExtractFunction.class, "EXTRACT", ReturnTypes.BIGINT);
+        return TransferUserDefinedFunction(
+            ExtractFunction.class, "EXTRACT", ReturnTypes.BIGINT);
+      case "CONVERT_TZ":
+        return TransferUserDefinedFunction(
+            ConvertTZFunction.class, "CONVERT_TZ", ReturnTypes.TIMESTAMP);
       case "DATEDIFF":
         return SqlStdOperatorTable.TIMESTAMP_DIFF;
       case "DATE_FORMAT":
@@ -431,7 +437,13 @@ public interface BuiltinFunctionUtils {
       case "EXTRACT":
         // Convert the second argument to TIMESTAMP
         return ImmutableList.of(
-            argList.getFirst(), makeConversionCall("TIMESTAMP", List.of(argList.get(1)), context));
+            argList.getFirst(),
+            makeConversionCall("TIMESTAMP", ImmutableList.of(argList.get(1)), context));
+      case "CONVERT_TZ":
+        return ImmutableList.of(
+            makeConversionCall("TIMESTAMP", ImmutableList.of(argList.getFirst()), context),
+            argList.get(1),
+            argList.get(2));
       case "DATEDIFF":
         RexNode dayUnit = context.rexBuilder.makeLiteral(TimeUnit.DAY.toString());
         RexNode ts1 = convertToDateIfNecessary(context.rexBuilder, argList.getFirst());
