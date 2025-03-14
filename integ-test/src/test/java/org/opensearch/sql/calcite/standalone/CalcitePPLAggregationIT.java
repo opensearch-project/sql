@@ -10,7 +10,6 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
-import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
@@ -124,7 +123,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
         schema("avg(balance)", "double"),
         schema("gender", "string"),
         schema("city", "string"));
-    verifyDataRowsInOrder(
+    verifyDataRows(
         actual1,
         rows(40540.0, "F", "Nicholson"),
         rows(32838.0, "F", "Nogal"),
@@ -142,7 +141,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
         schema("avg(balance)", "double"),
         schema("city", "string"),
         schema("gender", "string"));
-    verifyDataRowsInOrder(
+    verifyDataRows(
         actual2,
         rows(39225.0, "Brogan", "M"),
         rows(5686.0, "Dante", "M"),
@@ -165,7 +164,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
         schema("span(age,10)", null, "integer"),
         schema("gender", null, "string"),
         schema("state", null, "string"));
-    verifyDataRowsInOrder(
+    verifyDataRows(
         response,
         rows(1, 20, "F", "VA"),
         rows(1, 30, "F", "IN"),
@@ -178,7 +177,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testStatsByMultipleFieldsAndSpan() throws IOException {
-    // Use verifySchemaInOrder() and verifyDataRowsInOrder() to check that the span column is always
+    // Use verifySchemaInOrder() and verifyDataRows() to check that the span column is always
     // the first column in result whatever the order of span in query is first or last one
     JSONObject response =
         executeQuery(
@@ -190,7 +189,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
         schema("span(age,10)", null, "integer"),
         schema("gender", null, "string"),
         schema("state", null, "string"));
-    verifyDataRowsInOrder(
+    verifyDataRows(
         response,
         rows(1, 20, "F", "VA"),
         rows(1, 30, "F", "IN"),

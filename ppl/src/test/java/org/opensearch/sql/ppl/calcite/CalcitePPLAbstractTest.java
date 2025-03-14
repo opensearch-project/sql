@@ -120,9 +120,10 @@ public class CalcitePPLAbstractTest {
 
   /** Verify the generated Spark SQL of the given RelNode */
   public void verifyPPLToSparkSQL(RelNode rel, String expected) {
+    String normalized = expected.replace("\n", System.lineSeparator());
     SqlImplementor.Result result = converter.visitRoot(rel);
     final SqlNode sqlNode = result.asStatement();
     final String sql = sqlNode.toSqlString(SparkSqlDialect.DEFAULT).getSql();
-    assertThat(sql, is(expected));
+    assertThat(sql, is(normalized));
   }
 }

@@ -287,20 +287,18 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(avg(a)=[$1], b=[$0])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
-            + "    LogicalAggregate(group=[{1}], avg(a)=[AVG($0)])\n"
-            + "      LogicalProject(a=[$5], b=[$7])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{1}], avg(a)=[AVG($0)])\n"
+            + "    LogicalProject(a=[$5], b=[$7])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "avg(a)=2916.66; b=10\navg(a)=2175.00; b=20\navg(a)=1566.66; b=30\n";
+    String expectedResult = "avg(a)=2175.00; b=20\navg(a)=2916.66; b=10\navg(a)=1566.66; b=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         ""
             + "SELECT AVG(`SAL`) `avg(a)`, `DEPTNO` `b`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`\n"
-            + "ORDER BY `DEPTNO` NULLS LAST";
+            + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -311,15 +309,14 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(avg(b)=[$1], DEPTNO=[$0])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
-            + "    LogicalAggregate(group=[{0}], avg(b)=[AVG($1)])\n"
-            + "      LogicalProject(DEPTNO=[$7], b=[+($5, 10000)])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{0}], avg(b)=[AVG($1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], b=[+($5, 10000)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg(b)=12916.66; DEPTNO=10\n"
             + "avg(b)=12175.00; DEPTNO=20\n"
+            + "avg(b)=12916.66; DEPTNO=10\n"
             + "avg(b)=11566.66; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
@@ -327,8 +324,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT AVG(`SAL` + 10000) `avg(b)`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`\n"
-            + "ORDER BY `DEPTNO` NULLS LAST";
+            + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -339,15 +335,14 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(avg(b)=[$1], DEPTNO=[$0])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
-            + "    LogicalAggregate(group=[{0}], avg(b)=[AVG($1)])\n"
-            + "      LogicalProject(DEPTNO=[$7], b=[+($5, 10000)])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{0}], avg(b)=[AVG($1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], b=[+($5, 10000)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
-            + "avg(b)=12916.66; DEPTNO=10\n"
             + "avg(b)=12175.00; DEPTNO=20\n"
+            + "avg(b)=12916.66; DEPTNO=10\n"
             + "avg(b)=11566.66; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
@@ -355,8 +350,7 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT AVG(`SAL` + 10000) `avg(b)`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`\n"
-            + "ORDER BY `DEPTNO` NULLS LAST";
+            + "GROUP BY `DEPTNO`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
