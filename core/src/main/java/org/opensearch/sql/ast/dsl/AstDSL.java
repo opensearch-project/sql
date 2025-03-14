@@ -397,11 +397,7 @@ public class AstDSL {
 
   @Deprecated
   public Alias alias(String name, UnresolvedExpression expr, String alias) {
-    if (alias == null) {
-      return new Alias(name, expr);
-    } else {
-      return new Alias(alias, expr);
-    }
+    return new Alias(name, expr, alias);
   }
 
   public NestedAllTupleFields nestedAllTupleFields(String path) {

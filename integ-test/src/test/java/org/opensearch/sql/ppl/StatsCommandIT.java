@@ -333,12 +333,10 @@ public class StatsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsAliasedSpan() throws IOException {
-    enableCalcite();
     JSONObject response =
         executeQuery(
             String.format(
                 "source=%s | stats count() by span(age,10) as age_bucket", TEST_INDEX_BANK));
-    enableCalcite();
     if (isCalciteEnabled()) {
       verifySchema(
           response, schema("count()", null, "long"), schema("age_bucket", null, "integer"));

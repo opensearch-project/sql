@@ -65,7 +65,8 @@ public class SelectExpressionAnalyzer
     }
 
     Expression expr = referenceIfSymbolDefined(node, context);
-    return Collections.singletonList(DSL.named(node.getName(), expr));
+    return Collections.singletonList(
+        DSL.named(unqualifiedNameIfFieldOnly(node, context), expr, node.getAlias()));
   }
 
   /**
@@ -76,7 +77,7 @@ public class SelectExpressionAnalyzer
    *       aggExpr)) Agg(Alias("AVG(age)", aggExpr))
    *   <li>SELECT length(name), AVG(age) FROM s BY length(name) Project(Alias("name", expr),
    *       Alias("AVG(age)", aggExpr)) Agg(Alias("AVG(age)", aggExpr))
-   *   <li>SELECT length(name) as l, AVG(age) FROM s BY l Project(Alias("l", expr),
+   *   <li>SELECT length(name) as l, AVG(age) FROM s BY l Project(Alias("name", expr, l),
    *       Alias("AVG(age)", aggExpr)) Agg(Alias("AVG(age)", aggExpr), Alias("length(name)",
    *       groupExpr))
    * </ol>
@@ -88,9 +89,7 @@ public class SelectExpressionAnalyzer
     // (OVER clause) and thus depends on name in alias to be replaced correctly
     return optimizer.optimize(
         DSL.named(
-            delegatedExpr.toString(),
-            delegatedExpr.accept(expressionAnalyzer, context),
-            expr.getName()),
+            expr.getName(), delegatedExpr.accept(expressionAnalyzer, context), expr.getAlias()),
         context);
   }
 
@@ -128,5 +127,22 @@ public class SelectExpressionAnalyzer
               return DSL.named("nested(" + entry.getKey() + ")", nestedFunc);
             })
         .collect(Collectors.toList());
+  }
+
+  /**
+   * Get unqualified name if select item is just a field. For example, suppose an index named
+   * "accounts", return "age" for "SELECT accounts.age". But do nothing for expression in "SELECT
+   * ABS(accounts.age)". Note that an assumption is made implicitly that original name field in
+   * Alias must be the same as the values in QualifiedName. This is true because AST builder does
+   * this. Otherwise, what unqualified() returns will override Alias's name as NamedExpression's
+   * name even though the QualifiedName doesn't have qualifier.
+   */
+  private String unqualifiedNameIfFieldOnly(Alias node, AnalysisContext context) {
+    UnresolvedExpression selectItem = node.getDelegated();
+    if (selectItem instanceof QualifiedName) {
+      QualifierAnalyzer qualifierAnalyzer = new QualifierAnalyzer(context);
+      return qualifierAnalyzer.unqualified((QualifiedName) selectItem);
+    }
+    return node.getName();
   }
 }

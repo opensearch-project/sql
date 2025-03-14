@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.expression;
 
+import com.google.common.base.Strings;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +19,8 @@ import org.opensearch.sql.expression.env.Environment;
  * Please see more details in associated unresolved expression operator<br>
  * {@link org.opensearch.sql.ast.expression.Alias}.
  */
-@EqualsAndHashCode(callSuper = false)
+@AllArgsConstructor
+@EqualsAndHashCode
 @Getter
 @RequiredArgsConstructor
 public class NamedExpression implements Expression {
@@ -27,6 +30,18 @@ public class NamedExpression implements Expression {
 
   /** Expression that being named. */
   private final Expression delegated;
+
+  /** Optional alias. */
+  private String alias;
+
+  /**
+   * Get expression name using name or its alias (if it's present).
+   *
+   * @return expression name
+   */
+  public String getNameOrAlias() {
+    return Strings.isNullOrEmpty(alias) ? name : alias;
+  }
 
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
