@@ -129,7 +129,7 @@ allprojects {
     configurations.all {
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.9.10"
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.10"
-        resolutionStrategy.force "net.bytebuddy:byte-buddy:1.14.9"
+        resolutionStrategy.force "net.bytebuddy:byte-buddy:1.14.19"
         resolutionStrategy.force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
         resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
         resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
