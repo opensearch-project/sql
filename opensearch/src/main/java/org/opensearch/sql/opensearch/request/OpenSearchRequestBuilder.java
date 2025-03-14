@@ -250,7 +250,7 @@ public class OpenSearchRequestBuilder {
 
   /** Push down project list to DSL requests. */
   public void pushDownProjects(Set<ReferenceExpression> projects) {
-    pushDownProjectStream(projects.stream().map(ReferenceExpression::getAttr));
+    pushDownProjectStream(projects.stream().map(ReferenceExpression::getRawPath));
   }
 
   public void pushDownProjectStream(Stream<String> projects) {
