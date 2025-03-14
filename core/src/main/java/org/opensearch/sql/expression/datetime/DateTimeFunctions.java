@@ -1511,7 +1511,7 @@ public class DateTimeFunctions {
    * @param format ExprValue of Time/String type
    * @return ExprValue..
    */
-  private ExprValue exprGetFormat(ExprValue type, ExprValue format) {
+  public static ExprValue exprGetFormat(ExprValue type, ExprValue format) {
     if (formats.contains(type.stringValue().toLowerCase(), format.stringValue().toLowerCase())) {
       return new ExprStringValue(
           formats.get(type.stringValue().toLowerCase(), format.stringValue().toLowerCase()));

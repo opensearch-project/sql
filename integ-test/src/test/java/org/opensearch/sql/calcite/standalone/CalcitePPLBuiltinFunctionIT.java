@@ -317,6 +317,14 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testGetFormat() {
+    testSimplePPL(
+        "source=people | eval `GET_FORMAT(DATE, 'USA')` = GET_FORMAT(DATE, 'USA') | fields"
+            + " `GET_FORMAT(DATE, 'USA')`",
+        ImmutableList.of("%m.%d.%Y"));
+  }
+
+  @Test
   public void testDateDiff() {
     testSimplePPL(
         "source=people | eval `'2000-01-02' - '2000-01-01'` = DATEDIFF(TIMESTAMP('2000-01-02"
