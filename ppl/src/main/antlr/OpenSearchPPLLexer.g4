@@ -61,9 +61,6 @@ DATASOURCES:                        'DATASOURCES';
 USING:                              'USING';
 WITH:                               'WITH';
 
-// CLAUSE KEYWORDS
-SORTBY:                             'SORTBY';
-
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
 AUTO:                               'AUTO';
@@ -94,6 +91,7 @@ TIME_FIELD:                         'TIME_FIELD';
 TIME_ZONE:                          'TIME_ZONE';
 TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
 ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
+APPEND:                             'APPEND';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';

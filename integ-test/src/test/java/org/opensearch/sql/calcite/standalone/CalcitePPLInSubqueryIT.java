@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -322,14 +323,13 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void failWhenNumOfColumnsNotMatchOutputOfSubquery() {
-    assertThrows(
-        "The number of columns in the left hand side of an IN subquery does not match the number of"
-            + " columns in the output of subquery",
-        SemanticCheckException.class,
-        () ->
-            executeQuery(
-                String.format(
-                    """
+    SemanticCheckException e1 =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        """
                    source = %s
                    | where id in [
                        source = %s | fields uid, department
@@ -337,16 +337,19 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                    | sort  - salary
                    | fields id, name, salary
                    """,
-                    TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
-
-    assertThrows(
+                        TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
+    verifyErrorMessageContains(
+        e1,
         "The number of columns in the left hand side of an IN subquery does not match the number of"
-            + " columns in the output of subquery",
-        SemanticCheckException.class,
-        () ->
-            executeQuery(
-                String.format(
-                    """
+            + " columns in the output of subquery");
+
+    SemanticCheckException e2 =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        """
                    source = %s
                    | where (id, name, salary) in [
                        source = %s | fields uid, department
@@ -354,7 +357,11 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
                    | sort  - salary
                    | fields id, name, salary
                    """,
-                    TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
+                        TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
+    verifyErrorMessageContains(
+        e2,
+        "The number of columns in the left hand side of an IN subquery does not match the number of"
+            + " columns in the output of subquery");
   }
 
   @Test

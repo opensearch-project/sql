@@ -11,6 +11,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.calcite.utils.JoinAndLookupUtils.buildFieldWithLookupSubqueryAlias;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -355,10 +356,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 1. resolve source side
     visitChildren(node, context);
     // get sourceOutputFields from top of stack which is used to build final output
+    List<String> sourceFieldsNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> sourceOutputFields = context.relBuilder.fields();
 
     // 2. resolve lookup table
     analyze(node.getLookupRelation(), context);
+
     // If the output fields are specified, build a project list for lookup table.
     // The mapping fields of lookup table should be added in this project list, otherwise join will
     // fail.
@@ -369,61 +372,81 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.project(projectList);
     }
 
+    // get lookupColumns from top of stack
+    List<String> lookupFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+
     // 3. resolve join condition
     RexNode joinCondition =
         JoinAndLookupUtils.buildLookupMappingCondition(node)
             .map(c -> rexVisitor.analyzeJoinCondition(c, context))
             .orElse(context.relBuilder.literal(true));
 
-    // 4. If no output field is specified, all fields from lookup table are applied to the output.
+    // 4. When no output field is specified, all fields except mapping fields from lookup table are
+    // applied to output.
+    // If some output fields from source side duplicate to fields of lookup table, these fields will
+    // be replaced by fields from lookup table in output.
+    // For example, the lookup table contains fields [id, col1, col3] and source side fields are
+    // [id, col1, col2].
+    // For query "index = sourceTable | fields id, col1, col2 | LOOKUP lookupTable id",
+    // the col1 is duplicated field and id is mapping key (and duplicated).
+    // The query outputs 4 fields: [id, col1, col2, col3]. Among them, `col2` is the original field
+    // from source,
+    // the matched values of `col1` from lookup table will replace to the values of `col1` from
+    // source.
     if (node.allFieldsShouldAppliedToOutputList()) {
       context.relBuilder.join(JoinRelType.LEFT, joinCondition);
+      List<RexNode> duplicatedSourceFields =
+          sourceFieldsNames.stream()
+              .filter(lookupFieldNames::contains)
+              .map(d -> context.relBuilder.field(node.getSourceSubqueryAliasName(), d))
+              .toList();
+      context.relBuilder.projectExcept(duplicatedSourceFields);
+      return context.relBuilder.peek();
+    } else {
+      // 5. push join to stack
+      context.relBuilder.join(JoinRelType.LEFT, joinCondition);
+
+      // 6. Drop the mapping fields of lookup table in result:
+      // For example, in command "LOOKUP lookTbl Field1 AS Field2, Field3",
+      // the Field1 and Field3 are projection fields and join keys which will be dropped in result.
+      List<Field> mappingFieldsOfLookup =
+          node.getLookupMappingMap().entrySet().stream()
+              .map(
+                  kv ->
+                      kv.getKey().getField() == kv.getValue().getField()
+                          ? buildFieldWithLookupSubqueryAlias(node, kv.getKey())
+                          : kv.getKey())
+              .collect(Collectors.toList());
+      List<RexNode> dropListOfLookupMappingFields =
+          JoinAndLookupUtils.buildProjectListFromFields(mappingFieldsOfLookup, rexVisitor, context);
+      // Drop the $sourceOutputField if existing
+      List<RexNode> dropListOfSourceFields =
+          node.getFieldListWithSourceSubqueryAlias().stream()
+              .map(
+                  field -> {
+                    try {
+                      return rexVisitor.analyze(field, context);
+                    } catch (RuntimeException e) {
+                      // If the field is not found in the source, skip it
+                      return null;
+                    }
+                  })
+              .filter(Objects::nonNull)
+              .toList();
+      List<RexNode> toDrop = new ArrayList<>(dropListOfLookupMappingFields);
+      toDrop.addAll(dropListOfSourceFields);
+
+      // 7. build final outputs
+      List<RexNode> outputFields = new ArrayList<>(sourceOutputFields);
+      // Add new columns based on different strategies:
+      // Append:  coalesce($outputField, $"inputField").as(outputFieldName)
+      // Replace: $outputField.as(outputFieldName)
+      outputFields.addAll(JoinAndLookupUtils.buildOutputProjectList(node, rexVisitor, context));
+      outputFields.removeAll(toDrop);
+
+      context.relBuilder.project(outputFields);
+
       return context.relBuilder.peek();
     }
-
-    // 5. push join to stack
-    context.relBuilder.join(JoinRelType.LEFT, joinCondition);
-
-    // 6. Drop the mapping fields of lookup table in result:
-    // For example, in command "LOOKUP lookTbl Field1 AS Field2, Field3",
-    // the Field1 and Field3 are projection fields and join keys which will be dropped in result.
-    List<Field> mappingFieldsOfLookup =
-        node.getLookupMappingMap().entrySet().stream()
-            .map(
-                kv ->
-                    kv.getKey().getField() == kv.getValue().getField()
-                        ? JoinAndLookupUtils.buildFieldWithLookupSubqueryAlias(node, kv.getKey())
-                        : kv.getKey())
-            .collect(Collectors.toList());
-    List<RexNode> dropListOfLookupMappingFields =
-        JoinAndLookupUtils.buildProjectListFromFields(mappingFieldsOfLookup, rexVisitor, context);
-    // Drop the $sourceOutputField if existing
-    List<RexNode> dropListOfSourceFields =
-        node.getFieldListWithSourceSubqueryAlias().stream()
-            .map(
-                field -> {
-                  try {
-                    return rexVisitor.analyze(field, context);
-                  } catch (RuntimeException e) {
-                    // If the field is not found in the source, skip it
-                    return null;
-                  }
-                })
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-    List<RexNode> toDrop = new ArrayList<>(dropListOfLookupMappingFields);
-    toDrop.addAll(dropListOfSourceFields);
-
-    // 7. build final outputs
-    List<RexNode> outputFields = new ArrayList<>(sourceOutputFields);
-    // Add new columns based on different strategies:
-    // Append:  coalesce($outputField, $"inputField").as(outputFieldName)
-    // Replace: $outputField.as(outputFieldName)
-    outputFields.addAll(JoinAndLookupUtils.buildOutputProjectList(node, rexVisitor, context));
-    outputFields.removeAll(toDrop);
-
-    context.relBuilder.project(outputFields);
-
-    return context.relBuilder.peek();
   }
 }
