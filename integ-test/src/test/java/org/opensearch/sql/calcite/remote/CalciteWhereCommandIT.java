@@ -20,10 +20,8 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
   @Ignore("https://github.com/opensearch-project/sql/issues/3428")
   @Override
   public void testIsNotNullFunction() throws IOException {}
-  ;
 
   @Ignore("https://github.com/opensearch-project/sql/issues/3333")
   @Override
   public void testWhereWithMetadataFields() throws IOException {}
-  ;
 }
