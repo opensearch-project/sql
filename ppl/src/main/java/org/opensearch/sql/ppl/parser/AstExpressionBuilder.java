@@ -53,6 +53,9 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -72,7 +75,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
           .put("isnotnull", IS_NOT_NULL.getName().getFunctionName())
           .build();
 
-  private AstBuilder astBuilder;
+  private final AstBuilder astBuilder;
 
   public AstExpressionBuilder(AstBuilder astBuilder) {
     this.astBuilder = astBuilder;
@@ -399,6 +402,41 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitSpanClause(SpanClauseContext ctx) {
     String unit = ctx.unit != null ? ctx.unit.getText() : "";
     return new Span(visit(ctx.fieldExpression()), visit(ctx.value), SpanUnit.of(unit));
+  }
+
+  @Override
+  public UnresolvedExpression visitLeftHint(OpenSearchPPLParser.LeftHintContext ctx) {
+    return new EqualTo(
+        new Literal(ctx.leftHintKey.getText(), DataType.STRING), visit(ctx.leftHintValue));
+  }
+
+  @Override
+  public UnresolvedExpression visitRightHint(OpenSearchPPLParser.RightHintContext ctx) {
+    return new EqualTo(
+        new Literal(ctx.rightHintKey.getText(), DataType.STRING), visit(ctx.rightHintValue));
+  }
+
+  @Override
+  public UnresolvedExpression visitInSubqueryExpr(OpenSearchPPLParser.InSubqueryExprContext ctx) {
+    UnresolvedExpression expr =
+        new InSubquery(
+            ctx.valueExpressionList().valueExpression().stream()
+                .map(this::visit)
+                .collect(Collectors.toList()),
+            astBuilder.visitSubSearch(ctx.subSearch()));
+    return ctx.NOT() != null ? new Not(expr) : expr;
+  }
+
+  @Override
+  public UnresolvedExpression visitScalarSubqueryExpr(
+      OpenSearchPPLParser.ScalarSubqueryExprContext ctx) {
+    return new ScalarSubquery(astBuilder.visitSubSearch(ctx.subSearch()));
+  }
+
+  @Override
+  public UnresolvedExpression visitExistsSubqueryExpr(
+      OpenSearchPPLParser.ExistsSubqueryExprContext ctx) {
+    return new ExistsSubquery(astBuilder.visitSubSearch(ctx.subSearch()));
   }
 
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {

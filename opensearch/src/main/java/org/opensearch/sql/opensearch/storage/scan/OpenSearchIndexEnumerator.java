@@ -62,11 +62,18 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public Object current() {
-    Object[] p =
-        fields.stream()
-            .map(k -> current.tupleValue().getOrDefault(k, ExprNullValue.of()).valueForCalcite())
-            .toArray();
-    return p;
+    /* In Calcite enumerable operators, row of single column will be optimized to a scalar value.
+     * See {@link PhysTypeImpl}
+     */
+    if (fields.size() == 1) {
+      return current
+          .tupleValue()
+          .getOrDefault(fields.getFirst(), ExprNullValue.of())
+          .valueForCalcite();
+    }
+    return fields.stream()
+        .map(k -> current.tupleValue().getOrDefault(k, ExprNullValue.of()).valueForCalcite())
+        .toArray();
   }
 
   @Override

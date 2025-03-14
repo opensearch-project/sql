@@ -180,6 +180,10 @@ public class MatcherUtils {
     verifyInOrder(response.getJSONArray("datarows"), matchers);
   }
 
+  public static void verifyNumOfRows(JSONObject response, int numOfRow) {
+    assertEquals(numOfRow, response.getJSONArray("datarows").length());
+  }
+
   @SuppressWarnings("unchecked")
   public static <T> void verify(JSONArray array, Matcher<T>... matchers) {
     List<T> objects = new ArrayList<>();

@@ -8,8 +8,12 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
+import java.util.Optional;
+import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
+import lombok.Setter;
+import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
@@ -23,7 +27,9 @@ public class CalcitePlanContext {
   public final RelBuilder relBuilder;
   public final ExtendedRexBuilder rexBuilder;
 
-  @Getter private boolean isResolvingJoinCondition = false;
+  @Getter @Setter private boolean isResolvingJoinCondition = false;
+  @Getter @Setter private boolean isResolvingExistsSubquery = false;
+  private final Stack<RexCorrelVariable> correlVar = new Stack<>();
 
   private CalcitePlanContext(FrameworkConfig config) {
     this.config = config;
@@ -39,6 +45,26 @@ public class CalcitePlanContext {
     RexNode result = transformFunction.apply(expr, this);
     isResolvingJoinCondition = false;
     return result;
+  }
+
+  public Optional<RexCorrelVariable> popCorrelVar() {
+    if (!correlVar.empty()) {
+      return Optional.of(correlVar.pop());
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  public void pushCorrelVar(RexCorrelVariable v) {
+    correlVar.push(v);
+  }
+
+  public Optional<RexCorrelVariable> peekCorrelVar() {
+    if (!correlVar.empty()) {
+      return Optional.of(correlVar.peek());
+    } else {
+      return Optional.empty();
+    }
   }
 
   public static CalcitePlanContext create(FrameworkConfig config) {

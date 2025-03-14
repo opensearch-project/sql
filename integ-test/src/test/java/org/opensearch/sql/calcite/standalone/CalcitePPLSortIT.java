@@ -6,13 +6,16 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import org.junit.Ignore;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
-/** testSortXXAndXX could fail. TODO Remove this @Ignore when the issue fixed. */
-@Ignore
 public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
 
   @Override
@@ -20,534 +23,195 @@ public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
     super.init();
 
     loadIndex(Index.BANK);
+    loadIndex(Index.BANK_WITH_NULL_VALUES);
   }
 
   @Test
   public void testFieldsAndSort1() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s | fields + firstname, gender, account_number | sort - account_number",
                 TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Dillard\",\n"
-            + "      \"F\",\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Virginia\",\n"
-            + "      \"F\",\n"
-            + "      25\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Elinor\",\n"
-            + "      \"M\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Dale\",\n"
-            + "      \"M\",\n"
-            + "      18\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Nanette\",\n"
-            + "      \"F\",\n"
-            + "      13\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hattie\",\n"
-            + "      \"M\",\n"
-            + "      6\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Amber JOHnny\",\n"
-            + "      \"M\",\n"
-            + "      1\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("firstname", "string"),
+        schema("gender", "string"),
+        schema("account_number", "long"));
+    verifyDataRowsInOrder(
+        actual,
+        rows("Dillard", "F", 32),
+        rows("Virginia", "F", 25),
+        rows("Elinor", "M", 20),
+        rows("Dale", "M", 18),
+        rows("Nanette", "F", 13),
+        rows("Hattie", "M", 6),
+        rows("Amber JOHnny", "M", 1));
   }
 
   @Test
   public void testFieldsAndSort2() {
-    String actual = execute(String.format("source=%s | fields age | sort - age", TEST_INDEX_BANK));
-    String expected =
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      39\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      36\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      36\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      34\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      33\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      28\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}";
-    assertEquals(expected, actual);
+    JSONObject actual =
+        executeQuery(String.format("source=%s | fields age | sort - age", TEST_INDEX_BANK));
+    verifySchema(actual, schema("age", "integer"));
+    verifyDataRowsInOrder(
+        actual, rows(39), rows(36), rows(36), rows(34), rows(33), rows(32), rows(28));
   }
 
   @Test
   public void testFieldsAndSortTwoFields() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s | fields + firstname, gender, account_number | sort + gender, -"
                     + " account_number",
                 TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Dillard\",\n"
-            + "      \"F\",\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Virginia\",\n"
-            + "      \"F\",\n"
-            + "      25\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Nanette\",\n"
-            + "      \"F\",\n"
-            + "      13\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Elinor\",\n"
-            + "      \"M\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Dale\",\n"
-            + "      \"M\",\n"
-            + "      18\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hattie\",\n"
-            + "      \"M\",\n"
-            + "      6\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Amber JOHnny\",\n"
-            + "      \"M\",\n"
-            + "      1\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("firstname", "string"),
+        schema("gender", "string"),
+        schema("account_number", "long"));
+    verifyDataRowsInOrder(
+        actual,
+        rows("Dillard", "F", 32),
+        rows("Virginia", "F", 25),
+        rows("Nanette", "F", 13),
+        rows("Elinor", "M", 20),
+        rows("Dale", "M", 18),
+        rows("Hattie", "M", 6),
+        rows("Amber JOHnny", "M", 1));
   }
 
   @Test
   public void testFieldsAndSortWithDescAndLimit() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s | fields + firstname, gender, account_number | sort + gender, -"
                     + " account_number | head 5",
                 TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Dillard\",\n"
-            + "      \"F\",\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Virginia\",\n"
-            + "      \"F\",\n"
-            + "      25\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Nanette\",\n"
-            + "      \"F\",\n"
-            + "      13\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Elinor\",\n"
-            + "      \"M\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Dale\",\n"
-            + "      \"M\",\n"
-            + "      18\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 5,\n"
-            + "  \"size\": 5\n"
-            + "}",
-        actual);
+    verifySchema(
+        actual,
+        schema("firstname", "string"),
+        schema("gender", "string"),
+        schema("account_number", "long"));
+    verifyDataRowsInOrder(
+        actual,
+        rows("Dillard", "F", 32),
+        rows("Virginia", "F", 25),
+        rows("Nanette", "F", 13),
+        rows("Elinor", "M", 20),
+        rows("Dale", "M", 18));
   }
 
   @Test
   public void testSortAccountAndFieldsAccount() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s | sort - account_number | fields account_number", TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      25\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      18\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      13\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      6\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      1\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}",
-        actual);
+    verifySchema(actual, schema("account_number", "long"));
+    verifyDataRowsInOrder(
+        actual, rows(32), rows(25), rows(20), rows(18), rows(13), rows(6), rows(1));
   }
 
   @Test
   public void testSortAccountAndFieldsNameAccount() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s | sort - account_number | fields firstname, account_number",
                 TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Dillard\",\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Virginia\",\n"
-            + "      25\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Elinor\",\n"
-            + "      20\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Dale\",\n"
-            + "      18\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Nanette\",\n"
-            + "      13\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hattie\",\n"
-            + "      6\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Amber JOHnny\",\n"
-            + "      1\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}",
-        actual);
+    verifySchema(actual, schema("firstname", "string"), schema("account_number", "long"));
+    verifyDataRowsInOrder(
+        actual,
+        rows("Dillard", 32),
+        rows("Virginia", 25),
+        rows("Elinor", 20),
+        rows("Dale", 18),
+        rows("Nanette", 13),
+        rows("Hattie", 6),
+        rows("Amber JOHnny", 1));
   }
 
   @Test
   public void testSortAccountAndFieldsAccountName() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s | sort - account_number | fields account_number, firstname",
                 TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"account_number\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      32,\n"
-            + "      \"Dillard\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      25,\n"
-            + "      \"Virginia\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      20,\n"
-            + "      \"Elinor\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      18,\n"
-            + "      \"Dale\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      13,\n"
-            + "      \"Nanette\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      6,\n"
-            + "      \"Hattie\"\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      1,\n"
-            + "      \"Amber JOHnny\"\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}",
-        actual);
+    verifySchema(actual, schema("account_number", "long"), schema("firstname", "string"));
+    verifyDataRowsInOrder(
+        actual,
+        rows(32, "Dillard"),
+        rows(25, "Virginia"),
+        rows(20, "Elinor"),
+        rows(18, "Dale"),
+        rows(13, "Nanette"),
+        rows(6, "Hattie"),
+        rows(1, "Amber JOHnny"));
   }
 
   @Test
   public void testSortAgeAndFieldsAge() {
-    String actual = execute(String.format("source=%s | sort - age | fields age", TEST_INDEX_BANK));
-    String expected =
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      39\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      36\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      36\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      34\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      33\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      28\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}";
-    assertEquals(expected, actual);
+    JSONObject actual =
+        executeQuery(String.format("source=%s | sort - age | fields age", TEST_INDEX_BANK));
+    verifySchema(actual, schema("age", "integer"));
+    verifyDataRowsInOrder(
+        actual, rows(39), rows(36), rows(36), rows(34), rows(33), rows(32), rows(28));
   }
 
   @Test
   public void testSortAgeAndFieldsNameAge() {
-    String actual =
-        execute(String.format("source=%s | sort - age | fields firstname, age", TEST_INDEX_BANK));
-    String expected =
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Virginia\",\n"
-            + "      39\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hattie\",\n"
-            + "      36\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Elinor\",\n"
-            + "      36\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Dillard\",\n"
-            + "      34\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Dale\",\n"
-            + "      33\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Amber JOHnny\",\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Nanette\",\n"
-            + "      28\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}";
-    assertEquals(expected, actual);
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | sort - age | fields firstname, age", TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifyDataRowsInOrder(
+        actual,
+        rows("Virginia", 39),
+        rows("Hattie", 36),
+        rows("Elinor", 36),
+        rows("Dillard", 34),
+        rows("Dale", 33),
+        rows("Amber JOHnny", 32),
+        rows("Nanette", 28));
   }
 
   @Test
   public void testSortAgeNameAndFieldsNameAge() {
-    String actual =
-        execute(
+    JSONObject actual =
+        executeQuery(
             String.format(
                 "source=%s | sort - age, - firstname | fields firstname, age", TEST_INDEX_BANK));
-    String expected =
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"firstname\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"Virginia\",\n"
-            + "      39\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Hattie\",\n"
-            + "      36\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Elinor\",\n"
-            + "      36\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Dillard\",\n"
-            + "      34\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Dale\",\n"
-            + "      33\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Amber JOHnny\",\n"
-            + "      32\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"Nanette\",\n"
-            + "      28\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 7,\n"
-            + "  \"size\": 7\n"
-            + "}";
-    assertEquals(expected, actual);
+    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifyDataRowsInOrder(
+        actual,
+        rows("Virginia", 39),
+        rows("Hattie", 36),
+        rows("Elinor", 36),
+        rows("Dillard", 34),
+        rows("Dale", 33),
+        rows("Amber JOHnny", 32),
+        rows("Nanette", 28));
+  }
+
+  @Test
+  public void testSortWithNullValue() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | sort balance | fields firstname, balance",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRowsInOrder(
+        result,
+        rows("Dale", 4180),
+        rows("Nanette", 32838),
+        rows("Amber JOHnny", 39225),
+        rows("Dillard", 48086),
+        rows("Hattie", null),
+        rows("Elinor", null),
+        rows("Virginia", null));
   }
 }

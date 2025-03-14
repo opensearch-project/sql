@@ -25,6 +25,10 @@ queryStatement
    : pplCommands (PIPE commands)*
    ;
 
+subSearch
+   : searchCommand (PIPE commands)*
+   ;
+
 // commands
 pplCommands
    : searchCommand
@@ -35,6 +39,7 @@ pplCommands
 commands
    : whereCommand
    | fieldsCommand
+   | joinCommand
    | renameCommand
    | statsCommand
    | dedupCommand
@@ -104,7 +109,7 @@ topCommand
    ;
 
 rareCommand
-   : RARE fieldList (byClause)?
+   : RARE (number = integerLiteral)? fieldList (byClause)?
    ;
 
 grokCommand
@@ -197,14 +202,51 @@ mlArg
 
 // clauses
 fromClause
-   : SOURCE EQUAL tableSourceClause
-   | INDEX EQUAL tableSourceClause
+   : SOURCE EQUAL tableOrSubqueryClause
+   | INDEX EQUAL tableOrSubqueryClause
    | SOURCE EQUAL tableFunction
    | INDEX EQUAL tableFunction
    ;
 
+tableOrSubqueryClause
+   : LT_SQR_PRTHS subSearch RT_SQR_PRTHS (AS alias = qualifiedName)?
+   | tableSourceClause
+   ;
+
 tableSourceClause
-   : tableSource (COMMA tableSource)*
+   : tableSource (COMMA tableSource)* (AS alias = qualifiedName)?
+   ;
+
+// join
+joinCommand
+   : (joinType) JOIN sideAlias joinHintList? joinCriteria? right = tableOrSubqueryClause
+   ;
+
+joinType
+   : INNER?
+   | CROSS
+   | LEFT OUTER?
+   | RIGHT OUTER?
+   | FULL OUTER?
+   | LEFT? SEMI
+   | LEFT? ANTI
+   ;
+
+sideAlias
+   : (LEFT EQUAL leftAlias = qualifiedName)? COMMA? (RIGHT EQUAL rightAlias = qualifiedName)?
+   ;
+
+joinCriteria
+   : ON logicalExpression
+   ;
+
+joinHintList
+   : hintPair (COMMA? hintPair)*
+   ;
+
+hintPair
+   : leftHintKey = LEFT_HINT DOT ID EQUAL leftHintValue = ident             #leftHint
+   | rightHintKey = RIGHT_HINT DOT ID EQUAL rightHintValue = ident          #rightHint
    ;
 
 renameClasue
@@ -303,6 +345,11 @@ comparisonExpression
    | valueExpression IN valueList                                       # inExpr
    ;
 
+valueExpressionList
+   : valueExpression
+   | LT_PRTHS valueExpression (COMMA valueExpression)* RT_PRTHS
+   ;
+
 valueExpression
    : left = valueExpression binaryOperator = (STAR | DIVIDE | MODULE) right = valueExpression   # binaryArithmetic
    | left = valueExpression binaryOperator = (PLUS | MINUS) right = valueExpression             # binaryArithmetic
@@ -312,6 +359,7 @@ valueExpression
    | getFormatFunction                                                                          # getFormatFunctionCall
    | timestampFunction                                                                          # timestampFunctionCall
    | LT_PRTHS valueExpression RT_PRTHS                                                          # parentheticValueExpr
+   | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                        # scalarSubqueryExpr
    ;
 
 primaryExpression
@@ -326,7 +374,9 @@ positionFunction
    ;
 
 booleanExpression
-   : booleanFunctionCall
+   : booleanFunctionCall                                                # booleanFunctionCallExpr
+   | valueExpressionList NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS    # inSubqueryExpr
+   | EXISTS LT_SQR_PRTHS subSearch RT_SQR_PRTHS                         # existsSubqueryExpr
    ;
 
 relevanceExpression
@@ -893,6 +943,8 @@ keywordsCanBeId
    | ML
    | TRENDLINE
    // commands assist keywords
+   | IN
+   | EXISTS
    | SOURCE
    | INDEX
    | DESC
@@ -963,4 +1015,13 @@ keywordsCanBeId
    | SPARKLINE
    | C
    | DC
+   // JOIN TYPE
+   | OUTER
+   | INNER
+   | CROSS
+   | LEFT
+   | RIGHT
+   | FULL
+   | SEMI
+   | ANTI
    ;

@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
+import org.json.JSONObject;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.inject.AbstractModule;
@@ -27,6 +28,7 @@ import org.opensearch.common.inject.Singleton;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -34,6 +36,9 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.exception.NoCursorException;
+import org.opensearch.sql.exception.QueryEngineException;
+import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
@@ -79,7 +84,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     DataSourceService dataSourceService =
         new DataSourceServiceImpl(
             new ImmutableSet.Builder<DataSourceFactory>()
-                .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
+                .add(new OpenSearchDataSourceFactory(client, getSettings()))
                 .build(),
             getDataSourceMetadataStorage(),
             getDataSourceUserRoleHelper());
@@ -89,13 +94,18 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     modules.add(
         new CalcitePPLIntegTestCase.StandaloneModule(
             new CalcitePPLIntegTestCase.InternalRestHighLevelClient(client()),
-            defaultSettings(),
+            getSettings(),
             dataSourceService));
     Injector injector = modules.createInjector();
     pplService = SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
   }
 
+  protected Settings getSettings() {
+    return defaultSettings();
+  }
+
   private Settings defaultSettings() {
+    System.out.println(Settings.Key.CALCITE_PUSHDOWN_ENABLED.name() + " disabled");
     return new Settings() {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
@@ -104,6 +114,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)
+              .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
               .build();
 
       @Override
@@ -116,6 +127,35 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
         return (List<?>) defaultSettings;
       }
     };
+  }
+
+  protected Settings enablePushdown() {
+    System.out.println(Settings.Key.CALCITE_PUSHDOWN_ENABLED.name() + " enabled");
+    return new Settings() {
+      private final Map<Key, Object> defaultSettings =
+          new ImmutableMap.Builder<Key, Object>()
+              .put(Key.QUERY_SIZE_LIMIT, 200)
+              .put(Key.SQL_PAGINATION_API_SEARCH_AFTER, true)
+              .put(Key.FIELD_TYPE_TOLERANCE, true)
+              .put(Key.CALCITE_ENGINE_ENABLED, true)
+              .put(Key.CALCITE_FALLBACK_ALLOWED, false)
+              .put(Key.CALCITE_PUSHDOWN_ENABLED, true)
+              .build();
+
+      @Override
+      public <T> T getSettingValue(Key key) {
+        return (T) defaultSettings.get(key);
+      }
+
+      @Override
+      public List<?> getSettings() {
+        return (List<?>) defaultSettings;
+      }
+    };
+  }
+
+  public boolean isPushdownEnabled() {
+    return getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED);
   }
 
   protected String execute(String query) {
@@ -134,6 +174,41 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
           @Override
           public void onFailure(Exception e) {
             throw new IllegalStateException("Exception happened during execution", e);
+          }
+        });
+    return actual.get();
+  }
+
+  @Override
+  protected JSONObject executeQuery(String query) {
+    AtomicReference<JSONObject> actual = new AtomicReference<>();
+    pplService.execute(
+        new PPLQueryRequest(query, null, null),
+        new ResponseListener<ExecutionEngine.QueryResponse>() {
+
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse response) {
+            QueryResult result = new QueryResult(response.getSchema(), response.getResults());
+            String json = new SimpleJsonResponseFormatter(PRETTY).format(result);
+            actual.set(jsonify(json));
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            if (e instanceof SyntaxCheckException) {
+              throw (SyntaxCheckException) e;
+            } else if (e instanceof QueryEngineException) {
+              throw (QueryEngineException) e;
+            } else if (e instanceof UnsupportedCursorRequestException) {
+              throw (UnsupportedCursorRequestException) e;
+            } else if (e instanceof NoCursorException) {
+              throw (NoCursorException) e;
+            } else if (e instanceof IllegalArgumentException) {
+              // most exceptions thrown by Calcite when resolve a plan.
+              throw (IllegalArgumentException) e;
+            } else {
+              throw new IllegalStateException("Exception happened during execution", e);
+            }
           }
         });
     return actual.get();
@@ -225,7 +300,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
 
     @Provides
     public PPLService pplService(QueryManager queryManager, QueryPlanFactory queryPlanFactory) {
-      return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory);
+      return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory, settings);
     }
 
     @Provides

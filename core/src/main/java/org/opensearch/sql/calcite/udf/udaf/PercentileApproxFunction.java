@@ -33,7 +33,7 @@ public class PercentileApproxFunction
     if (acc.size() == 0) {
       return null;
     }
-    return acc.result();
+    return acc.value();
   }
 
   public static class PencentileApproAccumulator extends AVLTreeDigest implements Accumulator {
@@ -50,7 +50,8 @@ public class PercentileApproxFunction
       this.add(value);
     }
 
-    public Object result() {
+    @Override
+    public Object value() {
       return this.quantile(this.percent);
     }
   }

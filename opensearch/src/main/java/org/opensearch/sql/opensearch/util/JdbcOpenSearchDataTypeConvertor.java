@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.util;
 
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -15,6 +16,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -57,51 +59,67 @@ public class JdbcOpenSearchDataTypeConvertor {
 
   public static ExprValue getExprValueFromSqlType(
       ResultSet rs, int i, int sqlType, RelDataType fieldType) throws SQLException {
-    Object value;
-    switch (sqlType) {
-      case Types.VARCHAR:
-      case Types.CHAR:
-      case Types.LONGVARCHAR:
-        value = rs.getString(i);
-        break;
-      case Types.INTEGER:
-        value = rs.getInt(i);
-        break;
-      case Types.BIGINT:
-        value = rs.getLong(i);
-        break;
-      case Types.DECIMAL:
-      case Types.NUMERIC:
-        value = rs.getBigDecimal(i);
-        break;
-      case Types.DOUBLE:
-        value = rs.getDouble(i);
-        break;
-      case Types.FLOAT:
-        value = rs.getFloat(i);
-        break;
-      case Types.DATE:
-        return new ExprDateValue(rs.getString(i));
-      case Types.TIME:
-        return new ExprTimeValue(rs.getString(i));
-      case Types.TIMESTAMP:
-        return new ExprTimestampValue(rs.getString(i));
-      case Types.BOOLEAN:
-        value = rs.getBoolean(i);
-        break;
-      case Types.ARRAY:
-        value = rs.getArray(i);
-        if (value instanceof ArrayImpl) {
-          value = Arrays.asList((Object[]) ((ArrayImpl) value).getArray());
-        }
-        break;
-      default:
-        value = rs.getObject(i);
-        LOG.warn(
-            "Unchecked sql type: {}, return Object type {}",
-            sqlType,
-            value.getClass().getTypeName());
+    Object value = rs.getObject(i);
+    if (value == null) {
+      return ExprNullValue.of();
     }
-    return ExprValueUtils.fromObjectValue(value);
+
+    try {
+      switch (sqlType) {
+        case Types.VARCHAR:
+        case Types.CHAR:
+        case Types.LONGVARCHAR:
+          return ExprValueUtils.fromObjectValue(rs.getString(i));
+
+        case Types.INTEGER:
+          return ExprValueUtils.fromObjectValue(rs.getInt(i));
+
+        case Types.BIGINT:
+          return ExprValueUtils.fromObjectValue(rs.getLong(i));
+
+        case Types.DECIMAL:
+        case Types.NUMERIC:
+          return ExprValueUtils.fromObjectValue(rs.getBigDecimal(i));
+
+        case Types.DOUBLE:
+          return ExprValueUtils.fromObjectValue(rs.getDouble(i));
+
+        case Types.FLOAT:
+          return ExprValueUtils.fromObjectValue(rs.getFloat(i));
+
+        case Types.DATE:
+          String dateStr = rs.getString(i);
+          return new ExprDateValue(dateStr);
+
+        case Types.TIME:
+          String timeStr = rs.getString(i);
+          return new ExprTimeValue(timeStr);
+
+        case Types.TIMESTAMP:
+          String timestampStr = rs.getString(i);
+          return new ExprTimestampValue(timestampStr);
+
+        case Types.BOOLEAN:
+          return ExprValueUtils.fromObjectValue(rs.getBoolean(i));
+
+        case Types.ARRAY:
+          Array array = rs.getArray(i);
+          if (array instanceof ArrayImpl) {
+            return ExprValueUtils.fromObjectValue(
+                Arrays.asList((Object[]) ((ArrayImpl) value).getArray()));
+          }
+          return ExprValueUtils.fromObjectValue(array);
+
+        default:
+          LOG.warn(
+              "Unchecked sql type: {}, return Object type {}",
+              sqlType,
+              value.getClass().getTypeName());
+          return ExprValueUtils.fromObjectValue(value);
+      }
+    } catch (SQLException e) {
+      LOG.error("Error converting SQL type {}: {}", sqlType, e.getMessage());
+      throw e;
+    }
   }
 }

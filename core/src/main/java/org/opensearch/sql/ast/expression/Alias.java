@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ast.expression;
 
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
  * restoring the info in toString() method which is inaccurate because original info is already
  * lost.
  */
+@AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @RequiredArgsConstructor
@@ -28,6 +30,9 @@ public class Alias extends UnresolvedExpression {
 
   /** Expression aliased. */
   private final UnresolvedExpression delegated;
+
+  /** TODO. Optional field alias. */
+  private String alias;
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {

@@ -21,19 +21,24 @@ import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getHobbiesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getNestedSimpleIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getNestedTypeIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getOccupationIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getOdbcIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getOrderIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getPeople2IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getPhraseIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
+import static org.opensearch.sql.legacy.TestUtils.getStateCountryIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getStringIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getUnexpandedObjectIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getWeblogsIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getWorkInformationIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getWorkerIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.CURSOR_CLOSE_ENDPOINT;
@@ -745,7 +750,43 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_GEOPOINT,
         "dates",
         getGeopointIndexMapping(),
-        "src/test/resources/geopoints.json");
+        "src/test/resources/geopoints.json"),
+    STATE_COUNTRY(
+        TestsConstants.TEST_INDEX_STATE_COUNTRY,
+        "state_country",
+        getStateCountryIndexMapping(),
+        "src/test/resources/state_country.json"),
+    STATE_COUNTRY_WITH_NULL(
+        TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL,
+        "state_country_with_null",
+        getStateCountryIndexMapping(), // with null index use the same schema
+        "src/test/resources/state_country_with_null.json"),
+    OCCUPATION(
+        TestsConstants.TEST_INDEX_OCCUPATION,
+        "occupation",
+        getOccupationIndexMapping(),
+        "src/test/resources/occupation.json"),
+    OCCUPATION_TOP_RARE(
+        TestsConstants.TEST_INDEX_OCCUPATION_TOP_RARE,
+        "occupation_top_rare",
+        getOccupationIndexMapping(), // same mapping with above
+        "src/test/resources/occupation_top_rare.json"),
+    HOBBIES(
+        TestsConstants.TEST_INDEX_HOBBIES,
+        "hobbies",
+        getHobbiesIndexMapping(),
+        "src/test/resources/hobbies.json"),
+    // It's "people" table in Spark PPL ITs, to avoid conflicts, rename to "worker" here
+    WORKER(
+        TestsConstants.TEST_INDEX_WORKER,
+        "worker",
+        getWorkerIndexMapping(),
+        "src/test/resources/worker.json"),
+    WORK_INFORMATION(
+        TestsConstants.TEST_INDEX_WORK_INFORMATION,
+        "work_information",
+        getWorkInformationIndexMapping(),
+        "src/test/resources/work_information.json");
 
     private final String name;
     private final String type;

@@ -22,7 +22,8 @@ import org.junit.jupiter.api.Test;
 public class StatsCommandIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.BANK);
@@ -48,7 +49,11 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsCount() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count(account_number)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("count(account_number)", null, "integer"));
+    if (isCalciteEnabled()) {
+      verifySchema(response, schema("count(account_number)", null, "long"));
+    } else {
+      verifySchema(response, schema("count(account_number)", null, "integer"));
+    }
     verifyDataRows(response, rows(1000));
   }
 
@@ -56,7 +61,11 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsCountAll() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count()", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("count()", null, "integer"));
+    if (isCalciteEnabled()) {
+      verifySchema(response, schema("count()", null, "long"));
+    } else {
+      verifySchema(response, schema("count()", null, "integer"));
+    }
     verifyDataRows(response, rows(1000));
   }
 
@@ -64,11 +73,19 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsDistinctCount() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats distinct_count(gender)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("distinct_count(gender)", null, "integer"));
+    if (isCalciteEnabled()) {
+      verifySchema(response, schema("distinct_count(gender)", null, "long"));
+    } else {
+      verifySchema(response, schema("distinct_count(gender)", null, "integer"));
+    }
     verifyDataRows(response, rows(2));
 
     response = executeQuery(String.format("source=%s | stats dc(age)", TEST_INDEX_ACCOUNT));
-    verifySchema(response, schema("dc(age)", null, "integer"));
+    if (isCalciteEnabled()) {
+      verifySchema(response, schema("dc(age)", null, "long"));
+    } else {
+      verifySchema(response, schema("dc(age)", null, "integer"));
+    }
     verifyDataRows(response, rows(21));
   }
 
@@ -117,7 +134,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testGroupByNullValue() throws IOException {
+  public void testAvgGroupByNullValue() throws IOException {
     JSONObject response =
         executeQuery(
             String.format(
@@ -130,6 +147,123 @@ public class StatsCommandIT extends PPLIntegTestCase {
         rows(39225D, 32),
         rows(4180D, 33),
         rows(48086D, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testMinGroupByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats min(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(
+        response,
+        rows(null, null),
+        rows(32838D, 28),
+        rows(39225D, 32),
+        rows(4180D, 33),
+        rows(48086D, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testMaxGroupByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats max(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(
+        response,
+        rows(null, null),
+        rows(32838D, 28),
+        rows(39225D, 32),
+        rows(4180D, 33),
+        rows(48086D, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testSumGroupByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "integer"));
+    verifyDataRows(
+        response,
+        rows(null, null),
+        rows(32838D, 28),
+        rows(39225D, 32),
+        rows(4180D, 33),
+        rows(48086D, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testStddevSampGroupByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats STDDEV_SAMP(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(
+        response,
+        rows(null, null),
+        rows(null, 28),
+        rows(null, 32),
+        rows(null, 33),
+        rows(null, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testStddevPopGroupByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats STDDEV_POP(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(
+        response,
+        rows(null, null),
+        rows(0, 28),
+        rows(0, 32),
+        rows(0, 33),
+        rows(0, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testVarSampGroupByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats VAR_SAMP(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(
+        response,
+        rows(null, null),
+        rows(null, 28),
+        rows(null, 32),
+        rows(null, 33),
+        rows(null, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testVarPopGroupByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats VAR_POP(balance) as a by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(
+        response,
+        rows(null, null),
+        rows(0, 28),
+        rows(0, 32),
+        rows(0, 33),
+        rows(0, 34),
         rows(null, 36));
   }
 
@@ -152,6 +286,17 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testSumWithNull() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | where age = 36 | stats sum(balance)",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("sum(balance)", null, "long"));
+    verifyDataRows(response, rows(0));
+  }
+
+  @Test
   public void testStatsWithMissing() throws IOException {
     JSONObject response =
         executeQuery(
@@ -164,8 +309,13 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsBySpan() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count() by span(age,10)", TEST_INDEX_BANK));
-    verifySchema(
-        response, schema("count()", null, "integer"), schema("span(age,10)", null, "integer"));
+    if (isCalciteEnabled()) {
+      verifySchema(
+          response, schema("count()", null, "long"), schema("span(age,10)", null, "integer"));
+    } else {
+      verifySchema(
+          response, schema("count()", null, "integer"), schema("span(age,10)", null, "integer"));
+    }
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 
@@ -187,8 +337,13 @@ public class StatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats count() by span(age,10) as age_bucket", TEST_INDEX_BANK));
-    verifySchema(
-        response, schema("count()", null, "integer"), schema("age_bucket", null, "integer"));
+    if (isCalciteEnabled()) {
+      verifySchema(
+          response, schema("count()", null, "long"), schema("age_bucket", null, "integer"));
+    } else {
+      verifySchema(
+          response, schema("count()", null, "integer"), schema("age_bucket", null, "integer"));
+    }
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 

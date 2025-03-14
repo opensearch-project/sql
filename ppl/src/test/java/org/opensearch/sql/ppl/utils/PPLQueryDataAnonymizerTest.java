@@ -183,6 +183,66 @@ public class PPLQueryDataAnonymizerTest {
         anonymize(projectWithArg(relation("t"), Collections.emptyList(), field("f"))));
   }
 
+  @Test
+  public void testSubqueryAlias() {
+    assertEquals("source=t as t1", anonymize("source=t as t1"));
+  }
+
+  @Test
+  public void testJoin() {
+    assertEquals(
+        "source=t | cross join on true s | fields + id",
+        anonymize("source=t | cross join s | fields id"));
+    assertEquals(
+        "source=t | inner join on id = uid s | fields + id",
+        anonymize("source=t | inner join on id = uid s | fields id"));
+    assertEquals(
+        "source=t as l | inner join left = l right = r on id = uid s as r | fields + id",
+        anonymize("source=t | join left = l right = r on id = uid s | fields id"));
+    assertEquals(
+        "source=t | left join right = r on id = uid s as r | fields + id",
+        anonymize("source=t | left join right = r on id = uid s | fields id"));
+    assertEquals(
+        "source=t as t1 | inner join on id = uid s as t2 | fields + t1.id",
+        anonymize("source=t as t1 | inner join on id = uid s as t2 | fields t1.id"));
+    assertEquals(
+        "source=t as t1 | right join on t1.id = t2.id s as t2 | fields + t1.id",
+        anonymize("source=t as t1 | right join on t1.id = t2.id s as t2 | fields t1.id"));
+    assertEquals(
+        "source=t as t1 | right join right = t2 on t1.id = t2.id [ source=s | fields + id ] as t2 |"
+            + " fields + t1.id",
+        anonymize(
+            "source=t as t1 | right join on t1.id = t2.id [ source=s | fields id] as t2 | fields"
+                + " t1.id"));
+  }
+
+  @Test
+  public void testInSubquery() {
+    assertEquals(
+        "source=t | where (id) in [ source=s | fields + uid ] | fields + id",
+        anonymize("source=t | where id in [source=s | fields uid] | fields id"));
+  }
+
+  @Test
+  public void testExistsSubquery() {
+    assertEquals(
+        "source=t | where exists [ source=s | where id = uid ] | fields + id",
+        anonymize("source=t | where exists [source=s | where id = uid ] | fields id"));
+  }
+
+  @Test
+  public void testScalarSubquery() {
+    assertEquals(
+        "source=t | where id = [ source=s | stats max(b) ] | fields + id",
+        anonymize("source=t |  where id = [ source=s | stats max(b) ] | fields id"));
+    assertEquals(
+        "source=t | eval id=[ source=s | stats max(b) ] | fields + id",
+        anonymize("source=t |  eval id = [ source=s | stats max(b) ] | fields id"));
+    assertEquals(
+        "source=t | where id > [ source=s | where id = uid | stats max(b) ] | fields + id",
+        anonymize("source=t id > [ source=s | where id = uid | stats max(b) ] | fields id"));
+  }
+
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(query);
     return anonymize(astBuilder.visit(parser.parse(query)));

@@ -7,11 +7,14 @@ package org.opensearch.sql.calcite;
 
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
+import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.translateArgument;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -40,9 +43,16 @@ import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 
+@RequiredArgsConstructor
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {
+  private final CalciteRelNodeVisitor planVisitor;
 
   public RexNode analyze(UnresolvedExpression unresolved, CalcitePlanContext context) {
     return unresolved.accept(this, context);
@@ -176,39 +186,62 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitQualifiedName(QualifiedName node, CalcitePlanContext context) {
+    // 1. resolve QualifiedName in join condition
     if (context.isResolvingJoinCondition()) {
       List<String> parts = node.getParts();
-      if (parts.size() == 1) { // Handle the case of `id = cid`
+      if (parts.size() == 1) {
+        // 1.1 Handle the case of `id = cid`
         try {
-          return context.relBuilder.field(2, 0, parts.get(0));
-        } catch (IllegalArgumentException i) {
-          return context.relBuilder.field(2, 1, parts.get(0));
+          return context.relBuilder.field(2, 0, parts.getFirst());
+        } catch (IllegalArgumentException ee) {
+          return context.relBuilder.field(2, 1, parts.getFirst());
         }
-      } else if (parts.size()
-          == 2) { // Handle the case of `t1.id = t2.id` or `alias1.id = alias2.id`
+      } else if (parts.size() == 2) {
+        // 1.2 Handle the case of `t1.id = t2.id` or `alias1.id = alias2.id`
         return context.relBuilder.field(2, parts.get(0), parts.get(1));
       } else if (parts.size() == 3) {
         throw new UnsupportedOperationException("Unsupported qualified name: " + node);
       }
     }
+
+    // 2. resolve QualifiedName in non-join condition
     String qualifiedName = node.toString();
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     if (currentFields.contains(qualifiedName)) {
+      // 2.1 resolve QualifiedName from stack top
       return context.relBuilder.field(qualifiedName);
     } else if (node.getParts().size() == 2) {
+      // 2.2 resolve QualifiedName with an alias or table name
       List<String> parts = node.getParts();
-      return context.relBuilder.field(1, parts.get(0), parts.get(1));
+      try {
+        return context.relBuilder.field(1, parts.get(0), parts.get(1));
+      } catch (IllegalArgumentException e) {
+        // 2.3 resolve QualifiedName with outer alias
+        return context
+            .peekCorrelVar()
+            .map(correlVar -> context.relBuilder.field(correlVar, parts.get(1)))
+            .orElseThrow(() -> e); // Re-throw the exception if no correlated variable exists
+      }
     } else if (currentFields.stream().noneMatch(f -> f.startsWith(qualifiedName))) {
-      return context.relBuilder.field(qualifiedName);
+      // 2.4 try resolving combination of 2.1 and 2.3 to resolve rest cases
+      return context
+          .peekCorrelVar()
+          .map(correlVar -> context.relBuilder.field(correlVar, qualifiedName))
+          .orElseGet(() -> context.relBuilder.field(qualifiedName));
     }
-    // Handle the overriding fields, for example, `eval SAL = SAL + 1` will delete the original SAL
-    // and add a SAL0
+    // 3. resolve overriding fields, for example, `eval SAL = SAL + 1` will delete the original SAL
+    // and add a SAL0. SAL0 in currentFields, but qualifiedName is SAL.
+    // TODO now we cannot handle the case using a overriding fields in subquery, for example
+    // source = EMP | eval DEPTNO = DEPTNO + 1 | where exists [ source = DEPT | where emp.DEPTNO =
+    // DEPTNO ]
     Map<String, String> fieldMap =
         currentFields.stream().collect(Collectors.toMap(s -> s.replaceAll("\\d", ""), s -> s));
     if (fieldMap.containsKey(qualifiedName)) {
       return context.relBuilder.field(fieldMap.get(qualifiedName));
     } else {
-      return null;
+      throw new IllegalArgumentException(
+          String.format(
+              "field [%s] not found; input fields are: %s", qualifiedName, currentFields));
     }
   }
 
@@ -230,16 +263,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return context.rexBuilder.makeIntervalLiteral(new BigDecimal(millis), intervalQualifier);
     } else {
       // if the unit is not time base - create a math expression to bucket the span partitions
+      SqlTypeName type = field.getType().getSqlTypeName();
       return context.rexBuilder.makeCall(
-          typeFactory.createSqlType(SqlTypeName.DOUBLE),
+          typeFactory.createSqlType(type),
           SqlStdOperatorTable.MULTIPLY,
           List.of(
               context.rexBuilder.makeCall(
-                  typeFactory.createSqlType(SqlTypeName.DOUBLE),
+                  typeFactory.createSqlType(type),
                   SqlStdOperatorTable.FLOOR,
                   List.of(
                       context.rexBuilder.makeCall(
-                          typeFactory.createSqlType(SqlTypeName.DOUBLE),
+                          typeFactory.createSqlType(type),
                           SqlStdOperatorTable.DIVIDE,
                           List.of(field, value)))),
               value));
@@ -274,5 +308,64 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         BuiltinFunctionUtils.deriveReturnType(
             node.getFuncName(), context.rexBuilder, operator, translatedArguments);
     return context.rexBuilder.makeCall(returnType, operator, translatedArguments);
+  }
+
+  @Override
+  public RexNode visitInSubquery(InSubquery node, CalcitePlanContext context) {
+    List<RexNode> nodes = node.getChild().stream().map(child -> analyze(child, context)).toList();
+    UnresolvedPlan subquery = node.getQuery();
+    RelNode subqueryRel = resolveSubqueryPlan(subquery, context);
+    try {
+      return context.relBuilder.in(subqueryRel, nodes);
+      // TODO
+      // The {@link org.apache.calcite.tools.RelBuilder#in(RexNode,java.util.function.Function)}
+      // only support one expression. Change to follow code after calcite fixed.
+      //    return context.relBuilder.in(
+      //        nodes.getFirst(),
+      //        b -> {
+      //          RelNode subqueryRel = subquery.accept(planVisitor, context);
+      //          b.build();
+      //          return subqueryRel;
+      //        });
+    } catch (AssertionError e) {
+      throw new SemanticCheckException(
+          "The number of columns in the left hand side of an IN subquery does not match the number"
+              + " of columns in the output of subquery");
+    }
+  }
+
+  @Override
+  public RexNode visitScalarSubquery(ScalarSubquery node, CalcitePlanContext context) {
+    return context.relBuilder.scalarQuery(
+        b -> {
+          UnresolvedPlan subquery = node.getQuery();
+          return resolveSubqueryPlan(subquery, context);
+        });
+  }
+
+  @Override
+  public RexNode visitExistsSubquery(ExistsSubquery node, CalcitePlanContext context) {
+    return context.relBuilder.exists(
+        b -> {
+          UnresolvedPlan subquery = node.getQuery();
+          return resolveSubqueryPlan(subquery, context);
+        });
+  }
+
+  private RelNode resolveSubqueryPlan(UnresolvedPlan subquery, CalcitePlanContext context) {
+    // clear and store the outer state
+    boolean isResolvingJoinConditionOuter = context.isResolvingJoinCondition();
+    if (isResolvingJoinConditionOuter) {
+      context.setResolvingJoinCondition(false);
+    }
+    RelNode subqueryRel = subquery.accept(planVisitor, context);
+    // pop the inner plan
+    context.relBuilder.build();
+    // clear the exists subquery resolving state
+    // restore to the previous state
+    if (isResolvingJoinConditionOuter) {
+      context.setResolvingJoinCondition(true);
+    }
+    return subqueryRel;
   }
 }

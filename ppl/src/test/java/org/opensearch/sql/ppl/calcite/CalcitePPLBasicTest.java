@@ -246,42 +246,23 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
   @Test
   public void testMultipleTables() {
     String ppl = "source=EMP, EMP";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        ""
-            + "LogicalUnion(all=[true])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-    verifyResultCount(root, 28);
+    try {
+      RelNode root = getRelNode(ppl);
+      fail("expected error, got " + root);
+    } catch (Exception e) {
+      assertThat(e.getMessage(), is("Table 'EMP,EMP' not found"));
+    }
   }
 
   @Test
   public void testMultipleTablesAndFilters() {
     String ppl = "source=EMP, EMP DEPTNO = 20 | fields EMPNO, DEPTNO, SAL";
-    RelNode root = getRelNode(ppl);
-    String expectedLogical =
-        ""
-            + "LogicalProject(EMPNO=[$0], DEPTNO=[$7], SAL=[$5])\n"
-            + "  LogicalFilter(condition=[=($7, 20)])\n"
-            + "    LogicalUnion(all=[true])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n";
-    verifyLogical(root, expectedLogical);
-    String expectedResult =
-        ""
-            + "EMPNO=7369; DEPTNO=20; SAL=800.00\n"
-            + "EMPNO=7566; DEPTNO=20; SAL=2975.00\n"
-            + "EMPNO=7788; DEPTNO=20; SAL=3000.00\n"
-            + "EMPNO=7876; DEPTNO=20; SAL=1100.00\n"
-            + "EMPNO=7902; DEPTNO=20; SAL=3000.00\n"
-            + "EMPNO=7369; DEPTNO=20; SAL=800.00\n"
-            + "EMPNO=7566; DEPTNO=20; SAL=2975.00\n"
-            + "EMPNO=7788; DEPTNO=20; SAL=3000.00\n"
-            + "EMPNO=7876; DEPTNO=20; SAL=1100.00\n"
-            + "EMPNO=7902; DEPTNO=20; SAL=3000.00\n";
-
-    verifyResult(root, expectedResult);
+    try {
+      RelNode root = getRelNode(ppl);
+      fail("expected error, got " + root);
+    } catch (Exception e) {
+      assertThat(e.getMessage(), is("Table 'EMP,EMP' not found"));
+    }
   }
 
   @Ignore
@@ -336,5 +317,65 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + "  LogicalFilter(condition=[=($0, 0)])\n"
             + "    LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(getRelNode(ppl3), expectedLogical3);
+  }
+
+  @Test
+  public void testTableAlias() {
+    String ppl =
+        "source=EMP as e | where (e.DEPTNO = 20 or e.MGR = 30) and e.SAL > 1000 | fields e.EMPNO,"
+            + " e.ENAME";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalFilter(condition=[AND(OR(=($7, 20), =($3, 30)), >($5, 1000))])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE (`DEPTNO` = 20 OR `MGR` = 30) AND `SAL` > 1000";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRelationSubqueryAlias() {
+    String ppl = "source=EMP as e | join on e.DEPTNO = d.DEPTNO [ source=DEPT | head 10 ] as d";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalSort(fetch=[10])\n"
+            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT *\n"
+            + "FROM `scott`.`EMP`\n"
+            + "INNER JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
+            + "FROM `scott`.`DEPT`\n"
+            + "LIMIT 10) `t` ON `EMP`.`DEPTNO` = `t`.`DEPTNO`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRename() {
+    String ppl = "source=EMP | rename DEPTNO as DEPTNO_E";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO_E=[$7])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO` `DEPTNO_E`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

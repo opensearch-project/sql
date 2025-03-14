@@ -6,8 +6,16 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import java.util.List;
+import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -19,6 +27,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     super.init();
 
     loadIndex(Index.BANK);
+    loadIndex(Index.BANK_WITH_NULL_VALUES);
   }
 
   @Test
@@ -30,75 +39,342 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
     client().performRequest(request2);
 
-    String actual = execute("source=test | stats count() as c");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"c\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      2\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
+    JSONObject actual = executeQuery("source=test | stats count() as c");
+    verifySchema(actual, schema("c", "long"));
+    verifyDataRows(actual, rows(2));
   }
 
   @Test
   public void testSimpleCount() {
-    String actual = execute(String.format("source=%s | stats count() as c", TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"c\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      7\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats count() as c", TEST_INDEX_BANK));
+    verifySchema(actual, schema("c", "long"));
+    verifyDataRows(actual, rows(7));
   }
 
   @Test
   public void testSimpleAvg() {
-    String actual = execute(String.format("source=%s | stats avg(balance)", TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"avg(balance)\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      26710.428571428572\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats avg(balance)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("avg(balance)", "double"));
+    verifyDataRows(actual, rows(26710.428571428572));
   }
 
   @Test
   public void testSumAvg() {
-    String actual = execute(String.format("source=%s | stats sum(balance)", TEST_INDEX_BANK));
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats sum(balance)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("sum(balance)", "long"));
+
+    verifyDataRows(actual, rows(186973));
+  }
+
+  @Test
+  public void testMultipleAggregatesWithAliases() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as avg, max(balance) as max, min(balance) as min,"
+                    + " count()",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("avg", "double"),
+        schema("max", "long"),
+        schema("min", "long"),
+        schema("count()", "long"));
+    verifyDataRows(actual, rows(26710.428571428572, 48086, 4180, 7));
+  }
+
+  @Test
+  public void testMultipleAggregatesWithAliasesByClause() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as avg, max(balance) as max, min(balance) as min,"
+                    + " count() as cnt by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("gender", "string"),
+        schema("avg", "double"),
+        schema("max", "long"),
+        schema("min", "long"),
+        schema("cnt", "long"));
+    verifyDataRows(
+        actual, rows(40488.0, 48086, 32838, 3, "F"), rows(16377.25, 39225, 4180, 4, "M"));
+  }
+
+  @Test
+  public void testAvgByField() {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats avg(balance) by gender", TEST_INDEX_BANK));
+    verifySchema(actual, schema("gender", "string"), schema("avg(balance)", "double"));
+    verifyDataRows(actual, rows(40488.0, "F"), rows(16377.25, "M"));
+  }
+
+  @Test
+  public void testAvgByMultipleFields() {
+    JSONObject actual1 =
+        executeQuery(
+            String.format("source=%s | stats avg(balance) by gender, city", TEST_INDEX_BANK));
+    verifySchema(
+        actual1,
+        schema("avg(balance)", "double"),
+        schema("gender", "string"),
+        schema("city", "string"));
+    verifyDataRows(
+        actual1,
+        rows(40540.0, "F", "Nicholson"),
+        rows(32838.0, "F", "Nogal"),
+        rows(48086.0, "F", "Veguita"),
+        rows(39225.0, "M", "Brogan"),
+        rows(5686.0, "M", "Dante"),
+        rows(4180.0, "M", "Orick"),
+        rows(16418.0, "M", "Ribera"));
+
+    JSONObject actual2 =
+        executeQuery(
+            String.format("source=%s | stats avg(balance) by city, gender", TEST_INDEX_BANK));
+    verifySchema(
+        actual2,
+        schema("avg(balance)", "double"),
+        schema("city", "string"),
+        schema("gender", "string"));
+    verifyDataRows(
+        actual2,
+        rows(39225.0, "Brogan", "M"),
+        rows(5686.0, "Dante", "M"),
+        rows(40540.0, "Nicholson", "F"),
+        rows(32838.0, "Nogal", "F"),
+        rows(4180.0, "Orick", "M"),
+        rows(16418.0, "Ribera", "M"),
+        rows(48086.0, "Veguita", "F"));
+  }
+
+  @Test
+  public void testStatsBySpanAndMultipleFields() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by span(age,10), gender, state", TEST_INDEX_BANK));
+    verifySchemaInOrder(
+        response,
+        schema("count()", null, "long"),
+        schema("span(age,10)", null, "integer"),
+        schema("gender", null, "string"),
+        schema("state", null, "string"));
+    verifyDataRows(
+        response,
+        rows(1, 20, "F", "VA"),
+        rows(1, 30, "F", "IN"),
+        rows(1, 30, "F", "PA"),
+        rows(1, 30, "M", "IL"),
+        rows(1, 30, "M", "MD"),
+        rows(1, 30, "M", "TN"),
+        rows(1, 30, "M", "WA"));
+  }
+
+  @Test
+  public void testStatsByMultipleFieldsAndSpan() throws IOException {
+    // Use verifySchemaInOrder() and verifyDataRows() to check that the span column is always
+    // the first column in result whatever the order of span in query is first or last one
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by gender, state, span(age,10)", TEST_INDEX_BANK));
+    verifySchemaInOrder(
+        response,
+        schema("count()", null, "long"),
+        schema("span(age,10)", null, "integer"),
+        schema("gender", null, "string"),
+        schema("state", null, "string"));
+    verifyDataRows(
+        response,
+        rows(1, 20, "F", "VA"),
+        rows(1, 30, "F", "IN"),
+        rows(1, 30, "F", "PA"),
+        rows(1, 30, "M", "IL"),
+        rows(1, 30, "M", "MD"),
+        rows(1, 30, "M", "TN"),
+        rows(1, 30, "M", "WA"));
+  }
+
+  @org.junit.Test
+  public void testAvgBySpan() {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats avg(balance) by span(age, 10)", TEST_INDEX_BANK));
+    verifySchema(actual, schema("span(age,10)", "integer"), schema("avg(balance)", "double"));
+    verifyDataRows(actual, rows(32838.0, 20), rows(25689.166666666668, 30));
+  }
+
+  @Test
+  public void testAvgBySpanAndFields() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) by span(age, 10) as age_span, gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("gender", "string"),
+        schema("age_span", "integer"),
+        schema("avg(balance)", "double"));
+    verifyDataRows(actual, rows(32838.0, 20, "F"), rows(44313.0, 30, "F"), rows(16377.25, 30, "M"));
+  }
+
+  @Ignore("https://github.com/opensearch-project/sql/issues/3354")
+  public void testAvgByTimeSpanAndFields() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) by span(birthdate, 1 day) as age_balance",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual, schema("span(birthdate, 1 day)", "string"), schema("age_balance", "double"));
+    verifyDataRows(actual, rows("F", 3L), rows("M", 4L));
+  }
+
+  @Test
+  public void testCountDistinct() {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats distinct_count(state) by gender", TEST_INDEX_BANK));
+    verifySchema(actual, schema("gender", "string"), schema("distinct_count(state)", "long"));
+    verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
+  }
+
+  @Test
+  public void testCountDistinctWithAlias() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats distinct_count(state) as dc by gender", TEST_INDEX_BANK));
+    verifySchema(actual, schema("gender", "string"), schema("dc", "long"));
+    verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
+  }
+
+  @Ignore("https://github.com/opensearch-project/sql/issues/3353")
+  public void testApproxCountDistinct() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats distinct_count_approx(state) by gender", TEST_INDEX_BANK));
+  }
+
+  @Test
+  public void testVarSampVarPop() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats var_samp(balance) as vs, var_pop(balance) as vp by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual, schema("gender", "string"), schema("vs", "double"), schema("vp", "double"));
+    verifyDataRows(
+        actual,
+        rows(58127404, 38751602.666666664, "F"),
+        rows(261699024.91666666, 196274268.6875, "M"));
+  }
+
+  @Test
+  public void testStddevSampStddevPop() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats stddev_samp(balance) as ss, stddev_pop(balance) as sp by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual, schema("gender", "string"), schema("ss", "double"), schema("sp", "double"));
+    verifyDataRows(
+        actual,
+        rows(7624.132999889233, 6225.078526947806, "F"),
+        rows(16177.114233282358, 14009.791885945344, "M"));
+  }
+
+  @Test
+  public void testAggWithEval() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = 1, b = a | stats avg(a) as avg_a by b", TEST_INDEX_BANK));
+    verifySchema(actual, schema("b", "integer"), schema("avg_a", "double"));
+    verifyDataRows(actual, rows(1, 1.0));
+  }
+
+  @Test
+  public void testAggWithBackticksAlias() {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats sum(`balance`) as `sum_b`", TEST_INDEX_BANK));
+    verifySchema(actual, schema("sum_b", "long"));
+    verifyDataRows(actual, rows(186973L));
+  }
+
+  @Test
+  public void testSimpleTwoLevelStats() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as avg_by_gender by gender | stats"
+                    + " avg(avg_by_gender) as avg_avg",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("avg_avg", "double"));
+    verifyDataRows(actual, rows(28432.625));
+  }
+
+  @Test
+  public void testTake() {
+    JSONObject actual =
+        executeQuery(
+            String.format("source=%s | stats take(firstname, 2) as take", TEST_INDEX_BANK));
+    verifySchema(actual, schema("take", "array"));
+    verifyDataRows(actual, rows(List.of("Amber JOHnny", "Hattie")));
+  }
+
+  @Test
+  public void testSumGroupByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats sum(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "long"), schema("age", null, "integer"));
+    verifyDataRows(
+        response,
+        rows(null, null),
+        rows(32838, 28),
+        rows(39225, 32),
+        rows(4180, 33),
+        rows(48086, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testAvgGroupByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats avg(balance) as a by age", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("a", null, "double"), schema("age", null, "integer"));
+    verifyDataRows(
+        response,
+        rows(null, null),
+        rows(32838, 28),
+        rows(39225, 32),
+        rows(4180, 33),
+        rows(48086, 34),
+        rows(null, 36));
+  }
+
+  @Test
+  public void testSumEmpty() {
+    String response =
+        execute(
+            String.format(
+                "source=%s | where 1=2 | stats sum(balance)", TEST_INDEX_BANK_WITH_NULL_VALUES));
     assertEquals(
-        "{\n"
+        ""
+            + "{\n"
             + "  \"schema\": [\n"
             + "    {\n"
             + "      \"name\": \"sum(balance)\",\n"
@@ -107,428 +383,41 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
             + "  ],\n"
             + "  \"datarows\": [\n"
             + "    [\n"
-            + "      186973\n"
+            + "      null\n"
             + "    ]\n"
             + "  ],\n"
             + "  \"total\": 1,\n"
             + "  \"size\": 1\n"
             + "}",
-        actual);
+        response);
   }
 
+  // TODO https://github.com/opensearch-project/sql/issues/3408
+  // In most databases, below test returns null instead of 0.
   @Test
-  public void testMultipleAggregatesWithAliases() {
-    String actual =
+  public void testSumNull() {
+    String response =
         execute(
             String.format(
-                "source=%s | stats avg(balance) as avg, max(balance) as max, min(balance) as min,"
-                    + " count()",
-                TEST_INDEX_BANK));
+                "source=%s | where age = 36 | stats sum(balance)",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
     assertEquals(
-        "{\n"
+        ""
+            + "{\n"
             + "  \"schema\": [\n"
             + "    {\n"
-            + "      \"name\": \"avg\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"max\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"min\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"count()\",\n"
+            + "      \"name\": \"sum(balance)\",\n"
             + "      \"type\": \"long\"\n"
             + "    }\n"
             + "  ],\n"
             + "  \"datarows\": [\n"
             + "    [\n"
-            + "      26710.428571428572,\n"
-            + "      48086,\n"
-            + "      4180,\n"
-            + "      7\n"
+            + (isPushdownEnabled() ? "      0\n" : "      null\n")
             + "    ]\n"
             + "  ],\n"
             + "  \"total\": 1,\n"
             + "  \"size\": 1\n"
             + "}",
-        actual);
-  }
-
-  @Test
-  public void testMultipleAggregatesWithAliasesByClause() {
-    String actual =
-        execute(
-            String.format(
-                "source=%s | stats avg(balance) as avg, max(balance) as max, min(balance) as min,"
-                    + " count() as cnt by gender",
-                TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"avg\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"max\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"min\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"cnt\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"F\",\n"
-            + "      40488.0,\n"
-            + "      48086,\n"
-            + "      32838,\n"
-            + "      3\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"M\",\n"
-            + "      16377.25,\n"
-            + "      39225,\n"
-            + "      4180,\n"
-            + "      4\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
-  }
-
-  @Test
-  public void testAvgByField() {
-    String actual =
-        execute(String.format("source=%s | stats avg(balance) by gender", TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"avg(balance)\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"F\",\n"
-            + "      40488.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"M\",\n"
-            + "      16377.25\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
-  }
-
-  @org.junit.Test
-  public void testAvgBySpan() {
-    String actual =
-        execute(String.format("source=%s | stats avg(balance) by span(age, 10)", TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"span(age,10)\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"avg(balance)\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      20.0,\n"
-            + "      32838.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      30.0,\n"
-            + "      25689.166666666668\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
-  }
-
-  @Test
-  public void testAvgBySpanAndFields() {
-    String actual =
-        execute(
-            String.format(
-                "source=%s | stats avg(balance) by span(age, 10) as age_span, gender",
-                TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"age_span\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"avg(balance)\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"F\",\n"
-            + "      30.0,\n"
-            + "      44313.0\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"M\",\n"
-            + "      30.0,\n"
-            + "      16377.25\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"F\",\n"
-            + "      20.0,\n"
-            + "      32838.0\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 3,\n"
-            + "  \"size\": 3\n"
-            + "}",
-        actual);
-  }
-
-  /**
-   * TODO Calcite doesn't support group by window, but it support Tumble table function. See
-   * `SqlToRelConverterTest`
-   */
-  @Ignore
-  public void testAvgByTimeSpanAndFields() {
-    String actual =
-        execute(
-            String.format(
-                "source=%s | stats avg(balance) by span(birthdate, 1 day) as age_balance",
-                TEST_INDEX_BANK));
-    assertEquals("", actual);
-  }
-
-  @Test
-  public void testCountDistinct() {
-    String actual =
-        execute(
-            String.format("source=%s | stats distinct_count(state) by gender", TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"distinct_count(state)\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"F\",\n"
-            + "      3\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"M\",\n"
-            + "      4\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
-  }
-
-  @Test
-  public void testCountDistinctWithAlias() {
-    String actual =
-        execute(
-            String.format(
-                "source=%s | stats distinct_count(state) as dc by gender", TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"dc\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"F\",\n"
-            + "      3\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"M\",\n"
-            + "      4\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
-  }
-
-  @Ignore
-  public void testApproxCountDistinct() {
-    String actual =
-        execute(
-            String.format(
-                "source=%s | stats distinct_count_approx(state) by gender", TEST_INDEX_BANK));
-  }
-
-  @Test
-  public void testStddevSampStddevPop() {
-    String actual =
-        execute(
-            String.format(
-                "source=%s | stats stddev_samp(balance) as ss, stddev_pop(balance) as sp by gender",
-                TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"gender\",\n"
-            + "      \"type\": \"string\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"ss\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"sp\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      \"F\",\n"
-            + "      7624.132999889233,\n"
-            + "      6225.078526947806\n"
-            + "    ],\n"
-            + "    [\n"
-            + "      \"M\",\n"
-            + "      16177.114233282358,\n"
-            + "      14009.791885945344\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 2,\n"
-            + "  \"size\": 2\n"
-            + "}",
-        actual);
-  }
-
-  @Test
-  public void testAggWithEval() {
-    String actual =
-        execute(
-            String.format(
-                "source=%s | eval a = 1, b = a | stats avg(a) as avg_a by b", TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"b\",\n"
-            + "      \"type\": \"integer\"\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"name\": \"avg_a\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      1,\n"
-            + "      1.0\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
-  }
-
-  @Test
-  public void testAggWithBackticksAlias() {
-    String actual =
-        execute(String.format("source=%s | stats sum(`balance`) as `sum_b`", TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"sum_b\",\n"
-            + "      \"type\": \"long\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      186973\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
-  }
-
-  @Test
-  public void testSimpleTwoLevelStats() {
-    String actual =
-        execute(
-            String.format(
-                "source=%s | stats avg(balance) as avg_by_gender by gender | stats"
-                    + " avg(avg_by_gender) as avg_avg",
-                TEST_INDEX_BANK));
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"avg_avg\",\n"
-            + "      \"type\": \"double\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      28432.625\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
+        response);
   }
 }

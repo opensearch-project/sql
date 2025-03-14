@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.calcite.udf.udaf;
 
 import java.util.ArrayList;
@@ -14,7 +19,7 @@ public class TakeAggFunction implements UserDefinedAggFunction<TakeAggFunction.T
 
   @Override
   public Object result(TakeAccumulator accumulator) {
-    return accumulator.result();
+    return accumulator.value();
   }
 
   @Override
@@ -40,7 +45,7 @@ public class TakeAggFunction implements UserDefinedAggFunction<TakeAggFunction.T
     }
 
     @Override
-    public Object result() {
+    public Object value() {
       return hits;
     }
 
