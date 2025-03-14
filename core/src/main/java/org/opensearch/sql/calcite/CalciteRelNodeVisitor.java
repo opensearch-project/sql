@@ -34,7 +34,6 @@ import org.apache.calcite.util.Holder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
-import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
@@ -294,44 +293,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggList);
 
-    // handle normal aggregate
-    // TODO Should we keep alignment with V2 behaviour in new Calcite implementation?
-    // TODO how about add a legacy enable config to control behaviour in Calcite?
-    // Some behaviours between PPL and Databases are different.
-    // As an example, in command `stats count() by colA, colB`:
-    // 1. the sequence of output schema is different:
-    // In PPL v2, the sequence of output schema is "count, colA, colB".
-    // But in most databases, the sequence of output schema is "colA, colB, count".
-    // 2. the output order is different:
-    // In PPL v2, the order of output results is ordered by "colA + colB".
-    // But in most databases, the output order is random.
-    // User must add ORDER BY clause after GROUP BY clause to keep the results aligning.
-    // Following logic is to align with the PPL legacy behaviour.
-
-    // alignment for 1.sequence of output schema: adding order-by
-    // we use the groupByList instead of node.getSortExprList as input because
-    // the groupByList may include span column.
-    node.getGroupExprList()
-        .forEach(
-            g -> {
-              // node.getGroupExprList() should all be instance of Alias
-              // which defined in AstBuilder.
-              assert g instanceof Alias;
-            });
-    List<String> aliasesFromGroupByList =
-        groupByList.stream()
-            .map(this::extractAliasLiteral)
-            .flatMap(Optional::stream)
-            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
-            .toList();
-    List<RexNode> aliasedGroupByList =
-        aliasesFromGroupByList.stream()
-            .map(context.relBuilder::field)
-            .map(f -> (RexNode) f)
-            .toList();
-    context.relBuilder.sort(aliasedGroupByList);
-
-    // alignment for 2.the output order: schema reordering
+    // schema reordering
+    // As an example, in command `stats count() by colA, colB`,
+    // the sequence of output schema is "count, colA, colB".
     List<RexNode> outputFields = context.relBuilder.fields();
     int numOfOutputFields = outputFields.size();
     int numOfAggList = aggList.size();
@@ -341,6 +305,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         outputFields.subList(numOfOutputFields - numOfAggList, numOfOutputFields);
     reordered.addAll(aggRexList);
     // Add group by columns
+    List<RexNode> aliasedGroupByList =
+        groupByList.stream()
+            .map(this::extractAliasLiteral)
+            .flatMap(Optional::stream)
+            .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
+            .map(context.relBuilder::field)
+            .map(f -> (RexNode) f)
+            .toList();
     reordered.addAll(aliasedGroupByList);
     context.relBuilder.project(reordered);
 

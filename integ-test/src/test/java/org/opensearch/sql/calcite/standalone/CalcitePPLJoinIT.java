@@ -743,7 +743,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("b.country", "string"),
         schema("age_span", "integer"),
         schema("avg(salary)", "double"));
-    verifyDataRowsInOrder(
+    verifyDataRows(
         actual, rows(70000.0, 30, "USA"), rows(null, 40, null), rows(100000, 70, "England"));
   }
 }

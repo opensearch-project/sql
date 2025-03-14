@@ -8,6 +8,7 @@ package org.opensearch.sql.analysis;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
@@ -27,6 +28,18 @@ public class NamedExpressionAnalyzer extends AbstractNodeVisitor<NamedExpression
 
   @Override
   public NamedExpression visitAlias(Alias node, AnalysisContext context) {
-    return DSL.named(node.getName(), node.getDelegated().accept(expressionAnalyzer, context));
+    return DSL.named(
+        unqualifiedNameIfFieldOnly(node, context),
+        node.getDelegated().accept(expressionAnalyzer, context),
+        node.getAlias());
+  }
+
+  private String unqualifiedNameIfFieldOnly(Alias node, AnalysisContext context) {
+    UnresolvedExpression selectItem = node.getDelegated();
+    if (selectItem instanceof QualifiedName) {
+      QualifierAnalyzer qualifierAnalyzer = new QualifierAnalyzer(context);
+      return qualifierAnalyzer.unqualified((QualifiedName) selectItem);
+    }
+    return node.getName();
   }
 }

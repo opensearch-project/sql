@@ -322,7 +322,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     for (UnresolvedExpression expr : node.getAggExprList()) {
       NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
       aggregatorBuilder.add(
-          new NamedAggregator(aggExpr.getName(), (Aggregator) aggExpr.getDelegated()));
+          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
     }
 
     ImmutableList.Builder<NamedExpression> groupbyBuilder = new ImmutableList.Builder<>();
@@ -347,7 +347,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             newEnv.define(
                 new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));
     groupBys.forEach(
-        group -> newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getName()), group.type()));
+        group ->
+            newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
     return new LogicalAggregation(child, aggregators, groupBys);
   }
 
@@ -440,7 +441,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     context.push();
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(
-        expr -> newEnv.define(new Symbol(Namespace.FIELD_NAME, expr.getName()), expr.type()));
+        expr ->
+            newEnv.define(new Symbol(Namespace.FIELD_NAME, expr.getNameOrAlias()), expr.type()));
     List<NamedExpression> namedParseExpressions = context.getNamedParseExpressions();
     return new LogicalProject(child, namedExpressions, namedParseExpressions);
   }

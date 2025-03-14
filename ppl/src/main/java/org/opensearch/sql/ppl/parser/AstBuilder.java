@@ -305,7 +305,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Aggregation aggregation =
         new Aggregation(
             aggListBuilder.build(),
-            groupList,
+            Collections.emptyList(),
             groupList,
             span,
             ArgumentFactory.getArgumentList(ctx));

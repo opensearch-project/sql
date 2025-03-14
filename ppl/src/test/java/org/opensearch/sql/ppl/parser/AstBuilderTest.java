@@ -365,10 +365,7 @@ public class AstBuilderTest {
             exprList(alias("avg(price)", aggregate("avg", field("price")))),
             emptyList(),
             emptyList(),
-            alias(
-                "span(timestamp,1h)",
-                span(field("timestamp"), intLiteral(1), SpanUnit.H),
-                "time_span"),
+            alias("time_span", span(field("timestamp"), intLiteral(1), SpanUnit.H), null),
             defaultStatsArgs()));
 
     assertEqual(
@@ -378,8 +375,7 @@ public class AstBuilderTest {
             exprList(alias("count(a)", aggregate("count", field("a")))),
             emptyList(),
             emptyList(),
-            alias(
-                "span(age,10)", span(field("age"), intLiteral(10), SpanUnit.NONE), "numeric_span"),
+            alias("numeric_span", span(field("age"), intLiteral(10), SpanUnit.NONE), null),
             defaultStatsArgs()));
   }
 
