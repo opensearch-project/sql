@@ -40,5 +40,4 @@ public class OpenSearchTypeSystem extends RelDataTypeSystemImpl {
         return super.getMaxPrecision(typeName);
     }
   }
-
 }

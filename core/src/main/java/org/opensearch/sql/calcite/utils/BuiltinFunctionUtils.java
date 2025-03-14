@@ -17,9 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import org.apache.calcite.avatica.util.TimeUnit;
 import java.util.stream.Collectors;
-
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -44,12 +43,12 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeStampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
@@ -220,16 +219,24 @@ public interface BuiltinFunctionUtils {
       case "LAST_DAY":
         return SqlStdOperatorTable.LAST_DAY;
       case "UNIX_TIMESTAMP":
-        return TransferUserDefinedFunction(UnixTimeStampFunction.class, "unix_timestamp", ReturnTypes.DOUBLE);
+        return TransferUserDefinedFunction(
+            UnixTimeStampFunction.class, "unix_timestamp", ReturnTypes.DOUBLE);
+      case "TIME":
+        return SqlLibraryOperators.TIME;
       case "TIMESTAMP":
-        //return SqlLibraryOperators.TIMESTAMP;
-        return TransferUserDefinedFunction(timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
+        // return SqlLibraryOperators.TIMESTAMP;
+        return TransferUserDefinedFunction(
+            timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
       case "WEEK", "YEAR", "MINUTE", "HOUR":
         return SqlLibraryOperators.DATE_PART;
       case "FROM_UNIXTIME":
-        return TransferUserDefinedFunction(fromUnixTimestampFunction.class, "FROM_UNIXTIME", fromUnixTimestampFunction.interReturnTypes());
+        return TransferUserDefinedFunction(
+            fromUnixTimestampFunction.class,
+            "FROM_UNIXTIME",
+            fromUnixTimestampFunction.interReturnTypes());
       case "UTC_TIMESTAMP":
-        return TransferUserDefinedFunction(UtcTimeStampFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
+        return TransferUserDefinedFunction(
+            UtcTimeStampFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
       case "UTC_TIME":
         return TransferUserDefinedFunction(UtcTimeFunction.class, "utc_time", ReturnTypes.TIME);
       case "UTC_DATE":
@@ -318,24 +325,27 @@ public interface BuiltinFunctionUtils {
           RexLiteral dateLiteral = (RexLiteral) lastDayTimestampExpr;
           String dateStringValue = dateLiteral.getValueAs(String.class);
           List<Integer> dateValues = transferStringExprToDateValue(dateStringValue);
-          DateString dateString = new DateString(dateValues.get(0), dateValues.get(1), dateValues.get(2));
+          DateString dateString =
+              new DateString(dateValues.get(0), dateValues.get(1), dateValues.get(2));
           RexNode dateNode = context.rexBuilder.makeDateLiteral(dateString);
           LastDateArgs.add(dateNode);
-        }
-        else {
+        } else {
           LastDateArgs.add(lastDayTimestampExpr);
         }
         return LastDateArgs;
       case "TIMESTAMP":
         List<RexNode> timestampArgs = new ArrayList<>(argList);
-        timestampArgs.addAll(argList.stream().
-                map(p -> context.rexBuilder.makeFlag(p.getType().getSqlTypeName())).collect(Collectors.toList()));
+        timestampArgs.addAll(
+            argList.stream()
+                .map(p -> context.rexBuilder.makeFlag(p.getType().getSqlTypeName()))
+                .collect(Collectors.toList()));
         return timestampArgs;
       case "DAYNAME", "MONTHNAME":
         List<RexNode> periodNameArgs = new ArrayList<>();
         periodNameArgs.add(argList.getFirst());
         periodNameArgs.add(context.rexBuilder.makeLiteral(op));
-        periodNameArgs.add(context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
+        periodNameArgs.add(
+            context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return periodNameArgs;
       case "YEAR", "MINUTE", "HOUR", "DAY":
         List<RexNode> extractArgs = new ArrayList<>();
@@ -361,18 +371,27 @@ public interface BuiltinFunctionUtils {
       case "TIME":
         List<RexNode> timeArgs = new ArrayList<>();
         RexNode timeExpr = argList.getFirst();
+        RexNode timeNode;
         if (timeExpr instanceof RexLiteral timeLiteral) {
           // Convert time string to milliseconds that can be recognized by the builtin TIME function
           String timeStringValue = Objects.requireNonNull(timeLiteral.getValueAs(String.class));
           LocalDateTime dateTime = DateTimeParser.parse(timeStringValue);
-          RexNode timestampNode =
+          timeNode =
               context.rexBuilder.makeBigintLiteral(
                   BigDecimal.valueOf(dateTime.toInstant(ZoneOffset.UTC).toEpochMilli()));
-          timeArgs.add(timestampNode);
-        } else {
-          timeArgs.add(timeExpr);
+          timeArgs.add(timeNode);
         }
-        return timeArgs;
+        // Convert date to timestamp
+        else if (timeExpr.getType().getSqlTypeName().equals(SqlTypeName.DATE)) {
+          timeNode =
+              context.rexBuilder.makeCall(
+                  TransferUserDefinedFunction(
+                      timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP),
+                  translateArgument("TIMESTAMP", ImmutableList.of(timeExpr), context));
+        } else {
+          timeNode = timeExpr;
+        }
+        return ImmutableList.of(timeNode);
       case "DATE_FORMAT", "FORMAT_TIMESTAMP":
         RexNode dateExpr = argList.get(0);
         RexNode dateFormatPatternExpr = argList.get(1);
