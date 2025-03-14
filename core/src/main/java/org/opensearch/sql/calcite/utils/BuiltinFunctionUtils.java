@@ -41,6 +41,7 @@ import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateFormatFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
@@ -206,6 +207,9 @@ public interface BuiltinFunctionUtils {
         // RexImpTable. Therefore, we replace it with their lower-level
         // calls SqlStdOperatorTable.EXTRACT and convert the arguments accordingly.
         return SqlStdOperatorTable.EXTRACT;
+      case "EXTRACT":
+        // Reuse OpenSearch PPL's implementation
+        return TransferUserDefinedFunction(ExtractFunction.class, "EXTRACT", ReturnTypes.BIGINT);
       case "DATEDIFF":
         return SqlStdOperatorTable.TIMESTAMP_DIFF;
       case "DATE_FORMAT":
@@ -424,6 +428,10 @@ public interface BuiltinFunctionUtils {
                 new SqlIntervalQualifier(TimeUnit.DOY, null, SqlParserPos.ZERO));
         return List.of(
             domUnit, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
+      case "EXTRACT":
+        // Convert the second argument to TIMESTAMP
+        return ImmutableList.of(
+            argList.getFirst(), makeConversionCall("TIMESTAMP", List.of(argList.get(1)), context));
       case "DATEDIFF":
         RexNode dayUnit = context.rexBuilder.makeLiteral(TimeUnit.DAY.toString());
         RexNode ts1 = convertToDateIfNecessary(context.rexBuilder, argList.getFirst());
@@ -435,6 +443,13 @@ public interface BuiltinFunctionUtils {
       default:
         return argList;
     }
+  }
+
+  private static RexNode makeConversionCall(
+      String funcName, List<RexNode> arguments, CalcitePlanContext context) {
+    SqlOperator operator = translate(funcName);
+    List<RexNode> translatedArguments = translateArgument(funcName, arguments, context);
+    return context.rexBuilder.makeCall(operator, translatedArguments);
   }
 
   static RelDataType deriveReturnType(

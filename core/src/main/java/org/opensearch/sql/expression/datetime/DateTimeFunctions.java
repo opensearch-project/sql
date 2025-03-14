@@ -1433,7 +1433,7 @@ public class DateTimeFunctions {
    * @param timestamp the date to be formatted as an ExprValue.
    * @return is a LONG formatted according to the input arguments.
    */
-  public ExprLongValue formatExtractFunction(ExprValue part, ExprValue timestamp) {
+  public static ExprLongValue formatExtractFunction(ExprValue part, ExprValue timestamp) {
     String partName = part.stringValue().toUpperCase();
     LocalDateTime arg = timestamp.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();
     String text =

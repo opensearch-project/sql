@@ -2,6 +2,7 @@ package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WILDCARD;
 
+import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -257,6 +258,13 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         "source=people | eval `DAY_OF_YEAR(DATE('2020-08-26'))` = DAY_OF_YEAR(DATE('2020-08-26')) |"
             + " fields `DAY_OF_YEAR(DATE('2020-08-26'))`",
         List.of(239));
+  }
+
+  @Test
+  public void testExtract() {
+    testSimplePPL(
+        "source=people | eval res = extract(YEAR_MONTH FROM '2023-02-07 10:11:12') | fields res",
+        ImmutableList.of(202302));
   }
 
   @Test
