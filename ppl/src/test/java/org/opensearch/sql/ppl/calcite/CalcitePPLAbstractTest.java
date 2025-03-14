@@ -96,14 +96,16 @@ public class CalcitePPLAbstractTest {
 
   /** Verify the logical plan of the given RelNode */
   public void verifyLogical(RelNode rel, String expectedLogical) {
-    assertThat(rel, hasTree(expectedLogical));
+    String normalized = expectedLogical.replace("\n", System.lineSeparator());
+    assertThat(rel, hasTree(normalized));
   }
 
   /** Execute and verify the result of the given RelNode */
   public void verifyResult(RelNode rel, String expectedResult) {
+    String normalized = expectedResult.replace("\n", System.lineSeparator());
     try (PreparedStatement preparedStatement = RelRunners.run(rel)) {
       String s = CalciteAssert.toString(preparedStatement.executeQuery());
-      assertThat(s, is(expectedResult));
+      assertThat(s, is(normalized));
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
@@ -120,9 +122,10 @@ public class CalcitePPLAbstractTest {
 
   /** Verify the generated Spark SQL of the given RelNode */
   public void verifyPPLToSparkSQL(RelNode rel, String expected) {
+    String normalized = expected.replace("\n", System.lineSeparator());
     SqlImplementor.Result result = converter.visitRoot(rel);
     final SqlNode sqlNode = result.asStatement();
     final String sql = sqlNode.toSqlString(SparkSqlDialect.DEFAULT).getSql();
-    assertThat(sql, is(expected));
+    assertThat(sql, is(normalized));
   }
 }
