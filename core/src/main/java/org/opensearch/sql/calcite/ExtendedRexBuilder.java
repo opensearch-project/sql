@@ -5,12 +5,15 @@
 
 package org.opensearch.sql.calcite;
 
+import java.util.List;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.ast.expression.SpanUnit;
 
 public class ExtendedRexBuilder extends RexBuilder {
@@ -25,6 +28,11 @@ public class ExtendedRexBuilder extends RexBuilder {
 
   public RexNode equals(RexNode n1, RexNode n2) {
     return this.makeCall(SqlStdOperatorTable.EQUALS, n1, n2);
+  }
+
+  public RexNode and(RexNode left, RexNode right) {
+    final RelDataType booleanType = this.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+    return this.makeCall(booleanType, SqlStdOperatorTable.AND, List.of(left, right));
   }
 
   public SqlIntervalQualifier createIntervalUntil(SpanUnit unit) {
