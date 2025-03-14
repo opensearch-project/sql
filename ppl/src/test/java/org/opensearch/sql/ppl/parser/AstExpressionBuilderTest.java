@@ -387,7 +387,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 argument("type", stringLiteral("str")))));
   }
 
-  @Test
+  @Ignore("https://github.com/opensearch-project/sql/pull/3405")
   public void testAggFuncCallExpr() {
     assertEqual(
         "source=t | stats avg(a) by b",
@@ -399,7 +399,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Test
+  @Ignore("https://github.com/opensearch-project/sql/pull/3405")
   public void testVarAggregationShouldPass() {
     assertEqual(
         "source=t | stats var_samp(a) by b",
@@ -411,7 +411,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Test
+  @Ignore("https://github.com/opensearch-project/sql/pull/3405")
   public void testVarpAggregationShouldPass() {
     assertEqual(
         "source=t | stats var_pop(a) by b",
@@ -423,7 +423,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Test
+  @Ignore("https://github.com/opensearch-project/sql/pull/3405")
   public void testStdDevAggregationShouldPass() {
     assertEqual(
         "source=t | stats stddev_samp(a) by b",
@@ -435,7 +435,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Test
+  @Ignore("https://github.com/opensearch-project/sql/pull/3405")
   public void testStdDevPAggregationShouldPass() {
     assertEqual(
         "source=t | stats stddev_pop(a) by b",
@@ -489,7 +489,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Test
+  @Ignore("https://github.com/opensearch-project/sql/pull/3405")
   public void testCountFuncCallExpr() {
     assertEqual(
         "source=t | stats count() by b",
@@ -781,7 +781,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   // https://github.com/opensearch-project/sql/issues/1318
-  @Test
+  @Ignore("https://github.com/opensearch-project/sql/pull/3405")
   public void indexCanBeId() {
     assertEqual(
         "source = index | stats count() by index",

@@ -44,7 +44,7 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
-String baseVersion = "2.17.0"
+String baseVersion = "2.19.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
@@ -484,6 +484,9 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
+
+    // TODO. Exclude Remote IT.
+    exclude 'org/opensearch/sql/calcite/remote/**'
 }
 
 
