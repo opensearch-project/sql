@@ -217,7 +217,7 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
       return new Alias(name, expr);
     } else {
       String alias = StringUtils.unquoteIdentifier(ctx.alias().getText());
-      return new Alias(alias, expr);
+      return new Alias(name, expr, alias);
     }
   }
 }

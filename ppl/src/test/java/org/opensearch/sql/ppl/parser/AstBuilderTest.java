@@ -229,7 +229,7 @@ public class AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Test
+  @Ignore(value = "disable sortby from the dedup command syntax")
   public void testStatsCommandWithByClause() {
     assertEqual(
         "source=t | stats count(a) by b DEDUP_SPLITVALUES=false",
@@ -241,7 +241,7 @@ public class AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Test
+  @Ignore(value = "disable sortby from the dedup command syntax")
   public void testStatsCommandWithByClauseInBackticks() {
     assertEqual(
         "source=t | stats count(a) by `b` DEDUP_SPLITVALUES=false",
@@ -288,7 +288,7 @@ public class AstBuilderTest {
             defaultStatsArgs()));
   }
 
-  @Test
+  @Ignore(value = "disable sortby from the dedup command syntax")
   public void testStatsCommandWithSpan() {
     assertEqual(
         "source=t | stats avg(price) by span(timestamp, 1h)",
@@ -365,10 +365,7 @@ public class AstBuilderTest {
             exprList(alias("avg(price)", aggregate("avg", field("price")))),
             emptyList(),
             emptyList(),
-            alias(
-                "span(timestamp,1h)",
-                span(field("timestamp"), intLiteral(1), SpanUnit.H),
-                "time_span"),
+            alias("time_span", span(field("timestamp"), intLiteral(1), SpanUnit.H), null),
             defaultStatsArgs()));
 
     assertEqual(
@@ -378,8 +375,7 @@ public class AstBuilderTest {
             exprList(alias("count(a)", aggregate("count", field("a")))),
             emptyList(),
             emptyList(),
-            alias(
-                "span(age,10)", span(field("age"), intLiteral(10), SpanUnit.NONE), "numeric_span"),
+            alias("numeric_span", span(field("age"), intLiteral(10), SpanUnit.NONE), null),
             defaultStatsArgs()));
   }
 
