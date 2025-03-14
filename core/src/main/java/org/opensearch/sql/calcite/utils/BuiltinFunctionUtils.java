@@ -192,6 +192,8 @@ public interface BuiltinFunctionUtils {
       case "TIMESTAMP":
         //return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
+      case "TIME":
+        return SqlLibraryOperators.TIME;
       case "WEEK", "YEAR", "MINUTE", "HOUR":
         return SqlLibraryOperators.DATE_PART;
       case "FROM_UNIXTIME":

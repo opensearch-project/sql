@@ -1,37 +1,70 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
+
+/**
+ * We need to write our own since we are actually implement timestamp add here
+ * (STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
+ * (STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
+ */
 public class timestampFunction implements UserDefinedFunction {
     @Override
     public Object eval(Object... args) {
-        String timestampExpression = (String) args[0];
-        LocalDateTime datetime = LocalDateTime.parse(timestampExpression, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-        Instant dateTimeMills = datetime.toInstant(ZoneOffset.UTC);
-        Long addTimeMills = 0L;
-        if (args.length > 1) {
-            Object addTimeExpr = args[1];
-            if (addTimeExpr instanceof String) {
-                LocalDateTime addTime = LocalDateTime.parse((String) addTimeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-                addTimeMills = addTime.toLocalTime().toSecondOfDay() * 1000L;
-                return addTwoTimestamp(dateTimeMills, addTimeMills);
-            }
-            else if (addTimeExpr instanceof java.sql.Time) {
-                addTimeMills = ((java.util.Date) addTimeExpr).toInstant().toEpochMilli();
-                return addTwoTimestamp(dateTimeMills, addTimeMills);
-            }
-            else if (addTimeExpr instanceof java.sql.Timestamp) {
-                addTimeMills  = ((java.sql.Timestamp) addTimeExpr).toLocalDateTime().toLocalTime().toSecondOfDay() * 1000L;
-                return addTwoTimestamp(dateTimeMills, addTimeMills);
-            }
+        LocalDateTime datetime;
+        Instant dateTimeBase;
+        Instant addTime;
+        long addTimeMills = 0L;
+        SqlTypeName sqlTypeName = (SqlTypeName) args[1];
+        switch (sqlTypeName) {
+            case DATE:
+                dateTimeBase = InstantUtils.fromInternalDate((int) args[0]);
+                break;
+            case TIMESTAMP:
+                dateTimeBase = InstantUtils.fromEpochMills((long) args[0]);
+                break;
+            case TIME:
+                dateTimeBase = InstantUtils.fromInternalTime((int) args[0]);
+                break;
+            default:
+                String timestampExpression = (String) args[0];
+                datetime = LocalDateTime.parse(timestampExpression, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+                dateTimeBase = datetime.toInstant(ZoneOffset.UTC);
         }
-        return addTwoTimestamp(dateTimeMills, addTimeMills);
+
+        if (args.length > 2) { // Have something to add
+            SqlTypeName addSqlTypeName = (SqlTypeName) args[3];
+            switch (addSqlTypeName) {
+                case TIMESTAMP:
+                    addTime = InstantUtils.fromEpochMills((long) args[2]);
+                    break;
+                case TIME:
+                    addTime = InstantUtils.fromInternalTime((int) args[2]);
+                    break;
+                default:
+                    String timestampExpression = (String) args[2];
+                    LocalDateTime addDateTime = LocalDateTime.parse(timestampExpression, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+                    addTime = addDateTime.toInstant(ZoneOffset.UTC);
+
+            }
+            addTimeMills = addTime.atZone(ZoneOffset.UTC).toLocalTime().toNanoOfDay() / 1_000_000; // transfer it to millisecond
+        }
+
+        return addTwoTimestamp(dateTimeBase, addTimeMills);
     }
 
     private java.sql.Timestamp addTwoTimestamp(Instant timestamp, Long addTime) {

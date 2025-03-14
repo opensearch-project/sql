@@ -45,6 +45,16 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     Request request6 = new Request("PUT", "/people/_doc/2?refresh=true");
     request6.setJsonEntity("{\"name\": \"DummyEntityForMathVerification\", \"age\": 24}");
     client().performRequest(request6);
+
+    Request request7 = new Request("PUT", "/people3/");
+    request7.setJsonEntity("{\"mappings\": { \"properties\": {\"timestamp2\": { \"type\": \"date\", \"format\": \"strict_date_optional_time_nanos\"}}}}");
+    client().performRequest(request7);
+
+    Request request8 = new Request("PUT", "/people3/");
+    request8.setJsonEntity("{ \"mappings\": { \"properties\": {\"timestamp2\": {\"type\": \"date\"}}}}");
+    client().performRequest(request8);
+
+
     loadIndex(Index.BANK);
   }
 
@@ -105,10 +115,10 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
 
   @Test
-  public void testTimestamp() {
+  public void testTimestampForOneInput() {
     String query =
-            "source=people | eval `TIMESTAMP('2020-08-26 13:49:00', '2020-08-26 13:49:02')` = TIMESTAMP('2020-08-26 13:49:00', '2020-08-26 13:49:02')| fields `TIMESTAMP('2020-08-26 13:49:00', '2020-08-26 13:49:02')`";
-    testSimplePPL(query, List.of("2020-08-27 03:38:02"));
+            "source=people | eval a = TIMESTAMP('2020-08-26 13:49:00'), b=TIMESTAMP(TIMESTAMP('2021-08-25 13:49:00')), c = TIMESTAMP(DATE('2021-08-25')), d=TIMESTAMP(TIME('13:49:00'))| fields a, b, c, d";
+    testSimplePPL(query, List.of("2020-08-26 13:49:00", "2021-08-25 13:49:00", "2021-08-25 00:00:00", "2025-03-14 13:49:00"));
   }
 
   @Test
