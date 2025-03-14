@@ -106,4 +106,20 @@ public class WhereCommandIT extends PPLIntegTestCase {
             String.format("source=%s | where _id='1' | fields firstname", TEST_INDEX_ACCOUNT));
     verifyDataRows(result, rows("Amber"));
   }
+
+  @Test
+  public void testWhereWithIn() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname in ('Amber') | fields firstname", TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber"));
+
+    result =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname in ('Amber', 'Dale') | fields firstname",
+                TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("Amber"), rows("Dale"));
+  }
 }

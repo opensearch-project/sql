@@ -104,6 +104,20 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testFilterQueryWithIn() {
+    String ppl = "source=scott.products_temporal | where ID in ('1000', '2000')";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalFilter(condition=[SEARCH($0, Sarg['1000', '2000']:CHAR(4))])\n"
+            + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\nFROM `scott`.`products_temporal`\nWHERE `ID` IN ('1000', '2000')";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testQueryWithFields() {
     String ppl = "source=products_temporal | fields SUPPLIER, ID";
     RelNode root = getRelNode(ppl);
