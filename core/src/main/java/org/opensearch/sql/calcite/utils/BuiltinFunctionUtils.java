@@ -49,6 +49,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.toSecondsFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 
@@ -178,6 +179,9 @@ public interface BuiltinFunctionUtils {
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
             timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
+      case "TO_SECONDS":
+        return TransferUserDefinedFunction(
+                toSecondsFunction.class, "TO_SECOND", ReturnTypes.BIGINT);
       case "WEEK", "YEAR", "MINUTE", "HOUR":
         return SqlLibraryOperators.DATE_PART;
       case "FROM_UNIXTIME":

@@ -1998,7 +1998,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String type.
    * @return ExprValue.
    */
-  private ExprValue exprToDays(ExprValue date) {
+  public static ExprValue exprToDays(ExprValue date) {
     return new ExprLongValue(date.dateValue().toEpochDay() + DAYS_0000_TO_1970);
   }
 
@@ -2008,7 +2008,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/Timestamp/String type.
    * @return ExprValue.
    */
-  private ExprValue exprToSeconds(ExprValue date) {
+  public ExprValue exprToSeconds(ExprValue date) {
     return new ExprLongValue(
         date.timestampValue().atOffset(ZoneOffset.UTC).toEpochSecond()
             + DAYS_0000_TO_1970 * SECONDS_PER_DAY);
@@ -2062,7 +2062,7 @@ public class DateTimeFunctions {
    * @param dateExpr ExprValue of an Integer/Long formatted for a date (e.g., 950501 = 1995-05-01)
    * @return ExprValue.
    */
-  private ExprValue exprToSecondsForIntType(ExprValue dateExpr) {
+  public ExprValue exprToSecondsForIntType(ExprValue dateExpr) {
     try {
       // Attempt to parse integer argument as date
       LocalDate date =
