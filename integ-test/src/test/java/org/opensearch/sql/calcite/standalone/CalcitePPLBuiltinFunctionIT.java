@@ -245,10 +245,11 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 1 | eval f = mod(3.1, 2), n = mod(-3, 2) | fields f, n",
+                "source=%s | head 1 | eval f = mod(3.1, 2), n = -3 %% 2, nf = -3.1 %% 2 | fields f,"
+                    + " n, nf",
                 TEST_INDEX_STATE_COUNTRY));
-    verifySchema(actual, schema("f", "double"), schema("n", "integer"));
-    verifyDataRows(actual, closeTo(1.1, 1));
+    verifySchema(actual, schema("f", "double"), schema("n", "integer"), schema("nf", "double"));
+    verifyDataRows(actual, closeTo(1.1, -1, -1.1));
   }
 
   @Test
