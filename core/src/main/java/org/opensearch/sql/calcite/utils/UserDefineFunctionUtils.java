@@ -193,8 +193,11 @@ public class UserDefineFunctionUtils {
    *     an instance of the corresponding type
    */
   public static void validateArgumentTypes(List<Object> objects, List<Class<?>> types) {
-    if (objects.size() != types.size()) {
-      throw new IllegalArgumentException("Mismatch in the number of objects and types.");
+    if (objects.size() > types.size()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Mismatch in the number of objects and types. Got %d objects and %d types",
+              objects.size(), types.size()));
     }
     for (int i = 0; i < objects.size(); i++) {
       if (!types.get(i).isInstance(objects.get(i))) {

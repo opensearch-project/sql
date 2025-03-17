@@ -297,6 +297,23 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testWeekAndWeekOfYear() {
+    testSimplePPL(
+        "source=people | eval `WEEK(DATE('2008-02-20'))` = WEEK(DATE('2008-02-20'), 0),"
+            + " `WEEK(DATE('2008-02-20'), 1)` = WEEK(DATE('2008-02-20'), 1) | fields"
+            + " `WEEK(DATE('2008-02-20'))`, `WEEK(DATE('2008-02-20'), 1)`",
+        ImmutableList.of(7, 8));
+    testSimplePPL(
+        "source=people | eval `WEEK_OF_YEAR(DATE('2008-02-20'))` = WEEK(DATE('2008-02-20'))|"
+            + " fields `WEEK_OF_YEAR(DATE('2008-02-20'))`",
+        ImmutableList.of(7));
+    testSimplePPL(
+        "source=people | eval `WEEK_OF_YEAR(DATE('2008-02-20'), 1)` ="
+            + " WEEK_OF_YEAR(DATE('2008-02-20'), 1) | fields `WEEK_OF_YEAR(DATE('2008-02-20'), 1)`",
+        ImmutableList.of(8));
+  }
+
+  @Test
   public void testExtract() {
     testSimplePPL(
         "source=people | eval res = extract(YEAR_MONTH FROM '2023-02-07 10:11:12') | fields res",

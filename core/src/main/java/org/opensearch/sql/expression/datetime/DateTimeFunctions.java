@@ -2084,7 +2084,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/Timestamp/String type.
    * @param mode ExprValue of Integer type.
    */
-  private ExprValue exprWeek(ExprValue date, ExprValue mode) {
+  public static ExprValue exprWeek(ExprValue date, ExprValue mode) {
     return new ExprIntegerValue(
         CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));
   }

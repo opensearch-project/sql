@@ -56,6 +56,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeStampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.WeekFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
@@ -186,6 +187,8 @@ public interface BuiltinFunctionUtils {
             StrToDateFunction.class,
             "STR_TO_DATE",
             createNullableReturnType(SqlTypeName.TIMESTAMP));
+      case "WEEK", "WEEK_OF_YEAR":
+        return TransferUserDefinedFunction(WeekFunction.class, "WEEK", ReturnTypes.INTEGER);
         // Built-in condition functions
       case "IF":
         return TransferUserDefinedFunction(
@@ -216,7 +219,7 @@ public interface BuiltinFunctionUtils {
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
             timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
-      case "WEEK", "YEAR", "MINUTE", "HOUR":
+      case "YEAR", "MINUTE", "HOUR":
         return SqlLibraryOperators.DATE_PART;
       case "FROM_UNIXTIME":
         return TransferUserDefinedFunction(
@@ -427,6 +430,18 @@ public interface BuiltinFunctionUtils {
                 new SqlIntervalQualifier(TimeUnit.DOY, null, SqlParserPos.ZERO));
         return List.of(
             domUnit, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
+      case "WEEK", "WEEK_OF_YEAR":
+        RexNode timestamp =
+            makeConversionCall("TIMESTAMP", ImmutableList.of(argList.getFirst()), context);
+        RexNode woyMode;
+        if (argList.size() >= 2) {
+          woyMode = argList.get(1);
+        } else {
+          woyMode =
+              context.rexBuilder.makeLiteral(
+                  0, context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER));
+        }
+        return List.of(timestamp, woyMode);
       case "EXTRACT":
         // Convert the second argument to TIMESTAMP
         return ImmutableList.of(
