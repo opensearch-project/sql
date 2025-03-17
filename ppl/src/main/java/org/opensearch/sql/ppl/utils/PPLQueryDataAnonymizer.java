@@ -19,6 +19,7 @@ import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
@@ -410,6 +411,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       String left = analyze(node.getLeft(), context);
       String right = analyze(node.getRight(), context);
       return StringUtils.format("%s %s %s", left, node.getOperator(), right);
+    }
+
+    @Override
+    public String visitBetween(Between node, String context) {
+      String value = analyze(node.getValue(), context);
+      String left = analyze(node.getLowerBound(), context);
+      String right = analyze(node.getUpperBound(), context);
+      return StringUtils.format("%s between %s and %s", value, left, right);
     }
 
     @Override
