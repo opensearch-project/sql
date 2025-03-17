@@ -330,19 +330,19 @@ expression
 
 // predicates
 logicalExpression
-   : NOT logicalExpression                                      # logicalNot
-   | LT_PRTHS logicalExpression RT_PRTHS                        # parentheticLogicalExpr
-   | comparisonExpression                                       # comparsion
-   | left = logicalExpression OR right = logicalExpression      # logicalOr
+   : LT_PRTHS logicalExpression RT_PRTHS                        # parentheticLogicalExpr
+   | NOT logicalExpression                                      # logicalNot
    | left = logicalExpression (AND)? right = logicalExpression  # logicalAnd
    | left = logicalExpression XOR right = logicalExpression     # logicalXor
+   | left = logicalExpression OR right = logicalExpression      # logicalOr
+   | comparisonExpression                                       # comparsion
    | booleanExpression                                          # booleanExpr
    | relevanceExpression                                        # relevanceExpr
    ;
 
 comparisonExpression
    : left = valueExpression comparisonOperator right = valueExpression  # compareExpr
-   | valueExpression IN valueList                                       # inExpr
+   | valueExpression NOT? IN valueList                                  # inExpr
    ;
 
 valueExpressionList

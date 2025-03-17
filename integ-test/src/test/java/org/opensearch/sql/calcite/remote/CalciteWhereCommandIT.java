@@ -24,4 +24,10 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
   @Ignore("https://github.com/opensearch-project/sql/issues/3333")
   @Override
   public void testWhereWithMetadataFields() throws IOException {}
+
+  /*
+  protected void assertExceptionForIncompatibleType() {
+    String message = "class java.math.BigDecimal cannot be cast to class java.lang.Double";
+  }
+   */
 }
