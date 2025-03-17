@@ -50,6 +50,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.GetFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MakeTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodAddFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodDiffFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.StrToDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
@@ -180,6 +181,8 @@ public interface BuiltinFunctionUtils {
       case "PERIOD_DIFF":
         return TransferUserDefinedFunction(
             PeriodDiffFunction.class, "PERIOD_DIFF", ReturnTypes.INTEGER);
+      case "STR_TO_DATE":
+        return TransferUserDefinedFunction(StrToDateFunction.class, "STR_TO_DATE", createNullableReturnType(SqlTypeName.TIMESTAMP));
         // Built-in condition functions
       case "IF":
         return TransferUserDefinedFunction(

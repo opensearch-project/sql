@@ -1816,7 +1816,7 @@ public class DateTimeFunctions {
     return exprApplyTime(functionProperties, temporal, temporalDelta, false);
   }
 
-  private ExprValue exprStrToDate(
+  public static ExprValue exprStrToDate(
       FunctionProperties fp, ExprValue dateTimeExpr, ExprValue formatStringExp) {
     return DateTimeFormatterUtil.parseStringWithDateOrTime(fp, dateTimeExpr, formatStringExp);
   }

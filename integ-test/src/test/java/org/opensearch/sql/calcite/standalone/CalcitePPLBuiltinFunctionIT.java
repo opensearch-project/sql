@@ -355,6 +355,20 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testStrToDate() {
+    testSimplePPL(
+        "source=people | eval `str_to_date(\"01,5,2013\", \"%d,%m,%Y\")` ="
+            + " str_to_date(\"01,5,2013\", \"%d,%m,%Y\") | fields `str_to_date(\"01,5,2013\","
+            + " \"%d,%m,%Y\")`",
+        ImmutableList.of("2013-05-01 00:00:00"));
+
+    // It returns NULL when a statement cannot be parsed due to an invalid pair of arguments
+    testSimplePPL(
+        "source=people | eval res = str_to_date('01,5,2013', '%d,%m,%Y,%a') | fields res",
+        ImmutableNullableList.of(null));
+  }
+
+  @Test
   public void testDateDiff() {
     testSimplePPL(
         "source=people | eval `'2000-01-02' - '2000-01-01'` = DATEDIFF(TIMESTAMP('2000-01-02"
