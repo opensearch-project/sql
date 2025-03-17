@@ -19,6 +19,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -27,6 +28,8 @@ import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
+import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
@@ -35,15 +38,19 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 @RequiredArgsConstructor
@@ -123,12 +130,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitXor(Xor node, CalcitePlanContext context) {
-    final RelDataType booleanType =
-        context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
     final RexNode left = analyze(node.getLeft(), context);
     final RexNode right = analyze(node.getRight(), context);
-    return context.rexBuilder.makeCall(
-        booleanType, SqlStdOperatorTable.BIT_XOR, List.of(left, right));
+    return context.relBuilder.notEquals(left, right);
   }
 
   @Override
@@ -139,12 +143,28 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
-    final RelDataType booleanType =
-        context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
+    SqlOperator op = BuiltinFunctionUtils.translate(node.getOperator());
     final RexNode left = analyze(node.getLeft(), context);
     final RexNode right = analyze(node.getRight(), context);
-    return context.rexBuilder.makeCall(
-        booleanType, BuiltinFunctionUtils.translate(node.getOperator()), List.of(left, right));
+    return context.relBuilder.call(op, left, right);
+  }
+
+  @Override
+  public RexNode visitBetween(Between node, CalcitePlanContext context) {
+    RexNode value = analyze(node.getValue(), context);
+    RexNode lowerBound = analyze(node.getLowerBound(), context);
+    RexNode upperBound = analyze(node.getUpperBound(), context);
+    RelDataType commonType = context.rexBuilder.commonType(value, lowerBound, upperBound);
+    if (commonType != null) {
+      lowerBound = context.rexBuilder.makeCast(commonType, lowerBound);
+      upperBound = context.rexBuilder.makeCast(commonType, upperBound);
+    } else {
+      throw new SemanticCheckException(
+          StringUtils.format(
+              "BETWEEN expression types are incompatible: [%s, %s, %s]",
+              value.getType(), lowerBound.getType(), upperBound.getType()));
+    }
+    return context.relBuilder.between(value, lowerBound, upperBound);
   }
 
   @Override
@@ -342,5 +362,23 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       context.setResolvingJoinCondition(true);
     }
     return subqueryRel;
+  }
+
+  /*
+   * Unsupported Expressions of PPL with Calcite for OpenSearch 3.0.0-beta
+   */
+  @Override
+  public RexNode visitCast(Cast node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("CastWhen function is unsupported in Calcite");
+  }
+
+  @Override
+  public RexNode visitWhen(When node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("CastWhen function is unsupported in Calcite");
+  }
+
+  @Override
+  public RexNode visitRelevanceFieldList(RelevanceFieldList node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Relevance fields expression is unsupported in Calcite");
   }
 }

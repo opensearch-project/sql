@@ -35,12 +35,11 @@ public interface BuiltinFunctionUtils {
       case "NOT":
         return SqlStdOperatorTable.NOT;
       case "XOR":
-        return SqlStdOperatorTable.BIT_XOR;
+      case "!=":
+        return SqlStdOperatorTable.NOT_EQUALS;
       case "=":
         return SqlStdOperatorTable.EQUALS;
       case "<>":
-      case "!=":
-        return SqlStdOperatorTable.NOT_EQUALS;
       case ">":
         return SqlStdOperatorTable.GREATER_THAN;
       case ">=":
@@ -49,6 +48,8 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.LESS_THAN;
       case "<=":
         return SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
+      case "REGEXP":
+        return SqlLibraryOperators.REGEXP;
       case "+":
         return SqlStdOperatorTable.PLUS;
       case "-":
