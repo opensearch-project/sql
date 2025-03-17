@@ -51,6 +51,7 @@ import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -358,14 +359,18 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return subqueryRel;
   }
 
+  @Override
+  public RexNode visitCast(Cast node, CalcitePlanContext context) {
+    RexNode expr = analyze(node.getExpression(), context);
+    SqlTypeName sqlTypeName =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType())
+            .getSqlTypeName();
+    return context.relBuilder.cast(expr, sqlTypeName);
+  }
+
   /*
    * Unsupported Expressions of PPL with Calcite for OpenSearch 3.0.0-beta
    */
-  @Override
-  public RexNode visitCast(Cast node, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("CastWhen function is unsupported in Calcite");
-  }
-
   @Override
   public RexNode visitWhen(When node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("CastWhen function is unsupported in Calcite");

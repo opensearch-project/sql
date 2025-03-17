@@ -74,6 +74,11 @@ public class Cast extends UnresolvedExpression {
     return CONVERTED_TYPE_FUNCTION_NAME_MAP.containsValue(name);
   }
 
+  /** Get the data type expression of the converted type. */
+  public DataType getDataType() {
+    return DataType.valueOf(convertedType.toString().toUpperCase(Locale.ROOT));
+  }
+
   /**
    * Get the cast function name for a given target data type.
    *
