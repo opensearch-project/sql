@@ -1637,7 +1637,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprMinuteOfDay(ExprValue time) {
+  public static ExprValue exprMinuteOfDay(ExprValue time) {
     return new ExprIntegerValue(MINUTES.between(LocalTime.MIN, time.timeValue()));
   }
 

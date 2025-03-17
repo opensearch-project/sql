@@ -379,6 +379,14 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testMinuteOfDay() {
+    testSimplePPL(
+        "source=people | eval `MINUTE_OF_DAY(TIME('01:02:03'))` = MINUTE_OF_DAY(TIME('01:02:03')) |"
+            + " fields `MINUTE_OF_DAY(TIME('01:02:03'))`",
+        ImmutableList.of(62));
+  }
+
+  @Test
   public void testPeriodAdd() {
     testSimplePPL(
         "source=people | eval `PERIOD_ADD(200801, 2)` = PERIOD_ADD(200801, 2), `PERIOD_ADD(200801,"

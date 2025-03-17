@@ -48,6 +48,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.FromDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.GetFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MakeTimeFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.MinuteOfDay;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodAddFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.StrToDateFunction;
@@ -178,6 +179,8 @@ public interface BuiltinFunctionUtils {
             GetFormatFunction.class, "GET_FORMAT", ReturnTypes.VARCHAR);
       case "MAKETIME":
         return TransferUserDefinedFunction(MakeTimeFunction.class, "MAKETIME", ReturnTypes.TIME);
+      case "MINUTE_OF_DAY":
+        return TransferUserDefinedFunction(MinuteOfDay.class, "MINUTE_OF_DAY", ReturnTypes.INTEGER);
       case "PERIOD_ADD":
         return TransferUserDefinedFunction(
             PeriodAddFunction.class, "PERIOD_ADD", ReturnTypes.INTEGER);
@@ -444,6 +447,10 @@ public interface BuiltinFunctionUtils {
                   0, context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER));
         }
         return List.of(timestamp, woyMode);
+      case "MINUTE_OF_DAY":
+        // Convert STRING/TIME/TIMESTAMP to TIMESTAMP
+        return ImmutableList.of(
+            makeConversionCall("TIMESTAMP", ImmutableList.of(argList.getFirst()), context));
       case "EXTRACT":
         // Convert the second argument to TIMESTAMP
         return ImmutableList.of(
