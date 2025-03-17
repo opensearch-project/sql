@@ -441,6 +441,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new ExistsSubquery(astBuilder.visitSubSearch(ctx.subSearch()));
   }
 
+  @Override
+  public UnresolvedExpression visitBetween(OpenSearchPPLParser.BetweenContext ctx) {
+    UnresolvedExpression betweenExpr =
+        new Between(
+            visit(ctx.valueExpression(0)),
+            visit(ctx.valueExpression(1)),
+            visit(ctx.valueExpression(2)));
+    return ctx.NOT() != null ? new Not(betweenExpr) : betweenExpr;
+  }
+
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
     return new QualifiedName(
         ctx.stream()
