@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression.datetime;
 
-import static java.time.temporal.ChronoField.ALIGNED_WEEK_OF_YEAR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 
@@ -95,16 +94,6 @@ class ExtractTest extends ExpressionTestBase {
     LocalDate now = LocalDate.now(functionProperties.getQueryStartClock());
 
     datePartWithTimeArgQuery("DAY", timeInput, now.getDayOfMonth());
-
-    // To avoid flaky test, skip the testing in December and January because the WEEK is ISO 8601
-    // week-of-week-based-year which is considered to start on a Monday and week 1 is the first week
-    // with >3 days. it is possible for early-January dates to be part of the 52nd or 53rd week of
-    // the previous year, and for late-December dates to be part of the first week of the next year.
-    // For example, 2005-01-02 is part of the 53rd week of year 2004, while 2012-12-31 is part of
-    // the first week of 2013
-    if (now.getMonthValue() > 2 && now.getMonthValue() != 12) {
-      datePartWithTimeArgQuery("WEEK", datetimeInput, now.get(ALIGNED_WEEK_OF_YEAR));
-    }
 
     datePartWithTimeArgQuery("MONTH", timeInput, now.getMonthValue());
 

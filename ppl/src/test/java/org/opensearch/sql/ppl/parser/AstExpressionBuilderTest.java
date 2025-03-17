@@ -98,6 +98,51 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testLogicalAndOr() {
+    assertEqual(
+        "source=t a=1 and b=2 and c=3 or d=4",
+        filter(
+            relation("t"),
+            or(
+                and(
+                    and(
+                        compare("=", field("a"), intLiteral(1)),
+                        compare("=", field("b"), intLiteral(2))),
+                    compare("=", field("c"), intLiteral(3))),
+                compare("=", field("d"), intLiteral(4)))));
+  }
+
+  @Test
+  public void testLogicalParenthetic() {
+    assertEqual(
+        "source=t (a=1 or b=2) and (c=3 or d=4)",
+        filter(
+            relation("t"),
+            and(
+                or(
+                    compare("=", field("a"), intLiteral(1)),
+                    compare("=", field("b"), intLiteral(2))),
+                or(
+                    compare("=", field("c"), intLiteral(3)),
+                    compare("=", field("d"), intLiteral(4))))));
+  }
+
+  @Test
+  public void testLogicalNotAndXorOr() {
+    assertEqual(
+        "source=t a=1 xor b=2 and not c=3 or d=4",
+        filter(
+            relation("t"),
+            or(
+                xor(
+                    compare("=", field("a"), intLiteral(1)),
+                    and(
+                        compare("=", field("b"), intLiteral(2)),
+                        not(compare("=", field("c"), intLiteral(3))))),
+                compare("=", field("d"), intLiteral(4)))));
+  }
+
+  @Test
   public void testLogicalLikeExpr() {
     assertEqual(
         "source=t like(a, '_a%b%c_d_')",
