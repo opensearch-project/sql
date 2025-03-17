@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -28,6 +29,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
 
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
+    loadIndex(Index.CALCS);
   }
 
   @Test
@@ -231,7 +233,6 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | stats avg(balance) by span(birthdate, 1 month) as age_balance",
                 TEST_INDEX_BANK));
-    System.out.println(actual.getJSONArray("datarows"));
     verifySchema(actual, schema("age_balance", "timestamp"), schema("avg(balance)", "double"));
     verifyDataRows(
         actual,
@@ -240,6 +241,24 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
         rows(4180, "2018-11-01 00:00:00"),
         rows(44313, "2018-08-01 00:00:00"),
         rows(5686, "2017-11-01 00:00:00"));
+  }
+
+  @Test
+  public void testCountByCustomMinuteTimeSpan() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 5 | stats count(datetime0) by span(datetime0, 15 minute) as datetime_span",
+                TEST_INDEX_CALCS));
+    System.out.println(actual.getJSONArray("datarows"));
+    verifySchema(actual, schema("datetime_span", "timestamp"), schema("count(datetime0)", "long"));
+    verifyDataRows(
+        actual,
+        rows(1, "2004-07-26 12:30:00"),
+        rows(1, "2004-07-28 23:30:00"),
+        rows(1, "2004-07-09 10:15:00"),
+        rows(1, "2004-08-02 07:45:00"),
+        rows(1, "2004-07-05 13:00:00"));
   }
 
   @Test
