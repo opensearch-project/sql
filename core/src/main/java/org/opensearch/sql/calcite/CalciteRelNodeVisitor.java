@@ -40,21 +40,33 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
+import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
+import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Paginate;
+import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalcitePlanContext> {
@@ -446,5 +458,63 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context);
 
     return context.relBuilder.peek();
+  }
+
+  /*
+   * Unsupported Commands of PPL with Calcite for OpenSearch 3.0.0-beta
+   */
+  @Override
+  public RelNode visitAD(AD node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("AD command is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitCloseCursor(CloseCursor closeCursor, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Close cursor operation is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitFetchCursor(FetchCursor cursor, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Fetch cursor operation is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitML(ML node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("ML command is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitPaginate(Paginate paginate, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Paginate operation is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitKmeans(Kmeans node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Kmeans command is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitFillNull(FillNull fillNull, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("FillNull command is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitParse(Parse node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Parse command is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitRareTopN(RareTopN node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Rare and Top commands are unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitTableFunction(TableFunction node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Table function is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitTrendline(Trendline node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Trendline command is unsupported in Calcite");
   }
 }

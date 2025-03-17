@@ -184,6 +184,16 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testBetween() {
+    assertEquals(
+        "source=t | where id between *** and *** | fields + id",
+        anonymize("source=t | where id between 1 and 2 | fields id"));
+    assertEquals(
+        "source=t | where not id between *** and *** | fields + id",
+        anonymize("source=t | where id not between 1 and 2 | fields id"));
+  }
+
+  @Test
   public void testSubqueryAlias() {
     assertEquals("source=t as t1", anonymize("source=t as t1"));
   }
