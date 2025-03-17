@@ -250,7 +250,6 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | head 5 | stats count(datetime0) by span(datetime0, 15 minute) as datetime_span",
                 TEST_INDEX_CALCS));
-    System.out.println(actual.getJSONArray("datarows"));
     verifySchema(actual, schema("datetime_span", "timestamp"), schema("count(datetime0)", "long"));
     verifyDataRows(
         actual,
