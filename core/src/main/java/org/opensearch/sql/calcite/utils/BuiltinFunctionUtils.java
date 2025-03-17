@@ -123,7 +123,7 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.LOG2;
       case "LOG10":
         return SqlStdOperatorTable.LOG10;
-      case "MOD":
+      case "MOD", "%":
         // The MOD function in PPL supports floating-point parameters, e.g., MOD(5.5, 2) = 1.5,
         // MOD(3.1, 2.1) = 1.1,
         // whereas SqlStdOperatorTable.MOD supports only integer / long parameters.

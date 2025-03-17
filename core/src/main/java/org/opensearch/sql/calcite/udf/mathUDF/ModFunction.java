@@ -39,9 +39,8 @@ public class ModFunction implements UserDefinedFunction {
     if (isIntegral(num0) && isIntegral(num1)) {
       long l0 = num0.longValue();
       long l1 = num1.longValue();
-      // Java returns negative values if the dividend is negative.
-      // We make it return positive values to align with V2's behavior
-      long result = (l0 % l1 + l1) % l1;
+      // It returns negative values when l0 is negative
+      long result = l0 % l1;
       // Return the wider type between l0 and l1
       if (num0 instanceof Integer && num1 instanceof Integer) {
         return (int) result;
@@ -51,7 +50,7 @@ public class ModFunction implements UserDefinedFunction {
 
     double d0 = num0.doubleValue();
     double d1 = num1.doubleValue();
-    return (d0 % d1 + d1) % d1;
+    return d0 % d1;
   }
 
   private boolean isIntegral(Number n) {
