@@ -12,6 +12,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.IOException;
@@ -284,11 +285,11 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
             + " convert_tz('2008-05-15 12:00:00','+00:00','+10:00') | fields"
             + " `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')`",
         ImmutableList.of("2008-05-15 22:00:00"));
-    //    testSimplePPL(
-    //            "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')` =
-    // convert_tz('2008-05-15 12:00:00','+00:00','+15:00')| fields `convert_tz('2008-05-15
-    // 12:00:00','+00:00','+15:00')`",
-    //            ImmutableNullableList.of(null));
+    testSimplePPL(
+        "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')` ="
+            + " convert_tz('2008-05-15 12:00:00','+00:00','+15:00')| fields `convert_tz('2008-05-15"
+            + " 12:00:00','+00:00','+15:00')`",
+        ImmutableNullableList.of(null));
     testSimplePPL(
         "source=people | eval `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')` ="
             + " convert_tz('2008-05-15 12:00:00','+03:30','-10:00') | fields"
@@ -330,9 +331,11 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         "source=people | eval `MAKETIME(20, 30, 40)` = MAKETIME(20, 30, 40), `MAKETIME(20.2, 49.5,"
             + " 42.100502)` = MAKETIME(20.2, 49.5, 42.100502) | fields `MAKETIME(20, 30, 40)`,"
             + " `MAKETIME(20.2, 49.5, 42.100502)`",
-        // TODO: Calcite return time in a fixed format (instead of 20:50:42.100502 for the second result)
+        // TODO: Calcite return time in a fixed format (instead of 20:50:42.100502 for the second
+        // result)
         ImmutableList.of("20:30:40", "20:50:42"));
   }
+
 
   @Test
   public void testDateDiff() {
@@ -637,8 +640,8 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     for (int i = 0; i < expectedValues.size(); i++) {
       Object expected = expectedValues.get(i);
       if (Objects.isNull(expected)) {
-        Object actual = dataRow.get(i);
-        assertNull(actual);
+        JsonElement actual = dataRow.get(i);
+        assertTrue(actual.isJsonNull());
       } else if (expected instanceof BigDecimal) {
         Number actual = dataRow.get(i).getAsNumber();
         assertEquals(expected, actual);

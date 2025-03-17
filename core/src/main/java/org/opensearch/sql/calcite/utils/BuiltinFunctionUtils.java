@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
+import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.createNullableReturnType;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.transferStringExprToDateValue;
 
 import com.google.common.collect.ImmutableList;
@@ -32,6 +33,7 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -154,10 +156,11 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(ExtractFunction.class, "EXTRACT", ReturnTypes.BIGINT);
       case "CONVERT_TZ":
         return TransferUserDefinedFunction(
-            ConvertTZFunction.class, "CONVERT_TZ", ReturnTypes.TIMESTAMP_NULLABLE);
+            ConvertTZFunction.class, "CONVERT_TZ", createNullableReturnType(SqlTypeName.TIMESTAMP));
       case "DATETIME":
         return TransferUserDefinedFunction(
-            DatetimeFunction.class, "DATETIME", ReturnTypes.TIMESTAMP_NULLABLE);
+            DatetimeFunction.class, "DATETIME", createNullableReturnType(SqlTypeName.TIMESTAMP));
+
       case "FROM_DAYS":
         return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", ReturnTypes.DATE);
       case "DATEDIFF":

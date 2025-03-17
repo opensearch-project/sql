@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -21,14 +22,17 @@ public class ConvertTZFunction implements UserDefinedFunction {
     Instant datetimeInstant = InstantUtils.fromEpochMills(((Number) argTimestamp).longValue());
     ExprValue datetimeExpr =
         DateTimeFunctions.exprConvertTZ(
-                new ExprTimestampValue(datetimeInstant),
-                new ExprStringValue(fromTz.toString()),
-                new ExprStringValue(toTz.toString()));
+            new ExprTimestampValue(datetimeInstant),
+            new ExprStringValue(fromTz.toString()),
+            new ExprStringValue(toTz.toString()));
 
-    if (datetimeExpr.isNull()){
-        return null;
+    if (datetimeExpr.isNull()) {
+      return null;
     }
 
-    return Timestamp.valueOf(LocalDateTime.ofInstant(datetimeExpr.timestampValue(), ZoneOffset.UTC));
+    // Manually convert to calcite internal representation of Timestamp to circumvent
+    // errors relating to null returns
+    return SqlFunctions.toLong(
+        Timestamp.valueOf(LocalDateTime.ofInstant(datetimeExpr.timestampValue(), ZoneOffset.UTC)));
   }
 }
