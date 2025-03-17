@@ -437,6 +437,20 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testCurtimeAndCurrentTime() {
+    String execResult =
+        execute(
+            "source=people | eval `value_1` = CURTIME(), `value_2` = CURRENT_TIME() | fields"
+                + " `value_1`, `value_2`");
+    JsonArray dataRow = parseAndGetFirstDataRow(execResult);
+    for (int i : List.of(0, 1)) {
+      assertTrue(
+          "CURRENT_TIME must be of pattern HH:mm:ss",
+          dataRow.get(i).getAsString().matches("\\d{2}:\\d{2}:\\d{2}"));
+    }
+  }
+
+  @Test
   public void testCurDate() {
     String execResult =
         execute("source=people | eval `CURDATE()` = CURDATE() | fields `CURDATE()`");

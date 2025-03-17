@@ -132,6 +132,8 @@ public interface BuiltinFunctionUtils {
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP", "NOW":
         return SqlStdOperatorTable.CURRENT_TIMESTAMP;
+      case "CURTIME", "CURRENT_TIME":
+        return SqlStdOperatorTable.CURRENT_TIME;
       case "CURRENT_DATE", "CURDATE":
         return SqlStdOperatorTable.CURRENT_DATE;
       case "DATE":
