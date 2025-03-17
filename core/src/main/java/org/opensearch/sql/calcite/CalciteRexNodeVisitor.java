@@ -108,7 +108,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
   }
 
-  private static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
+  public static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
       case MICROSECOND -> SpanUnit.MILLISECOND;
       case SECOND -> SpanUnit.SECOND;

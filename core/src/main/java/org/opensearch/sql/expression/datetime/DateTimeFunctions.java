@@ -1734,7 +1734,7 @@ public class DateTimeFunctions {
    * @param totalSeconds The total number of seconds
    * @return A TIME value
    */
-  private ExprValue exprSecToTime(ExprValue totalSeconds) {
+  public static ExprValue exprSecToTime(ExprValue totalSeconds) {
     return new ExprTimeValue(LocalTime.MIN.plus(Duration.ofSeconds(totalSeconds.longValue())));
   }
 
@@ -1761,7 +1761,7 @@ public class DateTimeFunctions {
    * @param totalSeconds The total number of seconds
    * @return A TIME value
    */
-  private ExprValue exprSecToTimeWithNanos(ExprValue totalSeconds) {
+  public static ExprValue exprSecToTimeWithNanos(ExprValue totalSeconds) {
     long nanos = formatNanos(totalSeconds);
 
     return new ExprTimeValue(
@@ -1858,7 +1858,7 @@ public class DateTimeFunctions {
     return new ExprLongValue(time.timeValue().toSecondOfDay());
   }
 
-  private ExprValue exprTimestampAdd(
+  public static ExprValue exprTimestampAdd(
       ExprValue partExpr, ExprValue amountExpr, ExprValue datetimeExpr) {
     String part = partExpr.stringValue();
     int amount = amountExpr.integerValue();
@@ -1943,7 +1943,7 @@ public class DateTimeFunctions {
     return new ExprLongValue(returnVal);
   }
 
-  private ExprValue exprTimestampDiff(
+  public static ExprValue exprTimestampDiff(
       ExprValue partExpr, ExprValue startTimeExpr, ExprValue endTimeExpr) {
     return getTimeDifference(
         partExpr.stringValue(),
@@ -2008,7 +2008,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/Timestamp/String type.
    * @return ExprValue.
    */
-  public ExprValue exprToSeconds(ExprValue date) {
+  public static ExprValue exprToSeconds(ExprValue date) {
     return new ExprLongValue(
         date.timestampValue().atOffset(ZoneOffset.UTC).toEpochSecond()
             + DAYS_0000_TO_1970 * SECONDS_PER_DAY);
@@ -2062,7 +2062,7 @@ public class DateTimeFunctions {
    * @param dateExpr ExprValue of an Integer/Long formatted for a date (e.g., 950501 = 1995-05-01)
    * @return ExprValue.
    */
-  public ExprValue exprToSecondsForIntType(ExprValue dateExpr) {
+  public static ExprValue exprToSecondsForIntType(ExprValue dateExpr) {
     try {
       // Attempt to parse integer argument as date
       LocalDate date =

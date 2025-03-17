@@ -6,7 +6,11 @@
 package org.opensearch.sql.calcite.utils.datetime;
 
 import java.time.*;
+
+import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.type.SqlTypeName;
+
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 public interface InstantUtils {
 
@@ -43,6 +47,12 @@ public interface InstantUtils {
     return startOfDayUtc.toInstant().plus(Duration.ofMillis(time));
   }
 
+  static Instant fromStringExpr(String timestampExpression) {
+    LocalDateTime datetime =
+            LocalDateTime.parse(timestampExpression, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+    return datetime.atZone(ZoneId.of("UTC")).toInstant();
+  }
+
   /**
    * Convert internal date/time/timestamp to Instant.
    *
@@ -59,5 +69,24 @@ public interface InstantUtils {
       default -> throw new IllegalArgumentException(
           "Invalid argument type. Must be TIME, but got " + type);
     };
+  }
+
+  static Instant convertToInstant(Object candidate, SqlTypeName sqlTypeName) {
+    Instant dateTimeBase;
+    switch (sqlTypeName) {
+      case DATE:
+        dateTimeBase = InstantUtils.fromInternalDate((int) candidate);
+        break;
+      case TIMESTAMP:
+        dateTimeBase = InstantUtils.fromEpochMills((long) candidate);
+        break;
+      case TIME:
+        dateTimeBase = InstantUtils.fromInternalTime((int) candidate);
+        break;
+      default:
+        String timestampExpression = (String) candidate;
+        dateTimeBase = InstantUtils.fromStringExpr(timestampExpression);
+    }
+    return dateTimeBase;
   }
 }

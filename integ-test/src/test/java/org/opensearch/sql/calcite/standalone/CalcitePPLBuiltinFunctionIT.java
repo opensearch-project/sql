@@ -280,6 +280,20 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testTimestampAdd() {
+    testSimplePPL(
+            "source=people | eval `TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')` = TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00') | eval `TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')` = TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00') | fields `TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')`, `TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')`",
+            List.of("2000-01-18 00:00:00", "1999-10-01 00:00:00"));
+  }
+
+  @Test
+  public void testTimestampDiff() {
+    testSimplePPL(
+            "source=people | eval `TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00'))` = TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00')) | fields `TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00'))`",
+            List.of(4, -23));
+  }
+
+  @Test
   public void testNow() {
     String execResult =
         execute(

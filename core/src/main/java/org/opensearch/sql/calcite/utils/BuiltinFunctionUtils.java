@@ -6,11 +6,13 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
+import static org.opensearch.sql.calcite.CalciteRexNodeVisitor.intervalUnitToSpanUnit;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.transferStringExprToDateValue;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -34,6 +36,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
+import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
@@ -48,10 +51,13 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.timestampAddFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.timestampDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.toSecondsFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
+import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
 public interface BuiltinFunctionUtils {
 
@@ -179,6 +185,13 @@ public interface BuiltinFunctionUtils {
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
             timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
+      case "TIMESTAMPADD":
+        // return SqlLibraryOperators.TIMESTAMP;
+        return TransferUserDefinedFunction(
+                timestampAddFunction.class, "TIMESTAMPADD", ReturnTypes.TIMESTAMP);
+      case "TIMESTAMPDIFF":
+        return TransferUserDefinedFunction(
+                timestampDiffFunction.class, "TIMESTAMPDIFF", ReturnTypes.BIGINT);
       case "TO_SECONDS":
         return TransferUserDefinedFunction(
                 toSecondsFunction.class, "TO_SECOND", ReturnTypes.BIGINT);
@@ -308,6 +321,18 @@ public interface BuiltinFunctionUtils {
                 .map(p -> context.rexBuilder.makeFlag(p.getType().getSqlTypeName()))
                 .collect(Collectors.toList()));
         return timestampArgs;
+      case "TIMESTAMPADD":
+        List<RexNode> timestampAddArgs = new ArrayList<>(argList);
+        timestampAddArgs.add(context.rexBuilder.makeFlag(argList.get(2).getType().getSqlTypeName()));
+        return timestampAddArgs;
+      case "TIMESTAMPDIFF":
+        List<RexNode> timestampDiffArgs = new ArrayList<>();
+        timestampDiffArgs.add(argList.get(0));
+        timestampDiffArgs.add(argList.get(1));
+        timestampDiffArgs.add(context.rexBuilder.makeFlag(argList.get(1).getType().getSqlTypeName()));
+        timestampDiffArgs.add(argList.get(2));
+        timestampDiffArgs.add(context.rexBuilder.makeFlag(argList.get(2).getType().getSqlTypeName()));
+        return timestampDiffArgs;
       case "DAYNAME", "MONTHNAME":
         List<RexNode> periodNameArgs = new ArrayList<>();
         periodNameArgs.add(argList.getFirst());
@@ -411,6 +436,8 @@ public interface BuiltinFunctionUtils {
         // This effectively invalidates the operand type check, which leads to unnecessary
         // incompatible parameter type errors
       case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+      case "TIMESTAMPADD" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+      case "TIMESTAMPDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
       default -> rexBuilder.deriveReturnType(operator, exprs);
     };
   }
