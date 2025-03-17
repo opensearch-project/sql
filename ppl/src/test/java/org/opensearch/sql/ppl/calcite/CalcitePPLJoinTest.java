@@ -430,16 +430,15 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(cnt=[$1], JOB=[$0])\n"
-            + "  LogicalSort(sort0=[$0], dir0=[ASC])\n"
-            + "    LogicalAggregate(group=[{2}], cnt=[COUNT($3)])\n"
-            + "      LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n"
-            + "        LogicalSort(sort0=[$0], dir0=[DESC], fetch=[10])\n"
-            + "          LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
-            + "            LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO'))])\n"
-            + "              LogicalTableScan(table=[[scott, DEPT]])\n";
+            + "  LogicalAggregate(group=[{2}], cnt=[COUNT($3)])\n"
+            + "    LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n"
+            + "      LogicalSort(sort0=[$0], dir0=[DESC], fetch=[10])\n"
+            + "        LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "          LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO'))])\n"
+            + "            LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedResult = "cnt=1; JOB=CLERK\ncnt=1; JOB=MANAGER\ncnt=4; JOB=SALESMAN\n";
+    String expectedResult = "cnt=4; JOB=SALESMAN\ncnt=1; JOB=CLERK\ncnt=1; JOB=MANAGER\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
@@ -451,8 +450,7 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
             + "WHERE `DEPTNO` > 10 AND `LOC` = 'CHICAGO'\n"
             + "ORDER BY `DEPTNO` DESC NULLS FIRST\n"
             + "LIMIT 10) `t1` ON `EMP`.`DEPTNO` = `t1`.`DEPTNO`\n"
-            + "GROUP BY `EMP`.`JOB`\n"
-            + "ORDER BY `EMP`.`JOB` NULLS LAST";
+            + "GROUP BY `EMP`.`JOB`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
