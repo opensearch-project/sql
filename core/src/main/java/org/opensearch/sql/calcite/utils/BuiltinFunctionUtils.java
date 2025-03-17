@@ -33,7 +33,6 @@ import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -49,6 +48,8 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.FromDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.GetFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MakeTimeFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodAddFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
@@ -173,6 +174,12 @@ public interface BuiltinFunctionUtils {
             GetFormatFunction.class, "GET_FORMAT", ReturnTypes.VARCHAR);
       case "MAKETIME":
         return TransferUserDefinedFunction(MakeTimeFunction.class, "MAKETIME", ReturnTypes.TIME);
+      case "PERIOD_ADD":
+        return TransferUserDefinedFunction(
+            PeriodAddFunction.class, "PERIOD_ADD", ReturnTypes.INTEGER);
+      case "PERIOD_DIFF":
+        return TransferUserDefinedFunction(
+            PeriodDiffFunction.class, "PERIOD_DIFF", ReturnTypes.INTEGER);
         // Built-in condition functions
       case "IF":
         return TransferUserDefinedFunction(

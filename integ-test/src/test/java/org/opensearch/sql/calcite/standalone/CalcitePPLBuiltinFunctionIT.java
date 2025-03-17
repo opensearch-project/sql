@@ -336,6 +336,23 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         ImmutableList.of("20:30:40", "20:50:42"));
   }
 
+  @Test
+  public void testPeriodAdd() {
+    testSimplePPL(
+        "source=people | eval `PERIOD_ADD(200801, 2)` = PERIOD_ADD(200801, 2), `PERIOD_ADD(200801,"
+            + " -12)` = PERIOD_ADD(200801, -12) | fields `PERIOD_ADD(200801, 2)`,"
+            + " `PERIOD_ADD(200801, -12)`",
+        ImmutableList.of(200803, 200701));
+  }
+
+  @Test
+  public void testPeriodDiff() {
+    testSimplePPL(
+        "source=people | eval `PERIOD_DIFF(200802, 200703)` = PERIOD_DIFF(200802, 200703),"
+            + " `PERIOD_DIFF(200802, 201003)` = PERIOD_DIFF(200802, 201003) | fields"
+            + " `PERIOD_DIFF(200802, 200703)`, `PERIOD_DIFF(200802, 201003)`",
+        ImmutableList.of(11, -25));
+  }
 
   @Test
   public void testDateDiff() {

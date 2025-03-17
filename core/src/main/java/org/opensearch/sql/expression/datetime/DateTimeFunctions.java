@@ -1687,7 +1687,7 @@ public class DateTimeFunctions {
    * @param months Amount of months to add.
    * @return ExprIntegerValue.
    */
-  private ExprValue exprPeriodAdd(ExprValue period, ExprValue months) {
+  public static ExprValue exprPeriodAdd(ExprValue period, ExprValue months) {
     // We should add a day to make string parsable and remove it afterwards
     var input = period.integerValue() * 100 + 1; // adds 01 to end of the string
     var parsedDate = parseDatePeriod(input);
@@ -1708,7 +1708,7 @@ public class DateTimeFunctions {
    * @param period2 Period in the format YYMM or YYYYMM.
    * @return ExprIntegerValue.
    */
-  private ExprValue exprPeriodDiff(ExprValue period1, ExprValue period2) {
+  public static ExprValue exprPeriodDiff(ExprValue period1, ExprValue period2) {
     var parsedDate1 = parseDatePeriod(period1.integerValue() * 100 + 1);
     var parsedDate2 = parseDatePeriod(period2.integerValue() * 100 + 1);
     if (parsedDate1 == null || parsedDate2 == null) {

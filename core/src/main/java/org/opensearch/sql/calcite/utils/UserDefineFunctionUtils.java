@@ -148,4 +148,59 @@ public class UserDefineFunctionUtils {
       return List.of(localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth());
     }
   }
+
+  /**
+   * Check whether a function gets enough arguments.
+   *
+   * @param funcName the name of the function
+   * @param expectedArguments the number of expected arguments
+   * @param actualArguments the number of actual arguments
+   * @param exactMatch whether the number of actual arguments should precisely match the number of
+   *     expected arguments. If false, it suffices as long as the number of actual number of
+   *     arguments is not smaller that the number of expected arguments.
+   * @throws IllegalArgumentException if the argument length does not match the expected one
+   */
+  public static void validateArgumentCount(
+      String funcName, int expectedArguments, int actualArguments, boolean exactMatch) {
+    if (exactMatch) {
+      if (actualArguments != expectedArguments) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Mismatch arguments: function %s expects %d arguments, but got %d",
+                funcName, expectedArguments, actualArguments));
+      }
+    } else {
+      if (actualArguments < expectedArguments) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Mismatch arguments: function %s expects at least %d arguments, but got %d",
+                funcName, expectedArguments, actualArguments));
+      }
+    }
+  }
+
+  /**
+   * Validates that the given list of objects matches the given list of types.
+   *
+   * <p>This function first checks if the sizes of the two lists match. If not, it throws an {@code
+   * IllegalArgumentException}. Then, it iterates through the lists and checks if each object is an
+   * instance of the corresponding type. If any object is not of the expected type, it throws an
+   * {@code IllegalArgumentException} with a descriptive message.
+   *
+   * @param objects the list of objects to validate
+   * @param types the list of expected types
+   * @throws IllegalArgumentException if the sizes of the lists do not match or if any object is not
+   *     an instance of the corresponding type
+   */
+  public static void validateArgumentTypes(List<Object> objects, List<Class<?>> types) {
+    if (objects.size() != types.size()) {
+      throw new IllegalArgumentException("Mismatch in the number of objects and types.");
+    }
+    for (int i = 0; i < objects.size(); i++) {
+      if (!types.get(i).isInstance(objects.get(i))) {
+        throw new IllegalArgumentException(
+            String.format("Object at index %d is not of type %s", i, types.get(i).getName()));
+      }
+    }
+  }
 }
