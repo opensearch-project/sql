@@ -483,6 +483,17 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows("Nanette", 28));
   }
 
+  @Test
+  public void testNotBetween3() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where not age not between 35 and 38 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
+  }
+
   @Ignore("https://github.com/opensearch-project/sql/issues/3400")
   public void testDateBetween() {
     JSONObject actual =
