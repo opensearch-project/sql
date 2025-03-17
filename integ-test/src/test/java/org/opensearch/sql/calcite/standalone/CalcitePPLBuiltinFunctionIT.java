@@ -4,7 +4,6 @@
  */
 package org.opensearch.sql.calcite.standalone;
 
-import static org.hamcrest.CoreMatchers.is;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -62,13 +61,18 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   public void testSqrtNanArgShouldThrowError() {
     Exception nanException =
         assertThrows(
-            IllegalStateException.class,
+            IllegalArgumentException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s | head 1 | eval neg = sqrt('1') | fields neg",
                         TEST_INDEX_STATE_COUNTRY)));
-    assertTrue(containsMessage(nanException, "Invalid argument type: Expected a numeric value"));
+    String errorMsg = "Invalid argument type: Expected a numeric value";
+    assertTrue(
+        String.format(
+            "SQRT with non-numeric arguments should throw an error that contains message: %s",
+            errorMsg),
+        containsMessage(nanException, errorMsg));
   }
 
   @Test
@@ -122,15 +126,15 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testConv() {
+  public void testConvAndLower() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where age = conv('1E', 16, 10) | fields name, age",
+                "source=%s | where lower(name) = conv('29234652', 10, 36) | fields name",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
-    verifyDataRows(actual, rows("Hello", 30));
+    verifySchema(actual, schema("name", "string"));
+    verifyDataRows(actual, rows("Hello"));
   }
 
   @Test
@@ -146,15 +150,18 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testConvWithInvalidRadix() {
-    IllegalStateException e =
+    Exception invalidRadixException =
         assertThrows(
-            IllegalStateException.class,
+            NumberFormatException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s | eval invalid = conv('0000', 1, 36) | fields invalid",
                         TEST_INDEX_STATE_COUNTRY)));
-    assertThat(e.getCause().getCause().getMessage(), is("radix 1 less than Character.MIN_RADIX"));
+    String errorMsg = "radix 1 less than Character.MIN_RADIX";
+    assertTrue(
+        String.format("CONV should throw an exception that contains message: %s", errorMsg),
+        containsMessage(invalidRadixException, errorMsg));
   }
 
   @Test
