@@ -479,59 +479,69 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Columns to deduplicate
     List<RexNode> dedupeFields =
         node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
-
-    RelNode root = context.relBuilder.peek();
-
-    /*
-     * | dedup 2 a, b keepempty=false
-     * DropColumns('_row_number_)
-     * +- Filter ('_row_number_ <= n)
-     *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
-     *       +- Filter (isnotnull('a) AND isnotnull('b))
-     *          +- ...
-     */
-    // Filter (isnotnull('a) AND isnotnull('b))
-    context.relBuilder.filter(
-        context.relBuilder.and(dedupeFields.stream().map(context.relBuilder::isNotNull).toList()));
-    // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
-    // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS
-    // FIRST, 'b ASC NULLS FIRST]
-    RexNode rowNumber =
-        context
-            .relBuilder
-            .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
-            .over()
-            .partitionBy(dedupeFields)
-            .orderBy(dedupeFields)
-            .rowsTo(RexWindowBounds.CURRENT_ROW)
-            .as("_row_number_");
-    context.relBuilder.projectPlus(rowNumber);
-    RexNode _row_number_ = context.relBuilder.field("_row_number_");
-    // Filter ('_row_number_ <= n)
-    context.relBuilder.filter(
-        context.relBuilder.lessThanOrEqual(
-            _row_number_, context.relBuilder.literal(allowedDuplication)));
-    // DropColumns('_row_number_)
-    context.relBuilder.projectExcept(_row_number_);
     if (keepEmpty) {
       /*
-       * | dedup 2 a, b keepempty=true
-       * Union
-       * :- DataFrameDropColumns('_row_number_)
-       * :  +- Filter ('_row_number_ <= 2)
-       * :     +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowframe(RowFrame, unboundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
-       * :        +- Filter (isnotnull('a) AND isnotnull('b))
-       * :           +- ...
-       * :              +- UnresolvedRelation
-       * +- Filter (isnull('a) OR isnull('b))
-       *    +- ...
-       *       +- UnresolvedRelation
+       * | dedup 2 a, b keepempty=false
+       * DropColumns('_row_number_)
+       * +- Filter ('_row_number_ <= n OR isnull('a) OR isnull('b))
+       *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+       *        +- ...
        */
-      context.relBuilder.push(root);
-      // Filter (isnull('a) OR isnull('b))
+      // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
+      // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC
+      // NULLS FIRST, 'b ASC NULLS FIRST]
+      RexNode rowNumber =
+          context
+              .relBuilder
+              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+              .over()
+              .partitionBy(dedupeFields)
+              .orderBy(dedupeFields)
+              .rowsTo(RexWindowBounds.CURRENT_ROW)
+              .as("_row_number_");
+      context.relBuilder.projectPlus(rowNumber);
+      RexNode _row_number_ = context.relBuilder.field("_row_number_");
+      // Filter (isnull('a) OR isnull('b) OR '_row_number_ <= n)
       context.relBuilder.filter(
-          context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).toList()));
-      context.relBuilder.union(true);
+          context.relBuilder.or(
+              context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).toList()),
+              context.relBuilder.lessThanOrEqual(
+                  _row_number_, context.relBuilder.literal(allowedDuplication))));
+      // DropColumns('_row_number_)
+      context.relBuilder.projectExcept(_row_number_);
+    } else {
+      /*
+       * | dedup 2 a, b keepempty=false
+       * DropColumns('_row_number_)
+       * +- Filter ('_row_number_ <= n)
+       *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+       *       +- Filter (isnotnull('a) AND isnotnull('b))
+       *          +- ...
+       */
+      // Filter (isnotnull('a) AND isnotnull('b))
+      context.relBuilder.filter(
+          context.relBuilder.and(
+              dedupeFields.stream().map(context.relBuilder::isNotNull).toList()));
+      // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
+      // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC
+      // NULLS FIRST, 'b ASC NULLS FIRST]
+      RexNode rowNumber =
+          context
+              .relBuilder
+              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+              .over()
+              .partitionBy(dedupeFields)
+              .orderBy(dedupeFields)
+              .rowsTo(RexWindowBounds.CURRENT_ROW)
+              .as("_row_number_");
+      context.relBuilder.projectPlus(rowNumber);
+      RexNode _row_number_ = context.relBuilder.field("_row_number_");
+      // Filter ('_row_number_ <= n)
+      context.relBuilder.filter(
+          context.relBuilder.lessThanOrEqual(
+              _row_number_, context.relBuilder.literal(allowedDuplication)));
+      // DropColumns('_row_number_)
+      context.relBuilder.projectExcept(_row_number_);
     }
     return context.relBuilder.peek();
   }
