@@ -22,6 +22,8 @@ import org.opensearch.sql.planner.physical.collector.Rounding.DateTimeUnit;
  *   <li>Builtin function `FLOOR(date field to day)` only works for standard single interval like 1
  *       day, 1 month, 1 hour
  * </ol>
+ *
+ * TODO: Refactor SpanFunction with customized implementor for better reusability and efficiency
  */
 public class SpanFunction implements UserDefinedFunction {
 
@@ -46,6 +48,10 @@ public class SpanFunction implements UserDefinedFunction {
                 date.atStartOfDay().atZone(ZoneOffset.UTC).toInstant().toEpochMilli(), interval);
         return SqlFunctions.timestampToDate(dateEpochValue);
       case SqlTypeName.TIME:
+        /*
+         * Follow current logic to ignore time frame greater than hour because TIME type like '17:59:59' doesn't have day, month, year, etc.
+         * See @org.opensearch.sql.planner.physical.collector.TimeRounding
+         */
         if (dateTimeUnit.getId() > 4) {
           throw new IllegalArgumentException(
               String.format("Unable to set span unit %s for TIME type", dateTimeUnit.getName()));

@@ -235,11 +235,11 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     verifySchema(actual, schema("age_balance", "timestamp"), schema("avg(balance)", "double"));
     verifyDataRows(
         actual,
-        rows("2017-10-01 00:00:00", 39225),
-        rows("2018-06-01 00:00:00", 24628),
-        rows("2018-11-01 00:00:00", 4180),
-        rows("2018-08-01 00:00:00", 44313),
-        rows("2017-11-01 00:00:00", 5686));
+        rows(39225, "2017-10-01 00:00:00"),
+        rows(24628, "2018-06-01 00:00:00"),
+        rows(4180, "2018-11-01 00:00:00"),
+        rows(44313, "2018-08-01 00:00:00"),
+        rows(5686, "2017-11-01 00:00:00"));
   }
 
   @Test

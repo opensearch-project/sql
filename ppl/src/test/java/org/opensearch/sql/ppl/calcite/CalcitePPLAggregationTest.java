@@ -255,13 +255,11 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT `avg(SAL)`, `hiredate_span`, `DEPTNO`\n"
-            + "FROM (SELECT `DEPTNO`, `SPAN`(`HIREDATE`, 'DATE', 1, 'y') `hiredate_span`,"
-            + " AVG(`SAL`) `avg(SAL)`\n"
+        "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`HIREDATE`, 'DATE', 1, 'y') `hiredate_span`,"
+            + " `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `SPAN`(`HIREDATE`, 'DATE', 1, 'y')\n"
-            + "ORDER BY 2 NULLS LAST, `DEPTNO` NULLS LAST) `t1`\n"
-            + "ORDER BY `DEPTNO` NULLS LAST, `hiredate_span` NULLS LAST";
+            + "ORDER BY `DEPTNO` NULLS LAST, 2 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
