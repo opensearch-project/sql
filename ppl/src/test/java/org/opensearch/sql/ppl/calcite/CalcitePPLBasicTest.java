@@ -146,12 +146,26 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=scott.products_temporal | where ID in ('1000', '2000')";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalFilter(condition=[SEARCH($0, Sarg['1000', '2000']:CHAR(4))])\n"
+        "LogicalFilter(condition=[SEARCH($0, Sarg['1000':VARCHAR(32),"
+            + " '2000':VARCHAR(32)]:VARCHAR(32))])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT *\nFROM `scott`.`products_temporal`\nWHERE `ID` IN ('1000', '2000')";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testFilterQueryWithIn2() {
+    String ppl = "source=EMP |  where DEPTNO in (20, 30.0)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalFilter(condition=[SEARCH($7, Sarg[20.0E0:DOUBLE, 30.0E0:DOUBLE]:DOUBLE)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT *\nFROM `scott`.`EMP`\nWHERE `DEPTNO` IN (2.00E1, 3.00E1)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
