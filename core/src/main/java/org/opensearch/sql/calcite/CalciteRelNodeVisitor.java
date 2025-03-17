@@ -28,6 +28,8 @@ import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
@@ -40,21 +42,34 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
+import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.CloseCursor;
+import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
+import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Paginate;
+import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
+import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
+import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalcitePlanContext> {
@@ -446,5 +461,146 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context);
 
     return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitDedupe(Dedupe node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    List<Argument> options = node.getOptions();
+    Integer allowedDuplication = (Integer) options.get(0).getValue().getValue();
+    Boolean keepEmpty = (Boolean) options.get(1).getValue().getValue();
+    Boolean consecutive = (Boolean) options.get(2).getValue().getValue();
+    if (allowedDuplication <= 0) {
+      throw new IllegalArgumentException("Number of duplicate events must be greater than 0");
+    }
+    if (consecutive) {
+      throw new UnsupportedOperationException("Consecutive deduplication is not supported");
+    }
+    // Columns to deduplicate
+    List<RexNode> dedupeFields =
+        node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
+    if (keepEmpty) {
+      /*
+       * | dedup 2 a, b keepempty=false
+       * DropColumns('_row_number_)
+       * +- Filter ('_row_number_ <= n OR isnull('a) OR isnull('b))
+       *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+       *        +- ...
+       */
+      // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
+      // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC
+      // NULLS FIRST, 'b ASC NULLS FIRST]
+      RexNode rowNumber =
+          context
+              .relBuilder
+              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+              .over()
+              .partitionBy(dedupeFields)
+              .orderBy(dedupeFields)
+              .rowsTo(RexWindowBounds.CURRENT_ROW)
+              .as("_row_number_");
+      context.relBuilder.projectPlus(rowNumber);
+      RexNode _row_number_ = context.relBuilder.field("_row_number_");
+      // Filter (isnull('a) OR isnull('b) OR '_row_number_ <= n)
+      context.relBuilder.filter(
+          context.relBuilder.or(
+              context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).toList()),
+              context.relBuilder.lessThanOrEqual(
+                  _row_number_, context.relBuilder.literal(allowedDuplication))));
+      // DropColumns('_row_number_)
+      context.relBuilder.projectExcept(_row_number_);
+    } else {
+      /*
+       * | dedup 2 a, b keepempty=false
+       * DropColumns('_row_number_)
+       * +- Filter ('_row_number_ <= n)
+       *    +- Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST, specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC NULLS FIRST, 'b ASC NULLS FIRST]
+       *       +- Filter (isnotnull('a) AND isnotnull('b))
+       *          +- ...
+       */
+      // Filter (isnotnull('a) AND isnotnull('b))
+      context.relBuilder.filter(
+          context.relBuilder.and(
+              dedupeFields.stream().map(context.relBuilder::isNotNull).toList()));
+      // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
+      // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC
+      // NULLS FIRST, 'b ASC NULLS FIRST]
+      RexNode rowNumber =
+          context
+              .relBuilder
+              .aggregateCall(SqlStdOperatorTable.ROW_NUMBER)
+              .over()
+              .partitionBy(dedupeFields)
+              .orderBy(dedupeFields)
+              .rowsTo(RexWindowBounds.CURRENT_ROW)
+              .as("_row_number_");
+      context.relBuilder.projectPlus(rowNumber);
+      RexNode _row_number_ = context.relBuilder.field("_row_number_");
+      // Filter ('_row_number_ <= n)
+      context.relBuilder.filter(
+          context.relBuilder.lessThanOrEqual(
+              _row_number_, context.relBuilder.literal(allowedDuplication)));
+      // DropColumns('_row_number_)
+      context.relBuilder.projectExcept(_row_number_);
+    }
+    return context.relBuilder.peek();
+  }
+
+  /*
+   * Unsupported Commands of PPL with Calcite for OpenSearch 3.0.0-beta
+   */
+  @Override
+  public RelNode visitAD(AD node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("AD command is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitCloseCursor(CloseCursor closeCursor, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Close cursor operation is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitFetchCursor(FetchCursor cursor, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Fetch cursor operation is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitML(ML node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("ML command is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitPaginate(Paginate paginate, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Paginate operation is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitKmeans(Kmeans node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Kmeans command is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitFillNull(FillNull fillNull, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("FillNull command is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitParse(Parse node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Parse command is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitRareTopN(RareTopN node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Rare and Top commands are unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitTableFunction(TableFunction node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Table function is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitTrendline(Trendline node, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Trendline command is unsupported in Calcite");
   }
 }
