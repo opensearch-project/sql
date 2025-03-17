@@ -166,14 +166,15 @@ public class WhereCommandIT extends PPLIntegTestCase {
             () -> {
               executeQuery(
                   String.format(
-                      "source=%s | where balance in (4180, 5686.0, '6077') | fields firstname",
+                      "source=%s | where balance in (4180, 5686, '6077') | fields firstname",
                       TEST_INDEX_ACCOUNT));
             });
-    MatcherAssert.assertThat(
-        e.getMessage(),
-        containsString(
-            "function expected"
-                + " {[BYTE,BYTE],[SHORT,SHORT],[INTEGER,INTEGER],[LONG,LONG],[FLOAT,FLOAT],[DOUBLE,DOUBLE],[STRING,STRING],[BOOLEAN,BOOLEAN],[DATE,DATE],[TIME,TIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],[IP,IP],[STRUCT,STRUCT],[ARRAY,ARRAY]},"
-                + " but got"));
+    MatcherAssert.assertThat(e.getMessage(), containsString(getIncompatibleTypeErrMsg()));
+  }
+
+  protected String getIncompatibleTypeErrMsg() {
+    return "function expected"
+               + " {[BYTE,BYTE],[SHORT,SHORT],[INTEGER,INTEGER],[LONG,LONG],[FLOAT,FLOAT],[DOUBLE,DOUBLE],[STRING,STRING],[BOOLEAN,BOOLEAN],[DATE,DATE],[TIME,TIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],[IP,IP],[STRUCT,STRUCT],[ARRAY,ARRAY]},"
+               + " but got [LONG,STRING]";
   }
 }

@@ -25,9 +25,9 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
   @Override
   public void testWhereWithMetadataFields() throws IOException {}
 
-  /*
-  protected void assertExceptionForIncompatibleType() {
-    String message = "class java.math.BigDecimal cannot be cast to class java.lang.Double";
+  @Override
+  protected String getIncompatibleTypeErrMsg() {
+    return "In expression types are incompatible: fields type BIGINT, values type [INTEGER,"
+        + " INTEGER, CHAR(4)]";
   }
-   */
 }

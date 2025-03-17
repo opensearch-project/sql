@@ -147,11 +147,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitIn(In node, CalcitePlanContext context) {
     final RexNode field = analyze(node.getField(), context);
-    return context.rexBuilder.makeIn(
-        field,
-        node.getValueList().stream()
-            .map(value -> analyze(value, context))
-            .collect(Collectors.toList()));
+    final List<RexNode> valueList =
+        node.getValueList().stream().map(value -> analyze(value, context)).toList();
+    final List<RelDataType> dataTypes =
+        new java.util.ArrayList<>(valueList.stream().map(RexNode::getType).toList());
+    dataTypes.add(field.getType());
+    RelDataType commonType = context.rexBuilder.getTypeFactory().leastRestrictive(dataTypes);
+    if (commonType != null) {
+      List<RexNode> newValueList =
+          valueList.stream().map(value -> context.rexBuilder.makeCast(commonType, value)).toList();
+      return context.rexBuilder.makeIn(field, newValueList);
+    } else {
+      throw new SemanticCheckException(
+          StringUtils.format(
+              "In expression types are incompatible: fields type %s, values type %s",
+              dataTypes.getLast(), dataTypes.subList(0, dataTypes.size() - 1)));
+    }
   }
 
   @Override
