@@ -21,7 +21,7 @@ public class timestampDiffFunction implements UserDefinedFunction {
         SqlTypeName sqlTypeName1 = (SqlTypeName) args[2];
         Instant timestamp1;
         timestamp1 = InstantUtils.convertToInstant(args[1], sqlTypeName1);
-        SqlTypeName sqlTypeName2 = (SqlTypeName) args[3];
+        SqlTypeName sqlTypeName2 = (SqlTypeName) args[4];
         Instant timestamp2;
         timestamp2 = InstantUtils.convertToInstant(args[3], sqlTypeName2);
         LocalDateTime localDateTime1 = LocalDateTime.ofInstant(timestamp1, ZoneOffset.UTC);

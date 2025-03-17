@@ -1816,7 +1816,7 @@ public class DateTimeFunctions {
     return exprApplyTime(functionProperties, temporal, temporalDelta, false);
   }
 
-  private ExprValue exprStrToDate(
+  public static ExprValue exprStrToDate(
       FunctionProperties fp, ExprValue dateTimeExpr, ExprValue formatStringExp) {
     return DateTimeFormatterUtil.parseStringWithDateOrTime(fp, dateTimeExpr, formatStringExp);
   }
@@ -1842,7 +1842,7 @@ public class DateTimeFunctions {
    * @param second The second value.
    * @return The diff.
    */
-  private ExprValue exprTimeDiff(ExprValue first, ExprValue second) {
+  public static ExprValue exprTimeDiff(ExprValue first, ExprValue second) {
     // java inverses the value, so we have to swap 1 and 2
     return new ExprTimeValue(
         LocalTime.MIN.plus(Duration.between(second.timeValue(), first.timeValue())));
@@ -1854,7 +1854,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprTimeToSec(ExprValue time) {
+  public static ExprValue exprTimeToSec(ExprValue time) {
     return new ExprLongValue(time.timeValue().toSecondOfDay());
   }
 
@@ -2255,7 +2255,7 @@ public class DateTimeFunctions {
    *     value includes a fractional seconds part of that many digits.
    * @return LocalDateTime object.
    */
-  private LocalDateTime formatNow(Clock clock, Integer fsp) {
+  public static LocalDateTime formatNow(Clock clock, Integer fsp) {
     var res = LocalDateTime.now(clock);
     var defaultPrecision = 9; // There are 10^9 nanoseconds in one second
     if (fsp < 0 || fsp > 6) { // Check that the argument is in the allowed range [0, 6]

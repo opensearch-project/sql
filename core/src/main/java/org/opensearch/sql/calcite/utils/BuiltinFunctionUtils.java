@@ -51,6 +51,12 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.secondToTimeFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.strToDateFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.sysdateFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.timeDiffFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.timeFormatFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.timeToSecondFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampAddFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
@@ -179,8 +185,23 @@ public interface BuiltinFunctionUtils {
       case "UNIX_TIMESTAMP":
         return TransferUserDefinedFunction(
             UnixTimeStampFunction.class, "unix_timestamp", ReturnTypes.DOUBLE);
+      case "SYSDATE":
+        return TransferUserDefinedFunction(
+              sysdateFunction.class, "SYSDATE", ReturnTypes.TIMESTAMP);
+      case "STR_TO_DATE":
+        return TransferUserDefinedFunction(
+                strToDateFunction.class, "STR_TO_DATE", ReturnTypes.TIMESTAMP);
       case "TIME":
         return SqlLibraryOperators.TIME;
+      case "TIMEDIFF":
+        return TransferUserDefinedFunction(
+                timeDiffFunction.class, "TIMEDIFF", ReturnTypes.TIME);
+      case "TIME_TO_SEC":
+        return TransferUserDefinedFunction(
+                timeToSecondFunction.class, "TIME_TO_SEC", ReturnTypes.BIGINT);
+      case "TIME_FORMAT":
+        return TransferUserDefinedFunction(
+                timeFormatFunction.class, "TIME_FORMAT", ReturnTypes.CHAR);
       case "TIMESTAMP":
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
@@ -195,6 +216,9 @@ public interface BuiltinFunctionUtils {
       case "TO_SECONDS":
         return TransferUserDefinedFunction(
                 toSecondsFunction.class, "TO_SECOND", ReturnTypes.BIGINT);
+      case "SEC_TO_TIME":
+        return TransferUserDefinedFunction(
+                secondToTimeFunction.class, "SEC_TO_TIME", ReturnTypes.TIME);
       case "WEEK", "YEAR", "MINUTE", "HOUR":
         return SqlLibraryOperators.DATE_PART;
       case "FROM_UNIXTIME":
@@ -314,7 +338,7 @@ public interface BuiltinFunctionUtils {
           LastDateArgs.add(lastDayTimestampExpr);
         }
         return LastDateArgs;
-      case "TIMESTAMP":
+      case "TIMESTAMP", "TIMEDIFF", "TIME_TO_SEC", "TIME_FORMAT":
         List<RexNode> timestampArgs = new ArrayList<>(argList);
         timestampArgs.addAll(
             argList.stream()

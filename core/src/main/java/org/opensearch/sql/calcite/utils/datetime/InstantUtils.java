@@ -44,33 +44,25 @@ public interface InstantUtils {
   static Instant fromInternalTime(int time) {
     LocalDate todayUtc = LocalDate.now(ZoneId.of("UTC"));
     ZonedDateTime startOfDayUtc = todayUtc.atStartOfDay(ZoneId.of("UTC"));
+
     return startOfDayUtc.toInstant().plus(Duration.ofMillis(time));
   }
 
   static Instant fromStringExpr(String timestampExpression) {
     LocalDateTime datetime =
-            LocalDateTime.parse(timestampExpression, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+            DateTimeParser.parse(timestampExpression);
     return datetime.atZone(ZoneId.of("UTC")).toInstant();
   }
+
 
   /**
    * Convert internal date/time/timestamp to Instant.
    *
-   * @param internalDatetime internal date/time/timestamp. Date is represented as days since epoch,
+   * @param candidate internal date/time/timestamp. Date is represented as days since epoch,
    *     time is represented as milliseconds, and timestamp is represented as epoch milliseconds
-   * @param type type of the internalDatetime
+   * @param sqlTypeName type of the internalDatetime
    * @return Instant that represents the given internalDatetime
    */
-  static Instant convertToInstant(Number internalDatetime, SqlTypeName type) {
-    return switch (type) {
-      case TIME -> InstantUtils.fromInternalTime(internalDatetime.intValue());
-      case TIMESTAMP -> InstantUtils.fromEpochMills(internalDatetime.longValue());
-      case DATE -> InstantUtils.fromInternalDate(internalDatetime.intValue());
-      default -> throw new IllegalArgumentException(
-          "Invalid argument type. Must be TIME, but got " + type);
-    };
-  }
-
   static Instant convertToInstant(Object candidate, SqlTypeName sqlTypeName) {
     Instant dateTimeBase;
     switch (sqlTypeName) {

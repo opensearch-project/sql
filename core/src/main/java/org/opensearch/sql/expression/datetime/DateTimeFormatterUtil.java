@@ -291,7 +291,7 @@ public class DateTimeFormatterUtil {
    * @param formatExpr the format ExprValue of String type.
    * @return Date formatted using format and returned as a String.
    */
-  static ExprValue getFormattedTime(ExprValue timeExpr, ExprValue formatExpr) {
+  public static ExprValue getFormattedTime(ExprValue timeExpr, ExprValue formatExpr) {
     // Initializes DateTime with LocalDate.now(). This is safe because the date is ignored.
     // The time_format function will only return 0 or null for invalid string format specifiers.
     final LocalDateTime time = LocalDateTime.of(LocalDate.now(), timeExpr.timeValue());

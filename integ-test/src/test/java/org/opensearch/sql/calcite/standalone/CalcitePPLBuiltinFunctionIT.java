@@ -287,10 +287,52 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testSecondToTime() {
+    testSimplePPL(
+            "source=people | eval `SEC_TO_TIME(3601)` = SEC_TO_TIME(3601) | eval `SEC_TO_TIME(1234.123)` = SEC_TO_TIME(1234.123) | fields `SEC_TO_TIME(3601)`, `SEC_TO_TIME(1234.123)`",
+            List.of("01:00:01", "00:20:34"));
+  }
+
+  @Test
+  public void testTimeDiff() {
+    testSimplePPL(
+            "source=people | eval `TIMEDIFF('23:59:59', '13:00:00')` = TIMEDIFF('23:59:59', '13:00:00') | fields `TIMEDIFF('23:59:59', '13:00:00')`",
+            List.of("10:59:59"));
+  }
+
+  @Test
+  public void testTimeToSecond() {
+    testSimplePPL(
+            "source=people | eval `TIME_TO_SEC(TIME('22:23:00'))` = TIME_TO_SEC(TIME('22:23:00')) | fields `TIME_TO_SEC(TIME('22:23:00'))`",
+            List.of("80580"));
+  }
+
+  @Test
   public void testTimestampDiff() {
     testSimplePPL(
             "source=people | eval `TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00'))` = TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00')) | fields `TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00'))`",
-            List.of(4, -23));
+            List.of(-23));
+  }
+
+  @Test
+  public void testTimeFormat() {
+    testSimplePPL(
+            "source=people | eval `TIME_FORMAT('1998-01-31 13:14:15.012345', '%f %H %h %I %i %p %r %S %s %T')` = TIME_FORMAT('1998-01-31 13:14:15.012345', '%f %H %h %I %i %p %r %S %s %T') | fields `TIME_FORMAT('1998-01-31 13:14:15.012345', '%f %H %h %I %i %p %r %S %s %T')`",
+            List.of("012345 13 01 01 14 PM 01:14:15 PM 15 15 13:14:15"));
+  }
+
+  @Test
+  public void testSysDate() {
+    testSimplePPL(
+            "source=people | eval `value_1` = SYSDATE(), `value_2` = SYSDATE(6) | fields `value_1`, `value_2`",
+            List.of("2025-03-17 14:12:17", "2025-03-17 14:12:17"));
+  }
+
+  @Test
+  public void testStrToDate() {
+    testSimplePPL(
+            "source=people | eval `str_to_date(\"01,5,2013\", \"%d,%m,%Y\")` = str_to_date(\"01,5,2013\", \"%d,%m,%Y\") | fields `str_to_date(\"01,5,2013\", \"%d,%m,%Y\")`",
+            List.of("2013-05-01 00:00:00"));
   }
 
   @Test
