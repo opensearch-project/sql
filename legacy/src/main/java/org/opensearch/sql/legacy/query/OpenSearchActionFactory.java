@@ -13,7 +13,6 @@ import com.alibaba.druid.sql.ast.expr.SQLAggregateExpr;
 import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
-import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
@@ -26,12 +25,9 @@ import com.google.common.annotations.VisibleForTesting;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.List;
-import org.opensearch.client.Client;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
-import org.opensearch.sql.legacy.domain.Delete;
 import org.opensearch.sql.legacy.domain.IndexStatement;
 import org.opensearch.sql.legacy.domain.JoinSelect;
 import org.opensearch.sql.legacy.domain.QueryActionRequest;
@@ -61,13 +57,13 @@ import org.opensearch.sql.legacy.rewriter.nestedfield.NestedFieldRewriter;
 import org.opensearch.sql.legacy.rewriter.ordinal.OrdinalRewriterRule;
 import org.opensearch.sql.legacy.rewriter.parent.SQLExprParentSetterRule;
 import org.opensearch.sql.legacy.rewriter.subquery.SubQueryRewriteRule;
-import org.opensearch.sql.legacy.utils.StringUtils;
+import org.opensearch.transport.client.Client;
 
 public class OpenSearchActionFactory {
 
   public static QueryAction create(Client client, String sql)
       throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureDisabledException {
-    return create(client, new QueryActionRequest(sql, new ColumnTypeProvider(), Format.JSON));
+    return create(client, new QueryActionRequest(sql, new ColumnTypeProvider(), Format.JDBC));
   }
 
   /**
@@ -120,26 +116,13 @@ public class OpenSearchActionFactory {
         } else {
           sqlExpr.accept(new TermFieldRewriter());
           // migrate aggregation to query planner framework.
-          if (shouldMigrateToQueryPlan(sqlExpr, request.getFormat())) {
+          if (shouldMigrateToQueryPlan(sqlExpr)) {
             return new QueryPlanQueryAction(
                 new QueryPlanRequestBuilder(
                     new BindingTupleQueryPlanner(client, sqlExpr, request.getTypeProvider())));
           }
           Select select = new SqlParser().parseSelect(sqlExpr);
           return handleSelect(client, select);
-        }
-      case "DELETE":
-        if (isSQLDeleteEnabled()) {
-          SQLStatementParser parser = createSqlStatementParser(sql);
-          SQLDeleteStatement deleteStatement = parser.parseDeleteStatement();
-          Delete delete = new SqlParser().parseDelete(deleteStatement);
-          return new DeleteQueryAction(client, delete);
-        } else {
-          throw new SQLFeatureDisabledException(
-              StringUtils.format(
-                  "DELETE clause is disabled by default and will be "
-                      + "deprecated. Using the %s setting to enable it",
-                  Settings.Key.SQL_DELETE_ENABLED.getKeyValue()));
         }
       case "SHOW":
         IndexStatement showStatement = new IndexStatement(StatementType.SHOW, sql);
@@ -151,10 +134,6 @@ public class OpenSearchActionFactory {
         throw new SQLFeatureNotSupportedException(
             String.format("Query must start with SELECT, DELETE, SHOW or DESCRIBE: %s", sql));
     }
-  }
-
-  private static boolean isSQLDeleteEnabled() {
-    return LocalClusterState.state().getSettingValue(Settings.Key.SQL_DELETE_ENABLED);
   }
 
   private static String getFirstWord(String sql) {
@@ -212,12 +191,7 @@ public class OpenSearchActionFactory {
   }
 
   @VisibleForTesting
-  public static boolean shouldMigrateToQueryPlan(SQLQueryExpr expr, Format format) {
-    // The JSON format will return the OpenSearch aggregation result, which is not supported by the
-    // QueryPlanner.
-    if (format == Format.JSON) {
-      return false;
-    }
+  public static boolean shouldMigrateToQueryPlan(SQLQueryExpr expr) {
     QueryPlannerScopeDecider decider = new QueryPlannerScopeDecider();
     return decider.isInScope(expr);
   }

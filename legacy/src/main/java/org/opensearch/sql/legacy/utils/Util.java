@@ -31,11 +31,11 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.opensearch.action.admin.indices.get.GetIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexRequestBuilder;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.IndexStatement;
 import org.opensearch.sql.legacy.domain.KVValue;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.parser.ElasticSqlExprParser;
+import org.opensearch.transport.client.Client;
 
 public class Util {
 

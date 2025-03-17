@@ -11,8 +11,10 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.function.FunctionDSL.define;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
+import static org.opensearch.sql.expression.function.OpenSearchFunctions.OpenSearchExecutableFunction.openSearchImpl;
 
 import inet.ipaddr.IPAddress;
+import java.util.Arrays;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -28,6 +30,7 @@ public class IPFunctions {
 
   public void register(BuiltinFunctionRepository repository) {
     repository.register(cidrmatch());
+    repository.register(geoIp());
   }
 
   private DefaultFunctionResolver cidrmatch() {
@@ -56,5 +59,17 @@ public class IPFunctions {
             || (IPUtils.compare(address, range.getUpper()) > 0)
         ? ExprValueUtils.LITERAL_FALSE
         : ExprValueUtils.LITERAL_TRUE;
+  }
+
+  /**
+   * To register all method signatures related to geoip( ) expression under eval.
+   *
+   * @return Resolver for geoip( ) expression.
+   */
+  private DefaultFunctionResolver geoIp() {
+    return define(
+        BuiltinFunctionName.GEOIP.getName(),
+        openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING)),
+        openSearchImpl(BOOLEAN, Arrays.asList(STRING, STRING, STRING)));
   }
 }

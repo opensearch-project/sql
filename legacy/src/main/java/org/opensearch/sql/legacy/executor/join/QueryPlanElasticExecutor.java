@@ -6,10 +6,10 @@
 package org.opensearch.sql.legacy.executor.join;
 
 import java.util.List;
-import org.opensearch.client.Client;
 import org.opensearch.search.SearchHit;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.QueryPlanner;
+import org.opensearch.transport.client.Client;
 
 /**
  * Executor for generic QueryPlanner execution. This executor is just acting as adaptor to integrate

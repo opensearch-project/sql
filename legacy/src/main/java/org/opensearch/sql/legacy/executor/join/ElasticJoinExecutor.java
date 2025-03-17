@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.legacy.executor.join;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -18,7 +16,6 @@ import java.util.stream.Stream;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -28,7 +25,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.Field;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -40,6 +36,7 @@ import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
 import org.opensearch.sql.legacy.query.join.NestedLoopsElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 15/9/2015. */
 public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
@@ -90,10 +87,8 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
   public void run() throws IOException, SqlParseException {
     try {
       long timeBefore = System.currentTimeMillis();
-      if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-        pit = new PointInTimeHandlerImpl(client, indices);
-        pit.create();
-      }
+      pit = new PointInTimeHandlerImpl(client, indices);
+      pit.create();
       results = innerRun();
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
       this.metaResults.setTookImMilli(joinTimeInMilli);
@@ -101,13 +96,11 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
       LOG.error("Failed during join query run.", e);
       throw new IllegalStateException("Error occurred during join query run", e);
     } finally {
-      if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-        try {
-          pit.delete();
-        } catch (RuntimeException e) {
-          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-          LOG.info("Error deleting point in time {} ", pit);
-        }
+      try {
+        pit.delete();
+      } catch (RuntimeException e) {
+        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+        LOG.info("Error deleting point in time {} ", pit);
       }
     }
   }

@@ -8,11 +8,11 @@ package org.opensearch.sql.legacy.util;
 import com.alibaba.druid.sql.parser.ParserException;
 import java.sql.SQLFeatureNotSupportedException;
 import org.mockito.Mockito;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.query.QueryAction;
+import org.opensearch.transport.client.Client;
 
 /** Test utils class that explains a query */
 public class SqlExplainUtils {
