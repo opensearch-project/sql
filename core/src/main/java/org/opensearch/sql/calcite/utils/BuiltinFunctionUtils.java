@@ -143,7 +143,7 @@ public interface BuiltinFunctionUtils {
       case "DATE_SUB":
         return TransferUserDefinedFunction(
             DateAddSubFunction.class, "DATE_SUB", ReturnTypes.TIMESTAMP);
-      case "ADDTIME":
+      case "ADDTIME", "SUBTIME":
         return TransferUserDefinedFunction(
             TimeAddSubFunction.class,
             "ADDTIME",
@@ -182,7 +182,10 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(
             PeriodDiffFunction.class, "PERIOD_DIFF", ReturnTypes.INTEGER);
       case "STR_TO_DATE":
-        return TransferUserDefinedFunction(StrToDateFunction.class, "STR_TO_DATE", createNullableReturnType(SqlTypeName.TIMESTAMP));
+        return TransferUserDefinedFunction(
+            StrToDateFunction.class,
+            "STR_TO_DATE",
+            createNullableReturnType(SqlTypeName.TIMESTAMP));
         // Built-in condition functions
       case "IF":
         return TransferUserDefinedFunction(
@@ -361,12 +364,13 @@ public interface BuiltinFunctionUtils {
         dateAddArgs.add(context.rexBuilder.makeLiteral(true));
         return dateAddArgs;
       case "ADDTIME":
-        SqlTypeName arg0Type = argList.getFirst().getType().getSqlTypeName();
-        SqlTypeName arg1Type = argList.get(1).getType().getSqlTypeName();
-        RexNode type0 = context.rexBuilder.makeFlag(arg0Type);
-        RexNode type1 = context.rexBuilder.makeFlag(arg1Type);
-        RexNode isAdd = context.rexBuilder.makeLiteral(true);
-        return List.of(argList.getFirst(), type0, argList.get(1), type1, isAdd);
+        List<RexNode> addTimeArgs = transformTimeManipulationArgs(argList, context.rexBuilder);
+        addTimeArgs.add(context.rexBuilder.makeLiteral(true));
+        return addTimeArgs;
+      case "SUBTIME":
+        List<RexNode> subTimeArgs = transformTimeManipulationArgs(argList, context.rexBuilder);
+        subTimeArgs.add(context.rexBuilder.makeLiteral(false));
+        return subTimeArgs;
       case "TIME":
         List<RexNode> timeArgs = new ArrayList<>();
         RexNode timeExpr = argList.getFirst();
@@ -520,5 +524,14 @@ public interface BuiltinFunctionUtils {
       dateAddArgs.add(rexBuilder.makeFlag(baseTimestampExpr.getType().getSqlTypeName()));
     }
     return dateAddArgs;
+  }
+
+  private static List<RexNode> transformTimeManipulationArgs(
+      List<RexNode> argList, ExtendedRexBuilder rexBuilder) {
+    SqlTypeName arg0Type = argList.getFirst().getType().getSqlTypeName();
+    SqlTypeName arg1Type = argList.get(1).getType().getSqlTypeName();
+    RexNode type0 = rexBuilder.makeFlag(arg0Type);
+    RexNode type1 = rexBuilder.makeFlag(arg1Type);
+    return new ArrayList<>(List.of(argList.getFirst(), type0, argList.get(1), type1));
   }
 }
