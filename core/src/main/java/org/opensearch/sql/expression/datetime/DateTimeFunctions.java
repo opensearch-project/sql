@@ -1607,7 +1607,7 @@ public class DateTimeFunctions {
     }
     return new ExprTimeValue(
         LocalTime.parse(
-            String.format("%02d:%02d:%012.9f", hour, minute, second), DateTimeFormatter.ISO_TIME));
+            String.format(Locale.US, "%02d:%02d:%012.9f", hour, minute, second), DateTimeFormatter.ISO_TIME));
   }
 
   /**
