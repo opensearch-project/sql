@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -29,6 +30,9 @@ import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
@@ -38,11 +42,14 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -64,7 +71,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
 
   public PPLQueryDataAnonymizer() {
-    this.expressionAnalyzer = new AnonymizerExpressionAnalyzer();
+    this.expressionAnalyzer = new AnonymizerExpressionAnalyzer(this);
   }
 
   /**
@@ -95,6 +102,58 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitRelation(Relation node, String context) {
     return StringUtils.format("source=%s", node.getTableQualifiedName().toString());
+  }
+
+  @Override
+  public String visitJoin(Join node, String context) {
+    String left = node.getLeft().accept(this, context);
+    String rightTableOrSubquery = node.getRight().accept(this, context);
+    String right =
+        rightTableOrSubquery.startsWith("source=")
+            ? rightTableOrSubquery.substring("source=".length())
+            : rightTableOrSubquery;
+    String joinType = node.getJoinType().name().toLowerCase(Locale.ROOT);
+    String leftAlias = node.getLeftAlias().map(l -> " left = " + l).orElse("");
+    String rightAlias = node.getRightAlias().map(r -> " right = " + r).orElse("");
+    String condition =
+        node.getJoinCondition().map(c -> expressionAnalyzer.analyze(c, context)).orElse("true");
+    return StringUtils.format(
+        "%s | %s join%s%s on %s %s", left, joinType, leftAlias, rightAlias, condition, right);
+  }
+
+  @Override
+  public String visitLookup(Lookup node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String lookupTable = ((Relation) node.getLookupRelation()).getTableQualifiedName().toString();
+    String mappingFields = formatFieldAlias(node.getMappingAliasMap());
+    String strategy =
+        node.getOutputAliasMap().isEmpty()
+            ? ""
+            : String.format(" %s ", node.getOutputStrategy().toString().toLowerCase());
+    String outputFields = formatFieldAlias(node.getOutputAliasMap());
+    return StringUtils.format(
+        "%s | lookup %s %s%s%s", child, lookupTable, mappingFields, strategy, outputFields);
+  }
+
+  private String formatFieldAlias(java.util.Map<String, String> fieldMap) {
+    return fieldMap.entrySet().stream()
+        .map(
+            entry ->
+                Objects.equals(entry.getKey(), entry.getValue())
+                    ? entry.getKey()
+                    : StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
+        .collect(Collectors.joining(", "));
+  }
+
+  @Override
+  public String visitSubqueryAlias(SubqueryAlias node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    if (node.getChild().get(0).getChild().isEmpty()) {
+      return StringUtils.format("%s as %s", child, node.getAlias());
+    } else {
+      // add "[]" only if its child is not a root
+      return StringUtils.format("[ %s ] as %s", child, node.getAlias());
+    }
   }
 
   @Override
@@ -282,6 +341,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   /** Expression Anonymizer. */
   private static class AnonymizerExpressionAnalyzer extends AbstractNodeVisitor<String, String> {
+    private final PPLQueryDataAnonymizer queryAnonymizer;
+
+    public AnonymizerExpressionAnalyzer(PPLQueryDataAnonymizer queryAnonymizer) {
+      this.queryAnonymizer = queryAnonymizer;
+    }
 
     public String analyze(UnresolvedExpression unresolved, String context) {
       return unresolved.accept(this, context);
@@ -366,6 +430,26 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       final String computationType = node.getComputationType().name().toLowerCase(Locale.ROOT);
       return StringUtils.format(
           "%s(%d, %s)%s", computationType, node.getNumberOfDataPoints(), dataField, aliasClause);
+    }
+
+    @Override
+    public String visitInSubquery(InSubquery node, String context) {
+      String nodes =
+          node.getChild().stream().map(c -> analyze(c, context)).collect(Collectors.joining(","));
+      String subquery = queryAnonymizer.anonymizeData(node.getQuery());
+      return StringUtils.format("(%s) in [ %s ]", nodes, subquery);
+    }
+
+    @Override
+    public String visitScalarSubquery(ScalarSubquery node, String context) {
+      String subquery = queryAnonymizer.anonymizeData(node.getQuery());
+      return StringUtils.format("[ %s ]", subquery);
+    }
+
+    @Override
+    public String visitExistsSubquery(ExistsSubquery node, String context) {
+      String subquery = queryAnonymizer.anonymizeData(node.getQuery());
+      return StringUtils.format("exists [ %s ]", subquery);
     }
   }
 }

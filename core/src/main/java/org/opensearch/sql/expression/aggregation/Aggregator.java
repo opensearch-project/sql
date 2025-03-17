@@ -29,7 +29,7 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
  * Aggregator is not well fit into Expression, because it has side effect. But we still want to make
  * it implement {@link Expression} interface to make {@link ExpressionAnalyzer} easier.
  */
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode
 @RequiredArgsConstructor
 public abstract class Aggregator<S extends AggregationState>
     implements FunctionImplementation, Expression {

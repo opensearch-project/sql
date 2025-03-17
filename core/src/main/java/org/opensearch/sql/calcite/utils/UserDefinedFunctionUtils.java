@@ -81,24 +81,6 @@ public class UserDefinedFunctionUtils {
   }
 
   /**
-   * Infer return argument type as the type of the argument at pos
-   *
-   * @param position The argument position
-   * @param nullable Whether the returned value is nullable
-   * @return SqlReturnTypeInference
-   */
-  public static SqlReturnTypeInference getReturnTypeBasedOnArgAt(int position, boolean nullable) {
-    return opBinding -> {
-      if (position < 0 || position >= opBinding.getOperandCount()) {
-        throw new IllegalArgumentException("Invalid argument position: " + position);
-      }
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-      RelDataType type = opBinding.getOperandType(position);
-      return typeFactory.createTypeWithNullability(type, nullable);
-    };
-  }
-
-  /**
    * Infer return argument type as the widest return type among arguments as specified positions.
    * E.g. (Integer, Long) -> Long; (Double, Float, SHORT) -> Double
    *
@@ -126,6 +108,29 @@ public class UserDefinedFunctionUtils {
       }
 
       return typeFactory.createTypeWithNullability(widerType, nullable);
+    };
+  }
+
+  /**
+   * For some udf/udaf, when giving a list of arguments, we need to infer the return type from the
+   * arguments.
+   *
+   * @param targetPosition
+   * @return a inference function
+   */
+  public static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+
+      // Get argument types
+      List<RelDataType> argTypes = opBinding.collectOperandTypes();
+
+      if (argTypes.isEmpty()) {
+        throw new IllegalArgumentException("Function requires at least one argument.");
+      }
+      RelDataType firstArgType = argTypes.get(targetPosition);
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
     };
   }
 }

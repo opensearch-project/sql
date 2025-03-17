@@ -10,17 +10,17 @@ import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalTableScan;
-import org.opensearch.sql.opensearch.storage.scan.CalciteOpenSearchIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
-/** Rule to convert a {@link CalciteLogicalTableScan} to a {@link CalciteOpenSearchIndexScan}. */
+/** Rule to convert a {@link CalciteLogicalIndexScan} to a {@link CalciteEnumerableIndexScan}. */
 public class EnumerableIndexScanRule extends ConverterRule {
   /** Default configuration. */
   public static final Config DEFAULT_CONFIG =
       Config.INSTANCE
           .as(Config.class)
           .withConversion(
-              CalciteLogicalTableScan.class,
+              CalciteLogicalIndexScan.class,
               s -> s.getOsIndex() != null,
               Convention.NONE,
               EnumerableConvention.INSTANCE,
@@ -34,13 +34,19 @@ public class EnumerableIndexScanRule extends ConverterRule {
 
   @Override
   public boolean matches(RelOptRuleCall call) {
-    CalciteLogicalTableScan scan = call.rel(0);
+    CalciteLogicalIndexScan scan = call.rel(0);
     return scan.getVariablesSet().isEmpty();
   }
 
   @Override
   public RelNode convert(RelNode rel) {
-    final CalciteLogicalTableScan scan = (CalciteLogicalTableScan) rel;
-    return new CalciteOpenSearchIndexScan(scan.getCluster(), scan.getTable(), scan.getOsIndex());
+    final CalciteLogicalIndexScan scan = (CalciteLogicalIndexScan) rel;
+    return new CalciteEnumerableIndexScan(
+        scan.getCluster(),
+        scan.getHints(),
+        scan.getTable(),
+        scan.getOsIndex(),
+        scan.getSchema(),
+        scan.getPushDownContext());
   }
 }

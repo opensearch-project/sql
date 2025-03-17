@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.util;
 
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -59,63 +60,66 @@ public class JdbcOpenSearchDataTypeConvertor {
   public static ExprValue getExprValueFromSqlType(
       ResultSet rs, int i, int sqlType, RelDataType fieldType) throws SQLException {
     Object value = rs.getObject(i);
-    if (null == value) {
+    if (value == null) {
       return ExprNullValue.of();
     }
-    switch (sqlType) {
-      case Types.VARCHAR:
-      case Types.CHAR:
-      case Types.LONGVARCHAR:
-        value = rs.getString(i);
-        break;
-      case Types.INTEGER:
-        value = rs.getInt(i);
-        break;
-      case Types.BIGINT:
-        value = rs.getLong(i);
-        break;
-      case Types.DECIMAL:
-      case Types.NUMERIC:
-        value = rs.getBigDecimal(i);
-        break;
-      case Types.DOUBLE:
-        value = rs.getDouble(i);
-        if (Double.isNaN((Double) value)) {
-          value = null;
-        }
-        break;
-      case Types.FLOAT:
-        value = rs.getFloat(i);
-        if (Float.isNaN((Float) value)) {
-          value = null;
-        }
-        break;
-      case Types.DATE:
-        value = rs.getString(i);
-        return value == null ? ExprNullValue.of() : new ExprDateValue((String) value);
-      case Types.TIME:
-        value = rs.getString(i);
-        return value == null ? ExprNullValue.of() : new ExprTimeValue((String) value);
-      case Types.TIMESTAMP:
-        value = rs.getString(i);
-        return value == null ? ExprNullValue.of() : new ExprTimestampValue((String) value);
-      case Types.BOOLEAN:
-        value = rs.getBoolean(i);
-        break;
-      case Types.ARRAY:
-        value = rs.getArray(i);
-        // For calcite
-        if (value instanceof ArrayImpl) {
-          value = Arrays.asList((Object[]) ((ArrayImpl) value).getArray());
-        }
-        break;
-      default:
-        value = rs.getObject(i);
-        LOG.warn(
-            "Unchecked sql type: {}, return Object type {}",
-            sqlType,
-            value.getClass().getTypeName());
+
+    try {
+      switch (sqlType) {
+        case Types.VARCHAR:
+        case Types.CHAR:
+        case Types.LONGVARCHAR:
+          return ExprValueUtils.fromObjectValue(rs.getString(i));
+
+        case Types.INTEGER:
+          return ExprValueUtils.fromObjectValue(rs.getInt(i));
+
+        case Types.BIGINT:
+          return ExprValueUtils.fromObjectValue(rs.getLong(i));
+
+        case Types.DECIMAL:
+        case Types.NUMERIC:
+          return ExprValueUtils.fromObjectValue(rs.getBigDecimal(i));
+
+        case Types.DOUBLE:
+          return ExprValueUtils.fromObjectValue(rs.getDouble(i));
+
+        case Types.FLOAT:
+          return ExprValueUtils.fromObjectValue(rs.getFloat(i));
+
+        case Types.DATE:
+          String dateStr = rs.getString(i);
+          return new ExprDateValue(dateStr);
+
+        case Types.TIME:
+          String timeStr = rs.getString(i);
+          return new ExprTimeValue(timeStr);
+
+        case Types.TIMESTAMP:
+          String timestampStr = rs.getString(i);
+          return new ExprTimestampValue(timestampStr);
+
+        case Types.BOOLEAN:
+          return ExprValueUtils.fromObjectValue(rs.getBoolean(i));
+
+        case Types.ARRAY:
+          Array array = rs.getArray(i);
+          if (array instanceof ArrayImpl) {
+            return ExprValueUtils.fromObjectValue(
+                Arrays.asList((Object[]) ((ArrayImpl) value).getArray()));
+          }
+          return ExprValueUtils.fromObjectValue(array);
+
+        default:
+          LOG.warn(
+              "Unchecked sql type: {}, return Object type {}",
+              sqlType,
+              value.getClass().getTypeName());
+          return ExprValueUtils.fromObjectValue(value);
+      }
+    } catch (SQLException e) {
+      LOG.error("Error converting SQL type {}: {}", sqlType, e.getMessage());
+      throw e;
     }
-    return value == null ? ExprNullValue.of() : ExprValueUtils.fromObjectValue(value);
   }
 }

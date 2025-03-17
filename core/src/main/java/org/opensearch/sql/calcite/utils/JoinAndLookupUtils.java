@@ -6,23 +6,16 @@
 package org.opensearch.sql.calcite.utils;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexNode;
-import org.opensearch.sql.ast.expression.Alias;
-import org.opensearch.sql.ast.expression.And;
-import org.opensearch.sql.ast.expression.EqualTo;
-import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.apache.calcite.util.Pair;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.CalciteRexNodeVisitor;
 
 public interface JoinAndLookupUtils {
 
@@ -44,77 +37,71 @@ public interface JoinAndLookupUtils {
     }
   }
 
-  static Optional<UnresolvedExpression> buildLookupMappingCondition(Lookup node) {
-    // only equi-join conditions are accepted in lookup command
-    List<UnresolvedExpression> equiConditions = new ArrayList<>();
-    for (Map.Entry<Field, Field> entry : node.getLookupMappingMap().entrySet()) {
-      EqualTo equalTo;
-      if (entry.getKey().getField() == entry.getValue().getField()) {
-        Field lookupWithAlias = buildFieldWithLookupSubqueryAlias(node, entry.getKey());
-        Field sourceWithAlias = buildFieldWithSourceSubqueryAlias(node, entry.getValue());
-        equalTo = new EqualTo(sourceWithAlias, lookupWithAlias);
-      } else {
-        equalTo = new EqualTo(entry.getValue(), entry.getKey());
+  /* ------For Lookup------ */
+
+  /**
+   * Construct a duplicated field map: Key comes from providedFieldNames -> Value comes from
+   * sourceFieldsNames. A provided field is detected to be duplicated if it has the same name with a
+   * source field after alias mapping.
+   */
+  static Map<String, String> findDuplicatedFields(
+      Lookup node, List<String> sourceFieldsNames, List<String> providedFieldNames) {
+    return providedFieldNames.stream()
+        .map(k -> Pair.of(node.getOutputAliasMap().getOrDefault(k, k), k))
+        .filter(pair -> sourceFieldsNames.contains(pair.getKey()))
+        .collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+  }
+
+  /**
+   * For lookup table, if the output fields are specified, try to add a project list for it. Note,
+   * join will fail if the mapping fields are excluded.
+   */
+  static void addProjectionIfNecessary(Lookup node, CalcitePlanContext context) {
+    List<String> mappingField = node.getMappingAliasMap().keySet().stream().toList();
+    List<String> outputField = node.getOutputAliasMap().keySet().stream().toList();
+    if (!outputField.isEmpty()) {
+      HashSet<String> lookupMappingFields = new HashSet<>(outputField);
+      lookupMappingFields.addAll(mappingField);
+      if (lookupMappingFields.size() != context.relBuilder.fields().size()) {
+        List<RexNode> projectList =
+            lookupMappingFields.stream()
+                .map(fieldName -> (RexNode) context.relBuilder.field(fieldName))
+                .toList();
+        context.relBuilder.project(projectList);
       }
-
-      equiConditions.add(equalTo);
     }
-    return equiConditions.stream().reduce(And::new);
   }
 
-  static Field buildFieldWithLookupSubqueryAlias(Lookup node, Field field) {
-    return new Field(
-        QualifiedName.of(node.getLookupSubqueryAliasName(), field.getField().toString()));
+  static void addJoinForLookUp(Lookup node, CalcitePlanContext context) {
+    RexNode joinCondition =
+        node.getMappingAliasMap().entrySet().stream()
+            .map(
+                entry -> {
+                  RexNode lookupKey = analyzeFieldsForLookUp(entry.getKey(), false, context);
+                  RexNode sourceKey = analyzeFieldsForLookUp(entry.getValue(), true, context);
+                  return context.rexBuilder.equals(sourceKey, lookupKey);
+                })
+            .reduce(context.rexBuilder::and)
+            .orElse(context.relBuilder.literal(true));
+    context.relBuilder.join(JoinRelType.LEFT, joinCondition);
   }
 
-  static Field buildFieldWithSourceSubqueryAlias(Lookup node, Field field) {
-    return new Field(
-        QualifiedName.of(node.getSourceSubqueryAliasName(), field.getField().toString()));
+  static RexNode analyzeFieldsForLookUp(
+      String fieldName, boolean isSourceTable, CalcitePlanContext context) {
+    return context.relBuilder.field(2, isSourceTable ? 0 : 1, fieldName);
   }
 
-  /** lookup mapping fields + input fields */
-  static List<RexNode> buildLookupRelationProjectList(
-      Lookup node, CalciteRexNodeVisitor rexVisitor, CalcitePlanContext context) {
-    List<Field> lookupMappingFields = new ArrayList<>(node.getLookupMappingMap().keySet());
-    List<Field> inputFields = new ArrayList<>(node.getInputFieldList());
-    if (inputFields.isEmpty()) {
-      // All fields will be applied to the output if no input field is specified.
-      return Collections.emptyList();
-    }
-    lookupMappingFields.addAll(inputFields);
-    return buildProjectListFromFields(lookupMappingFields, rexVisitor, context);
-  }
-
-  static List<RexNode> buildProjectListFromFields(
-      List<Field> fields, CalciteRexNodeVisitor rexVisitor, CalcitePlanContext context) {
-    return fields.stream()
-        .map(expr -> rexVisitor.analyze(expr, context))
-        .collect(Collectors.toList());
-  }
-
-  static List<RexNode> buildOutputProjectList(
-      Lookup node, CalciteRexNodeVisitor rexVisitor, CalcitePlanContext context) {
-    List<RexNode> outputProjectList = new ArrayList<>();
-    for (Map.Entry<Alias, Field> entry : node.getOutputCandidateMap().entrySet()) {
-      Alias inputFieldWithAlias = entry.getKey();
-      Field inputField = (Field) inputFieldWithAlias.getDelegated();
-      Field outputField = entry.getValue();
-      RexNode inputCol = rexVisitor.visitField(inputField, context);
-      RexNode outputCol = rexVisitor.visitField(outputField, context);
-
-      RexNode child;
-      if (node.getOutputStrategy() == Lookup.OutputStrategy.APPEND) {
-        child = context.rexBuilder.coalesce(outputCol, inputCol);
-      } else {
-        child = inputCol;
-      }
-      // The result output project list we build here is used to replace the source output,
-      // for the unmatched rows of left outer join, the outputs are null, so fall back to source
-      // output.
-      RexNode nullSafeOutput = context.rexBuilder.coalesce(child, outputCol);
-      RexNode withAlias = context.relBuilder.alias(nullSafeOutput, inputFieldWithAlias.getName());
-      outputProjectList.add(withAlias);
-    }
-    return outputProjectList;
+  static void renameToExpectedFields(
+      List<String> expectedProvidedFieldNames,
+      int sourceFieldsCountLeft,
+      CalcitePlanContext context) {
+    List<String> oldFields = context.relBuilder.peek().getRowType().getFieldNames();
+    assert sourceFieldsCountLeft + expectedProvidedFieldNames.size() == oldFields.size()
+        : "The source fields count left plus new provided fields count must equal to the output"
+            + " fields count of current plan(i.e project-join).";
+    List<String> newFields = new ArrayList<>(oldFields.size());
+    newFields.addAll(oldFields.subList(0, sourceFieldsCountLeft));
+    newFields.addAll(expectedProvidedFieldNames);
+    context.relBuilder.rename(newFields);
   }
 }

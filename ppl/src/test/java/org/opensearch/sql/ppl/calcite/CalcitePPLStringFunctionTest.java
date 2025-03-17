@@ -53,14 +53,14 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalAggregate(group=[{}], cnt=[COUNT()])\n"
-            + "  LogicalFilter(condition=[LIKE($2, 'SALE%')])\n"
+            + "  LogicalFilter(condition=[ILIKE($2, 'SALE%')])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "cnt=4\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "" + "SELECT COUNT(*) `cnt`\n" + "FROM `scott`.`EMP`\n" + "WHERE `JOB` LIKE 'SALE%'";
+        "" + "SELECT COUNT(*) `cnt`\n" + "FROM `scott`.`EMP`\n" + "WHERE `JOB` ILIKE 'SALE%'";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

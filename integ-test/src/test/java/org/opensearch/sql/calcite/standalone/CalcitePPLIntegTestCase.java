@@ -84,7 +84,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     DataSourceService dataSourceService =
         new DataSourceServiceImpl(
             new ImmutableSet.Builder<DataSourceFactory>()
-                .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
+                .add(new OpenSearchDataSourceFactory(client, getSettings()))
                 .build(),
             getDataSourceMetadataStorage(),
             getDataSourceUserRoleHelper());
@@ -94,13 +94,43 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     modules.add(
         new CalcitePPLIntegTestCase.StandaloneModule(
             new CalcitePPLIntegTestCase.InternalRestHighLevelClient(client()),
-            defaultSettings(),
+            getSettings(),
             dataSourceService));
     Injector injector = modules.createInjector();
     pplService = SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
   }
 
+  protected Settings getSettings() {
+    return defaultSettings();
+  }
+
   private Settings defaultSettings() {
+    System.out.println(Settings.Key.CALCITE_PUSHDOWN_ENABLED.name() + " disabled");
+    return new Settings() {
+      private final Map<Key, Object> defaultSettings =
+          new ImmutableMap.Builder<Key, Object>()
+              .put(Key.QUERY_SIZE_LIMIT, 200)
+              .put(Key.SQL_PAGINATION_API_SEARCH_AFTER, true)
+              .put(Key.FIELD_TYPE_TOLERANCE, true)
+              .put(Key.CALCITE_ENGINE_ENABLED, true)
+              .put(Key.CALCITE_FALLBACK_ALLOWED, false)
+              .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
+              .build();
+
+      @Override
+      public <T> T getSettingValue(Key key) {
+        return (T) defaultSettings.get(key);
+      }
+
+      @Override
+      public List<?> getSettings() {
+        return (List<?>) defaultSettings;
+      }
+    };
+  }
+
+  protected Settings enablePushdown() {
+    System.out.println(Settings.Key.CALCITE_PUSHDOWN_ENABLED.name() + " enabled");
     return new Settings() {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
@@ -122,6 +152,10 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
         return (List<?>) defaultSettings;
       }
     };
+  }
+
+  public boolean isPushdownEnabled() {
+    return getSettings().getSettingValue(Settings.Key.CALCITE_PUSHDOWN_ENABLED);
   }
 
   protected String execute(String query) {
@@ -169,6 +203,9 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               throw (UnsupportedCursorRequestException) e;
             } else if (e instanceof NoCursorException) {
               throw (NoCursorException) e;
+            } else if (e instanceof IllegalArgumentException) {
+              // most exceptions thrown by Calcite when resolve a plan.
+              throw (IllegalArgumentException) e;
             } else {
               throw new IllegalStateException("Exception happened during execution", e);
             }
@@ -263,7 +300,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
 
     @Provides
     public PPLService pplService(QueryManager queryManager, QueryPlanFactory queryPlanFactory) {
-      return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory);
+      return new PPLService(new PPLSyntaxParser(), queryManager, queryPlanFactory, settings);
     }
 
     @Provides

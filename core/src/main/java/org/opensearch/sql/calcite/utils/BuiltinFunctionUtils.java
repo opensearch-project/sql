@@ -6,8 +6,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getLeastRestrictiveReturnTypeAmongArgsAt;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -18,9 +17,13 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
+import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
+import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
@@ -61,10 +64,28 @@ public interface BuiltinFunctionUtils {
       case "/":
         return SqlStdOperatorTable.DIVIDE;
         // Built-in String Functions
+      case "CONCAT":
+        return SqlLibraryOperators.CONCAT_FUNCTION;
+      case "CONCAT_WS":
+        return SqlLibraryOperators.CONCAT_WS;
+      case "LIKE":
+        return SqlLibraryOperators.ILIKE;
+      case "LTRIM", "RTRIM", "TRIM":
+        return SqlStdOperatorTable.TRIM;
+      case "LENGTH":
+        return SqlStdOperatorTable.CHAR_LENGTH;
       case "LOWER":
         return SqlStdOperatorTable.LOWER;
-      case "LIKE":
-        return SqlStdOperatorTable.LIKE;
+      case "POSITION":
+        return SqlStdOperatorTable.POSITION;
+      case "REVERSE":
+        return SqlLibraryOperators.REVERSE;
+      case "RIGHT":
+        return SqlLibraryOperators.RIGHT;
+      case "SUBSTRING":
+        return SqlStdOperatorTable.SUBSTRING;
+      case "UPPER":
+        return SqlStdOperatorTable.UPPER;
         // Built-in Math Functions
       case "ABS":
         return SqlStdOperatorTable.ABS;
@@ -142,6 +163,20 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.DATE_ADD_SPARK;
       case "DATE_ADD":
         return SqlLibraryOperators.DATEADD;
+        // Built-in condition functions
+      case "IF":
+        return TransferUserDefinedFunction(IfFunction.class, "if", getReturnTypeInference(1));
+      case "IFNULL":
+        return TransferUserDefinedFunction(
+            IfNullFunction.class, "ifnull", getReturnTypeInference(1));
+      case "NULLIF":
+        return TransferUserDefinedFunction(
+            NullIfFunction.class, "ifnull", getReturnTypeInference(0));
+      case "IS NOT NULL":
+        return SqlStdOperatorTable.IS_NOT_NULL;
+      case "IS NULL":
+        return SqlStdOperatorTable.IS_NULL;
+        // TODO Add more, ref RexImpTable
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);
     }
@@ -163,6 +198,30 @@ public interface BuiltinFunctionUtils {
   static List<RexNode> translateArgument(
       String op, List<RexNode> argList, CalcitePlanContext context) {
     switch (op.toUpperCase(Locale.ROOT)) {
+      case "TRIM":
+        List<RexNode> trimArgs =
+            new ArrayList<>(
+                List.of(
+                    context.rexBuilder.makeFlag(SqlTrimFunction.Flag.BOTH),
+                    context.rexBuilder.makeLiteral(" ")));
+        trimArgs.addAll(argList);
+        return trimArgs;
+      case "LTRIM":
+        List<RexNode> LTrimArgs =
+            new ArrayList<>(
+                List.of(
+                    context.rexBuilder.makeFlag(SqlTrimFunction.Flag.LEADING),
+                    context.rexBuilder.makeLiteral(" ")));
+        LTrimArgs.addAll(argList);
+        return LTrimArgs;
+      case "RTRIM":
+        List<RexNode> RTrimArgs =
+            new ArrayList<>(
+                List.of(
+                    context.rexBuilder.makeFlag(SqlTrimFunction.Flag.TRAILING),
+                    context.rexBuilder.makeLiteral(" ")));
+        RTrimArgs.addAll(argList);
+        return RTrimArgs;
       case "ATAN":
         List<RexNode> AtanArgs = new ArrayList<>(argList);
         if (AtanArgs.size() == 1) {

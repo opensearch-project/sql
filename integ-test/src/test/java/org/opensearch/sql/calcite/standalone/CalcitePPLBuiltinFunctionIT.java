@@ -22,6 +22,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   public void init() throws IOException {
     super.init();
     loadIndex(Index.STATE_COUNTRY);
+    loadIndex(Index.STATE_COUNTRY_WITH_NULL);
   }
 
   private static boolean containsMessage(Throwable throwable, String message) {
