@@ -29,6 +29,7 @@ import org.opensearch.sql.planner.physical.collector.Rounding.DateTimeUnit;
 public class SpanFunction implements UserDefinedFunction {
 
   @Override
+  @Strict
   public Object eval(Object... args) {
     if (args.length < 4) {
       throw new IllegalArgumentException("Span function requires at least 4 parameters");
