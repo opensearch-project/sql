@@ -18,6 +18,7 @@ import static org.opensearch.sql.legacy.TestUtils.getDeepNestedIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogs2IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getDuplicationNullableIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
@@ -783,7 +784,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_WORK_INFORMATION,
         "work_information",
         getWorkInformationIndexMapping(),
-        "src/test/resources/work_information.json");
+        "src/test/resources/work_information.json"),
+    DUPLICATION_NULLABLE(
+        TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE,
+        "duplication_nullable",
+        getDuplicationNullableIndexMapping(),
+        "src/test/resources/duplication_nullable.json");
 
     private final String name;
     private final String type;
