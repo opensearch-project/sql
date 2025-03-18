@@ -262,6 +262,22 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testCountByNullableTimeSpan() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 5 | stats count(datetime0), count(datetime1) by span(datetime1,"
+                    + " 15 minute) as datetime_span",
+                TEST_INDEX_CALCS));
+    verifySchema(
+        actual,
+        schema("datetime_span", "timestamp"),
+        schema("count(datetime0)", "long"),
+        schema("count(datetime1)", "long"));
+    verifyDataRows(actual, rows(5, 0, null));
+  }
+
+  @Test
   public void testCountDistinct() {
     JSONObject actual =
         executeQuery(

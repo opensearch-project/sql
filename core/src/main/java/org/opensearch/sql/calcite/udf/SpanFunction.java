@@ -29,13 +29,10 @@ import org.opensearch.sql.planner.physical.collector.Rounding.DateTimeUnit;
 public class SpanFunction implements UserDefinedFunction {
 
   @Override
-  @Strict
+  @Strict // annotation allows pre-checking the input nullability before jumping to eval()
   public Object eval(Object... args) {
     if (args.length < 4) {
       throw new IllegalArgumentException("Span function requires at least 4 parameters");
-    }
-    if (args[0] == null) {
-      return null;
     }
 
     SqlTypeName sqlTypeName = SqlTypeName.valueOf((String) args[1]);
