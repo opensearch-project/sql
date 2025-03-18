@@ -10,14 +10,14 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.expression.function.FunctionProperties;
+
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprUtcTime;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprUtcTimeStamp;
 
 public class UtcTimeFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
-    var zdt = ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC);
-    LocalDateTime localDateTime = zdt.toLocalDateTime();
-    Time time =
-        new Time(localDateTime.getHour(), localDateTime.getMinute(), localDateTime.getSecond());
-    return time;
+    return java.sql.Time.valueOf(exprUtcTime(new FunctionProperties()).timeValue());
   }
 }

@@ -1965,7 +1965,7 @@ public class DateTimeFunctions {
    * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
-  private ExprValue exprUtcDate(FunctionProperties functionProperties) {
+  public static ExprValue exprUtcDate(FunctionProperties functionProperties) {
     return new ExprDateValue(exprUtcTimeStamp(functionProperties).dateValue());
   }
 
@@ -1975,7 +1975,7 @@ public class DateTimeFunctions {
    * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
-  private ExprValue exprUtcTime(FunctionProperties functionProperties) {
+  public static ExprValue exprUtcTime(FunctionProperties functionProperties) {
     return new ExprTimeValue(exprUtcTimeStamp(functionProperties).timeValue());
   }
 
@@ -1985,7 +1985,7 @@ public class DateTimeFunctions {
    * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
-  private ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
+  public static ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
     var zdt =
         ZonedDateTime.now(functionProperties.getQueryStartClock())
             .withZoneSameInstant(ZoneOffset.UTC);
@@ -2099,11 +2099,11 @@ public class DateTimeFunctions {
     return new ExprIntegerValue(date.dateValue().getDayOfWeek().getValue() - 1);
   }
 
-  private ExprValue unixTimeStamp(Clock clock) {
+  public static ExprValue unixTimeStamp(Clock clock) {
     return new ExprLongValue(Instant.now(clock).getEpochSecond());
   }
 
-  private ExprValue unixTimeStampOf(ExprValue value) {
+  public static ExprValue unixTimeStampOf(ExprValue value) {
     var res = unixTimeStampOfImpl(value);
     if (res == null) {
       return ExprNullValue.of();

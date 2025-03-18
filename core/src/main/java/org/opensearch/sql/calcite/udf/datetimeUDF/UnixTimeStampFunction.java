@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.expression.datetime.DateTimeFunctions.transferUnixTimeStampFromDoubleInput;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
 import static org.opensearch.sql.utils.DateTimeFormatters.*;
 
 import java.time.LocalDate;
@@ -14,24 +14,29 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class UnixTimeStampFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     if (args.length == 0) {
-      LocalDateTime localDateTime = LocalDateTime.now();
-      return localDateTime.toEpochSecond(ZoneOffset.UTC);
+      return unixTimeStamp(new FunctionProperties().getQueryStartClock()).longValue();
     }
     Object input = args[0];
     SqlTypeName inputTypes = (SqlTypeName) args[1];
+    ExprValue inputValue;
     if (inputTypes == SqlTypeName.DATE) {
-      LocalDate localDate = ((java.sql.Date) input).toLocalDate();
-      return localDate.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC);
+      inputValue = new ExprDateValue(LocalDateTime.ofInstant(InstantUtils.fromInternalDate((int) input), ZoneOffset.UTC).toLocalDate());
     } else if (inputTypes == SqlTypeName.TIMESTAMP) {
-      LocalDateTime localDateTime = ((java.sql.Timestamp) input).toLocalDateTime();
-      return localDateTime.toEpochSecond(ZoneOffset.UTC);
+      inputValue = new ExprTimestampValue(LocalDateTime.ofInstant(InstantUtils.fromEpochMills((long) input), ZoneOffset.UTC));
     } else {
-      return transferUnixTimeStampFromDoubleInput(((Number) input).doubleValue());
+      inputValue = new ExprLongValue((long) input);
     }
+    return unixTimeStampOf(inputValue).longValue();
   }
 }

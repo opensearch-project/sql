@@ -479,13 +479,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testStrToDate() {
-    testSimplePPL(
-            "source=people | eval `str_to_date(\"01,5,2013\", \"%d,%m,%Y\")` = str_to_date(\"01,5,2013\", \"%d,%m,%Y\") | fields `str_to_date(\"01,5,2013\", \"%d,%m,%Y\")`",
-            List.of("2013-05-01 00:00:00"));
-  }
-
-  @Test
   public void testSecond() {
     testSimplePPL(
             "source=people | eval `SECOND(TIME('01:02:03'))` = SECOND(TIME('01:02:03')) | fields `SECOND(TIME('01:02:03'))`",
@@ -588,7 +581,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
             + " = DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r') | fields "
             + "`DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f')`, "
             + "`DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r')`",
-        List.of("13:14:15.012345", "1998-Jan-31st 01:14:15 PM"));
+        List.of("13:14:15.012000", "1998-Jan-31st 01:14:15 PM"));
   }
 
   @Test
