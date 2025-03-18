@@ -138,11 +138,13 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitInExpr(InExprContext ctx) {
-    return new In(
-        visit(ctx.valueExpression()),
-        ctx.valueList().literalValue().stream()
-            .map(this::visitLiteralValue)
-            .collect(Collectors.toList()));
+    UnresolvedExpression expr =
+        new In(
+            visit(ctx.valueExpression()),
+            ctx.valueList().literalValue().stream()
+                .map(this::visitLiteralValue)
+                .collect(Collectors.toList()));
+    return ctx.NOT() != null ? new Not(expr) : expr;
   }
 
   /** Value Expression. */
