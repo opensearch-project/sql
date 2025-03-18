@@ -13,9 +13,16 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import java.io.IOException;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 
 public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     @Override
@@ -23,6 +30,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         super.init();
         loadIndex(Index.STATE_COUNTRY);
         loadIndex(Index.STATE_COUNTRY_WITH_NULL);
+        loadIndex(Index.DATE_FORMATS);
+        initRelativeDocs();
     }
 
     @Test
@@ -121,5 +130,75 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         ));
     }
 
+
+    @Test
+    public void testTimeStampAdd() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| eval `TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')` = TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00') "
+                                        + "| eval `TIMESTAMPADD(DAY, 17, TIMESTAMP('2000-01-01 00:00:00'))` = TIMESTAMPADD(DAY, 17, TIMESTAMP('2000-01-01 00:00:00')) "
+                                        + "| eval `TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')` = TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00') "
+                                        + "| fields `TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')`, "
+                                        + "`TIMESTAMPADD(DAY, 17, TIMESTAMP('2000-01-01 00:00:00'))`, "
+                                        + "`TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')` "
+                                        + "| head 1", TEST_INDEX_STATE_COUNTRY));
+
+        verifySchema(actual,
+                schema("TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')", "timestamp"),
+                schema("TIMESTAMPADD(DAY, 17, TIMESTAMP('2000-01-01 00:00:00'))", "timestamp"),
+                schema("TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')", "timestamp")
+        );
+
+        verifyDataRows(actual, rows(
+                "2000-01-18 00:00:00",
+                "2000-01-18 00:00:00",
+                "1999-10-01 00:00:00"
+        ));
+
+
+    }
+
+    private void initRelativeDocs() throws IOException {
+        List<String> relativeList = List.of("NOW", "TMR", "+month", "-2wk", "-1d@d");
+        int index = 0;
+        for (String time: relativeList) {
+            Request request =
+                    new Request("PUT", "/opensearch-sql_test_index_date_formats/_doc/%s?refresh=true".formatted(index));
+            request.setJsonEntity(
+                    "{\"strict_date_optional_time\":\"%s\"}".formatted(convertTimeExpression(time))
+            );
+            index ++ ;
+            client().performRequest(request);
+        }
+    }
+
+    private String convertTimeExpression(String expression) {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("UTC"));
+        ZonedDateTime result = now;
+
+        switch (expression) {
+            case "NOW":
+                break;
+            case "TMR": // Tomorrow
+                result = now.plusDays(1).truncatedTo(ChronoUnit.DAYS);
+                break;
+            case "+month": // In one month
+                result = now.plusMonths(1);
+                break;
+            case "-2wk": // Two weeks ago
+                result = now.minusWeeks(2);
+                break;
+            case "-1d@d": // Yesterday
+                result = now.minusDays(1).truncatedTo(ChronoUnit.DAYS);
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown time expression: " + expression);
+        }
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        return result.format(formatter);
+    }
 
 }
