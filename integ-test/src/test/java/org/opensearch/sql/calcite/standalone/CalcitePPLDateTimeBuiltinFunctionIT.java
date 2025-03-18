@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -130,6 +131,26 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         ));
     }
 
+    @Test
+    public void testDateSubAndCount(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where strict_date_optional_time > DATE_SUB(NOW(), INTERVAL 1 DAY) "
+                                        + "| stats COUNT() AS CNT "
+                                        , TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("CNT", "long")
+        );
+
+        // tmr, +month, now
+        verifyDataRows(actual, rows(
+                3
+        ));
+
+    }
+
 
     @Test
     public void testTimeStampAdd() {
@@ -169,6 +190,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             request.setJsonEntity(
                     "{\"strict_date_optional_time\":\"%s\"}".formatted(convertTimeExpression(time))
             );
+
+
             index ++ ;
             client().performRequest(request);
         }
