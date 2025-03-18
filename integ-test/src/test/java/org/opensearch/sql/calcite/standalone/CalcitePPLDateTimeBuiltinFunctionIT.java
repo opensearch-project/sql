@@ -151,31 +151,27 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     }
 
-
     @Test
-    public void testTimeStampAdd() {
+    public void testWeekAndWeekOfYear(){
         JSONObject actual =
                 executeQuery(
                         String.format(
                                 "source=%s "
-                                        + "| eval `TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')` = TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00') "
-                                        + "| eval `TIMESTAMPADD(DAY, 17, TIMESTAMP('2000-01-01 00:00:00'))` = TIMESTAMPADD(DAY, 17, TIMESTAMP('2000-01-01 00:00:00')) "
-                                        + "| eval `TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')` = TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00') "
-                                        + "| fields `TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')`, "
-                                        + "`TIMESTAMPADD(DAY, 17, TIMESTAMP('2000-01-01 00:00:00'))`, "
-                                        + "`TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')` "
-                                        + "| head 1", TEST_INDEX_STATE_COUNTRY));
+                                        + " | where YEAR(strict_date_optional_time) < 2000"
+                                        // "| eval a = YEAR(strict_date_optional_time)"
+                                        + "| fields strict_date_optional_time"
+                                        //+ "| eval a = WEEK(TIMESTAMP(strict_date_optional_time))"
+                                        + "| head 1 ", TEST_INDEX_DATE_FORMATS));
 
         verifySchema(actual,
-                schema("TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')", "timestamp"),
-                schema("TIMESTAMPADD(DAY, 17, TIMESTAMP('2000-01-01 00:00:00'))", "timestamp"),
-                schema("TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')", "timestamp")
+                schema("WEEK(DATE(strict_date_optional_time))", "long"),
+                schema("WEEK_OF_YEAR(DATE(strict_date_optional_time))", "long"),
+                schema("WEEK(DATE(strict_date_optional_time), 1)", "long"),
+                schema("WEEK_OF_YEAR(DATE(strict_date_optional_time), 1)", "long")
         );
 
         verifyDataRows(actual, rows(
-                "2000-01-18 00:00:00",
-                "2000-01-18 00:00:00",
-                "1999-10-01 00:00:00"
+                "8", "8", "8", "8"
         ));
 
 

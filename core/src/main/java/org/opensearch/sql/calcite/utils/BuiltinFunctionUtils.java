@@ -20,6 +20,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
@@ -409,7 +410,9 @@ public interface BuiltinFunctionUtils {
         return periodNameArgs;
       case "YEAR", "MINUTE", "HOUR", "DAY", "MONTH", "SECOND":
         List<RexNode> extractArgs = new ArrayList<>();
-        extractArgs.add(context.rexBuilder.makeLiteral(op));
+        TimeUnitRange timeUnitRange = TimeUnitRange.valueOf(op);
+        extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
+        //extractArgs.add(context.rexBuilder.makeLiteral(op));
         extractArgs.add(argList.getFirst());
         return extractArgs;
       case "HOUR_OF_DAY":
