@@ -5,60 +5,72 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.convertToTemporalAmount;
+
+import com.google.common.collect.ImmutableList;
 import java.sql.Timestamp;
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Arrays;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
+import org.opensearch.sql.calcite.utils.UserDefineFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.datetime.DateTimeFunctions;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class DateAddSubFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
-    if (args.length < 6) {
-      throw new IllegalArgumentException("Mismatch arguments: expected 5 but got " + args.length);
-    }
-    Object argUnit = args[0];
-    Object argNumInterval = args[1];
-    Object argBase = args[2];
-    Object argBaseType = args[3];
-    Object argIsAdd = args[4];
-    SqlTypeName returnSqlType = (SqlTypeName) args[5];
+    UserDefineFunctionUtils.validateArgumentCount("DATE_ADD / DATE_SUB", 6, args.length, false);
+    UserDefineFunctionUtils.validateArgumentTypes(
+        Arrays.asList(args),
+        ImmutableList.of(
+            TimeUnit.class,
+            Number.class,
+            Number.class,
+            SqlTypeName.class,
+            Boolean.class,
+            SqlTypeName.class));
 
-    assert argUnit instanceof TimeUnit;
-    assert argNumInterval instanceof Number;
-    assert argBaseType instanceof SqlTypeName;
-    assert argIsAdd instanceof Boolean;
-    TimeUnit unit = (TimeUnit) argUnit;
-    long interval = ((Number) argNumInterval).longValue();
-    SqlTypeName sqlTypeName = (SqlTypeName) argBaseType;
-    boolean isAdd = (Boolean) argIsAdd;
+    TimeUnit unit = (TimeUnit) args[0];
+    long interval = ((Number) args[1]).longValue();
+    Number argBase = (Number) args[2];
+    SqlTypeName sqlTypeName = (SqlTypeName) args[3];
+    boolean isAdd = (Boolean) args[4];
+    SqlTypeName returnSqlType = (SqlTypeName) args[5];
     Instant base =
         switch (sqlTypeName) {
           case DATE ->
           // Convert it to milliseconds
-          InstantUtils.fromInternalDate(((Number) argBase).intValue());
+          InstantUtils.fromInternalDate(argBase.intValue());
           case TIME ->
           // Add an offset of today's date at 00:00:00
-          InstantUtils.fromInternalTime(((Number) argBase).intValue());
-          case TIMESTAMP -> InstantUtils.fromEpochMills(((Number) argBase).longValue());
+          InstantUtils.fromInternalTime(argBase.intValue());
+          case TIMESTAMP -> InstantUtils.fromEpochMills(argBase.longValue());
           default -> throw new IllegalArgumentException(
               "Invalid argument type. Must be DATE, TIME, or TIMESTAMP, but got " + sqlTypeName);
         };
 
-    Instant newInstant =
-        DateTimeApplyUtils.applyInterval(
-            base, Duration.ofMillis(unit.multiplier.longValue() * interval), isAdd);
+    ExprValue resultDatetime =
+        DateTimeFunctions.exprDateApplyInterval(
+            new FunctionProperties(),
+            new ExprTimestampValue(base),
+            convertToTemporalAmount(interval, unit),
+            isAdd);
+    Instant resultInstant = resultDatetime.timestampValue();
     if (returnSqlType == SqlTypeName.TIMESTAMP) {
-      return Timestamp.valueOf(LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC));
+      return Timestamp.valueOf(LocalDateTime.ofInstant(resultInstant, ZoneOffset.UTC));
+    } else {
+      return java.sql.Date.valueOf(
+          LocalDateTime.ofInstant(resultInstant, ZoneOffset.UTC).toLocalDate());
     }
-    else {
-      return java.sql.Date.valueOf(LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC).toLocalDate());
-    }
-
   }
 
   public static SqlReturnTypeInference getReturnTypeForAddOrSubDate() {
@@ -68,5 +80,4 @@ public class DateAddSubFunction implements UserDefinedFunction {
       return opBinding.getTypeFactory().createSqlType(typeName);
     };
   }
-
 }
