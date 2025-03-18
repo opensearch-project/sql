@@ -55,7 +55,7 @@ public class SpanFunction implements UserDefinedFunction {
           throw new IllegalArgumentException(
               String.format("Unable to set span unit %s for TIME type", dateTimeUnit.getName()));
         }
-        long timeEpochValue = dateTimeUnit.round(SqlFunctions.timestamp((int) args[0]), interval);
+        long timeEpochValue = dateTimeUnit.round(((Integer) args[0]).longValue(), interval);
         return SqlFunctions.time(timeEpochValue);
       case SqlTypeName.TIMESTAMP:
         return dateTimeUnit.round((long) args[0], interval);
