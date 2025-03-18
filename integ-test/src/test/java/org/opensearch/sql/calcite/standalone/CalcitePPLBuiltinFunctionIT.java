@@ -336,6 +336,34 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testSecond() {
+    testSimplePPL(
+            "source=people | eval `SECOND(TIME('01:02:03'))` = SECOND(TIME('01:02:03')) | fields `SECOND(TIME('01:02:03'))`",
+            List.of(3));
+  }
+
+  @Test
+  public void testAddDate() {
+    testSimplePPL(
+            "source=people | eval `'2020-08-26' + 1h` = ADDDATE(DATE('2020-08-26'), INTERVAL 1 HOUR), `'2020-08-26' + 1` = ADDDATE(DATE('2020-08-26'), 1), `ts '2020-08-26 01:01:01' + 1` = ADDDATE(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `'2020-08-26' + 1h`, `'2020-08-26' + 1`, `ts '2020-08-26 01:01:01' + 1`",
+            List.of("2020-08-26 01:00:00", "2020-08-27", "2020-08-27 01:01:01"));
+  }
+
+  @Test
+  public void testSubDate() {
+    testSimplePPL(
+            "source=people | eval `'2008-01-02' - 31d` = SUBDATE(DATE('2008-01-02'), INTERVAL 31 DAY), `'2020-08-26' - 1` = SUBDATE(DATE('2020-08-26'), 1), `ts '2020-08-26 01:01:01' - 1` = SUBDATE(TIMESTAMP('2020-08-26 01:01:01'), 1) | fields `'2008-01-02' - 31d`, `'2020-08-26' - 1`, `ts '2020-08-26 01:01:01' - 1`",
+            List.of("2007-12-02 00:00:00", "2020-08-25", "2020-08-25 01:01:01"));
+  }
+
+  @Test
+  public void testDay() {
+    testSimplePPL(
+            "source=people | eval `DAY(DATE('2020-08-26'))` = DAY(DATE('2020-08-26')) | fields `DAY(DATE('2020-08-26'))`",
+            List.of(26));
+  }
+
+  @Test
   public void testNow() {
     String execResult =
         execute(

@@ -6,13 +6,11 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
-import static org.opensearch.sql.calcite.CalciteRexNodeVisitor.intervalUnitToSpanUnit;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
 import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.transferStringExprToDateValue;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -36,7 +34,6 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimestampString;
-import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
@@ -63,7 +60,6 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.toSecondsFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
-import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
 public interface BuiltinFunctionUtils {
 
@@ -132,17 +128,21 @@ public interface BuiltinFunctionUtils {
       case "POW", "POWER":
         return SqlStdOperatorTable.POWER;
         // Built-in Date Functions
-      case "CURRENT_TIMESTAMP", "NOW":
+      case "CURRENT_TIMESTAMP", "NOW", "LOCALTIMESTAMP", "LOCALTIME":
         return SqlStdOperatorTable.CURRENT_TIMESTAMP;
       case "CURRENT_DATE", "CURDATE":
         return SqlStdOperatorTable.CURRENT_DATE;
       case "DATE":
         return SqlLibraryOperators.DATE;
-      case "ADDDATE":
-        return SqlLibraryOperators.DATE_ADD_SPARK;
       case "DATE_ADD":
         return TransferUserDefinedFunction(
             DateAddSubFunction.class, "DATE_ADD", ReturnTypes.TIMESTAMP);
+      case "ADDDATE":
+        return TransferUserDefinedFunction(
+                DateAddSubFunction.class, "ADDDATE", DateAddSubFunction.getReturnTypeForAddOrSubDate());
+      case "SUBDATE":
+        return TransferUserDefinedFunction(
+                DateAddSubFunction.class, "SUBDATE", DateAddSubFunction.getReturnTypeForAddOrSubDate());
       case "DATE_SUB":
         return TransferUserDefinedFunction(
             DateAddSubFunction.class, "DATE_SUB", ReturnTypes.TIMESTAMP);
@@ -151,7 +151,7 @@ public interface BuiltinFunctionUtils {
             TimeAddSubFunction.class,
             "ADDTIME",
             UserDefineFunctionUtils.getReturnTypeForTimeAddSub());
-      case "DAY_OF_WEEK", "DAY_OF_YEAR":
+      case "DAY_OF_WEEK", "DAY_OF_YEAR", "DAYOFWEEK", "DAYOFYEAR":
         // SqlStdOperatorTable.DAYOFWEEK, SqlStdOperatorTable.DAYOFYEAR is not implemented in
         // RexImpTable. Therefore, we replace it with their lower-level
         // calls SqlStdOperatorTable.EXTRACT and convert the arguments accordingly.
@@ -219,7 +219,7 @@ public interface BuiltinFunctionUtils {
       case "SEC_TO_TIME":
         return TransferUserDefinedFunction(
                 secondToTimeFunction.class, "SEC_TO_TIME", ReturnTypes.TIME);
-      case "WEEK", "YEAR", "MINUTE", "HOUR":
+      case "WEEK", "YEAR", "MINUTE", "HOUR", "HOUR_OF_DAY", "MONTH", "MONTH_OF_YEAR", "DAY_OF_MONTH", "DAYOFMONTH", "DAY", "MINUTE_OF_HOUR", "SECOND", "SECOND_OF_MINUTE":
         return SqlLibraryOperators.DATE_PART;
       case "FROM_UNIXTIME":
         return TransferUserDefinedFunction(
@@ -364,19 +364,41 @@ public interface BuiltinFunctionUtils {
         periodNameArgs.add(
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return periodNameArgs;
-      case "YEAR", "MINUTE", "HOUR", "DAY":
+      case "YEAR", "MINUTE", "HOUR", "DAY", "MONTH", "SECOND":
         List<RexNode> extractArgs = new ArrayList<>();
         extractArgs.add(context.rexBuilder.makeLiteral(op));
         extractArgs.add(argList.getFirst());
         return extractArgs;
+      case "HOUR_OF_DAY":
+        List<RexNode> hourofDayArgs = new ArrayList<>();
+        hourofDayArgs.add(context.rexBuilder.makeLiteral("HOUR"));
+        hourofDayArgs.add(argList.getFirst());
+        return hourofDayArgs;
+      case "DAY_OF_MONTH", "DAYOFMONTH":
+        List<RexNode> dayofMonthArgs = new ArrayList<>();
+        dayofMonthArgs.add(context.rexBuilder.makeLiteral("DAY"));
+        dayofMonthArgs.add(argList.getFirst());
+        return dayofMonthArgs;
+      case "MONTH_OF_YEAR":
+        List<RexNode> monthOfYearArgs = new ArrayList<>();
+        monthOfYearArgs.add(context.rexBuilder.makeLiteral("MONTH"));
+        monthOfYearArgs.add(argList.getFirst());
+        return monthOfYearArgs;
+      case "SECOND_OF_MINUTE":
+        List<RexNode> secondofMinuteArgs = new ArrayList<>();
+        secondofMinuteArgs.add(context.rexBuilder.makeLiteral("SECOND"));
+        secondofMinuteArgs.add(argList.getFirst());
+        return secondofMinuteArgs;
       case "DATE_SUB":
         List<RexNode> dateSubArgs = transformDateManipulationArgs(argList, context.rexBuilder);
         // A flag that represents isAdd
         dateSubArgs.add(context.rexBuilder.makeLiteral(false));
+        dateSubArgs.add(context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP));
         return dateSubArgs;
       case "DATE_ADD":
         List<RexNode> dateAddArgs = transformDateManipulationArgs(argList, context.rexBuilder);
         dateAddArgs.add(context.rexBuilder.makeLiteral(true));
+        dateAddArgs.add(context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP));
         return dateAddArgs;
       case "ADDTIME":
         SqlTypeName arg0Type = argList.getFirst().getType().getSqlTypeName();
@@ -385,6 +407,10 @@ public interface BuiltinFunctionUtils {
         RexNode type1 = context.rexBuilder.makeFlag(arg1Type);
         RexNode isAdd = context.rexBuilder.makeLiteral(true);
         return List.of(argList.getFirst(), type0, argList.get(1), type1, isAdd);
+      case "ADDDATE":
+        return transformAddOrSubDateArgs(argList, context.rexBuilder, true);
+      case "SUBDATE":
+        return transformAddOrSubDateArgs(argList, context.rexBuilder, false);
       case "TIME":
         List<RexNode> timeArgs = new ArrayList<>();
         RexNode timeExpr = argList.getFirst();
@@ -429,13 +455,13 @@ public interface BuiltinFunctionUtils {
         List<RexNode> UnixArgs = new ArrayList<>(argList);
         UnixArgs.add(context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return UnixArgs;
-      case "DAY_OF_WEEK":
+      case "DAY_OF_WEEK", "DAYOFWEEK":
         RexNode dowUnit =
             context.rexBuilder.makeIntervalLiteral(
                 new SqlIntervalQualifier(TimeUnit.DOW, null, SqlParserPos.ZERO));
         return List.of(
             dowUnit, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
-      case "DAY_OF_YEAR":
+      case "DAY_OF_YEAR", "DAYOFYEAR":
         RexNode domUnit =
             context.rexBuilder.makeIntervalLiteral(
                 new SqlIntervalQualifier(TimeUnit.DOY, null, SqlParserPos.ZERO));
@@ -524,4 +550,30 @@ public interface BuiltinFunctionUtils {
     }
     return dateAddArgs;
   }
+
+  private static List<RexNode> transformAddOrSubDateArgs(List<RexNode> argList, ExtendedRexBuilder rexBuilder, Boolean isAdd) {
+    List<RexNode> addOrSubDateArgs = new ArrayList<>();
+    addOrSubDateArgs.add(argList.getFirst());
+    SqlTypeName addType = argList.get(1).getType().getSqlTypeName();
+    if (addType == SqlTypeName.BIGINT || addType == SqlTypeName.DECIMAL || addType == SqlTypeName.INTEGER) {
+      Number value = ((RexLiteral)argList.get(1)).getValueAs(Number.class);
+      addOrSubDateArgs.add(rexBuilder.makeIntervalLiteral(
+              new BigDecimal(value.toString()), new SqlIntervalQualifier(TimeUnit.DAY, null, SqlParserPos.ZERO)));
+    } else {
+      addOrSubDateArgs.add(argList.get(1));
+    }
+    List<RexNode> addOrSubDateRealInput = transformDateManipulationArgs(addOrSubDateArgs, rexBuilder);
+    addOrSubDateRealInput.add(rexBuilder.makeLiteral(isAdd));
+    if (argList.getFirst().getType().getSqlTypeName() == SqlTypeName.DATE && (addType == SqlTypeName.BIGINT || addType == SqlTypeName.DECIMAL || addType == SqlTypeName.INTEGER) ) {
+      addOrSubDateRealInput.add(rexBuilder.makeFlag(SqlTypeName.DATE));
+      addOrSubDateRealInput.add(rexBuilder.makeLiteral(0, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.DATE)));
+    } else {
+      addOrSubDateRealInput.add(rexBuilder.makeFlag(SqlTypeName.TIMESTAMP));
+      addOrSubDateRealInput.add(rexBuilder.makeLiteral(0L, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP)));
+    }
+    return addOrSubDateRealInput;
+  }
+
+
+
 }

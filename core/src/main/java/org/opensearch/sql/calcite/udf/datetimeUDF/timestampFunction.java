@@ -26,20 +26,26 @@ public class timestampFunction implements UserDefinedFunction {
     Instant dateTimeBase;
     Instant addTime;
     long addTimeMills = 0L;
-    SqlTypeName sqlTypeName = (SqlTypeName) args[1];
-    dateTimeBase = InstantUtils.convertToInstant(args[2], sqlTypeName);
+    if (args.length == 2) {
+      SqlTypeName sqlTypeName = (SqlTypeName) args[1];
+      dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName);
+    } else {
+      SqlTypeName sqlTypeName = (SqlTypeName) args[2];
+      dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName);
+    }
+
 
     if (args.length > 2) { // Have something to add
       SqlTypeName addSqlTypeName = (SqlTypeName) args[3];
       switch (addSqlTypeName) {
         case TIMESTAMP:
-          addTime = InstantUtils.fromEpochMills((long) args[2]);
+          addTime = InstantUtils.fromEpochMills((long) args[1]);
           break;
         case TIME:
-          addTime = InstantUtils.fromInternalTime((int) args[2]);
+          addTime = InstantUtils.fromInternalTime((int) args[1]);
           break;
         default:
-          String timestampExpression = (String) args[2];
+          String timestampExpression = (String) args[1];
           LocalDateTime addDateTime =
               LocalDateTime.parse(timestampExpression, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
           addTime = addDateTime.toInstant(ZoneOffset.UTC);

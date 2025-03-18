@@ -8,6 +8,8 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 import java.sql.Timestamp;
 import java.time.*;
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
@@ -16,7 +18,7 @@ import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 public class DateAddSubFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
-    if (args.length < 5) {
+    if (args.length < 6) {
       throw new IllegalArgumentException("Mismatch arguments: expected 5 but got " + args.length);
     }
     Object argUnit = args[0];
@@ -24,6 +26,7 @@ public class DateAddSubFunction implements UserDefinedFunction {
     Object argBase = args[2];
     Object argBaseType = args[3];
     Object argIsAdd = args[4];
+    SqlTypeName returnSqlType = (SqlTypeName) args[5];
 
     assert argUnit instanceof TimeUnit;
     assert argNumInterval instanceof Number;
@@ -49,6 +52,21 @@ public class DateAddSubFunction implements UserDefinedFunction {
     Instant newInstant =
         DateTimeApplyUtils.applyInterval(
             base, Duration.ofMillis(unit.multiplier.longValue() * interval), isAdd);
-    return Timestamp.valueOf(LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC));
+    if (returnSqlType == SqlTypeName.TIMESTAMP) {
+      return Timestamp.valueOf(LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC));
+    }
+    else {
+      return java.sql.Date.valueOf(LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC).toLocalDate());
+    }
+
   }
+
+  public static SqlReturnTypeInference getReturnTypeForAddOrSubDate() {
+    return opBinding -> {
+      RelDataType operandType0 = opBinding.getOperandType(6);
+      SqlTypeName typeName = operandType0.getSqlTypeName();
+      return opBinding.getTypeFactory().createSqlType(typeName);
+    };
+  }
+
 }
