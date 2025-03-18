@@ -107,7 +107,7 @@ public class ExprValueUtils {
   }
 
   /** Construct ExprValue from Object. */
-  public static ExprValue  fromObjectValue(Object o) {
+  public static ExprValue fromObjectValue(Object o) {
     if (null == o) {
       return LITERAL_NULL;
     }
