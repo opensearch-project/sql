@@ -52,7 +52,9 @@ import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 
@@ -158,10 +160,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           valueList.stream().map(value -> context.rexBuilder.makeCast(commonType, value)).toList();
       return context.rexBuilder.makeIn(field, newValueList);
     } else {
+      List<ExprType> exprTypes =
+          dataTypes.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
       throw new SemanticCheckException(
           StringUtils.format(
               "In expression types are incompatible: fields type %s, values type %s",
-              dataTypes.getLast(), dataTypes.subList(0, dataTypes.size() - 1)));
+              exprTypes.getLast(), exprTypes.subList(0, exprTypes.size() - 1)));
     }
   }
 
@@ -186,7 +190,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       throw new SemanticCheckException(
           StringUtils.format(
               "BETWEEN expression types are incompatible: [%s, %s, %s]",
-              value.getType(), lowerBound.getType(), upperBound.getType()));
+              OpenSearchTypeFactory.convertRelDataTypeToExprType(value.getType()),
+              OpenSearchTypeFactory.convertRelDataTypeToExprType(lowerBound.getType()),
+              OpenSearchTypeFactory.convertRelDataTypeToExprType(upperBound.getType())));
     }
     return context.relBuilder.between(value, lowerBound, upperBound);
   }

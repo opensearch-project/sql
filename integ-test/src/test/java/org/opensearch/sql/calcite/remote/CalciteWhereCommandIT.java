@@ -27,7 +27,7 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
 
   @Override
   protected String getIncompatibleTypeErrMsg() {
-    return "In expression types are incompatible: fields type BIGINT, values type [INTEGER,"
-        + " INTEGER, CHAR(4)]";
+    return "In expression types are incompatible: fields type LONG, values type [INTEGER, INTEGER,"
+        + " STRING]";
   }
 }
