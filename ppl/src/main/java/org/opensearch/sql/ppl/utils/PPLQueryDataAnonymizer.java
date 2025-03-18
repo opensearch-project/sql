@@ -23,6 +23,7 @@ import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
@@ -419,6 +420,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       String left = analyze(node.getLowerBound(), context);
       String right = analyze(node.getUpperBound(), context);
       return StringUtils.format("%s between %s and %s", value, left, right);
+    }
+
+    @Override
+    public String visitIn(In node, String context) {
+      String field = analyze(node.getField(), context);
+      return StringUtils.format("%s in (%s)", field, MASK_LITERAL);
     }
 
     @Override
