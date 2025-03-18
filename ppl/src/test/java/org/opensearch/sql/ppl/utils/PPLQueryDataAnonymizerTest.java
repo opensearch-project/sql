@@ -159,6 +159,11 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testInExpression() {
+    assertEquals("source=t | where a in (***)", anonymize("source=t | where a in (1, 2, 3) "));
+  }
+
+  @Test
   public void testQualifiedName() {
     assertEquals("source=t | fields + field0", anonymize("source=t | fields field0"));
   }
