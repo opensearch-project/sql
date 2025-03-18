@@ -10,6 +10,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -22,16 +23,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     super.init();
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
-  }
-
-  private static boolean containsMessage(Throwable throwable, String message) {
-    while (throwable != null) {
-      if (throwable.getMessage() != null && throwable.getMessage().contains(message)) {
-        return true;
-      }
-      throwable = throwable.getCause();
-    }
-    return false;
   }
 
   @Test
@@ -67,12 +58,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                     String.format(
                         "source=%s | head 1 | eval neg = sqrt('1') | fields neg",
                         TEST_INDEX_STATE_COUNTRY)));
-    String errorMsg = "Invalid argument type: Expected a numeric value";
-    assertTrue(
-        String.format(
-            "SQRT with non-numeric arguments should throw an error that contains message: %s",
-            errorMsg),
-        containsMessage(nanException, errorMsg));
+    verifyErrorMessageContains(nanException, "Invalid argument type: Expected a numeric value");
   }
 
   @Test
@@ -158,10 +144,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                     String.format(
                         "source=%s | eval invalid = conv('0000', 1, 36) | fields invalid",
                         TEST_INDEX_STATE_COUNTRY)));
-    String errorMsg = "radix 1 less than Character.MIN_RADIX";
-    assertTrue(
-        String.format("CONV should throw an exception that contains message: %s", errorMsg),
-        containsMessage(invalidRadixException, errorMsg));
+    verifyErrorMessageContains(invalidRadixException, "radix 1 less than Character.MIN_RADIX");
   }
 
   @Test
