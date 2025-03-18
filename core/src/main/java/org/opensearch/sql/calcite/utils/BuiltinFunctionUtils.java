@@ -104,7 +104,8 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.DATEADD;
         // UDF Functions
       case "SPAN":
-        return TransferUserDefinedFunction(SpanFunction.class, "SPAN", ReturnTypes.ARG0_FORCE_NULLABLE);
+        return TransferUserDefinedFunction(
+            SpanFunction.class, "SPAN", ReturnTypes.ARG0_FORCE_NULLABLE);
         // Built-in condition functions
       case "IF":
         return TransferUserDefinedFunction(

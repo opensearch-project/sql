@@ -250,8 +250,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     SpanUnit unit = node.getUnit();
     if (isTimeBased(unit)) {
       return context.rexBuilder.makeCall(
-          typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(field.getType().getSqlTypeName()), true),
           BuiltinFunctionUtils.translate("SPAN"),
           List.of(
               field,
