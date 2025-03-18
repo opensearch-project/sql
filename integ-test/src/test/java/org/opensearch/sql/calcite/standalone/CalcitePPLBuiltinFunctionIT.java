@@ -10,7 +10,9 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WILDCARD;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
+import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.IOException;
@@ -24,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -240,6 +243,31 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testSubTime() {
+    testSimplePPL(
+        "source=people | eval `'2008-12-12' - 0` = SUBTIME(DATE('2008-12-12'), DATE('2008-11-15'))"
+            + " | fields `'2008-12-12' - 0`",
+        ImmutableList.of("2008-12-12 00:00:00"));
+    testSimplePPL(
+        "source=people | eval `'23:59:59' - 0` = SUBTIME(TIME('23:59:59'), DATE('2004-01-01')) |"
+            + " fields `'23:59:59' - 0`",
+        ImmutableList.of("23:59:59"));
+    testSimplePPL(
+        "source=people | eval `'2004-01-01' - '23:59:59'` = SUBTIME(DATE('2004-01-01'),"
+            + " TIME('23:59:59')) | fields `'2004-01-01' - '23:59:59'`",
+        ImmutableList.of("2003-12-31 00:00:01"));
+    testSimplePPL(
+        "source=people | eval `'10:20:30' - '00:05:42'` = SUBTIME(TIME('10:20:30'),"
+            + " TIME('00:05:42')) | fields `'10:20:30' - '00:05:42'`",
+        ImmutableList.of("10:14:48"));
+    testSimplePPL(
+        "source=people | eval `'2007-03-01 10:20:30' - '20:40:50'` = SUBTIME(TIMESTAMP('2007-03-01"
+            + " 10:20:30'), TIMESTAMP('2002-03-04 20:40:50')) | fields `'2007-03-01 10:20:30' -"
+            + " '20:40:50'`",
+        ImmutableList.of("2007-02-28 13:39:40"));
+  }
+
+  @Test
   public void testDayOfWeek() {
     testSimplePPL(
         "source=people | head 1 | eval `DAY_OF_WEEK(DATE('2020-08-26'))` ="
@@ -266,6 +294,128 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         "source=people | eval `DAY_OF_YEAR(DATE('2020-08-26'))` = DAY_OF_YEAR(DATE('2020-08-26')) |"
             + " fields `DAY_OF_YEAR(DATE('2020-08-26'))`",
         List.of(239));
+  }
+
+  @Test
+  public void testWeekAndWeekOfYear() {
+    testSimplePPL(
+        "source=people | eval `WEEK(DATE('2008-02-20'))` = WEEK(DATE('2008-02-20'), 0),"
+            + " `WEEK(DATE('2008-02-20'), 1)` = WEEK(DATE('2008-02-20'), 1) | fields"
+            + " `WEEK(DATE('2008-02-20'))`, `WEEK(DATE('2008-02-20'), 1)`",
+        ImmutableList.of(7, 8));
+    testSimplePPL(
+        "source=people | eval `WEEK_OF_YEAR(DATE('2008-02-20'))` = WEEK(DATE('2008-02-20'))|"
+            + " fields `WEEK_OF_YEAR(DATE('2008-02-20'))`",
+        ImmutableList.of(7));
+    testSimplePPL(
+        "source=people | eval `WEEK_OF_YEAR(DATE('2008-02-20'), 1)` ="
+            + " WEEK_OF_YEAR(DATE('2008-02-20'), 1) | fields `WEEK_OF_YEAR(DATE('2008-02-20'), 1)`",
+        ImmutableList.of(8));
+  }
+
+  @Test
+  public void testExtract() {
+    testSimplePPL(
+        "source=people | eval res = extract(YEAR_MONTH FROM '2023-02-07 10:11:12') | fields res",
+        ImmutableList.of(202302));
+  }
+
+  @Test
+  public void testConvertTz() {
+    testSimplePPL(
+        "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')` ="
+            + " convert_tz('2008-05-15 12:00:00','+00:00','+10:00') | fields"
+            + " `convert_tz('2008-05-15 12:00:00','+00:00','+10:00')`",
+        ImmutableList.of("2008-05-15 22:00:00"));
+    testSimplePPL(
+        "source=people | eval `convert_tz('2008-05-15 12:00:00','+00:00','+15:00')` ="
+            + " convert_tz('2008-05-15 12:00:00','+00:00','+15:00')| fields `convert_tz('2008-05-15"
+            + " 12:00:00','+00:00','+15:00')`",
+        ImmutableNullableList.of(null));
+    testSimplePPL(
+        "source=people | eval `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')` ="
+            + " convert_tz('2008-05-15 12:00:00','+03:30','-10:00') | fields"
+            + " `convert_tz('2008-05-15 12:00:00','+03:30','-10:00')`",
+        ImmutableList.of("2008-05-14 22:30:00"));
+  }
+
+  @Test
+  public void testDatetime() {
+    testSimplePPL(
+        "source=people | eval `DATETIME('2004-02-28 23:00:00-10:00', '+10:00')` ="
+            + " DATETIME('2004-02-28 23:00:00-10:00', '+10:00') | fields `DATETIME('2004-02-28"
+            + " 23:00:00-10:00', '+10:00')`",
+        ImmutableList.of("2004-02-29 19:00:00"));
+    testSimplePPL(
+        "source=people | eval  `DATETIME('2008-01-01 02:00:00', '-14:00')` = DATETIME('2008-01-01"
+            + " 02:00:00', '-14:00') | fields `DATETIME('2008-01-01 02:00:00', '-14:00')`",
+        ImmutableNullableList.of(null));
+  }
+
+  @Test
+  public void testFromDays() {
+    testSimplePPL(
+        "source=people | eval `FROM_DAYS(733687)` = FROM_DAYS(733687) | fields `FROM_DAYS(733687)`",
+        ImmutableList.of("2008-10-07"));
+  }
+
+  @Test
+  public void testGetFormat() {
+    testSimplePPL(
+        "source=people | eval `GET_FORMAT(DATE, 'USA')` = GET_FORMAT(DATE, 'USA') | fields"
+            + " `GET_FORMAT(DATE, 'USA')`",
+        ImmutableList.of("%m.%d.%Y"));
+  }
+
+  @Test
+  public void testMakeTime() {
+    testSimplePPL(
+        "source=people | eval `MAKETIME(20, 30, 40)` = MAKETIME(20, 30, 40), `MAKETIME(20.2, 49.5,"
+            + " 42.100502)` = MAKETIME(20.2, 49.5, 42.100502) | fields `MAKETIME(20, 30, 40)`,"
+            + " `MAKETIME(20.2, 49.5, 42.100502)`",
+        // TODO: Calcite return time in a fixed format (instead of 20:50:42.100502 for the second
+        // result)
+        ImmutableList.of("20:30:40", "20:50:42"));
+  }
+
+  @Test
+  public void testMinuteOfDay() {
+    testSimplePPL(
+        "source=people | eval `MINUTE_OF_DAY(TIME('01:02:03'))` = MINUTE_OF_DAY(TIME('01:02:03')) |"
+            + " fields `MINUTE_OF_DAY(TIME('01:02:03'))`",
+        ImmutableList.of(62));
+  }
+
+  @Test
+  public void testPeriodAdd() {
+    testSimplePPL(
+        "source=people | eval `PERIOD_ADD(200801, 2)` = PERIOD_ADD(200801, 2), `PERIOD_ADD(200801,"
+            + " -12)` = PERIOD_ADD(200801, -12) | fields `PERIOD_ADD(200801, 2)`,"
+            + " `PERIOD_ADD(200801, -12)`",
+        ImmutableList.of(200803, 200701));
+  }
+
+  @Test
+  public void testPeriodDiff() {
+    testSimplePPL(
+        "source=people | eval `PERIOD_DIFF(200802, 200703)` = PERIOD_DIFF(200802, 200703),"
+            + " `PERIOD_DIFF(200802, 201003)` = PERIOD_DIFF(200802, 201003) | fields"
+            + " `PERIOD_DIFF(200802, 200703)`, `PERIOD_DIFF(200802, 201003)`",
+        ImmutableList.of(11, -25));
+  }
+
+  @Test
+  public void testStrToDate() {
+    testSimplePPL(
+        "source=people | eval `str_to_date(\"01,5,2013\", \"%d,%m,%Y\")` ="
+            + " str_to_date(\"01,5,2013\", \"%d,%m,%Y\") | fields `str_to_date(\"01,5,2013\","
+            + " \"%d,%m,%Y\")`",
+        ImmutableList.of("2013-05-01 00:00:00"));
+
+    // It returns NULL when a statement cannot be parsed due to an invalid pair of arguments
+    testSimplePPL(
+        "source=people | eval res = str_to_date('01,5,2013', '%d,%m,%Y,%a') | fields res",
+        ImmutableNullableList.of(null));
   }
 
   @Test
@@ -376,6 +526,20 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     assertTrue(
         "Now must be of pattern yyyy-MM-dd HH:mm:ss",
         dataRow.get(0).getAsString().matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}"));
+  }
+
+  @Test
+  public void testCurtimeAndCurrentTime() {
+    String execResult =
+        execute(
+            "source=people | eval `value_1` = CURTIME(), `value_2` = CURRENT_TIME() | fields"
+                + " `value_1`, `value_2`");
+    JsonArray dataRow = parseAndGetFirstDataRow(execResult);
+    for (int i : List.of(0, 1)) {
+      assertTrue(
+          "CURRENT_TIME must be of pattern HH:mm:ss",
+          dataRow.get(i).getAsString().matches("\\d{2}:\\d{2}:\\d{2}"));
+    }
   }
 
   @Test
@@ -655,8 +819,8 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     for (int i = 0; i < expectedValues.size(); i++) {
       Object expected = expectedValues.get(i);
       if (Objects.isNull(expected)) {
-        Object actual = dataRow.get(i);
-        assertNull(actual);
+        JsonElement actual = dataRow.get(i);
+        assertTrue(actual.isJsonNull());
       } else if (expected instanceof BigDecimal) {
         Number actual = dataRow.get(i).getAsNumber();
         assertEquals(expected, actual);

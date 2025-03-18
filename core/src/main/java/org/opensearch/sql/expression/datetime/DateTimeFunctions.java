@@ -1276,7 +1276,7 @@ public class DateTimeFunctions {
    * @param toTz ExprValue of time zone, representing the time to convert to.
    * @return Timestamp that has been converted to the to_tz timezone.
    */
-  private ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
+  public static ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
       startingDateTime = exprDateTimeNoTimezone(startingDateTime);
     }
@@ -1340,7 +1340,7 @@ public class DateTimeFunctions {
    * @param timeZone ExprValue of String type (or null).
    * @return ExprValue of date type.
    */
-  private ExprValue exprDateTime(ExprValue timestamp, ExprValue timeZone) {
+  public static ExprValue exprDateTime(ExprValue timestamp, ExprValue timeZone) {
     String defaultTimeZone = TimeZone.getDefault().getID();
 
     try {
@@ -1381,7 +1381,7 @@ public class DateTimeFunctions {
    * @param dateTime ExprValue of String type.
    * @return ExprValue of date type.
    */
-  private ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
+  public static ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
     return exprDateTime(dateTime, ExprNullValue.of());
   }
 
@@ -1433,7 +1433,7 @@ public class DateTimeFunctions {
    * @param timestamp the date to be formatted as an ExprValue.
    * @return is a LONG formatted according to the input arguments.
    */
-  public ExprLongValue formatExtractFunction(ExprValue part, ExprValue timestamp) {
+  public static ExprLongValue formatExtractFunction(ExprValue part, ExprValue timestamp) {
     String partName = part.stringValue().toUpperCase();
     LocalDateTime arg = timestamp.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();
     String text =
@@ -1472,7 +1472,7 @@ public class DateTimeFunctions {
    * @param exprValue Day number N.
    * @return ExprValue.
    */
-  private ExprValue exprFromDays(ExprValue exprValue) {
+  public static ExprValue exprFromDays(ExprValue exprValue) {
     return new ExprDateValue(LocalDate.ofEpochDay(exprValue.longValue() - DAYS_0000_TO_1970));
   }
 
@@ -1511,7 +1511,7 @@ public class DateTimeFunctions {
    * @param format ExprValue of Time/String type
    * @return ExprValue..
    */
-  private ExprValue exprGetFormat(ExprValue type, ExprValue format) {
+  public static ExprValue exprGetFormat(ExprValue type, ExprValue format) {
     if (formats.contains(type.stringValue().toLowerCase(), format.stringValue().toLowerCase())) {
       return new ExprStringValue(
           formats.get(type.stringValue().toLowerCase(), format.stringValue().toLowerCase()));
@@ -1598,7 +1598,7 @@ public class DateTimeFunctions {
    * @param secondExpr second
    * @return Time - ExprTimeValue object with LocalTime
    */
-  private ExprValue exprMakeTime(ExprValue hourExpr, ExprValue minuteExpr, ExprValue secondExpr) {
+  public static ExprValue exprMakeTime(ExprValue hourExpr, ExprValue minuteExpr, ExprValue secondExpr) {
     var hour = Math.round(hourExpr.doubleValue());
     var minute = Math.round(minuteExpr.doubleValue());
     var second = secondExpr.doubleValue();
@@ -1607,7 +1607,7 @@ public class DateTimeFunctions {
     }
     return new ExprTimeValue(
         LocalTime.parse(
-            String.format("%02d:%02d:%012.9f", hour, minute, second), DateTimeFormatter.ISO_TIME));
+            String.format(Locale.US, "%02d:%02d:%012.9f", hour, minute, second), DateTimeFormatter.ISO_TIME));
   }
 
   /**
@@ -1637,7 +1637,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprMinuteOfDay(ExprValue time) {
+  public static ExprValue exprMinuteOfDay(ExprValue time) {
     return new ExprIntegerValue(MINUTES.between(LocalTime.MIN, time.timeValue()));
   }
 
@@ -1687,7 +1687,7 @@ public class DateTimeFunctions {
    * @param months Amount of months to add.
    * @return ExprIntegerValue.
    */
-  private ExprValue exprPeriodAdd(ExprValue period, ExprValue months) {
+  public static ExprValue exprPeriodAdd(ExprValue period, ExprValue months) {
     // We should add a day to make string parsable and remove it afterwards
     var input = period.integerValue() * 100 + 1; // adds 01 to end of the string
     var parsedDate = parseDatePeriod(input);
@@ -1708,7 +1708,7 @@ public class DateTimeFunctions {
    * @param period2 Period in the format YYMM or YYYYMM.
    * @return ExprIntegerValue.
    */
-  private ExprValue exprPeriodDiff(ExprValue period1, ExprValue period2) {
+  public static ExprValue exprPeriodDiff(ExprValue period1, ExprValue period2) {
     var parsedDate1 = parseDatePeriod(period1.integerValue() * 100 + 1);
     var parsedDate2 = parseDatePeriod(period2.integerValue() * 100 + 1);
     if (parsedDate1 == null || parsedDate2 == null) {
@@ -2084,7 +2084,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/Timestamp/String type.
    * @param mode ExprValue of Integer type.
    */
-  private ExprValue exprWeek(ExprValue date, ExprValue mode) {
+  public static ExprValue exprWeek(ExprValue date, ExprValue mode) {
     return new ExprIntegerValue(
         CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));
   }
