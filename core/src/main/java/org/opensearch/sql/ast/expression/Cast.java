@@ -76,7 +76,11 @@ public class Cast extends UnresolvedExpression {
 
   /** Get the data type expression of the converted type. */
   public DataType getDataType() {
-    return DataType.valueOf(convertedType.toString().toUpperCase(Locale.ROOT));
+    String type = convertedType.toString().toUpperCase(Locale.ROOT);
+    if ("INT".equals(type)) {
+      type = "INTEGER";
+    }
+    return DataType.valueOf(type);
   }
 
   /**

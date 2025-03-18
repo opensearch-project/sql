@@ -20,6 +20,7 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
@@ -459,6 +460,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     public String visitExistsSubquery(ExistsSubquery node, String context) {
       String subquery = queryAnonymizer.anonymizeData(node.getQuery());
       return StringUtils.format("exists [ %s ]", subquery);
+    }
+
+    @Override
+    public String visitCast(Cast node, String context) {
+      String expr = analyze(node.getExpression(), context);
+      return StringUtils.format("cast(%s as %s)", expr, node.getDataType().getCoreType().name());
     }
   }
 }
