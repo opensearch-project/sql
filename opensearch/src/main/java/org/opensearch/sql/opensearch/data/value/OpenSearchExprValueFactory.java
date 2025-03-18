@@ -266,7 +266,7 @@ public class OpenSearchExprValueFactory {
                   .toInstant());
       }
     } catch (DateTimeParseException | IllegalArgumentException ignored) {
-      // nothing to do, try another format
+      // ignored
     }
 
     throw new IllegalArgumentException(
