@@ -5,13 +5,13 @@
 
 package org.opensearch.sql.data.model;
 
+import static org.apache.commons.lang3.time.DateUtils.MILLIS_PER_DAY;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import com.google.common.base.Objects;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -43,8 +43,8 @@ public class ExprDateValue extends AbstractExprValue {
   }
 
   @Override
-  public Long valueForCalcite() {
-    return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+  public Integer valueForCalcite() {
+    return (int) date.toEpochDay();
   }
 
   @Override

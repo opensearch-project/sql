@@ -199,7 +199,7 @@ public class UserDefineFunctionUtils {
               "Mismatch in the number of objects and types. Got %d objects and %d types",
               objects.size(), types.size()));
     }
-    for (int i = 0; i < objects.size(); i++) {
+    for (int i = 0; i < types.size(); i++) {
       if (!types.get(i).isInstance(objects.get(i))) {
         throw new IllegalArgumentException(
             String.format("Object at index %d is not of type %s", i, types.get(i).getName()));

@@ -1166,7 +1166,7 @@ public class DateTimeFunctions {
    * @param isAdd A flag: true to isAdd, false to subtract.
    * @return Timestamp calculated.
    */
-  private ExprValue exprDateApplyInterval(
+  public static ExprValue exprDateApplyInterval(
       FunctionProperties functionProperties,
       ExprValue datetime,
       TemporalAmount interval,
