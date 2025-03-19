@@ -3,6 +3,7 @@ package org.opensearch.sql.legacy.query.planner.physical.node.pointInTime;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
@@ -54,13 +55,9 @@ public class PointInTime extends Paginate {
   @Override
   protected void loadNextBatch() {
     // Add PIT with search after to fetch next batch of data
-    if (searchResponse.getHits().getHits() != null
-        && searchResponse.getHits().getHits().length > 0) {
-      Object[] sortValues =
-          searchResponse
-              .getHits()
-              .getHits()[searchResponse.getHits().getHits().length - 1]
-              .getSortValues();
+    SearchHit[] hits = searchResponse.getHits().getHits();
+    if (hits != null && hits.length > 0) {
+      Object[] sortValues = hits[hits.length - 1].getSortValues();
 
       LOG.info("Loading next batch of response using Point In Time. - " + pitId);
       searchResponse =

@@ -11,6 +11,7 @@ import static org.junit.Assert.assertThrows;
 
 import java.util.List;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.hamcrest.text.StringContainsInOrder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -95,7 +96,7 @@ public class PPLSyntaxParserTest {
   @Test
   public void testSearchCommandWithoutSourceShouldFail() {
     exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage("Failed to parse query due to offending symbol");
+    exceptionRule.expectMessage("is not a valid term at this part of the query");
 
     new PPLSyntaxParser().parse("search a=1");
   }
@@ -337,9 +338,26 @@ public class PPLSyntaxParserTest {
   @Test
   public void testDescribeCommandWithSourceShouldFail() {
     exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage("Failed to parse query due to offending symbol");
+    exceptionRule.expectMessage(
+        StringContainsInOrder.stringContainsInOrder(
+            "[=] is not a valid term at this part of the query: 'describe source=' <-- HERE.",
+            "Expecting tokens:"));
 
     new PPLSyntaxParser().parse("describe source=t");
+  }
+
+  @Test
+  public void testInvalidOperatorCombinationShouldFail() {
+    exceptionRule.expect(RuntimeException.class);
+    exceptionRule.expectMessage(
+        StringContainsInOrder.stringContainsInOrder(
+            "[<EOF>] is not a valid term at this part of the query: '...= t | where x > y OR' <--"
+                + " HERE.",
+            "Expecting one of ",
+            " possible tokens. Some examples: ",
+            "..."));
+
+    new PPLSyntaxParser().parse("source = t | where x > y OR");
   }
 
   @Test

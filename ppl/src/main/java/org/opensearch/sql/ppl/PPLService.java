@@ -35,9 +35,9 @@ public class PPLService {
 
   private final QueryPlanFactory queryExecutionFactory;
 
-  private final PPLQueryDataAnonymizer anonymizer = new PPLQueryDataAnonymizer();
-
   private final Settings settings;
+
+  private final PPLQueryDataAnonymizer anonymizer = new PPLQueryDataAnonymizer();
 
   private static final Logger LOG = LogManager.getLogger();
 

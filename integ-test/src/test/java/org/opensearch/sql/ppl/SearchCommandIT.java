@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
@@ -64,7 +63,7 @@ public class SearchCommandIT extends PPLIntegTestCase {
       fail();
     } catch (ResponseException e) {
       assertTrue(e.getMessage().contains("RuntimeException"));
-      assertTrue(e.getMessage().contains("Failed to parse query due to offending symbol"));
+      assertTrue(e.getMessage().contains(SYNTAX_EX_MSG_FRAGMENT));
     }
   }
 }

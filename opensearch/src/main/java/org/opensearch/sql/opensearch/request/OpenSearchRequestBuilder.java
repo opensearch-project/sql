@@ -95,11 +95,7 @@ public class OpenSearchRequestBuilder {
       int maxResultWindow,
       TimeValue cursorKeepAlive,
       OpenSearchClient client) {
-    if (this.settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)) {
-      return buildRequestWithPit(indexName, maxResultWindow, cursorKeepAlive, client);
-    } else {
-      return buildRequestWithScroll(indexName, maxResultWindow, cursorKeepAlive);
-    }
+    return buildRequestWithPit(indexName, maxResultWindow, cursorKeepAlive, client);
   }
 
   private OpenSearchRequest buildRequestWithPit(
@@ -133,32 +129,6 @@ public class OpenSearchRequestBuilder {
       String pitId = createPit(indexName, cursorKeepAlive, client);
       return new OpenSearchQueryRequest(
           indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
-    }
-  }
-
-  private OpenSearchRequest buildRequestWithScroll(
-      OpenSearchRequest.IndexName indexName, int maxResultWindow, TimeValue cursorKeepAlive) {
-    int size = requestedTotalSize;
-    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
-    List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
-
-    if (pageSize == null) {
-      if (startFrom + size > maxResultWindow) {
-        sourceBuilder.size(maxResultWindow - startFrom);
-        return new OpenSearchScrollRequest(
-            indexName, cursorKeepAlive, sourceBuilder, exprValueFactory, includes);
-      } else {
-        sourceBuilder.from(startFrom);
-        sourceBuilder.size(requestedTotalSize);
-        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
-      }
-    } else {
-      if (startFrom != 0) {
-        throw new UnsupportedOperationException("Non-zero offset is not supported with pagination");
-      }
-      sourceBuilder.size(pageSize);
-      return new OpenSearchScrollRequest(
-          indexName, cursorKeepAlive, sourceBuilder, exprValueFactory, includes);
     }
   }
 
@@ -280,7 +250,7 @@ public class OpenSearchRequestBuilder {
 
   /** Push down project list to DSL requests. */
   public void pushDownProjects(Set<ReferenceExpression> projects) {
-    pushDownProjectStream(projects.stream().map(ReferenceExpression::getAttr));
+    pushDownProjectStream(projects.stream().map(ReferenceExpression::getRawPath));
   }
 
   public void pushDownProjectStream(Stream<String> projects) {

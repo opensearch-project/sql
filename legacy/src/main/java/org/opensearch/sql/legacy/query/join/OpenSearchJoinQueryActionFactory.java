@@ -6,12 +6,12 @@
 package org.opensearch.sql.legacy.query.join;
 
 import java.util.List;
-import org.opensearch.client.Client;
 import org.opensearch.sql.legacy.domain.Condition;
 import org.opensearch.sql.legacy.domain.JoinSelect;
 import org.opensearch.sql.legacy.domain.hints.Hint;
 import org.opensearch.sql.legacy.domain.hints.HintType;
 import org.opensearch.sql.legacy.query.QueryAction;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 15/9/2015. */
 public class OpenSearchJoinQueryActionFactory {

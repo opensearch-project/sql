@@ -4,7 +4,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
 
 import org.apache.lucene.search.TotalHits;
 import org.junit.Before;
@@ -24,7 +23,6 @@ import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 public class PrettyFormatRestExecutorTest {
 
   @Mock private SearchResponse searchResponse;
-  @Mock private SearchHits searchHits;
   @Mock private SearchHit searchHit;
   @Mock private DefaultQueryAction queryAction;
   @Mock private SqlRequest sqlRequest;
@@ -34,8 +32,6 @@ public class PrettyFormatRestExecutorTest {
   public void setUp() {
     OpenSearchSettings settings = mock(OpenSearchSettings.class);
     LocalClusterState.state().setPluginSettings(settings);
-    when(LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER))
-        .thenReturn(true);
     when(queryAction.getSqlRequest()).thenReturn(sqlRequest);
     executor = new PrettyFormatRestExecutor("jdbc");
   }
@@ -67,23 +63,5 @@ public class PrettyFormatRestExecutorTest {
                 new SearchHit[] {searchHit}, new TotalHits(5, TotalHits.Relation.EQUAL_TO), 1.0F));
 
     assertTrue(executor.isDefaultCursor(searchResponse, queryAction));
-  }
-
-  @Test
-  public void testIsDefaultCursor_PaginationApiDisabled() {
-    when(LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER))
-        .thenReturn(false);
-    when(searchResponse.getScrollId()).thenReturn("someScrollId");
-
-    assertTrue(executor.isDefaultCursor(searchResponse, queryAction));
-  }
-
-  @Test
-  public void testIsDefaultCursor_PaginationApiDisabled_NoScrollId() {
-    when(LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER))
-        .thenReturn(false);
-    when(searchResponse.getScrollId()).thenReturn(null);
-
-    assertFalse(executor.isDefaultCursor(searchResponse, queryAction));
   }
 }

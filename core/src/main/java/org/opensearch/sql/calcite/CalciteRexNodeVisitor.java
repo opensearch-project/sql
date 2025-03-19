@@ -35,6 +35,7 @@ import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -53,6 +54,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 
@@ -145,6 +147,29 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   @Override
+  public RexNode visitIn(In node, CalcitePlanContext context) {
+    final RexNode field = analyze(node.getField(), context);
+    final List<RexNode> valueList =
+        node.getValueList().stream().map(value -> analyze(value, context)).toList();
+    final List<RelDataType> dataTypes =
+        new java.util.ArrayList<>(valueList.stream().map(RexNode::getType).toList());
+    dataTypes.add(field.getType());
+    RelDataType commonType = context.rexBuilder.getTypeFactory().leastRestrictive(dataTypes);
+    if (commonType != null) {
+      List<RexNode> newValueList =
+          valueList.stream().map(value -> context.rexBuilder.makeCast(commonType, value)).toList();
+      return context.rexBuilder.makeIn(field, newValueList);
+    } else {
+      List<ExprType> exprTypes =
+          dataTypes.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
+      throw new SemanticCheckException(
+          StringUtils.format(
+              "In expression types are incompatible: fields type %s, values type %s",
+              exprTypes.getLast(), exprTypes.subList(0, exprTypes.size() - 1)));
+    }
+  }
+
+  @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
     SqlOperator op = BuiltinFunctionUtils.translate(node.getOperator());
     final RexNode left = analyze(node.getLeft(), context);
@@ -165,7 +190,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       throw new SemanticCheckException(
           StringUtils.format(
               "BETWEEN expression types are incompatible: [%s, %s, %s]",
-              value.getType(), lowerBound.getType(), upperBound.getType()));
+              OpenSearchTypeFactory.convertRelDataTypeToExprType(value.getType()),
+              OpenSearchTypeFactory.convertRelDataTypeToExprType(lowerBound.getType()),
+              OpenSearchTypeFactory.convertRelDataTypeToExprType(upperBound.getType())));
     }
     return context.relBuilder.between(value, lowerBound, upperBound);
   }

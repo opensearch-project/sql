@@ -6,7 +6,6 @@
 package org.opensearch.sql.plugin.config;
 
 import lombok.RequiredArgsConstructor;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
@@ -38,6 +37,7 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.StorageEngine;
+import org.opensearch.transport.client.node.NodeClient;
 
 @RequiredArgsConstructor
 public class OpenSearchPluginModule extends AbstractModule {

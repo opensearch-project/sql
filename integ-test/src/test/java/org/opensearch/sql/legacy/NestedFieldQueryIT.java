@@ -60,6 +60,9 @@ import org.opensearch.search.SearchHit;
  * 6) Verification for conditions mixed with regular and nested fields
  * </pre>
  */
+@Ignore(
+    "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
+        + " response for now. Need to decide what to do with these test cases.")
 public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   private static final String FROM =

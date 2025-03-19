@@ -204,6 +204,13 @@ public enum BuiltinFunctionName {
   TRIM(FunctionName.of("trim")),
   UPPER(FunctionName.of("upper")),
 
+  /** Json Functions. */
+  JSON_VALID(FunctionName.of("json_valid")),
+  JSON(FunctionName.of("json")),
+
+  /** GEOSPATIAL Functions. */
+  GEOIP(FunctionName.of("geoip")),
+
   /** NULL Test. */
   IS_NULL(FunctionName.of("is null")),
   IS_NOT_NULL(FunctionName.of("is not null")),
@@ -215,6 +222,9 @@ public enum BuiltinFunctionName {
   ROW_NUMBER(FunctionName.of("row_number")),
   RANK(FunctionName.of("rank")),
   DENSE_RANK(FunctionName.of("dense_rank")),
+
+  SIMPLE_PATTERN(FunctionName.of("simple_pattern")),
+  BRAIN(FunctionName.of("brain")),
 
   INTERVAL(FunctionName.of("interval")),
 
@@ -232,6 +242,7 @@ public enum BuiltinFunctionName {
   CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
   CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
   CAST_TO_IP(FunctionName.of("cast_to_ip")),
+  CAST_TO_JSON(FunctionName.of("cast_to_json")),
   TYPEOF(FunctionName.of("typeof")),
 
   /** Relevance Function. */

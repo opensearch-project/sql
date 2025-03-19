@@ -1,0 +1,13 @@
+{
+  "mappings": {
+    "properties": {
+      "original_col": {
+        "type": "integer"
+      },
+      "alias_col": {
+        "type": "alias",
+        "path": "original_col"
+      }
+    }
+  }
+}

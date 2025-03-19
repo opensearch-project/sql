@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getAliasIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankWithNullValuesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNonnumericIndexMapping;
@@ -21,9 +22,11 @@ import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDuplicationNullableIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getGeoIpIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getHobbiesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getJsonTestIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getNestedSimpleIndexMapping;
@@ -56,6 +59,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import javax.management.MBeanServerInvocationHandler;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
@@ -71,6 +75,7 @@ import org.junit.Before;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -230,7 +235,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected Request getSqlRequest(String request, boolean explain) {
-    return getSqlRequest(request, explain, "json");
+    return getSqlRequest(request, explain, "jdbc");
   }
 
   protected Request getSqlRequest(String request, boolean explain, String requestType) {
@@ -253,6 +258,18 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     sqlRequest.setOptions(restOptionsBuilder);
 
     return sqlRequest;
+  }
+
+  protected void assertBadRequest(Callable<Response> operation) {
+    try {
+      operation.call();
+      Assert.fail("Expected ResponseException was not thrown");
+    } catch (ResponseException e) {
+      Assert.assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
+      Assert.assertEquals("Bad Request", e.getResponse().getStatusLine().getReasonPhrase());
+    } catch (Exception e) {
+      Assert.fail("Unexpected exception: " + e.getMessage());
+    }
   }
 
   protected String executeQuery(String query, String requestType) {
@@ -333,7 +350,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
     final String requestUrl =
         String.format(
-            Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT, urlEncodedQuery, "json");
+            Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT, urlEncodedQuery, "jdbc");
     return new Request("GET", requestUrl);
   }
 
@@ -631,6 +648,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "unexpandedObject",
         getUnexpandedObjectIndexMapping(),
         "src/test/resources/unexpanded_objects.json"),
+    GEOIP(
+        TestsConstants.TEST_INDEX_GEOIP,
+        "geoip",
+        getGeoIpIndexMapping(),
+        "src/test/resources/geoip.json"),
     BANK(
         TestsConstants.TEST_INDEX_BANK,
         "account",
@@ -787,6 +809,16 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_WORK_INFORMATION,
         "work_information",
         getWorkInformationIndexMapping(),
+        "src/test/resources/work_information.json"),
+    JSON_TEST(
+        TestsConstants.TEST_INDEX_JSON_TEST,
+        "json",
+        getJsonTestIndexMapping(),
+        "src/test/resources/json_test.json"),
+    DATA_TYPE_ALIAS(
+        TestsConstants.TEST_INDEX_ALIAS,
+        "alias",
+        getAliasIndexMapping(),
         "src/test/resources/work_information.json"),
     DUPLICATION_NULLABLE(
         TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE,
