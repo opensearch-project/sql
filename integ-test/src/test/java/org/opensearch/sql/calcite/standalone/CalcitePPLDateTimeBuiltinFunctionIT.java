@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.standalone;
 
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearweek;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
@@ -14,6 +16,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import java.io.IOException;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -24,6 +27,9 @@ import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     @Override
@@ -152,6 +158,43 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     }
 
     @Test
+    public void testUnixTimeStamp(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where unix_timestamp(from_unixtime(1700000001)) > 1700000000 "
+                                        + "| stats COUNT() AS CNT "
+                                , TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("CNT", "long")
+        );
+        verifyDataRows(actual, rows(
+                7
+        ));
+    }
+
+    @Test
+    public void testUtcTimes(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| eval timestamp=UTC_TIMESTAMP() "
+                                        + "| eval time=UTC_TIME()"
+                                        + "| eval date=UTC_DATE()"
+                                        + "| fields timestamp, time, date "
+                                , TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("timestamp", "timestamp"),
+                schema("date", "date"),
+                schema("time", "time")
+
+        );
+    }
+
+
+    @Test
     public void testWeekAndWeekOfYear(){
         JSONObject actual =
                 executeQuery(
@@ -162,25 +205,137 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                                         + "| eval `WEEK_OF_YEAR(DATE(strict_date_optional_time))` = WEEK_OF_YEAR(DATE(strict_date_optional_time))"
                                         + "| eval `WEEK(DATE(strict_date_optional_time), 1)` = WEEK(DATE(strict_date_optional_time), 1)"
                                         + "| eval `WEEK_OF_YEAR(DATE(strict_date_optional_time), 1)` = WEEK_OF_YEAR(DATE(strict_date_optional_time), 1)"
-                                        + "| eval `WEEK(DATE('2008-02-20'))` = WEEK(DATE('2008-02-20')), `WEEK(DATE('2008-02-20'), 1)` = WEEK(DATE('2008-02-20'), 1) | fields `WEEK(DATE('2008-02-20'))`, `WEEK(DATE('2008-02-20'), 1)`"
-                                        + "| fields `WEEK(DATE(strict_date_optional_time))`, `WEEK_OF_YEAR(DATE(strict_date_optional_time))`, `WEEK(DATE(strict_date_optional_time), 1)`, `WEEK_OF_YEAR(DATE(strict_date_optional_time), 1)`"
+                                        + "| eval `WEEK(DATE('2008-02-20'))` = WEEK(DATE('2008-02-20')), `WEEK(DATE('2008-02-20'), 1)` = WEEK(DATE('2008-02-20'), 1)"
+                                        + "| fields `WEEK(DATE(strict_date_optional_time))`, `WEEK_OF_YEAR(DATE(strict_date_optional_time))`, `WEEK(DATE(strict_date_optional_time), 1)`, `WEEK_OF_YEAR(DATE(strict_date_optional_time), 1)`, `WEEK(DATE('2008-02-20'))`, `WEEK(DATE('2008-02-20'), 1)`"
                                         + "| head 1 ", TEST_INDEX_DATE_FORMATS));
 
         verifySchema(actual,
-                schema("WEEK(DATE(strict_date_optional_time))", "long"),
-                schema("WEEK_OF_YEAR(DATE(strict_date_optional_time))", "long"),
-                schema("WEEK(DATE(strict_date_optional_time), 1)", "long"),
-                schema("WEEK_OF_YEAR(DATE(strict_date_optional_time), 1)", "long"),
-                schema("WEEK(DATE('2008-02-20'))", "long"),
-                schema("WEEK(DATE('2008-02-20'))", "long")
+                schema("WEEK(DATE(strict_date_optional_time))", "integer"),
+                schema("WEEK_OF_YEAR(DATE(strict_date_optional_time))", "integer"),
+                schema("WEEK(DATE(strict_date_optional_time), 1)", "integer"),
+                schema("WEEK_OF_YEAR(DATE(strict_date_optional_time), 1)", "integer"),
+                schema("WEEK(DATE('2008-02-20'))", "integer"),
+                schema("WEEK(DATE('2008-02-20'), 1)", "integer")
         );
 
         verifyDataRows(actual, rows(
-                "15", "15", "8", "8", 7, 8
+                15, 15, 15, 15, 7, 8
         ));
-
-
     }
+
+    @Test
+    public void testWeekAndWeekOfYearWithFilter(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s | fields  strict_date_optional_time"
+                                        + "| where YEAR(strict_date_optional_time) < 2000"
+                                        + "| where WEEK(DATE(strict_date_optional_time)) = 15"
+                                        + "| stats COUNT() AS CNT "
+                                        + "| head 1 ", TEST_INDEX_DATE_FORMATS));
+
+        verifySchema(actual,
+                schema("CNT", "long")
+        );
+
+        verifyDataRows(actual, rows(
+                2
+        ));
+    }
+
+    @Test
+    public void testWeekDay(){
+        int currentWeekDay = formatNow(new FunctionProperties().getQueryStartClock()).getDayOfWeek().getValue()
+                - 1;
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where YEAR(strict_date_optional_time) < 2000"
+                                        + "| eval timestamp=weekday(TIMESTAMP(strict_date_optional_time)), time=weekday(TIME(strict_date_optional_time)), date=weekday(DATE(strict_date_optional_time))"
+                                        + "| eval `weekday('2020-08-26')` = weekday('2020-08-26') "
+                                        + "| fields timestamp, time, date, `weekday('2020-08-26')`"
+                                        + "| head 1 ", TEST_INDEX_DATE_FORMATS));
+
+        verifySchema(actual,
+                schema("timestamp", "integer"),
+                schema("time", "integer"),
+                schema("date", "integer"),
+                schema("weekday('2020-08-26')", "integer")
+        );
+
+        verifyDataRows(actual, rows(
+                3, currentWeekDay, 3, 2
+        ));
+    }
+
+
+    @Test
+    public void testYearWeek(){
+        int currentYearWeek = exprYearweek(new ExprDateValue(LocalDateTime.now(new FunctionProperties().getQueryStartClock()).toLocalDate()), new ExprIntegerValue(0)).integerValue();
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where YEAR(strict_date_optional_time) < 2000"
+                                        + "| eval timestamp=YEARWEEK(TIMESTAMP(strict_date_optional_time)), time=YEARWEEK(TIME(strict_date_optional_time)), date=YEARWEEK(DATE(strict_date_optional_time))"
+                                        + "| eval `YEARWEEK('2020-08-26')` = YEARWEEK('2020-08-26') | eval `YEARWEEK('2019-01-05', 1)` = YEARWEEK('2019-01-05', 1) | fields timestamp, time, date, `YEARWEEK('2020-08-26')`, `YEARWEEK('2019-01-05', 1)`"
+                                        + "| head 1 ", TEST_INDEX_DATE_FORMATS));
+
+        verifySchema(actual,
+                schema("timestamp", "integer"),
+                schema("time", "integer"),
+                schema("date", "integer"),
+                schema("YEARWEEK('2020-08-26')", "integer"),
+                schema("YEARWEEK('2019-01-05', 1)", "integer")
+        );
+
+        verifyDataRows(actual, rows(
+                198415, currentYearWeek, 198415, 202034, 201901
+        ));
+    }
+
+    @Test
+    public void testYearWeekWithFilter(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where YEARWEEK(strict_date_optional_time) < 200000"
+                                        + "| stats COUNT() AS CNT"
+                                        + "| head 1 ", TEST_INDEX_DATE_FORMATS));
+
+        verifySchema(actual,
+                schema("CNT", "long")
+        );
+
+        verifyDataRows(actual, rows(
+                2
+        ));
+    }
+
+    @Test
+    public void testYear(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where YEAR(strict_date_optional_time) = 1984 "
+                                        + "| eval timestamp=YEAR(TIMESTAMP(strict_date_optional_time)), date=YEAR(DATE(strict_date_optional_time))"
+                                        + "| eval `YEAR('2020-08-26')` = YEAR('2020-08-26') | fields timestamp, date, `YEAR('2020-08-26')`"
+                                        + "| head 1 ", TEST_INDEX_DATE_FORMATS));
+
+        verifySchema(actual,
+                schema("timestamp", "integer"),
+                schema("date", "integer"),
+                schema("YEAR('2020-08-26')", "integer")
+        );
+
+        verifyDataRows(actual, rows(
+                1984, 1984, 2020
+        ));
+    }
+
 
     private void initRelativeDocs() throws IOException {
         List<String> relativeList = List.of("NOW", "TMR", "+month", "-2wk", "-1d@d");

@@ -1476,7 +1476,7 @@ public class DateTimeFunctions {
     return new ExprDateValue(LocalDate.ofEpochDay(exprValue.longValue() - DAYS_0000_TO_1970));
   }
 
-  private ExprValue exprFromUnixTime(ExprValue time) {
+  public static ExprValue exprFromUnixTime(ExprValue time) {
     if (0 > time.doubleValue()) {
       return ExprNullValue.of();
     }
@@ -1496,7 +1496,7 @@ public class DateTimeFunctions {
         .withNano((int) ((time.doubleValue() % 1) * 1E9));
   }
 
-  private ExprValue exprFromUnixTimeFormat(ExprValue time, ExprValue format) {
+  public static ExprValue exprFromUnixTimeFormat(ExprValue time, ExprValue format) {
     var value = exprFromUnixTime(time);
     if (value.equals(ExprNullValue.of())) {
       return ExprNullValue.of();
@@ -2221,7 +2221,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/Time/Timestamp/String type.
    * @param mode ExprValue of Integer type.
    */
-  private ExprValue exprYearweek(ExprValue date, ExprValue mode) {
+  public static ExprValue exprYearweek(ExprValue date, ExprValue mode) {
     return extractYearweek(date.dateValue(), mode.integerValue());
   }
 
@@ -2244,7 +2244,7 @@ public class DateTimeFunctions {
     return new ExprIntegerValue(LocalDateTime.now(clock).getMonthValue());
   }
 
-  private LocalDateTime formatNow(Clock clock) {
+  public static LocalDateTime formatNow(Clock clock) {
     return formatNow(clock, 0);
   }
 

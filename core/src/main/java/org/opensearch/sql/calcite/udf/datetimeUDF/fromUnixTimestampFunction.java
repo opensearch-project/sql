@@ -7,6 +7,8 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.DATE_HANDLERS;
 import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFormattedString;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTime;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTimeFormat;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -17,7 +19,9 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
+import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
 
 /**
  * DOUBLE -> DATETIME DOUBLE, STRING -> STRING Mimic implementation from
@@ -35,22 +39,12 @@ public class fromUnixTimestampFunction implements UserDefinedFunction {
 
       } else {
         double input = ((Number) value).doubleValue();
-        LocalDateTime localDateTime =
-            LocalDateTime.ofInstant(
-                    InstantUtils.fromEpochMills((long) Math.floor(input)), ZoneOffset.UTC)
-                .withNano((int) ((input % 1) * 1E9));
-        return java.sql.Timestamp.valueOf(localDateTime);
+        return java.sql.Timestamp.valueOf(LocalDateTime.ofInstant(exprFromUnixTime(new ExprDoubleValue(input)).timestampValue(), ZoneOffset.UTC));
       }
     } else if (args.length == 2) {
       Object value = args[0];
       Object target = args[1];
-      double input = ((Number) value).doubleValue();
-      LocalDateTime localDateTime =
-          LocalDateTime.ofInstant(
-                  InstantUtils.fromEpochMills((long) Math.floor(input)), ZoneOffset.UTC)
-              .withNano((int) ((input % 1) * 1E9));
-      ExprStringValue exprValue = new ExprStringValue(target.toString());
-      return getFormattedString(exprValue, DATE_HANDLERS, localDateTime).stringValue();
+      return java.sql.Timestamp.from(exprFromUnixTimeFormat(new ExprDoubleValue((Number) value), new ExprStringValue((String) target)).timestampValue());
     } else {
       throw new IllegalArgumentException("Too many arguments for from_unixtimestamp function");
     }

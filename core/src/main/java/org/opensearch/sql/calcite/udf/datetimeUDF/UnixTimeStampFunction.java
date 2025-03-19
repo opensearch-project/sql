@@ -37,6 +37,7 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
     } else {
       inputValue = new ExprLongValue((long) input);
     }
+    long demo = unixTimeStampOf(inputValue).longValue();
     return unixTimeStampOf(inputValue).longValue();
   }
 }

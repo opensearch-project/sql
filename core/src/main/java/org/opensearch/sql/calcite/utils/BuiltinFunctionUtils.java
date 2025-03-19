@@ -12,6 +12,7 @@ import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.transferS
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.ExtendedRexBuilder;
@@ -58,7 +60,9 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeStampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.WeekDayFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.WeekFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.YearWeekFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.secondToTimeFunction;
@@ -73,6 +77,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.toSecondsFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
+import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
 public interface BuiltinFunctionUtils {
 
@@ -265,11 +270,19 @@ public interface BuiltinFunctionUtils {
                 secondToTimeFunction.class, "SEC_TO_TIME", ReturnTypes.TIME);
       case "YEAR", "MINUTE", "HOUR", "HOUR_OF_DAY", "MONTH", "MONTH_OF_YEAR", "DAY_OF_MONTH", "DAYOFMONTH", "DAY", "MINUTE_OF_HOUR", "SECOND", "SECOND_OF_MINUTE":
         return SqlLibraryOperators.DATE_PART;
+      case "YEARWEEK":
+        return TransferUserDefinedFunction(
+                YearWeekFunction.class, "YEARWEEK", ReturnTypes.INTEGER);
       case "FROM_UNIXTIME":
         return TransferUserDefinedFunction(
             fromUnixTimestampFunction.class,
             "FROM_UNIXTIME",
             fromUnixTimestampFunction.interReturnTypes());
+      case "WEEKDAY":
+        return TransferUserDefinedFunction(
+                WeekDayFunction.class,
+                "WEEKDAY",
+                ReturnTypes.INTEGER);
       case "UTC_TIMESTAMP":
         return TransferUserDefinedFunction(
             UtcTimeStampFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
@@ -382,7 +395,7 @@ public interface BuiltinFunctionUtils {
           LastDateArgs.add(lastDayTimestampExpr);
         }
         return LastDateArgs;
-      case "TIMESTAMP", "TIMEDIFF", "TIME_TO_SEC", "TIME_FORMAT":
+      case "TIMESTAMP", "TIMEDIFF", "TIME_TO_SEC", "TIME_FORMAT", "YEARWEEK", "WEEKDAY":
         List<RexNode> timestampArgs = new ArrayList<>(argList);
         timestampArgs.addAll(
             argList.stream()
@@ -412,8 +425,23 @@ public interface BuiltinFunctionUtils {
         List<RexNode> extractArgs = new ArrayList<>();
         TimeUnitRange timeUnitRange = TimeUnitRange.valueOf(op);
         extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
-        //extractArgs.add(context.rexBuilder.makeLiteral(op));
-        extractArgs.add(argList.getFirst());
+        if (argList.getFirst() instanceof RexLiteral) {
+          Object stringExpr = ((RexLiteral) argList.getFirst()).getValue();
+          if (! (argList.getFirst().getType().getSqlTypeName() == SqlTypeName.CHAR || argList.getFirst().getType().getSqlTypeName() == SqlTypeName.VARCHAR)){
+            throw new IllegalArgumentException(op + " need first argument string/datetime/time/timestamp");
+          }
+          String expression;
+          if (stringExpr instanceof NlsString) {
+            expression = ((NlsString) stringExpr).getValue();
+          } else {
+            expression = stringExpr.toString();
+          }
+          LocalDate date = LocalDateTime.ofInstant(InstantUtils.fromStringExpr(expression), ZoneOffset.UTC).toLocalDate();
+          extractArgs.add(context.rexBuilder.makeDateLiteral(DateString.fromDaysSinceEpoch((int) date.toEpochDay())));
+        }
+        else {
+          extractArgs.add(argList.getFirst());
+        }
         return extractArgs;
       case "HOUR_OF_DAY":
         List<RexNode> hourofDayArgs = new ArrayList<>();
@@ -571,6 +599,7 @@ public interface BuiltinFunctionUtils {
       case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
       case "TIMESTAMPADD" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
       case "TIMESTAMPDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+      case "YEAR" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
       default -> rexBuilder.deriveReturnType(operator, exprs);
     };
   }
