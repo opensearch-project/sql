@@ -15,6 +15,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 @ToString
@@ -32,6 +33,8 @@ public class Join extends UnresolvedPlan {
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
+    // Exclude metadata fields for join since they're meaningless for a new record
+    child = AllFields.excludeMeta().apply(child);
     this.left = leftAlias.isEmpty() ? child : new SubqueryAlias(leftAlias.get(), child);
     return this;
   }

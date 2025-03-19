@@ -8,9 +8,9 @@ package org.opensearch.sql.ast.expression;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 
 /**
  * Alias abstraction that associate an unnamed expression with a name. The name information
@@ -21,7 +21,6 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @Getter
-@RequiredArgsConstructor
 @ToString
 public class Alias extends UnresolvedExpression {
 
@@ -33,6 +32,15 @@ public class Alias extends UnresolvedExpression {
 
   /** TODO. Optional field alias. */
   private String alias;
+
+  public Alias(String name, UnresolvedExpression expr) {
+    if (OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(name)) {
+      throw new IllegalArgumentException(
+          String.format("Cannot use metadata field [%s] as the alias.", name));
+    }
+    this.name = name;
+    this.delegated = expr;
+  }
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {

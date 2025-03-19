@@ -56,7 +56,8 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
                    """,
                         TEST_INDEX_STATE_COUNTRY)));
     assertEquals(
-        "field [age] not found; input fields are: [name, country, state, month, year, renamed_age]",
+        "field [age] not found; input fields are: [name, country, state, month, year, renamed_age,"
+            + " _id, _index, _score, _maxscore, _sort, _routing]",
         e.getMessage());
   }
 
@@ -73,8 +74,36 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
                    """,
                         TEST_INDEX_STATE_COUNTRY)));
     assertEquals(
-        "field [renamed_age] not found; input fields are: [name, country, state, month, year, age]",
+        "field [renamed_age] not found; input fields are: [name, country, state, month, year, age,"
+            + " _id, _index, _score, _maxscore, _sort, _routing]",
         e.getMessage());
+  }
+
+  @Test
+  public void testRenameMetaField() {
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        """
+                   source = %s | rename _id as id
+                   """,
+                        TEST_INDEX_STATE_COUNTRY)));
+    assertEquals("Cannot use metadata field [_id] in Rename command.", e.getMessage());
+
+    e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        """
+                   source = %s | rename name as _id
+                   """,
+                        TEST_INDEX_STATE_COUNTRY)));
+    assertEquals("Cannot use metadata field [_id] in Rename command.", e.getMessage());
   }
 
   @Test

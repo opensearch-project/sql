@@ -9,15 +9,16 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @Getter
-@RequiredArgsConstructor
 public class Rename extends UnresolvedPlan {
   private final List<Map> renameList;
   private UnresolvedPlan child;
@@ -25,6 +26,30 @@ public class Rename extends UnresolvedPlan {
   public Rename(List<Map> renameList, UnresolvedPlan child) {
     this.renameList = renameList;
     this.child = child;
+    checkRename();
+  }
+
+  public Rename(List<Map> renameList) {
+    this.renameList = renameList;
+    checkRename();
+  }
+
+  private void checkRename() {
+    renameList.forEach(
+        rename -> {
+          checkFieldName(rename.getOrigin());
+          checkFieldName(rename.getTarget());
+        });
+  }
+
+  private void checkFieldName(UnresolvedExpression expr) {
+    if (expr instanceof Field field) {
+      String name = field.getField().toString();
+      if (OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(name)) {
+        throw new IllegalArgumentException(
+            String.format("Cannot use metadata field [%s] in Rename command.", name));
+      }
+    }
   }
 
   @Override

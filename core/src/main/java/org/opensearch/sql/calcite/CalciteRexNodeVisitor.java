@@ -370,6 +370,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   private RelNode resolveSubqueryPlan(UnresolvedPlan subquery, CalcitePlanContext context) {
+    context.setResolvingSubquery(true);
     // clear and store the outer state
     boolean isResolvingJoinConditionOuter = context.isResolvingJoinCondition();
     if (isResolvingJoinConditionOuter) {
@@ -383,6 +384,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     if (isResolvingJoinConditionOuter) {
       context.setResolvingJoinCondition(true);
     }
+    context.setResolvingSubquery(false);
     return subqueryRel;
   }
 

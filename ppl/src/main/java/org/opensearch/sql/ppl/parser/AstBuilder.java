@@ -39,6 +39,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
@@ -119,7 +120,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitSubSearch(OpenSearchPPLParser.SubSearchContext ctx) {
     UnresolvedPlan searchCommand = visit(ctx.searchCommand());
-    return ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r));
+    // Exclude metadata fields for subquery
+    return AllFields.excludeMeta()
+        .apply(
+            ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r)));
   }
 
   /** Search command. */
@@ -204,8 +208,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.joinCriteria() == null
             ? Optional.empty()
             : Optional.of(expressionBuilder.visitJoinCriteria(ctx.joinCriteria()));
-
-    return new Join(right, leftAlias, rightAlias, joinType, joinCondition, joinHint);
+    // Exclude metadata fields for join since they're meaningless for a new record
+    return new Join(
+        AllFields.excludeMeta().apply(right),
+        leftAlias,
+        rightAlias,
+        joinType,
+        joinCondition,
+        joinHint);
   }
 
   private Join.JoinHint getJoinHint(OpenSearchPPLParser.JoinHintListContext ctx) {
