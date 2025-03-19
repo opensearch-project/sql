@@ -162,6 +162,53 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     }
 
+    @Test
+    public void testSecToTime(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where YEAR(strict_date_optional_time) < 2000"
+                                        + "| eval long_value=SEC_TO_TIME(3601) "
+                                        + "| eval double_value=SEC_TO_TIME(1234.123) "
+                                        + "| fields long_value, double_value | head 1"
+                                , TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("long_value", "time"),
+                schema("double_value", "time")
+        );
+        verifyDataRows(actual, rows(
+                "01:00:01", "00:20:34.123"
+        ));
+    }
+
+    @Test
+    public void testToSeconds(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where YEAR(strict_date_optional_time) < 2000"
+                                        + "| eval timestamp=to_seconds(strict_date_optional_time) "
+                                        + "| eval time=to_seconds(time)"
+                                        + "| eval date=to_seconds(date)"
+                                        + "| eval string_value=to_seconds('2008-10-07')"
+                                        + "| eval long_value = to_seconds(950228)"
+                                        + "| where to_seconds(strict_date_optional_time) > 62617795199"
+                                        + "| fields timestamp, time, date, string_value, long_value | head 1"
+                                , TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("timestamp", "long"),
+                schema("time", "long"),
+                schema("date", "long"),
+                schema("string_value", "long"),
+                schema("long_value", "long")
+        );
+        verifyDataRows(actual, rows(
+                62617828062L, 63909594462L, 62617795200L, 63390556800L, 62961148800L
+        ));
+    }
+
 
     @Test
     public void testToDays(){
@@ -174,6 +221,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                                         + "| eval time=to_days(time)"
                                         + "| eval date=to_days(date)"
                                         + "| eval string_value=to_days('2008-10-07')"
+                                        + "| where to_days(strict_date_optional_time) = 724743"
                                         + "| fields timestamp, time, date, string_value | head 1"
                                 , TEST_INDEX_DATE_FORMATS));
         verifySchema(actual,
@@ -183,7 +231,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 schema("string_value", "long")
         );
         verifyDataRows(actual, rows(
-                "06:12:27"
+                724743,739694,724743,733687
         ));
     }
 

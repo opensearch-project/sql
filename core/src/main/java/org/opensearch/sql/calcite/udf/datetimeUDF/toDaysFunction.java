@@ -20,14 +20,7 @@ public class toDaysFunction implements UserDefinedFunction {
             throw new IllegalArgumentException("To seconds Expected at least one arguments, got " + (args.length - 1));
         }
         SqlTypeName sqlTypeName = (SqlTypeName) args[1];
-        ExprValue candidateValue;
-        switch (sqlTypeName) {
-            case DATE, TIME, TIMESTAMP:
-                candidateValue = new ExprTimestampValue(LocalDateTime.ofInstant(InstantUtils.convertToInstant(args[0], sqlTypeName), ZoneOffset.UTC));
-                break;
-            default:
-                candidateValue = new ExprLongValue((Number) args[1]);
-        }
+        ExprValue candidateValue = new ExprTimestampValue(LocalDateTime.ofInstant(InstantUtils.convertToInstant(args[0], sqlTypeName), ZoneOffset.UTC));
         return exprToDays(candidateValue).longValue();
     }
 }

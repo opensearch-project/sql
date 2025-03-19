@@ -26,11 +26,11 @@ public class toSecondsFunction implements UserDefinedFunction {
         }
         SqlTypeName sqlTypeName = (SqlTypeName) args[1];
         switch (sqlTypeName) {
-            case DATE, TIME, TIMESTAMP:
+            case DATE, TIME, TIMESTAMP, CHAR, VARCHAR:
                 ExprTimestampValue dateTimeValue = new ExprTimestampValue(LocalDateTime.ofInstant(InstantUtils.convertToInstant(args[0], sqlTypeName), ZoneOffset.UTC));
                 return exprToSeconds(dateTimeValue).longValue();
             default:
-                return exprToSecondsForIntType(new ExprLongValue((Number) args[1])).longValue();
+                return exprToSecondsForIntType(new ExprLongValue((Number) args[0])).longValue();
         }
     }
 }
