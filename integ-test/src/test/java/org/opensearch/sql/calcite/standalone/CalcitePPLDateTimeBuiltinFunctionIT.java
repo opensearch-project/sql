@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -39,6 +40,10 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         loadIndex(Index.STATE_COUNTRY_WITH_NULL);
         loadIndex(Index.DATE_FORMATS);
         initRelativeDocs();
+    }
+
+    private static String getUtcDate() {
+        return LocalDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
     }
 
     @Test
@@ -93,7 +98,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         verifyDataRows(actual, rows("2020-08-26 13:49:00",
                 "2020-08-26 00:00:00",
                 "2020-08-26 13:49:00",
-                "2025-03-18 13:49:00",
+                getUtcDate() + " 13:49:00",
                 "2020-08-26 13:59:10",
                 "2020-08-26 13:59:10",
                 "2020-08-26 13:49:00",
@@ -380,4 +385,104 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         return result.format(formatter);
     }
 
+    @Test
+    public void testAddDateAndSubDateWithConditionsAndRename() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s | eval lower = SUBDATE(date, 3), upper = ADDDATE(date, 1), ts ="
+                                        + " ADDDATE(date, INTERVAL 1 DAY) | where strict_date < upper AND strict_date >"
+                                        + " lower | rename strict_date as d | head 1 | fields lower, upper, d, ts",
+                                TEST_INDEX_DATE_FORMATS));
+
+        verifySchema(
+                actual,
+                schema("lower", "date"),
+                schema("upper", "date"),
+                schema("d", "date"),
+                schema("ts", "timestamp"));
+        verifyDataRows(actual, rows("1984-04-09", "1984-04-13", "1984-04-12", "1984-04-13 00:00:00"));
+    }
+
+    @Test
+    public void testDateAddAndSub() {
+        String expectedDate = getUtcDate();
+
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| eval t1 = DATE_ADD(strict_date_optional_time, INTERVAL 1 HOUR) "
+                                        + "| eval t2 = DATE_ADD(strict_date_optional_time, INTERVAL 1 DAY) "
+                                        + "| eval t3 = DATE_ADD(strict_date, INTERVAL 1 HOUR) "
+                                        + "| eval t4 = DATE_ADD('2020-08-26 01:01:01', INTERVAL 1 DAY) "
+                                        + "| eval t5 = DATE_ADD(time, INTERVAL 1 HOUR) "
+                                        + "| eval t6 = DATE_ADD(time, INTERVAL 5 HOUR) "
+                                        + "| eval t7 = DATE_ADD(strict_date, INTERVAL 2 YEAR)"
+                                        + "| eval t8 = DATE_ADD(DATE('2020-01-30'), INTERVAL 1 MONTH)" // edge case
+                                        + "| eval t9 = DATE_ADD(DATE('2020-11-30'), INTERVAL 1 QUARTER)" // rare case
+                                        + "| eval t10 = DATE_SUB(date, INTERVAL 31 DAY)"
+                                        + "| eval t11 = DATE_SUB(basic_date_time, INTERVAL 1 HOUR)"
+                                        + "| fields t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11 "
+                                        + "| head 1",
+                                TEST_INDEX_DATE_FORMATS));
+
+        verifySchema(
+                actual,
+                schema("t1", "timestamp"),
+                schema("t2", "timestamp"),
+                schema("t3", "timestamp"),
+                schema("t4", "timestamp"),
+                schema("t5", "timestamp"),
+                schema("t6", "timestamp"),
+                schema("t7", "timestamp"),
+                schema("t8", "timestamp"),
+                schema("t9", "timestamp"),
+                schema("t10", "timestamp"),
+                schema("t11", "timestamp"));
+
+        verifyDataRows(
+                actual,
+                rows(
+                        "1984-04-12 10:07:42",
+                        "1984-04-13 09:07:42",
+                        "1984-04-12 01:00:00",
+                        "2020-08-27 01:01:01",
+                        expectedDate + " 10:07:42",
+                        expectedDate + " 14:07:42",
+                        "1986-04-12 00:00:00",
+                        "2020-02-29 00:00:00",
+                        "2021-02-28 00:00:00",
+                        "1984-03-12 00:00:00",
+                        "1984-04-12 08:07:42"));
+    }
+
+    @Test
+    public void testDateAddWithComparisonAndConditions() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s | where date > DATE('1984-04-11') | eval tomorrow = DATE_ADD(date,"
+                                        + " INTERVAL 1 DAY) | fields date, tomorrow",
+                                TEST_INDEX_DATE_FORMATS));
+
+        verifySchema(actual, schema("date", "date"), schema("tomorrow", "timestamp"));
+        verifyDataRows(
+                actual,
+                rows("1984-04-12", "1984-04-13 00:00:00"),
+                rows("1984-04-12", "1984-04-13 00:00:00"));
+    }
+
+    @Ignore
+    @Test
+    public void testComparisonBetweenDateAndTimestamp() {
+        // TODO: Fix this
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s | where date > TIMESTAMP('1984-04-11 00:00:00') | stats COUNT() AS cnt",
+                                TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("cnt", "long"));
+        verifyDataRows(actual, rows(2));
+    }
 }
