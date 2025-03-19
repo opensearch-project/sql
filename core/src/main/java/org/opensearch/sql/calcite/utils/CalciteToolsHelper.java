@@ -46,6 +46,7 @@ import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.calcite.plan.Context;
+import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptSchema;
@@ -220,7 +221,7 @@ public class CalciteToolsHelper {
               schema.root(), schema.path(null), typeFactory, prepareContext.config());
       final RexBuilder rexBuilder = new RexBuilder(typeFactory);
       final RelOptPlanner planner =
-          createPlanner(prepareContext, config.getContext(), config.getCostFactory());
+          createPlanner(prepareContext, Contexts.of(prepareContext.config()), config.getCostFactory());
       final RelOptCluster cluster = createCluster(planner, rexBuilder);
       return action.apply(cluster, catalogReader, prepareContext.getRootSchema().plus(), statement);
     }
