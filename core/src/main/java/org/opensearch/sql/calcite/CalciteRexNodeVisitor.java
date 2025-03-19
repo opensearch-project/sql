@@ -36,6 +36,7 @@ import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.In;
+import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -118,8 +119,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   @Override
-  public RexNode visitInterval(
-      org.opensearch.sql.ast.expression.Interval node, CalcitePlanContext context) {
+  public RexNode visitInterval(Interval node, CalcitePlanContext context) {
     RexNode value = analyze(node.getValue(), context);
     SqlIntervalQualifier intervalQualifier =
         context.rexBuilder.createIntervalUntil(intervalUnitToSpanUnit(node.getUnit()));
