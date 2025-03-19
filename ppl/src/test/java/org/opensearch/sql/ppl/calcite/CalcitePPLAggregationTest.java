@@ -229,38 +229,37 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
-  /**
-   * TODO Calcite doesn't support group by window, but it support Tumble table function. See
-   * `SqlToRelConverterTest`
-   */
   @Test
   public void testAvgByTimeSpanAndFields() {
     String ppl =
-        "source=EMP | stats avg(SAL) by span(HIREDATE, 1 day) as hiredate_span, DEPTNO | sort"
+        "source=EMP | stats avg(SAL) by span(HIREDATE, 1 year) as hiredate_span, DEPTNO | sort"
             + " DEPTNO, hiredate_span";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
+        "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
             + "  LogicalProject(avg(SAL)=[$2], hiredate_span=[$1], DEPTNO=[$0])\n"
             + "    LogicalAggregate(group=[{1, 2}], avg(SAL)=[AVG($0)])\n"
-            + "      LogicalProject(SAL=[$5], DEPTNO=[$7], hiredate_span=[86400000:INTERVAL"
-            + " DAY])\n"
+            + "      LogicalProject(SAL=[$5], DEPTNO=[$7], hiredate_span=[SPAN($4, 'DATE', 1,"
+            + " 'y')])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedResult =
         ""
-            + "avg(SAL)=2916.66; hiredate_span=+1; DEPTNO=10\n"
-            + "avg(SAL)=2175.00; hiredate_span=+1; DEPTNO=20\n"
-            + "avg(SAL)=1566.66; hiredate_span=+1; DEPTNO=30\n";
+            + "avg(SAL)=3725.00; hiredate_span=1981-01-01; DEPTNO=10\n"
+            + "avg(SAL)=1300.00; hiredate_span=1982-01-01; DEPTNO=10\n"
+            + "avg(SAL)=800.00; hiredate_span=1980-01-01; DEPTNO=20\n"
+            + "avg(SAL)=2987.50; hiredate_span=1981-01-01; DEPTNO=20\n"
+            + "avg(SAL)=2050.00; hiredate_span=1987-01-01; DEPTNO=20\n"
+            + "avg(SAL)=1566.66; hiredate_span=1981-01-01; DEPTNO=30\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
-        "SELECT AVG(`SAL`) `avg(SAL)`, INTERVAL '1' DAY `hiredate_span`, `DEPTNO`\n"
+        "SELECT AVG(`SAL`) `avg(SAL)`, `SPAN`(`HIREDATE`, 'DATE', 1, 'y') `hiredate_span`,"
+            + " `DEPTNO`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `DEPTNO`, INTERVAL '1' DAY\n"
-            + "ORDER BY `DEPTNO` NULLS LAST, INTERVAL '1' DAY NULLS LAST";
+            + "GROUP BY `DEPTNO`, `SPAN`(`HIREDATE`, 'DATE', 1, 'y')\n"
+            + "ORDER BY `DEPTNO` NULLS LAST, 2 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

@@ -19,10 +19,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
@@ -279,9 +277,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     RelDataTypeFactory typeFactory = context.rexBuilder.getTypeFactory();
     SpanUnit unit = node.getUnit();
     if (isTimeBased(unit)) {
-      SqlIntervalQualifier intervalQualifier = context.rexBuilder.createIntervalUntil(unit);
-      long millis = SqlParserUtil.intervalToMillis(value.toString(), intervalQualifier);
-      return context.rexBuilder.makeIntervalLiteral(new BigDecimal(millis), intervalQualifier);
+      return context.rexBuilder.makeCall(
+          BuiltinFunctionUtils.translate("SPAN"),
+          List.of(
+              field,
+              context
+                  .relBuilder
+                  .getRexBuilder()
+                  .makeLiteral(field.getType().getSqlTypeName().getName()),
+              value,
+              context.relBuilder.getRexBuilder().makeLiteral(unit.getName())));
     } else {
       // if the unit is not time base - create a math expression to bucket the span partitions
       SqlTypeName type = field.getType().getSqlTypeName();
