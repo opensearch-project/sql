@@ -16,6 +16,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
 import org.junit.Ignore;
@@ -246,7 +247,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountByCustomTimeSpan() {
+  public void testCountByCustomTimeSpanWithDifferentUnits() {
     JSONObject actual =
         executeQuery(
             String.format(
@@ -304,11 +305,11 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountByDateTypeSpan() {
+  public void testCountByDateTypeSpanWithDifferentUnits() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(strict_date) by span(strict_date, 1 day) as"
+                "source=%s | stats count(strict_date) by span(strict_date, 1 day) as"
                     + " date_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("date_span", "date"), schema("count(strict_date)", "long"));
@@ -317,8 +318,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(basic_date) by span(basic_date, 1 year) as"
-                    + " date_span",
+                "source=%s | stats count(basic_date) by span(basic_date, 1 year) as" + " date_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("date_span", "date"), schema("count(basic_date)", "long"));
     verifyDataRows(actual, rows(2, "1984-01-01"));
@@ -326,7 +326,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(year_month_day) by span(year_month_day, 1 month)"
+                "source=%s | stats count(year_month_day) by span(year_month_day, 1 month)"
                     + " as date_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("date_span", "date"), schema("count(year_month_day)", "long"));
@@ -334,11 +334,11 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testCountByTimeTypeSpan() {
+  public void testCountByTimeTypeSpanWithDifferentUnits() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(hour_minute_second) by span(hour_minute_second, 1"
+                "source=%s | stats count(hour_minute_second) by span(hour_minute_second, 1"
                     + " minute) as time_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("time_span", "time"), schema("count(hour_minute_second)", "long"));
@@ -347,7 +347,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(custom_time) by span(custom_time, 1 second) as"
+                "source=%s | stats count(custom_time) by span(custom_time, 1 second) as"
                     + " time_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("time_span", "time"), schema("count(custom_time)", "long"));
@@ -356,10 +356,144 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats count(hour) by span(hour, 6 hour) as time_span",
+                "source=%s | stats count(hour) by span(hour, 6 hour) as time_span",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("time_span", "time"), schema("count(hour)", "long"));
     verifyDataRows(actual, rows(2, "06:00:00"));
+  }
+
+  @Test
+  public void testCountByTimestampTypeSpanForDifferentFormats() {
+    List<String> timestampFields =
+        Arrays.asList(
+            "epoch_millis",
+            "date_optional_time",
+            "strict_date_optional_time_nanos",
+            "basic_date_time",
+            "basic_date_time_no_millis",
+            "basic_ordinal_date_time",
+            "basic_week_date_time",
+            "basic_week_date_time_no_millis",
+            "date_hour",
+            "date_hour_minute",
+            "date_hour_minute_second_fraction",
+            "date_hour_minute_second_millis",
+            "date_time",
+            "date_time_no_millis",
+            "ordinal_date_time",
+            "ordinal_date_time_no_millis",
+            "week_date_time",
+            "week_date_time_no_millis",
+            "yyyy-MM-dd_OR_epoch_millis");
+
+    for (String timestampField : timestampFields) {
+      JSONObject actual =
+          executeQuery(
+              String.format(
+                  "source=%s | stats count() by span(%s, 1d) as timestamp_span",
+                  TEST_INDEX_DATE_FORMATS, timestampField));
+      verifySchema(actual, schema("timestamp_span", "timestamp"), schema("count()", "long"));
+      verifyDataRows(actual, rows(2, "1984-04-12 00:00:00"));
+    }
+  }
+
+  @Test
+  public void testCountByDateTypeSpanForDifferentFormats() {
+    List<String> dateFields =
+        Arrays.asList(
+            "basic_date",
+            "basic_ordinal_date",
+            "date",
+            "ordinal_date",
+            "week_date",
+            "weekyear_week_day",
+            "year_month_day",
+            "yyyy-MM-dd");
+
+    for (String dateField : dateFields) {
+      JSONObject actual =
+          executeQuery(
+              String.format(
+                  "source=%s | stats count() by span(%s, 1d) as date_span",
+                  TEST_INDEX_DATE_FORMATS, dateField));
+      verifySchema(actual, schema("date_span", "date"), schema("count()", "long"));
+      verifyDataRows(actual, rows(2, "1984-04-12"));
+    }
+  }
+
+  @Test
+  public void testCountByTimeTypeSpanForDifferentFormats() {
+    List<String> timeFields =
+        Arrays.asList(
+            "basic_time",
+            "basic_time_no_millis",
+            "basic_t_time",
+            "basic_t_time_no_millis",
+            "hour",
+            "hour_minute",
+            "hour_minute_second",
+            "hour_minute_second_fraction",
+            "hour_minute_second_millis",
+            "time",
+            "time_no_millis",
+            "t_time",
+            "t_time_no_millis");
+
+    for (String timeField : timeFields) {
+      JSONObject actual =
+          executeQuery(
+              String.format(
+                  "source=%s | stats count() by span(%s, 1h) as time_span",
+                  TEST_INDEX_DATE_FORMATS, timeField));
+      verifySchema(actual, schema("time_span", "time"), schema("count()", "long"));
+      verifyDataRows(actual, rows(2, "09:00:00"));
+    }
+  }
+
+  @Test
+  public void testCountBySpanForCustomFormats() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(custom_date_or_date) by span(custom_date_or_date, 1"
+                    + " month) as date_span",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("date_span", "date"), schema("count(custom_date_or_date)", "long"));
+    verifyDataRows(actual, rows(2, "1984-04-01"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(custom_date_or_custom_time) by"
+                    + " span(custom_date_or_custom_time, 1 hour) as timestamp_span",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(
+        actual,
+        schema("timestamp_span", "timestamp"),
+        schema("count(custom_date_or_custom_time)", "long"));
+    verifyDataRows(actual, rows(1, "1961-04-12 00:00:00"), rows(1, "1970-01-01 09:00:00"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(custom_no_delimiter_ts) by span(custom_no_delimiter_ts, 1"
+                    + " hour) as timestamp_span",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(
+        actual,
+        schema("timestamp_span", "timestamp"),
+        schema("count(custom_no_delimiter_ts)", "long"));
+    verifyDataRows(actual, rows(1, "1961-04-12 10:00:00"), rows(1, "1984-10-20 15:00:00"));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count(incomplete_custom_time) by span(incomplete_custom_time, 12"
+                    + " hour) as time_span",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(
+        actual, schema("time_span", "time"), schema("count(incomplete_custom_time)", "long"));
+    verifyDataRows(actual, rows(1, "00:00:00"), rows(1, "12:00:00"));
   }
 
   @Test
