@@ -85,6 +85,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           return TYPE_FACTORY.createSqlType(SqlTypeName.REAL, nullable);
         case DOUBLE:
           return TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE, nullable);
+        case IP:
         case STRING:
           return TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, nullable);
         case BOOLEAN:
