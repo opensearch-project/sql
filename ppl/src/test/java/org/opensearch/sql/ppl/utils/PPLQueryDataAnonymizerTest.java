@@ -82,6 +82,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testStatsCommandWithSpanFunction() {
+    assertEquals(
+        "source=t | stats count(a) by span(b, *** d),c",
+        anonymize("source=t | stats count(a) by span(b, 1d), c"));
+  }
+
+  @Test
   public void testDedupCommand() {
     assertEquals(
         "source=t | dedup f1,f2 1 keepempty=false consecutive=false",
