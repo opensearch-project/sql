@@ -284,6 +284,16 @@ public class PPLQueryDataAnonymizerTest {
         anonymize("source=t id > [ source=s | where id = uid | stats max(b) ] | fields id"));
   }
 
+  @Test
+  public void testCast() {
+    assertEquals(
+        "source=t | eval id=cast(a as INTEGER) | fields + id",
+        anonymize("source=t | eval id=CAST(a AS INTEGER) | fields id"));
+    assertEquals(
+        "source=t | eval id=cast(*** as DOUBLE) | fields + id",
+        anonymize("source=t | eval id=CAST('1' AS DOUBLE) | fields id"));
+  }
+
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(query, settings);
     return anonymize(astBuilder.visit(parser.parse(query)));
