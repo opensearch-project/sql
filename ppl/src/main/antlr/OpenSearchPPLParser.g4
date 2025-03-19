@@ -76,7 +76,6 @@ commandName
    | RARE
    | GROK
    | PARSE
-   | METHOD
    | PATTERNS
    | LOOKUP
    | KMEANS

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,11 +13,13 @@ import java.util.stream.Collectors;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.ast.expression.SpanUnit;
 
 public class ExtendedRexBuilder extends RexBuilder {
@@ -86,5 +89,37 @@ public class ExtendedRexBuilder extends RexBuilder {
         timeUnit = TimeUnit.EPOCH;
     }
     return new SqlIntervalQualifier(timeUnit, timeUnit, SqlParserPos.ZERO);
+  }
+
+  @Override
+  public RexNode makeCast(
+      SqlParserPos pos,
+      RelDataType type,
+      RexNode exp,
+      boolean matchNullability,
+      boolean safe,
+      RexLiteral format) {
+    final SqlTypeName sqlType = type.getSqlTypeName();
+    // Calcite bug which doesn't consider to cast literal to boolean
+    if (exp instanceof RexLiteral && sqlType == SqlTypeName.BOOLEAN) {
+      if (exp.equals(makeLiteral("1", typeFactory.createSqlType(SqlTypeName.CHAR, 1)))) {
+        return makeLiteral(true, type);
+      } else if (exp.equals(makeLiteral("0", typeFactory.createSqlType(SqlTypeName.CHAR, 1)))) {
+        return makeLiteral(false, type);
+      } else if (SqlTypeUtil.isExactNumeric(exp.getType())) {
+        return makeCall(
+            type,
+            SqlStdOperatorTable.NOT_EQUALS,
+            ImmutableList.of(exp, makeZeroLiteral(exp.getType())));
+        // TODO https://github.com/opensearch-project/sql/issues/3443
+        // Current, we align the behaviour of Spark and Postgres, to align with OpenSearch V2,
+        // enable following commented codes.
+        //      } else {
+        //        return makeCall(type,
+        //            SqlStdOperatorTable.NOT_EQUALS,
+        //            ImmutableList.of(exp, makeZeroLiteral(exp.getType())));
+      }
+    }
+    return super.makeCast(pos, type, exp, matchNullability, safe, format);
   }
 }
