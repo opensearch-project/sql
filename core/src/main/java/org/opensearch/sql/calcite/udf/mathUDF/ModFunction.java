@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.udf.mathUDF;
 
+import java.math.BigDecimal;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
 /**
@@ -42,18 +43,22 @@ public class ModFunction implements UserDefinedFunction {
       // It returns negative values when l0 is negative
       long result = l0 % l1;
       // Return the wider type between l0 and l1
-      if (num0 instanceof Integer && num1 instanceof Integer) {
-        return (int) result;
+      if (num0 instanceof Long || num1 instanceof Long) {
+        return result;
       }
-      return result;
+      return (int) result;
     }
 
-    double d0 = num0.doubleValue();
-    double d1 = num1.doubleValue();
-    return d0 % d1;
+    BigDecimal b0 = new BigDecimal(num0.toString());
+    BigDecimal b1 = new BigDecimal(num1.toString());
+    BigDecimal result = b0.remainder(b1);
+    if (num0 instanceof Double || num1 instanceof Double) {
+      return result.doubleValue();
+    }
+    return result.floatValue();
   }
 
   private boolean isIntegral(Number n) {
-    return n instanceof Integer || n instanceof Long;
+    return n instanceof Byte || n instanceof Short || n instanceof Integer || n instanceof Long;
   }
 }
