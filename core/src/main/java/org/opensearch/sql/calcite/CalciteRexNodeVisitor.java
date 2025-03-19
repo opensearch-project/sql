@@ -386,14 +386,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return subqueryRel;
   }
 
+  @Override
+  public RexNode visitCast(Cast node, CalcitePlanContext context) {
+    RexNode expr = analyze(node.getExpression(), context);
+    SqlTypeName sqlTypeName =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType())
+            .getSqlTypeName();
+    RelDataType type = context.rexBuilder.getTypeFactory().createSqlType(sqlTypeName);
+    RelDataType nullableType =
+        context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
+    // call makeCast() instead of cast() because the saft parameter is true could avoid exception.
+    return context.rexBuilder.makeCast(nullableType, expr, true, true);
+  }
+
   /*
    * Unsupported Expressions of PPL with Calcite for OpenSearch 3.0.0-beta
    */
-  @Override
-  public RexNode visitCast(Cast node, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("CastWhen function is unsupported in Calcite");
-  }
-
   @Override
   public RexNode visitWhen(When node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("CastWhen function is unsupported in Calcite");
