@@ -13,6 +13,7 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -38,6 +39,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.DateTimeStringUtils;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -511,8 +513,8 @@ public interface BuiltinFunctionUtils {
           } else {
             expression = stringExpr.toString();
           }
-          LocalDate date = LocalDateTime.ofInstant(InstantUtils.fromStringExpr(expression), ZoneOffset.UTC).toLocalDate();
-          extractArgs.add(context.rexBuilder.makeDateLiteral(DateString.fromDaysSinceEpoch((int) date.toEpochDay())));
+          Instant ins = InstantUtils.fromStringExpr(expression);
+          extractArgs.add(context.rexBuilder.makeTimestampLiteral(TimestampString.fromMillisSinceEpoch(ins.toEpochMilli()), RelDataType.PRECISION_NOT_SPECIFIED));
         }
         else {
           extractArgs.add(argList.getFirst());
