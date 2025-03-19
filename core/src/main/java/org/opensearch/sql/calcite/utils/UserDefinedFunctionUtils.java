@@ -21,6 +21,7 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
@@ -62,7 +63,12 @@ public class UserDefinedFunctionUtils {
     SqlIdentifier udfLtrimIdentifier =
         new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
     return new SqlUserDefinedFunction(
-        udfLtrimIdentifier, SqlKind.OTHER_FUNCTION, returnType, null, null, udfFunction);
+        udfLtrimIdentifier,
+        SqlKind.OTHER_FUNCTION,
+        returnType,
+        InferTypes.ANY_NULLABLE,
+        null,
+        udfFunction);
   }
 
   public static SqlReturnTypeInference getReturnTypeInferenceForArray() {

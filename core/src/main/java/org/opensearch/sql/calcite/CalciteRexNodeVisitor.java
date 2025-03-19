@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.translateArgument;
+import static org.opensearch.sql.calcite.utils.PlanUtils.intervalUnitToSpanUnit;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -114,6 +115,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       default:
         throw new UnsupportedOperationException("Unsupported literal type: " + node.getType());
     }
+  }
+
+  @Override
+  public RexNode visitInterval(
+      org.opensearch.sql.ast.expression.Interval node, CalcitePlanContext context) {
+    RexNode value = analyze(node.getValue(), context);
+    SqlIntervalQualifier intervalQualifier =
+        context.rexBuilder.createIntervalUntil(intervalUnitToSpanUnit(node.getUnit()));
+    return context.rexBuilder.makeIntervalLiteral(
+        new BigDecimal(value.toString()), intervalQualifier);
   }
 
   @Override
