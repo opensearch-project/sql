@@ -13,7 +13,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -45,8 +44,8 @@ public class ExprDateValue extends AbstractExprValue {
   }
 
   @Override
-  public Long valueForCalcite() {
-    return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+  public Integer valueForCalcite() {
+    return (int) date.toEpochDay();
   }
 
   @Override

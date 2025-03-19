@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.utils;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -31,6 +32,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
@@ -198,7 +200,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitAggregation(Aggregation node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    final String group = visitExpressionList(node.getGroupExprList());
+    UnresolvedExpression span = node.getSpan();
+    List<UnresolvedExpression> groupByExprList = new ArrayList<>();
+    if (!Objects.isNull(span)) {
+      groupByExprList.add(span);
+    }
+    groupByExprList.addAll(node.getGroupExprList());
+    final String group = visitExpressionList(groupByExprList);
     return StringUtils.format(
         "%s | stats %s",
         child, String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
@@ -397,6 +405,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     public String visitAggregateFunction(AggregateFunction node, String context) {
       String arg = node.getField().accept(this, context);
       return StringUtils.format("%s(%s)", node.getFuncName(), arg);
+    }
+
+    @Override
+    public String visitSpan(Span node, String context) {
+      String field = analyze(node.getField(), context);
+      String value = analyze(node.getValue(), context);
+      return StringUtils.format("span(%s, %s %s)", field, value, node.getUnit().getName());
     }
 
     @Override
