@@ -220,10 +220,13 @@ testingConventions.enabled = false
 // TODO: need to verify the thirdPartyAudit
 // currently it complains missing classes like ibatis, mysql etc, should not be a problem
 thirdPartyAudit.enabled = false
-
+tasks.named("publishShadowPublicationToMavenLocal") {
+    dependsOn tasks.named("generatePomFileForNebulaPublication")
+}
 apply plugin: 'com.netflix.nebula.ospackage'
 validateNebulaPom.enabled = false
-
+generatePomFileForShadowPublication.enabled = false
+//generatePomFileForShadowPublication.enabled = false
 // This is afterEvaluate because the bundlePlugin ZIP task is updated afterEvaluate and changes the ZIP name to match the plugin name
 afterEvaluate {
     tasks.named("bundlePlugin", Zip).configure { zipTask ->
