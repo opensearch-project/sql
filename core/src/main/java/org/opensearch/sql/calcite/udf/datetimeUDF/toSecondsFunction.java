@@ -2,8 +2,12 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
+
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferCalciteValueToExprTimeStampValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprToSeconds;
@@ -23,10 +27,10 @@ public class toSecondsFunction implements UserDefinedFunction {
         SqlTypeName sqlTypeName = (SqlTypeName) args[1];
         switch (sqlTypeName) {
             case DATE, TIME, TIMESTAMP:
-                ExprTimestampValue dateTimeValue = transferCalciteValueToExprTimeStampValue(sqlTypeName, args[1]);
+                ExprTimestampValue dateTimeValue = new ExprTimestampValue(LocalDateTime.ofInstant(InstantUtils.convertToInstant(args[0], sqlTypeName), ZoneOffset.UTC));
                 return exprToSeconds(dateTimeValue).longValue();
             default:
-                return exprToSecondsForIntType(new ExprLongValue((Number) args[1]));
+                return exprToSecondsForIntType(new ExprLongValue((Number) args[1])).longValue();
         }
     }
 }

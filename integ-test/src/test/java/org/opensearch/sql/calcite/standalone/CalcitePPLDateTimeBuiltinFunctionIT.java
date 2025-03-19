@@ -159,6 +159,30 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
 
     @Test
+    public void testToDays(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where YEAR(strict_date_optional_time) < 2000"
+                                        + "| eval timestamp=to_days(strict_date_optional_time) "
+                                        + "| eval time=to_days(time)"
+                                        + "| eval date=to_days(date)"
+                                        + "| eval string_value=to_days('2008-10-07')"
+                                        + "| fields timestamp, time, date, string_value | head 1"
+                                , TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("timestamp", "long"),
+                schema("time", "long"),
+                schema("date", "long"),
+                schema("string_value", "long")
+        );
+        verifyDataRows(actual, rows(
+                "06:12:27"
+        ));
+    }
+
+    @Test
     public void testUnixTimeStampTwoArgument(){
         JSONObject actual =
                 executeQuery(

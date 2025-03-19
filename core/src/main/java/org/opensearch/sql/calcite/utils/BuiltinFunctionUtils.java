@@ -74,6 +74,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.timeToSecondFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampAddFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.toDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.toSecondsFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
@@ -264,7 +265,10 @@ public interface BuiltinFunctionUtils {
                 timestampDiffFunction.class, "TIMESTAMPDIFF", ReturnTypes.BIGINT);
       case "TO_SECONDS":
         return TransferUserDefinedFunction(
-                toSecondsFunction.class, "TO_SECOND", ReturnTypes.BIGINT);
+                toSecondsFunction.class, "TO_SECONDS", ReturnTypes.BIGINT);
+      case "TO_DAYS":
+        return TransferUserDefinedFunction(
+                toDaysFunction.class, "TO_DAYS", ReturnTypes.BIGINT);
       case "SEC_TO_TIME":
         return TransferUserDefinedFunction(
                 secondToTimeFunction.class, "SEC_TO_TIME", ReturnTypes.TIME);
@@ -395,7 +399,7 @@ public interface BuiltinFunctionUtils {
           LastDateArgs.add(lastDayTimestampExpr);
         }
         return LastDateArgs;
-      case "TIMESTAMP", "TIMEDIFF", "TIME_TO_SEC", "TIME_FORMAT", "YEARWEEK", "WEEKDAY":
+      case "TIMESTAMP", "TIMEDIFF", "TIME_TO_SEC", "TIME_FORMAT", "YEARWEEK", "WEEKDAY", "TO_SECONDS", "TO_DAYS":
         List<RexNode> timestampArgs = new ArrayList<>(argList);
         timestampArgs.addAll(
             argList.stream()
