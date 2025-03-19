@@ -68,9 +68,7 @@ public class CalcitePPLCastFunctionTest extends CalcitePPLAbstractTest {
       RelNode root = getRelNode(ppl);
       fail("expected error, got " + root);
     } catch (Exception e) {
-      assertThat(
-          e.getMessage(),
-          containsString("source=EMP | eval a = cast(MGR as UNKNOWN' <--- HERE..."));
+      assertThat(e.getMessage(), containsString("cast(MGR as UNKNOWN' <-- HERE"));
     }
   }
 

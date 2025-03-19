@@ -472,7 +472,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     @Override
     public String visitCast(Cast node, String context) {
       String expr = analyze(node.getExpression(), context);
-      return StringUtils.format("cast(%s as %s)", expr, node.getDataType().getCoreType().name());
+      return StringUtils.format("cast(%s as %s)", expr, node.getConvertedType().toString());
     }
   }
 }

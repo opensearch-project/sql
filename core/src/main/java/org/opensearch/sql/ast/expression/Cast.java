@@ -82,6 +82,11 @@ public class Cast extends UnresolvedExpression {
     if ("INT".equals(type)) {
       type = "INTEGER";
     }
+    // JSON is not a data type for now, we convert it to STRING.
+    // TODO Maybe its data type could be VARIANT in future?
+    if ("JSON".equals(type)) {
+      type = "STRING";
+    }
     return DataType.valueOf(type);
   }
 
