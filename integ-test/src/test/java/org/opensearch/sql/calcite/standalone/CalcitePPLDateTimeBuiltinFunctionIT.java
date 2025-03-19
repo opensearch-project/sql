@@ -157,20 +157,42 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     }
 
+
     @Test
-    public void testUnixTimeStamp(){
+    public void testUnixTimeStampTwoArgument(){
         JSONObject actual =
                 executeQuery(
                         String.format(
                                 "source=%s "
-                                        + "| where unix_timestamp(from_unixtime(1700000001)) > 1700000000 "
-                                        + "| stats COUNT() AS CNT "
+                                        + "| eval from_unix = FROM_UNIXTIME(1220249547, '%%T')"
+                                        + "| fields from_unix | head 1"
                                 , TEST_INDEX_DATE_FORMATS));
         verifySchema(actual,
-                schema("CNT", "long")
+                schema("from_unix", "string")
         );
         verifyDataRows(actual, rows(
-                7
+                "06:12:27"
+        ));
+    }
+
+
+    @Test
+    public void testUnixTimeStampAndFromUnixTime(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| eval from_unix = from_unixtime(1220249547)"
+                                        + "| eval to_unix = unix_timestamp(from_unix)"
+                                        + "| where unix_timestamp(from_unixtime(1700000001)) > 1700000000 " // don't do filter
+                                        + "| fields from_unix, to_unix | head 1"
+                                , TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("from_unix", "timestamp"),
+                schema("to_unix", "double")
+        );
+        verifyDataRows(actual, rows(
+                "2008-09-01 06:12:27", 1220249547.0
         ));
     }
 

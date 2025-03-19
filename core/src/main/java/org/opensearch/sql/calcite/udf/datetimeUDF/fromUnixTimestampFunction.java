@@ -44,7 +44,7 @@ public class fromUnixTimestampFunction implements UserDefinedFunction {
     } else if (args.length == 2) {
       Object value = args[0];
       Object target = args[1];
-      return java.sql.Timestamp.from(exprFromUnixTimeFormat(new ExprDoubleValue((Number) value), new ExprStringValue((String) target)).timestampValue());
+      return exprFromUnixTimeFormat(new ExprDoubleValue((Number) value), new ExprStringValue((String) target)).stringValue();
     } else {
       throw new IllegalArgumentException("Too many arguments for from_unixtimestamp function");
     }
