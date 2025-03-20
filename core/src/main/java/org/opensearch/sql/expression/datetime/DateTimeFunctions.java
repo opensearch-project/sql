@@ -1584,7 +1584,7 @@ public class DateTimeFunctions {
    * @param dayOfYearExp day of the @year, starting from 1
    * @return Date - ExprDateValue object with LocalDate
    */
-  private ExprValue exprMakeDate(ExprValue yearExpr, ExprValue dayOfYearExp) {
+  public static ExprValue exprMakeDate(ExprValue yearExpr, ExprValue dayOfYearExp) {
     var year = Math.round(yearExpr.doubleValue());
     var dayOfYear = Math.round(dayOfYearExp.doubleValue());
     // We need to do this to comply with MySQL

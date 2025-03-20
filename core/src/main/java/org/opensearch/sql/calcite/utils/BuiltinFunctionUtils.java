@@ -28,7 +28,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
@@ -54,6 +53,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.FromDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.GetFormatFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.MakeDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MakeTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MinuteOfDay;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodAddFunction;
@@ -70,7 +70,6 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.YearWeekFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.secondToTimeFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.StrToDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.sysdateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timeDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timeFormatFunction;
@@ -80,11 +79,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.timestampDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.toDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.toSecondsFunction;
-import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.SpanFunction;
-import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
-import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
-import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
@@ -269,6 +264,8 @@ public interface BuiltinFunctionUtils {
             GetFormatFunction.class, "GET_FORMAT", ReturnTypes.VARCHAR);
       case "MAKETIME":
         return TransferUserDefinedFunction(MakeTimeFunction.class, "MAKETIME", ReturnTypes.TIME);
+      case "MAKEDATE":
+        return TransferUserDefinedFunction(MakeDateFunction.class, "MAKEDATE", createNullableReturnType(SqlTypeName.DATE));
       case "MINUTE_OF_DAY":
         return TransferUserDefinedFunction(MinuteOfDay.class, "MINUTE_OF_DAY", ReturnTypes.INTEGER);
       case "PERIOD_ADD":
