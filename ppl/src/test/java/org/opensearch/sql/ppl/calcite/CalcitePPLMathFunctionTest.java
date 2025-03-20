@@ -20,9 +20,9 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval SAL = abs(-30) | fields SAL";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalProject(SAL0=[ABS(-30)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(SAL=[ABS(-30)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT ABS(-30) `SAL0`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT ABS(-30) `SAL`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
