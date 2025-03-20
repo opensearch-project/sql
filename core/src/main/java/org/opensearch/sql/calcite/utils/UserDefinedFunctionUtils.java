@@ -29,7 +29,7 @@ import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
-public class UserDefineFunctionUtils {
+public class UserDefinedFunctionUtils {
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,
       String functionName,
@@ -77,6 +77,37 @@ public class UserDefineFunctionUtils {
       }
       RelDataType firstArgType = argTypes.getFirst();
       return createArrayType(typeFactory, firstArgType, true);
+    };
+  }
+
+  /**
+   * Infer return argument type as the widest return type among arguments as specified positions.
+   * E.g. (Integer, Long) -> Long; (Double, Float, SHORT) -> Double
+   *
+   * @param positions positions where the return type should be inferred from
+   * @param nullable whether the returned value is nullable
+   * @return The type inference
+   */
+  public static SqlReturnTypeInference getLeastRestrictiveReturnTypeAmongArgsAt(
+      List<Integer> positions, boolean nullable) {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      List<RelDataType> types = new ArrayList<>();
+
+      for (int position : positions) {
+        if (position < 0 || position >= opBinding.getOperandCount()) {
+          throw new IllegalArgumentException("Invalid argument position: " + position);
+        }
+        types.add(opBinding.getOperandType(position));
+      }
+
+      RelDataType widerType = typeFactory.leastRestrictive(types);
+      if (widerType == null) {
+        throw new IllegalArgumentException(
+            "Cannot determine a common type for the given positions.");
+      }
+
+      return typeFactory.createTypeWithNullability(widerType, nullable);
     };
   }
 
