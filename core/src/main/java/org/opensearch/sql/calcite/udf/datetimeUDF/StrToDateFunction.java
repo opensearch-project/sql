@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
-import org.opensearch.sql.calcite.utils.UserDefineFunctionUtils;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
@@ -30,8 +30,8 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 public class StrToDateFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
-    UserDefineFunctionUtils.validateArgumentCount("STR_TO_DATE", 2, args.length, true);
-    UserDefineFunctionUtils.validateArgumentTypes(
+    UserDefinedFunctionUtils.validateArgumentCount("STR_TO_DATE", 2, args.length, true);
+    UserDefinedFunctionUtils.validateArgumentTypes(
         Arrays.asList(args), List.of(String.class, String.class));
 
     ExprValue formatedDateExpr =

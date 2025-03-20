@@ -74,7 +74,7 @@ public interface AggregateUtils {
         return TransferUserDefinedAggFunction(
             PercentileApproxFunction.class,
             "percentile_approx",
-            UserDefineFunctionUtils.getReturnTypeInference(0),
+            UserDefinedFunctionUtils.getReturnTypeInference(0),
             List.of(field),
             argList,
             context.relBuilder);

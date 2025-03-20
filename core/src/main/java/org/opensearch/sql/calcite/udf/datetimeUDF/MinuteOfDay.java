@@ -3,7 +3,7 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
-import org.opensearch.sql.calcite.utils.UserDefineFunctionUtils;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
@@ -14,8 +14,8 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 public class MinuteOfDay implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
-    UserDefineFunctionUtils.validateArgumentCount("MINUTE_OF_DAY", 1, args.length, false);
-    UserDefineFunctionUtils.validateArgumentTypes(
+    UserDefinedFunctionUtils.validateArgumentCount("MINUTE_OF_DAY", 1, args.length, false);
+    UserDefinedFunctionUtils.validateArgumentTypes(
         Arrays.asList(args), ImmutableList.of(Number.class));
     return DateTimeFunctions.exprMinuteOfDay(
             new ExprTimestampValue(InstantUtils.fromEpochMills(((Number) args[0]).longValue())))

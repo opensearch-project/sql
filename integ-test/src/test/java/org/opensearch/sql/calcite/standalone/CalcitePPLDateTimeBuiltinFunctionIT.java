@@ -148,7 +148,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 executeQuery(
                         String.format(
                                 "source=%s "
-                                        + "| where strict_date_optional_time > DATE_SUB(NOW(), INTERVAL 1 DAY) "
+                                        + "| where strict_date_optional_time > DATE_SUB(NOW(), INTERVAL 12 HOUR) "
                                         + "| stats COUNT() AS CNT "
                                         , TEST_INDEX_DATE_FORMATS));
         verifySchema(actual,

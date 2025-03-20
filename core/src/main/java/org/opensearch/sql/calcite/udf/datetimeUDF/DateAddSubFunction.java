@@ -18,7 +18,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
-import org.opensearch.sql.calcite.utils.UserDefineFunctionUtils;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -28,8 +28,8 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 public class DateAddSubFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
-    UserDefineFunctionUtils.validateArgumentCount("DATE_ADD / DATE_SUB", 6, args.length, false);
-    UserDefineFunctionUtils.validateArgumentTypes(
+    UserDefinedFunctionUtils.validateArgumentCount("DATE_ADD / DATE_SUB", 6, args.length, false);
+    UserDefinedFunctionUtils.validateArgumentTypes(
         Arrays.asList(args),
         ImmutableList.of(
             TimeUnit.class,
