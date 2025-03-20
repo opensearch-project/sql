@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -19,6 +18,7 @@ import org.opensearch.sql.legacy.query.planner.core.PlanNode;
 import org.opensearch.sql.legacy.query.planner.physical.Row;
 import org.opensearch.sql.legacy.query.planner.physical.estimation.Cost;
 import org.opensearch.sql.legacy.query.planner.resource.ResourceManager;
+import org.opensearch.transport.client.Client;
 
 public abstract class Paginate extends BatchPhysicalOperator<SearchHit> {
 

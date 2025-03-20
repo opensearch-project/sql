@@ -1,0 +1,12 @@
+{
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "text"
+      },
+      "ip": {
+        "type": "text"
+      }
+    }
+  }
+}

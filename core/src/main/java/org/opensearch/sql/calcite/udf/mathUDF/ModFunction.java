@@ -5,33 +5,60 @@
 
 package org.opensearch.sql.calcite.udf.mathUDF;
 
+import java.math.BigDecimal;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
+/**
+ * Calculate the remainder of x divided by y<br>
+ * The supported signature of mod function is<br>
+ * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE)<br>
+ * -> wider type between types of x and y
+ */
 public class ModFunction implements UserDefinedFunction {
+
   @Override
   public Object eval(Object... args) {
-    if (args.length < 2) {
-      throw new IllegalArgumentException("At least two arguments are required");
+    if (args.length != 2) {
+      throw new IllegalArgumentException(
+          String.format("MOD function requires exactly two arguments, but got %d", args.length));
     }
 
-    // Get the two values
-    Object mod0 = args[0];
-    Object mod1 = args[1];
+    Object arg0 = args[0];
+    Object arg1 = args[1];
+    if (!(arg0 instanceof Number num0) || !(arg1 instanceof Number num1)) {
+      throw new IllegalArgumentException(
+          String.format(
+              "MOD function requires two numeric arguments, but got %s and %s",
+              arg0.getClass().getSimpleName(), arg1.getClass().getSimpleName()));
+    }
 
-    // Handle numbers dynamically
-    if (mod0 instanceof Integer && mod1 instanceof Integer) {
-      return (Integer) mod0 % (Integer) mod1;
-    } else if (mod0 instanceof Number && mod1 instanceof Number) {
-      double num0 = ((Number) mod0).doubleValue();
-      double num1 = ((Number) mod1).doubleValue();
+    // TODO: This precision check is arbitrary.
+    if (Math.abs(num1.doubleValue()) < 0.0000001) {
+      return null;
+    }
 
-      if (num1 == 0) {
-        throw new ArithmeticException("Modulo by zero is not allowed");
+    if (isIntegral(num0) && isIntegral(num1)) {
+      long l0 = num0.longValue();
+      long l1 = num1.longValue();
+      // It returns negative values when l0 is negative
+      long result = l0 % l1;
+      // Return the wider type between l0 and l1
+      if (num0 instanceof Long || num1 instanceof Long) {
+        return result;
       }
-
-      return num0 % num1; // Handles both float and double cases
-    } else {
-      throw new IllegalArgumentException("Invalid argument types: Expected numeric values");
+      return (int) result;
     }
+
+    BigDecimal b0 = new BigDecimal(num0.toString());
+    BigDecimal b1 = new BigDecimal(num1.toString());
+    BigDecimal result = b0.remainder(b1);
+    if (num0 instanceof Double || num1 instanceof Double) {
+      return result.doubleValue();
+    }
+    return result.floatValue();
+  }
+
+  private boolean isIntegral(Number n) {
+    return n instanceof Byte || n instanceof Short || n instanceof Integer || n instanceof Long;
   }
 }

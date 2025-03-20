@@ -27,11 +27,11 @@ import org.json.JSONObject;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.client.Client;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.transport.client.Client;
 
 public class TestUtils {
 
@@ -195,6 +195,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getGeoIpIndexMapping() {
+    String mappingFile = "geoip_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getBankWithNullValuesIndexMapping() {
     String mappingFile = "bank_with_null_values_index_mapping.json";
     return getMappingFile(mappingFile);
@@ -250,6 +255,16 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getJsonTestIndexMapping() {
+    String mappingFile = "json_test_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getAliasIndexMapping() {
+    String mappingFile = "alias_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getStateCountryIndexMapping() {
     String mappingFile = "state_country_index_mapping.json";
     return getMappingFile(mappingFile);
@@ -272,6 +287,11 @@ public class TestUtils {
 
   public static String getWorkInformationIndexMapping() {
     String mappingFile = "work_information_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
+  public static String getDuplicationNullableIndexMapping() {
+    String mappingFile = "duplication_nullable_index_mapping.json";
     return getMappingFile(mappingFile);
   }
 

@@ -138,11 +138,13 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitInExpr(InExprContext ctx) {
-    return new In(
-        visit(ctx.valueExpression()),
-        ctx.valueList().literalValue().stream()
-            .map(this::visitLiteralValue)
-            .collect(Collectors.toList()));
+    UnresolvedExpression expr =
+        new In(
+            visit(ctx.valueExpression()),
+            ctx.valueList().literalValue().stream()
+                .map(this::visitLiteralValue)
+                .collect(Collectors.toList()));
+    return ctx.NOT() != null ? new Not(expr) : expr;
   }
 
   /** Value Expression. */
@@ -437,6 +439,16 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitExistsSubqueryExpr(
       OpenSearchPPLParser.ExistsSubqueryExprContext ctx) {
     return new ExistsSubquery(astBuilder.visitSubSearch(ctx.subSearch()));
+  }
+
+  @Override
+  public UnresolvedExpression visitBetween(OpenSearchPPLParser.BetweenContext ctx) {
+    UnresolvedExpression betweenExpr =
+        new Between(
+            visit(ctx.valueExpression(0)),
+            visit(ctx.valueExpression(1)),
+            visit(ctx.valueExpression(2)));
+    return ctx.NOT() != null ? new Not(betweenExpr) : betweenExpr;
   }
 
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {

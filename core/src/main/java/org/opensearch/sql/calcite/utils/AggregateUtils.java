@@ -9,7 +9,7 @@ import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_POP_NUL
 import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_SAMP_NULLABLE;
 import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_POP_NULLABLE;
 import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_SAMP_NULLABLE;
-import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedAggFunction;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -66,7 +66,7 @@ public interface AggregateUtils {
         return TransferUserDefinedAggFunction(
             TakeAggFunction.class,
             "TAKE",
-            UserDefineFunctionUtils.getReturnTypeInferenceForArray(),
+            UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
             List.of(field),
             argList,
             context.relBuilder);

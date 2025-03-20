@@ -9,12 +9,25 @@ import java.io.IOException;
 import org.junit.Ignore;
 import org.opensearch.sql.ppl.WhereCommandIT;
 
-@Ignore("Not all boolean functions are supported in Calcite now")
 public class CalciteWhereCommandIT extends WhereCommandIT {
   @Override
   public void init() throws IOException {
     enableCalcite();
     disallowCalciteFallback();
     super.init();
+  }
+
+  @Ignore("https://github.com/opensearch-project/sql/issues/3428")
+  @Override
+  public void testIsNotNullFunction() throws IOException {}
+
+  @Ignore("https://github.com/opensearch-project/sql/issues/3333")
+  @Override
+  public void testWhereWithMetadataFields() throws IOException {}
+
+  @Override
+  protected String getIncompatibleTypeErrMsg() {
+    return "In expression types are incompatible: fields type LONG, values type [INTEGER, INTEGER,"
+        + " STRING]";
   }
 }

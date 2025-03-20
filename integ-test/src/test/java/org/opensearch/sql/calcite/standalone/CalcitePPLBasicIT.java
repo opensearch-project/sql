@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -16,6 +17,7 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
@@ -49,10 +51,10 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testInvalidTable() {
-    assertThrows(
-        "OpenSearch exception [type=index_not_found_exception, reason=no such index [unknown]]",
-        IllegalStateException.class,
-        () -> execute("source=unknown"));
+    IllegalStateException e =
+        assertThrows(IllegalStateException.class, () -> execute("source=unknown"));
+    verifyErrorMessageContains(
+        e, "OpenSearch exception [type=index_not_found_exception, reason=no such index [unknown]]");
   }
 
   @Ignore
@@ -117,6 +119,13 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testFieldsShouldBeCaseSensitive() {
+    IllegalStateException e =
+        assertThrows(IllegalStateException.class, () -> execute("source=test | fields NAME"));
+    verifyErrorMessageContains(e, "field [NAME] not found; input fields are: [name, age]");
+  }
+
+  @Test
   public void testFilterQuery1() {
     JSONObject actual = executeQuery("source=test | where age = 30 | fields name, age");
     verifySchema(actual, schema("name", "string"), schema("age", "long"));
@@ -136,6 +145,20 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         executeQuery("source=test | where age > 10 AND age < 100 | fields name, age");
     verifySchema(actual, schema("name", "string"), schema("age", "long"));
     verifyDataRows(actual, rows("hello", 20), rows("world", 30));
+  }
+
+  @Test
+  public void testFilterQuery4() {
+    JSONObject actual = executeQuery("source=test | where age = 20.0 | fields name, age");
+    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifyDataRows(actual, rows("hello", 20));
+  }
+
+  @Test
+  public void testRegexpFilter() {
+    JSONObject actual = executeQuery("source=test | where name REGEXP 'he.*' | fields name, age");
+    verifySchema(actual, schema("name", "string"), schema("age", "long"));
+    verifyDataRows(actual, rows("hello", 20));
   }
 
   @Test
@@ -412,5 +435,121 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     JSONObject actual = executeQuery("source=a | fields name");
     verifySchema(actual, schema("name", "string"));
     verifyDataRows(actual, rows("hello"));
+  }
+
+  @Test
+  public void testBetween() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age between 35 and 38 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
+  }
+
+  @Test
+  public void testBetweenWithExpression() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age between 36 - 1 and 37 + 1 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
+  }
+
+  @Test
+  public void testBetweenWithDifferentTypes() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age between 35.5 and 38.5 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
+  }
+
+  @Test
+  public void testBetweenWithDifferentTypes2() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age between 35 and 38.5 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
+  }
+
+  @Test
+  public void testBetweenWithIncompatibleTypes() {
+    SemanticCheckException e =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | where age between '35' and 38.5 | fields firstname, age",
+                        TEST_INDEX_BANK)));
+    verifyErrorMessageContains(e, "BETWEEN expression types are incompatible");
+  }
+
+  @Test
+  public void testNotBetween() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age not between 30 and 39 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifyDataRows(actual, rows("Nanette", 28));
+  }
+
+  @Test
+  public void testNotBetween2() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where not age between 30 and 39 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifyDataRows(actual, rows("Nanette", 28));
+  }
+
+  @Test
+  public void testNotBetween3() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where not age not between 35 and 38 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("age", "integer"));
+    verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
+  }
+
+  @Ignore("https://github.com/opensearch-project/sql/issues/3400")
+  public void testDateBetween() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                """
+                    source=%s
+                    | where birthdate between date('2018-06-01') and date('2018-06-30')
+                    | fields firstname, birthdate
+                    """,
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("firstname", "string"), schema("birthdate", "timestamp"));
+    verifyDataRows(
+        actual, rows("Nanette", "2018-06-23 00:00:00"), rows("Elinor", "2018-06-27 00:00:00"));
+  }
+
+  @Test
+  public void testXor() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where firstname='Hattie' xor age=36 | fields firstname, age",
+                TEST_INDEX_BANK));
+    verifyDataRows(result, rows("Elinor", 36));
   }
 }

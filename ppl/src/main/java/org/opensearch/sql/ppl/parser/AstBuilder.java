@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
@@ -29,15 +31,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -45,6 +50,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
@@ -55,6 +61,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
@@ -67,13 +74,16 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldListContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 
@@ -81,6 +91,8 @@ import org.opensearch.sql.ppl.utils.ArgumentFactory;
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   private final AstExpressionBuilder expressionBuilder;
+
+  private final Settings settings;
 
   /**
    * PPL query to get original token text. This is necessary because token.getText() returns text
@@ -95,6 +107,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public AstBuilder(String query, Settings settings) {
     this.expressionBuilder = new AstExpressionBuilder(this);
     this.query = query;
+    this.settings = settings;
   }
 
   @Override
@@ -290,7 +303,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                                         StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
                                         internalVisitExpression(groupCtx)))
                         .collect(Collectors.toList()))
-            .orElse(Collections.emptyList());
+            .orElse(emptyList());
 
     UnresolvedExpression span =
         Optional.ofNullable(ctx.statsByClause())
@@ -356,7 +369,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitRareCommand(OpenSearchPPLParser.RareCommandContext ctx) {
     List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
+        ctx.byClause() == null ? emptyList() : getGroupByList(ctx.byClause());
     return new RareTopN(
         CommandType.RARE,
         ArgumentFactory.getArgumentList(ctx),
@@ -368,7 +381,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitTopCommand(OpenSearchPPLParser.TopCommandContext ctx) {
     List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
+        ctx.byClause() == null ? emptyList() : getGroupByList(ctx.byClause());
     return new RareTopN(
         CommandType.TOP,
         ArgumentFactory.getArgumentList(ctx),
@@ -395,18 +408,62 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitPatternsCommand(OpenSearchPPLParser.PatternsCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
-    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    List<UnresolvedExpression> unresolvedArguments = new ArrayList<>();
+    unresolvedArguments.add(sourceField);
+    AtomicReference<String> alias = new AtomicReference<>("patterns_field");
     ctx.patternsParameter()
         .forEach(
             x -> {
-              builder.put(
-                  x.children.get(0).toString(),
-                  (Literal) internalVisitExpression(x.children.get(2)));
+              String argName = x.children.get(0).toString();
+              Literal value = (Literal) internalVisitExpression(x.children.get(2));
+              if ("new_field".equalsIgnoreCase(argName)) {
+                alias.set((String) value.getValue());
+              }
+              unresolvedArguments.add(new Argument(argName, value));
             });
-    java.util.Map<String, Literal> arguments = builder.build();
-    Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
+    return new Window(
+        new Alias(
+            alias.get(),
+            new WindowFunction(
+                new Function(
+                    ctx.pattern_method != null
+                        ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText())
+                            .toLowerCase(Locale.ROOT)
+                        : settings
+                            .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
+                            .toString()
+                            .toLowerCase(Locale.ROOT),
+                    unresolvedArguments),
+                List.of(), // ignore partition by list for now as we haven't seen such requirement
+                List.of()), // ignore sort by list for now as we haven't seen such requirement
+            alias.get()));
+  }
 
-    return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
+  /** Lookup command */
+  @Override
+  public UnresolvedPlan visitLookupCommand(OpenSearchPPLParser.LookupCommandContext ctx) {
+    Relation lookupRelation =
+        new Relation(Collections.singletonList(this.internalVisitExpression(ctx.tableSource())));
+    Lookup.OutputStrategy strategy =
+        ctx.APPEND() != null ? Lookup.OutputStrategy.APPEND : Lookup.OutputStrategy.REPLACE;
+    java.util.Map<String, String> mappingAliasMap =
+        buildFieldAliasMap(ctx.lookupMappingList().lookupPair());
+    java.util.Map<String, String> outputAliasMap =
+        ctx.outputCandidateList() == null
+            ? emptyMap()
+            : buildFieldAliasMap(ctx.outputCandidateList().lookupPair());
+    return new Lookup(lookupRelation, mappingAliasMap, strategy, outputAliasMap);
+  }
+
+  private java.util.Map<String, String> buildFieldAliasMap(
+      List<LookupPairContext> lookupPairContext) {
+    return lookupPairContext.stream()
+        .collect(
+            Collectors.toMap(
+                pair -> pair.inputField.getText(),
+                pair -> pair.AS() != null ? pair.outputField.getText() : pair.inputField.getText(),
+                (x, y) -> y,
+                LinkedHashMap::new));
   }
 
   @Override

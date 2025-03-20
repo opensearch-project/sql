@@ -38,7 +38,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
@@ -47,6 +46,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprBooleanValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
@@ -58,10 +58,12 @@ import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
 import org.opensearch.sql.expression.window.ranking.RankFunction;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
+import org.opensearch.sql.opensearch.planner.physical.OpenSearchEvalOperator;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
@@ -72,6 +74,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.planner.physical.TakeOrderedOperator;
 import org.opensearch.sql.planner.physical.TrendlineOperator;
+import org.opensearch.transport.client.node.NodeClient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -94,8 +97,6 @@ class OpenSearchExecutionProtectorTest {
 
   @Test
   void test_protect_indexScan() {
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
-
     String indexName = "test";
     final int maxResultWindow = 10000;
     final int querySizeLimit = 200;
@@ -337,6 +338,27 @@ class OpenSearchExecutionProtectorTest {
     assertEquals(
         resourceMonitor(trendlineOperator),
         executionProtector.visitTrendline(trendlineOperator, null));
+  }
+
+  /**
+   * To ensure the original Eval functionality continue to work after the OpenSearchEvalOperator
+   * wrapper.
+   */
+  @Test
+  void test_visitOpenSearchEval() {
+    NodeClient nodeClient = mock(NodeClient.class);
+    OpenSearchEvalOperator evalOperator =
+        new OpenSearchEvalOperator(
+            values(emptyList()),
+            List.of(
+                ImmutablePair.of(
+                    new ReferenceExpression("ageInAbs", OpenSearchTextType.of()),
+                    DSL.abs(DSL.abs(new ReferenceExpression("age", ExprCoreType.LONG))))),
+            nodeClient);
+
+    assertEquals(
+        executionProtector.doProtect(evalOperator),
+        executionProtector.visitEval(evalOperator, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

@@ -221,7 +221,8 @@ public class CalciteToolsHelper {
               schema.root(), schema.path(null), typeFactory, prepareContext.config());
       final RexBuilder rexBuilder = new RexBuilder(typeFactory);
       final RelOptPlanner planner =
-          createPlanner(prepareContext, Contexts.of(prepareContext.config()), config.getCostFactory());
+          createPlanner(
+              prepareContext, Contexts.of(prepareContext.config()), config.getCostFactory());
       final RelOptCluster cluster = createCluster(planner, rexBuilder);
       return action.apply(cluster, catalogReader, prepareContext.getRootSchema().plus(), statement);
     }

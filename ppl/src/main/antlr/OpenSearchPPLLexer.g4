@@ -25,7 +25,6 @@ HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
-METHOD:                             'METHOD';
 REGEX:                              'REGEX';
 PUNCT:                              'PUNCT';
 GROK:                               'GROK';
@@ -37,6 +36,11 @@ AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 TRENDLINE:                          'TRENDLINE';
+PATTERN_METHOD:                     'PATTERN_METHOD';
+SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
+BRAIN:                              'BRAIN';
+VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
+FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';
@@ -60,9 +64,6 @@ DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
 USING:                              'USING';
 WITH:                               'WITH';
-
-// CLAUSE KEYWORDS
-SORTBY:                             'SORTBY';
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
@@ -94,11 +95,15 @@ TIME_FIELD:                         'TIME_FIELD';
 TIME_ZONE:                          'TIME_ZONE';
 TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
 ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
+APPEND:                             'APPEND';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
 IN:                                 'IN';
 EXISTS:                             'EXISTS';
+
+// Geo IP eval function
+GEOIP:                              'GEOIP';
 
 // LOGICAL KEYWORDS
 NOT:                                'NOT';
@@ -215,10 +220,6 @@ FIRST:                              'FIRST';
 LAST:                               'LAST';
 LIST:                               'LIST';
 VALUES:                             'VALUES';
-EARLIEST:                           'EARLIEST';
-EARLIEST_TIME:                      'EARLIEST_TIME';
-LATEST:                             'LATEST';
-LATEST_TIME:                        'LATEST_TIME';
 PER_DAY:                            'PER_DAY';
 PER_HOUR:                           'PER_HOUR';
 PER_MINUTE:                         'PER_MINUTE';
@@ -344,6 +345,11 @@ LIKE:                               'LIKE';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
+BETWEEN:                            'BETWEEN';
+
+// JSON FUNCTIONS
+JSON_VALID:                         'JSON_VALID';
+JSON:                               'JSON';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';

@@ -51,11 +51,38 @@ commands
    | grokCommand
    | parseCommand
    | patternsCommand
+   | lookupCommand
    | kmeansCommand
    | adCommand
    | mlCommand
    | fillnullCommand
    | trendlineCommand
+   ;
+
+commandName
+   : SEARCH
+   | DESCRIBE
+   | SHOW
+   | WHERE
+   | FIELDS
+   | JOIN
+   | RENAME
+   | STATS
+   | DEDUP
+   | SORT
+   | EVAL
+   | HEAD
+   | TOP
+   | RARE
+   | GROK
+   | PARSE
+   | PATTERNS
+   | LOOKUP
+   | KMEANS
+   | AD
+   | ML
+   | FILLNULL
+   | TRENDLINE
    ;
 
 searchCommand
@@ -120,18 +147,46 @@ parseCommand
    : PARSE (source_field = expression) (pattern = stringLiteral)
    ;
 
+patternsMethod
+   : PUNCT
+   | REGEX
+   ;
+
 patternsCommand
-   : PATTERNS (patternsParameter)* (source_field = expression)
+   : PATTERNS (patternsParameter)* (source_field = expression) (pattern_method = patternMethod)*
    ;
 
 patternsParameter
    : (NEW_FIELD EQUAL new_field = stringLiteral)
    | (PATTERN EQUAL pattern = stringLiteral)
+   | (VARIABLE_COUNT_THRESHOLD EQUAL variable_count_threshold = integerLiteral)
+   | (FREQUENCY_THRESHOLD_PERCENTAGE EQUAL frequency_threshold_percentage = decimalLiteral)
    ;
 
-patternsMethod
-   : PUNCT
-   | REGEX
+patternMethod
+   : SIMPLE_PATTERN
+   | BRAIN
+   ;
+
+// lookup
+lookupCommand
+   : LOOKUP tableSource lookupMappingList ((APPEND | REPLACE) outputCandidateList)?
+   ;
+
+lookupMappingList
+   : lookupPair (COMMA lookupPair)*
+   ;
+
+outputCandidateList
+   : lookupPair (COMMA lookupPair)*
+   ;
+
+ // The lookup pair will generate a K-V pair.
+ // The format is Key -> Alias(outputFieldName, inputField), Value -> outputField. For example:
+ // 1. When lookupPair is "name AS cName", the key will be Alias(cName, Field(name)), the value will be Field(cName)
+ // 2. When lookupPair is "dept", the key is Alias(dept, Field(dept)), value is Field(dept)
+lookupPair
+   : inputField = fieldExpression (AS outputField = fieldExpression)?
    ;
 
 fillnullCommand
@@ -305,6 +360,7 @@ statsFunctionName
    | STDDEV_SAMP
    | STDDEV_POP
    | PERCENTILE
+   | PERCENTILE_APPROX
    ;
 
 takeAggFunction
@@ -330,19 +386,20 @@ expression
 
 // predicates
 logicalExpression
-   : NOT logicalExpression                                      # logicalNot
-   | LT_PRTHS logicalExpression RT_PRTHS                        # parentheticLogicalExpr
-   | comparisonExpression                                       # comparsion
-   | left = logicalExpression OR right = logicalExpression      # logicalOr
+   : LT_PRTHS logicalExpression RT_PRTHS                        # parentheticLogicalExpr
+   | NOT logicalExpression                                      # logicalNot
    | left = logicalExpression (AND)? right = logicalExpression  # logicalAnd
    | left = logicalExpression XOR right = logicalExpression     # logicalXor
+   | left = logicalExpression OR right = logicalExpression      # logicalOr
+   | comparisonExpression                                       # comparsion
    | booleanExpression                                          # booleanExpr
    | relevanceExpression                                        # relevanceExpr
    ;
 
 comparisonExpression
-   : left = valueExpression comparisonOperator right = valueExpression  # compareExpr
-   | valueExpression IN valueList                                       # inExpr
+   : left = valueExpression comparisonOperator right = valueExpression      # compareExpr
+   | valueExpression NOT? IN valueList                                      # inExpr
+   | valueExpression NOT? BETWEEN valueExpression AND valueExpression       # between
    ;
 
 valueExpressionList
@@ -460,6 +517,7 @@ convertedDataType
    | typeName = STRING
    | typeName = BOOLEAN
    | typeName = IP
+   | typeName = JSON
    ;
 
 evalFunctionName
@@ -470,6 +528,8 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
+   | jsonFunctionName
+   | geoipFunctionName
    ;
 
 functionArgs
@@ -569,6 +629,10 @@ mathematicalFunctionName
    | SQRT
    | TRUNCATE
    | trigonometricFunctionName
+   ;
+
+geoipFunctionName
+   : GEOIP
    ;
 
 trigonometricFunctionName
@@ -713,6 +777,7 @@ conditionFunctionName
    | ISNULL
    | ISNOTNULL
    | CIDRMATCH
+   | JSON_VALID
    ;
 
 // flow control function return non-boolean value
@@ -748,6 +813,10 @@ textFunctionName
 
 positionFunctionName
    : POSITION
+   ;
+
+jsonFunctionName
+   : JSON
    ;
 
 // operators
@@ -909,48 +978,31 @@ keywordsCanBeId
    | evalFunctionName
    | relevanceArgName
    | intervalUnit
-   | dateTimeFunctionName
-   | textFunctionName
-   | mathematicalFunctionName
-   | positionFunctionName
-   | conditionFunctionName
-   // commands
-   | SEARCH
-   | DESCRIBE
-   | SHOW
-   | FROM
-   | WHERE
-   | FIELDS
-   | RENAME
-   | STATS
-   | DEDUP
-   | SORT
-   | EVAL
-   | FILLNULL
-   | HEAD
-   | TOP
-   | RARE
-   | PARSE
-   | METHOD
-   | REGEX
-   | PUNCT
-   | GROK
-   | PATTERN
-   | PATTERNS
-   | NEW_FIELD
-   | KMEANS
-   | AD
-   | ML
-   | TRENDLINE
+   | trendlineType
+   | singleFieldRelevanceFunctionName
+   | multiFieldRelevanceFunctionName
+   | commandName
+   | comparisonOperator
    // commands assist keywords
    | IN
+   | BETWEEN
    | EXISTS
    | SOURCE
    | INDEX
    | DESC
    | DATASOURCES
-   // CLAUSEKEYWORDS
-   | SORTBY
+   | FROM
+   | PATTERN
+   | NEW_FIELD
+   | REGEX
+   | PUNCT
+   | USING
+   | CAST
+   | GET_FORMAT
+   | EXTRACT
+   | INTERVAL
+   | PLUS
+   | MINUS
    // SORT FIELD KEYWORDS
    | AUTO
    | STR
@@ -978,26 +1030,19 @@ keywordsCanBeId
    | TRAINING_DATA_SIZE
    | ANOMALY_SCORE_THRESHOLD
    // AGGREGATIONS
-   | AVG
-   | COUNT
+   | statsFunctionName
    | DISTINCT_COUNT
    | ESTDC
    | ESTDC_ERROR
-   | MAX
    | MEAN
    | MEDIAN
-   | MIN
    | MODE
    | RANGE
    | STDEV
    | STDEVP
-   | SUM
    | SUMSQ
    | VAR_SAMP
    | VAR_POP
-   | STDDEV_SAMP
-   | STDDEV_POP
-   | PERCENTILE
    | TAKE
    | FIRST
    | LAST

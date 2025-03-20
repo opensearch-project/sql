@@ -140,12 +140,12 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where substring(name, 2, 2) = 'el' | fields name, age",
+                "source=%s | where substring(name, 3, 2) = 'hn' | fields name, age",
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
 
-    verifyDataRows(actual, rows("Hello", 30));
+    verifyDataRows(actual, rows("John", 25));
   }
 
   @Test

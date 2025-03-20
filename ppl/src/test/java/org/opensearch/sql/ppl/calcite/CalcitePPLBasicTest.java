@@ -65,6 +65,44 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testFilterQueryWithBetween() {
+    String ppl = "source=EMP | where DEPTNO between 20 and 30 | fields EMPNO, ENAME";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        ""
+            + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalFilter(condition=[SEARCH($7, Sarg[[20..30]])])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` >= 20 AND `DEPTNO` <= 30";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testFilterQueryWithBetween2() {
+    String ppl = "source=EMP | where DEPTNO between 20 and 30.0 | fields EMPNO, ENAME";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
+            + "  LogicalFilter(condition=[SEARCH($7,"
+            + " Sarg[[20.0E0:DOUBLE..30.0E0:DOUBLE]]:DOUBLE)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        ""
+            + "SELECT `EMPNO`, `ENAME`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `DEPTNO` >= 2.00E1 AND `DEPTNO` <= 3.00E1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testFilterQueryWithOr() {
     String ppl =
         "source=EMP | where (DEPTNO = 20 or MGR = 30) and SAL > 1000 | fields EMPNO, ENAME";
@@ -100,6 +138,34 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
             + "SELECT `EMPNO`, `ENAME`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE (`DEPTNO` = 20 OR `MGR` = 30) AND `SAL` > 1000";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testFilterQueryWithIn() {
+    String ppl = "source=scott.products_temporal | where ID in ('1000', '2000')";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalFilter(condition=[SEARCH($0, Sarg['1000':VARCHAR(32),"
+            + " '2000':VARCHAR(32)]:VARCHAR(32))])\n"
+            + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT *\nFROM `scott`.`products_temporal`\nWHERE `ID` IN ('1000', '2000')";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testFilterQueryWithIn2() {
+    String ppl = "source=EMP |  where DEPTNO in (20, 30.0)";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalFilter(condition=[SEARCH($7, Sarg[20.0E0:DOUBLE, 30.0E0:DOUBLE]:DOUBLE)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql = "SELECT *\nFROM `scott`.`EMP`\nWHERE `DEPTNO` IN (2.00E1, 3.00E1)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 

@@ -10,8 +10,12 @@ import static org.hamcrest.Matchers.equalTo;
 import java.io.IOException;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore(
+    "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
+        + " response for now. Need to decide what to do with these test cases.")
 public class OrderIT extends SQLIntegTestCase {
 
   @Override
