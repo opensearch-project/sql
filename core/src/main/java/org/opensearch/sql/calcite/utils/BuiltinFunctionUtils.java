@@ -30,6 +30,7 @@ import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
+import org.opensearch.sql.calcite.udf.systemUDF.TypeOfFunction;
 
 public interface BuiltinFunctionUtils {
 
@@ -182,6 +183,9 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.IS_NOT_NULL;
       case "IS NULL":
         return SqlStdOperatorTable.IS_NULL;
+      case "TYPEOF":
+        return TransferUserDefinedFunction(
+            TypeOfFunction.class, "typeof", ReturnTypes.VARCHAR_2000_NULLABLE);
         // TODO Add more, ref RexImpTable
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);
@@ -250,6 +254,8 @@ public interface BuiltinFunctionUtils {
           throw new IllegalArgumentException("Log cannot accept argument list: " + argList);
         }
         return LogArgs;
+      case "TYPEOF":
+        return List.of(context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
       default:
         return argList;
     }
