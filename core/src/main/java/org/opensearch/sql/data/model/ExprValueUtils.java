@@ -129,12 +129,18 @@ public class ExprValueUtils {
       return longValue(((Long) o));
     } else if (o instanceof Boolean) {
       return booleanValue((Boolean) o);
-    } else if (o instanceof Double) {
-      return doubleValue((Double) o);
+    } else if (o instanceof Double d) {
+      if (Double.isNaN(d)) {
+        return LITERAL_NULL;
+      }
+      return doubleValue(d);
     } else if (o instanceof String) {
       return stringValue((String) o);
-    } else if (o instanceof Float) {
-      return floatValue((Float) o);
+    } else if (o instanceof Float f) {
+      if (Float.isNaN(f)) {
+        return LITERAL_NULL;
+      }
+      return floatValue(f);
     } else if (o instanceof Date) {
       return dateValue(((Date) o).toLocalDate());
     } else if (o instanceof LocalDate) {

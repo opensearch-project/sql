@@ -5,23 +5,30 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import static org.opensearch.sql.calcite.utils.UserDefineFunctionUtils.TransferUserDefinedFunction;
+import static java.lang.Math.E;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.SpanFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
+import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 
 public interface BuiltinFunctionUtils {
@@ -86,15 +93,72 @@ public interface BuiltinFunctionUtils {
         // Built-in Math Functions
       case "ABS":
         return SqlStdOperatorTable.ABS;
-      case "SQRT":
-        return TransferUserDefinedFunction(
-            SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE_FORCE_NULLABLE);
+      case "ACOS":
+        return SqlStdOperatorTable.ACOS;
+      case "ASIN":
+        return SqlStdOperatorTable.ASIN;
       case "ATAN":
       case "ATAN2":
         return SqlStdOperatorTable.ATAN2;
+      case "CEILING":
+        return SqlStdOperatorTable.CEIL;
+      case "CONV":
+        // The CONV function in PPL converts between numerical bases,
+        // while SqlStdOperatorTable.CONVERT converts between charsets.
+        return TransferUserDefinedFunction(ConvFunction.class, "CONVERT", ReturnTypes.VARCHAR);
+      case "COS":
+        return SqlStdOperatorTable.COS;
+      case "COT":
+        return SqlStdOperatorTable.COT;
+      case "CRC32":
+        return TransferUserDefinedFunction(CRC32Function.class, "CRC32", ReturnTypes.BIGINT);
+      case "DEGREES":
+        return SqlStdOperatorTable.DEGREES;
+      case "E":
+        return TransferUserDefinedFunction(EulerFunction.class, "E", ReturnTypes.DOUBLE);
+      case "EXP":
+        return SqlStdOperatorTable.EXP;
+      case "FLOOR":
+        return SqlStdOperatorTable.FLOOR;
+      case "LN":
+        return SqlStdOperatorTable.LN;
+      case "LOG":
+        return SqlLibraryOperators.LOG;
+      case "LOG2":
+        return SqlLibraryOperators.LOG2;
+      case "LOG10":
+        return SqlStdOperatorTable.LOG10;
+      case "MOD":
+      case "%":
+        // The MOD function in PPL supports floating-point parameters, e.g., MOD(5.5, 2) = 1.5,
+        // MOD(3.1, 2.1) = 1.1,
+        // whereas SqlStdOperatorTable.MOD supports only integer / long parameters.
+        return TransferUserDefinedFunction(
+            ModFunction.class,
+            "MOD",
+            getLeastRestrictiveReturnTypeAmongArgsAt(List.of(0, 1), true));
+      case "PI":
+        return SqlStdOperatorTable.PI;
       case "POW":
       case "POWER":
         return SqlStdOperatorTable.POWER;
+      case "RADIANS":
+        return SqlStdOperatorTable.RADIANS;
+      case "RAND":
+        return SqlStdOperatorTable.RAND;
+      case "ROUND":
+        return SqlStdOperatorTable.ROUND;
+      case "SIGN":
+        return SqlStdOperatorTable.SIGN;
+      case "SIN":
+        return SqlStdOperatorTable.SIN;
+      case "SQRT":
+        // SqlStdOperatorTable.SQRT is declared but not implemented, therefore we use a custom
+        // implementation.
+        return TransferUserDefinedFunction(
+            SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE_FORCE_NULLABLE);
+      case "CBRT":
+        return SqlStdOperatorTable.CBRT;
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP":
         return SqlStdOperatorTable.CURRENT_TIMESTAMP;
@@ -112,14 +176,13 @@ public interface BuiltinFunctionUtils {
             SpanFunction.class, "SPAN", ReturnTypes.ARG0_FORCE_NULLABLE);
         // Built-in condition functions
       case "IF":
-        return TransferUserDefinedFunction(
-            IfFunction.class, "if", UserDefineFunctionUtils.getReturnTypeInference(1));
+        return TransferUserDefinedFunction(IfFunction.class, "if", getReturnTypeInference(1));
       case "IFNULL":
         return TransferUserDefinedFunction(
-            IfNullFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(1));
+            IfNullFunction.class, "ifnull", getReturnTypeInference(1));
       case "NULLIF":
         return TransferUserDefinedFunction(
-            NullIfFunction.class, "ifnull", UserDefineFunctionUtils.getReturnTypeInference(0));
+            NullIfFunction.class, "ifnull", getReturnTypeInference(0));
       case "IS NOT NULL":
         return SqlStdOperatorTable.IS_NOT_NULL;
       case "IS NULL":
@@ -177,6 +240,21 @@ public interface BuiltinFunctionUtils {
           AtanArgs.add(context.rexBuilder.makeBigintLiteral(divideNumber));
         }
         return AtanArgs;
+      case "LOG":
+        List<RexNode> LogArgs = new ArrayList<>();
+        RelDataTypeFactory typeFactory = context.rexBuilder.getTypeFactory();
+        if (argList.size() == 1) {
+          LogArgs.add(argList.getFirst());
+          LogArgs.add(
+              context.rexBuilder.makeExactLiteral(
+                  BigDecimal.valueOf(E), typeFactory.createSqlType(SqlTypeName.DOUBLE)));
+        } else if (argList.size() == 2) {
+          LogArgs.add(argList.get(1));
+          LogArgs.add(argList.get(0));
+        } else {
+          throw new IllegalArgumentException("Log cannot accept argument list: " + argList);
+        }
+        return LogArgs;
       default:
         return argList;
     }
