@@ -95,9 +95,8 @@ public class JdbcOpenSearchDataTypeConvertor {
 
         case Types.TIME:
           Time timeStr = rs.getTime(i);
-          long millisecond = timeStr.getTime();
-          long nanoSecond = (millisecond * 1000000 + 86400000000000L) % 86400000000000L;
-          LocalTime localTime = LocalTime.ofNanoOfDay(nanoSecond);
+          long millisecond = (timeStr.getTime() + 3600000L) % 1000L;
+          LocalTime localTime = timeStr.toLocalTime().plusNanos(millisecond * 1000000);
           return new ExprTimeValue(localTime);
 
         case Types.TIMESTAMP:
