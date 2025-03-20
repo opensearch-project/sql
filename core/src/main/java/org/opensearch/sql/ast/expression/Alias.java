@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ast.expression;
 
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -18,7 +17,6 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
  * restoring the info in toString() method which is inaccurate because original info is already
  * lost.
  */
-@AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @ToString
@@ -31,15 +29,35 @@ public class Alias extends UnresolvedExpression {
   private final UnresolvedExpression delegated;
 
   /** TODO. Optional field alias. */
-  private String alias;
+  private final String alias;
 
   public Alias(String name, UnresolvedExpression expr) {
-    if (OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(name)) {
+    this(name, expr, false);
+  }
+
+  public Alias(String name, UnresolvedExpression expr, String alias) {
+    this(name, expr, alias, false);
+  }
+
+  public Alias(String name, UnresolvedExpression expr, boolean metaMetaFieldAllowed) {
+    this(name, expr, null, metaMetaFieldAllowed);
+  }
+
+  public Alias(String name, UnresolvedExpression expr, String alias, boolean metaMetaFieldAllowed) {
+    if (!metaMetaFieldAllowed && OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(name)) {
       throw new IllegalArgumentException(
           String.format("Cannot use metadata field [%s] as the alias.", name));
     }
     this.name = name;
     this.delegated = expr;
+    this.alias = alias;
+  }
+
+  // TODO: Only for SQL. We never allow metadata field as alias but SQL view all select items as
+  //  alias. Need to remove this tricky logic after SQL fix it.
+  public static Alias newAliasAllowMetaMetaField(
+      String name, UnresolvedExpression expr, String alias) {
+    return new Alias(name, expr, alias, true);
   }
 
   @Override

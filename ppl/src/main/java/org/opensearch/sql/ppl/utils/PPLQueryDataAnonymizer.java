@@ -17,6 +17,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Between;
@@ -219,12 +220,21 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         String.join(" ", fields, groupBy(group)).trim());
   }
 
+  @Override
+  public String visitAllFields(AllFields node, String context) {
+    return "";
+  }
+
   /** Build {@link LogicalProject} or {@link LogicalRemove} from {@link Field}. */
   @Override
   public String visitProject(Project node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     String arg = "+";
     String fields = visitExpressionList(node.getProjectList());
+
+    if (Strings.isNullOrEmpty(fields)) {
+      return child;
+    }
 
     if (node.hasArgument()) {
       Argument argument = node.getArgExprList().get(0);
@@ -431,6 +441,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     @Override
     public String visitField(Field node, String context) {
       return node.getField().toString();
+    }
+
+    @Override
+    public String visitAllFields(AllFields node, String context) {
+      return "";
     }
 
     @Override

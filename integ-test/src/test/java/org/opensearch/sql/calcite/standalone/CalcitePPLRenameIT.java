@@ -80,20 +80,8 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testRenameMetaField() {
+  public void testRenameToMetaField() {
     IllegalArgumentException e =
-        assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        """
-                   source = %s | rename _id as id
-                   """,
-                        TEST_INDEX_STATE_COUNTRY)));
-    assertEquals("Cannot use metadata field [_id] in Rename command.", e.getMessage());
-
-    e =
         assertThrows(
             IllegalArgumentException.class,
             () ->

@@ -35,11 +35,7 @@ public class Rename extends UnresolvedPlan {
   }
 
   private void checkRename() {
-    renameList.forEach(
-        rename -> {
-          checkFieldName(rename.getOrigin());
-          checkFieldName(rename.getTarget());
-        });
+    renameList.forEach(rename -> checkFieldName(rename.getTarget()));
   }
 
   private void checkFieldName(UnresolvedExpression expr) {

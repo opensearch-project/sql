@@ -34,8 +34,9 @@ public class Join extends UnresolvedPlan {
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
     // Exclude metadata fields for join since they're meaningless for a new record
-    child = AllFields.excludeMeta().apply(child);
-    this.left = leftAlias.isEmpty() ? child : new SubqueryAlias(leftAlias.get(), child);
+    this.left =
+        AllFields.excludeMeta()
+            .apply(leftAlias.isEmpty() ? child : new SubqueryAlias(leftAlias.get(), child));
     return this;
   }
 
