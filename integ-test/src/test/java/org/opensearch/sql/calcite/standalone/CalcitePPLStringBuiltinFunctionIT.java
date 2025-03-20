@@ -6,12 +6,12 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 
@@ -122,13 +122,12 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows("Hello", 30));
   }
 
-  @Ignore("TODO, flaky test")
   public void testLike() {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where like(name, '_ello%%') | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
 
@@ -141,7 +140,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | where substring(name, 3, 2) = 'hn' | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
 
@@ -153,12 +152,12 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where position('He' in name) = 1 | fields name, age",
-                TEST_INDEX_STATE_COUNTRY));
+                "source=%s | where position('ohn' in name) = 2 | fields name, age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
 
-    verifyDataRows(actual, rows("Hello", 30));
+    verifyDataRows(actual, rows("John", 25));
   }
 
   @Test
