@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Objects;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
 /**
@@ -28,7 +29,7 @@ public class periodNameFunction implements UserDefinedFunction {
     LocalDate localDate;
     if (candiate instanceof String) {
       // First transfer it to LocalDate
-      localDate = LocalDate.parse((String) candiate);
+      localDate = DateTimeParser.parse(candiate.toString()).toLocalDate();
     } else if (argumentType == SqlTypeName.DATE) { // date
       localDate =
           LocalDate.ofInstant(InstantUtils.fromInternalDate((int) candiate), ZoneOffset.UTC);
@@ -40,10 +41,11 @@ public class periodNameFunction implements UserDefinedFunction {
       throw new IllegalArgumentException("something wrong");
     }
     String nameType = (String) type;
+    // TODO: Double-check whether it is ok to always return US week & month names
     if (Objects.equals(nameType, "MONTHNAME")) {
-      return localDate.getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault());
+      return localDate.getMonth().getDisplayName(TextStyle.FULL, Locale.US);
     } else if (Objects.equals(nameType, "DAYNAME")) {
-      return localDate.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.getDefault());
+      return localDate.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.US);
     } else {
       throw new IllegalArgumentException("something wrong");
     }
