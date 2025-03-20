@@ -62,6 +62,24 @@ dependencies {
     testImplementation(testFixtures(project(":core")))
 }
 
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/build/**', '**/build-*/**', 'src/main/gen/**'
+        }
+        importOrder()
+//        licenseHeader("/*\n" +
+//                " * Copyright OpenSearch Contributors\n" +
+//                " * SPDX-License-Identifier: Apache-2.0\n" +
+//                " */\n\n")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+    }
+}
+
 test {
     testLogging {
         events "passed", "skipped", "failed"
