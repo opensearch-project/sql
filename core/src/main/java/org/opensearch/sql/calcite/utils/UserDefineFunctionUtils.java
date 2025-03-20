@@ -70,7 +70,14 @@ public class UserDefineFunctionUtils {
         udfLtrimIdentifier, SqlKind.OTHER_FUNCTION, returnType, null, null, udfFunction);
   }
 
-  static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
+  /**
+   * For some udf/udaf, when giving a list of arguments, we need to infer the return type from the
+   * arguments.
+   *
+   * @param targetPosition
+   * @return a inference function
+   */
+  public static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
@@ -81,7 +88,8 @@ public class UserDefineFunctionUtils {
         throw new IllegalArgumentException("Function requires at least one argument.");
       }
       RelDataType firstArgType = argTypes.get(targetPosition);
-      return typeFactory.createSqlType(firstArgType.getSqlTypeName());
+      return typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
     };
   }
 
@@ -129,11 +137,6 @@ public class UserDefineFunctionUtils {
       RelDataType relDataType = opBinding.getTypeFactory().createSqlType(typeName);
       return opBinding.getTypeFactory().createTypeWithNullability(relDataType, true);
     };
-  }
-
-  static Long transferDateExprToMilliSeconds(String timeExpr) {
-    LocalDate date = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-    return date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
   }
 
   static List<Integer> transferStringExprToDateValue(String timeExpr) {
