@@ -27,7 +27,8 @@ public class secondToTimeFunction implements UserDefinedFunction {
             transferredValue = ExprValueUtils.floatValue((Float) candidate);
             returnTimeValue = exprSecToTimeWithNanos(transferredValue);
         }
-        return returnTimeValue.timeValue().toSecondOfDay() * 1000;
+        long demo = returnTimeValue.timeValue().toNanoOfDay() / 1000000;
+        return returnTimeValue.timeValue().toNanoOfDay() / 1000000;
         //java.sql.Time demo = new java.sql.Time(returnTimeValue.timeValue().toNanoOfDay() / 1000000L);
         //return new java.sql.Time(returnTimeValue.timeValue().toNanoOfDay() / 1000000L);
     }
