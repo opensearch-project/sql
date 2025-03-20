@@ -20,7 +20,6 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 @ToString
 @Getter
-@RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class Join extends UnresolvedPlan {
   private UnresolvedPlan left;
@@ -30,6 +29,22 @@ public class Join extends UnresolvedPlan {
   private final JoinType joinType;
   private final Optional<UnresolvedExpression> joinCondition;
   private final JoinHint joinHint;
+
+  public Join(
+      UnresolvedPlan apply,
+      Optional<String> leftAlias,
+      Optional<String> rightAlias,
+      JoinType joinType,
+      Optional<UnresolvedExpression> joinCondition,
+      JoinHint joinHint) {
+    // Exclude metadata fields for join since they're meaningless for a new record
+    this.right = AllFields.excludeMeta().apply(apply);
+    this.leftAlias = leftAlias;
+    this.rightAlias = rightAlias;
+    this.joinType = joinType;
+    this.joinCondition = joinCondition;
+    this.joinHint = joinHint;
+  }
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {

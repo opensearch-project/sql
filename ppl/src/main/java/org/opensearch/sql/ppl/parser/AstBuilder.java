@@ -208,14 +208,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.joinCriteria() == null
             ? Optional.empty()
             : Optional.of(expressionBuilder.visitJoinCriteria(ctx.joinCriteria()));
-    // Exclude metadata fields for join since they're meaningless for a new record
-    return new Join(
-        AllFields.excludeMeta().apply(right),
-        leftAlias,
-        rightAlias,
-        joinType,
-        joinCondition,
-        joinHint);
+    return new Join(right, leftAlias, rightAlias, joinType, joinCondition, joinHint);
   }
 
   private Join.JoinHint getJoinHint(OpenSearchPPLParser.JoinHintListContext ctx) {
