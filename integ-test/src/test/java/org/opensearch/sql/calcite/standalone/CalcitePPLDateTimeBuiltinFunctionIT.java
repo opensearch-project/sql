@@ -115,18 +115,18 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                                         + "| eval `TIME('2020-08-26 13:49:00')` = TIME('2020-08-26 13:49:00')"
                                         + "| eval `TIME('2020-08-26 13:49')` = TIME('2020-08-26 13:49')"
                                         + "| eval `TIME('13:49')` = TIME('13:49')"
-                                        + "| eval `TIME('13:49:00')` = TIME('13:49:00')"
+                                        + "| eval `TIME('13:49:00.123')` = TIME('13:49:00.123')"
                                         + "| eval `TIME(TIME('13:49:00'))` = TIME(TIME('13:49:00'))"
                                         + "| eval `TIME(TIMESTAMP('2024-08-06 13:49:00'))` = TIME(TIMESTAMP('2024-08-06 13:49:00'))"
                                         + "| eval `TIME(DATE('2024-08-06 13:49:00'))` = TIME(DATE('2024-08-06 13:49:00'))"
-                                        + "| fields `TIME('2020-08-26 13:49:00')`, `TIME('2020-08-26 13:49')`, `TIME('13:49')`,  `TIME('13:49:00')`, "
+                                        + "| fields `TIME('2020-08-26 13:49:00')`, `TIME('2020-08-26 13:49')`, `TIME('13:49')`,  `TIME('13:49:00.123')`, "
                                         + "`TIME(TIME('13:49:00'))`, `TIME(TIMESTAMP('2024-08-06 13:49:00'))`, `TIME(DATE('2024-08-06 13:49:00'))`"
                                         + "| head 1", TEST_INDEX_STATE_COUNTRY));
 
         verifySchema(actual, schema("TIME('2020-08-26 13:49:00')", "time"),
                 schema("TIME('2020-08-26 13:49')", "time"),
                 schema("TIME('13:49')", "time"),
-                schema("TIME('13:49:00')", "time"),
+                schema("TIME('13:49:00.123')", "time"),
                 schema("TIME(TIME('13:49:00'))", "time"),
                 schema("TIME(TIMESTAMP('2024-08-06 13:49:00'))", "time"),
                 schema("TIME(DATE('2024-08-06 13:49:00'))", "time")
@@ -135,7 +135,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         verifyDataRows(actual, rows("13:49:00",
                 "13:49:00",
                 "13:49:00",
-                "13:49:00",
+                "13:49:00.123",
                 "13:49:00",
                 "13:49:00",
                 "00:00:00"
@@ -161,6 +161,98 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         ));
 
     }
+
+
+    @Test
+    public void testTimeStrToDate(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where YEAR(strict_date_optional_time) < 2000"
+                                        + "| eval demo = str_to_date(\"01,5,2013\", \"%%d,%%m,%%Y\")"
+                                        + "| where str_to_date(\"01,5,2013\", \"%%d,%%m,%%Y\")='2013-05-01 00:00:00'"
+                                        + "| fields demo | head 1"
+                                , TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("demo", "timestamp")
+        );
+        verifyDataRows(actual, rows(
+                "2013-05-01 00:00:00"
+        ));
+    }
+
+    @Test
+    public void testTimeStrToDateReturnNull(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where YEAR(strict_date_optional_time) < 2000"
+                                        + "| eval demo = str_to_date(\"01,5,2013\", \"%%d,%%m\")"
+                                        + "| where str_to_date(\"01,5,2013\", \"%%d,%%m,%%Y\")=TIMESTAMP('2013-05-01 00:00:00')"
+                                        + "| fields demo | head 1"
+                                , TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("demo", "timestamp")
+        );
+        verifyDataRows(actual, rows(
+                "2013-05-01 00:00:00"
+        ));
+    }
+
+
+    @Test
+    public void testTimeFormat(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where YEAR(strict_date_optional_time) < 2000"
+                                        + "| eval timestamp=TIME_FORMAT(strict_date_optional_time, '%%h') "
+                                        + "| eval time=TIME_FORMAT(time, '%%h')"
+                                        + "| eval date=TIME_FORMAT(date, '%%h')"
+                                        + "| eval string_value=TIME_FORMAT('1998-01-31 13:14:15.012345','%%h %%i' ) "
+                                        + "| where TIME_FORMAT(strict_date_optional_time, '%%h')='09'"
+                                        + "| fields timestamp, time, date, string_value | head 1"
+                                , TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("timestamp", "string"),
+                schema("time", "string"),
+                schema("date", "string"),
+                schema("string_value", "string")
+        );
+        verifyDataRows(actual, rows(
+                "09", "09", "12", "01 14"
+        ));
+    }
+
+
+    @Test
+    public void testTimeToSec(){
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s "
+                                        + "| where YEAR(strict_date_optional_time) < 2000"
+                                        + "| eval timestamp=TIME_TO_SEC(strict_date_optional_time) "
+                                        + "| eval time=TIME_TO_SEC(time)"
+                                        + "| eval date=TIME_TO_SEC(date)"
+                                        + "| eval long_value=TIME_TO_SEC('22:23:00') "
+                                        + "| where TIME_TO_SEC('22:23:00')=80580"
+                                        + "| fields timestamp, time, date, long_value | head 1"
+                                , TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("timestamp", "long"),
+                schema("time", "long"),
+                schema("date", "long"),
+                schema("long_value", "long")
+        );
+        verifyDataRows(actual, rows(
+                32862, 32862, 0, 80580
+        ));
+    }
+
 
     @Test
     public void testSecToTime(){
