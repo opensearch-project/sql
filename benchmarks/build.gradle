@@ -20,4 +20,13 @@ dependencies {
     annotationProcessor group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.36'
 }
 
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/jmh_generated/**'
+        }
+    }
+}
+
 compileJava.options.compilerArgs.addAll(["-processor", "org.openjdk.jmh.generators.BenchmarkProcessor"])
