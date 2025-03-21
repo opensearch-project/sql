@@ -16,7 +16,8 @@ import org.opensearch.sql.common.utils.StringUtils;
 public class CsvFormatIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.BANK_CSV_SANITIZE);
   }
 
