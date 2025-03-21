@@ -43,6 +43,11 @@ public class ExprTimeValue extends AbstractExprValue {
   }
 
   @Override
+  public Integer valueForCalcite() {
+    return (int) (time.toNanoOfDay() / 1000000L);
+  }
+
+  @Override
   public ExprType type() {
     return ExprCoreType.TIME;
   }

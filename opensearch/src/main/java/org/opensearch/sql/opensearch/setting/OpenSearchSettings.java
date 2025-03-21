@@ -76,6 +76,27 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> CALCITE_ENGINE_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.CALCITE_ENGINE_ENABLED.getKeyValue(),
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> CALCITE_FALLBACK_ALLOWED_SETTING =
+      Setting.boolSetting(
+          Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> CALCITE_PUSHDOWN_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> QUERY_MEMORY_LIMIT_SETTING =
       Setting.memorySizeSetting(
           Key.QUERY_MEMORY_LIMIT.getKeyValue(),
@@ -261,6 +282,24 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.CALCITE_ENGINE_ENABLED,
+        CALCITE_ENGINE_ENABLED_SETTING,
+        new Updater(Key.CALCITE_ENGINE_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_FALLBACK_ALLOWED,
+        CALCITE_FALLBACK_ALLOWED_SETTING,
+        new Updater(Key.CALCITE_FALLBACK_ALLOWED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_PUSHDOWN_ENABLED,
+        CALCITE_PUSHDOWN_ENABLED_SETTING,
+        new Updater(Key.CALCITE_PUSHDOWN_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.QUERY_MEMORY_LIMIT,
         QUERY_MEMORY_LIMIT_SETTING,
         new Updater(Key.QUERY_MEMORY_LIMIT));
@@ -430,6 +469,9 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
         .add(PPL_ENABLED_SETTING)
+        .add(CALCITE_ENGINE_ENABLED_SETTING)
+        .add(CALCITE_FALLBACK_ALLOWED_SETTING)
+        .add(CALCITE_PUSHDOWN_ENABLED_SETTING)
         .add(DEFAULT_PATTERN_METHOD_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)

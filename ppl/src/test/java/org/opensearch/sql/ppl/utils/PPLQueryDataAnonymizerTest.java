@@ -20,7 +20,6 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
-import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -84,6 +83,13 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testStatsCommandWithNestedFunctions() {
     assertEquals("source=t | stats sum(+(a,b))", anonymize("source=t | stats sum(a+b)"));
+  }
+
+  @Test
+  public void testStatsCommandWithSpanFunction() {
+    assertEquals(
+        "source=t | stats count(a) by span(b, *** d),c",
+        anonymize("source=t | stats count(a) by span(b, 1d), c"));
   }
 
   @Test
@@ -160,6 +166,11 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testInExpression() {
+    assertEquals("source=t | where a in (***)", anonymize("source=t | where a in (1, 2, 3) "));
+  }
+
+  @Test
   public void testQualifiedName() {
     assertEquals("source=t | fields + field0", anonymize("source=t | fields field0"));
   }
@@ -188,8 +199,110 @@ public class PPLQueryDataAnonymizerTest {
         anonymize(projectWithArg(relation("t"), Collections.emptyList(), field("f"))));
   }
 
+  @Test
+  public void testBetween() {
+    assertEquals(
+        "source=t | where id between *** and *** | fields + id",
+        anonymize("source=t | where id between 1 and 2 | fields id"));
+    assertEquals(
+        "source=t | where not id between *** and *** | fields + id",
+        anonymize("source=t | where id not between 1 and 2 | fields id"));
+  }
+
+  @Test
+  public void testSubqueryAlias() {
+    assertEquals("source=t as t1", anonymize("source=t as t1"));
+  }
+
+  @Test
+  public void testJoin() {
+    assertEquals(
+        "source=t | cross join on true s | fields + id",
+        anonymize("source=t | cross join s | fields id"));
+    assertEquals(
+        "source=t | inner join on id = uid s | fields + id",
+        anonymize("source=t | inner join on id = uid s | fields id"));
+    assertEquals(
+        "source=t as l | inner join left = l right = r on id = uid s as r | fields + id",
+        anonymize("source=t | join left = l right = r on id = uid s | fields id"));
+    assertEquals(
+        "source=t | left join right = r on id = uid s as r | fields + id",
+        anonymize("source=t | left join right = r on id = uid s | fields id"));
+    assertEquals(
+        "source=t as t1 | inner join on id = uid s as t2 | fields + t1.id",
+        anonymize("source=t as t1 | inner join on id = uid s as t2 | fields t1.id"));
+    assertEquals(
+        "source=t as t1 | right join on t1.id = t2.id s as t2 | fields + t1.id",
+        anonymize("source=t as t1 | right join on t1.id = t2.id s as t2 | fields t1.id"));
+    assertEquals(
+        "source=t as t1 | right join right = t2 on t1.id = t2.id [ source=s | fields + id ] as t2 |"
+            + " fields + t1.id",
+        anonymize(
+            "source=t as t1 | right join on t1.id = t2.id [ source=s | fields id] as t2 | fields"
+                + " t1.id"));
+  }
+
+  @Test
+  public void testLookup() {
+    assertEquals(
+        "source=EMP | lookup DEPT DEPTNO replace LOC",
+        anonymize("source=EMP | lookup DEPT DEPTNO replace LOC"));
+    assertEquals(
+        "source=EMP | lookup DEPT DEPTNO replace LOC as JOB",
+        anonymize("source=EMP | lookup DEPT DEPTNO replace LOC as JOB"));
+    assertEquals(
+        "source=EMP | lookup DEPT DEPTNO append LOC",
+        anonymize("source=EMP | lookup DEPT DEPTNO append LOC"));
+    assertEquals(
+        "source=EMP | lookup DEPT DEPTNO append LOC as JOB",
+        anonymize("source=EMP | lookup DEPT DEPTNO append LOC as JOB"));
+    assertEquals("source=EMP | lookup DEPT DEPTNO", anonymize("source=EMP | lookup DEPT DEPTNO"));
+    assertEquals(
+        "source=EMP | lookup DEPT DEPTNO as EMPNO, ID append ID, LOC as JOB, COUNTRY as COUNTRY2",
+        anonymize(
+            "source=EMP | lookup DEPT DEPTNO as EMPNO, ID append ID, LOC as JOB, COUNTRY as"
+                + " COUNTRY2"));
+  }
+
+  @Test
+  public void testInSubquery() {
+    assertEquals(
+        "source=t | where (id) in [ source=s | fields + uid ] | fields + id",
+        anonymize("source=t | where id in [source=s | fields uid] | fields id"));
+  }
+
+  @Test
+  public void testExistsSubquery() {
+    assertEquals(
+        "source=t | where exists [ source=s | where id = uid ] | fields + id",
+        anonymize("source=t | where exists [source=s | where id = uid ] | fields id"));
+  }
+
+  @Test
+  public void testScalarSubquery() {
+    assertEquals(
+        "source=t | where id = [ source=s | stats max(b) ] | fields + id",
+        anonymize("source=t |  where id = [ source=s | stats max(b) ] | fields id"));
+    assertEquals(
+        "source=t | eval id=[ source=s | stats max(b) ] | fields + id",
+        anonymize("source=t |  eval id = [ source=s | stats max(b) ] | fields id"));
+    assertEquals(
+        "source=t | where id > [ source=s | where id = uid | stats max(b) ] | fields + id",
+        anonymize("source=t id > [ source=s | where id = uid | stats max(b) ] | fields id"));
+  }
+
+  @Test
+  public void testCast() {
+    assertEquals(
+        "source=t | eval id=cast(a as INTEGER) | fields + id",
+        anonymize("source=t | eval id=CAST(a AS INTEGER) | fields id"));
+    assertEquals(
+        "source=t | eval id=cast(*** as DOUBLE) | fields + id",
+        anonymize("source=t | eval id=CAST('1' AS DOUBLE) | fields id"));
+  }
+
   private String anonymize(String query) {
-    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), settings, query);
+    AstBuilder astBuilder = new AstBuilder(query, settings);
     return anonymize(astBuilder.visit(parser.parse(query)));
   }
 
@@ -201,7 +314,7 @@ public class PPLQueryDataAnonymizerTest {
   private String anonymizeStatement(String query, boolean isExplain) {
     AstStatementBuilder builder =
         new AstStatementBuilder(
-            new AstBuilder(new AstExpressionBuilder(), settings, query),
+            new AstBuilder(query, settings),
             AstStatementBuilder.StatementBuilderContext.builder().isExplain(isExplain).build());
     Statement statement = builder.visit(parser.parse(query));
     PPLQueryDataAnonymizer anonymize = new PPLQueryDataAnonymizer();

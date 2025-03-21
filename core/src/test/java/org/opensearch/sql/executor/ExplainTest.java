@@ -73,7 +73,7 @@ class ExplainTest extends ExpressionTestBase {
             DSL.equal(ref("balance", INTEGER), literal(10000)),
             DSL.greater(ref("age", INTEGER), literal(30)));
     NamedExpression[] projectList = {
-      named("full_name", ref("full_name", STRING), "name"), named("age", ref("age", INTEGER))
+      named("name", ref("full_name", STRING)), named("age", ref("age", INTEGER))
     };
 
     PhysicalPlan plan = project(filter(tableScan, filterExpr), projectList);

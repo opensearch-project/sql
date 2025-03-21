@@ -1,0 +1,24 @@
+{
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "keyword"
+      },
+      "occupation": {
+        "type": "text"
+      },
+      "country": {
+        "type": "text"
+      },
+      "salary": {
+        "type": "integer"
+      },
+      "year": {
+        "type": "integer"
+      },
+      "month": {
+        "type": "integer"
+      }
+    }
+  }
+}

@@ -54,14 +54,14 @@ public class BucketAggregationBuilder {
     if (expr.getDelegated() instanceof SpanExpression) {
       SpanExpression spanExpr = (SpanExpression) expr.getDelegated();
       return buildHistogram(
-          expr.getNameOrAlias(),
+          expr.getName(),
           spanExpr.getField().toString(),
           spanExpr.getValue().valueOf().doubleValue(),
           spanExpr.getUnit(),
           missingOrder);
     } else {
       CompositeValuesSourceBuilder<?> sourceBuilder =
-          new TermsValuesSourceBuilder(expr.getNameOrAlias())
+          new TermsValuesSourceBuilder(expr.getName())
               .missingBucket(true)
               .missingOrder(missingOrder)
               .order(sortOrder);

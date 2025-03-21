@@ -114,7 +114,7 @@ public class AstNowLikeFunctionTest {
   }
 
   private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), settings, query);
+    AstBuilder astBuilder = new AstBuilder(query, settings);
     return astBuilder.visit(parser.parse(query));
   }
 }

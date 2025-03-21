@@ -532,7 +532,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     List<NamedExpression> projectList =
         List.of(
             new NamedExpression(
-                "nested(message.info)", DSL.nested(DSL.ref("message.info", STRING)), null));
+                "nested(message.info)", DSL.nested(DSL.ref("message.info", STRING))));
 
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
@@ -705,8 +705,7 @@ class AnalyzerTest extends AnalyzerTestBase {
         List.of(
             new NamedExpression(
                 "nested(message.info)",
-                DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)),
-                null));
+                DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING))));
 
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
@@ -735,7 +734,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     List<NamedExpression> projectList =
         List.of(
             new NamedExpression(
-                "nested(message.info.id)", DSL.nested(DSL.ref("message.info.id", STRING)), null));
+                "nested(message.info.id)", DSL.nested(DSL.ref("message.info.id", STRING))));
 
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
@@ -765,9 +764,9 @@ class AnalyzerTest extends AnalyzerTestBase {
     List<NamedExpression> projectList =
         List.of(
             new NamedExpression(
-                "nested(message.info)", DSL.nested(DSL.ref("message.info", STRING)), null),
+                "nested(message.info)", DSL.nested(DSL.ref("message.info", STRING))),
             new NamedExpression(
-                "nested(comment.data)", DSL.nested(DSL.ref("comment.data", STRING)), null));
+                "nested(comment.data)", DSL.nested(DSL.ref("comment.data", STRING))));
 
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
