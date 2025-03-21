@@ -74,7 +74,8 @@ public class StandaloneIT extends PPLIntegTestCase {
   private PPLService pplService;
 
   @Override
-  public void init() {
+  public void init() throws Exception {
+    super.init();
     RestHighLevelClient restClient = new InternalRestHighLevelClient(client());
     OpenSearchClient client = new OpenSearchRestClient(restClient);
     DataSourceService dataSourceService =

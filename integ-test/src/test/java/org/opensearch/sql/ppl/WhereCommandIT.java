@@ -19,7 +19,8 @@ import org.junit.jupiter.api.Test;
 public class WhereCommandIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.GAME_OF_THRONES);
@@ -96,7 +97,8 @@ public class WhereCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | where isnotnull(age) and like(firstname, 'Ambe_') | fields firstname",
+                "source=%s | where isnotnull(age) and like(firstname, 'Ambe_%%') | fields"
+                    + " firstname",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRows(result, rows("Amber JOHnny"));
   }

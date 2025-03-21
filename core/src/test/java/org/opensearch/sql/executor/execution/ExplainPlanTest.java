@@ -22,10 +22,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
+import org.opensearch.sql.executor.QueryType;
 
 @ExtendWith(MockitoExtension.class)
 public class ExplainPlanTest {
   @Mock private QueryId queryId;
+
+  @Mock private QueryType queryType;
 
   @Mock private QueryPlan queryPlan;
 
@@ -35,7 +38,7 @@ public class ExplainPlanTest {
   public void execute() {
     doNothing().when(queryPlan).explain(any());
 
-    ExplainPlan explainPlan = new ExplainPlan(queryId, queryPlan, explainListener);
+    ExplainPlan explainPlan = new ExplainPlan(queryId, queryType, queryPlan, explainListener);
     explainPlan.execute();
 
     verify(queryPlan, times(1)).explain(explainListener);
@@ -43,7 +46,7 @@ public class ExplainPlanTest {
 
   @Test
   public void explainThrowException() {
-    ExplainPlan explainPlan = new ExplainPlan(queryId, queryPlan, explainListener);
+    ExplainPlan explainPlan = new ExplainPlan(queryId, queryType, queryPlan, explainListener);
 
     UnsupportedOperationException unsupportedExplainException =
         assertThrows(

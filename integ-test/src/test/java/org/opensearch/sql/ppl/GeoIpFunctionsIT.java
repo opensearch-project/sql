@@ -52,7 +52,8 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
 
   @SneakyThrows
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.GEOIP);
     if (!initialized) {
       // Create a new dataSource

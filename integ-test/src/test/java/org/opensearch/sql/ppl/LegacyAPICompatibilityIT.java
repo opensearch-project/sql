@@ -21,7 +21,8 @@ public class LegacyAPICompatibilityIT extends PPLIntegTestCase {
   public static final String LEGACY_PPL_STATS_API_ENDPOINT = "/_opendistro/_ppl/stats";
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.ACCOUNT);
   }
 

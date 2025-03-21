@@ -71,7 +71,7 @@ public class PPLServiceTest {
               return null;
             })
         .when(queryService)
-        .execute(any(), any());
+        .execute(any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY),
@@ -95,7 +95,7 @@ public class PPLServiceTest {
               return null;
             })
         .when(queryService)
-        .execute(any(), any());
+        .execute(any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY, "csv"),
@@ -119,7 +119,7 @@ public class PPLServiceTest {
               return null;
             })
         .when(queryService)
-        .explain(any(), any());
+        .explain(any(), any(), any());
 
     pplService.explain(
         new PPLQueryRequest("search source=t a=1", null, EXPLAIN),
@@ -173,7 +173,7 @@ public class PPLServiceTest {
               return null;
             })
         .when(queryService)
-        .execute(any(), any());
+        .execute(any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("source = prometheus.http_requests_total", null, QUERY),

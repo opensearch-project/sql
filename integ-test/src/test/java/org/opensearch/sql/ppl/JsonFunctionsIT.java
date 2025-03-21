@@ -20,7 +20,8 @@ import org.junit.jupiter.api.Test;
 
 public class JsonFunctionsIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.JSON_TEST);
   }
 

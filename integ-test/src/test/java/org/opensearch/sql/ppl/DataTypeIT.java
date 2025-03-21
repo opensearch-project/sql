@@ -21,7 +21,8 @@ import org.junit.Test;
 public class DataTypeIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(DATA_TYPE_NUMERIC);
     loadIndex(DATA_TYPE_NONNUMERIC);
     loadIndex(DATA_TYPE_ALIAS);

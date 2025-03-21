@@ -20,7 +20,8 @@ import org.junit.jupiter.api.Test;
 public class DedupCommandIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
   }

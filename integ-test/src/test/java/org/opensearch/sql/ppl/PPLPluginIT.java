@@ -32,7 +32,8 @@ public class PPLPluginIT extends PPLIntegTestCase {
   private static final String PERSISTENT = "persistent";
 
   @Override
-  protected void init() throws Exception {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.BANK);
   }
 

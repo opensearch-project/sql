@@ -75,6 +75,15 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testAsExistedField() {
+    JSONObject actual =
+        executeQuery(String.format("source=%s | stats count() as balance", TEST_INDEX_BANK));
+    verifySchema(actual, schema("balance", "long"));
+
+    verifyDataRows(actual, rows(7));
+  }
+
+  @Test
   public void testMultipleAggregatesWithAliases() {
     JSONObject actual =
         executeQuery(

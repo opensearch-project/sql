@@ -48,6 +48,7 @@ import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.CURSOR_CLOSE_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.ppl.PPLIntegTestCase.disableCalcite;
 
 import com.google.common.base.Strings;
 import java.io.IOException;
@@ -213,7 +214,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /** Provide for each test to load test index, data and other setup work */
-  protected void init() throws Exception {}
+  protected void init() throws Exception {
+    disableCalcite();
+  }
 
   /**
    * Make it thread-safe in case tests are running in parallel but does not guarantee if test like
@@ -442,6 +445,16 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
     return new JSONObject(executeRequest(request));
+  }
+
+  protected static String getClusterSetting(String settingPath, String type) throws IOException {
+    JSONObject settings = getAllClusterSettings();
+    String value = settings.optJSONObject(type).optString(settingPath);
+    if (StringUtils.isEmpty(value)) {
+      return settings.optJSONObject("defaults").optString(settingPath);
+    } else {
+      return value;
+    }
   }
 
   protected static class ClusterSetting {

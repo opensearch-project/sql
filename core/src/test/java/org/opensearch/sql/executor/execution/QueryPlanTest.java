@@ -29,12 +29,15 @@ import org.opensearch.sql.executor.DefaultExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class QueryPlanTest {
 
   @Mock private QueryId queryId;
+
+  @Mock private QueryType queryType;
 
   @Mock private UnresolvedPlan plan;
 
@@ -46,18 +49,18 @@ class QueryPlanTest {
 
   @Test
   public void execute_no_page_size() {
-    QueryPlan query = new QueryPlan(queryId, plan, queryService, queryListener);
+    QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
     query.execute();
 
-    verify(queryService, times(1)).execute(any(), any());
+    verify(queryService, times(1)).execute(any(), any(), any());
   }
 
   @Test
   public void explain_no_page_size() {
-    QueryPlan query = new QueryPlan(queryId, plan, queryService, queryListener);
+    QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
     query.explain(explainListener);
 
-    verify(queryService, times(1)).explain(plan, explainListener);
+    verify(queryService, times(1)).explain(plan, queryType, explainListener);
   }
 
   @Test
@@ -75,7 +78,8 @@ class QueryPlanTest {
           }
         };
     var plan =
-        new QueryPlan(QueryId.queryId(), mock(UnresolvedPlan.class), 10, queryService, listener);
+        new QueryPlan(
+            QueryId.queryId(), queryType, mock(UnresolvedPlan.class), 10, queryService, listener);
     plan.execute();
   }
 
@@ -97,6 +101,7 @@ class QueryPlanTest {
     var plan =
         new QueryPlan(
             QueryId.queryId(),
+            queryType,
             mock(UnresolvedPlan.class),
             10,
             new QueryService(null, new DefaultExecutionEngine(), null),
@@ -106,7 +111,7 @@ class QueryPlanTest {
 
   @Test
   public void explain_is_not_supported_for_pagination() {
-    new QueryPlan(null, null, 0, null, null)
+    new QueryPlan(null, null, null, 0, null, null)
         .explain(
             new ResponseListener<>() {
               @Override

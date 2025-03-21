@@ -25,6 +25,7 @@ import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
 
 /** QueryExecution Factory. */
@@ -72,11 +73,14 @@ public class QueryPlanFactory
   public AbstractPlan create(
       String cursor,
       boolean isExplain,
+      QueryType queryType,
       ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener,
       ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     QueryId queryId = QueryId.queryId();
-    var plan = new QueryPlan(queryId, new FetchCursor(cursor), queryService, queryResponseListener);
-    return isExplain ? new ExplainPlan(queryId, plan, explainListener) : plan;
+    var plan =
+        new QueryPlan(
+            queryId, queryType, new FetchCursor(cursor), queryService, queryResponseListener);
+    return isExplain ? new ExplainPlan(queryId, queryType, plan, explainListener) : plan;
   }
 
   boolean canConvertToCursor(UnresolvedPlan plan) {
@@ -85,9 +89,12 @@ public class QueryPlanFactory
 
   /** Creates a {@link CloseCursor} command on a cursor. */
   public AbstractPlan createCloseCursor(
-      String cursor, ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener) {
+      String cursor,
+      QueryType queryType,
+      ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener) {
     return new CommandPlan(
         QueryId.queryId(),
+        queryType,
         new CloseCursor().attach(new FetchCursor(cursor)),
         queryService,
         queryResponseListener);
@@ -107,6 +114,7 @@ public class QueryPlanFactory
       if (canConvertToCursor(node.getPlan())) {
         return new QueryPlan(
             QueryId.queryId(),
+            node.getQueryType(),
             node.getPlan(),
             node.getFetchSize(),
             queryService,
@@ -117,7 +125,11 @@ public class QueryPlanFactory
       }
     } else {
       return new QueryPlan(
-          QueryId.queryId(), node.getPlan(), queryService, context.getLeft().get());
+          QueryId.queryId(),
+          node.getQueryType(),
+          node.getPlan(),
+          queryService,
+          context.getLeft().get());
     }
   }
 
@@ -133,6 +145,7 @@ public class QueryPlanFactory
 
     return new ExplainPlan(
         QueryId.queryId(),
+        node.getQueryType(),
         create(node.getStatement(), Optional.of(NO_CONSUMER_RESPONSE_LISTENER), Optional.empty()),
         context.getRight().get());
   }

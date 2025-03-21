@@ -39,7 +39,8 @@ public class InformationSchemaCommandIT extends PPLIntegTestCase {
   }
 
   @Override
-  protected void init() throws InterruptedException, IOException {
+  public void init() throws Exception {
+    super.init();
     DataSourceMetadata createDSM =
         new DataSourceMetadata.Builder()
             .setName("my_prometheus")

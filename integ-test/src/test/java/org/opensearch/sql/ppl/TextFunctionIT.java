@@ -17,7 +17,8 @@ import org.junit.jupiter.api.Test;
 
 public class TextFunctionIT extends PPLIntegTestCase {
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_STRING_VALUES);
   }
@@ -66,10 +67,25 @@ public class TextFunctionIT extends PPLIntegTestCase {
     verifyDataRows(result, rows(outputRow1), rows(outputRow2), rows(outputRow3));
   }
 
+  void verifyRegexQuery(String pattern, Boolean outputRow1, Boolean outputRow2, Boolean outputRow3)
+      throws IOException {
+    String query =
+        String.format(
+            "source=%s | eval f=name regexp '%s' | fields f", TEST_INDEX_STRINGS, pattern);
+    JSONObject result = executeQuery(query);
+    verifySchema(result, schema("f", null, "boolean"));
+    verifyDataRows(result, rows(outputRow1), rows(outputRow2), rows(outputRow3));
+  }
+
   @Test
   public void testRegexp() throws IOException {
-    verifyRegexQuery("hello", 1, 0, 0);
-    verifyRegexQuery(".*", 1, 1, 1);
+    if (isCalciteEnabled()) {
+      verifyRegexQuery("hello", true, false, true);
+      verifyRegexQuery(".*", true, true, true);
+    } else {
+      verifyRegexQuery("hello", 1, 0, 0);
+      verifyRegexQuery(".*", 1, 1, 1);
+    }
   }
 
   @Test

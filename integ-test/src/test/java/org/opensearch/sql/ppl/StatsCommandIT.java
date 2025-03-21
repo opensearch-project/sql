@@ -27,7 +27,6 @@ public class StatsCommandIT extends PPLIntegTestCase {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.BANK);
-    disableCalcite();
   }
 
   @Test
@@ -310,13 +309,10 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void testStatsBySpan() throws IOException {
     JSONObject response =
         executeQuery(String.format("source=%s | stats count() by span(age,10)", TEST_INDEX_BANK));
-    if (isCalciteEnabled()) {
-      verifySchema(
-          response, schema("count()", null, "long"), schema("span(age,10)", null, "integer"));
-    } else {
-      verifySchema(
-          response, schema("count()", null, "integer"), schema("span(age,10)", null, "integer"));
-    }
+    verifySchema(
+        response,
+        isCalciteEnabled() ? schema("count()", null, "long") : schema("count()", null, "integer"),
+        schema("span(age,10)", null, "integer"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 
@@ -327,7 +323,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
             String.format("source=%s | stats count() by span(birthdate,1y)", TEST_INDEX_BANK));
     verifySchema(
         response,
-        schema("count()", null, "integer"),
+        isCalciteEnabled() ? schema("count()", null, "long") : schema("count()", null, "integer"),
         schema("span(birthdate,1y)", null, "timestamp"));
     verifyDataRows(response, rows(2, "2017-01-01 00:00:00"), rows(5, "2018-01-01 00:00:00"));
   }
@@ -356,19 +352,31 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | stats count() by span(age,10), gender, state", TEST_INDEX_BANK));
     verifySchemaInOrder(
         response,
-        schema("count()", null, "integer"),
+        isCalciteEnabled() ? schema("count()", null, "long") : schema("count()", null, "integer"),
         schema("span(age,10)", null, "integer"),
         schema("gender", null, "string"),
         schema("state", null, "string"));
-    verifyDataRowsInOrder(
-        response,
-        rows(1, 20, "f", "VA"),
-        rows(1, 30, "f", "IN"),
-        rows(1, 30, "f", "PA"),
-        rows(1, 30, "m", "IL"),
-        rows(1, 30, "m", "MD"),
-        rows(1, 30, "m", "TN"),
-        rows(1, 30, "m", "WA"));
+    if (isCalciteEnabled()) {
+      verifyDataRows(
+          response,
+          rows(1, 20, "F", "VA"),
+          rows(1, 30, "F", "IN"),
+          rows(1, 30, "F", "PA"),
+          rows(1, 30, "M", "IL"),
+          rows(1, 30, "M", "MD"),
+          rows(1, 30, "M", "TN"),
+          rows(1, 30, "M", "WA"));
+    } else {
+      verifyDataRowsInOrder(
+          response,
+          rows(1, 20, "f", "VA"),
+          rows(1, 30, "f", "IN"),
+          rows(1, 30, "f", "PA"),
+          rows(1, 30, "m", "IL"),
+          rows(1, 30, "m", "MD"),
+          rows(1, 30, "m", "TN"),
+          rows(1, 30, "m", "WA"));
+    }
   }
 
   @Test
@@ -381,19 +389,31 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | stats count() by gender, state, span(age,10)", TEST_INDEX_BANK));
     verifySchemaInOrder(
         response,
-        schema("count()", null, "integer"),
+        isCalciteEnabled() ? schema("count()", null, "long") : schema("count()", null, "integer"),
         schema("span(age,10)", null, "integer"),
         schema("gender", null, "string"),
         schema("state", null, "string"));
-    verifyDataRowsInOrder(
-        response,
-        rows(1, 20, "f", "VA"),
-        rows(1, 30, "f", "IN"),
-        rows(1, 30, "f", "PA"),
-        rows(1, 30, "m", "IL"),
-        rows(1, 30, "m", "MD"),
-        rows(1, 30, "m", "TN"),
-        rows(1, 30, "m", "WA"));
+    if (isCalciteEnabled()) {
+      verifyDataRows(
+          response,
+          rows(1, 20, "F", "VA"),
+          rows(1, 30, "F", "IN"),
+          rows(1, 30, "F", "PA"),
+          rows(1, 30, "M", "IL"),
+          rows(1, 30, "M", "MD"),
+          rows(1, 30, "M", "TN"),
+          rows(1, 30, "M", "WA"));
+    } else {
+      verifyDataRowsInOrder(
+          response,
+          rows(1, 20, "f", "VA"),
+          rows(1, 30, "f", "IN"),
+          rows(1, 30, "f", "PA"),
+          rows(1, 30, "m", "IL"),
+          rows(1, 30, "m", "MD"),
+          rows(1, 30, "m", "TN"),
+          rows(1, 30, "m", "WA"));
+    }
   }
 
   @Test
