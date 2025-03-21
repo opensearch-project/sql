@@ -26,8 +26,7 @@ dependencies {
     implementation ('com.amazonaws:aws-encryption-sdk-java:2.4.1') {
         exclude group: 'org.bouncycastle', module: 'bcprov-ext-jdk18on'
     }
-    // Use OpenSearch bouncycastle version. https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/version.properties
-    implementation "org.bouncycastle:bcprov-jdk18on:${versions.bouncycastle}"
+    implementation "org.bouncycastle:bcprov-jdk18on:1.78"
     implementation group: 'commons-validator', name: 'commons-validator', version: '1.7'
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
