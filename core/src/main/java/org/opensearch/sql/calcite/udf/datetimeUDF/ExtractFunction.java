@@ -6,14 +6,13 @@
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 
+// TODO: Fix MICROSECOND precision, it is not correct with Calcite timestamp
 public class ExtractFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
