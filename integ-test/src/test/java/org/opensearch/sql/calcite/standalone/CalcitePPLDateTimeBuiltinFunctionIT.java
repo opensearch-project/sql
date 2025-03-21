@@ -637,4 +637,54 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             schema("secondForTimestamp", "long"));
         verifyDataRows(actual, rows(3, 42, 0, 42));
     }
+
+    @Test
+    public void testConvertTz() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval r1 = convert_tz('2008-05-15 12:00:00', '+00:00', '+10:00') "
+                        + "| eval r2 = convert_tz(TIMESTAMP('2008-05-15 12:00:00'), '+00:00', '+10:00') "
+                        + "| eval r3 = convert_tz(strict_date_optional_time_nanos, '+00:00', '+10:00') "
+                        + "| eval r4 = convert_tz('2008-05-15 12:00:00', '-00:00', '+00:00') "
+                        + "| eval r5 = convert_tz('2008-05-15 12:00:00', '+10:00', '+11:00') "
+                        + "| eval r6 = convert_tz('2021-05-12 11:34:50', '-08:00', '+09:00') "
+                        + "| eval r7 = convert_tz('2021-05-12 11:34:50', '-12:00', '+12:00') "
+                        + "| eval r8 = convert_tz('2021-05-12 13:00:00', '+09:30', '+05:45') "
+                        + "| fields r1, r2, r3, r4, r5, r6, r7, r8"
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("r1", "timestamp"),
+            schema("r2", "timestamp"),
+            schema("r3", "timestamp"),
+            schema("r4", "timestamp"),
+            schema("r5", "timestamp"),
+            schema("r6", "timestamp"),
+            schema("r7", "timestamp"),
+            schema("r8", "timestamp")
+        );
+        verifyDataRows(actual, rows("2008-05-15 22:00:00", "2008-05-15 22:00:00",
+            "1984-04-12 19:07:42", "2008-05-15 12:00:00", "2008-05-15 13:00:00", "2021-05-13 04:34:50",
+            "2021-05-13 11:34:50", "2021-05-12 09:15:00"));
+    }
+
+    @Test
+    public void testConvertTzWithInvalidResult() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval r1 = convert_tz('2021-05-30 11:34:50', '-17:00', '+08:00') "
+                        + "| eval r2 = convert_tz('2021-05-12 11:34:50', '-12:00', '+15:00') "
+                        + "| eval r3 = convert_tz('2021-05-12 11:34:50', '-12:00', 'test') "
+                        + "| fields r1, r2, r3"
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("r1", "timestamp"),
+            schema("r2", "timestamp"),
+            schema("r3", "timestamp")
+        );
+        verifyDataRows(actual, rows(null, null, null));
+    }
 }
