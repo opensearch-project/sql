@@ -297,6 +297,39 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
         rows(1006, "Tommy", 30000));
   }
 
+  @Test
+  public void testNestedInSubquery2() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                """
+                   source = %s
+                   | where id in [
+                       source = %s
+                       | where occupation in [
+                           source = %s
+                           | where occupation != 'Engineer'
+                           | fields occupation
+                         ]
+                       | fields uid
+                     ]
+                   | sort  - salary
+                   """,
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("occupation", "string"),
+        schema("id", "integer"),
+        schema("salary", "integer"));
+    verifyDataRowsInOrder(
+        result,
+        rows("John", "Canada", "Doctor", 1002, 120000),
+        rows("David", null, "Doctor", 1003, 120000),
+        rows("Tommy", "USA", "Teacher", 1006, 30000));
+  }
+
   @Ignore // TODO bug? fail in execution, the plan converted is correct
   public void testInSubqueryAsJoinFilter() {
     JSONObject result =
