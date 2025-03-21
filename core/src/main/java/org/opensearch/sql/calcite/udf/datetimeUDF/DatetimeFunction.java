@@ -14,6 +14,15 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 
+/**
+ * DATETIME(timestamp)/ DATETIME(date, to_timezone) Converts the datetime to a new timezone. If not
+ * specified, the timestamp is regarded to be in system time zone.
+ *
+ * <p>(TIMESTAMP, STRING) -> TIMESTAMP <br>
+ * (TIMESTAMP) -> TIMESTAMP
+ *
+ * <p>Converting timestamp with timezone to the second argument timezone.
+ */
 public class DatetimeFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {

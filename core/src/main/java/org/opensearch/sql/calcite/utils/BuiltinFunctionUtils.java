@@ -9,12 +9,11 @@ import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createNullableReturnType;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.transferStringExprToDateValue;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getLeastRestrictiveReturnTypeAmongArgsAt;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getReturnTypeInference;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -22,6 +21,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
@@ -251,7 +252,6 @@ public interface BuiltinFunctionUtils {
       case "DATETIME":
         return TransferUserDefinedFunction(
             DatetimeFunction.class, "DATETIME", createNullableReturnType(SqlTypeName.TIMESTAMP));
-
       case "FROM_DAYS":
         return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", ReturnTypes.DATE);
       case "DATEDIFF":
@@ -508,10 +508,9 @@ public interface BuiltinFunctionUtils {
           if (stringExpr instanceof NlsString) {
             expression = ((NlsString) stringExpr).getValue();
           } else {
-            expression = stringExpr.toString();
+            expression = Objects.requireNonNull(stringExpr).toString();
           }
-          Instant ins = InstantUtils.fromStringExpr(expression);
-          extractArgs.add(context.rexBuilder.makeTimestampLiteral(TimestampString.fromMillisSinceEpoch(ins.toEpochMilli()), RelDataType.PRECISION_NOT_SPECIFIED));
+          extractArgs.add(context.rexBuilder.makeTimestampLiteral(createTimestampString(DateTimeParser.parse(expression)), RelDataType.PRECISION_NOT_SPECIFIED));
         }
         else {
           extractArgs.add(argList.getFirst());
@@ -596,7 +595,7 @@ public interface BuiltinFunctionUtils {
         if (dateExpr instanceof RexLiteral dateLiteral) {
           String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
           datetimeNode =
-              context.rexBuilder.makeTimestampLiteral(new TimestampString(dateStringValue), 6);
+              context.rexBuilder.makeTimestampLiteral(createTimestampString(DateTimeParser.parse(dateStringValue)), 6);
           datetimeType = context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP);
         } else {
           datetimeNode = dateExpr;
@@ -645,6 +644,16 @@ public interface BuiltinFunctionUtils {
             makeConversionCall("TIMESTAMP", ImmutableList.of(argList.getFirst()), context),
             argList.get(1),
             argList.get(2));
+      case "DATETIME":
+        // Convert timestamp to a string to reuse OS PPL V2's implementation
+        RexNode argTimestamp = argList.getFirst();
+        if (argTimestamp.getType().getSqlTypeName().equals(SqlTypeName.TIMESTAMP)) {
+          argTimestamp = makeConversionCall("DATE_FORMAT",
+                  ImmutableList.of(argTimestamp, context.rexBuilder.makeLiteral("%Y-%m-%d %T")),
+                  context);
+        }
+        return Stream.concat(Stream.of(argTimestamp), argList.stream().skip(1))
+            .toList();
       case "DATEDIFF":
         RexNode dayUnit = context.rexBuilder.makeLiteral(TimeUnit.DAY.toString());
         RexNode ts1 = convertToDateIfNecessary(context.rexBuilder, argList.getFirst());
@@ -715,15 +724,7 @@ public interface BuiltinFunctionUtils {
     if (baseTimestampExpr instanceof RexLiteral dateLiteral) {
       String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
       LocalDateTime dateTime = Objects.requireNonNull(DateTimeParser.parse(dateStringValue));
-      TimestampString timestampString =
-          new TimestampString(
-                  dateTime.getYear(),
-                  dateTime.getMonthValue(),
-                  dateTime.getDayOfMonth(),
-                  dateTime.getHour(),
-                  dateTime.getMinute(),
-                  dateTime.getSecond())
-              .withNanos(dateTime.getNano());
+      TimestampString timestampString = createTimestampString(dateTime);
       RexNode timestampNode =
           rexBuilder.makeTimestampLiteral(timestampString, RelDataType.PRECISION_NOT_SPECIFIED);
       dateAddArgs.add(timestampNode);
@@ -767,5 +768,16 @@ public interface BuiltinFunctionUtils {
     RexNode type0 = rexBuilder.makeFlag(arg0Type);
     RexNode type1 = rexBuilder.makeFlag(arg1Type);
     return new ArrayList<>(List.of(argList.getFirst(), type0, argList.get(1), type1));
+  }
+
+  private static TimestampString createTimestampString(LocalDateTime dateTime) {
+    return new TimestampString(
+            dateTime.getYear(),
+            dateTime.getMonthValue(),
+            dateTime.getDayOfMonth(),
+            dateTime.getHour(),
+            dateTime.getMinute(),
+            dateTime.getSecond())
+            .withNanos(dateTime.getNano());
   }
 }
