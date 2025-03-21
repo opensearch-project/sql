@@ -6,8 +6,6 @@
 package org.opensearch.sql.calcite.remote;
 
 import java.io.IOException;
-import org.junit.Ignore;
-import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.FieldsCommandIT;
 
 public class CalciteFieldsCommandIT extends FieldsCommandIT {
@@ -17,19 +15,5 @@ public class CalciteFieldsCommandIT extends FieldsCommandIT {
     enableCalcite();
     disallowCalciteFallback();
     super.init();
-  }
-
-  @Override
-  @Test
-  @Ignore("Calcite doesn't support metadata fields in fields yet")
-  public void testDelimitedMetadataFields() throws IOException {
-    super.testDelimitedMetadataFields();
-  }
-
-  @Override
-  @Test
-  @Ignore("Calcite doesn't support metadata fields in fields yet")
-  public void testMetadataFields() throws IOException {
-    super.testMetadataFields();
   }
 }
