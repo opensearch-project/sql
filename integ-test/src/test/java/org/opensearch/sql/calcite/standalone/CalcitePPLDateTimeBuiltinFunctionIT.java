@@ -687,4 +687,26 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         );
         verifyDataRows(actual, rows(null, null, null));
     }
+
+    @Test
+    public void testGetFormat() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval r1 = GET_FORMAT(DATE, 'USA') "
+                        + "| eval r2 = GET_FORMAT(TIME, 'INTERNAL') "
+                        + "| eval r3 = GET_FORMAT(TIMESTAMP, 'EUR') "
+                        + "| eval r4 = GET_FORMAT(TIMESTAMP, 'UTC') "
+                        + "| fields r1, r2, r3, r4"
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        System.out.println(actual.getJSONArray("datarows"));
+        verifySchema(actual, schema("r1", "string"),
+            schema("r2", "string"),
+            schema("r3", "string"),
+            schema("r4", "string")
+        );
+        verifyDataRows(actual, rows("%m.%d.%Y", "%H%i%s", "%Y-%m-%d %H.%i.%s", null));
+    }
 }
