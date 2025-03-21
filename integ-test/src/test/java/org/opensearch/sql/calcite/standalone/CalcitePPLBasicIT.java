@@ -6,10 +6,12 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
+import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -36,6 +38,21 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     client().performRequest(request3);
 
     loadIndex(Index.BANK);
+    loadIndex(Index.WEBLOG);
+  }
+
+  @Test
+  public void testSortIpField() throws IOException {
+    final JSONObject result =
+        executeQuery(String.format("source=%s | fields host | sort host", TEST_INDEX_WEBLOGS));
+    verifyOrder(
+        result,
+        rows("::1"),
+        rows("::3"),
+        rows("::ffff:1234"),
+        rows("0.0.0.2"),
+        rows("1.2.3.4"),
+        rows("1.2.3.5"));
   }
 
   @Test

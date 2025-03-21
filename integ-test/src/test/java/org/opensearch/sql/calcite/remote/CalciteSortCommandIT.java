@@ -19,7 +19,8 @@ public class CalciteSortCommandIT extends SortCommandIT {
 
   // TODO: Unsupported conversion for OpenSearch Data type: IP, addressed by issue:
   // https://github.com/opensearch-project/sql/issues/3322
-  @Ignore
   @Override
-  public void testSortIpField() throws IOException {}
+  public void testSortIpField() throws IOException {
+    super.testSortIpField();
+  }
 }

@@ -30,6 +30,7 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.type.ExprTimeStampSqlType;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -91,7 +92,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         case BOOLEAN:
           return TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN, nullable);
         case DATE:
-          return TYPE_FACTORY.createSqlType(SqlTypeName.DATE, nullable);
+          return new ExprTimeStampSqlType(TYPE_FACTORY.getTypeSystem(), nullable);
         case TIME:
           return TYPE_FACTORY.createSqlType(SqlTypeName.TIME, nullable);
         case TIMESTAMP:
@@ -112,7 +113,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       if (fieldType.legacyTypeName().equalsIgnoreCase("binary")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.BINARY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("timestamp")) {
-        return TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP, nullable);
+        return new ExprTimeStampSqlType(TYPE_FACTORY.getTypeSystem(), nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("date")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.DATE, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("time")) {
