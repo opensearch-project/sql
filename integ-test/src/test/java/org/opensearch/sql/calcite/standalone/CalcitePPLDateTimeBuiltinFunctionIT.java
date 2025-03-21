@@ -579,4 +579,22 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         verifySchema(actual, schema("cnt", "long"));
         verifyDataRows(actual, rows(2));
     }
+
+    @Test
+    public void testQuarter() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval `QUARTER(DATE('2020-08-26'))` = QUARTER(DATE('2020-08-26')) "
+                        + "| eval quarter2 = QUARTER(basic_date) "
+                        + "| eval timestampQuarter2 = QUARTER(basic_date_time) "
+                        + "| fields `QUARTER(DATE('2020-08-26'))`, quarter2, timestampQuarter2 "
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("QUARTER(DATE('2020-08-26'))", "long"),
+            schema("quarter2", "long"),
+            schema("timestampQuarter2", "long"));
+        verifyDataRows(actual, rows(3, 2, 2));
+    }
 }
