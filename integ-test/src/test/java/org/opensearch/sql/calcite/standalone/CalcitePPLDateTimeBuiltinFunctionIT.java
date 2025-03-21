@@ -617,4 +617,24 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             schema("secondForTimestamp", "long"));
         verifyDataRows(actual, rows(3, 42, 0, 42));
     }
+
+    @Test
+    public void testSecondOfMinute() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval s = second_of_minute(TIMESTAMP('01:02:03')) "
+                        + "| eval secondForTime = second_of_minute(basic_time) "
+                        + "| eval secondForDate = second_of_minute(basic_date) "
+                        + "| eval secondForTimestamp = second_of_minute(strict_date_optional_time_nanos) "
+                        + "| fields s, secondForTime, secondForDate, secondForTimestamp "
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("s", "long"),
+            schema("secondForTime", "long"),
+            schema("secondForDate", "long"),
+            schema("secondForTimestamp", "long"));
+        verifyDataRows(actual, rows(3, 42, 0, 42));
+    }
 }
