@@ -49,6 +49,7 @@ import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ConvertTZFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.DateDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunction;
@@ -254,8 +255,6 @@ public interface BuiltinFunctionUtils {
             DatetimeFunction.class, "DATETIME", createNullableReturnType(SqlTypeName.TIMESTAMP));
       case "FROM_DAYS":
         return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", ReturnTypes.DATE);
-      case "DATEDIFF":
-        return SqlStdOperatorTable.TIMESTAMP_DIFF;
       case "DATE_FORMAT":
         return TransferUserDefinedFunction(
             DateFormatFunction.class, "DATE_FORMAT", ReturnTypes.VARCHAR);
@@ -333,6 +332,9 @@ public interface BuiltinFunctionUtils {
       case "TIMESTAMPDIFF":
         return TransferUserDefinedFunction(
                 timestampDiffFunction.class, "TIMESTAMPDIFF", ReturnTypes.BIGINT);
+      case "DATEDIFF":
+        return TransferUserDefinedFunction(
+                DateDiffFunction.class, "DATEDIFF", ReturnTypes.BIGINT);
       case "TO_SECONDS":
         return TransferUserDefinedFunction(
                 toSecondsFunction.class, "TO_SECONDS", ReturnTypes.BIGINT);
@@ -482,12 +484,12 @@ public interface BuiltinFunctionUtils {
         return timestampAddArgs;
       case "TIMESTAMPDIFF":
         List<RexNode> timestampDiffArgs = new ArrayList<>();
-        timestampDiffArgs.add(argList.get(0));
-        timestampDiffArgs.add(argList.get(1));
-        timestampDiffArgs.add(context.rexBuilder.makeFlag(argList.get(1).getType().getSqlTypeName()));
-        timestampDiffArgs.add(argList.get(2));
-        timestampDiffArgs.add(context.rexBuilder.makeFlag(argList.get(2).getType().getSqlTypeName()));
+        timestampDiffArgs.add(argList.getFirst());
+        timestampDiffArgs.addAll(buildArgsWithTypes(context.rexBuilder, argList, 1, 2));
         return timestampDiffArgs;
+      case "DATEDIFF":
+        // datediff differs with timestamp diff in that it
+        return buildArgsWithTypes(context.rexBuilder, argList, 0, 1);
       case "DAYNAME", "MONTHNAME":
         List<RexNode> periodNameArgs = new ArrayList<>();
         periodNameArgs.add(argList.getFirst());
@@ -654,14 +656,6 @@ public interface BuiltinFunctionUtils {
         }
         return Stream.concat(Stream.of(argTimestamp), argList.stream().skip(1))
             .toList();
-      case "DATEDIFF":
-        RexNode dayUnit = context.rexBuilder.makeLiteral(TimeUnit.DAY.toString());
-        RexNode ts1 = convertToDateIfNecessary(context.rexBuilder, argList.getFirst());
-        RexNode ts2 = convertToDateIfNecessary(context.rexBuilder, argList.get(1));
-        // TimeFrameSet.diffDate calculates difference as op2 - op1.
-        // See
-        // @link{https://github.com/apache/calcite/blob/618e601b136e92db933523f77dd7af3c1dfe2779/core/src/main/java/org/apache/calcite/runtime/SqlFunctions.java#L5746}
-        return ImmutableList.of(dayUnit, ts2, ts1);
       default:
         return argList;
     }
@@ -687,9 +681,9 @@ public interface BuiltinFunctionUtils {
     };
   }
 
-  private static RexNode convertToDateIfNecessary(RexBuilder rexBuilder, RexNode expr) {
+  private static RexNode convertToDateIfNecessary(CalcitePlanContext context, RexNode expr) {
     if (!expr.getType().getSqlTypeName().equals(SqlTypeName.DATE)) {
-      return rexBuilder.makeCall(SqlLibraryOperators.DATE, ImmutableList.of(expr));
+      return makeConversionCall("DATE", ImmutableList.of(expr), context);
     }
     return expr;
   }
@@ -779,5 +773,26 @@ public interface BuiltinFunctionUtils {
             dateTime.getMinute(),
             dateTime.getSecond())
             .withNanos(dateTime.getNano());
+  }
+
+  /**
+   * Builds a list of RexNodes where each selected argument is followed by
+   * a RexNode representing its SQL type.
+   *
+   * @param rexBuilder the RexBuilder instance used to create type flags
+   * @param args the original list of arguments
+   *
+   * @return A new list of RexNodes: [arg, typeFlag, arg, typeFlag, ...]
+   */
+  private static List<RexNode> buildArgsWithTypes(RexBuilder rexBuilder,
+                                                  List<RexNode> args,
+                                                  int... indexes) {
+    List<RexNode> result = new ArrayList<>();
+    for (int index : indexes) {
+      RexNode arg = args.get(index);
+      result.add(arg);
+      result.add(rexBuilder.makeFlag(arg.getType().getSqlTypeName()));
+    }
+    return result;
   }
 }

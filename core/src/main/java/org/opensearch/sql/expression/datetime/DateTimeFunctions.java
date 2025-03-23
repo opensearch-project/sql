@@ -1327,7 +1327,7 @@ public class DateTimeFunctions {
    * @param second The second value.
    * @return The diff.
    */
-  private ExprValue exprDateDiff(
+  public static ExprValue exprDateDiff(
       FunctionProperties functionProperties, ExprValue first, ExprValue second) {
     // java inverses the value, so we have to swap 1 and 2
     return new ExprLongValue(
