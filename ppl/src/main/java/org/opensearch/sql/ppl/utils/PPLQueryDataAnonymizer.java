@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.utils;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -20,6 +21,7 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
@@ -30,6 +32,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
@@ -197,7 +200,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitAggregation(Aggregation node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    final String group = visitExpressionList(node.getGroupExprList());
+    UnresolvedExpression span = node.getSpan();
+    List<UnresolvedExpression> groupByExprList = new ArrayList<>();
+    if (!Objects.isNull(span)) {
+      groupByExprList.add(span);
+    }
+    groupByExprList.addAll(node.getGroupExprList());
+    final String group = visitExpressionList(groupByExprList);
     return StringUtils.format(
         "%s | stats %s",
         child, String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
@@ -399,6 +408,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
 
     @Override
+    public String visitSpan(Span node, String context) {
+      String field = analyze(node.getField(), context);
+      String value = analyze(node.getValue(), context);
+      return StringUtils.format("span(%s, %s %s)", field, value, node.getUnit().getName());
+    }
+
+    @Override
     public String visitFunction(Function node, String context) {
       String arguments =
           node.getFuncArgs().stream()
@@ -466,6 +482,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     public String visitExistsSubquery(ExistsSubquery node, String context) {
       String subquery = queryAnonymizer.anonymizeData(node.getQuery());
       return StringUtils.format("exists [ %s ]", subquery);
+    }
+
+    @Override
+    public String visitCast(Cast node, String context) {
+      String expr = analyze(node.getExpression(), context);
+      return StringUtils.format("cast(%s as %s)", expr, node.getConvertedType().toString());
     }
   }
 }
