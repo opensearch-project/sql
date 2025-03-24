@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder.AggCall;
+import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -29,7 +30,8 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
   @Override
   public AggCall visitAlias(Alias node, CalcitePlanContext context) {
     AggCall aggCall = analyze(node.getDelegated(), context);
-    return aggCall.as(node.getName());
+    // Only OpenSearch SQL uses node.getAlias, OpenSearch PPL uses node.getName.
+    return aggCall.as(Strings.isEmpty(node.getAlias()) ? node.getName() : node.getAlias());
   }
 
   @Override

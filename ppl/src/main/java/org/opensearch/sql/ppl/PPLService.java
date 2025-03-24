@@ -18,6 +18,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.QueryManager;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.execution.AbstractPlan;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
@@ -35,9 +36,11 @@ public class PPLService {
 
   private final QueryPlanFactory queryExecutionFactory;
 
-  private final PPLQueryDataAnonymizer anonymizer = new PPLQueryDataAnonymizer();
-
   private final Settings settings;
+
+  private final QueryType PPL_QUERY = QueryType.PPL;
+
+  private final PPLQueryDataAnonymizer anonymizer = new PPLQueryDataAnonymizer();
 
   private static final Logger LOG = LogManager.getLogger();
 

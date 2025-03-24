@@ -16,7 +16,8 @@ import org.junit.Test;
 public class MatchBoolPrefixIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.PHRASE);
   }
 
