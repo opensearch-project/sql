@@ -579,4 +579,230 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         verifySchema(actual, schema("cnt", "long"));
         verifyDataRows(actual, rows(2));
     }
+
+    @Test
+    public void testQuarter() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval `QUARTER(DATE('2020-08-26'))` = QUARTER(DATE('2020-08-26')) "
+                        + "| eval quarter2 = QUARTER(basic_date) "
+                        + "| eval timestampQuarter2 = QUARTER(basic_date_time) "
+                        + "| fields `QUARTER(DATE('2020-08-26'))`, quarter2, timestampQuarter2 "
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("QUARTER(DATE('2020-08-26'))", "long"),
+            schema("quarter2", "long"),
+            schema("timestampQuarter2", "long"));
+        verifyDataRows(actual, rows(3, 2, 2));
+    }
+
+    @Test
+    public void testSecond() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval s = SECOND(TIMESTAMP('01:02:03')) "
+                        + "| eval secondForTime = SECOND(basic_time) "
+                        + "| eval secondForDate = SECOND(basic_date) "
+                        + "| eval secondForTimestamp = SECOND(strict_date_optional_time_nanos) "
+                        + "| fields s, secondForTime, secondForDate, secondForTimestamp "
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("s", "long"),
+            schema("secondForTime", "long"),
+            schema("secondForDate", "long"),
+            schema("secondForTimestamp", "long"));
+        verifyDataRows(actual, rows(3, 42, 0, 42));
+    }
+
+    @Test
+    public void testSecondOfMinute() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval s = second_of_minute(TIMESTAMP('01:02:03')) "
+                        + "| eval secondForTime = second_of_minute(basic_time) "
+                        + "| eval secondForDate = second_of_minute(basic_date) "
+                        + "| eval secondForTimestamp = second_of_minute(strict_date_optional_time_nanos) "
+                        + "| fields s, secondForTime, secondForDate, secondForTimestamp "
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("s", "long"),
+            schema("secondForTime", "long"),
+            schema("secondForDate", "long"),
+            schema("secondForTimestamp", "long"));
+        verifyDataRows(actual, rows(3, 42, 0, 42));
+    }
+
+    @Test
+    public void testConvertTz() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval r1 = convert_tz('2008-05-15 12:00:00', '+00:00', '+10:00') "
+                        + "| eval r2 = convert_tz(TIMESTAMP('2008-05-15 12:00:00'), '+00:00', '+10:00') "
+                        + "| eval r3 = convert_tz(strict_date_optional_time_nanos, '+00:00', '+10:00') "
+                        + "| eval r4 = convert_tz('2008-05-15 12:00:00', '-00:00', '+00:00') "
+                        + "| eval r5 = convert_tz('2008-05-15 12:00:00', '+10:00', '+11:00') "
+                        + "| eval r6 = convert_tz('2021-05-12 11:34:50', '-08:00', '+09:00') "
+                        + "| eval r7 = convert_tz('2021-05-12 11:34:50', '-12:00', '+12:00') "
+                        + "| eval r8 = convert_tz('2021-05-12 13:00:00', '+09:30', '+05:45') "
+                        + "| fields r1, r2, r3, r4, r5, r6, r7, r8"
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("r1", "timestamp"),
+            schema("r2", "timestamp"),
+            schema("r3", "timestamp"),
+            schema("r4", "timestamp"),
+            schema("r5", "timestamp"),
+            schema("r6", "timestamp"),
+            schema("r7", "timestamp"),
+            schema("r8", "timestamp")
+        );
+        verifyDataRows(actual, rows("2008-05-15 22:00:00", "2008-05-15 22:00:00",
+            "1984-04-12 19:07:42", "2008-05-15 12:00:00", "2008-05-15 13:00:00", "2021-05-13 04:34:50",
+            "2021-05-13 11:34:50", "2021-05-12 09:15:00"));
+    }
+
+    @Test
+    public void testConvertTzWithInvalidResult() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval r1 = convert_tz('2021-05-30 11:34:50', '-17:00', '+08:00') "
+                        + "| eval r2 = convert_tz('2021-05-12 11:34:50', '-12:00', '+15:00') "
+                        + "| eval r3 = convert_tz('2021-05-12 11:34:50', '-12:00', 'test') "
+                        + "| fields r1, r2, r3"
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("r1", "timestamp"),
+            schema("r2", "timestamp"),
+            schema("r3", "timestamp")
+        );
+        verifyDataRows(actual, rows(null, null, null));
+    }
+
+    @Test
+    public void testGetFormat() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval r1 = GET_FORMAT(DATE, 'USA') "
+                        + "| eval r2 = GET_FORMAT(TIME, 'INTERNAL') "
+                        + "| eval r3 = GET_FORMAT(TIMESTAMP, 'EUR') "
+                        + "| eval r4 = GET_FORMAT(TIMESTAMP, 'UTC') "
+                        + "| fields r1, r2, r3, r4"
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("r1", "string"),
+            schema("r2", "string"),
+            schema("r3", "string"),
+            schema("r4", "string")
+        );
+        verifyDataRows(actual, rows("%m.%d.%Y", "%H%i%s", "%Y-%m-%d %H.%i.%s", null));
+    }
+
+    // TODO: Complete IT for MICROSECOND unit once it's supported
+    @Test
+    public void testExtractWithSimpleFormats() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval r1 = extract(YEAR FROM '1997-01-01 00:00:00') "
+                        + "| eval r2 = extract(YEAR FROM strict_date_optional_time_nanos) "
+                        + "| eval r3 = extract(year FROM basic_date) "
+                        + "| eval r4 = extract(QUARTER FROM strict_date_optional_time_nanos) "
+                        + "| eval r5 = extract(quarter FROM basic_date) "
+                        + "| eval r6 = extract(MONTH FROM strict_date_optional_time_nanos) "
+                        + "| eval r7 = extract(month FROM basic_date) "
+                        + "| eval r8 = extract(WEEK FROM strict_date_optional_time_nanos) "
+                        + "| eval r9 = extract(week FROM basic_date) "
+                        + "| eval r10 = extract(DAY FROM strict_date_optional_time_nanos) "
+                        + "| eval r11 = extract(day FROM basic_date) "
+                        + "| eval r12 = extract(HOUR FROM strict_date_optional_time_nanos) "
+                        + "| eval r13 = extract(hour FROM basic_time) "
+                        + "| eval r14 = extract(MINUTE FROM strict_date_optional_time_nanos) "
+                        + "| eval r15 = extract(minute FROM basic_time) "
+                        + "| eval r16 = extract(SECOND FROM strict_date_optional_time_nanos) "
+                        + "| eval r17 = extract(second FROM basic_time) "
+                        + "| eval r18 = extract(second FROM '09:07:42') "
+                        + "| eval r19 = extract(day FROM '1984-04-12') "
+//                        + "| eval r20 = extract(MICROSECOND FROM timestamp('1984-04-12 09:07:42.123456789')) "
+                        + "| fields r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, r17, r18, r19 "
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("r1", "long"),
+            schema("r2", "long"),
+            schema("r3", "long"),
+            schema("r4", "long"),
+            schema("r5", "long"),
+            schema("r6", "long"),
+            schema("r7", "long"),
+            schema("r8", "long"),
+            schema("r9", "long"),
+            schema("r10", "long"),
+            schema("r11", "long"),
+            schema("r12", "long"),
+            schema("r13", "long"),
+            schema("r14", "long"),
+            schema("r15", "long"),
+            schema("r16", "long"),
+            schema("r17", "long"),
+            schema("r18", "long"),
+            schema("r19", "long")
+        );
+        verifyDataRows(actual, rows(1997, 1984, 1984, 2, 2, 4, 4, 15, 15, 12, 12, 9, 9, 7, 7, 42, 42, 42, 12));
+    }
+
+    // TODO: Complete IT for MICROSECOND unit once it's supported
+    @Test
+    public void testExtractWithComplexFormats() {
+        JSONObject actual =
+            executeQuery(
+                String.format(
+                    "source=%s "
+                        + "| eval r1 = extract(YEAR_MONTH FROM '1997-01-01 00:00:00') "
+                        + "| eval r2 = extract(DAY_HOUR FROM strict_date_optional_time_nanos) "
+                        + "| eval r3 = extract(DAY_HOUR FROM basic_date) "
+                        + "| eval r4 = extract(DAY_MINUTE FROM strict_date_optional_time_nanos) "
+                        + "| eval r5 = extract(DAY_MINUTE FROM basic_date) "
+                        + "| eval r6 = extract(DAY_SECOND FROM strict_date_optional_time_nanos) "
+                        + "| eval r7 = extract(DAY_SECOND FROM basic_date) "
+                        + "| eval r8 = extract(HOUR_MINUTE FROM strict_date_optional_time_nanos) "
+                        + "| eval r9 = extract(HOUR_MINUTE FROM basic_time) "
+                        + "| eval r10 = extract(HOUR_SECOND FROM strict_date_optional_time_nanos) "
+                        + "| eval r11 = extract(HOUR_SECOND FROM basic_time) "
+                        + "| eval r12 = extract(MINUTE_SECOND FROM strict_date_optional_time_nanos) "
+                        + "| eval r13 = extract(MINUTE_SECOND FROM basic_time) "
+//                        + "| eval r14 = extract(DAY_MICROSECOND FROM strict_date_optional_time_nanos) "
+//                        + "| eval r15 = extract(HOUR_MICROSECOND FROM strict_date_optional_time_nanos) "
+//                        + "| eval r16 = extract(MINUTE_MICROSECOND FROM strict_date_optional_time_nanos) "
+//                        + "| eval r17 = extract(SECOND_MICROSECOND FROM strict_date_optional_time_nanos) "
+                        + "| fields r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13 "
+                        + "| head 1",
+                    TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual, schema("r1", "long"),
+            schema("r2", "long"),
+            schema("r3", "long"),
+            schema("r4", "long"),
+            schema("r5", "long"),
+            schema("r6", "long"),
+            schema("r7", "long"),
+            schema("r8", "long"),
+            schema("r9", "long"),
+            schema("r10", "long"),
+            schema("r11", "long"),
+            schema("r12", "long"),
+            schema("r13", "long")
+        );
+        verifyDataRows(actual, rows(199701, 1209, 1200, 120907, 120000, 12090742, 12000000, 907, 907, 90742, 90742, 742, 742));
+    }
 }
