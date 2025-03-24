@@ -16,7 +16,7 @@ import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 
-public class timeFormatFunction implements UserDefinedFunction {
+public class TimeFormatFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     SqlTypeName sqlTypeName = (SqlTypeName) args[2];

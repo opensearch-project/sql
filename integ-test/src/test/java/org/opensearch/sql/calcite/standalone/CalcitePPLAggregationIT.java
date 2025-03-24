@@ -597,8 +597,8 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
             executeQuery(
                     String.format("source=%s | stats percentile(balance, 50) as p50, percentile(balance, 90) as p90", TEST_INDEX_BANK));
-    verifySchema(actual, schema("p50", "integer"), schema("p90", "integer"));
-    verifyDataRows(actual, rows());
+    verifySchema(actual, schema("p50", "double"), schema("p90", "double"));
+    verifyDataRows(actual, rows(32838, 48086));
   }
 
   @Test

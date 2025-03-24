@@ -12,7 +12,7 @@ import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 
-public class secondToTimeFunction implements UserDefinedFunction {
+public class SecondToTimeFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     Number candidate = (Number) args[0];

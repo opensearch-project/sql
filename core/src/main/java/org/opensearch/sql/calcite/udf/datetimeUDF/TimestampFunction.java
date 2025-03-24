@@ -17,7 +17,7 @@ import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
  * (STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP (STRING/DATE/TIME/DATETIME/TIMESTAMP,
  * STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
  */
-public class timestampFunction implements UserDefinedFunction {
+public class TimestampFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     LocalDateTime datetime;

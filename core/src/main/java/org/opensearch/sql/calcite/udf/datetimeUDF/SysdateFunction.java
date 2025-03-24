@@ -6,7 +6,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
-public class sysdateFunction implements UserDefinedFunction {
+public class SysdateFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     LocalDateTime localDateTime;

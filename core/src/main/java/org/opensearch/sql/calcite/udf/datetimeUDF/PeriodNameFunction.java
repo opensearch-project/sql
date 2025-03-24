@@ -20,7 +20,7 @@ import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
  * We cannot use dayname/monthname in calcite because they're different with our current performance
  * e.g. August -> Aug, Wednesday -> Wed
  */
-public class periodNameFunction implements UserDefinedFunction {
+public class PeriodNameFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     Object candiate = args[0];

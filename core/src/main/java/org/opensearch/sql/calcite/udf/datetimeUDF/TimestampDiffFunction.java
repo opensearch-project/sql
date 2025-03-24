@@ -17,7 +17,7 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 
-public class timestampDiffFunction implements UserDefinedFunction {
+public class TimestampDiffFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     String addUnit = (String) args[0];

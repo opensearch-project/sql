@@ -16,7 +16,7 @@ import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprTimeValue;
 
-public class timeToSecondFunction implements UserDefinedFunction {
+public class TimeToSecondFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     SqlTypeName timeType = (SqlTypeName) args[1];

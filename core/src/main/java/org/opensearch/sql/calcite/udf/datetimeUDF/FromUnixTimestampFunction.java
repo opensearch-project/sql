@@ -23,7 +23,7 @@ import org.opensearch.sql.data.model.ExprStringValue;
  * DOUBLE -> DATETIME DOUBLE, STRING -> STRING Mimic implementation from
  * DATETIMEFUNCTIONS::from_unixtime
  */
-public class fromUnixTimestampFunction implements UserDefinedFunction {
+public class FromUnixTimestampFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     if (args.length == 1) {

@@ -18,11 +18,11 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 
-public class timestampAddFunction implements UserDefinedFunction {
+public class TimestampAddFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     if (args.length != 4) {
-      throw new IllegalArgumentException("timestampAddFunction requires 3 arguments");
+      throw new IllegalArgumentException("TimestampAddFunction requires 3 arguments");
     }
     String addUnit = (String) args[0];
     int amount = (int) args[1];

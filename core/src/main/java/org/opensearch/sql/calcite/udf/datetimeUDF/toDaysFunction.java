@@ -15,7 +15,7 @@ import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 
-public class toDaysFunction implements UserDefinedFunction {
+public class ToDaysFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     if (args.length != 2) {

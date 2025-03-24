@@ -18,6 +18,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -74,7 +75,7 @@ public interface AggregateUtils {
         return TransferUserDefinedAggFunction(
             PercentileApproxFunction.class,
             "percentile_approx",
-            UserDefinedFunctionUtils.getReturnTypeInference(0),
+                ReturnTypes.DOUBLE,
             List.of(field),
             argList,
             context.relBuilder);

@@ -61,6 +61,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodAddFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.StrToDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeFunction;
@@ -68,18 +69,17 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.WeekDayFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.WeekFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.YearWeekFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.secondToTimeFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.sysdateFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.timeDiffFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.timeFormatFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.timeToSecondFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.timestampAddFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.timestampDiffFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.FromUnixTimestampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodNameFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.SecondToTimeFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.SysdateFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimeDiffFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimeFormatFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimeToSecondFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampAddFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.toDaysFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.toSecondsFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.ToSecondsFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
@@ -298,47 +298,47 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.IS_NULL;
         // TODO Add more, ref RexImpTable
       case "DAYNAME":
-        return TransferUserDefinedFunction(periodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
+        return TransferUserDefinedFunction(PeriodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
       case "MONTHNAME":
-        return TransferUserDefinedFunction(periodNameFunction.class, "MONTHNAME", ReturnTypes.CHAR);
+        return TransferUserDefinedFunction(PeriodNameFunction.class, "MONTHNAME", ReturnTypes.CHAR);
       case "LAST_DAY":
         return SqlStdOperatorTable.LAST_DAY;
       case "UNIX_TIMESTAMP":
         return TransferUserDefinedFunction(
             UnixTimeStampFunction.class, "unix_timestamp", ReturnTypes.DOUBLE);
       case "SYSDATE":
-        return TransferUserDefinedFunction(sysdateFunction.class, "SYSDATE", ReturnTypes.TIMESTAMP);
+        return TransferUserDefinedFunction(SysdateFunction.class, "SYSDATE", ReturnTypes.TIMESTAMP);
       case "TIME":
         return SqlLibraryOperators.TIME;
       case "TIMEDIFF":
-        return TransferUserDefinedFunction(timeDiffFunction.class, "TIMEDIFF", ReturnTypes.TIME);
+        return TransferUserDefinedFunction(TimeDiffFunction.class, "TIMEDIFF", ReturnTypes.TIME);
       case "TIME_TO_SEC":
         return TransferUserDefinedFunction(
-            timeToSecondFunction.class, "TIME_TO_SEC", ReturnTypes.BIGINT);
+            TimeToSecondFunction.class, "TIME_TO_SEC", ReturnTypes.BIGINT);
       case "TIME_FORMAT":
         return TransferUserDefinedFunction(
-            timeFormatFunction.class, "TIME_FORMAT", ReturnTypes.CHAR);
+            TimeFormatFunction.class, "TIME_FORMAT", ReturnTypes.CHAR);
       case "TIMESTAMP":
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
-            timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
+            TimestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
       case "TIMESTAMPADD":
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
-            timestampAddFunction.class, "TIMESTAMPADD", ReturnTypes.TIMESTAMP);
+            TimestampAddFunction.class, "TIMESTAMPADD", ReturnTypes.TIMESTAMP);
       case "TIMESTAMPDIFF":
         return TransferUserDefinedFunction(
-            timestampDiffFunction.class, "TIMESTAMPDIFF", ReturnTypes.BIGINT);
+            TimestampDiffFunction.class, "TIMESTAMPDIFF", ReturnTypes.BIGINT);
       case "DATEDIFF":
         return TransferUserDefinedFunction(DateDiffFunction.class, "DATEDIFF", ReturnTypes.BIGINT);
       case "TO_SECONDS":
         return TransferUserDefinedFunction(
-            toSecondsFunction.class, "TO_SECONDS", ReturnTypes.BIGINT);
+            ToSecondsFunction.class, "TO_SECONDS", ReturnTypes.BIGINT);
       case "TO_DAYS":
         return TransferUserDefinedFunction(toDaysFunction.class, "TO_DAYS", ReturnTypes.BIGINT);
       case "SEC_TO_TIME":
         return TransferUserDefinedFunction(
-            secondToTimeFunction.class, "SEC_TO_TIME", ReturnTypes.TIME);
+            SecondToTimeFunction.class, "SEC_TO_TIME", ReturnTypes.TIME);
       case "YEAR",
           "QUARTER",
           "MINUTE",
@@ -357,9 +357,9 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(YearWeekFunction.class, "YEARWEEK", ReturnTypes.INTEGER);
       case "FROM_UNIXTIME":
         return TransferUserDefinedFunction(
-            fromUnixTimestampFunction.class,
+            FromUnixTimestampFunction.class,
             "FROM_UNIXTIME",
-            fromUnixTimestampFunction.interReturnTypes());
+            FromUnixTimestampFunction.interReturnTypes());
       case "WEEKDAY":
         return TransferUserDefinedFunction(WeekDayFunction.class, "WEEKDAY", ReturnTypes.INTEGER);
       case "UTC_TIMESTAMP":
@@ -607,7 +607,7 @@ public interface BuiltinFunctionUtils {
           timeNode =
               context.rexBuilder.makeCall(
                   TransferUserDefinedFunction(
-                      timestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP),
+                      TimestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP),
                   translateArgument("TIMESTAMP", ImmutableList.of(timeExpr), context));
         } else {
           timeNode = timeExpr;

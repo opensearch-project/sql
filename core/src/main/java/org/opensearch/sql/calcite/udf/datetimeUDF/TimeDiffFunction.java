@@ -16,7 +16,7 @@ import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprValue;
 
-public class timeDiffFunction implements UserDefinedFunction {
+public class TimeDiffFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     SqlTypeName startType = (SqlTypeName) args[2];
