@@ -7,7 +7,7 @@ package org.opensearch.sql.calcite.standalone;
 
 import org.opensearch.sql.common.setting.Settings;
 
-public class CalciteDedupPushdownIT extends CalciteDedupIT {
+public class CalcitePPLDedupPushdownIT extends CalcitePPLDedupIT {
 
   @Override
   protected Settings getSettings() {
