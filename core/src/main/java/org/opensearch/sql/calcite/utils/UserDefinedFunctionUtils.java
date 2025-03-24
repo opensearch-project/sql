@@ -22,6 +22,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
@@ -133,4 +134,28 @@ public class UserDefinedFunctionUtils {
           typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
     };
   }
+
+  /**
+   * For some udf/udaf, We need to create nullable types
+   * arguments.
+   *
+   * @param typeName
+   * @return a inference function
+   */
+  public static SqlReturnTypeInference getNullableReturnTypeInferenceForFixedType(SqlTypeName typeName) {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+
+      // Get argument types
+      List<RelDataType> argTypes = opBinding.collectOperandTypes();
+
+      if (argTypes.isEmpty()) {
+        throw new IllegalArgumentException("Function requires at least one argument.");
+      }
+      return typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(typeName), true);
+    };
+  }
+
+
 }

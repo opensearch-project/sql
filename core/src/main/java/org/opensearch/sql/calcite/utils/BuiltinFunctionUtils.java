@@ -95,9 +95,9 @@ public interface BuiltinFunctionUtils {
       case "STRCMP":
         return SqlLibraryOperators.STRCMP;
       case "REPLACE":
-        return TransferUserDefinedFunction(replaceFunction.class, "REPLACE", ReturnTypes.INTEGER);
+        return TransferUserDefinedFunction(replaceFunction.class, "REPLACE", ReturnTypes.CHAR);
       case "LOCATE":
-        return TransferUserDefinedFunction(locateFunction.class, "REPLACE", ReturnTypes.INTEGER);
+        return TransferUserDefinedFunction(locateFunction.class, "LOCATE", getNullableReturnTypeInferenceForFixedType(SqlTypeName.INTEGER));
       case "UPPER":
         return SqlStdOperatorTable.UPPER;
         // Built-in Math Functions

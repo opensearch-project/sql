@@ -15,6 +15,9 @@ public class locateFunction implements UserDefinedFunction {
         }
         String stringText = (String) args[0];
         String targetText = (String) args[1];
+        if (stringText == null || targetText == null) {
+            return null;
+        }
         if (args.length == 2) {
             return stringText.indexOf(targetText) + 1;
         } else {

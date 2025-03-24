@@ -28,7 +28,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
             executeQuery(
                     String.format(
-                            "source=%s | where ascii(name, 'Jane') = 74 | fields name, age",
+                            "source=%s | where ascii(name) = 74 | fields name, age",
                             TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
@@ -153,7 +153,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
             executeQuery(
                     String.format(
-                            "source=%s | where locate(name, 'Ja')=0 | fields name, age",
+                            "source=%s | where locate(name, 'Ja')=1 | fields name, age",
                             TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
@@ -283,7 +283,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
             executeQuery(
                     String.format(
-                            "source=%s | where replace(name, 'J', 'M') = 'Mane' | fields name, age",
+                            "source=%s | where replace(name, 'J', 'M')='Mane' | fields name, age",
                             TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
