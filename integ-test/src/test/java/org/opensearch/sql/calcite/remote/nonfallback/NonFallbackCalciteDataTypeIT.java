@@ -8,13 +8,12 @@ package org.opensearch.sql.calcite.remote.nonfallback;
 import java.io.IOException;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.opensearch.sql.ppl.DataTypeIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteDataTypeIT;
 
-public class NonFallbackCalciteDataTypeIT extends DataTypeIT {
+public class NonFallbackCalciteDataTypeIT extends CalciteDataTypeIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 

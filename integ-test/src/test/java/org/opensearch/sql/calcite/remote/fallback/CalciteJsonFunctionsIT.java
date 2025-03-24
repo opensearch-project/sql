@@ -7,7 +7,7 @@ package org.opensearch.sql.calcite.remote.fallback;
 
 import org.opensearch.sql.ppl.JsonFunctionsIT;
 
-public class CalciteJsonFunctionIT extends JsonFunctionsIT {
+public class CalciteJsonFunctionsIT extends JsonFunctionsIT {
   @Override
   public void init() throws Exception {
     super.init();

@@ -6,15 +6,14 @@
 package org.opensearch.sql.calcite.remote.nonfallback;
 
 import org.junit.Ignore;
-import org.opensearch.sql.ppl.SimpleQueryStringIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteSimpleQueryStringIT;
 
 // Search Functions are not supported
 @Ignore("https://github.com/opensearch-project/sql/issues/3462")
-public class NonFallbackCalciteSimpleQueryStringIT extends SimpleQueryStringIT {
+public class NonFallbackCalciteSimpleQueryStringIT extends CalciteSimpleQueryStringIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 }

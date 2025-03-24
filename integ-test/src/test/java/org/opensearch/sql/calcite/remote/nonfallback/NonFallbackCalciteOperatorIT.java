@@ -7,13 +7,12 @@ package org.opensearch.sql.calcite.remote.nonfallback;
 
 import java.io.IOException;
 import org.junit.Ignore;
-import org.opensearch.sql.ppl.OperatorIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteOperatorIT;
 
-public class NonFallbackCalciteOperatorIT extends OperatorIT {
+public class NonFallbackCalciteOperatorIT extends CalciteOperatorIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 

@@ -5,13 +5,12 @@
 
 package org.opensearch.sql.calcite.remote.nonfallback;
 
-import org.opensearch.sql.ppl.CsvFormatIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteCsvFormatIT;
 
-public class NonFallbackCalciteCsvFormatIT extends CsvFormatIT {
+public class NonFallbackCalciteCsvFormatIT extends CalciteCsvFormatIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 }

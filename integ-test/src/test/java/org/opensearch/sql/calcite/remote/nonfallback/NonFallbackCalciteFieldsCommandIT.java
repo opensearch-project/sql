@@ -8,13 +8,12 @@ package org.opensearch.sql.calcite.remote.nonfallback;
 import java.io.IOException;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.ppl.FieldsCommandIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteFieldsCommandIT;
 
-public class NonFallbackCalciteFieldsCommandIT extends FieldsCommandIT {
+public class NonFallbackCalciteFieldsCommandIT extends CalciteFieldsCommandIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 

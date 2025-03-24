@@ -6,14 +6,14 @@
 package org.opensearch.sql.calcite.remote.nonfallback;
 
 import org.junit.Ignore;
-import org.opensearch.sql.ppl.MatchBoolPrefixIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteMatchBoolPrefixIT;
 
-@Ignore("Search Functions are not supported")
-public class NonFallbackCalciteMatchBoolPrefixIT extends MatchBoolPrefixIT {
+// Search Functions are not supported
+@Ignore("https://github.com/opensearch-project/sql/issues/3462")
+public class NonFallbackCalciteMatchBoolPrefixIT extends CalciteMatchBoolPrefixIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 }

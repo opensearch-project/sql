@@ -6,13 +6,12 @@
 package org.opensearch.sql.calcite.remote.nonfallback;
 
 import org.junit.Ignore;
-import org.opensearch.sql.ppl.TextFunctionIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteTextFunctionIT;
 
-public class NonFallbackCalciteTextFunctionIT extends TextFunctionIT {
+public class NonFallbackCalciteTextFunctionIT extends CalciteTextFunctionIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 

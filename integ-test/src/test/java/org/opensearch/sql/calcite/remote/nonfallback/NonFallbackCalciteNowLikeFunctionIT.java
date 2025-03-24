@@ -10,10 +10,10 @@ import java.time.temporal.Temporal;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import org.junit.Ignore;
-import org.opensearch.sql.ppl.NowLikeFunctionIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteNowLikeFunctionIT;
 
 @Ignore("https://github.com/opensearch-project/sql/issues/3400")
-public class NonFallbackCalciteNowLikeFunctionIT extends NowLikeFunctionIT {
+public class NonFallbackCalciteNowLikeFunctionIT extends CalciteNowLikeFunctionIT {
   public NonFallbackCalciteNowLikeFunctionIT(
       String name,
       Boolean hasFsp,
@@ -28,7 +28,6 @@ public class NonFallbackCalciteNowLikeFunctionIT extends NowLikeFunctionIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 }

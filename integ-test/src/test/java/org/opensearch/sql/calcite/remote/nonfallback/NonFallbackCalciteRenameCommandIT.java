@@ -5,13 +5,12 @@
 
 package org.opensearch.sql.calcite.remote.nonfallback;
 
-import org.opensearch.sql.ppl.RenameCommandIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteRenameCommandIT;
 
-public class NonFallbackCalciteRenameCommandIT extends RenameCommandIT {
+public class NonFallbackCalciteRenameCommandIT extends CalciteRenameCommandIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 }

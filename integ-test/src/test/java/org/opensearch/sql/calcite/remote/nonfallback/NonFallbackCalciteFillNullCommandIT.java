@@ -6,14 +6,13 @@
 package org.opensearch.sql.calcite.remote.nonfallback;
 
 import org.junit.Ignore;
-import org.opensearch.sql.ppl.FillNullCommandIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteFillNullCommandIT;
 
 @Ignore("https://github.com/opensearch-project/sql/issues/3461")
-public class NonFallbackCalciteFillNullCommandIT extends FillNullCommandIT {
+public class NonFallbackCalciteFillNullCommandIT extends CalciteFillNullCommandIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 }

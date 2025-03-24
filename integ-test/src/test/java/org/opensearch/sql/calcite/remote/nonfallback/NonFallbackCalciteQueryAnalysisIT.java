@@ -10,13 +10,12 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
-import org.opensearch.sql.ppl.QueryAnalysisIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteQueryAnalysisIT;
 
-public class NonFallbackCalciteQueryAnalysisIT extends QueryAnalysisIT {
+public class NonFallbackCalciteQueryAnalysisIT extends CalciteQueryAnalysisIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 

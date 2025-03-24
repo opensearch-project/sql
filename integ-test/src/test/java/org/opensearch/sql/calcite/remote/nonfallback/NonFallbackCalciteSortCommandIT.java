@@ -7,13 +7,12 @@ package org.opensearch.sql.calcite.remote.nonfallback;
 
 import java.io.IOException;
 import org.junit.Ignore;
-import org.opensearch.sql.ppl.SortCommandIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteSortCommandIT;
 
-public class NonFallbackCalciteSortCommandIT extends SortCommandIT {
+public class NonFallbackCalciteSortCommandIT extends CalciteSortCommandIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 

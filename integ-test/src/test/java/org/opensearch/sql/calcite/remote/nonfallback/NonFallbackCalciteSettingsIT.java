@@ -5,13 +5,12 @@
 
 package org.opensearch.sql.calcite.remote.nonfallback;
 
-import org.opensearch.sql.ppl.SettingsIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteSettingsIT;
 
-public class NonFallbackCalciteSettingsIT extends SettingsIT {
+public class NonFallbackCalciteSettingsIT extends CalciteSettingsIT {
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
     disallowCalciteFallback();
   }
 }
