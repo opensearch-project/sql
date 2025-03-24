@@ -9,11 +9,11 @@ import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createNullableReturnType;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.transferStringExprToDateValue;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getLeastRestrictiveReturnTypeAmongArgsAt;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getReturnTypeInference;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -21,13 +21,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
@@ -38,6 +39,7 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.DateTimeStringUtils;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -47,11 +49,13 @@ import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ConvertTZFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.DateDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.FromDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.GetFormatFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.MakeDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MakeTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MinuteOfDay;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodAddFunction;
@@ -68,7 +72,6 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.YearWeekFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.fromUnixTimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.periodNameFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.secondToTimeFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.StrToDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.sysdateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timeDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timeFormatFunction;
@@ -78,11 +81,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.timestampDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.toDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.toSecondsFunction;
-import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.SpanFunction;
-import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
-import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
-import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
@@ -257,8 +256,6 @@ public interface BuiltinFunctionUtils {
 
       case "FROM_DAYS":
         return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", ReturnTypes.DATE);
-      case "DATEDIFF":
-        return SqlStdOperatorTable.TIMESTAMP_DIFF;
       case "DATE_FORMAT":
         return TransferUserDefinedFunction(
             DateFormatFunction.class, "DATE_FORMAT", ReturnTypes.VARCHAR);
@@ -267,6 +264,8 @@ public interface BuiltinFunctionUtils {
             GetFormatFunction.class, "GET_FORMAT", ReturnTypes.VARCHAR);
       case "MAKETIME":
         return TransferUserDefinedFunction(MakeTimeFunction.class, "MAKETIME", ReturnTypes.TIME);
+      case "MAKEDATE":
+        return TransferUserDefinedFunction(MakeDateFunction.class, "MAKEDATE", createNullableReturnType(SqlTypeName.DATE));
       case "MINUTE_OF_DAY":
         return TransferUserDefinedFunction(MinuteOfDay.class, "MINUTE_OF_DAY", ReturnTypes.INTEGER);
       case "PERIOD_ADD":
@@ -334,6 +333,9 @@ public interface BuiltinFunctionUtils {
       case "TIMESTAMPDIFF":
         return TransferUserDefinedFunction(
                 timestampDiffFunction.class, "TIMESTAMPDIFF", ReturnTypes.BIGINT);
+      case "DATEDIFF":
+        return TransferUserDefinedFunction(
+                DateDiffFunction.class, "DATEDIFF", ReturnTypes.BIGINT);
       case "TO_SECONDS":
         return TransferUserDefinedFunction(
                 toSecondsFunction.class, "TO_SECONDS", ReturnTypes.BIGINT);
@@ -483,12 +485,12 @@ public interface BuiltinFunctionUtils {
         return timestampAddArgs;
       case "TIMESTAMPDIFF":
         List<RexNode> timestampDiffArgs = new ArrayList<>();
-        timestampDiffArgs.add(argList.get(0));
-        timestampDiffArgs.add(argList.get(1));
-        timestampDiffArgs.add(context.rexBuilder.makeFlag(argList.get(1).getType().getSqlTypeName()));
-        timestampDiffArgs.add(argList.get(2));
-        timestampDiffArgs.add(context.rexBuilder.makeFlag(argList.get(2).getType().getSqlTypeName()));
+        timestampDiffArgs.add(argList.getFirst());
+        timestampDiffArgs.addAll(buildArgsWithTypes(context.rexBuilder, argList, 1, 2));
         return timestampDiffArgs;
+      case "DATEDIFF":
+        // datediff differs with timestamp diff in that it
+        return buildArgsWithTypes(context.rexBuilder, argList, 0, 1);
       case "DAYNAME", "MONTHNAME":
         List<RexNode> periodNameArgs = new ArrayList<>();
         periodNameArgs.add(argList.getFirst());
@@ -496,9 +498,17 @@ public interface BuiltinFunctionUtils {
         periodNameArgs.add(
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return periodNameArgs;
-      case "YEAR", "QUARTER", "MINUTE", "HOUR", "DAY", "MONTH", "SECOND":
+      case "YEAR", "QUARTER", "MINUTE", "HOUR", "DAY", "MONTH", "SECOND", "SECOND_OF_MINUTE", "MINUTE_OF_HOUR":
         List<RexNode> extractArgs = new ArrayList<>();
-        TimeUnitRange timeUnitRange = TimeUnitRange.valueOf(op);
+        TimeUnitRange timeUnitRange;
+        if (op.equalsIgnoreCase("MINUTE_OF_HOUR")) {
+          timeUnitRange = TimeUnitRange.MINUTE;
+        } else if(op.equalsIgnoreCase("SECOND_OF_MINUTE")) {
+          timeUnitRange = TimeUnitRange.SECOND;
+        }
+        else {
+          timeUnitRange = TimeUnitRange.valueOf(op);
+        }
         extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
         if (argList.getFirst() instanceof RexLiteral) {
           Object stringExpr = ((RexLiteral) argList.getFirst()).getValue();
@@ -509,10 +519,9 @@ public interface BuiltinFunctionUtils {
           if (stringExpr instanceof NlsString) {
             expression = ((NlsString) stringExpr).getValue();
           } else {
-            expression = stringExpr.toString();
+            expression = Objects.requireNonNull(stringExpr).toString();
           }
-          LocalDate date = LocalDateTime.ofInstant(InstantUtils.fromStringExpr(expression), ZoneOffset.UTC).toLocalDate();
-          extractArgs.add(context.rexBuilder.makeDateLiteral(DateString.fromDaysSinceEpoch((int) date.toEpochDay())));
+          extractArgs.add(context.rexBuilder.makeTimestampLiteral(createTimestampString(DateTimeParser.parse(expression)), RelDataType.PRECISION_NOT_SPECIFIED));
         }
         else {
           extractArgs.add(argList.getFirst());
@@ -533,11 +542,6 @@ public interface BuiltinFunctionUtils {
         monthOfYearArgs.add(context.rexBuilder.makeLiteral("MONTH"));
         monthOfYearArgs.add(argList.getFirst());
         return monthOfYearArgs;
-      case "SECOND_OF_MINUTE":
-        List<RexNode> secondofMinuteArgs = new ArrayList<>();
-        secondofMinuteArgs.add(context.rexBuilder.makeLiteral("SECOND"));
-        secondofMinuteArgs.add(argList.getFirst());
-        return secondofMinuteArgs;
       case "DATE_SUB":
         List<RexNode> dateSubArgs = transformDateManipulationArgs(argList, context.rexBuilder);
         // A flag that represents isAdd
@@ -597,7 +601,7 @@ public interface BuiltinFunctionUtils {
         if (dateExpr instanceof RexLiteral dateLiteral) {
           String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
           datetimeNode =
-              context.rexBuilder.makeTimestampLiteral(new TimestampString(dateStringValue), 6);
+              context.rexBuilder.makeTimestampLiteral(createTimestampString(DateTimeParser.parse(dateStringValue)), 6);
           datetimeType = context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP);
         } else {
           datetimeNode = dateExpr;
@@ -646,14 +650,16 @@ public interface BuiltinFunctionUtils {
             makeConversionCall("TIMESTAMP", ImmutableList.of(argList.getFirst()), context),
             argList.get(1),
             argList.get(2));
-      case "DATEDIFF":
-        RexNode dayUnit = context.rexBuilder.makeLiteral(TimeUnit.DAY.toString());
-        RexNode ts1 = convertToDateIfNecessary(context.rexBuilder, argList.getFirst());
-        RexNode ts2 = convertToDateIfNecessary(context.rexBuilder, argList.get(1));
-        // TimeFrameSet.diffDate calculates difference as op2 - op1.
-        // See
-        // @link{https://github.com/apache/calcite/blob/618e601b136e92db933523f77dd7af3c1dfe2779/core/src/main/java/org/apache/calcite/runtime/SqlFunctions.java#L5746}
-        return ImmutableList.of(dayUnit, ts2, ts1);
+      case "DATETIME":
+        // Convert timestamp to a string to reuse OS PPL V2's implementation
+        RexNode argTimestamp = argList.getFirst();
+        if (argTimestamp.getType().getSqlTypeName().equals(SqlTypeName.TIMESTAMP)) {
+          argTimestamp = makeConversionCall("DATE_FORMAT",
+                  ImmutableList.of(argTimestamp, context.rexBuilder.makeLiteral("%Y-%m-%d %T")),
+                  context);
+        }
+        return Stream.concat(Stream.of(argTimestamp), argList.stream().skip(1))
+            .toList();
       default:
         return argList;
     }
@@ -668,20 +674,20 @@ public interface BuiltinFunctionUtils {
 
   static RelDataType deriveReturnType(
       String funcName, RexBuilder rexBuilder, SqlOperator operator, List<? extends RexNode> exprs) {
-    return switch (funcName) {
+    return switch (funcName.toUpperCase()) {
         // This effectively invalidates the operand type check, which leads to unnecessary
         // incompatible parameter type errors
       case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
       case "TIMESTAMPADD" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
       case "TIMESTAMPDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-      case "YEAR" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+      case  "YEAR", "MINUTE", "HOUR", "HOUR_OF_DAY", "MONTH", "MONTH_OF_YEAR", "DAY_OF_YEAR", "DAYOFYEAR", "DAY_OF_MONTH", "DAYOFMONTH", "DAY_OF_WEEK", "DAYOFWEEK", "DAY", "MINUTE_OF_HOUR", "SECOND", "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
       default -> rexBuilder.deriveReturnType(operator, exprs);
     };
   }
 
-  private static RexNode convertToDateIfNecessary(RexBuilder rexBuilder, RexNode expr) {
+  private static RexNode convertToDateIfNecessary(CalcitePlanContext context, RexNode expr) {
     if (!expr.getType().getSqlTypeName().equals(SqlTypeName.DATE)) {
-      return rexBuilder.makeCall(SqlLibraryOperators.DATE, ImmutableList.of(expr));
+      return makeConversionCall("DATE", ImmutableList.of(expr), context);
     }
     return expr;
   }
@@ -716,15 +722,7 @@ public interface BuiltinFunctionUtils {
     if (baseTimestampExpr instanceof RexLiteral dateLiteral) {
       String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
       LocalDateTime dateTime = Objects.requireNonNull(DateTimeParser.parse(dateStringValue));
-      TimestampString timestampString =
-          new TimestampString(
-                  dateTime.getYear(),
-                  dateTime.getMonthValue(),
-                  dateTime.getDayOfMonth(),
-                  dateTime.getHour(),
-                  dateTime.getMinute(),
-                  dateTime.getSecond())
-              .withNanos(dateTime.getNano());
+      TimestampString timestampString = createTimestampString(dateTime);
       RexNode timestampNode =
           rexBuilder.makeTimestampLiteral(timestampString, RelDataType.PRECISION_NOT_SPECIFIED);
       dateAddArgs.add(timestampNode);
@@ -768,5 +766,37 @@ public interface BuiltinFunctionUtils {
     RexNode type0 = rexBuilder.makeFlag(arg0Type);
     RexNode type1 = rexBuilder.makeFlag(arg1Type);
     return new ArrayList<>(List.of(argList.getFirst(), type0, argList.get(1), type1));
+  }
+
+  private static TimestampString createTimestampString(LocalDateTime dateTime) {
+    return new TimestampString(
+            dateTime.getYear(),
+            dateTime.getMonthValue(),
+            dateTime.getDayOfMonth(),
+            dateTime.getHour(),
+            dateTime.getMinute(),
+            dateTime.getSecond())
+            .withNanos(dateTime.getNano());
+  }
+
+  /**
+   * Builds a list of RexNodes where each selected argument is followed by
+   * a RexNode representing its SQL type.
+   *
+   * @param rexBuilder the RexBuilder instance used to create type flags
+   * @param args the original list of arguments
+   *
+   * @return A new list of RexNodes: [arg, typeFlag, arg, typeFlag, ...]
+   */
+  private static List<RexNode> buildArgsWithTypes(RexBuilder rexBuilder,
+                                                  List<RexNode> args,
+                                                  int... indexes) {
+    List<RexNode> result = new ArrayList<>();
+    for (int index : indexes) {
+      RexNode arg = args.get(index);
+      result.add(arg);
+      result.add(rexBuilder.makeFlag(arg.getType().getSqlTypeName()));
+    }
+    return result;
   }
 }

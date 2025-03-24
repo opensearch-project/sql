@@ -228,6 +228,10 @@ public class UserDefinedFunctionUtils {
    *     an instance of the corresponding type
    */
   public static void validateArgumentTypes(List<Object> objects, List<Class<?>> types) {
+    validateArgumentTypes(objects, types, Collections.nCopies(types.size(), false));
+  }
+
+  public static void validateArgumentTypes(List<Object> objects, List<Class<?>> types, List<Boolean> nullables) {
     if (objects.size() < types.size()) {
       throw new IllegalArgumentException(
           String.format(
@@ -235,9 +239,12 @@ public class UserDefinedFunctionUtils {
               objects.size(), types.size()));
     }
     for (int i = 0; i < types.size(); i++) {
+      if (objects.get(i) == null && nullables.get(i)) {
+        continue;
+      }
       if (!types.get(i).isInstance(objects.get(i))) {
         throw new IllegalArgumentException(
-            String.format("Object at index %d is not of type %s", i, types.get(i).getName()));
+            String.format("Object at index %d is not of type %s (Got %s)", i, types.get(i).getName(), objects.get(i) == null? "null": objects.get(i).getClass().getName()));
       }
     }
   }
