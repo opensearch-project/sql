@@ -18,7 +18,8 @@ import org.junit.jupiter.api.Test;
 public class IPFunctionsIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.WEBLOG);
   }
 

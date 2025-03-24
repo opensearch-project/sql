@@ -13,6 +13,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 
 /**
  * Query plan which does not reflect a search query being executed. It contains a command or an
@@ -31,10 +32,11 @@ public class CommandPlan extends AbstractPlan {
   /** Constructor. */
   public CommandPlan(
       QueryId queryId,
+      QueryType queryType,
       UnresolvedPlan plan,
       QueryService queryService,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    super(queryId);
+    super(queryId, queryType);
     this.plan = plan;
     this.queryService = queryService;
     this.listener = listener;
@@ -42,7 +44,7 @@ public class CommandPlan extends AbstractPlan {
 
   @Override
   public void execute() {
-    queryService.execute(plan, listener);
+    queryService.execute(plan, getQueryType(), listener);
   }
 
   @Override

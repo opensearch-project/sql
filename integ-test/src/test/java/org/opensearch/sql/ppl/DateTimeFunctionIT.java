@@ -28,7 +28,8 @@ import org.opensearch.sql.common.utils.StringUtils;
 public class DateTimeFunctionIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.DATE);
     loadIndex(Index.PEOPLE2);
     loadIndex(Index.BANK);

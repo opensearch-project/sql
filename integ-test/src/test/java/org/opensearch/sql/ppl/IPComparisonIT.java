@@ -17,7 +17,8 @@ import org.opensearch.sql.legacy.SQLIntegTestCase;
 public class IPComparisonIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(SQLIntegTestCase.Index.WEBLOG);
   }
 

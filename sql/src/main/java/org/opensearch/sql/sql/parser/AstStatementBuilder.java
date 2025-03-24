@@ -8,6 +8,8 @@
 
 package org.opensearch.sql.sql.parser;
 
+import static org.opensearch.sql.executor.QueryType.SQL;
+
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +28,8 @@ public class AstStatementBuilder extends OpenSearchSQLParserBaseVisitor<Statemen
 
   @Override
   public Statement visitSqlStatement(OpenSearchSQLParser.SqlStatementContext ctx) {
-    Query query = new Query(astBuilder.visit(ctx), context.fetchSize);
-    return context.isExplain ? new Explain(query) : query;
+    Query query = new Query(astBuilder.visit(ctx), context.fetchSize, SQL);
+    return context.isExplain ? new Explain(query, SQL) : query;
   }
 
   @Override

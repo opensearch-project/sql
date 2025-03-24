@@ -25,13 +25,16 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @ToString
 public class Alias extends UnresolvedExpression {
 
-  /** The name to be associated with the result of computing delegated expression. */
+  /**
+   * The name to be associated with the result of computing delegated expression. In OpenSearch ppl,
+   * the name is the actual alias of an expression
+   */
   private final String name;
 
   /** Expression aliased. */
   private final UnresolvedExpression delegated;
 
-  /** TODO. Optional field alias. */
+  /** TODO. Optional field alias. This field is OpenSearch SQL-only */
   private String alias;
 
   @Override

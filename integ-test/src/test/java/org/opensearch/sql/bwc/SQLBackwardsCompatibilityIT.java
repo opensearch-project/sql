@@ -35,6 +35,9 @@ import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
 
+  @Override
+  public void init() {} // override init() to avoid calling disableCalcite().
+
   private static final ClusterType CLUSTER_TYPE =
       ClusterType.parse(System.getProperty("tests.rest.bwcsuite"));
   private static final String CLUSTER_NAME = System.getProperty("tests.clustername");

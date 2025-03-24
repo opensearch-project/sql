@@ -15,6 +15,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
+import static org.opensearch.sql.executor.QueryType.PPL;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,7 +39,8 @@ public class AstStatementBuilderTest {
         "search source=t a=1",
         new Query(
             project(filter(relation("t"), compare("=", field("a"), intLiteral(1))), AllFields.of()),
-            0));
+            0,
+            PPL));
   }
 
   @Test
@@ -49,7 +51,9 @@ public class AstStatementBuilderTest {
             new Query(
                 project(
                     filter(relation("t"), compare("=", field("a"), intLiteral(1))), AllFields.of()),
-                0)));
+                0,
+                PPL),
+            PPL));
   }
 
   private void assertEqual(String query, Statement expectedStatement) {

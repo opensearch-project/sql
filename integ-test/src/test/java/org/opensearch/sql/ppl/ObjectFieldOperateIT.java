@@ -19,7 +19,8 @@ import org.junit.Test;
 public class ObjectFieldOperateIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(DEEP_NESTED);
   }
 
