@@ -343,7 +343,7 @@ public interface BuiltinFunctionUtils {
       case "SEC_TO_TIME":
         return TransferUserDefinedFunction(
                 secondToTimeFunction.class, "SEC_TO_TIME", ReturnTypes.TIME);
-      case "YEAR", "MINUTE", "HOUR", "HOUR_OF_DAY", "MONTH", "MONTH_OF_YEAR", "DAY_OF_MONTH", "DAYOFMONTH", "DAY", "MINUTE_OF_HOUR", "SECOND", "SECOND_OF_MINUTE":
+      case "YEAR", "QUARTER", "MINUTE", "HOUR", "HOUR_OF_DAY", "MONTH", "MONTH_OF_YEAR", "DAY_OF_MONTH", "DAYOFMONTH", "DAY", "MINUTE_OF_HOUR", "SECOND", "SECOND_OF_MINUTE":
         return SqlLibraryOperators.DATE_PART;
       case "YEARWEEK":
         return TransferUserDefinedFunction(
@@ -496,7 +496,7 @@ public interface BuiltinFunctionUtils {
         periodNameArgs.add(
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return periodNameArgs;
-      case "YEAR", "MINUTE", "HOUR", "DAY", "MONTH", "SECOND":
+      case "YEAR", "QUARTER", "MINUTE", "HOUR", "DAY", "MONTH", "SECOND":
         List<RexNode> extractArgs = new ArrayList<>();
         TimeUnitRange timeUnitRange = TimeUnitRange.valueOf(op);
         extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
