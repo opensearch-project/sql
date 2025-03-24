@@ -226,6 +226,7 @@ tasks.named("publishShadowPublicationToMavenLocal") {
 apply plugin: 'com.netflix.nebula.ospackage'
 validateNebulaPom.enabled = false
 generatePomFileForShadowPublication.enabled = false
+validateShadowPom.enabled = false
 //generatePomFileForShadowPublication.enabled = false
 // This is afterEvaluate because the bundlePlugin ZIP task is updated afterEvaluate and changes the ZIP name to match the plugin name
 afterEvaluate {
