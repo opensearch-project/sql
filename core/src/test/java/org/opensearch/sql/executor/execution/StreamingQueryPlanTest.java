@@ -23,6 +23,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.streaming.StreamingSource;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
@@ -36,6 +37,8 @@ class StreamingQueryPlanTest {
   @Mock private QueryService queryService;
 
   @Mock private QueryId queryId;
+
+  @Mock private QueryType queryType;
 
   @Mock private StreamingQueryPlan.ExecutionStrategy executionStrategy;
 
@@ -82,7 +85,7 @@ class StreamingQueryPlanTest {
     public Helper() {
       queryPlan =
           new StreamingQueryPlan(
-              queryId, unresolvedPlan, queryService, listener, executionStrategy);
+              queryId, queryType, unresolvedPlan, queryService, listener, executionStrategy);
     }
 
     Helper streamingSource() {

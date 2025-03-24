@@ -19,7 +19,8 @@ import org.junit.Test;
 public class SortCommandIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.DOG);

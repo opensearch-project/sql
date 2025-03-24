@@ -25,6 +25,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
@@ -267,7 +268,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitAlias(Alias node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getDelegated(), context);
-    return context.relBuilder.alias(expr, node.getName());
+    // Only OpenSearch SQL uses node.getAlias, OpenSearch PPL uses node.getName.
+    return context.relBuilder.alias(
+        expr, Strings.isEmpty(node.getAlias()) ? node.getName() : node.getAlias());
   }
 
   @Override

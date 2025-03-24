@@ -16,7 +16,8 @@ import org.opensearch.sql.exception.SemanticCheckException;
 public class QueryAnalysisIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.ACCOUNT);
   }
 
