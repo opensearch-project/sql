@@ -16,7 +16,6 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 
 import java.io.IOException;
 import java.sql.Date;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -25,9 +24,9 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 
+import org.hamcrest.Matchers;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -664,6 +663,35 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         verifyNumOfRows(actual, 7);
     }
 
+    @Test
+    public void testSysdate() {
+        JSONObject actual = executeQuery(String.format(
+                "source=%s | head 1 | eval d1 = SYSDATE(), d2 = SYSDATE(3), d3 = SYSDATE(6)|" +
+                        "eval df1 = DATE_FORMAT(d1, '%%Y-%%m-%%d %%T.%%f'), df2 = DATE_FORMAT(d2, '%%Y-%%m-%%d %%T.%%f'), df3 = DATE_FORMAT(d3, '%%Y-%%m-%%d %%T.%%f') " +
+                        "| fields d1, d2, d3, df1, df2, df3", TEST_INDEX_DATE_FORMATS));
+        verifySchema(actual,
+                schema("d1", "timestamp"),
+                schema("d2", "timestamp"),
+                schema("d3", "timestamp"),
+                schema("df1", "string"),
+                schema("df2", "string"),
+                schema("df3", "string"));
+
+        // TODO: df3 should show 6-precision microseconds. But it it not implemented yet, neither
+        // does the pattern detect it
+        final String DATETIME_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}$";
+        final String DATETIME_P0_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.000000$";
+        final String DATETIME_P3_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{3}000$";
+        final String DATETIME_P6_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{6}$";
+        verify(actual.getJSONArray("datarows").getJSONArray(0),
+                Matchers.matchesPattern(DATETIME_PATTERN),
+                Matchers.matchesPattern(DATETIME_PATTERN),
+                Matchers.matchesPattern(DATETIME_PATTERN),
+                Matchers.matchesPattern(DATETIME_P0_PATTERN),
+                Matchers.matchesPattern(DATETIME_P3_PATTERN),
+                Matchers.matchesPattern(DATETIME_P6_PATTERN));
+    }
+
     /**
      * DAY, DAY_OF_MONTH, DAYOFMONTH, DAY_OF_WEEK, DAYOFWEEK, DAY_OF_YEAR, DAYOFYEAR
      * f.t. ADDDATE, SUBDATE
@@ -806,15 +834,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         ));
     }
 
-    /**
-     * Usage: Calculates the difference of date parts of given values. If the first argument is time, today's date is used.
-     *
-     * Argument type: DATE/TIMESTAMP/TIME, DATE/TIMESTAMP/TIME
-     *
-     * Return type: LONG
-     */
     @Test
-    public void testDateDiff() {
+    public void testDateDiffAndMakeTime() {
         JSONObject actual = executeQuery(String.format(
                 "source=%s | head 1 | eval d1 = DATEDIFF(date, ADDDATE(date, INTERVAL 1 DAY)), " +
                         "d2 = DATEDIFF(date, SUBDATE(date, INTERVAL 50 DAY)), " +
@@ -903,5 +924,22 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 schema("m6", "integer"));
 
         verifyDataRows(actual, rows(7, 7, 547, 547, 40, 20));
+    }
+
+    @Test
+    public void testTimeDiff() {
+        JSONObject actual = executeQuery(String.format(
+                "source = %s | head 1 | eval t1 = TIMEDIFF('23:59:59', '13:00:00')," +
+                        "t2 = TIMEDIFF(time, '13:00:00')," +
+                        "t3 = TIMEDIFF(time, time) " +
+                        "| fields t1, t2, t3",
+                TEST_INDEX_DATE_FORMATS));
+
+        verifySchema(actual,
+                schema("t1", "time"),
+                schema("t2", "time"),
+                schema("t3", "time"));
+
+        verifyDataRows(actual, rows("10:59:59", "20:07:42", "00:00:00"));
     }
 }
