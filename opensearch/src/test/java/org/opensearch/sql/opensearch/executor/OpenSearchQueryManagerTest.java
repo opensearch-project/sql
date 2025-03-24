@@ -51,7 +51,7 @@ class OpenSearchQueryManagerTest {
 
     AtomicBoolean isRun = new AtomicBoolean(false);
     AbstractPlan queryPlan =
-        new QueryPlan(queryId, plan, queryService, listener) {
+        new QueryPlan(queryId, queryType, plan, queryService, listener) {
           @Override
           public void execute() {
             isRun.set(true);
