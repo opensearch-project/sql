@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -12,11 +17,6 @@ import java.time.ZoneOffset;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferCalciteValueToExprTimeStampValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprToSeconds;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprToSecondsForIntType;
-
-/**
- * Use function: DateFunctions::to_seconds
- *
- */
 
 public class toSecondsFunction implements UserDefinedFunction {
     @Override
