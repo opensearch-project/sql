@@ -78,7 +78,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.TimeFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeToSecondFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampAddFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampDiffFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.toDaysFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.ToDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ToSecondsFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
@@ -335,7 +335,7 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(
             ToSecondsFunction.class, "TO_SECONDS", ReturnTypes.BIGINT);
       case "TO_DAYS":
-        return TransferUserDefinedFunction(toDaysFunction.class, "TO_DAYS", ReturnTypes.BIGINT);
+        return TransferUserDefinedFunction(ToDaysFunction.class, "TO_DAYS", ReturnTypes.BIGINT);
       case "SEC_TO_TIME":
         return TransferUserDefinedFunction(
             SecondToTimeFunction.class, "SEC_TO_TIME", ReturnTypes.TIME);
