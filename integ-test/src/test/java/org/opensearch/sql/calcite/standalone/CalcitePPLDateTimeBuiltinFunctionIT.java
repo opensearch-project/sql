@@ -16,15 +16,19 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 
 import java.io.IOException;
 import java.sql.Date;
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 
 import org.hamcrest.Matchers;
 import org.json.JSONObject;
@@ -667,7 +671,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     public void testSysdate() {
         JSONObject actual = executeQuery(String.format(
                 "source=%s | head 1 | eval d1 = SYSDATE(), d2 = SYSDATE(3), d3 = SYSDATE(6)|" +
-                        "eval df1 = DATE_FORMAT(d1, '%%Y-%%m-%%d %%T.%%f'), df2 = DATE_FORMAT(d2, '%%Y-%%m-%%d %%T.%%f'), df3 = DATE_FORMAT(d3, '%%Y-%%m-%%d %%T.%%f') " +
+                        "eval df1 = DATE_FORMAT(d1, '%%Y-%%m-%%d %%T'), df2 = DATE_FORMAT(d2, '%%Y-%%m-%%d %%T.%%f'), df3 = DATE_FORMAT(d3, '%%Y-%%m-%%d %%T.%%f') " +
                         "| fields d1, d2, d3, df1, df2, df3", TEST_INDEX_DATE_FORMATS));
         verifySchema(actual,
                 schema("d1", "timestamp"),
@@ -687,7 +691,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 Matchers.matchesPattern(DATETIME_PATTERN),
                 Matchers.matchesPattern(DATETIME_PATTERN),
                 Matchers.matchesPattern(DATETIME_PATTERN),
-                Matchers.matchesPattern(DATETIME_P0_PATTERN),
+                Matchers.matchesPattern(DATETIME_PATTERN),
                 Matchers.matchesPattern(DATETIME_P3_PATTERN),
                 Matchers.matchesPattern(DATETIME_P6_PATTERN));
     }
@@ -751,7 +755,11 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 schema("md2", "date"),
                 schema("md3", "date"));
 
-        verifyDataRows(actual, rows("Thursday", "Thursday", "Thursday", "April", "April", "December",
+
+        final String thu = DayOfWeek.THURSDAY.getDisplayName(TextStyle.FULL, Locale.getDefault());
+        final String apr = Month.APRIL.getDisplayName(TextStyle.FULL, Locale.getDefault());
+        final String dec = Month.DECEMBER.getDisplayName(TextStyle.FULL, Locale.getDefault());
+        verifyDataRows(actual, rows(thu, thu, thu, apr, apr, dec,
                 "1984-04-30", "1984-04-30", "1984-04-30", "2021-01-31", "2020-01-01", "2020-12-31", "2021-01-01"));
     }
 

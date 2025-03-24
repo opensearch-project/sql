@@ -43,9 +43,9 @@ public class periodNameFunction implements UserDefinedFunction {
     String nameType = (String) type;
     // TODO: Double-check whether it is ok to always return US week & month names
     if (Objects.equals(nameType, "MONTHNAME")) {
-      return localDate.getMonth().getDisplayName(TextStyle.FULL, Locale.US);
+      return localDate.getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault());
     } else if (Objects.equals(nameType, "DAYNAME")) {
-      return localDate.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.US);
+      return localDate.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.getDefault());
     } else {
       throw new IllegalArgumentException("something wrong");
     }

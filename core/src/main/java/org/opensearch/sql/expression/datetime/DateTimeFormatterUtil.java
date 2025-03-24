@@ -239,7 +239,7 @@ public class DateTimeFormatterUtil {
             handler
                 .getOrDefault(
                     matcher.group(),
-                    (d) -> String.format(Locale.ENGLISH, "'%s'", matcher.group().replaceFirst(MOD_LITERAL, "")))
+                    (d) -> String.format("'%s'", matcher.group().replaceFirst(MOD_LITERAL, "")))
                 .getFormat(datetime));
       }
     } catch (Exception e) {

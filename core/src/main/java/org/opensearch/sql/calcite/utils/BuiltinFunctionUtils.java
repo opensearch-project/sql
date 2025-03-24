@@ -498,12 +498,15 @@ public interface BuiltinFunctionUtils {
         periodNameArgs.add(
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return periodNameArgs;
-      case "YEAR", "QUARTER", "MINUTE", "HOUR", "DAY", "MONTH", "SECOND", "MINUTE_OF_HOUR":
+      case "YEAR", "QUARTER", "MINUTE", "HOUR", "DAY", "MONTH", "SECOND", "SECOND_OF_MINUTE", "MINUTE_OF_HOUR":
         List<RexNode> extractArgs = new ArrayList<>();
         TimeUnitRange timeUnitRange;
-        if (op.equals("MINUTE_OF_HOUR")) {
+        if (op.equalsIgnoreCase("MINUTE_OF_HOUR")) {
           timeUnitRange = TimeUnitRange.MINUTE;
-        } else {
+        } else if(op.equalsIgnoreCase("SECOND_OF_MINUTE")) {
+          timeUnitRange = TimeUnitRange.SECOND;
+        }
+        else {
           timeUnitRange = TimeUnitRange.valueOf(op);
         }
         extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
@@ -539,11 +542,6 @@ public interface BuiltinFunctionUtils {
         monthOfYearArgs.add(context.rexBuilder.makeLiteral("MONTH"));
         monthOfYearArgs.add(argList.getFirst());
         return monthOfYearArgs;
-      case "SECOND_OF_MINUTE":
-        List<RexNode> secondofMinuteArgs = new ArrayList<>();
-        secondofMinuteArgs.add(context.rexBuilder.makeLiteral("SECOND"));
-        secondofMinuteArgs.add(argList.getFirst());
-        return secondofMinuteArgs;
       case "DATE_SUB":
         List<RexNode> dateSubArgs = transformDateManipulationArgs(argList, context.rexBuilder);
         // A flag that represents isAdd
@@ -676,7 +674,7 @@ public interface BuiltinFunctionUtils {
 
   static RelDataType deriveReturnType(
       String funcName, RexBuilder rexBuilder, SqlOperator operator, List<? extends RexNode> exprs) {
-    return switch (funcName) {
+    return switch (funcName.toUpperCase()) {
         // This effectively invalidates the operand type check, which leads to unnecessary
         // incompatible parameter type errors
       case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
