@@ -26,9 +26,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testAscii() throws IOException {
     Request request1 =
-            new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/10?refresh=true");
+        new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/10?refresh=true");
     request1.setJsonEntity(
-            "{\"name\":\"EeD\",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
+        "{\"name\":\"EeD\",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
     client().performRequest(request1);
     JSONObject actual =
         executeQuery(
