@@ -10,7 +10,6 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VA
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -89,10 +88,9 @@ public class UserDefinedFunctionUtils {
       }
       RelDataType firstArgType = argTypes.get(targetPosition);
       return typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
+          typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
     };
   }
-
 
   /**
    * Infer return argument type as the widest return type among arguments as specified positions.
@@ -125,7 +123,7 @@ public class UserDefinedFunctionUtils {
     };
   }
 
-  static SqlReturnTypeInference getReturnTypeInferenceForArray(){
+  static SqlReturnTypeInference getReturnTypeInferenceForArray() {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
@@ -231,7 +229,8 @@ public class UserDefinedFunctionUtils {
     validateArgumentTypes(objects, types, Collections.nCopies(types.size(), false));
   }
 
-  public static void validateArgumentTypes(List<Object> objects, List<Class<?>> types, List<Boolean> nullables) {
+  public static void validateArgumentTypes(
+      List<Object> objects, List<Class<?>> types, List<Boolean> nullables) {
     if (objects.size() < types.size()) {
       throw new IllegalArgumentException(
           String.format(
@@ -244,7 +243,11 @@ public class UserDefinedFunctionUtils {
       }
       if (!types.get(i).isInstance(objects.get(i))) {
         throw new IllegalArgumentException(
-            String.format("Object at index %d is not of type %s (Got %s)", i, types.get(i).getName(), objects.get(i) == null? "null": objects.get(i).getClass().getName()));
+            String.format(
+                "Object at index %d is not of type %s (Got %s)",
+                i,
+                types.get(i).getName(),
+                objects.get(i) == null ? "null" : objects.get(i).getClass().getName()));
       }
     }
   }

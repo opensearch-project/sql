@@ -6,11 +6,7 @@
 package org.opensearch.sql.calcite.utils.datetime;
 
 import java.time.*;
-
-import org.apache.calcite.runtime.Resources;
 import org.apache.calcite.sql.type.SqlTypeName;
-
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 public interface InstantUtils {
 
@@ -49,17 +45,15 @@ public interface InstantUtils {
   }
 
   static Instant fromStringExpr(String timestampExpression) {
-    LocalDateTime datetime =
-            DateTimeParser.parse(timestampExpression);
+    LocalDateTime datetime = DateTimeParser.parse(timestampExpression);
     return datetime.atZone(ZoneId.of("UTC")).toInstant();
   }
-
 
   /**
    * Convert internal date/time/timestamp to Instant.
    *
-   * @param candidate internal date/time/timestamp. Date is represented as days since epoch,
-   *     time is represented as milliseconds, and timestamp is represented as epoch milliseconds
+   * @param candidate internal date/time/timestamp. Date is represented as days since epoch, time is
+   *     represented as milliseconds, and timestamp is represented as epoch milliseconds
    * @param sqlTypeName type of the internalDatetime
    * @return Instant that represents the given internalDatetime
    */

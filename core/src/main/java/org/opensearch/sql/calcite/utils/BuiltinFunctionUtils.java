@@ -8,9 +8,9 @@ package org.opensearch.sql.calcite.utils;
 import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createNullableReturnType;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.transferStringExprToDateValue;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getLeastRestrictiveReturnTypeAmongArgsAt;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getReturnTypeInference;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.transferStringExprToDateValue;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
@@ -22,7 +22,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.rel.type.RelDataType;
@@ -39,11 +38,11 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
-import org.apache.calcite.util.DateTimeStringUtils;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.ExtendedRexBuilder;
+import org.opensearch.sql.calcite.udf.SpanFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
@@ -81,14 +80,12 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.timestampDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.timestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.toDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.toSecondsFunction;
-import org.opensearch.sql.calcite.udf.SpanFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
-import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
 public interface BuiltinFunctionUtils {
 
@@ -227,10 +224,10 @@ public interface BuiltinFunctionUtils {
             DateAddSubFunction.class, "DATE_ADD", ReturnTypes.TIMESTAMP);
       case "ADDDATE":
         return TransferUserDefinedFunction(
-                DateAddSubFunction.class, "ADDDATE", DateAddSubFunction.getReturnTypeForAddOrSubDate());
+            DateAddSubFunction.class, "ADDDATE", DateAddSubFunction.getReturnTypeForAddOrSubDate());
       case "SUBDATE":
         return TransferUserDefinedFunction(
-                DateAddSubFunction.class, "SUBDATE", DateAddSubFunction.getReturnTypeForAddOrSubDate());
+            DateAddSubFunction.class, "SUBDATE", DateAddSubFunction.getReturnTypeForAddOrSubDate());
       case "DATE_SUB":
         return TransferUserDefinedFunction(
             DateAddSubFunction.class, "DATE_SUB", ReturnTypes.TIMESTAMP);
@@ -265,7 +262,8 @@ public interface BuiltinFunctionUtils {
       case "MAKETIME":
         return TransferUserDefinedFunction(MakeTimeFunction.class, "MAKETIME", ReturnTypes.TIME);
       case "MAKEDATE":
-        return TransferUserDefinedFunction(MakeDateFunction.class, "MAKEDATE", createNullableReturnType(SqlTypeName.DATE));
+        return TransferUserDefinedFunction(
+            MakeDateFunction.class, "MAKEDATE", createNullableReturnType(SqlTypeName.DATE));
       case "MINUTE_OF_DAY":
         return TransferUserDefinedFunction(MinuteOfDay.class, "MINUTE_OF_DAY", ReturnTypes.INTEGER);
       case "PERIOD_ADD":
@@ -309,19 +307,17 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(
             UnixTimeStampFunction.class, "unix_timestamp", ReturnTypes.DOUBLE);
       case "SYSDATE":
-        return TransferUserDefinedFunction(
-              sysdateFunction.class, "SYSDATE", ReturnTypes.TIMESTAMP);
+        return TransferUserDefinedFunction(sysdateFunction.class, "SYSDATE", ReturnTypes.TIMESTAMP);
       case "TIME":
         return SqlLibraryOperators.TIME;
       case "TIMEDIFF":
-        return TransferUserDefinedFunction(
-                timeDiffFunction.class, "TIMEDIFF", ReturnTypes.TIME);
+        return TransferUserDefinedFunction(timeDiffFunction.class, "TIMEDIFF", ReturnTypes.TIME);
       case "TIME_TO_SEC":
         return TransferUserDefinedFunction(
-                timeToSecondFunction.class, "TIME_TO_SEC", ReturnTypes.BIGINT);
+            timeToSecondFunction.class, "TIME_TO_SEC", ReturnTypes.BIGINT);
       case "TIME_FORMAT":
         return TransferUserDefinedFunction(
-                timeFormatFunction.class, "TIME_FORMAT", ReturnTypes.CHAR);
+            timeFormatFunction.class, "TIME_FORMAT", ReturnTypes.CHAR);
       case "TIMESTAMP":
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
@@ -329,37 +325,43 @@ public interface BuiltinFunctionUtils {
       case "TIMESTAMPADD":
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
-                timestampAddFunction.class, "TIMESTAMPADD", ReturnTypes.TIMESTAMP);
+            timestampAddFunction.class, "TIMESTAMPADD", ReturnTypes.TIMESTAMP);
       case "TIMESTAMPDIFF":
         return TransferUserDefinedFunction(
-                timestampDiffFunction.class, "TIMESTAMPDIFF", ReturnTypes.BIGINT);
+            timestampDiffFunction.class, "TIMESTAMPDIFF", ReturnTypes.BIGINT);
       case "DATEDIFF":
-        return TransferUserDefinedFunction(
-                DateDiffFunction.class, "DATEDIFF", ReturnTypes.BIGINT);
+        return TransferUserDefinedFunction(DateDiffFunction.class, "DATEDIFF", ReturnTypes.BIGINT);
       case "TO_SECONDS":
         return TransferUserDefinedFunction(
-                toSecondsFunction.class, "TO_SECONDS", ReturnTypes.BIGINT);
+            toSecondsFunction.class, "TO_SECONDS", ReturnTypes.BIGINT);
       case "TO_DAYS":
-        return TransferUserDefinedFunction(
-                toDaysFunction.class, "TO_DAYS", ReturnTypes.BIGINT);
+        return TransferUserDefinedFunction(toDaysFunction.class, "TO_DAYS", ReturnTypes.BIGINT);
       case "SEC_TO_TIME":
         return TransferUserDefinedFunction(
-                secondToTimeFunction.class, "SEC_TO_TIME", ReturnTypes.TIME);
-      case "YEAR", "QUARTER", "MINUTE", "HOUR", "HOUR_OF_DAY", "MONTH", "MONTH_OF_YEAR", "DAY_OF_MONTH", "DAYOFMONTH", "DAY", "MINUTE_OF_HOUR", "SECOND", "SECOND_OF_MINUTE":
+            secondToTimeFunction.class, "SEC_TO_TIME", ReturnTypes.TIME);
+      case "YEAR",
+          "QUARTER",
+          "MINUTE",
+          "HOUR",
+          "HOUR_OF_DAY",
+          "MONTH",
+          "MONTH_OF_YEAR",
+          "DAY_OF_MONTH",
+          "DAYOFMONTH",
+          "DAY",
+          "MINUTE_OF_HOUR",
+          "SECOND",
+          "SECOND_OF_MINUTE":
         return SqlLibraryOperators.DATE_PART;
       case "YEARWEEK":
-        return TransferUserDefinedFunction(
-                YearWeekFunction.class, "YEARWEEK", ReturnTypes.INTEGER);
+        return TransferUserDefinedFunction(YearWeekFunction.class, "YEARWEEK", ReturnTypes.INTEGER);
       case "FROM_UNIXTIME":
         return TransferUserDefinedFunction(
             fromUnixTimestampFunction.class,
             "FROM_UNIXTIME",
             fromUnixTimestampFunction.interReturnTypes());
       case "WEEKDAY":
-        return TransferUserDefinedFunction(
-                WeekDayFunction.class,
-                "WEEKDAY",
-                ReturnTypes.INTEGER);
+        return TransferUserDefinedFunction(WeekDayFunction.class, "WEEKDAY", ReturnTypes.INTEGER);
       case "UTC_TIMESTAMP":
         return TransferUserDefinedFunction(
             UtcTimeStampFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
@@ -472,7 +474,14 @@ public interface BuiltinFunctionUtils {
           LastDateArgs.add(lastDayTimestampExpr);
         }
         return LastDateArgs;
-      case "TIMESTAMP", "TIMEDIFF", "TIME_TO_SEC", "TIME_FORMAT", "YEARWEEK", "WEEKDAY", "TO_SECONDS", "TO_DAYS":
+      case "TIMESTAMP",
+          "TIMEDIFF",
+          "TIME_TO_SEC",
+          "TIME_FORMAT",
+          "YEARWEEK",
+          "WEEKDAY",
+          "TO_SECONDS",
+          "TO_DAYS":
         List<RexNode> timestampArgs = new ArrayList<>(argList);
         timestampArgs.addAll(
             argList.stream()
@@ -481,7 +490,8 @@ public interface BuiltinFunctionUtils {
         return timestampArgs;
       case "TIMESTAMPADD":
         List<RexNode> timestampAddArgs = new ArrayList<>(argList);
-        timestampAddArgs.add(context.rexBuilder.makeFlag(argList.get(2).getType().getSqlTypeName()));
+        timestampAddArgs.add(
+            context.rexBuilder.makeFlag(argList.get(2).getType().getSqlTypeName()));
         return timestampAddArgs;
       case "TIMESTAMPDIFF":
         List<RexNode> timestampDiffArgs = new ArrayList<>();
@@ -498,22 +508,31 @@ public interface BuiltinFunctionUtils {
         periodNameArgs.add(
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return periodNameArgs;
-      case "YEAR", "QUARTER", "MINUTE", "HOUR", "DAY", "MONTH", "SECOND", "SECOND_OF_MINUTE", "MINUTE_OF_HOUR":
+      case "YEAR",
+          "QUARTER",
+          "MINUTE",
+          "HOUR",
+          "DAY",
+          "MONTH",
+          "SECOND",
+          "SECOND_OF_MINUTE",
+          "MINUTE_OF_HOUR":
         List<RexNode> extractArgs = new ArrayList<>();
         TimeUnitRange timeUnitRange;
         if (op.equalsIgnoreCase("MINUTE_OF_HOUR")) {
           timeUnitRange = TimeUnitRange.MINUTE;
-        } else if(op.equalsIgnoreCase("SECOND_OF_MINUTE")) {
+        } else if (op.equalsIgnoreCase("SECOND_OF_MINUTE")) {
           timeUnitRange = TimeUnitRange.SECOND;
-        }
-        else {
+        } else {
           timeUnitRange = TimeUnitRange.valueOf(op);
         }
         extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
         if (argList.getFirst() instanceof RexLiteral) {
           Object stringExpr = ((RexLiteral) argList.getFirst()).getValue();
-          if (! (argList.getFirst().getType().getSqlTypeName() == SqlTypeName.CHAR || argList.getFirst().getType().getSqlTypeName() == SqlTypeName.VARCHAR)){
-            throw new IllegalArgumentException(op + " need first argument string/datetime/time/timestamp");
+          if (!(argList.getFirst().getType().getSqlTypeName() == SqlTypeName.CHAR
+              || argList.getFirst().getType().getSqlTypeName() == SqlTypeName.VARCHAR)) {
+            throw new IllegalArgumentException(
+                op + " need first argument string/datetime/time/timestamp");
           }
           String expression;
           if (stringExpr instanceof NlsString) {
@@ -521,9 +540,11 @@ public interface BuiltinFunctionUtils {
           } else {
             expression = Objects.requireNonNull(stringExpr).toString();
           }
-          extractArgs.add(context.rexBuilder.makeTimestampLiteral(createTimestampString(DateTimeParser.parse(expression)), RelDataType.PRECISION_NOT_SPECIFIED));
-        }
-        else {
+          extractArgs.add(
+              context.rexBuilder.makeTimestampLiteral(
+                  createTimestampString(DateTimeParser.parse(expression)),
+                  RelDataType.PRECISION_NOT_SPECIFIED));
+        } else {
           extractArgs.add(argList.getFirst());
         }
         return extractArgs;
@@ -601,7 +622,8 @@ public interface BuiltinFunctionUtils {
         if (dateExpr instanceof RexLiteral dateLiteral) {
           String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
           datetimeNode =
-              context.rexBuilder.makeTimestampLiteral(createTimestampString(DateTimeParser.parse(dateStringValue)), 6);
+              context.rexBuilder.makeTimestampLiteral(
+                  createTimestampString(DateTimeParser.parse(dateStringValue)), 6);
           datetimeType = context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP);
         } else {
           datetimeNode = dateExpr;
@@ -654,12 +676,13 @@ public interface BuiltinFunctionUtils {
         // Convert timestamp to a string to reuse OS PPL V2's implementation
         RexNode argTimestamp = argList.getFirst();
         if (argTimestamp.getType().getSqlTypeName().equals(SqlTypeName.TIMESTAMP)) {
-          argTimestamp = makeConversionCall("DATE_FORMAT",
+          argTimestamp =
+              makeConversionCall(
+                  "DATE_FORMAT",
                   ImmutableList.of(argTimestamp, context.rexBuilder.makeLiteral("%Y-%m-%d %T")),
                   context);
         }
-        return Stream.concat(Stream.of(argTimestamp), argList.stream().skip(1))
-            .toList();
+        return Stream.concat(Stream.of(argTimestamp), argList.stream().skip(1)).toList();
       default:
         return argList;
     }
@@ -680,7 +703,22 @@ public interface BuiltinFunctionUtils {
       case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
       case "TIMESTAMPADD" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
       case "TIMESTAMPDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-      case  "YEAR", "MINUTE", "HOUR", "HOUR_OF_DAY", "MONTH", "MONTH_OF_YEAR", "DAY_OF_YEAR", "DAYOFYEAR", "DAY_OF_MONTH", "DAYOFMONTH", "DAY_OF_WEEK", "DAYOFWEEK", "DAY", "MINUTE_OF_HOUR", "SECOND", "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+      case "YEAR",
+          "MINUTE",
+          "HOUR",
+          "HOUR_OF_DAY",
+          "MONTH",
+          "MONTH_OF_YEAR",
+          "DAY_OF_YEAR",
+          "DAYOFYEAR",
+          "DAY_OF_MONTH",
+          "DAYOFMONTH",
+          "DAY_OF_WEEK",
+          "DAYOFWEEK",
+          "DAY",
+          "MINUTE_OF_HOUR",
+          "SECOND",
+          "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
       default -> rexBuilder.deriveReturnType(operator, exprs);
     };
   }
@@ -736,25 +774,37 @@ public interface BuiltinFunctionUtils {
     return dateAddArgs;
   }
 
-  private static List<RexNode> transformAddOrSubDateArgs(List<RexNode> argList, ExtendedRexBuilder rexBuilder, Boolean isAdd) {
+  private static List<RexNode> transformAddOrSubDateArgs(
+      List<RexNode> argList, ExtendedRexBuilder rexBuilder, Boolean isAdd) {
     List<RexNode> addOrSubDateArgs = new ArrayList<>();
     addOrSubDateArgs.add(argList.getFirst());
     SqlTypeName addType = argList.get(1).getType().getSqlTypeName();
-    if (addType == SqlTypeName.BIGINT || addType == SqlTypeName.DECIMAL || addType == SqlTypeName.INTEGER) {
-      Number value = ((RexLiteral)argList.get(1)).getValueAs(Number.class);
-      addOrSubDateArgs.add(rexBuilder.makeIntervalLiteral(
-              new BigDecimal(value.toString()), new SqlIntervalQualifier(TimeUnit.DAY, null, SqlParserPos.ZERO)));
+    if (addType == SqlTypeName.BIGINT
+        || addType == SqlTypeName.DECIMAL
+        || addType == SqlTypeName.INTEGER) {
+      Number value = ((RexLiteral) argList.get(1)).getValueAs(Number.class);
+      addOrSubDateArgs.add(
+          rexBuilder.makeIntervalLiteral(
+              new BigDecimal(value.toString()),
+              new SqlIntervalQualifier(TimeUnit.DAY, null, SqlParserPos.ZERO)));
     } else {
       addOrSubDateArgs.add(argList.get(1));
     }
-    List<RexNode> addOrSubDateRealInput = transformDateManipulationArgs(addOrSubDateArgs, rexBuilder);
+    List<RexNode> addOrSubDateRealInput =
+        transformDateManipulationArgs(addOrSubDateArgs, rexBuilder);
     addOrSubDateRealInput.add(rexBuilder.makeLiteral(isAdd));
-    if (argList.getFirst().getType().getSqlTypeName() == SqlTypeName.DATE && (addType == SqlTypeName.BIGINT || addType == SqlTypeName.DECIMAL || addType == SqlTypeName.INTEGER) ) {
+    if (argList.getFirst().getType().getSqlTypeName() == SqlTypeName.DATE
+        && (addType == SqlTypeName.BIGINT
+            || addType == SqlTypeName.DECIMAL
+            || addType == SqlTypeName.INTEGER)) {
       addOrSubDateRealInput.add(rexBuilder.makeFlag(SqlTypeName.DATE));
-      addOrSubDateRealInput.add(rexBuilder.makeLiteral(0, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.DATE)));
+      addOrSubDateRealInput.add(
+          rexBuilder.makeLiteral(0, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.DATE)));
     } else {
       addOrSubDateRealInput.add(rexBuilder.makeFlag(SqlTypeName.TIMESTAMP));
-      addOrSubDateRealInput.add(rexBuilder.makeLiteral(0L, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP)));
+      addOrSubDateRealInput.add(
+          rexBuilder.makeLiteral(
+              0L, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP)));
     }
     return addOrSubDateRealInput;
   }
@@ -776,21 +826,19 @@ public interface BuiltinFunctionUtils {
             dateTime.getHour(),
             dateTime.getMinute(),
             dateTime.getSecond())
-            .withNanos(dateTime.getNano());
+        .withNanos(dateTime.getNano());
   }
 
   /**
-   * Builds a list of RexNodes where each selected argument is followed by
-   * a RexNode representing its SQL type.
+   * Builds a list of RexNodes where each selected argument is followed by a RexNode representing
+   * its SQL type.
    *
    * @param rexBuilder the RexBuilder instance used to create type flags
    * @param args the original list of arguments
-   *
    * @return A new list of RexNodes: [arg, typeFlag, arg, typeFlag, ...]
    */
-  private static List<RexNode> buildArgsWithTypes(RexBuilder rexBuilder,
-                                                  List<RexNode> args,
-                                                  int... indexes) {
+  private static List<RexNode> buildArgsWithTypes(
+      RexBuilder rexBuilder, List<RexNode> args, int... indexes) {
     List<RexNode> result = new ArrayList<>();
     for (int index : indexes) {
       RexNode arg = args.get(index);

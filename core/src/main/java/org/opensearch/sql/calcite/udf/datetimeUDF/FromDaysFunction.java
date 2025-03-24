@@ -5,17 +5,18 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import java.sql.Date;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
-import java.sql.Date;
 
 public class FromDaysFunction implements UserDefinedFunction {
-    @Override
-    public Object eval(Object... args) {
-        Number argDays = (Number) args[0];
-        ExprValue dateExpr = DateTimeFunctions.exprFromDays(new ExprLongValue(argDays.longValue()));
-        return Date.valueOf(dateExpr.dateValue());
-    };
+  @Override
+  public Object eval(Object... args) {
+    Number argDays = (Number) args[0];
+    ExprValue dateExpr = DateTimeFunctions.exprFromDays(new ExprLongValue(argDays.longValue()));
+    return Date.valueOf(dateExpr.dateValue());
+  }
+  ;
 }

@@ -1278,7 +1278,8 @@ public class DateTimeFunctions {
    * @param toTz ExprValue of time zone, representing the time to convert to.
    * @return Timestamp that has been converted to the to_tz timezone.
    */
-  public static ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
+  public static ExprValue exprConvertTZ(
+      ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
       startingDateTime = exprDateTimeNoTimezone(startingDateTime);
     }
@@ -1606,7 +1607,8 @@ public class DateTimeFunctions {
    * @param secondExpr second
    * @return Time - ExprTimeValue object with LocalTime
    */
-  public static ExprValue exprMakeTime(ExprValue hourExpr, ExprValue minuteExpr, ExprValue secondExpr) {
+  public static ExprValue exprMakeTime(
+      ExprValue hourExpr, ExprValue minuteExpr, ExprValue secondExpr) {
     var hour = Math.round(hourExpr.doubleValue());
     var minute = Math.round(minuteExpr.doubleValue());
     var second = secondExpr.doubleValue();
@@ -1615,7 +1617,8 @@ public class DateTimeFunctions {
     }
     return new ExprTimeValue(
         LocalTime.parse(
-            String.format(Locale.US, "%02d:%02d:%012.9f", hour, minute, second), DateTimeFormatter.ISO_TIME));
+            String.format(Locale.US, "%02d:%02d:%012.9f", hour, minute, second),
+            DateTimeFormatter.ISO_TIME));
   }
 
   /**

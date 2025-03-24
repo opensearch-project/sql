@@ -8,9 +8,7 @@ import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 
-/**
- * minute(time) returns the amount of minutes in the day, in the range of 0 to 1439.
- */
+/** minute(time) returns the amount of minutes in the day, in the range of 0 to 1439. */
 public class MinuteOfDay implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {

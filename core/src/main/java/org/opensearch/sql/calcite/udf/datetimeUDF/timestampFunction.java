@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
-
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -33,7 +31,6 @@ public class timestampFunction implements UserDefinedFunction {
       SqlTypeName sqlTypeName = (SqlTypeName) args[2];
       dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName);
     }
-
 
     if (args.length > 2) { // Have something to add
       SqlTypeName addSqlTypeName = (SqlTypeName) args[3];

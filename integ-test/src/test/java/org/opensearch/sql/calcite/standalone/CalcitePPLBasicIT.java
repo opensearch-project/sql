@@ -35,17 +35,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     request3.setJsonEntity("{\"name\": \"HELLO\", \"alias\": \"Hello\"}");
     client().performRequest(request3);
 
-    Request request4 = new Request("PUT", "/test_name_null/_doc/2?refresh=true");
-    request4.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
-    client().performRequest(request4);
-    Request request5 = new Request("PUT", "/test_name_null/_doc/3?refresh=true");
-    request5.setJsonEntity("{\"name\": null, \"age\": 30}");
-    client().performRequest(request5);
-
-    Request request6 = new Request("PUT", "/people/_doc/2?refresh=true");
-    request6.setJsonEntity("{\"name\": \"DummyEntityForMathVerification\", \"age\": 24}");
-    client().performRequest(request6);
-
     loadIndex(Index.BANK);
   }
 
@@ -55,28 +44,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         assertThrows(IllegalStateException.class, () -> execute("source=unknown"));
     verifyErrorMessageContains(
         e, "OpenSearch exception [type=index_not_found_exception, reason=no such index [unknown]]");
-  }
-
-  @Ignore
-  public void testTakeAggregation() {
-    String actual = execute("source=test | stats take(name, 2)");
-    assertEquals(
-        "{\n"
-            + "  \"schema\": [\n"
-            + "    {\n"
-            + "      \"name\": \"take(name, 2)\",\n"
-            + "      \"type\": \"array\"\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"datarows\": [\n"
-            + "    [\n"
-            + "      [\"hello\", \"world\"]\n"
-            + "    ]\n"
-            + "  ],\n"
-            + "  \"total\": 1,\n"
-            + "  \"size\": 1\n"
-            + "}",
-        actual);
   }
 
   @Test

@@ -8,9 +8,7 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
 import static org.opensearch.sql.utils.DateTimeFormatters.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneOffset;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
@@ -31,9 +29,14 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
     SqlTypeName inputTypes = (SqlTypeName) args[1];
     ExprValue inputValue;
     if (inputTypes == SqlTypeName.DATE) {
-      inputValue = new ExprDateValue(LocalDateTime.ofInstant(InstantUtils.fromInternalDate((int) input), ZoneOffset.UTC).toLocalDate());
+      inputValue =
+          new ExprDateValue(
+              LocalDateTime.ofInstant(InstantUtils.fromInternalDate((int) input), ZoneOffset.UTC)
+                  .toLocalDate());
     } else if (inputTypes == SqlTypeName.TIMESTAMP) {
-      inputValue = new ExprTimestampValue(LocalDateTime.ofInstant(InstantUtils.fromEpochMills((long) input), ZoneOffset.UTC));
+      inputValue =
+          new ExprTimestampValue(
+              LocalDateTime.ofInstant(InstantUtils.fromEpochMills((long) input), ZoneOffset.UTC));
     } else {
       inputValue = new ExprLongValue((long) input);
     }
