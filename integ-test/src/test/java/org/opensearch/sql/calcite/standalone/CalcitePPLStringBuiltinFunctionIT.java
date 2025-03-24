@@ -25,14 +25,19 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testAscii() throws IOException {
+    Request request1 =
+            new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/10?refresh=true");
+    request1.setJsonEntity(
+            "{\"name\":\"EeD\",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
+    client().performRequest(request1);
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where ascii(name) = 74 | fields name, age", TEST_INDEX_STATE_COUNTRY));
+                "source=%s | where ascii(name) = 69 | fields name, age", TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
 
-    verifyDataRows(actual, rows("Jane", 20), rows("Jake", 70), rows("John", 25));
+    verifyDataRows(actual, rows("EeD", 27));
   }
 
   @Test
