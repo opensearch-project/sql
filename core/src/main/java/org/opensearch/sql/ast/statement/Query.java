@@ -15,6 +15,7 @@ import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.executor.QueryType;
 
 /** Query Statement. */
 @Getter
@@ -26,6 +27,7 @@ public class Query extends Statement {
 
   protected final UnresolvedPlan plan;
   protected final int fetchSize;
+  private final QueryType queryType;
 
   @Override
   public <R, C> R accept(AbstractNodeVisitor<R, C> visitor, C context) {
