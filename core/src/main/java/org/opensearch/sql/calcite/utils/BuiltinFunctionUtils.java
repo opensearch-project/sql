@@ -497,9 +497,14 @@ public interface BuiltinFunctionUtils {
         periodNameArgs.add(
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return periodNameArgs;
-      case "YEAR", "MINUTE", "HOUR", "DAY", "MONTH", "SECOND":
+      case "YEAR", "MINUTE", "HOUR", "DAY", "MONTH", "SECOND", "MINUTE_OF_HOUR":
         List<RexNode> extractArgs = new ArrayList<>();
-        TimeUnitRange timeUnitRange = TimeUnitRange.valueOf(op);
+        TimeUnitRange timeUnitRange;
+        if (op.equals("MINUTE_OF_HOUR")) {
+          timeUnitRange = TimeUnitRange.MINUTE;
+        } else {
+          timeUnitRange = TimeUnitRange.valueOf(op);
+        }
         extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
         if (argList.getFirst() instanceof RexLiteral) {
           Object stringExpr = ((RexLiteral) argList.getFirst()).getValue();
@@ -676,7 +681,7 @@ public interface BuiltinFunctionUtils {
       case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
       case "TIMESTAMPADD" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
       case "TIMESTAMPDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-      case "YEAR" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+      case  "YEAR", "MINUTE", "HOUR", "HOUR_OF_DAY", "MONTH", "MONTH_OF_YEAR", "DAY_OF_YEAR", "DAYOFYEAR", "DAY_OF_MONTH", "DAYOFMONTH", "DAY_OF_WEEK", "DAYOFWEEK", "DAY", "MINUTE_OF_HOUR", "SECOND", "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
       default -> rexBuilder.deriveReturnType(operator, exprs);
     };
   }
