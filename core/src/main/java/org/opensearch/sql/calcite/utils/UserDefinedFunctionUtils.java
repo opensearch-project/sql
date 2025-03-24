@@ -136,13 +136,13 @@ public class UserDefinedFunctionUtils {
   }
 
   /**
-   * For some udf/udaf, We need to create nullable types
-   * arguments.
+   * For some udf/udaf, We need to create nullable types arguments.
    *
    * @param typeName
    * @return a inference function
    */
-  public static SqlReturnTypeInference getNullableReturnTypeInferenceForFixedType(SqlTypeName typeName) {
+  public static SqlReturnTypeInference getNullableReturnTypeInferenceForFixedType(
+      SqlTypeName typeName) {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
@@ -152,10 +152,7 @@ public class UserDefinedFunctionUtils {
       if (argTypes.isEmpty()) {
         throw new IllegalArgumentException("Function requires at least one argument.");
       }
-      return typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(typeName), true);
+      return typeFactory.createTypeWithNullability(typeFactory.createSqlType(typeName), true);
     };
   }
-
-
 }
