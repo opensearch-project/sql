@@ -17,6 +17,7 @@ import org.junit.Assert;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /** OpenSearch Rest integration test base for PPL testing. */
@@ -50,6 +51,14 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String executeCsvQuery(String query) throws IOException {
     return executeCsvQuery(query, true);
+  }
+
+  protected void failWithMessage(String query, String message) {
+    try {
+      client().performRequest(buildRequest(query, QUERY_API_ENDPOINT));
+    } catch (IOException e) {
+      Assert.assertTrue(e.getMessage().contains(message));
+    }
   }
 
   protected Request buildRequest(String query, String endpoint) {
@@ -95,11 +104,42 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     }
   }
 
-  private JSONObject jsonify(String text) {
+  protected JSONObject jsonify(String text) {
     try {
       return new JSONObject(text);
     } catch (JSONException e) {
       throw new IllegalStateException(String.format("Failed to transform %s to JSON format", text));
     }
+  }
+
+  protected boolean isCalciteEnabled() throws IOException {
+    return Boolean.parseBoolean(
+        getClusterSetting(Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "persistent"));
+  }
+
+  public static void enableCalcite() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "true"));
+  }
+
+  public static void disableCalcite() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
+  }
+
+  public static void allowCalciteFallback() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "true"));
+    System.out.println(Settings.Key.CALCITE_FALLBACK_ALLOWED.name() + " enabled");
+  }
+
+  public static void disallowCalciteFallback() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
+    System.out.println(Settings.Key.CALCITE_FALLBACK_ALLOWED.name() + " disabled");
   }
 }

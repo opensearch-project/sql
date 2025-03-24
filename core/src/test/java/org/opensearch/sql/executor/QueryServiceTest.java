@@ -45,6 +45,8 @@ class QueryServiceTest {
 
   @Mock private UnresolvedPlan ast;
 
+  @Mock private QueryType queryType;
+
   @Mock private LogicalPlan logicalPlan;
 
   @Mock private PhysicalPlan plan;
@@ -118,7 +120,7 @@ class QueryServiceTest {
                 return null;
               })
           .when(executionEngine)
-          .execute(any(), any(), any());
+          .execute(any(PhysicalPlan.class), any(), any());
       lenient().when(planContext.getSplit()).thenReturn(this.split);
 
       return this;
@@ -133,7 +135,7 @@ class QueryServiceTest {
     Helper executeFail() {
       doThrow(new IllegalStateException("illegal state exception"))
           .when(executionEngine)
-          .execute(any(), any(), any());
+          .execute(any(PhysicalPlan.class), any(), any());
 
       return this;
     }
@@ -177,7 +179,7 @@ class QueryServiceTest {
           };
       split.ifPresentOrElse(
           split -> queryService.executePlan(logicalPlan, planContext, responseListener),
-          () -> queryService.execute(ast, responseListener));
+          () -> queryService.execute(ast, queryType, responseListener));
     }
 
     void handledByOnFailure() {
@@ -195,12 +197,13 @@ class QueryServiceTest {
           };
       split.ifPresentOrElse(
           split -> queryService.executePlan(logicalPlan, planContext, responseListener),
-          () -> queryService.execute(ast, responseListener));
+          () -> queryService.execute(ast, queryType, responseListener));
     }
 
     void handledByExplainOnResponse() {
       queryService.explain(
           ast,
+          queryType,
           new ResponseListener<>() {
             @Override
             public void onResponse(ExecutionEngine.ExplainResponse pplQueryResponse) {
@@ -217,6 +220,7 @@ class QueryServiceTest {
     void handledByExplainOnFailure() {
       queryService.explain(
           ast,
+          queryType,
           new ResponseListener<>() {
             @Override
             public void onResponse(ExecutionEngine.ExplainResponse pplQueryResponse) {

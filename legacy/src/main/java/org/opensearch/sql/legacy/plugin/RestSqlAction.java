@@ -251,8 +251,7 @@ public class RestSqlAction extends BaseRestHandler {
       channel.sendResponse(new BytesRestResponse(OK, "application/json; charset=UTF-8", result));
     } else {
       RestExecutor restExecutor =
-          ActionRequestRestExecutorFactory.createExecutor(
-              SqlRequestParam.getFormat(params), queryAction);
+          ActionRequestRestExecutorFactory.createExecutor(SqlRequestParam.getFormat(params));
       // doing this hack because OpenSearch throws exception for un-consumed props
       Map<String, String> additionalParams = new HashMap<>();
       for (String paramName : responseParams()) {

@@ -8,8 +8,10 @@ package org.opensearch.sql.ppl.utils;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -18,17 +20,24 @@ import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
@@ -38,11 +47,14 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -64,7 +76,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
 
   public PPLQueryDataAnonymizer() {
-    this.expressionAnalyzer = new AnonymizerExpressionAnalyzer();
+    this.expressionAnalyzer = new AnonymizerExpressionAnalyzer(this);
   }
 
   /**
@@ -94,7 +106,59 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitRelation(Relation node, String context) {
-    return StringUtils.format("source=%s", node.getTableName());
+    return StringUtils.format("source=%s", node.getTableQualifiedName().toString());
+  }
+
+  @Override
+  public String visitJoin(Join node, String context) {
+    String left = node.getLeft().accept(this, context);
+    String rightTableOrSubquery = node.getRight().accept(this, context);
+    String right =
+        rightTableOrSubquery.startsWith("source=")
+            ? rightTableOrSubquery.substring("source=".length())
+            : rightTableOrSubquery;
+    String joinType = node.getJoinType().name().toLowerCase(Locale.ROOT);
+    String leftAlias = node.getLeftAlias().map(l -> " left = " + l).orElse("");
+    String rightAlias = node.getRightAlias().map(r -> " right = " + r).orElse("");
+    String condition =
+        node.getJoinCondition().map(c -> expressionAnalyzer.analyze(c, context)).orElse("true");
+    return StringUtils.format(
+        "%s | %s join%s%s on %s %s", left, joinType, leftAlias, rightAlias, condition, right);
+  }
+
+  @Override
+  public String visitLookup(Lookup node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String lookupTable = ((Relation) node.getLookupRelation()).getTableQualifiedName().toString();
+    String mappingFields = formatFieldAlias(node.getMappingAliasMap());
+    String strategy =
+        node.getOutputAliasMap().isEmpty()
+            ? ""
+            : String.format(" %s ", node.getOutputStrategy().toString().toLowerCase());
+    String outputFields = formatFieldAlias(node.getOutputAliasMap());
+    return StringUtils.format(
+        "%s | lookup %s %s%s%s", child, lookupTable, mappingFields, strategy, outputFields);
+  }
+
+  private String formatFieldAlias(java.util.Map<String, String> fieldMap) {
+    return fieldMap.entrySet().stream()
+        .map(
+            entry ->
+                Objects.equals(entry.getKey(), entry.getValue())
+                    ? entry.getKey()
+                    : StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
+        .collect(Collectors.joining(", "));
+  }
+
+  @Override
+  public String visitSubqueryAlias(SubqueryAlias node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    if (node.getChild().get(0).getChild().isEmpty()) {
+      return StringUtils.format("%s as %s", child, node.getAlias());
+    } else {
+      // add "[]" only if its child is not a root
+      return StringUtils.format("[ %s ] as %s", child, node.getAlias());
+    }
   }
 
   @Override
@@ -136,7 +200,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitAggregation(Aggregation node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    final String group = visitExpressionList(node.getGroupExprList());
+    UnresolvedExpression span = node.getSpan();
+    List<UnresolvedExpression> groupByExprList = new ArrayList<>();
+    if (!Objects.isNull(span)) {
+      groupByExprList.add(span);
+    }
+    groupByExprList.addAll(node.getGroupExprList());
+    final String group = visitExpressionList(groupByExprList);
     return StringUtils.format(
         "%s | stats %s",
         child, String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
@@ -282,6 +352,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   /** Expression Anonymizer. */
   private static class AnonymizerExpressionAnalyzer extends AbstractNodeVisitor<String, String> {
+    private final PPLQueryDataAnonymizer queryAnonymizer;
+
+    public AnonymizerExpressionAnalyzer(PPLQueryDataAnonymizer queryAnonymizer) {
+      this.queryAnonymizer = queryAnonymizer;
+    }
 
     public String analyze(UnresolvedExpression unresolved, String context) {
       return unresolved.accept(this, context);
@@ -333,6 +408,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
 
     @Override
+    public String visitSpan(Span node, String context) {
+      String field = analyze(node.getField(), context);
+      String value = analyze(node.getValue(), context);
+      return StringUtils.format("span(%s, %s %s)", field, value, node.getUnit().getName());
+    }
+
+    @Override
     public String visitFunction(Function node, String context) {
       String arguments =
           node.getFuncArgs().stream()
@@ -346,6 +428,20 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       String left = analyze(node.getLeft(), context);
       String right = analyze(node.getRight(), context);
       return StringUtils.format("%s %s %s", left, node.getOperator(), right);
+    }
+
+    @Override
+    public String visitBetween(Between node, String context) {
+      String value = analyze(node.getValue(), context);
+      String left = analyze(node.getLowerBound(), context);
+      String right = analyze(node.getUpperBound(), context);
+      return StringUtils.format("%s between %s and %s", value, left, right);
+    }
+
+    @Override
+    public String visitIn(In node, String context) {
+      String field = analyze(node.getField(), context);
+      return StringUtils.format("%s in (%s)", field, MASK_LITERAL);
     }
 
     @Override
@@ -366,6 +462,32 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       final String computationType = node.getComputationType().name().toLowerCase(Locale.ROOT);
       return StringUtils.format(
           "%s(%d, %s)%s", computationType, node.getNumberOfDataPoints(), dataField, aliasClause);
+    }
+
+    @Override
+    public String visitInSubquery(InSubquery node, String context) {
+      String nodes =
+          node.getChild().stream().map(c -> analyze(c, context)).collect(Collectors.joining(","));
+      String subquery = queryAnonymizer.anonymizeData(node.getQuery());
+      return StringUtils.format("(%s) in [ %s ]", nodes, subquery);
+    }
+
+    @Override
+    public String visitScalarSubquery(ScalarSubquery node, String context) {
+      String subquery = queryAnonymizer.anonymizeData(node.getQuery());
+      return StringUtils.format("[ %s ]", subquery);
+    }
+
+    @Override
+    public String visitExistsSubquery(ExistsSubquery node, String context) {
+      String subquery = queryAnonymizer.anonymizeData(node.getQuery());
+      return StringUtils.format("exists [ %s ]", subquery);
+    }
+
+    @Override
+    public String visitCast(Cast node, String context) {
+      String expr = analyze(node.getExpression(), context);
+      return StringUtils.format("cast(%s as %s)", expr, node.getConvertedType().toString());
     }
   }
 }

@@ -85,9 +85,6 @@ class OpenSearchRequestBuilderTest {
   @BeforeEach
   void setup() {
     requestBuilder = new OpenSearchRequestBuilder(DEFAULT_LIMIT, exprValueFactory, settings);
-    lenient()
-        .when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER))
-        .thenReturn(true);
     lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(false);
   }
 
@@ -124,7 +121,6 @@ class OpenSearchRequestBuilderTest {
 
   @Test
   void build_PIT_request_with_correct_size() {
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
     when(client.createPit(any(CreatePitRequest.class))).thenReturn("samplePITId");
     Integer limit = 0;
     Integer offset = 0;
@@ -144,7 +140,6 @@ class OpenSearchRequestBuilderTest {
 
   @Test
   void buildRequestWithPit_pageSizeNull_sizeGreaterThanMaxResultWindow() {
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
     when(client.createPit(any(CreatePitRequest.class))).thenReturn("samplePITId");
     Integer limit = 600;
     Integer offset = 0;
@@ -168,7 +163,6 @@ class OpenSearchRequestBuilderTest {
 
   @Test
   void buildRequestWithPit_pageSizeNull_sizeLessThanMaxResultWindow() {
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
     Integer limit = 400;
     Integer offset = 0;
     int requestedTotalSize = 400;
@@ -209,107 +203,6 @@ class OpenSearchRequestBuilderTest {
 
   @Test
   void buildRequestWithPit_pageSizeNotNull_startFromNonZero() {
-    int pageSize = 200;
-    int offset = 100;
-    int limit = 400;
-    requestBuilder.pushDownPageSize(pageSize);
-    requestBuilder.pushDownLimit(limit, offset);
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> {
-          requestBuilder.build(indexName, 500, TimeValue.timeValueMinutes(1), client);
-        });
-  }
-
-  @Test
-  void build_scroll_request_with_correct_size() {
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(false);
-    Integer limit = 800;
-    Integer offset = 10;
-    requestBuilder.pushDownLimit(limit, offset);
-    requestBuilder.getSourceBuilder().fetchSource("a", "b");
-
-    assertEquals(
-        new OpenSearchScrollRequest(
-            new OpenSearchRequest.IndexName("test"),
-            TimeValue.timeValueMinutes(1),
-            new SearchSourceBuilder()
-                .from(offset)
-                .size(MAX_RESULT_WINDOW - offset)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
-            exprValueFactory,
-            List.of()),
-        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT, client));
-  }
-
-  @Test
-  void buildRequestWithScroll_pageSizeNull_sizeGreaterThanMaxResultWindow() {
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(false);
-    Integer limit = 600;
-    Integer offset = 0;
-    int requestedTotalSize = 600;
-    requestBuilder = new OpenSearchRequestBuilder(requestedTotalSize, exprValueFactory, settings);
-    requestBuilder.pushDownLimit(limit, offset);
-
-    assertEquals(
-        new OpenSearchScrollRequest(
-            new OpenSearchRequest.IndexName("test"),
-            TimeValue.timeValueMinutes(1),
-            new SearchSourceBuilder()
-                .from(offset)
-                .size(MAX_RESULT_WINDOW - offset)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
-            exprValueFactory,
-            List.of()),
-        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT, client));
-  }
-
-  @Test
-  void buildRequestWithScroll_pageSizeNull_sizeLessThanMaxResultWindow() {
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(false);
-    Integer limit = 400;
-    Integer offset = 0;
-    int requestedTotalSize = 400;
-    requestBuilder = new OpenSearchRequestBuilder(requestedTotalSize, exprValueFactory, settings);
-    requestBuilder.pushDownLimit(limit, offset);
-
-    assertEquals(
-        new OpenSearchQueryRequest(
-            new OpenSearchRequest.IndexName("test"),
-            new SearchSourceBuilder()
-                .from(offset)
-                .size(requestedTotalSize)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
-            exprValueFactory,
-            List.of()),
-        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT, client));
-  }
-
-  @Test
-  void buildRequestWithScroll_pageSizeNotNull_startFromZero() {
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(false);
-    int pageSize = 200;
-    int offset = 0;
-    int limit = 400;
-    requestBuilder.pushDownPageSize(pageSize);
-    requestBuilder.pushDownLimit(limit, offset);
-
-    assertEquals(
-        new OpenSearchScrollRequest(
-            new OpenSearchRequest.IndexName("test"),
-            TimeValue.timeValueMinutes(1),
-            new SearchSourceBuilder()
-                .from(offset)
-                .size(MAX_RESULT_WINDOW - offset)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
-            exprValueFactory,
-            List.of()),
-        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT, client));
-  }
-
-  @Test
-  void buildRequestWithScroll_pageSizeNotNull_startFromNonZero() {
-    when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(false);
     int pageSize = 200;
     int offset = 100;
     int limit = 400;
@@ -607,8 +500,7 @@ class OpenSearchRequestBuilderTest {
                 "path", new ReferenceExpression("message", STRING)));
 
     List<NamedExpression> projectList =
-        List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
+        List.of(new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING))));
 
     LogicalNested nested = new LogicalNested(null, args, projectList);
     requestBuilder.pushDownNested(nested.getFields());
@@ -670,8 +562,8 @@ class OpenSearchRequestBuilderTest {
                 "path", new ReferenceExpression("message", STRING)));
     List<NamedExpression> projectList =
         List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null),
-            new NamedExpression("message.from", DSL.nested(DSL.ref("message.from", STRING)), null));
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING))),
+            new NamedExpression("message.from", DSL.nested(DSL.ref("message.from", STRING))));
 
     LogicalNested nested = new LogicalNested(null, args, projectList);
     requestBuilder.pushDownNested(nested.getFields());
@@ -701,8 +593,7 @@ class OpenSearchRequestBuilderTest {
                 "path", new ReferenceExpression("message", STRING)));
 
     List<NamedExpression> projectList =
-        List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
+        List.of(new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING))));
 
     LogicalNested nested = new LogicalNested(null, args, projectList);
     requestBuilder.getSourceBuilder().query(QueryBuilders.rangeQuery("myNum").gt(3));
@@ -738,8 +629,7 @@ class OpenSearchRequestBuilderTest {
                 "path", new ReferenceExpression("message", STRING)));
 
     List<NamedExpression> projectList =
-        List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
+        List.of(new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING))));
 
     QueryBuilder innerFilterQuery = QueryBuilders.rangeQuery("myNum").gt(3);
     QueryBuilder filterQuery =

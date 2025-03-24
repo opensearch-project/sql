@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
@@ -157,6 +158,9 @@ public class ConditionalIT extends SQLIntegTestCase {
     assertEquals("boolean", response.query("/schema/0/type"));
   }
 
+  @Ignore(
+      "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
+          + " response for now. Need to decide what to do with these test cases.")
   @Test
   public void isnullWithNotNullInputTest() throws IOException {
     assertThat(
@@ -188,6 +192,9 @@ public class ConditionalIT extends SQLIntegTestCase {
         rows(LITERAL_TRUE.value(), LITERAL_FALSE.value()));
   }
 
+  @Ignore(
+      "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
+          + " response for now. Need to decide what to do with these test cases.")
   @Test
   public void isnullWithMathExpr() throws IOException {
     assertThat(

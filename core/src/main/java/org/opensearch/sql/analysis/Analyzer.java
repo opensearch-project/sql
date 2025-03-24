@@ -65,6 +65,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -146,6 +147,27 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitSubqueryAlias(SubqueryAlias node, AnalysisContext context) {
+    LogicalPlan child = analyze(node.getChild().get(0), context);
+    if (child instanceof LogicalRelation) {
+      // Put index name or its alias in index namespace on type environment so qualifier
+      // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
+      TypeEnvironment curEnv = context.peek();
+      curEnv.define(
+          new Symbol(
+              Namespace.INDEX_NAME,
+              (node.getAlias() == null)
+                  ? ((LogicalRelation) child).getRelationName()
+                  : node.getAlias()),
+          STRUCT);
+      return child;
+    } else {
+      // TODO
+      throw new UnsupportedOperationException("SubqueryAlias is only supported in table alias");
+    }
+  }
+
+  @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getTableQualifiedName();
     DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver =
@@ -171,12 +193,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     table
         .getReservedFieldTypes()
         .forEach((k, v) -> curEnv.define(new Symbol(Namespace.HIDDEN_FIELD_NAME, k), v));
-
-    // Put index name or its alias in index namespace on type environment so qualifier
-    // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
-    curEnv.define(
-        new Symbol(Namespace.INDEX_NAME, (node.getAlias() == null) ? tableName : node.getAlias()),
-        STRUCT);
 
     return new LogicalRelation(tableName, table);
   }

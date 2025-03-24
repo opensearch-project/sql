@@ -6,6 +6,9 @@
 package org.opensearch.sql.data.model;
 
 import inet.ipaddr.IPAddress;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -122,22 +125,34 @@ public class ExprValueUtils {
       return longValue(((Long) o));
     } else if (o instanceof Boolean) {
       return booleanValue((Boolean) o);
-    } else if (o instanceof Double) {
-      return doubleValue((Double) o);
+    } else if (o instanceof Double d) {
+      if (Double.isNaN(d)) {
+        return LITERAL_NULL;
+      }
+      return doubleValue(d);
     } else if (o instanceof String) {
       return stringValue((String) o);
-    } else if (o instanceof Float) {
-      return floatValue((Float) o);
+    } else if (o instanceof Float f) {
+      if (Float.isNaN(f)) {
+        return LITERAL_NULL;
+      }
+      return floatValue(f);
+    } else if (o instanceof Date) {
+      return dateValue(((Date) o).toLocalDate());
     } else if (o instanceof LocalDate) {
       return dateValue((LocalDate) o);
+    } else if (o instanceof Time) {
+      return timeValue(((Time) o).toLocalTime());
     } else if (o instanceof LocalTime) {
       return timeValue((LocalTime) o);
     } else if (o instanceof Instant) {
       return timestampValue((Instant) o);
-    } else if (o instanceof TemporalAmount) {
-      return intervalValue((TemporalAmount) o);
+    } else if (o instanceof Timestamp) {
+      return timestampValue(((Timestamp) o).toInstant());
     } else if (o instanceof LocalDateTime) {
       return timestampValue(((LocalDateTime) o).toInstant(ZoneOffset.UTC));
+    } else if (o instanceof TemporalAmount) {
+      return intervalValue((TemporalAmount) o);
     } else {
       throw new ExpressionEvaluationException("unsupported object " + o.getClass());
     }

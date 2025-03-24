@@ -162,7 +162,7 @@ dependencies {
     api project(':datasources')
     api project(':async-query')
 
-    testImplementation group: 'net.bytebuddy', name: 'byte-buddy-agent', version: '1.14.9'
+    testImplementation group: 'net.bytebuddy', name: 'byte-buddy-agent', version: '1.14.19'
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${versions.mockito}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${versions.mockito}"

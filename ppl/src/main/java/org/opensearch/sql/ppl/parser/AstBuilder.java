@@ -5,15 +5,15 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFilterFromContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromContext;
@@ -22,7 +22,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
@@ -31,17 +30,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
@@ -55,11 +55,14 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
@@ -68,6 +71,7 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -80,11 +84,11 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldListContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.KmeansCommandContext;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
-@RequiredArgsConstructor
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   private final AstExpressionBuilder expressionBuilder;
@@ -97,10 +101,26 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   private final String query;
 
+  public AstBuilder(String query) {
+    this(query, null);
+  }
+
+  public AstBuilder(String query, Settings settings) {
+    this.expressionBuilder = new AstExpressionBuilder(this);
+    this.query = query;
+    this.settings = settings;
+  }
+
   @Override
   public UnresolvedPlan visitQueryStatement(OpenSearchPPLParser.QueryStatementContext ctx) {
     UnresolvedPlan pplCommand = visit(ctx.pplCommands());
     return ctx.commands().stream().map(this::visit).reduce(pplCommand, (r, e) -> e.attach(r));
+  }
+
+  @Override
+  public UnresolvedPlan visitSubSearch(OpenSearchPPLParser.SubSearchContext ctx) {
+    UnresolvedPlan searchCommand = visit(ctx.searchCommand());
+    return ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r));
   }
 
   /** Search command. */
@@ -134,20 +154,104 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     QualifiedName tableQualifiedName = table.getTableQualifiedName();
     ArrayList<String> parts = new ArrayList<>(tableQualifiedName.getParts());
     parts.set(parts.size() - 1, mappingTable(parts.get(parts.size() - 1), PPL_SPEC));
-    return new Relation(new QualifiedName(parts));
+    return new DescribeRelation(new QualifiedName(parts));
   }
 
   /** Show command. */
   @Override
   public UnresolvedPlan visitShowDataSourcesCommand(
       OpenSearchPPLParser.ShowDataSourcesCommandContext ctx) {
-    return new Relation(qualifiedName(DATASOURCES_TABLE_NAME));
+    return new DescribeRelation(qualifiedName(DATASOURCES_TABLE_NAME));
   }
 
   /** Where command. */
   @Override
   public UnresolvedPlan visitWhereCommand(WhereCommandContext ctx) {
     return new Filter(internalVisitExpression(ctx.logicalExpression()));
+  }
+
+  @Override
+  public UnresolvedPlan visitJoinCommand(OpenSearchPPLParser.JoinCommandContext ctx) {
+    Join.JoinType joinType = getJoinType(ctx.joinType());
+    if (ctx.joinCriteria() == null) {
+      joinType = Join.JoinType.CROSS;
+    }
+    Join.JoinHint joinHint = getJoinHint(ctx.joinHintList());
+    Optional<String> leftAlias =
+        ctx.sideAlias().leftAlias != null
+            ? Optional.of(internalVisitExpression(ctx.sideAlias().leftAlias).toString())
+            : Optional.empty();
+    Optional<String> rightAlias = Optional.empty();
+    if (ctx.tableOrSubqueryClause().alias != null) {
+      rightAlias =
+          Optional.of(internalVisitExpression(ctx.tableOrSubqueryClause().alias).toString());
+    }
+    if (ctx.sideAlias().rightAlias != null) {
+      rightAlias = Optional.of(internalVisitExpression(ctx.sideAlias().rightAlias).toString());
+    }
+
+    UnresolvedPlan rightRelation = visit(ctx.tableOrSubqueryClause());
+    // Add a SubqueryAlias to the right plan when the right alias is present and no duplicated alias
+    // existing in right.
+    UnresolvedPlan right;
+    if (rightAlias.isEmpty()
+        || (rightRelation instanceof SubqueryAlias
+            && rightAlias.get().equals(((SubqueryAlias) rightRelation).getAlias()))) {
+      right = rightRelation;
+    } else {
+      right = new SubqueryAlias(rightAlias.get(), rightRelation);
+    }
+    Optional<UnresolvedExpression> joinCondition =
+        ctx.joinCriteria() == null
+            ? Optional.empty()
+            : Optional.of(expressionBuilder.visitJoinCriteria(ctx.joinCriteria()));
+
+    return new Join(right, leftAlias, rightAlias, joinType, joinCondition, joinHint);
+  }
+
+  private Join.JoinHint getJoinHint(OpenSearchPPLParser.JoinHintListContext ctx) {
+    Join.JoinHint joinHint;
+    if (ctx == null) {
+      joinHint = new Join.JoinHint();
+    } else {
+      joinHint =
+          new Join.JoinHint(
+              ctx.hintPair().stream()
+                  .map(expressionBuilder::visit)
+                  .filter(e -> e instanceof EqualTo)
+                  .map(e -> (EqualTo) e)
+                  .collect(
+                      Collectors.toMap(
+                          k -> k.getLeft().toString(), // always literal
+                          v -> v.getRight().toString(), // always literal
+                          (v1, v2) -> v2,
+                          LinkedHashMap::new)));
+    }
+    return joinHint;
+  }
+
+  private Join.JoinType getJoinType(OpenSearchPPLParser.JoinTypeContext ctx) {
+    Join.JoinType joinType;
+    if (ctx == null) {
+      joinType = Join.JoinType.INNER;
+    } else if (ctx.INNER() != null) {
+      joinType = Join.JoinType.INNER;
+    } else if (ctx.SEMI() != null) {
+      joinType = Join.JoinType.SEMI;
+    } else if (ctx.ANTI() != null) {
+      joinType = Join.JoinType.ANTI;
+    } else if (ctx.LEFT() != null) {
+      joinType = Join.JoinType.LEFT;
+    } else if (ctx.RIGHT() != null) {
+      joinType = Join.JoinType.RIGHT;
+    } else if (ctx.CROSS() != null) {
+      joinType = Join.JoinType.CROSS;
+    } else if (ctx.FULL() != null) {
+      joinType = Join.JoinType.FULL;
+    } else {
+      joinType = Join.JoinType.INNER;
+    }
+    return joinType;
   }
 
   /** Fields command. */
@@ -200,7 +304,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                                         StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
                                         internalVisitExpression(groupCtx)))
                         .collect(Collectors.toList()))
-            .orElse(Collections.emptyList());
+            .orElse(emptyList());
 
     UnresolvedExpression span =
         Optional.ofNullable(ctx.statsByClause())
@@ -264,11 +368,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /** Rare command. */
   @Override
-  public UnresolvedPlan visitRareCommand(RareCommandContext ctx) {
+  public UnresolvedPlan visitRareCommand(OpenSearchPPLParser.RareCommandContext ctx) {
     List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
+        ctx.byClause() == null ? emptyList() : getGroupByList(ctx.byClause());
     return new RareTopN(
         CommandType.RARE,
+        ArgumentFactory.getArgumentList(ctx),
+        getFieldList(ctx.fieldList()),
+        groupList);
+  }
+
+  /** Top command. */
+  @Override
+  public UnresolvedPlan visitTopCommand(OpenSearchPPLParser.TopCommandContext ctx) {
+    List<UnresolvedExpression> groupList =
+        ctx.byClause() == null ? emptyList() : getGroupByList(ctx.byClause());
+    return new RareTopN(
+        CommandType.TOP,
         ArgumentFactory.getArgumentList(ctx),
         getFieldList(ctx.fieldList()),
         groupList);
@@ -324,23 +440,41 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             alias.get()));
   }
 
-  /** Top command. */
+  /** Lookup command */
   @Override
-  public UnresolvedPlan visitTopCommand(TopCommandContext ctx) {
-    List<UnresolvedExpression> groupList =
-        ctx.byClause() == null ? Collections.emptyList() : getGroupByList(ctx.byClause());
-    return new RareTopN(
-        CommandType.TOP,
-        ArgumentFactory.getArgumentList(ctx),
-        getFieldList(ctx.fieldList()),
-        groupList);
+  public UnresolvedPlan visitLookupCommand(OpenSearchPPLParser.LookupCommandContext ctx) {
+    Relation lookupRelation =
+        new Relation(Collections.singletonList(this.internalVisitExpression(ctx.tableSource())));
+    Lookup.OutputStrategy strategy =
+        ctx.APPEND() != null ? Lookup.OutputStrategy.APPEND : Lookup.OutputStrategy.REPLACE;
+    java.util.Map<String, String> mappingAliasMap =
+        buildFieldAliasMap(ctx.lookupMappingList().lookupPair());
+    java.util.Map<String, String> outputAliasMap =
+        ctx.outputCandidateList() == null
+            ? emptyMap()
+            : buildFieldAliasMap(ctx.outputCandidateList().lookupPair());
+    return new Lookup(lookupRelation, mappingAliasMap, strategy, outputAliasMap);
   }
 
-  /** From clause. */
+  private java.util.Map<String, String> buildFieldAliasMap(
+      List<LookupPairContext> lookupPairContext) {
+    return lookupPairContext.stream()
+        .collect(
+            Collectors.toMap(
+                pair -> pair.inputField.getText(),
+                pair -> pair.AS() != null ? pair.outputField.getText() : pair.inputField.getText(),
+                (x, y) -> y,
+                LinkedHashMap::new));
+  }
+
   @Override
-  public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
-    if (ctx.tableFunction() != null) {
-      return visitTableFunction(ctx.tableFunction());
+  public UnresolvedPlan visitTableOrSubqueryClause(
+      OpenSearchPPLParser.TableOrSubqueryClauseContext ctx) {
+    if (ctx.subSearch() != null) {
+      return ctx.alias != null
+          ? new SubqueryAlias(
+              internalVisitExpression(ctx.alias).toString(), visitSubSearch(ctx.subSearch()))
+          : visitSubSearch(ctx.subSearch());
     } else {
       return visitTableSourceClause(ctx.tableSourceClause());
     }
@@ -348,8 +482,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitTableSourceClause(TableSourceClauseContext ctx) {
-    return new Relation(
-        ctx.tableSource().stream().map(this::internalVisitExpression).collect(Collectors.toList()));
+    Relation relation =
+        new Relation(
+            ctx.tableSource().stream()
+                .map(this::internalVisitExpression)
+                .collect(Collectors.toList()));
+    return ctx.alias != null
+        ? new SubqueryAlias(internalVisitExpression(ctx.alias).toString(), relation)
+        : relation;
   }
 
   @Override

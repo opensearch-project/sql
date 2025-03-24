@@ -22,12 +22,15 @@ public abstract class Settings {
     SQL_ENABLED("plugins.sql.enabled"),
     SQL_SLOWLOG("plugins.sql.slowlog"),
     SQL_CURSOR_KEEP_ALIVE("plugins.sql.cursor.keep_alive"),
-    SQL_DELETE_ENABLED("plugins.sql.delete.enabled"),
-    SQL_PAGINATION_API_SEARCH_AFTER("plugins.sql.pagination.api"),
 
     /** PPL Settings. */
     PPL_ENABLED("plugins.ppl.enabled"),
     DEFAULT_PATTERN_METHOD("plugins.ppl.default.pattern.method"),
+
+    /** Enable Calcite as execution engine */
+    CALCITE_ENGINE_ENABLED("plugins.calcite.enabled"),
+    CALCITE_FALLBACK_ALLOWED("plugins.calcite.fallback.allowed"),
+    CALCITE_PUSHDOWN_ENABLED("plugins.calcite.pushdown.enabled"),
 
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),

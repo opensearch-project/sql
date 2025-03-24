@@ -11,6 +11,7 @@ package org.opensearch.sql.executor.execution;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
+import org.opensearch.sql.executor.QueryType;
 
 /** Explain plan. */
 public class ExplainPlan extends AbstractPlan {
@@ -22,9 +23,10 @@ public class ExplainPlan extends AbstractPlan {
   /** Constructor. */
   public ExplainPlan(
       QueryId queryId,
+      QueryType queryType,
       AbstractPlan plan,
       ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
-    super(queryId);
+    super(queryId, queryType);
     this.plan = plan;
     this.explainListener = explainListener;
   }

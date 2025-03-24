@@ -51,6 +51,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
@@ -65,6 +66,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -93,7 +95,15 @@ public class AstDSL {
   }
 
   public UnresolvedPlan relation(String tableName, String alias) {
-    return new Relation(qualifiedName(tableName), alias);
+    return new SubqueryAlias(alias, new Relation(qualifiedName(tableName)));
+  }
+
+  public UnresolvedPlan describe(String tableName) {
+    return new DescribeRelation(qualifiedName(tableName));
+  }
+
+  public UnresolvedPlan subqueryAlias(UnresolvedPlan child, String alias) {
+    return new SubqueryAlias(child, alias);
   }
 
   public UnresolvedPlan tableFunction(List<String> functionName, UnresolvedExpression... args) {
@@ -389,6 +399,7 @@ public class AstDSL {
     return new Alias(name, expr);
   }
 
+  @Deprecated
   public Alias alias(String name, UnresolvedExpression expr, String alias) {
     return new Alias(name, expr, alias);
   }

@@ -1,0 +1,18 @@
+{
+  "mappings": {
+    "properties": {
+      "uid": {
+        "type": "integer"
+      },
+      "name": {
+        "type": "keyword"
+      },
+      "department": {
+        "type": "text"
+      },
+      "occupation": {
+        "type": "text"
+      }
+    }
+  }
+}

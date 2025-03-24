@@ -24,4 +24,8 @@ grant {
   permission javax.management.MBeanServerPermission "findMBeanServer";
   permission javax.management.MBeanPermission "com.amazonaws.metrics.*", "*";
   permission javax.management.MBeanTrustPermission "register";
+
+  // Calcite
+  permission java.util.PropertyPermission "*", "read,write";
+  permission java.lang.RuntimePermission "*";
 };

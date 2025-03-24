@@ -7,7 +7,6 @@ package org.opensearch.sql.legacy.executor.cursor;
 
 import static org.opensearch.core.rest.RestStatus.OK;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -111,19 +110,15 @@ public class CursorResultExecutor implements CursorRestExecutor {
     TimeValue paginationTimeout = clusterState.getSettingValue(SQL_CURSOR_KEEP_ALIVE);
 
     SearchResponse scrollResponse = null;
-    if (clusterState.getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-      String pitId = cursor.getPitId();
-      SearchSourceBuilder source = cursor.getSearchSourceBuilder();
-      source.searchAfter(cursor.getSortFields());
-      source.pointInTimeBuilder(new PointInTimeBuilder(pitId));
-      SearchRequest searchRequest = new SearchRequest();
-      searchRequest.source(source);
-      scrollResponse = client.search(searchRequest).actionGet();
-    } else {
-      String previousScrollId = cursor.getScrollId();
-      scrollResponse =
-          client.prepareSearchScroll(previousScrollId).setScroll(paginationTimeout).get();
-    }
+
+    String pitId = cursor.getPitId();
+    SearchSourceBuilder source = cursor.getSearchSourceBuilder();
+    source.searchAfter(cursor.getSortFields());
+    source.pointInTimeBuilder(new PointInTimeBuilder(pitId));
+    SearchRequest searchRequest = new SearchRequest();
+    searchRequest.source(source);
+    scrollResponse = client.search(searchRequest).actionGet();
+
     SearchHits searchHits = scrollResponse.getHits();
     SearchHit[] searchHitArray = searchHits.getHits();
     String newScrollId = scrollResponse.getScrollId();
@@ -173,17 +168,13 @@ public class CursorResultExecutor implements CursorRestExecutor {
     }
 
     cursor.setRowsLeft(rowsLeft);
-    if (clusterState.getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-      cursor.setPitId(newPitId);
-      cursor.setSearchSourceBuilder(cursor.getSearchSourceBuilder());
-      cursor.setSortFields(
-          scrollResponse
-              .getHits()
-              .getAt(scrollResponse.getHits().getHits().length - 1)
-              .getSortValues());
-    } else {
-      cursor.setScrollId(newScrollId);
-    }
+    cursor.setPitId(newPitId);
+    cursor.setSearchSourceBuilder(cursor.getSearchSourceBuilder());
+    cursor.setSortFields(
+        scrollResponse
+            .getHits()
+            .getAt(scrollResponse.getHits().getHits().length - 1)
+            .getSortValues());
     Protocol protocol = new Protocol(client, searchHits, format.name().toLowerCase(), cursor);
     return protocol.cursorFormat();
   }

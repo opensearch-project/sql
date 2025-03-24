@@ -160,50 +160,6 @@ Result set::
 	  }
 	}
 
-plugins.sql.pagination.api
-================================
-
-Description
------------
-
-This setting controls whether the SQL search queries in OpenSearch use Point-In-Time (PIT) with search_after or the traditional scroll mechanism for fetching paginated results.
-
-1. Default Value: true
-2. Possible Values: true or false
-3. When set to true, the search query in the background uses PIT with search_after instead of scroll to retrieve paginated results. The Cursor Id returned to the user will encode relevant pagination query-related information, which will be used to fetch the subsequent pages of results.
-4. This setting is node-level.
-5. This setting can be updated dynamically.
-
-
-Example
--------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
-	  "transient" : {
-	    "plugins.sql.pagination.api" : "true"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "plugins" : {
-	      "sql" : {
-	        "pagination" : {
-	          "api" : "true"
-	        }
-	      }
-	    }
-	  }
-	}
-
 plugins.query.size_limit
 ===========================
 
@@ -259,61 +215,6 @@ Result set::
       },
       "transient": {}
     }
-
-plugins.sql.delete.enabled
-======================
-
-Description
------------
-
-By default, DELETE clause disabled. You can enable DELETE clause by this setting.
-
-1. The default value is false.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-
-Example 1
----------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"transient":{"plugins.sql.delete.enabled":"false"}}'
-    {
-      "acknowledged": true,
-      "persistent": {},
-      "transient": {
-        "plugins": {
-          "sql": {
-            "delete": {
-              "enabled": "false"
-            }
-          }
-        }
-      }
-    }
-
-Example 2
----------
-
-Query result after the setting updated is like:
-
-SQL query::
-
-    sh$ curl -sS -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql \
-    ... -d '{"query" : "DELETE * FROM accounts"}'
-    {
-      "error": {
-        "reason": "Invalid SQL query",
-        "details": "DELETE clause is disabled by default and will be deprecated. Using the plugins.sql.delete.enabled setting to enable it",
-        "type": "SQLFeatureDisabledException"
-      },
-      "status": 400
-    }
-
 
 plugins.query.executionengine.spark.session.limit
 ==================================================

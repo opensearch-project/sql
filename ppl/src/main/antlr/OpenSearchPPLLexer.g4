@@ -25,7 +25,6 @@ HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
-METHOD:                             'METHOD';
 REGEX:                              'REGEX';
 PUNCT:                              'PUNCT';
 GROK:                               'GROK';
@@ -43,6 +42,18 @@ BRAIN:                              'BRAIN';
 VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
 FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
 
+//Native JOIN KEYWORDS
+JOIN:                               'JOIN';
+ON:                                 'ON';
+INNER:                              'INNER';
+OUTER:                              'OUTER';
+FULL:                               'FULL';
+SEMI:                               'SEMI';
+ANTI:                               'ANTI';
+CROSS:                              'CROSS';
+LEFT_HINT:                          'HINT.LEFT';
+RIGHT_HINT:                         'HINT.RIGHT';
+
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
 BY:                                 'BY';
@@ -53,9 +64,6 @@ DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
 USING:                              'USING';
 WITH:                               'WITH';
-
-// CLAUSE KEYWORDS
-SORTBY:                             'SORTBY';
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
@@ -87,10 +95,12 @@ TIME_FIELD:                         'TIME_FIELD';
 TIME_ZONE:                          'TIME_ZONE';
 TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
 ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
+APPEND:                             'APPEND';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
 IN:                                 'IN';
+EXISTS:                             'EXISTS';
 
 // Geo IP eval function
 GEOIP:                              'GEOIP';
@@ -335,6 +345,7 @@ LIKE:                               'LIKE';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
+BETWEEN:                            'BETWEEN';
 
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';

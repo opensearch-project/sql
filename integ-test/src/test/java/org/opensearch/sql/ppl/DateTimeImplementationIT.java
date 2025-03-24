@@ -20,7 +20,8 @@ import org.junit.Test;
 public class DateTimeImplementationIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.DATE);
     loadIndex(Index.DATE_FORMATS);
   }
@@ -187,7 +188,10 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval a = 1 | stats count() as cnt by span(yyyy-MM-dd, 1d) as span",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(result, schema("cnt", null, "int"), schema("span", null, "date"));
+    verifySchema(
+        result,
+        isCalciteEnabled() ? schema("cnt", null, "bigint") : schema("cnt", null, "int"),
+        schema("span", null, "date"));
     verifyDataRows(result, rows(2, "1984-04-12"));
   }
 
@@ -198,7 +202,10 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval a = 1 | stats count() as cnt by span(epoch_millis, 1d) as span",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(result, schema("cnt", null, "int"), schema("span", null, "timestamp"));
+    verifySchema(
+        result,
+        isCalciteEnabled() ? schema("cnt", null, "bigint") : schema("cnt", null, "int"),
+        schema("span", null, "timestamp"));
     verifyDataRows(result, rows(2, "1984-04-12 00:00:00"));
   }
 
@@ -210,7 +217,10 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
                 "source=%s | eval a = 1 | stats count() as cnt by span(yyyy-MM-dd_OR_epoch_millis,"
                     + " 1d) as span",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(result, schema("cnt", null, "int"), schema("span", null, "timestamp"));
+    verifySchema(
+        result,
+        isCalciteEnabled() ? schema("cnt", null, "bigint") : schema("cnt", null, "int"),
+        schema("span", null, "timestamp"));
     verifyDataRows(result, rows(2, "1984-04-12 00:00:00"));
   }
 }

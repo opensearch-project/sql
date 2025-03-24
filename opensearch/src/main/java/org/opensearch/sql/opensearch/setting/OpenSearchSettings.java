@@ -62,20 +62,6 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<?> SQL_DELETE_ENABLED_SETTING =
-      Setting.boolSetting(
-          Key.SQL_DELETE_ENABLED.getKeyValue(),
-          false,
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
-  public static final Setting<?> SQL_PAGINATION_API_SEARCH_AFTER_SETTING =
-      Setting.boolSetting(
-          Key.SQL_PAGINATION_API_SEARCH_AFTER.getKeyValue(),
-          true,
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
   public static final Setting<?> PPL_ENABLED_SETTING =
       Setting.boolSetting(
           Key.PPL_ENABLED.getKeyValue(),
@@ -87,6 +73,27 @@ public class OpenSearchSettings extends Settings {
       Setting.simpleString(
           Key.DEFAULT_PATTERN_METHOD.getKeyValue(),
           "SIMPLE_PATTERN",
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> CALCITE_ENGINE_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.CALCITE_ENGINE_ENABLED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> CALCITE_FALLBACK_ALLOWED_SETTING =
+      Setting.boolSetting(
+          Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> CALCITE_PUSHDOWN_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
+          true,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -263,18 +270,6 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
-        Key.SQL_DELETE_ENABLED,
-        SQL_DELETE_ENABLED_SETTING,
-        new Updater(Key.SQL_DELETE_ENABLED));
-    register(
-        settingBuilder,
-        clusterSettings,
-        Key.SQL_PAGINATION_API_SEARCH_AFTER,
-        SQL_PAGINATION_API_SEARCH_AFTER_SETTING,
-        new Updater(Key.SQL_PAGINATION_API_SEARCH_AFTER));
-    register(
-        settingBuilder,
-        clusterSettings,
         Key.PPL_ENABLED,
         PPL_ENABLED_SETTING,
         new Updater(Key.PPL_ENABLED));
@@ -284,6 +279,24 @@ public class OpenSearchSettings extends Settings {
         Key.DEFAULT_PATTERN_METHOD,
         DEFAULT_PATTERN_METHOD_SETTING,
         new Updater(Key.DEFAULT_PATTERN_METHOD));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_ENGINE_ENABLED,
+        CALCITE_ENGINE_ENABLED_SETTING,
+        new Updater(Key.CALCITE_ENGINE_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_FALLBACK_ALLOWED,
+        CALCITE_FALLBACK_ALLOWED_SETTING,
+        new Updater(Key.CALCITE_FALLBACK_ALLOWED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.CALCITE_PUSHDOWN_ENABLED,
+        CALCITE_PUSHDOWN_ENABLED_SETTING,
+        new Updater(Key.CALCITE_PUSHDOWN_ENABLED));
     register(
         settingBuilder,
         clusterSettings,
@@ -455,9 +468,10 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_ENABLED_SETTING)
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
-        .add(SQL_DELETE_ENABLED_SETTING)
-        .add(SQL_PAGINATION_API_SEARCH_AFTER_SETTING)
         .add(PPL_ENABLED_SETTING)
+        .add(CALCITE_ENGINE_ENABLED_SETTING)
+        .add(CALCITE_FALLBACK_ALLOWED_SETTING)
+        .add(CALCITE_PUSHDOWN_ENABLED_SETTING)
         .add(DEFAULT_PATTERN_METHOD_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)

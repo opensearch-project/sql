@@ -74,7 +74,8 @@ public class StandaloneIT extends PPLIntegTestCase {
   private PPLService pplService;
 
   @Override
-  public void init() {
+  public void init() throws Exception {
+    super.init();
     RestHighLevelClient restClient = new InternalRestHighLevelClient(client());
     OpenSearchClient client = new OpenSearchRestClient(restClient);
     DataSourceService dataSourceService =
@@ -152,7 +153,6 @@ public class StandaloneIT extends PPLIntegTestCase {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
-              .put(Key.SQL_PAGINATION_API_SEARCH_AFTER, true)
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .build();
 
