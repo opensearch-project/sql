@@ -7,7 +7,7 @@ package org.opensearch.sql.calcite.udf.textUDF;
 
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
-public class locateFunction implements UserDefinedFunction {
+public class LocateFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     if (args.length != 2 && args.length != 3) {

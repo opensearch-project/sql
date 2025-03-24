@@ -8,7 +8,7 @@ package org.opensearch.sql.calcite.udf.textUDF;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
 /** We don't use calcite built in replace since it uses replace instead of replaceAll */
-public class replaceFunction implements UserDefinedFunction {
+public class ReplaceFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     if (args.length != 3) {

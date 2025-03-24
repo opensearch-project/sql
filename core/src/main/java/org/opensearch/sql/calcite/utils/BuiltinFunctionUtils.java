@@ -30,8 +30,8 @@ import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
-import org.opensearch.sql.calcite.udf.textUDF.locateFunction;
-import org.opensearch.sql.calcite.udf.textUDF.replaceFunction;
+import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
+import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
 
 public interface BuiltinFunctionUtils {
 
@@ -95,10 +95,10 @@ public interface BuiltinFunctionUtils {
       case "STRCMP":
         return SqlLibraryOperators.STRCMP;
       case "REPLACE":
-        return TransferUserDefinedFunction(replaceFunction.class, "REPLACE", ReturnTypes.CHAR);
+        return TransferUserDefinedFunction(ReplaceFunction.class, "REPLACE", ReturnTypes.CHAR);
       case "LOCATE":
         return TransferUserDefinedFunction(
-            locateFunction.class,
+            LocateFunction.class,
             "LOCATE",
             getNullableReturnTypeInferenceForFixedType(SqlTypeName.INTEGER));
       case "UPPER":
