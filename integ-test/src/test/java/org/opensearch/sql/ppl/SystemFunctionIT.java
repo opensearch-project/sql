@@ -38,7 +38,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
                     + "  | fields `str`, `double`, `int`, `long`, `interval`",
                 TEST_INDEX_DATATYPE_NUMERIC));
     // TODO: test null in PPL
-    verifyDataRows(response, rows("KEYWORD", "DOUBLE", "INTEGER", "LONG", "INTERVAL"));
+    verifyDataRows(response, rows("STRING", "DOUBLE", "INT", "BIGINT", "INTERVAL"));
 
     response =
         executeQuery(
@@ -65,7 +65,8 @@ public class SystemFunctionIT extends PPLIntegTestCase {
                     + " `integer`, `byte`, `short`, `float`, `half_float`, `scaled_float`",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(
-        response, rows("DOUBLE", "LONG", "INTEGER", "BYTE", "SHORT", "FLOAT", "FLOAT", "DOUBLE"));
+        response,
+        rows("DOUBLE", "BIGINT", "INT", "TINYINT", "SMALLINT", "FLOAT", "FLOAT", "DOUBLE"));
 
     response =
         executeQuery(
@@ -84,12 +85,12 @@ public class SystemFunctionIT extends PPLIntegTestCase {
     verifyDataRows(
         response,
         rows(
-            "TEXT",
+            "STRING",
             "TIMESTAMP",
             "TIMESTAMP",
             "BOOLEAN",
             "OBJECT",
-            "KEYWORD",
+            "STRING",
             "IP",
             "BINARY",
             "GEO_POINT"));

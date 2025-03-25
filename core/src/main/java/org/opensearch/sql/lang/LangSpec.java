@@ -5,9 +5,10 @@
 
 package org.opensearch.sql.lang;
 
-import static org.opensearch.sql.lang.LangSpec.LangType.PPL;
+import static org.opensearch.sql.executor.QueryType.PPL;
 
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.QueryType;
 
 /**
  * Represents a language specification for query processing.
@@ -17,13 +18,6 @@ import org.opensearch.sql.data.type.ExprType;
  * provided: SQL and PPL.
  */
 public interface LangSpec {
-  /** Enumerates the supported language types. */
-  enum LangType {
-    /** SQL language specification. */
-    SQL,
-    /** PPL (Piped Processing Language) language specification. */
-    PPL
-  }
 
   /** The default SQL language specification instance. */
   LangSpec SQL_SPEC = new LangSpec() {};
@@ -50,8 +44,8 @@ public interface LangSpec {
    *
    * @return the language type, SQL by default.
    */
-  default LangType language() {
-    return LangType.SQL;
+  default QueryType language() {
+    return QueryType.SQL;
   }
 
   /**

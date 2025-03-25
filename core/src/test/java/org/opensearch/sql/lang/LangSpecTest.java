@@ -9,12 +9,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.executor.QueryType;
 
 class LangSpecTest {
   @Test
   public void testFromLanguageSQL() {
     LangSpec spec = LangSpec.fromLanguage("SQL");
-    assertEquals(LangSpec.LangType.SQL, spec.language(), "Expected language type to be SQL");
+    assertEquals(QueryType.SQL, spec.language(), "Expected language type to be SQL");
     assertSame(LangSpec.SQL_SPEC, spec, "Expected SQL_SPEC instance for SQL language.");
   }
 

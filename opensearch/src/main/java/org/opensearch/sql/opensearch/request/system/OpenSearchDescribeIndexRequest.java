@@ -18,6 +18,7 @@ import java.util.Locale;
 import java.util.Map;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
@@ -79,7 +80,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
       results.add(
           row(
               entry.getKey(),
-              (langSpec.language() == LangSpec.LangType.PPL
+              (langSpec.language() == QueryType.PPL
                       ? langSpec.typeName(entry.getValue().getExprType())
                       : entry.getValue().legacyTypeName())
                   .toLowerCase(Locale.ROOT),

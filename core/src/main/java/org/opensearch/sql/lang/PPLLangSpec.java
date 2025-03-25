@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.QueryType;
 
 /**
  * PPL language specification implementation.
@@ -32,8 +33,8 @@ public class PPLLangSpec implements LangSpec {
   private PPLLangSpec() {}
 
   @Override
-  public LangType language() {
-    return LangType.PPL;
+  public QueryType language() {
+    return QueryType.PPL;
   }
 
   /**

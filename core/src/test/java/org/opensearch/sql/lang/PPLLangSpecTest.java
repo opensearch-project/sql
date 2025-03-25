@@ -10,13 +10,14 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.executor.QueryType;
 
 class PPLLangSpecTest {
   /** Tests that the language type of the PPL specification is PPL. */
   @Test
   public void testPPLSpecLanguage() {
     PPLLangSpec spec = PPL_SPEC;
-    assertEquals(LangSpec.LangType.PPL, spec.language(), "Expected language to be PPL.");
+    assertEquals(QueryType.PPL, spec.language(), "Expected language to be PPL.");
   }
 
   /**
