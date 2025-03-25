@@ -237,27 +237,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     String pattern = (String) node.getPattern().getValue();
     List<String> groupCandidates =
         ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments);
-    List<RexNode> overridingFields = new ArrayList<>();
     List<RexNode> newFields =
         groupCandidates.stream()
             .map(
-                group -> {
-                  RexNode regexp =
-                      context.rexBuilder.makeCall(
-                          SqlLibraryOperators.REGEXP_EXTRACT,
-                          sourceField,
-                          context.rexBuilder.makeLiteral(pattern));
-                  if (originalFieldNames.contains(group)) {
-                    overridingFields.add(context.relBuilder.field(group));
-                  }
-                  return context.relBuilder.alias(regexp, group);
-                })
+                group ->
+                    context.rexBuilder.makeCall(
+                        SqlLibraryOperators.REGEXP_EXTRACT,
+                        sourceField,
+                        context.rexBuilder.makeLiteral(pattern)))
             .toList();
-    context.relBuilder.projectPlus(newFields);
-
-    if (!overridingFields.isEmpty()) {
-      renameForOverriding(overridingFields, groupCandidates, context);
-    }
+    projectPlusOverriding(newFields, groupCandidates, context);
     return context.relBuilder.peek();
   }
 
@@ -288,33 +277,34 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 // Overriding the existing field if the alias has the same name with original field.
                 String alias =
                     ((RexLiteral) ((RexCall) eval).getOperands().get(1)).getValueAs(String.class);
-                if (originalFieldNames.contains(alias)) {
-                  RexNode toOverride = context.relBuilder.field(alias);
-                  context.relBuilder.projectPlus(eval);
-                  renameForOverriding(List.of(toOverride), List.of(alias), context);
-                } else {
-                  context.relBuilder.projectPlus(eval);
-                }
+                projectPlusOverriding(List.of(eval), List.of(alias), context);
               }
             });
     return context.relBuilder.peek();
   }
 
-  private void renameForOverriding(
-      List<RexNode> toOverrideList,
-      List<String> newNames,
-      CalcitePlanContext context) {
-    assert toOverrideList.size() == newNames.size() : "Overriding fields are not matched";
-    // 1. drop the overriding field list, it's duplicated now. For example "age, country"
-    context.relBuilder.projectExcept(toOverrideList);
-    // 2. get current fields list, the "age0, country0" should include in it.
+  private void projectPlusOverriding(
+      List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
+    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> toOverrideList =
+        originalFieldNames.stream()
+            .filter(newNames::contains)
+            .map(a -> (RexNode) context.relBuilder.field(a))
+            .toList();
+    // 1. add the new fields, For example "age0, country0"
+    context.relBuilder.projectPlus(newFields);
+    // 2. drop the overriding field list, it's duplicated now. For example "age, country"
+    if (!toOverrideList.isEmpty()) {
+      context.relBuilder.projectExcept(toOverrideList);
+    }
+    // 3. get current fields list, the "age0, country0" should include in it.
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     int length = currentFields.size();
-    // 3. add new names "age, country" to the end of rename list.
+    // 4. add new names "age, country" to the end of rename list.
     List<String> expectedRenameFields =
         new ArrayList<>(currentFields.subList(0, length - newNames.size()));
     expectedRenameFields.addAll(newNames);
-    // 4. rename
+    // 5. rename
     context.relBuilder.rename(expectedRenameFields);
   }
 
