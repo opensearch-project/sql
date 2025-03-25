@@ -149,6 +149,36 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     }
 
     @Test
+    public void testHourInvalid() {
+        Exception semanticException = assertThrows(
+                SemanticCheckException.class,
+                () -> executeQuery(
+                        String.format(
+                                "source=%s  | eval h1 = HOUR('2020-08-26') | fields h1",
+                                TEST_INDEX_DATE_FORMATS_WITH_NULL)));
+        verifyErrorMessageContains(semanticException, "time:2020-08-26 in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'");
+    }
+
+    @Test
+    public void testDayInvalid() {
+        Exception malformMonthException = assertThrows(
+                SemanticCheckException.class,
+                () -> executeQuery(
+                        String.format(
+                                "source=%s  | eval d1 = DAY('2020-13-26') | fields d1",
+                                TEST_INDEX_DATE_FORMATS_WITH_NULL)));
+        verifyErrorMessageContains(malformMonthException, "date:2020-13-26 in unsupported format, please use 'yyyy-MM-dd'");
+
+        Exception dateAsTimeException = assertThrows(
+                SemanticCheckException.class,
+                () -> executeQuery(
+                        String.format(
+                                "source=%s  | eval d2 = DAY('12:00:00') | fields d2",
+                                TEST_INDEX_DATE_FORMATS_WITH_NULL)));
+        verifyErrorMessageContains(dateAsTimeException, "date:12:00:00 in unsupported format, please use 'yyyy-MM-dd'");
+    }
+
+    @Test
     public void testTimeInvalid() {
         assertThrows(
                 SemanticCheckException.class,
@@ -157,4 +187,6 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                                 "source=%s  | eval t1 = TIME('13:69:00') | fields t1",
                                 TEST_INDEX_DATE_FORMATS_WITH_NULL)));
     }
+
+
 }

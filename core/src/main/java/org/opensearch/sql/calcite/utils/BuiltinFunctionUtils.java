@@ -14,12 +14,16 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.transfer
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.calcite.avatica.util.TimeUnit;
@@ -88,6 +92,11 @@ import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 
 public interface BuiltinFunctionUtils {
+
+  Set<String> TIME_EXCLUSIVE_OPS =
+      Set.of("SECOND", "SECOND_OF_MINUTE", "MINUTE", "MINUTE_OF_HOUR", "HOUR", "HOUR_OF_DAY");
+  Set<String> DATE_EXCLUSIVE_OPS =
+      Set.of("DAY", "DAY_OF_MONTH", "DAYOFMONTH", "MONTH", "MONTH_OF_YEAR", "YEAR", "QUARTER");
 
   static SqlOperator translate(String op) {
     String capitalOP = op.toUpperCase(Locale.ROOT);
@@ -395,7 +404,8 @@ public interface BuiltinFunctionUtils {
    */
   static List<RexNode> translateArgument(
       String op, List<RexNode> argList, CalcitePlanContext context) {
-    switch (op.toUpperCase(Locale.ROOT)) {
+    String capitalOP = op.toUpperCase(Locale.ROOT);
+    switch (capitalOP) {
       case "TRIM":
         List<RexNode> trimArgs =
             new ArrayList<>(
@@ -510,7 +520,7 @@ public interface BuiltinFunctionUtils {
       case "DAYNAME", "MONTHNAME":
         List<RexNode> periodNameArgs = new ArrayList<>();
         periodNameArgs.add(argList.getFirst());
-        periodNameArgs.add(context.rexBuilder.makeLiteral(op.toUpperCase(Locale.ROOT)));
+        periodNameArgs.add(context.rexBuilder.makeLiteral(capitalOP));
         periodNameArgs.add(
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return periodNameArgs;
@@ -540,7 +550,7 @@ public interface BuiltinFunctionUtils {
         } else if (op.equalsIgnoreCase("MONTH_OF_YEAR")) {
           timeUnitRange = TimeUnitRange.MONTH;
         } else {
-          timeUnitRange = TimeUnitRange.valueOf(op.toUpperCase(Locale.ROOT));
+          timeUnitRange = TimeUnitRange.valueOf(capitalOP);
         }
         extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
         if (argList.getFirst() instanceof RexLiteral) {
@@ -556,10 +566,18 @@ public interface BuiltinFunctionUtils {
           } else {
             expression = Objects.requireNonNull(stringExpr).toString();
           }
+
+          LocalDateTime dt;
+          if (TIME_EXCLUSIVE_OPS.contains(capitalOP)) {
+            LocalTime t = DateTimeParser.parseTime(expression);
+            dt = LocalDateTime.of(LocalDate.now(ZoneId.of("UTC")), t);
+          } else {
+            LocalDate d = DateTimeParser.parseDate(expression);
+            dt = d.atStartOfDay();
+          }
           extractArgs.add(
               context.rexBuilder.makeTimestampLiteral(
-                  createTimestampString(DateTimeParser.parse(expression)),
-                  RelDataType.PRECISION_NOT_SPECIFIED));
+                  createTimestampString(dt), RelDataType.PRECISION_NOT_SPECIFIED));
         } else {
           extractArgs.add(argList.getFirst());
         }

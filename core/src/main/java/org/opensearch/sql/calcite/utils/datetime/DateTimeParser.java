@@ -12,6 +12,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.utils.DateTimeFormatters;
 
 public interface DateTimeParser {
@@ -26,13 +27,11 @@ public interface DateTimeParser {
   static LocalDateTime parse(String input) {
 
     if (input == null || input.trim().isEmpty()) {
-      throw new IllegalArgumentException("Cannot parse a null/empty date-time string.");
+      throw new SemanticCheckException("Cannot parse a null/empty date-time string.");
     }
 
     List<DateTimeFormatter> dateTimeFormatters =
         ImmutableList.of(DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-    List<DateTimeFormatter> dateFormatters = ImmutableList.of(DateTimeFormatter.ISO_DATE);
-    List<DateTimeFormatter> timeFormatters = ImmutableList.of(DateTimeFormatter.ISO_TIME);
 
     if (input.contains(":")) {
       for (DateTimeFormatter fmt : dateTimeFormatters) {
@@ -41,22 +40,43 @@ public interface DateTimeParser {
         } catch (Exception ignored) {
         }
       }
-      for (DateTimeFormatter fmt : timeFormatters) {
-        try {
-          LocalTime t = LocalTime.parse(input, fmt);
-          return LocalDateTime.of(LocalDate.now(ZoneId.of("UTC")), t);
-        } catch (Exception ignored) {
-        }
+      try {
+        LocalTime t = parseTime(input);
+        return LocalDateTime.of(LocalDate.now(ZoneId.of("UTC")), t);
+      } catch (Exception ignored) {
       }
+
     } else {
-      for (DateTimeFormatter fmt : dateFormatters) {
-        try {
-          LocalDate d = LocalDate.parse(input, fmt);
-          return d.atStartOfDay();
-        } catch (Exception ignored) {
-        }
+      try {
+        LocalDate d = parseDate(input);
+        return d.atStartOfDay();
+      } catch (Exception ignored) {
       }
     }
-    throw new IllegalArgumentException(String.format("Unable to parse %s as datetime", input));
+    throw new SemanticCheckException(String.format("Unable to parse %s as datetime", input));
+  }
+
+  static LocalTime parseTime(String input) {
+    List<DateTimeFormatter> timeFormatters = ImmutableList.of(DateTimeFormatter.ISO_TIME);
+    for (DateTimeFormatter fmt : timeFormatters) {
+      try {
+        return LocalTime.parse(input, fmt);
+      } catch (Exception ignored) {
+      }
+    }
+    throw new SemanticCheckException(
+        String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", input));
+  }
+
+  static LocalDate parseDate(String input) {
+    List<DateTimeFormatter> dateFormatters = ImmutableList.of(DateTimeFormatter.ISO_DATE);
+    for (DateTimeFormatter fmt : dateFormatters) {
+      try {
+        return LocalDate.parse(input, fmt);
+      } catch (Exception ignored) {
+      }
+    }
+    throw new SemanticCheckException(
+        String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", input));
   }
 }
