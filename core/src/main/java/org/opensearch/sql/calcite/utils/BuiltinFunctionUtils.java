@@ -305,7 +305,7 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.LAST_DAY;
       case "UNIX_TIMESTAMP":
         return TransferUserDefinedFunction(
-            UnixTimeStampFunction.class, "unix_timestamp", ReturnTypes.DOUBLE);
+            UnixTimeStampFunction.class, "unix_timestamp", createNullableReturnType(SqlTypeName.DOUBLE));
       case "SYSDATE":
         return TransferUserDefinedFunction(SysdateFunction.class, "SYSDATE", ReturnTypes.TIMESTAMP);
       case "TIME":

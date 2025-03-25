@@ -183,6 +183,83 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     }
 
 
+    @Test
+    public void testUnixTimestampInvalid() {
+        assertThrows(Exception.class, () -> {
+            // Code that should throw the exception
+            JSONObject actual =
+                    executeQuery(
+                            String.format(
+                                    "source=%s  | eval a = UNIX_TIMESTAMP('2020-15-26')",
+                                    TEST_INDEX_DATE_FORMATS_WITH_NULL));
+        });
+        assertThrows(Exception.class, () -> {
+            // Code that should throw the exception
+            JSONObject actual =
+                    executeQuery(
+                            String.format(
+                                    "source=%s  | eval a = UNIX_TIMESTAMP('2020-12-26 25:00:00')",
+                                    TEST_INDEX_DATE_FORMATS_WITH_NULL));
+        });
+    }
 
+    @Test
+    public void testUnixTimestampNull() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s  |  eval timestamp = TO_SECONDS(strict_date_optional_time), date=TO_SECONDS(date), time=TO_SECONDS(time) | fields timestamp, date, time",
+                                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+
+
+        verifySchema(
+                actual,
+                schema("timestamp", "double"),
+                schema("date", "double"),
+                schema("time", "double"));
+        JSONArray ret = (JSONArray) actual.getJSONArray("datarows").get(0);
+        for (int i = 0; i < ret.length(); i++) {
+            assertEquals(JSONObject.NULL, ret.get(i));
+        }
+    }
+
+    @Test
+    public void testToSecondsInvalid() {
+        assertThrows(Exception.class, () -> {
+            // Code that should throw the exception
+            JSONObject actual =
+                    executeQuery(
+                            String.format(
+                                    "source=%s  | eval a = UNIX_TIMESTAMP('2020-15-26')",
+                                    TEST_INDEX_DATE_FORMATS_WITH_NULL));
+        });
+        assertThrows(Exception.class, () -> {
+            // Code that should throw the exception
+            JSONObject actual =
+                    executeQuery(
+                            String.format(
+                                    "source=%s  | eval a = UNIX_TIMESTAMP('2020-12-26 25:00:00')",
+                                    TEST_INDEX_DATE_FORMATS_WITH_NULL));
+        });
+    }
+
+    @Test
+    public void testToSecondsNull() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s  |  eval timestamp = UNIX_TIMESTAMP(strict_date_optional_time), date=UNIX_TIMESTAMP(date) | fields timestamp, date",
+                                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+
+
+        verifySchema(
+                actual,
+                schema("timestamp", "double"),
+                schema("date", "double"));
+        JSONArray ret = (JSONArray) actual.getJSONArray("datarows").get(0);
+        for (int i = 0; i < ret.length(); i++) {
+            assertEquals(JSONObject.NULL, ret.get(i));
+        }
+    }
 
 }
