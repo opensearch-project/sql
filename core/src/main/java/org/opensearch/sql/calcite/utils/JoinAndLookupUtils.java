@@ -57,8 +57,8 @@ public interface JoinAndLookupUtils {
    * join will fail if the mapping fields are excluded.
    */
   static void addProjectionIfNecessary(Lookup node, CalcitePlanContext context) {
-    List<String> mappingField = node.getMappingAliasMap().keySet().stream().toList();
-    List<String> outputField = node.getOutputAliasMap().keySet().stream().toList();
+    List<String> mappingField = node.getMappingAliasMap().keySet().stream().collect(Collectors.toList());
+    List<String> outputField = node.getOutputAliasMap().keySet().stream().collect(Collectors.toList());
     if (!outputField.isEmpty()) {
       HashSet<String> lookupMappingFields = new HashSet<>(outputField);
       lookupMappingFields.addAll(mappingField);
@@ -66,7 +66,7 @@ public interface JoinAndLookupUtils {
         List<RexNode> projectList =
             lookupMappingFields.stream()
                 .map(fieldName -> (RexNode) context.relBuilder.field(fieldName))
-                .toList();
+                    .collect(Collectors.toList());
         context.relBuilder.project(projectList);
       }
     }

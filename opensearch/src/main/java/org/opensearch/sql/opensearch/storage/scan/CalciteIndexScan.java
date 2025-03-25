@@ -95,17 +95,37 @@ public abstract class CalciteIndexScan extends TableScan {
     // NESTED
   }
 
-  public record PushDownAction(PushDownType type, Object digest, AbstractAction action) {
-    static PushDownAction of(PushDownType type, Object digest, AbstractAction action) {
-      return new PushDownAction(type, digest, action);
+  public class PushDownAction {
+
+    private final PushDownType type;
+    private final Object digest;
+    private final AbstractAction action;
+
+    PushDownAction(PushDownType type, Object digest, AbstractAction action) {
+      this.type = type;
+      this.digest = digest;
+      this.action = action;
     }
 
+    @Override
     public String toString() {
       return type + ":" + digest;
     }
 
     public void apply(OpenSearchRequestBuilder requestBuilder) {
       action.apply(requestBuilder);
+    }
+
+    public PushDownType getType() {
+      return type;
+    }
+
+    public Object getDigest() {
+      return digest;
+    }
+
+    public AbstractAction getAction() {
+      return action;
     }
   }
 

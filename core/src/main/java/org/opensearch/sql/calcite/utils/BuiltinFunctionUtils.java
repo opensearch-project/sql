@@ -64,7 +64,9 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.CONCAT_WS;
       case "LIKE":
         return SqlLibraryOperators.ILIKE;
-      case "LTRIM", "RTRIM", "TRIM":
+      case "LTRIM":
+      case "RTRIM":
+      case "TRIM":
         return SqlStdOperatorTable.TRIM;
       case "LENGTH":
         return SqlStdOperatorTable.CHAR_LENGTH;
@@ -86,9 +88,11 @@ public interface BuiltinFunctionUtils {
       case "SQRT":
         return TransferUserDefinedFunction(
             SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE_FORCE_NULLABLE);
-      case "ATAN", "ATAN2":
+      case "ATAN":
+      case "ATAN2":
         return SqlStdOperatorTable.ATAN2;
-      case "POW", "POWER":
+      case "POW":
+      case "POWER":
         return SqlStdOperatorTable.POWER;
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP":
