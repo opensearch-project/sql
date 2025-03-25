@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.Request;
 
 public class CalcitePPLParseIT extends CalcitePPLIntegTestCase {
   @Override
@@ -127,5 +128,22 @@ public class CalcitePPLParseIT extends CalcitePPLIntegTestCase {
                         TEST_INDEX_BANK)));
     verifyErrorMessageContains(
         e, "Multiple capturing groups (count=2) not allowed in regex input for REGEXP_EXTRACT");
+  }
+
+  @Test
+  public void testParseOverriding2() throws IOException {
+    Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
+    request1.setJsonEntity(
+        "{\"email\": \"a@a.com\", \"email0\": \"b@b.com\", \"email1\": \"c@c.com\"}");
+    client().performRequest(request1);
+    JSONObject result;
+    result =
+        executeQuery(
+            "source = test | parse email '.+@(?<email0>.+)' | fields email, email0, email1");
+    verifyDataRows(result, rows("a@a.com", "a.com", "c@c.com"));
+    result =
+        executeQuery(
+            "source = test | parse email '.+@(?<email>.+)' | fields email, email0, email1");
+    verifyDataRows(result, rows("a.com", "b@b.com", "c@c.com"));
   }
 }

@@ -234,10 +234,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode sourceField = rexVisitor.analyze(node.getSourceField(), context);
     ParseMethod parseMethod = node.getParseMethod();
     java.util.Map<String, Literal> arguments = node.getArguments();
-    assert arguments.isEmpty();
     String pattern = (String) node.getPattern().getValue();
     List<String> groupCandidates =
         ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments);
+    List<RexNode> overrideFields = new ArrayList<>();
     List<RexNode> newFields =
         groupCandidates.stream()
             .map(
@@ -247,82 +247,67 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                           SqlLibraryOperators.REGEXP_EXTRACT,
                           sourceField,
                           context.rexBuilder.makeLiteral(pattern));
+                  if (originalFieldNames.contains(group)) {
+                    overrideFields.add(context.relBuilder.field(group));
+                  }
                   return context.relBuilder.alias(regexp, group);
                 })
             .toList();
     context.relBuilder.projectPlus(newFields);
-
-    List<String> overriding = new ArrayList<>(groupCandidates);
-    overriding.retainAll(originalFieldNames);
-    renameForOverriding(overriding, context);
-
+    context.relBuilder.projectExcept(overrideFields);
+    renameForOverriding(groupCandidates, context);
     return context.relBuilder.peek();
-  }
-
-  private static void renameForOverriding(List<String> overriding, CalcitePlanContext context) {
-    if (!overriding.isEmpty()) {
-      List<RexNode> toDrop = context.relBuilder.fields(overriding);
-      context.relBuilder.projectExcept(toDrop);
-      // the overriding field in Calcite will add a numeric suffix, for example:
-      // `| eval SAL = SAL + 1` creates a field SAL0 to replace SAL, so we rename it back to SAL,
-      // or query `| eval SAL=SAL + 1 | where exists [ source=DEPT | where emp.SAL=HISAL ]` fails.
-      List<String> newNames =
-          context.relBuilder.peek().getRowType().getFieldNames().stream()
-              .map(
-                  cur -> {
-                    String noNumericSuffix = cur.replaceAll("\\d", "");
-                    if (overriding.contains(noNumericSuffix)) {
-                      return noNumericSuffix;
-                    } else {
-                      return cur;
-                    }
-                  })
-              .toList();
-      context.relBuilder.rename(newNames);
-    }
   }
 
   @Override
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
     List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
-    List<RexNode> evalList =
-        node.getExpressionList().stream()
-            .map(
-                expr -> {
-                  boolean containsSubqueryExpression = containsSubqueryExpression(expr);
-                  final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-                  if (containsSubqueryExpression) {
-                    context.relBuilder.variable(v::set);
-                    context.pushCorrelVar(v.get());
-                  }
-                  RexNode eval = rexVisitor.analyze(expr, context);
-                  if (containsSubqueryExpression) {
-                    // RelBuilder.projectPlus doesn't have a parameter with variablesSet:
-                    // projectPlus(Iterable<CorrelationId> variablesSet, RexNode... nodes)
-                    context.relBuilder.project(
-                        Iterables.concat(context.relBuilder.fields(), ImmutableList.of(eval)),
-                        ImmutableList.of(),
-                        false,
-                        ImmutableList.of(v.get().id));
-                    context.popCorrelVar();
-                  } else {
-                    context.relBuilder.projectPlus(eval);
-                  }
-                  return eval;
-                })
-            .toList();
-    // Overriding the existing field if the alias has the same name with original field name.
-    List<String> overriding =
-        evalList.stream()
-            .filter(expr -> expr.getKind() == AS)
-            .map(
-                expr ->
-                    ((RexLiteral) ((RexCall) expr).getOperands().get(1)).getValueAs(String.class))
-            .collect(Collectors.toList());
-    overriding.retainAll(originalFieldNames);
-    renameForOverriding(overriding, context);
+    node.getExpressionList()
+        .forEach(
+            expr -> {
+              boolean containsSubqueryExpression = containsSubqueryExpression(expr);
+              final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+              if (containsSubqueryExpression) {
+                context.relBuilder.variable(v::set);
+                context.pushCorrelVar(v.get());
+              }
+              RexNode eval = rexVisitor.analyze(expr, context);
+              if (containsSubqueryExpression) {
+                // RelBuilder.projectPlus doesn't have a parameter with variablesSet:
+                // projectPlus(Iterable<CorrelationId> variablesSet, RexNode... nodes)
+                context.relBuilder.project(
+                    Iterables.concat(context.relBuilder.fields(), ImmutableList.of(eval)),
+                    ImmutableList.of(),
+                    false,
+                    ImmutableList.of(v.get().id));
+                context.popCorrelVar();
+              } else {
+                // Overriding the existing field if the alias has the same name with original field
+                // name.
+                RexNode overrideField = null;
+                String alias =
+                    ((RexLiteral) ((RexCall) eval).getOperands().get(1)).getValueAs(String.class);
+                if (originalFieldNames.contains(alias)) {
+                  overrideField = context.relBuilder.field(alias);
+                  context.relBuilder.projectPlus(eval);
+                  context.relBuilder.projectExcept(overrideField);
+                  renameForOverriding(List.of(alias), context);
+                } else {
+                  context.relBuilder.projectPlus(eval);
+                }
+              }
+            });
     return context.relBuilder.peek();
+  }
+
+  private static void renameForOverriding(List<String> newNames, CalcitePlanContext context) {
+    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    int length = originalFieldNames.size();
+    List<String> expectedRenameFields =
+        new ArrayList<>(originalFieldNames.subList(0, length - newNames.size()));
+    expectedRenameFields.addAll(newNames);
+    context.relBuilder.rename(expectedRenameFields);
   }
 
   @Override
