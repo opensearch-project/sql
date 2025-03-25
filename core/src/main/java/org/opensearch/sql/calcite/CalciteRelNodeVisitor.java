@@ -237,7 +237,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     String pattern = (String) node.getPattern().getValue();
     List<String> groupCandidates =
         ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments);
-    List<RexNode> overrideFields = new ArrayList<>();
+    List<RexNode> overridingFields = new ArrayList<>();
     List<RexNode> newFields =
         groupCandidates.stream()
             .map(
@@ -248,14 +248,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                           sourceField,
                           context.rexBuilder.makeLiteral(pattern));
                   if (originalFieldNames.contains(group)) {
-                    overrideFields.add(context.relBuilder.field(group));
+                    overridingFields.add(context.relBuilder.field(group));
                   }
                   return context.relBuilder.alias(regexp, group);
                 })
             .toList();
     context.relBuilder.projectPlus(newFields);
-    context.relBuilder.projectExcept(overrideFields);
-    renameForOverriding(groupCandidates, context);
+
+    if (!overridingFields.isEmpty()) {
+      renameForOverriding(overridingFields, groupCandidates, context);
+    }
     return context.relBuilder.peek();
   }
 
@@ -283,16 +285,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                     ImmutableList.of(v.get().id));
                 context.popCorrelVar();
               } else {
-                // Overriding the existing field if the alias has the same name with original field
-                // name.
-                RexNode overrideField = null;
+                // Overriding the existing field if the alias has the same name with original field.
                 String alias =
                     ((RexLiteral) ((RexCall) eval).getOperands().get(1)).getValueAs(String.class);
                 if (originalFieldNames.contains(alias)) {
-                  overrideField = context.relBuilder.field(alias);
+                  RexNode toOverride = context.relBuilder.field(alias);
                   context.relBuilder.projectPlus(eval);
-                  context.relBuilder.projectExcept(overrideField);
-                  renameForOverriding(List.of(alias), context);
+                  renameForOverriding(List.of(toOverride), List.of(alias), context);
                 } else {
                   context.relBuilder.projectPlus(eval);
                 }
@@ -301,12 +300,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  private static void renameForOverriding(List<String> newNames, CalcitePlanContext context) {
-    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
-    int length = originalFieldNames.size();
+  private void renameForOverriding(
+      List<RexNode> toOverrideList,
+      List<String> newNames,
+      CalcitePlanContext context) {
+    assert toOverrideList.size() == newNames.size() : "Overriding fields are not matched";
+    // 1. drop the overriding field list, it's duplicated now. For example "age, country"
+    context.relBuilder.projectExcept(toOverrideList);
+    // 2. get current fields list, the "age0, country0" should include in it.
+    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+    int length = currentFields.size();
+    // 3. add new names "age, country" to the end of rename list.
     List<String> expectedRenameFields =
-        new ArrayList<>(originalFieldNames.subList(0, length - newNames.size()));
+        new ArrayList<>(currentFields.subList(0, length - newNames.size()));
     expectedRenameFields.addAll(newNames);
+    // 4. rename
     context.relBuilder.rename(expectedRenameFields);
   }
 
