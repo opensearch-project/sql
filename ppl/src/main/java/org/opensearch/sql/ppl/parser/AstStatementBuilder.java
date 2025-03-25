@@ -8,6 +8,9 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static org.opensearch.sql.executor.QueryType.PPL;
+
+import com.google.common.collect.ImmutableList;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +32,8 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
 
   @Override
   public Statement visitDmlStatement(OpenSearchPPLParser.DmlStatementContext ctx) {
-    Query query = new Query(addSelectAll(astBuilder.visit(ctx)), context.getFetchSize());
-    return context.isExplain ? new Explain(query) : query;
+    Query query = new Query(addSelectAll(astBuilder.visit(ctx)), context.getFetchSize(), PPL);
+    return context.isExplain ? new Explain(query, PPL) : query;
   }
 
   @Override

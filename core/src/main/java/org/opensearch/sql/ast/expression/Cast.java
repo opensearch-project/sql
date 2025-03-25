@@ -76,6 +76,20 @@ public class Cast extends UnresolvedExpression {
     return CONVERTED_TYPE_FUNCTION_NAME_MAP.containsValue(name);
   }
 
+  /** Get the data type expression of the converted type. */
+  public DataType getDataType() {
+    String type = convertedType.toString().toUpperCase(Locale.ROOT);
+    if ("INT".equals(type)) {
+      type = "INTEGER";
+    }
+    // JSON is not a data type for now, we convert it to STRING.
+    // TODO Maybe its data type could be VARIANT in future?
+    if ("JSON".equals(type)) {
+      type = "STRING";
+    }
+    return DataType.valueOf(type);
+  }
+
   /**
    * Get the cast function name for a given target data type.
    *

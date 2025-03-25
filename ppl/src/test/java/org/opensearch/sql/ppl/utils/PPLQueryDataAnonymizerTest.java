@@ -86,6 +86,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testStatsCommandWithSpanFunction() {
+    assertEquals(
+        "source=t | stats count(a) by span(b, *** d),c",
+        anonymize("source=t | stats count(a) by span(b, 1d), c"));
+  }
+
+  @Test
   public void testDedupCommand() {
     assertEquals(
         "source=t | dedup f1,f2 1 keepempty=false consecutive=false",
@@ -282,6 +289,16 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=t | where id > [ source=s | where id = uid | stats max(b) ] | fields + id",
         anonymize("source=t id > [ source=s | where id = uid | stats max(b) ] | fields id"));
+  }
+
+  @Test
+  public void testCast() {
+    assertEquals(
+        "source=t | eval id=cast(a as INTEGER) | fields + id",
+        anonymize("source=t | eval id=CAST(a AS INTEGER) | fields id"));
+    assertEquals(
+        "source=t | eval id=cast(*** as DOUBLE) | fields + id",
+        anonymize("source=t | eval id=CAST('1' AS DOUBLE) | fields id"));
   }
 
   private String anonymize(String query) {

@@ -6,6 +6,7 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
+import static org.opensearch.sql.executor.QueryType.SQL;
 import static org.opensearch.sql.ppl.StandaloneIT.getDataSourceMetadataStorage;
 import static org.opensearch.sql.ppl.StandaloneIT.getDataSourceUserRoleHelper;
 
@@ -131,7 +132,8 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
 
     PhysicalPlan plan = planSerializer.convertToPlan(firstResponder.getCursor().toString());
     var secondResponder = new TestResponder();
-    queryService.execute(new FetchCursor(firstResponder.getCursor().toString()), secondResponder);
+    queryService.execute(
+        new FetchCursor(firstResponder.getCursor().toString()), SQL, secondResponder);
 
     // act 3: confirm that there's no cursor.
   }

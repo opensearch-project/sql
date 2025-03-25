@@ -8,7 +8,6 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 
 import com.google.common.io.Resources;
-import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -17,7 +16,8 @@ import org.junit.jupiter.api.Test;
 public class ExplainIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.ACCOUNT);
   }
 

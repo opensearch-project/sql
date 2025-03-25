@@ -11,6 +11,7 @@ package org.opensearch.sql.ast.statement;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.executor.QueryType;
 
 /** Explain Statement. */
 @Data
@@ -18,6 +19,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 public class Explain extends Statement {
 
   private final Statement statement;
+  private final QueryType queryType;
 
   @Override
   public <R, C> R accept(AbstractNodeVisitor<R, C> visitor, C context) {

@@ -19,14 +19,13 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.parser.SqlParserUtil;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
+import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
@@ -269,7 +268,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitAlias(Alias node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getDelegated(), context);
-    return context.relBuilder.alias(expr, node.getName());
+    // Only OpenSearch SQL uses node.getAlias, OpenSearch PPL uses node.getName.
+    return context.relBuilder.alias(
+        expr, Strings.isEmpty(node.getAlias()) ? node.getName() : node.getAlias());
   }
 
   @Override
@@ -279,9 +280,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     RelDataTypeFactory typeFactory = context.rexBuilder.getTypeFactory();
     SpanUnit unit = node.getUnit();
     if (isTimeBased(unit)) {
-      SqlIntervalQualifier intervalQualifier = context.rexBuilder.createIntervalUntil(unit);
-      long millis = SqlParserUtil.intervalToMillis(value.toString(), intervalQualifier);
-      return context.rexBuilder.makeIntervalLiteral(new BigDecimal(millis), intervalQualifier);
+      return context.rexBuilder.makeCall(
+          BuiltinFunctionUtils.translate("SPAN"),
+          List.of(
+              field,
+              context
+                  .relBuilder
+                  .getRexBuilder()
+                  .makeLiteral(field.getType().getSqlTypeName().getName()),
+              value,
+              context.relBuilder.getRexBuilder().makeLiteral(unit.getName())));
     } else {
       // if the unit is not time base - create a math expression to bucket the span partitions
       SqlTypeName type = field.getType().getSqlTypeName();
@@ -392,14 +400,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return subqueryRel;
   }
 
+  @Override
+  public RexNode visitCast(Cast node, CalcitePlanContext context) {
+    RexNode expr = analyze(node.getExpression(), context);
+    SqlTypeName sqlTypeName =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType())
+            .getSqlTypeName();
+    RelDataType type = context.rexBuilder.getTypeFactory().createSqlType(sqlTypeName);
+    RelDataType nullableType =
+        context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
+    // call makeCast() instead of cast() because the saft parameter is true could avoid exception.
+    return context.rexBuilder.makeCast(nullableType, expr, true, true);
+  }
+
   /*
    * Unsupported Expressions of PPL with Calcite for OpenSearch 3.0.0-beta
    */
-  @Override
-  public RexNode visitCast(Cast node, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("CastWhen function is unsupported in Calcite");
-  }
-
   @Override
   public RexNode visitWhen(When node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("CastWhen function is unsupported in Calcite");

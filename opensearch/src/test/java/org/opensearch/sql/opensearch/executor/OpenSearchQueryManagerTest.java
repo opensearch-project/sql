@@ -24,6 +24,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.execution.AbstractPlan;
 import org.opensearch.sql.executor.execution.QueryPlan;
 import org.opensearch.threadpool.ThreadPool;
@@ -35,6 +36,8 @@ class OpenSearchQueryManagerTest {
   @Mock private QueryId queryId;
 
   @Mock private QueryService queryService;
+
+  @Mock private QueryType queryType;
 
   @Mock private UnresolvedPlan plan;
 
@@ -48,7 +51,7 @@ class OpenSearchQueryManagerTest {
 
     AtomicBoolean isRun = new AtomicBoolean(false);
     AbstractPlan queryPlan =
-        new QueryPlan(queryId, plan, queryService, listener) {
+        new QueryPlan(queryId, queryType, plan, queryService, listener) {
           @Override
           public void execute() {
             isRun.set(true);
