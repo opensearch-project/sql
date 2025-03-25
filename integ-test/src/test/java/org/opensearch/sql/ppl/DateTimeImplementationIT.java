@@ -190,7 +190,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         result,
-        isCalciteEnabled() ? schema("cnt", null, "long") : schema("cnt", null, "integer"),
+        isCalciteEnabled() ? schema("cnt", null, "bigint") : schema("cnt", null, "int"),
         schema("span", null, "date"));
     verifyDataRows(result, rows(2, "1984-04-12"));
   }
@@ -204,7 +204,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         result,
-        isCalciteEnabled() ? schema("cnt", null, "long") : schema("cnt", null, "integer"),
+        isCalciteEnabled() ? schema("cnt", null, "bigint") : schema("cnt", null, "int"),
         schema("span", null, "timestamp"));
     verifyDataRows(result, rows(2, "1984-04-12 00:00:00"));
   }
@@ -219,7 +219,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         result,
-        isCalciteEnabled() ? schema("cnt", null, "long") : schema("cnt", null, "integer"),
+        isCalciteEnabled() ? schema("cnt", null, "bigint") : schema("cnt", null, "int"),
         schema("span", null, "timestamp"));
     verifyDataRows(result, rows(2, "1984-04-12 00:00:00"));
   }

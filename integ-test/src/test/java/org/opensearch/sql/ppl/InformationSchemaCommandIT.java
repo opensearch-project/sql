@@ -159,9 +159,9 @@ public class InformationSchemaCommandIT extends PPLIntegTestCase {
         columnName("DATA_TYPE"));
     verifyDataRows(
         result,
-        rows("my_prometheus", "default", "prometheus_http_requests_total", "handler", "keyword"),
-        rows("my_prometheus", "default", "prometheus_http_requests_total", "code", "keyword"),
-        rows("my_prometheus", "default", "prometheus_http_requests_total", "instance", "keyword"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "handler", "string"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "code", "string"),
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "instance", "string"),
         rows("my_prometheus", "default", "prometheus_http_requests_total", "@value", "double"),
         rows(
             "my_prometheus",
@@ -169,6 +169,6 @@ public class InformationSchemaCommandIT extends PPLIntegTestCase {
             "prometheus_http_requests_total",
             "@timestamp",
             "timestamp"),
-        rows("my_prometheus", "default", "prometheus_http_requests_total", "job", "keyword"));
+        rows("my_prometheus", "default", "prometheus_http_requests_total", "job", "string"));
   }
 }

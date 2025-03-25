@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -63,6 +64,11 @@ public class DescribeCommandIT extends PPLIntegTestCase {
                 "describe %s | fields TABLE_NAME, COLUMN_NAME, TYPE_NAME", TEST_INDEX_DOG));
     verifyColumn(
         result, columnName("TABLE_NAME"), columnName("COLUMN_NAME"), columnName("TYPE_NAME"));
+    verifyDataRows(
+        result,
+        rows("opensearch-sql_test_index_dog", "dog_name", "string"),
+        rows("opensearch-sql_test_index_dog", "age", "bigint"),
+        rows("opensearch-sql_test_index_dog", "holdersName", "string"));
   }
 
   @Test

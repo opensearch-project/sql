@@ -6,12 +6,15 @@
 package org.opensearch.sql.expression.system;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 
+import java.util.Locale;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
@@ -41,7 +44,12 @@ public class SystemFunctions {
                 new FunctionExpression(BuiltinFunctionName.TYPEOF.getName(), arguments) {
                   @Override
                   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-                    return new ExprStringValue(getArguments().get(0).type().legacyTypeName());
+                    ExprType type = getArguments().get(0).type();
+                    return new ExprStringValue(
+                        (functionProperties.getQueryType() == QueryType.PPL
+                                ? PPL_SPEC.typeName(type)
+                                : type.legacyTypeName())
+                            .toUpperCase(Locale.ROOT));
                   }
 
                   @Override
