@@ -10,19 +10,33 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import lombok.EqualsAndHashCode;
-import lombok.RequiredArgsConstructor;
+import lombok.Getter;
+import org.opensearch.sql.executor.QueryType;
 
-@RequiredArgsConstructor
 @EqualsAndHashCode
 public class FunctionProperties implements Serializable {
 
   private final Instant nowInstant;
   private final ZoneId currentZoneId;
+  @Getter private final QueryType queryType;
 
   /** By default, use current time and current timezone. */
   public FunctionProperties() {
-    nowInstant = Instant.now();
-    currentZoneId = ZoneId.systemDefault();
+    this(QueryType.SQL);
+  }
+
+  public FunctionProperties(QueryType queryType) {
+    this(Instant.now(), ZoneId.systemDefault(), queryType);
+  }
+
+  public FunctionProperties(Instant nowInstant, ZoneId currentZoneId) {
+    this(nowInstant, currentZoneId, QueryType.SQL);
+  }
+
+  public FunctionProperties(Instant nowInstant, ZoneId currentZoneId, QueryType queryType) {
+    this.nowInstant = nowInstant;
+    this.currentZoneId = currentZoneId;
+    this.queryType = queryType;
   }
 
   /**

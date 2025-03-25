@@ -90,7 +90,7 @@ class StreamingQueryPlanTest {
 
     Helper streamingSource() {
       when(table.asStreamingSource()).thenReturn(streamingSource);
-      when(queryService.analyze(any()))
+      when(queryService.analyze(any(), any(QueryType.class)))
           .thenReturn(
               LogicalPlanDSL.project(
                   LogicalPlanDSL.relation(tableName, table),
@@ -100,13 +100,14 @@ class StreamingQueryPlanTest {
 
     Helper nonStreamingSource() {
       when(table.asStreamingSource()).thenThrow(UnsupportedOperationException.class);
-      when(queryService.analyze(any())).thenReturn(LogicalPlanDSL.relation(tableName, table));
+      when(queryService.analyze(any(), any(QueryType.class)))
+          .thenReturn(LogicalPlanDSL.relation(tableName, table));
 
       return this;
     }
 
     Helper withoutSource() {
-      when(queryService.analyze(any())).thenReturn(LogicalPlanDSL.values());
+      when(queryService.analyze(any(), any(QueryType.class))).thenReturn(LogicalPlanDSL.values());
 
       return this;
     }

@@ -50,7 +50,7 @@ public class StreamingQueryPlan extends QueryPlan {
   @Override
   public void execute() {
     try {
-      LogicalPlan logicalPlan = queryService.analyze(plan);
+      LogicalPlan logicalPlan = queryService.analyze(plan, queryType);
       StreamingSource streamingSource = buildStreamingSource(logicalPlan);
       streamingExecution =
           new MicroBatchStreamingExecution(

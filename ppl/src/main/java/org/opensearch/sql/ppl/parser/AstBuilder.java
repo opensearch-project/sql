@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.parser;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
@@ -142,7 +143,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     final Relation table = (Relation) visitTableSourceClause(ctx.tableSourceClause());
     QualifiedName tableQualifiedName = table.getTableQualifiedName();
     ArrayList<String> parts = new ArrayList<>(tableQualifiedName.getParts());
-    parts.set(parts.size() - 1, mappingTable(parts.get(parts.size() - 1)));
+    parts.set(parts.size() - 1, mappingTable(parts.get(parts.size() - 1), PPL_SPEC));
     return new DescribeRelation(new QualifiedName(parts));
   }
 
