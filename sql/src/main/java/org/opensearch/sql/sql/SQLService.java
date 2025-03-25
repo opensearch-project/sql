@@ -13,6 +13,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryManager;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.execution.AbstractPlan;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
@@ -29,6 +30,8 @@ public class SQLService {
   private final QueryManager queryManager;
 
   private final QueryPlanFactory queryExecutionFactory;
+
+  private final QueryType SQL_QUERY = QueryType.SQL;
 
   /**
    * Given {@link SQLQueryRequest}, execute it. Using listener to listen result.
@@ -72,11 +75,12 @@ public class SQLService {
       }
       if (request.isCursorCloseRequest()) {
         return queryExecutionFactory.createCloseCursor(
-            request.getCursor().get(), queryListener.orElse(null));
+            request.getCursor().get(), SQL_QUERY, queryListener.orElse(null));
       }
       return queryExecutionFactory.create(
           request.getCursor().get(),
           isExplainRequest,
+          SQL_QUERY,
           queryListener.orElse(null),
           explainListener.orElse(null));
     } else {

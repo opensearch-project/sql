@@ -20,7 +20,8 @@ import org.opensearch.client.ResponseException;
 public class DescribeCommandIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.DOG);
   }
 
