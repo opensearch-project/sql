@@ -542,7 +542,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             internalVisitExpression(ctx.nullReplacement),
             ctx.nullableFieldList.fieldExpression().stream()
                 .map(f -> (Field) internalVisitExpression(f))
-                .toList()));
+                    .collect(Collectors.toList())));
   }
 
   /** fillnull command. */

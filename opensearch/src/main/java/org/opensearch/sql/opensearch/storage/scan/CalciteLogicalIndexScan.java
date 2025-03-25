@@ -90,7 +90,7 @@ public class CalciteLogicalIndexScan extends CalciteIndexScan {
       QueryBuilder filterBuilder =
           PredicateAnalyzer.analyze(filter.getCondition(), schema, typeMapping);
       newScan.pushDownContext.add(
-          PushDownAction.of(
+          new PushDownAction(
               PushDownType.FILTER,
               filter.getCondition(),
               requestBuilder -> requestBuilder.pushDownFilter(filterBuilder)));
@@ -120,7 +120,7 @@ public class CalciteLogicalIndexScan extends CalciteIndexScan {
     RelDataType newSchema = builder.build();
     CalciteLogicalIndexScan newScan = this.copyWithNewSchema(newSchema);
     newScan.pushDownContext.add(
-        PushDownAction.of(
+        new PushDownAction(
             PushDownType.PROJECT,
             newSchema.getFieldNames(),
             requestBuilder ->
@@ -146,7 +146,7 @@ public class CalciteLogicalIndexScan extends CalciteIndexScan {
                               OpenSearchTypeFactory.convertRelDataTypeToExprType(
                                   field.getType()))));
       newScan.pushDownContext.add(
-          PushDownAction.of(
+          new PushDownAction(
               PushDownType.AGGREGATION,
               aggregate,
               requestBuilder -> {

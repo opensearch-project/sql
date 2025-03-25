@@ -7,6 +7,8 @@ package org.opensearch.sql.calcite;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
@@ -38,7 +40,7 @@ public class ExtendedRexBuilder extends RexBuilder {
 
   public RelDataType commonType(RexNode... nodes) {
     return this.getTypeFactory()
-        .leastRestrictive(Arrays.stream(nodes).map(RexNode::getType).toList());
+        .leastRestrictive(Arrays.stream(nodes).map(RexNode::getType).collect(Collectors.toList()));
   }
 
   public SqlIntervalQualifier createIntervalUntil(SpanUnit unit) {

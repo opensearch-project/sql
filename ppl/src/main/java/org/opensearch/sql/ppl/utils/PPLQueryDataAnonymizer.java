@@ -313,7 +313,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitFillNull(FillNull node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     List<FillNull.NullableFieldFill> fieldFills = node.getNullableFieldFills();
-    final UnresolvedExpression firstReplacement = fieldFills.getFirst().getReplaceNullWithMe();
+    final UnresolvedExpression firstReplacement = fieldFills.get(0).getReplaceNullWithMe();
     if (fieldFills.stream().allMatch(n -> firstReplacement == n.getReplaceNullWithMe())) {
       return StringUtils.format(
           "%s | fillnull with %s in %s",

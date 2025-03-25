@@ -7,6 +7,8 @@ package org.opensearch.sql.ast.tree;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
@@ -51,7 +53,7 @@ public class FillNull extends UnresolvedPlan {
           Objects.requireNonNull(nullableFieldReferences, "Nullable field reference is required")
               .stream()
               .map(nullableReference -> new NullableFieldFill(nullableReference, replaceNullWithMe))
-              .toList();
+                  .collect(Collectors.toList());
     }
   }
 

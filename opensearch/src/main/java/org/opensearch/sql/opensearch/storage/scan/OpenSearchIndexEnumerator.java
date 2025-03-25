@@ -68,7 +68,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     if (fields.size() == 1) {
       return current
           .tupleValue()
-          .getOrDefault(fields.getFirst(), ExprNullValue.of())
+          .getOrDefault(fields.get(0), ExprNullValue.of())
           .valueForCalcite();
     }
     return fields.stream()

@@ -129,7 +129,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (expr instanceof SubqueryExpression) {
       return true;
     }
-    if (expr instanceof Let l) {
+    if (expr instanceof Let) {
+      Let l = (Let) expr;
       return containsSubqueryExpression(l.getExpression());
     }
     for (Node child : expr.getChild()) {
@@ -166,10 +167,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> originalNames = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> newNames = new ArrayList<>(originalNames);
     for (org.opensearch.sql.ast.expression.Map renameMap : node.getRenameList()) {
-      if (renameMap.getTarget() instanceof Field t) {
+      if (renameMap.getTarget() instanceof Field) {
+        Field t = (Field) renameMap.getTarget();
         String newName = t.getField().toString();
         RexNode check = rexVisitor.analyze(renameMap.getOrigin(), context);
-        if (check instanceof RexInputRef ref) {
+        if (check instanceof RexInputRef) {
+          RexInputRef ref = (RexInputRef) check;
           newNames.set(ref.getIndex(), newName);
         } else {
           throw new SemanticCheckException(
@@ -281,7 +284,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                       return cur;
                     }
                   })
-              .toList();
+                  .collect(Collectors.toList());
       context.relBuilder.rename(newNames);
     }
     return context.relBuilder.peek();
@@ -304,7 +307,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // add span's group alias field (most recent added expression)
     }
     groupByList.addAll(
-        node.getGroupExprList().stream().map(expr -> rexVisitor.analyze(expr, context)).toList());
+        node.getGroupExprList().stream().map(expr -> rexVisitor.analyze(expr, context)).collect(Collectors.toList()));
 
     context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggList);
 
@@ -327,7 +330,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .map(ref -> ((RexLiteral) ref).getValueAs(String.class))
             .map(context.relBuilder::field)
             .map(f -> (RexNode) f)
-            .toList();
+                .collect(Collectors.toList());
     reordered.addAll(aliasedGroupByList);
     context.relBuilder.project(reordered);
 
@@ -387,15 +390,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> toBeRemovedLookupFieldNames =
         node.getMappingAliasMap().keySet().stream()
             .filter(k -> !node.getOutputAliasMap().containsKey(k))
-            .toList();
+                .collect(Collectors.toList());
     List<String> providedFieldNames =
         lookupTableFieldNames.stream()
             .filter(k -> !toBeRemovedLookupFieldNames.contains(k))
-            .toList();
+                .collect(Collectors.toList());
     List<RexNode> toBeRemovedLookupFields =
         toBeRemovedLookupFieldNames.stream()
             .map(d -> (RexNode) context.relBuilder.field(2, 1, d))
-            .toList();
+                .collect(Collectors.toList());
     List<RexNode> toBeRemovedFields = new ArrayList<>(toBeRemovedLookupFields);
 
     // 4. Find duplicated fields between source table fields and lookup table provided fields.
@@ -406,19 +409,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> duplicatedSourceFields =
         duplicatedFieldNamesMap.keySet().stream()
             .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, true, context))
-            .toList();
+                .collect(Collectors.toList());
     // Duplicated fields in source-field should always be removed.
     toBeRemovedFields.addAll(duplicatedSourceFields);
     // Construct a new field name for the new provided-fields.
     List<String> expectedProvidedFieldNames =
-        providedFieldNames.stream().map(k -> node.getOutputAliasMap().getOrDefault(k, k)).toList();
+        providedFieldNames.stream().map(k -> node.getOutputAliasMap().getOrDefault(k, k)).collect(Collectors.toList());
 
     List<RexNode> newCoalesceList = new ArrayList<>();
     if (!duplicatedFieldNamesMap.isEmpty() && node.getOutputStrategy() == OutputStrategy.APPEND) {
       List<RexNode> duplicatedProvidedFields =
           duplicatedFieldNamesMap.values().stream()
               .map(field -> JoinAndLookupUtils.analyzeFieldsForLookUp(field, false, context))
-              .toList();
+                  .collect(Collectors.toList());
       for (int i = 0; i < duplicatedProvidedFields.size(); ++i) {
         newCoalesceList.add(
             context.rexBuilder.coalesce(
@@ -434,7 +437,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           new ArrayList<>(
               expectedProvidedFieldNames.stream()
                   .filter(k -> !duplicatedFieldNamesMap.containsKey(k))
-                  .toList());
+                      .collect(Collectors.toList()));
       newExpectedFieldNames.addAll(duplicatedFieldNamesMap.keySet());
       expectedProvidedFieldNames = newExpectedFieldNames;
     }
@@ -478,7 +481,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     // Columns to deduplicate
     List<RexNode> dedupeFields =
-        node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
+        node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).collect(Collectors.toList());
     if (keepEmpty) {
       /*
        * | dedup 2 a, b keepempty=false
@@ -504,7 +507,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // Filter (isnull('a) OR isnull('b) OR '_row_number_ <= n)
       context.relBuilder.filter(
           context.relBuilder.or(
-              context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).toList()),
+              context.relBuilder.or(dedupeFields.stream().map(context.relBuilder::isNull).collect(Collectors.toList())),
               context.relBuilder.lessThanOrEqual(
                   _row_number_, context.relBuilder.literal(allowedDuplication))));
       // DropColumns('_row_number_)
@@ -521,7 +524,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // Filter (isnotnull('a) AND isnotnull('b))
       context.relBuilder.filter(
           context.relBuilder.and(
-              dedupeFields.stream().map(context.relBuilder::isNotNull).toList()));
+              dedupeFields.stream().map(context.relBuilder::isNotNull).collect(Collectors.toList())));
       // Window [row_number() windowspecdefinition('a, 'b, 'a ASC NULLS FIRST, 'b ASC NULLS FIRST,
       // specifiedwindowoundedpreceding$(), currentrow$())) AS _row_number_], ['a, 'b], ['a ASC
       // NULLS FIRST, 'b ASC NULLS FIRST]

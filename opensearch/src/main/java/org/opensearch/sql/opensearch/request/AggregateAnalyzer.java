@@ -156,7 +156,7 @@ public class AggregateAnalyzer {
           aggCall.getAggregation().kind == SqlKind.COUNT && aggCall.getArgList().isEmpty()
               ? METADATA_FIELD_INDEX
               : fieldExpressionCreator
-                  .create(aggCall.getArgList().getFirst())
+                  .create(aggCall.getArgList().get(0))
                   .getReferenceForTermQuery();
       String aggField = outputFields.get(groupOffset + i);
 
@@ -183,49 +183,62 @@ public class AggregateAnalyzer {
 
   private static Pair<ValuesSourceAggregationBuilder<?>, MetricParser> createDistinctAggregation(
       AggregateCall aggCall, String argStr, String aggField) {
-
-    return switch (aggCall.getAggregation().kind) {
-      case COUNT -> Pair.of(
-          AggregationBuilders.cardinality(aggField).field(argStr), new SingleValueParser(aggField));
-      default -> throw new AggregateAnalyzer.AggregateAnalyzerException(
-          String.format("unsupported distinct aggregator %s", aggCall.getAggregation()));
-    };
+    switch (aggCall.getAggregation().kind) {
+      case COUNT:
+        return Pair.of(
+                AggregationBuilders.cardinality(aggField).field(argStr),
+                new SingleValueParser(aggField));
+      default:
+        throw new AggregateAnalyzer.AggregateAnalyzerException(
+                String.format("unsupported distinct aggregator %s", aggCall.getAggregation()));
+    }
   }
 
   private static Pair<ValuesSourceAggregationBuilder<?>, MetricParser> createRegularAggregation(
       AggregateCall aggCall, String argStr, String aggField) {
 
-    return switch (aggCall.getAggregation().kind) {
-      case AVG -> Pair.of(
-          AggregationBuilders.avg(aggField).field(argStr), new SingleValueParser(aggField));
-      case SUM -> Pair.of(
-          AggregationBuilders.sum(aggField).field(argStr), new SingleValueParser(aggField));
-      case COUNT -> Pair.of(
-          AggregationBuilders.count(aggField).field(argStr), new SingleValueParser(aggField));
-      case MIN -> Pair.of(
-          AggregationBuilders.min(aggField).field(argStr), new SingleValueParser(aggField));
-      case MAX -> Pair.of(
-          AggregationBuilders.max(aggField).field(argStr), new SingleValueParser(aggField));
-      case VAR_SAMP -> Pair.of(
-          AggregationBuilders.extendedStats(aggField).field(argStr),
-          new StatsParser(ExtendedStats::getVarianceSampling, aggField));
-      case VAR_POP -> Pair.of(
-          AggregationBuilders.extendedStats(aggField).field(argStr),
-          new StatsParser(ExtendedStats::getVariancePopulation, aggField));
-      case STDDEV_SAMP -> Pair.of(
-          AggregationBuilders.extendedStats(aggField).field(argStr),
-          new StatsParser(ExtendedStats::getStdDeviationSampling, aggField));
-      case STDDEV_POP -> Pair.of(
-          AggregationBuilders.extendedStats(aggField).field(argStr),
-          new StatsParser(ExtendedStats::getStdDeviationPopulation, aggField));
-        // TODO: below UDAF should support push down once implemented
-        // https://github.com/opensearch-project/sql/issues/3385
-        // case take
-        // case percentile
-        // case percentile_approx
-      default -> throw new AggregateAnalyzerException(
-          String.format("unsupported aggregator %s", aggCall.getAggregation()));
-    };
+    switch (aggCall.getAggregation().kind) {
+      case AVG:
+        return Pair.of(
+                AggregationBuilders.avg(aggField).field(argStr),
+                new SingleValueParser(aggField));
+      case SUM:
+        return Pair.of(
+                AggregationBuilders.sum(aggField).field(argStr),
+                new SingleValueParser(aggField));
+      case COUNT:
+        return Pair.of(
+                AggregationBuilders.count(aggField).field(argStr),
+                new SingleValueParser(aggField));
+      case MIN:
+        return Pair.of(
+                AggregationBuilders.min(aggField).field(argStr),
+                new SingleValueParser(aggField));
+      case MAX:
+        return Pair.of(
+                AggregationBuilders.max(aggField).field(argStr),
+                new SingleValueParser(aggField));
+      case VAR_SAMP:
+        return Pair.of(
+                AggregationBuilders.extendedStats(aggField).field(argStr),
+                new StatsParser(ExtendedStats::getVarianceSampling, aggField));
+      case VAR_POP:
+        return Pair.of(
+                AggregationBuilders.extendedStats(aggField).field(argStr),
+                new StatsParser(ExtendedStats::getVariancePopulation, aggField));
+      case STDDEV_SAMP:
+        return Pair.of(
+                AggregationBuilders.extendedStats(aggField).field(argStr),
+                new StatsParser(ExtendedStats::getStdDeviationSampling, aggField));
+      case STDDEV_POP:
+        return Pair.of(
+                AggregationBuilders.extendedStats(aggField).field(argStr),
+                new StatsParser(ExtendedStats::getStdDeviationPopulation, aggField));
+      default:
+        throw new AggregateAnalyzerException(
+                String.format("unsupported aggregator %s", aggCall.getAggregation()));
+    }
+
   }
 
   private static List<CompositeValuesSourceBuilder<?>> createCompositeBuckets(

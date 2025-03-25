@@ -75,7 +75,7 @@ public class UserDefineFunctionUtils {
       if (argTypes.isEmpty()) {
         throw new IllegalArgumentException("Function requires at least one argument.");
       }
-      RelDataType firstArgType = argTypes.getFirst();
+      RelDataType firstArgType = argTypes.get(0);
       return createArrayType(typeFactory, firstArgType, true);
     };
   }
