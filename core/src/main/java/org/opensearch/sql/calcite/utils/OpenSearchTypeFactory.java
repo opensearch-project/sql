@@ -193,6 +193,19 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     }
   }
 
+  /** Get legacy name for a SqlTypeName. */
+  public static String getLegacyTypeName(SqlTypeName sqlTypeName) {
+    switch (sqlTypeName) {
+      case BINARY:
+      case VARBINARY:
+        return "BINARY";
+      case GEOMETRY:
+        return "GEO_POINT";
+      default:
+        return convertSqlTypeNameToExprType(sqlTypeName).legacyTypeName();
+    }
+  }
+
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
     ExprType exprType = convertSqlTypeNameToExprType(type.getSqlTypeName());

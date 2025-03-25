@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 
 import java.math.BigDecimal;
@@ -184,6 +185,7 @@ public interface BuiltinFunctionUtils {
       case "IS NULL":
         return SqlStdOperatorTable.IS_NULL;
       case "TYPEOF":
+        // TODO optimize this function to ImplementableFunction
         return TransferUserDefinedFunction(
             TypeOfFunction.class, "typeof", ReturnTypes.VARCHAR_2000_NULLABLE);
         // TODO Add more, ref RexImpTable
@@ -255,7 +257,9 @@ public interface BuiltinFunctionUtils {
         }
         return LogArgs;
       case "TYPEOF":
-        return List.of(context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
+        return List.of(
+            context.rexBuilder.makeLiteral(
+                getLegacyTypeName(argList.getFirst().getType().getSqlTypeName())));
       default:
         return argList;
     }
