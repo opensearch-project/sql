@@ -22,7 +22,7 @@ public abstract class AbstractPlan {
   /** Uniq query id. */
   @Getter private final QueryId queryId;
 
-  @Getter private final QueryType queryType;
+  @Getter protected final QueryType queryType;
 
   /** Start query execution. */
   public abstract void execute();
