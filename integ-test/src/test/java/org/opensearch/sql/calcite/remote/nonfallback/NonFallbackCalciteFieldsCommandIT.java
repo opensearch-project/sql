@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote.nonfallback;
 
-import java.io.IOException;
 import org.opensearch.sql.calcite.remote.fallback.CalciteFieldsCommandIT;
 
 public class NonFallbackCalciteFieldsCommandIT extends CalciteFieldsCommandIT {

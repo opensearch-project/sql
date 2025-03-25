@@ -10,7 +10,6 @@ package org.opensearch.sql.ppl.parser;
 
 import static org.opensearch.sql.executor.QueryType.PPL;
 
-import com.google.common.collect.ImmutableList;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
