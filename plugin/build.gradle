@@ -31,7 +31,7 @@ plugins {
     id 'jacoco'
     id 'opensearch.opensearchplugin'
     id 'com.diffplug.spotless' version '6.22.0'
-    id 'com.gradleup.shadow'
+    id 'com.gradleup.shadow' version "8.3.6"
 }
 
 apply plugin: 'opensearch.pluginzip'
@@ -352,6 +352,8 @@ shadowJar {
     archiveClassifier.set(null)
 
     exclude 'META-INF/maven/com.google.guava/**'
+    exclude 'META-INF/versions/15/**'
+    exclude 'META-INF/versions/21/**'
     exclude 'com/google/thirdparty/**'
     exclude 'org/opensearch/jobscheduler/**'
     exclude 'org/apache/lucene/**'

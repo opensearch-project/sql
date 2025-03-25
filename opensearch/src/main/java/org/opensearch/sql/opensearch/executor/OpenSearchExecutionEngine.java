@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -131,7 +133,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
     List<RelDataType> fieldTypes =
-        rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();
+        rowTypes.getFieldList().stream().map(RelDataTypeField::getType).collect(Collectors.toList());
     List<ExprValue> values = new ArrayList<>();
     // Iterate through the ResultSet
     while (resultSet.next()) {

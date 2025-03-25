@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -43,7 +45,7 @@ public class TrendlineOperator extends PhysicalPlan {
       PhysicalPlan input, List<Pair<Trendline.TrendlineComputation, ExprCoreType>> computations) {
     this.input = input;
     this.computations = computations;
-    this.accumulators = computations.stream().map(TrendlineOperator::createAccumulator).toList();
+    this.accumulators = computations.stream().map(TrendlineOperator::createAccumulator).collect(Collectors.toList());
     fieldToIndexMap = new HashMap<>(computations.size());
     aliases = new HashSet<>(computations.size());
     for (int i = 0; i < computations.size(); ++i) {
@@ -65,7 +67,7 @@ public class TrendlineOperator extends PhysicalPlan {
 
   @Override
   public boolean hasNext() {
-    return getChild().getFirst().hasNext();
+    return getChild().get(0).hasNext();
   }
 
   @Override
@@ -170,7 +172,7 @@ public class TrendlineOperator extends PhysicalPlan {
           runningTotal = evaluator.add(runningTotal, value, valueToRemove);
         } else {
           // This is the first average calculation so sum the entire receivedValues dataset.
-          final List<ExprValue> data = receivedValues.stream().toList();
+          final List<ExprValue> data = receivedValues.stream().collect(Collectors.toList());
           runningTotal = evaluator.calculateFirstTotal(data);
         }
       }
