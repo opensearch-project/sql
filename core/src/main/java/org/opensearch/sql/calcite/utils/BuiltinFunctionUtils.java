@@ -504,7 +504,7 @@ public interface BuiltinFunctionUtils {
       case "DAYNAME", "MONTHNAME":
         List<RexNode> periodNameArgs = new ArrayList<>();
         periodNameArgs.add(argList.getFirst());
-        periodNameArgs.add(context.rexBuilder.makeLiteral(op));
+        periodNameArgs.add(context.rexBuilder.makeLiteral(op.toUpperCase(Locale.ROOT)));
         periodNameArgs.add(
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return periodNameArgs;
@@ -512,8 +512,12 @@ public interface BuiltinFunctionUtils {
           "QUARTER",
           "MINUTE",
           "HOUR",
+           "HOUR_OF_DAY",
           "DAY",
+         "DAY_OF_MONTH",
+         "DAYOFMONTH",
           "MONTH",
+           "MONTH_OF_YEAR",
           "SECOND",
           "SECOND_OF_MINUTE",
           "MINUTE_OF_HOUR":
@@ -523,8 +527,15 @@ public interface BuiltinFunctionUtils {
           timeUnitRange = TimeUnitRange.MINUTE;
         } else if (op.equalsIgnoreCase("SECOND_OF_MINUTE")) {
           timeUnitRange = TimeUnitRange.SECOND;
-        } else {
-          timeUnitRange = TimeUnitRange.valueOf(op);
+        } else if (op.equalsIgnoreCase("DAY_OF_MONTH") || op.equalsIgnoreCase("DAYOFMONTH")) {
+          timeUnitRange = TimeUnitRange.DAY;
+        } else if (op.equalsIgnoreCase("HOUR_OF_DAY")) {
+          timeUnitRange = TimeUnitRange.HOUR;
+        } else if (op.equalsIgnoreCase("MONTH_OF_YEAR")) {
+          timeUnitRange = TimeUnitRange.MONTH;
+        }
+        else {
+          timeUnitRange = TimeUnitRange.valueOf(op.toUpperCase(Locale.ROOT));
         }
         extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
         if (argList.getFirst() instanceof RexLiteral) {
@@ -548,21 +559,6 @@ public interface BuiltinFunctionUtils {
           extractArgs.add(argList.getFirst());
         }
         return extractArgs;
-      case "HOUR_OF_DAY":
-        List<RexNode> hourofDayArgs = new ArrayList<>();
-        hourofDayArgs.add(context.rexBuilder.makeLiteral("HOUR"));
-        hourofDayArgs.add(argList.getFirst());
-        return hourofDayArgs;
-      case "DAY_OF_MONTH", "DAYOFMONTH":
-        List<RexNode> dayofMonthArgs = new ArrayList<>();
-        dayofMonthArgs.add(context.rexBuilder.makeLiteral("DAY"));
-        dayofMonthArgs.add(argList.getFirst());
-        return dayofMonthArgs;
-      case "MONTH_OF_YEAR":
-        List<RexNode> monthOfYearArgs = new ArrayList<>();
-        monthOfYearArgs.add(context.rexBuilder.makeLiteral("MONTH"));
-        monthOfYearArgs.add(argList.getFirst());
-        return monthOfYearArgs;
       case "DATE_SUB":
         List<RexNode> dateSubArgs = transformDateManipulationArgs(argList, context.rexBuilder);
         // A flag that represents isAdd
@@ -717,6 +713,7 @@ public interface BuiltinFunctionUtils {
           "DAYOFWEEK",
           "DAY",
           "MINUTE_OF_HOUR",
+           "QUARTER",
           "SECOND",
           "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
       default -> rexBuilder.deriveReturnType(operator, exprs);
