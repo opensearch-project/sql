@@ -53,15 +53,26 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.DateFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.FromDaysFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.FromUnixTimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.GetFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MakeDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MakeTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MinuteOfDay;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodAddFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodDiffFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodNameFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.SecondToTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.StrToDateFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.SysdateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimeDiffFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimeFormatFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimeToSecondFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampAddFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.ToDaysFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.ToSecondsFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeFunction;
@@ -69,17 +80,6 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.UtcTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.WeekDayFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.WeekFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.YearWeekFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.FromUnixTimestampFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodNameFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.SecondToTimeFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.SysdateFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimeDiffFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimeFormatFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimeToSecondFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampAddFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampDiffFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.ToDaysFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.ToSecondsFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
@@ -512,12 +512,12 @@ public interface BuiltinFunctionUtils {
           "QUARTER",
           "MINUTE",
           "HOUR",
-           "HOUR_OF_DAY",
+          "HOUR_OF_DAY",
           "DAY",
-         "DAY_OF_MONTH",
-         "DAYOFMONTH",
+          "DAY_OF_MONTH",
+          "DAYOFMONTH",
           "MONTH",
-           "MONTH_OF_YEAR",
+          "MONTH_OF_YEAR",
           "SECOND",
           "SECOND_OF_MINUTE",
           "MINUTE_OF_HOUR":
@@ -533,8 +533,7 @@ public interface BuiltinFunctionUtils {
           timeUnitRange = TimeUnitRange.HOUR;
         } else if (op.equalsIgnoreCase("MONTH_OF_YEAR")) {
           timeUnitRange = TimeUnitRange.MONTH;
-        }
-        else {
+        } else {
           timeUnitRange = TimeUnitRange.valueOf(op.toUpperCase(Locale.ROOT));
         }
         extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
@@ -713,7 +712,7 @@ public interface BuiltinFunctionUtils {
           "DAYOFWEEK",
           "DAY",
           "MINUTE_OF_HOUR",
-           "QUARTER",
+          "QUARTER",
           "SECOND",
           "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
       default -> rexBuilder.deriveReturnType(operator, exprs);
