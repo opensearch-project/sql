@@ -354,7 +354,7 @@ public interface BuiltinFunctionUtils {
           "SECOND_OF_MINUTE":
         return SqlLibraryOperators.DATE_PART;
       case "YEARWEEK":
-        return TransferUserDefinedFunction(YearWeekFunction.class, "YEARWEEK", ReturnTypes.INTEGER);
+        return TransferUserDefinedFunction(YearWeekFunction.class, "YEARWEEK", createNullableReturnType(SqlTypeName.INTEGER));
       case "FROM_UNIXTIME":
         return TransferUserDefinedFunction(
             FromUnixTimestampFunction.class,

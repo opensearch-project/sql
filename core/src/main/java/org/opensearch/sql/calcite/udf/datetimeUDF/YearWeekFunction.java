@@ -11,6 +11,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Objects;
+
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
@@ -24,6 +26,9 @@ public class YearWeekFunction implements UserDefinedFunction {
   public Object eval(Object... args) {
     Instant basetime;
     int mode;
+    if (Objects.isNull(args[0])) {
+      return null;
+    }
     LocalDate candidateDate;
     SqlTypeName sqlTypeName;
     if (args.length == 2) {
