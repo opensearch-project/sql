@@ -35,6 +35,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,6 +43,8 @@ import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
 class QueryPlanFactoryTest {
 
   @Mock private UnresolvedPlan plan;
+
+  @Mock private QueryType queryType;
 
   @Mock private QueryService queryService;
 
@@ -60,7 +63,7 @@ class QueryPlanFactoryTest {
 
   @Test
   public void create_from_query_should_success() {
-    Statement query = new Query(plan, 0);
+    Statement query = new Query(plan, 0, queryType);
     AbstractPlan queryExecution =
         factory.create(query, Optional.of(queryListener), Optional.empty());
     assertTrue(queryExecution instanceof QueryPlan);
@@ -68,7 +71,7 @@ class QueryPlanFactoryTest {
 
   @Test
   public void create_from_explain_should_success() {
-    Statement query = new Explain(new Query(plan, 0));
+    Statement query = new Explain(new Query(plan, 0, queryType), queryType);
     AbstractPlan queryExecution =
         factory.create(query, Optional.empty(), Optional.of(explainListener));
     assertTrue(queryExecution instanceof ExplainPlan);
@@ -76,8 +79,10 @@ class QueryPlanFactoryTest {
 
   @Test
   public void create_from_cursor_should_success() {
-    AbstractPlan queryExecution = factory.create("", false, queryListener, explainListener);
-    AbstractPlan explainExecution = factory.create("", true, queryListener, explainListener);
+    AbstractPlan queryExecution =
+        factory.create("", false, queryType, queryListener, explainListener);
+    AbstractPlan explainExecution =
+        factory.create("", true, queryType, queryListener, explainListener);
     assertAll(
         () -> assertTrue(queryExecution instanceof QueryPlan),
         () -> assertTrue(explainExecution instanceof ExplainPlan));
@@ -85,7 +90,7 @@ class QueryPlanFactoryTest {
 
   @Test
   public void create_from_query_without_query_listener_should_throw_exception() {
-    Statement query = new Query(plan, 0);
+    Statement query = new Query(plan, 0, queryType);
 
     IllegalArgumentException exception =
         assertThrows(
@@ -96,7 +101,7 @@ class QueryPlanFactoryTest {
 
   @Test
   public void create_from_explain_without_explain_listener_should_throw_exception() {
-    Statement query = new Explain(new Query(plan, 0));
+    Statement query = new Explain(new Query(plan, 0, queryType), queryType);
 
     IllegalArgumentException exception =
         assertThrows(
@@ -126,7 +131,7 @@ class QueryPlanFactoryTest {
   public void create_query_with_fetch_size_which_can_be_paged() {
     when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.TRUE);
     factory = new QueryPlanFactory(queryService);
-    Statement query = new Query(plan, 10);
+    Statement query = new Query(plan, 10, queryType);
     AbstractPlan queryExecution =
         factory.create(query, Optional.of(queryListener), Optional.empty());
     assertTrue(queryExecution instanceof QueryPlan);
@@ -136,7 +141,7 @@ class QueryPlanFactoryTest {
   public void create_query_with_fetch_size_which_cannot_be_paged() {
     when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.FALSE);
     factory = new QueryPlanFactory(queryService);
-    Statement query = new Query(plan, 10);
+    Statement query = new Query(plan, 10, queryType);
     assertThrows(
         UnsupportedCursorRequestException.class,
         () -> factory.create(query, Optional.of(queryListener), Optional.empty()));
@@ -145,11 +150,11 @@ class QueryPlanFactoryTest {
   @Test
   public void create_close_cursor() {
     factory = new QueryPlanFactory(queryService);
-    var plan = factory.createCloseCursor("pewpew", queryListener);
+    var plan = factory.createCloseCursor("pewpew", queryType, queryListener);
     assertTrue(plan instanceof CommandPlan);
     plan.execute();
     var captor = ArgumentCaptor.forClass(UnresolvedPlan.class);
-    verify(queryService).execute(captor.capture(), any());
+    verify(queryService).execute(captor.capture(), any(), any());
     assertTrue(captor.getValue() instanceof CloseCursor);
   }
 }
