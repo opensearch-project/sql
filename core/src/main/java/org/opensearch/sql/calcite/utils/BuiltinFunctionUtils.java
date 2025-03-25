@@ -361,7 +361,7 @@ public interface BuiltinFunctionUtils {
             "FROM_UNIXTIME",
             FromUnixTimestampFunction.interReturnTypes());
       case "WEEKDAY":
-        return TransferUserDefinedFunction(WeekDayFunction.class, "WEEKDAY", ReturnTypes.INTEGER);
+        return TransferUserDefinedFunction(WeekDayFunction.class, "WEEKDAY", createNullableReturnType(SqlTypeName.INTEGER));
       case "UTC_TIMESTAMP":
         return TransferUserDefinedFunction(
             UtcTimeStampFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
@@ -714,7 +714,7 @@ public interface BuiltinFunctionUtils {
           "MINUTE_OF_HOUR",
           "QUARTER",
           "SECOND",
-          "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+          "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createTypeWithNullability(rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER), true);
       default -> rexBuilder.deriveReturnType(operator, exprs);
     };
   }

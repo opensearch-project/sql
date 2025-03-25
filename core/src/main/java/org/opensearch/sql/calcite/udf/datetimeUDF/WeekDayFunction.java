@@ -10,6 +10,8 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Objects;
+
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
@@ -18,6 +20,9 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 public class WeekDayFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (Objects.isNull(args[0])) {
+      return null;
+    }
     SqlTypeName sqlTypeName = (SqlTypeName) args[1];
     LocalDate candidateDate =
         LocalDateTime.ofInstant(InstantUtils.convertToInstant(args[0], sqlTypeName), ZoneOffset.UTC)
