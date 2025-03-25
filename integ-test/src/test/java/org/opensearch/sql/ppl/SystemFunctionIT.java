@@ -89,7 +89,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
             "TIMESTAMP",
             "TIMESTAMP",
             "BOOLEAN",
-            "OBJECT",
+            "STRUCT",
             "STRING",
             "IP",
             "BINARY",
