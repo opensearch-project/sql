@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.Collections;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -37,7 +38,12 @@ public class DateAddSubFunction implements UserDefinedFunction {
             Number.class,
             SqlTypeName.class,
             Boolean.class,
-            SqlTypeName.class));
+            SqlTypeName.class),
+        Collections.nCopies(6, true));
+
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
 
     TimeUnit unit = (TimeUnit) args[0];
     long interval = ((Number) args[1]).longValue();
@@ -73,11 +79,12 @@ public class DateAddSubFunction implements UserDefinedFunction {
     }
   }
 
-  public static SqlReturnTypeInference getReturnTypeForAddOrSubDate() {
+  public static SqlReturnTypeInference getReturnTypeForAddOrSubDate(boolean nullable) {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(6);
       SqlTypeName typeName = operandType0.getSqlTypeName();
-      return opBinding.getTypeFactory().createSqlType(typeName);
+      RelDataType returnType = opBinding.getTypeFactory().createSqlType(typeName);
+      return opBinding.getTypeFactory().createTypeWithNullability(returnType, nullable);
     };
   }
 }

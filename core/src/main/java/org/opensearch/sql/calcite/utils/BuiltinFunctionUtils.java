@@ -90,7 +90,8 @@ import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 public interface BuiltinFunctionUtils {
 
   static SqlOperator translate(String op) {
-    switch (op.toUpperCase(Locale.ROOT)) {
+    String capitalOP = op.toUpperCase(Locale.ROOT);
+    switch (capitalOP) {
       case "AND":
         return SqlStdOperatorTable.AND;
       case "OR":
@@ -221,20 +222,24 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.DATE;
       case "DATE_ADD":
         return TransferUserDefinedFunction(
-            DateAddSubFunction.class, "DATE_ADD", ReturnTypes.TIMESTAMP);
+            DateAddSubFunction.class, "DATE_ADD", createNullableReturnType(SqlTypeName.TIMESTAMP));
       case "ADDDATE":
         return TransferUserDefinedFunction(
-            DateAddSubFunction.class, "ADDDATE", DateAddSubFunction.getReturnTypeForAddOrSubDate());
+            DateAddSubFunction.class,
+            "ADDDATE",
+            DateAddSubFunction.getReturnTypeForAddOrSubDate(true));
       case "SUBDATE":
         return TransferUserDefinedFunction(
-            DateAddSubFunction.class, "SUBDATE", DateAddSubFunction.getReturnTypeForAddOrSubDate());
+            DateAddSubFunction.class,
+            "SUBDATE",
+            DateAddSubFunction.getReturnTypeForAddOrSubDate(true));
       case "DATE_SUB":
         return TransferUserDefinedFunction(
-            DateAddSubFunction.class, "DATE_SUB", ReturnTypes.TIMESTAMP);
+            DateAddSubFunction.class, "DATE_SUB", createNullableReturnType(SqlTypeName.TIMESTAMP));
       case "ADDTIME", "SUBTIME":
         return TransferUserDefinedFunction(
             TimeAddSubFunction.class,
-            "ADDTIME",
+            capitalOP,
             UserDefinedFunctionUtils.getReturnTypeForTimeAddSub());
       case "DAY_OF_WEEK", "DAY_OF_YEAR", "DAYOFWEEK", "DAYOFYEAR":
         // SqlStdOperatorTable.DAYOFWEEK, SqlStdOperatorTable.DAYOFYEAR is not implemented in
@@ -354,7 +359,8 @@ public interface BuiltinFunctionUtils {
           "SECOND_OF_MINUTE":
         return SqlLibraryOperators.DATE_PART;
       case "YEARWEEK":
-        return TransferUserDefinedFunction(YearWeekFunction.class, "YEARWEEK", createNullableReturnType(SqlTypeName.INTEGER));
+        return TransferUserDefinedFunction(
+            YearWeekFunction.class, "YEARWEEK", createNullableReturnType(SqlTypeName.INTEGER));
       case "FROM_UNIXTIME":
         return TransferUserDefinedFunction(
             FromUnixTimestampFunction.class,
@@ -714,7 +720,8 @@ public interface BuiltinFunctionUtils {
           "MINUTE_OF_HOUR",
           "QUARTER",
           "SECOND",
-          "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+          "SECOND_OF_MINUTE" -> createNullableReturnType(
+          rexBuilder.getTypeFactory(), SqlTypeName.INTEGER);
       default -> rexBuilder.deriveReturnType(operator, exprs);
     };
   }

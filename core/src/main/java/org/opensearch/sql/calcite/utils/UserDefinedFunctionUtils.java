@@ -10,9 +10,12 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VA
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -32,6 +35,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class UserDefinedFunctionUtils {
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
@@ -138,19 +142,26 @@ public class UserDefinedFunctionUtils {
     };
   }
 
+  /**
+   * ADDTIME and SUBTIME has special return type maps: (DATE/TIMESTAMP, DATE/TIMESTAMP/TIME) ->
+   * TIMESTAMP (TIME, DATE/TIMESTAMP/TIME) -> TIME Therefore, we create a special return type
+   * inference for them.
+   */
   static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(0);
       SqlTypeName typeName = operandType0.getSqlTypeName();
-      return switch (typeName) {
-        case DATE, TIMESTAMP ->
-        // Return TIMESTAMP
-        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
-        case TIME ->
-        // Return TIME
-        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIME);
-        default -> throw new IllegalArgumentException("Unsupported type: " + typeName);
-      };
+      RelDataType t =
+          switch (typeName) {
+            case DATE, TIMESTAMP ->
+            // Return TIMESTAMP
+            opBinding.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+            case TIME ->
+            // Return TIME
+            opBinding.getTypeFactory().createSqlType(SqlTypeName.TIME);
+            default -> throw new IllegalArgumentException("Unsupported type: " + typeName);
+          };
+      return opBinding.getTypeFactory().createTypeWithNullability(t, true);
     };
   }
 
@@ -169,16 +180,27 @@ public class UserDefinedFunctionUtils {
     };
   }
 
+  static RelDataType createNullableReturnType(
+      RelDataTypeFactory typeFactory, SqlTypeName sqlTypeName) {
+    return typeFactory.createTypeWithNullability(typeFactory.createSqlType(sqlTypeName), true);
+  }
+
   static List<Integer> transferStringExprToDateValue(String timeExpr) {
-    if (timeExpr.contains(":")) {
-      // A timestamp
-      LocalDateTime localDateTime =
-          LocalDateTime.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-      return List.of(
-          localDateTime.getYear(), localDateTime.getMonthValue(), localDateTime.getDayOfMonth());
-    } else {
-      LocalDate localDate = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-      return List.of(localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth());
+    try {
+      if (timeExpr.contains(":")) {
+        // A timestamp
+        LocalDateTime localDateTime =
+            LocalDateTime.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+        return List.of(
+            localDateTime.getYear(), localDateTime.getMonthValue(), localDateTime.getDayOfMonth());
+      } else {
+        LocalDate localDate =
+            LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+        return List.of(localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth());
+      }
+    } catch (DateTimeParseException e) {
+      throw new SemanticCheckException(
+          String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", timeExpr));
     }
   }
 
@@ -250,5 +272,10 @@ public class UserDefinedFunctionUtils {
                 objects.get(i) == null ? "null" : objects.get(i).getClass().getName()));
       }
     }
+  }
+
+  /** Check whether the given array contains null values. */
+  public static boolean containsNull(Object[] objects) {
+    return Arrays.stream(objects).anyMatch(Objects::isNull);
   }
 }
