@@ -610,11 +610,7 @@ public interface BuiltinFunctionUtils {
         }
         // Convert date to timestamp
         else if (timeExpr.getType().getSqlTypeName().equals(SqlTypeName.DATE)) {
-          timeNode =
-              context.rexBuilder.makeCall(
-                  TransferUserDefinedFunction(
-                      TimestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP),
-                  translateArgument("TIMESTAMP", ImmutableList.of(timeExpr), context));
+          timeNode = makeConversionCall("TIMESTAMP", ImmutableList.of(timeExpr), context);
         } else {
           timeNode = timeExpr;
         }
@@ -695,7 +691,9 @@ public interface BuiltinFunctionUtils {
       String funcName, List<RexNode> arguments, CalcitePlanContext context) {
     SqlOperator operator = translate(funcName);
     List<RexNode> translatedArguments = translateArgument(funcName, arguments, context);
-    return context.rexBuilder.makeCall(operator, translatedArguments);
+    RelDataType returnType =
+        deriveReturnType(funcName, context.rexBuilder, operator, translatedArguments);
+    return context.rexBuilder.makeCall(returnType, operator, translatedArguments);
   }
 
   static RelDataType deriveReturnType(
