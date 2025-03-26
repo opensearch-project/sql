@@ -24,7 +24,7 @@ public class TimeToSecondFunction implements UserDefinedFunction {
       return null;
     }
     SqlTypeName timeType = (SqlTypeName) args[1];
-    Instant time = InstantUtils.convertToInstant(args[0], timeType);
+    Instant time = InstantUtils.convertToInstant(args[0], timeType, false);
     LocalTime candidateTime = LocalDateTime.ofInstant(time, ZoneOffset.UTC).toLocalTime();
     return exprTimeToSec(new ExprTimeValue(candidateTime)).longValue();
   }

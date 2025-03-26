@@ -27,10 +27,10 @@ public class TimestampDiffFunction implements UserDefinedFunction {
     String addUnit = (String) args[0];
     SqlTypeName sqlTypeName1 = (SqlTypeName) args[2];
     Instant timestamp1;
-    timestamp1 = InstantUtils.convertToInstant(args[1], sqlTypeName1);
+    timestamp1 = InstantUtils.convertToInstant(args[1], sqlTypeName1, false);
     SqlTypeName sqlTypeName2 = (SqlTypeName) args[4];
     Instant timestamp2;
-    timestamp2 = InstantUtils.convertToInstant(args[3], sqlTypeName2);
+    timestamp2 = InstantUtils.convertToInstant(args[3], sqlTypeName2, false);
     LocalDateTime localDateTime1 = LocalDateTime.ofInstant(timestamp1, ZoneOffset.UTC);
     LocalDateTime localDateTime2 = LocalDateTime.ofInstant(timestamp2, ZoneOffset.UTC);
     ExprValue diffResult =

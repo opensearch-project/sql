@@ -6,8 +6,9 @@
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Objects;
+
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
@@ -20,17 +21,12 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 public class WeekFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
-    if (UserDefinedFunctionUtils.containsNull(args)) {
-      return null;
-    }
-    UserDefinedFunctionUtils.validateArgumentCount("WEEK", 2, args.length, false);
-    UserDefinedFunctionUtils.validateArgumentTypes(
-        Arrays.asList(args), List.of(Number.class, Number.class));
 
-    if (UserDefinedFunctionUtils.containsNull(args)) {
-        return null;
-    }
-    Instant i = InstantUtils.fromEpochMills(((Number) args[0]).longValue());
+      if (Objects.isNull(args[0])) {
+          return null;
+      }
+
+     Instant i = InstantUtils.convertToInstant(args[0], (SqlTypeName) args[2], false);
     ExprValue woyExpr =
         DateTimeFunctions.exprWeek(
             new ExprTimestampValue(i), new ExprIntegerValue((Number) args[1]));

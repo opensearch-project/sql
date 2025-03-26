@@ -7,6 +7,10 @@ package org.opensearch.sql.calcite.utils.datetime;
 
 import java.time.*;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
+
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprDateTimeNoTimezone;
 
 public interface InstantUtils {
 
@@ -57,8 +61,8 @@ public interface InstantUtils {
    * @param sqlTypeName type of the internalDatetime
    * @return Instant that represents the given internalDatetime
    */
-  static Instant convertToInstant(Object candidate, SqlTypeName sqlTypeName) {
-    Instant dateTimeBase;
+  static Instant convertToInstant(Object candidate, SqlTypeName sqlTypeName, boolean onlyForTimestamp) {
+    Instant dateTimeBase = null;
     switch (sqlTypeName) {
       case DATE:
         dateTimeBase = InstantUtils.fromInternalDate((int) candidate);
@@ -71,7 +75,16 @@ public interface InstantUtils {
         break;
       default:
         String timestampExpression = (String) candidate;
-        dateTimeBase = InstantUtils.fromStringExpr(timestampExpression);
+        if (onlyForTimestamp) {
+          ExprValue timestampExpr = exprDateTimeNoTimezone(new ExprStringValue(timestampExpression));
+          if (timestampExpr.isNull()){
+            throw new IllegalArgumentException("Cannot convert " + timestampExpression + " to Instant");
+          } else {
+            dateTimeBase = timestampExpr.timestampValue();
+          }
+        } else {
+          dateTimeBase = InstantUtils.fromStringExpr(timestampExpression);
+        }
     }
     return dateTimeBase;
   }

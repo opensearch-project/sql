@@ -32,7 +32,7 @@ public class TimestampAddFunction implements UserDefinedFunction {
     int amount = (int) args[1];
     SqlTypeName sqlTypeName = (SqlTypeName) args[3];
     Instant dateTimeBase;
-    dateTimeBase = InstantUtils.convertToInstant(args[2], sqlTypeName);
+    dateTimeBase = InstantUtils.convertToInstant(args[2], sqlTypeName, false);
     LocalDateTime localDateTime = LocalDateTime.ofInstant(dateTimeBase, ZoneOffset.UTC);
     ExprValue returnValue =
         exprTimestampAdd(

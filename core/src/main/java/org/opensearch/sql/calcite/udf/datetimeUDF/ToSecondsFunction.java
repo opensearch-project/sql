@@ -33,7 +33,7 @@ public class ToSecondsFunction implements UserDefinedFunction {
         ExprTimestampValue dateTimeValue =
             new ExprTimestampValue(
                 LocalDateTime.ofInstant(
-                    InstantUtils.convertToInstant(args[0], sqlTypeName), ZoneOffset.UTC));
+                    InstantUtils.convertToInstant(args[0], sqlTypeName, false), ZoneOffset.UTC));
         return exprToSeconds(dateTimeValue).longValue();
       default:
         return exprToSecondsForIntType(new ExprLongValue((Number) args[0])).longValue();

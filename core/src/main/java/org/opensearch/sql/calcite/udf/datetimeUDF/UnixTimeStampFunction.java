@@ -10,6 +10,8 @@ import static org.opensearch.sql.utils.DateTimeFormatters.*;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Objects;
+
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -30,6 +32,9 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
       return unixTimeStamp(new FunctionProperties().getQueryStartClock()).longValue();
     }
     Object input = args[0];
+    if (Objects.isNull(input)) {
+      return null;
+    }
     SqlTypeName inputTypes = (SqlTypeName) args[1];
     ExprValue inputValue;
     if (inputTypes == SqlTypeName.DATE) {
@@ -44,7 +49,6 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
     } else {
       inputValue = new ExprLongValue((long) input);
     }
-    long demo = unixTimeStampOf(inputValue).longValue();
-    return unixTimeStampOf(inputValue).longValue();
+    return (double) unixTimeStampOf(inputValue).longValue();
   }
 }
