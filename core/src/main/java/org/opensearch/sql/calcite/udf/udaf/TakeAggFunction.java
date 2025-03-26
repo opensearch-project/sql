@@ -7,6 +7,8 @@ package org.opensearch.sql.calcite.udf.udaf;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
 public class TakeAggFunction implements UserDefinedAggFunction<TakeAggFunction.TakeAccumulator> {
@@ -44,7 +46,7 @@ public class TakeAggFunction implements UserDefinedAggFunction<TakeAggFunction.T
     }
 
     @Override
-    public Object value() {
+    public Object value(Object... argList) {
       return hits;
     }
 

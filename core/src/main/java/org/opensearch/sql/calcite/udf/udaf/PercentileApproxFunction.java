@@ -6,15 +6,29 @@
 package org.opensearch.sql.calcite.udf.udaf;
 
 import com.tdunning.math.stats.AVLTreeDigest;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
+/**
+ * We write by ourselves since it's an approximate algorithm
+ */
 public class PercentileApproxFunction
     implements UserDefinedAggFunction<PercentileApproxFunction.PencentileApproAccumulator> {
+  SqlTypeName returnType;
+  private double compression;
+  double percentile;
+
   @Override
   public PencentileApproAccumulator init() {
+    returnType = SqlTypeName.DOUBLE;
+    compression = 100.0;
+    percentile = 1.0;
     return new PencentileApproAccumulator();
   }
 
@@ -26,8 +40,13 @@ public class PercentileApproxFunction
     if (Objects.isNull(targetValue)) {
       return acc;
     }
-    Number percentileValue = (Number) allValues.get(1);
-    acc.evaluate(((Number) targetValue).doubleValue(), percentileValue.intValue());
+    percentile = ((Number) allValues.get(1)).intValue() / 100.0;
+    returnType = (SqlTypeName) allValues.get(allValues.size() - 1);
+    if (allValues.size() > 3) { //have compression
+        compression = ((Number) allValues.get(allValues.size() - 2)).doubleValue();
+    }
+
+    acc.evaluate(((Number) targetValue).doubleValue());
     return acc;
   }
 
@@ -37,26 +56,47 @@ public class PercentileApproxFunction
     if (acc.size() == 0) {
       return null;
     }
-    return acc.value();
+    double retValue = (double) acc.value(compression, percentile);
+    switch (returnType) {
+      case INTEGER:
+        int intRet = (int) retValue;
+        return intRet;
+      case BIGINT:
+        long longRet = (long) retValue;
+        return longRet;
+      case FLOAT:
+        float floatRet = (float) retValue;
+        return floatRet;
+      default:
+        return acc.value();
+    }
   }
 
-  public static class PencentileApproAccumulator extends AVLTreeDigest implements Accumulator {
-    public static final double DEFAULT_COMPRESSION = 100.0;
-    private double percent;
+  public static class PencentileApproAccumulator implements Accumulator {
+    private List<Number> candidate;
+
+    public int size(){
+      return candidate.size();
+    }
 
     public PencentileApproAccumulator() {
-      super(DEFAULT_COMPRESSION);
-      this.percent = 1.0;
+      candidate = new ArrayList<>();
     }
 
-    public void evaluate(double value, int percent) {
-      this.percent = percent / 100.0;
-      this.add(value);
+    public void evaluate(double value) {
+      candidate.add(value);
     }
+
 
     @Override
-    public Object value() {
-      return this.quantile(this.percent);
+    public Object value(Object... argList) {
+      double percent = (double) argList[1];
+      double compression = (double) argList[0];
+      AVLTreeDigest tree = new AVLTreeDigest(compression);
+      for (Number num: candidate) {
+        tree.add(num.doubleValue());
+      }
+      return tree.quantile(percent);
     }
   }
 }

@@ -10,8 +10,11 @@ import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_SAMP_NU
 import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_POP_NULLABLE;
 import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_SAMP_NULLABLE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getReturnTypeInference;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -72,12 +75,14 @@ public interface AggregateUtils {
             argList,
             context.relBuilder);
       case PERCENTILE_APPROX:
+        List<RexNode> newArgList = new ArrayList<>(argList);
+        newArgList.add(context.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
         return TransferUserDefinedAggFunction(
             PercentileApproxFunction.class,
             "percentile_approx",
-            ReturnTypes.DOUBLE,
+                getReturnTypeInference(0),
             List.of(field),
-            argList,
+                newArgList,
             context.relBuilder);
     }
     throw new IllegalStateException("Not Supported value: " + agg.getFuncName());
