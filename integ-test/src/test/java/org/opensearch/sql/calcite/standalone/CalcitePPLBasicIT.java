@@ -6,12 +6,11 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
-import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -19,7 +18,6 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
-import org.opensearch.sql.calcite.type.CalciteBasicSqlUDT;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
@@ -39,18 +37,21 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     client().performRequest(request3);
 
     loadIndex(Index.BANK);
-    loadIndex(Index.WEBLOG);
+    loadIndex(Index.DATE_FORMATS);
   }
 
   @Test
   public void test() {
-    JSONObject actual = executeQuery(
-        String.format("source=%s | stats count() by span(birthdate,1y)", TEST_INDEX_BANK));
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = 1 | stats count() as cnt by span(yyyy-MM-dd, 1d) as span",
+                TEST_INDEX_DATE_FORMATS));
     verifySchema(
-        actual,
-        schema("count()", null, "long"),
-        schema("span(birthdate,1y)", null, "timestamp"));
-    verifyDataRows(actual, rows(2, "2017-01-01 00:00:00"), rows(5, "2018-01-01 00:00:00"));
+        result,
+        schema("cnt", null, "bigint"),
+        schema("span", null, "date"));
+    verifyDataRows(result, rows(2, "1984-04-12"));
   }
 
   @Test

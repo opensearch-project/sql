@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.type;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -21,7 +19,10 @@ public class ExprTimeStampSqlType extends CalciteBasicSqlUDT {
     super(typeSystem, SqlTypeName.VARCHAR, isNullable);
   }
 
-  public ExprTimeStampSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName, boolean nullable,
+  public ExprTimeStampSqlType(
+      RelDataTypeSystem typeSystem,
+      SqlTypeName typeName,
+      boolean nullable,
       int precision,
       int scale,
       @Nullable SqlCollation collation,
@@ -30,10 +31,16 @@ public class ExprTimeStampSqlType extends CalciteBasicSqlUDT {
   }
 
   @Override
-  protected CalciteBasicSqlUDT createInstance(RelDataTypeSystem typeSystem, SqlTypeName typeName,
-      boolean nullable, int precision, int scale, @Nullable SqlCollation collation,
+  protected CalciteBasicSqlUDT createInstance(
+      RelDataTypeSystem typeSystem,
+      SqlTypeName typeName,
+      boolean nullable,
+      int precision,
+      int scale,
+      @Nullable SqlCollation collation,
       @Nullable SerializableCharset wrappedCharset) {
-    return new ExprTimeStampSqlType(typeSystem, typeName, nullable, precision, scale, collation, wrappedCharset);
+    return new ExprTimeStampSqlType(
+        typeSystem, typeName, nullable, precision, scale, collation, wrappedCharset);
   }
 
   @Override
@@ -42,7 +49,7 @@ public class ExprTimeStampSqlType extends CalciteBasicSqlUDT {
   }
 
   @Override
-  public ExprType getExprTypeName() {
+  public ExprType getExprType() {
     return ExprCoreType.TIMESTAMP;
   }
 }

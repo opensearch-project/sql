@@ -14,10 +14,4 @@ public class CalciteStatsCommandIT extends StatsCommandIT {
     super.init();
     enableCalcite();
   }
-
-  @Override
-  public void testStatsTimeSpan() throws IOException {
-    super.testStatsTimeSpan();
-
-  }
 }

@@ -5,11 +5,8 @@
 
 package org.opensearch.sql.calcite.udf;
 
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_STRICT_WITH_TZ;
-
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import org.apache.calcite.linq4j.function.Strict;
 import org.apache.calcite.runtime.SqlFunctions;
@@ -44,33 +41,35 @@ public class SpanFunction implements UserDefinedFunction {
     Integer interval = (Integer) args[2];
     DateTimeUnit dateTimeUnit = DateTimeUnit.resolve((String) args[3]);
 
-    long timestamp = switch (sqlTypeName) {
-      case SqlTypeName.DATE -> {
-        LocalDate date = LocalDate.ofEpochDay(((Integer) args[0]).longValue());
-        long dateEpochValue =
-            dateTimeUnit.round(
-                date.atStartOfDay().atZone(ZoneOffset.UTC).toInstant().toEpochMilli(), interval);
-        yield SqlFunctions.timestampToDate(dateEpochValue);
-      }
-      case SqlTypeName.TIME -> {
-        /*
-         * Follow current logic to ignore time frame greater than hour because TIME type like '17:59:59.99' doesn't have day, month, year, etc.
-         * See @org.opensearch.sql.planner.physical.collector.TimeRounding
-         */
-        if (dateTimeUnit.getId() > 4) {
-          throw new IllegalArgumentException(
-              String.format("Unable to set span unit %s for TIME type", dateTimeUnit.getName()));
-        }
-        long timeEpochValue = dateTimeUnit.round(((Integer) args[0]).longValue(), interval);
-        yield SqlFunctions.time(timeEpochValue);
-      }
-      case SqlTypeName.TIMESTAMP ->
-        dateTimeUnit.round((long) args[0], interval);
-      case SqlTypeName.VARCHAR -> dateTimeUnit.round(
-          new ExprTimestampValue((String) args[0]).timestampValue().toEpochMilli(), interval);
-      default ->
-        throw new IllegalArgumentException("Unsupported time based column in Span function");
-    };
+    long timestamp =
+        switch (sqlTypeName) {
+          case SqlTypeName.DATE -> {
+            LocalDate date = LocalDate.ofEpochDay(((Integer) args[0]).longValue());
+            long dateEpochValue =
+                dateTimeUnit.round(
+                    date.atStartOfDay().atZone(ZoneOffset.UTC).toInstant().toEpochMilli(),
+                    interval);
+            yield SqlFunctions.timestampToDate(dateEpochValue);
+          }
+          case SqlTypeName.TIME -> {
+            /*
+             * Follow current logic to ignore time frame greater than hour because TIME type like '17:59:59.99' doesn't have day, month, year, etc.
+             * See @org.opensearch.sql.planner.physical.collector.TimeRounding
+             */
+            if (dateTimeUnit.getId() > 4) {
+              throw new IllegalArgumentException(
+                  String.format(
+                      "Unable to set span unit %s for TIME type", dateTimeUnit.getName()));
+            }
+            long timeEpochValue = dateTimeUnit.round(((Integer) args[0]).longValue(), interval);
+            yield SqlFunctions.time(timeEpochValue);
+          }
+          case SqlTypeName.TIMESTAMP -> dateTimeUnit.round((long) args[0], interval);
+          case SqlTypeName.VARCHAR -> dateTimeUnit.round(
+              new ExprTimestampValue((String) args[0]).timestampValue().toEpochMilli(), interval);
+          default -> throw new IllegalArgumentException(
+              "Unsupported time based column in Span function");
+        };
     return new ExprTimestampValue(Instant.ofEpochMilli(timestamp)).value();
   }
 }

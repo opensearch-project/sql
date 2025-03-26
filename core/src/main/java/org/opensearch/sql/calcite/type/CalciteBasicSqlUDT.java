@@ -27,32 +27,30 @@
 
 package org.opensearch.sql.calcite.type;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
+
+import java.nio.charset.Charset;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.AbstractSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.SerializableCharset;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.nio.charset.Charset;
 import org.opensearch.sql.data.type.ExprType;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import static java.util.Objects.requireNonNull;
-
 /**
- * CalciteBasicSqlUDT represents a standard atomic SQL type (excluding interval
- * types).
+ * CalciteBasicSqlUDT represents a standard atomic SQL type (excluding interval types).
  *
  * <p>Instances of this class are immutable.
+ *
+ * Comparing to Calcite's BasicSqlType, this class supports flexible inheritance of UDTs.
  */
 public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
-  //~ Static fields/initializers ---------------------------------------------
+  // ~ Static fields/initializers ---------------------------------------------
 
-  //~ Instance fields --------------------------------------------------------
+  // ~ Instance fields --------------------------------------------------------
 
   private final int precision;
   private final int scale;
@@ -60,11 +58,10 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
   private final @Nullable SqlCollation collation;
   private final @Nullable SerializableCharset wrappedCharset;
 
-  //~ Constructors -----------------------------------------------------------
+  // ~ Constructors -----------------------------------------------------------
 
   /**
-   * Constructs a type with no parameters. This should only be called from a
-   * factory method.
+   * Constructs a type with no parameters. This should only be called from a factory method.
    *
    * @param typeSystem Type system
    * @param typeName Type name
@@ -73,10 +70,9 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
     this(typeSystem, typeName, false);
   }
 
-  protected CalciteBasicSqlUDT(RelDataTypeSystem typeSystem, SqlTypeName typeName,
-      boolean nullable) {
-    this(typeSystem, typeName, nullable, PRECISION_NOT_SPECIFIED,
-        SCALE_NOT_SPECIFIED, null, null);
+  protected CalciteBasicSqlUDT(
+      RelDataTypeSystem typeSystem, SqlTypeName typeName, boolean nullable) {
+    this(typeSystem, typeName, nullable, PRECISION_NOT_SPECIFIED, SCALE_NOT_SPECIFIED, null, null);
     checkPrecScale(typeName, false, false);
   }
 
@@ -87,10 +83,8 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
    * @param typeName Type name
    * @param precision Precision (called length for some types)
    */
-  public CalciteBasicSqlUDT(RelDataTypeSystem typeSystem, SqlTypeName typeName,
-      int precision) {
-    this(typeSystem, typeName, false, precision, SCALE_NOT_SPECIFIED, null,
-        null);
+  public CalciteBasicSqlUDT(RelDataTypeSystem typeSystem, SqlTypeName typeName, int precision) {
+    this(typeSystem, typeName, false, precision, SCALE_NOT_SPECIFIED, null, null);
     checkPrecScale(typeName, true, false);
   }
 
@@ -102,8 +96,8 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
    * @param precision Precision (called length for some types)
    * @param scale Scale
    */
-  public CalciteBasicSqlUDT(RelDataTypeSystem typeSystem, SqlTypeName typeName,
-      int precision, int scale) {
+  public CalciteBasicSqlUDT(
+      RelDataTypeSystem typeSystem, SqlTypeName typeName, int precision, int scale) {
     this(typeSystem, typeName, false, precision, scale, null, null);
     checkPrecScale(typeName, true, true);
   }
@@ -135,27 +129,35 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
       @Nullable SqlCollation collation,
       @Nullable SerializableCharset wrappedCharset);
 
-  /** Throws if {@code typeName} does not allow the given combination of
-   * precision and scale. */
-  protected static void checkPrecScale(SqlTypeName typeName,
-      boolean precisionSpecified, boolean scaleSpecified) {
+  /** Throws if {@code typeName} does not allow the given combination of precision and scale. */
+  protected static void checkPrecScale(
+      SqlTypeName typeName, boolean precisionSpecified, boolean scaleSpecified) {
     if (!typeName.allowsPrecScale(precisionSpecified, scaleSpecified)) {
-      throw new AssertionError("typeName.allowsPrecScale("
-          + precisionSpecified + ", " + scaleSpecified + "): " + typeName);
+      throw new AssertionError(
+          "typeName.allowsPrecScale("
+              + precisionSpecified
+              + ", "
+              + scaleSpecified
+              + "): "
+              + typeName);
     }
   }
 
-  //~ Methods ----------------------------------------------------------------
+  // ~ Methods ----------------------------------------------------------------
 
-  /**
-   * Constructs a type with nullablity.
-   */
+  /** Constructs a type with nullablity. */
   public CalciteBasicSqlUDT createWithNullability(boolean nullable) {
     if (nullable == this.isNullable) {
       return this;
     }
-    return createInstance(this.typeSystem, this.typeName, nullable,
-        this.precision, this.scale, this.collation, this.wrappedCharset);
+    return createInstance(
+        this.typeSystem,
+        this.typeName,
+        nullable,
+        this.precision,
+        this.scale,
+        this.collation,
+        this.wrappedCharset);
   }
 
   /**
@@ -163,22 +165,28 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
    *
    * <p>This must be a character type.
    */
-  public CalciteBasicSqlUDT createWithCharsetAndCollation(Charset charset,
-      SqlCollation collation) {
+  public CalciteBasicSqlUDT createWithCharsetAndCollation(Charset charset, SqlCollation collation) {
     checkArgument(SqlTypeUtil.inCharFamily(this));
-    return createInstance(this.typeSystem, this.typeName, this.isNullable,
-        this.precision, this.scale, collation,
+    return createInstance(
+        this.typeSystem,
+        this.typeName,
+        this.isNullable,
+        this.precision,
+        this.scale,
+        collation,
         SerializableCharset.forCharset(charset));
   }
 
-  @Override public int getPrecision() {
+  @Override
+  public int getPrecision() {
     if (precision == PRECISION_NOT_SPECIFIED) {
       return typeSystem.getDefaultPrecision(typeName);
     }
     return precision;
   }
 
-  @Override public int getScale() {
+  @Override
+  public int getScale() {
     if (scale == SCALE_NOT_SPECIFIED) {
       switch (typeName) {
         case TINYINT:
@@ -194,16 +202,19 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
     return scale;
   }
 
-  @Override public @Nullable Charset getCharset() {
+  @Override
+  public @Nullable Charset getCharset() {
     return wrappedCharset == null ? null : wrappedCharset.getCharset();
   }
 
-  @Override public @Nullable SqlCollation getCollation() {
+  @Override
+  public @Nullable SqlCollation getCollation() {
     return collation;
   }
 
   // implement RelDataTypeImpl
-  @Override protected void generateTypeString(StringBuilder sb, boolean withDetail) {
+  @Override
+  protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     // Called to make the digest, which equals() compares;
     // so equivalent data types must produce identical type strings.
 
@@ -230,7 +241,8 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
       sb.append("\"");
     }
     if (collation != null
-        && collation != SqlCollation.IMPLICIT && collation != SqlCollation.COERCIBLE) {
+        && collation != SqlCollation.IMPLICIT
+        && collation != SqlCollation.COERCIBLE) {
       sb.append(" COLLATE \"");
       sb.append(collation.getCollationName());
       sb.append("\"");
@@ -300,26 +312,18 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
    * </tr>
    * </table>
    *
-   * @param sign   If true, returns upper limit, otherwise lower limit
-   * @param limit  If true, returns value at or near to overflow; otherwise
-   *               value at or near to underflow
-   * @param beyond If true, returns the value just beyond the limit, otherwise
-   *               the value at the limit
+   * @param sign If true, returns upper limit, otherwise lower limit
+   * @param limit If true, returns value at or near to overflow; otherwise value at or near to
+   *     underflow
+   * @param beyond If true, returns the value just beyond the limit, otherwise the value at the
+   *     limit
    * @return Limit value
    */
-  public @Nullable Object getLimit(
-      boolean sign,
-      SqlTypeName.Limit limit,
-      boolean beyond) {
+  public @Nullable Object getLimit(boolean sign, SqlTypeName.Limit limit, boolean beyond) {
     int precision = typeName.allowsPrec() ? this.getPrecision() : -1;
     int scale = typeName.allowsScale() ? this.getScale() : -1;
-    return typeName.getLimit(
-        sign,
-        limit,
-        beyond,
-        precision,
-        scale);
+    return typeName.getLimit(sign, limit, beyond, precision, scale);
   }
 
-  public abstract ExprType getExprTypeName();
+  public abstract ExprType getExprType();
 }

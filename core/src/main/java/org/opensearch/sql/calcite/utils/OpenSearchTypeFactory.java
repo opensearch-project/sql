@@ -50,7 +50,6 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     super(typeSystem);
   }
 
-
   @Override
   public RelDataType createTypeWithNullability(RelDataType type, boolean nullable) {
     if (type instanceof CalciteBasicSqlUDT udt) {
@@ -60,7 +59,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   }
 
   @Override
-  public RelDataType createTypeWithCharsetAndCollation(RelDataType type, Charset charset, SqlCollation collation) {
+  public RelDataType createTypeWithCharsetAndCollation(
+      RelDataType type, Charset charset, SqlCollation collation) {
     if (type instanceof CalciteBasicSqlUDT udt) {
       return udt.createWithCharsetAndCollation(charset, collation);
     }
@@ -155,8 +155,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
-    if (type instanceof CalciteBasicSqlUDT udt)  {
-      return udt.getExprTypeName();
+    if (type instanceof CalciteBasicSqlUDT udt) {
+      return udt.getExprType();
     } else
       return switch (type.getSqlTypeName()) {
         case TINYINT -> BYTE;
@@ -171,8 +171,12 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         case TIME -> TIME;
         case TIMESTAMP -> TIMESTAMP;
         case GEOMETRY -> IP;
-        case INTERVAL_YEAR, INTERVAL_MONTH, INTERVAL_DAY, INTERVAL_HOUR, INTERVAL_MINUTE,
-             INTERVAL_SECOND -> INTERVAL;
+        case INTERVAL_YEAR,
+            INTERVAL_MONTH,
+            INTERVAL_DAY,
+            INTERVAL_HOUR,
+            INTERVAL_MINUTE,
+            INTERVAL_SECOND -> INTERVAL;
         case ARRAY -> ARRAY;
         case MAP -> STRUCT;
         case NULL -> UNDEFINED;
