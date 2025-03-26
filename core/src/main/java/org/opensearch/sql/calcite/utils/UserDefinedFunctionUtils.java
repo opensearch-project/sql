@@ -103,7 +103,7 @@ public class UserDefinedFunctionUtils {
    * @return The type inference
    */
   public static SqlReturnTypeInference getLeastRestrictiveReturnTypeAmongArgsAt(
-      List<Integer> positions, boolean nullable) {
+      List<Integer> positions) {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
       List<RelDataType> types = new ArrayList<>();
@@ -121,7 +121,7 @@ public class UserDefinedFunctionUtils {
             "Cannot determine a common type for the given positions.");
       }
 
-      return typeFactory.createTypeWithNullability(widerType, nullable);
+      return widerType;
     };
   }
 

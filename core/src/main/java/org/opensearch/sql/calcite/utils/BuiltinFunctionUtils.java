@@ -192,9 +192,7 @@ public interface BuiltinFunctionUtils {
         // MOD(3.1, 2.1) = 1.1,
         // whereas SqlStdOperatorTable.MOD supports only integer / long parameters.
         return TransferUserDefinedFunction(
-            ModFunction.class,
-            "MOD",
-            getLeastRestrictiveReturnTypeAmongArgsAt(List.of(0, 1), true));
+            ModFunction.class, "MOD", getLeastRestrictiveReturnTypeAmongArgsAt(List.of(0, 1)));
       case "PI":
         return SqlStdOperatorTable.PI;
       case "POW", "POWER":
