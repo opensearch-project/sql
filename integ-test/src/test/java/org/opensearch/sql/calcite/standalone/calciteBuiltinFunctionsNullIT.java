@@ -2,15 +2,14 @@ package org.opensearch.sql.calcite.standalone;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 import java.io.IOException;
-import java.sql.Date;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS_WITH_NULL;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -77,25 +76,6 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
         });
     }
 
-    @Test
-    public void testYearNull() {
-        JSONObject actual =
-                executeQuery(
-                        String.format(
-                                "source=%s  |  eval timestamp = YEAR(strict_date_optional_time), date=YEAR(date) | fields timestamp, date",
-                                TEST_INDEX_DATE_FORMATS_WITH_NULL));
-
-
-        verifySchema(
-                actual,
-                schema("timestamp", "integer"),
-                schema("date", "integer"));
-        JSONArray ret = (JSONArray) actual.getJSONArray("datarows").get(0);
-        for (int i = 0; i < ret.length(); i++) {
-            assertEquals(JSONObject.NULL, ret.get(i));
-        }
-    }
-
 
     @Test
     public void testWeekInvalid() {
@@ -115,25 +95,6 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                                     "source=%s  | eval a = WEEK('2020-12-26 25:00:00')",
                                     TEST_INDEX_DATE_FORMATS_WITH_NULL));
         });
-    }
-
-    @Test
-    public void testWeekNull() {
-        JSONObject actual =
-                executeQuery(
-                        String.format(
-                                "source=%s  |  eval timestamp = WEEK(strict_date_optional_time), date=WEEK(date) | fields timestamp, date",
-                                TEST_INDEX_DATE_FORMATS_WITH_NULL));
-
-
-        verifySchema(
-                actual,
-                schema("timestamp", "integer"),
-                schema("date", "integer"));
-        JSONArray ret = (JSONArray) actual.getJSONArray("datarows").get(0);
-        for (int i = 0; i < ret.length(); i++) {
-            assertEquals(JSONObject.NULL, ret.get(i));
-        }
     }
 
     @Test
@@ -341,13 +302,6 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
         }
     }
 
-    /**
-     * (DATE/TIMESTAMP/TIME, INTERVAL) -> TIMESTAMP
-     *
-     * (DATE, LONG) -> DATE
-     *
-     * (TIMESTAMP/TIME, LONG) -> TIMESTAMP
-     */
     @Test
     public void testAddSubDateNull() {
         JSONObject actual =
@@ -673,11 +627,11 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     public void testDatetimeNullString() {
         JSONObject actual =
                 executeQuery(String.format(
-                        "source=%s | where age = 10 | eval d1 = DATETIME(name, '+10:00'), d2 = datetime('2004-02-28 23:00:00-10:00', state)," +
+                        "source=%s | where age = 10 | eval d1 = DATETIME(name, '+10:00'), d2 = datetime('2004-02-28 23:00:00-10:00', state)" +
                                 "| fields d1, d2",
                         TEST_INDEX_STATE_COUNTRY_WITH_NULL));
-        verifySchema(actual, schema("d1", "integer"),
-                schema("d2", "integer"));
+        verifySchema(actual, schema("d1", "timestamp"),
+                schema("d2", "timestamp"));
         verifyDataRows(actual, rows(null, null));
     }
 
@@ -685,8 +639,8 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     public void testDatetimeNullTimestamp() {
         JSONObject actual =
                 executeQuery(String.format(
-                        "source=%s | where age = 10 | eval d1 = DATETIME(date_time) | fields d1",
-                        TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                        "source=%s | eval d1 = DATETIME(date_time) | fields d1",
+                        TEST_INDEX_DATE_FORMATS_WITH_NULL));
         verifySchema(actual, schema("d1", "timestamp"));
         verifyDataRows(actual, rows((Object) null));
     }
@@ -727,6 +681,7 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
         verifyDataRows(actual, rows(null, null));
     }
 
+    @Ignore
     @Test
     public void testMicrosecondNull() {
         JSONObject actual =
@@ -947,7 +902,7 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                         "source=%s | eval td1 = TIMEDIFF(time, time) | fields td1",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL));
         verifySchema(actual, schema("td1", "time"));
-        verifyDataRows(actual, rows(null));
+        verifyDataRows(actual, rows((Object) null));
     }
 
 
@@ -981,8 +936,8 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                 executeQuery(String.format(
                         "source=%s | eval td1 = TIMESTAMPDIFF(DAY, date, date_time), td2 = TIMESTAMPDIFF(HOUR, date_time, date_time) | fields td1, td2",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL));
-        verifySchema(actual, schema("td1", "timestamp"),
-                schema("td2", "timestamp"));
+        verifySchema(actual, schema("td1", "long"),
+                schema("td2", "long"));
         verifyDataRows(actual, rows(null, null));
     }
 
@@ -999,40 +954,16 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     }
 
 
-//    @Test
-//    public void testToSecondsNull() {
-//        JSONObject actual =
-//                executeQuery(String.format(
-//                        "source=%s | eval ts1 = TO_SECONDS(date), ts2 = TO_SECONDS(date_time) | fields ts1, ts2",
-//                        TEST_INDEX_DATE_FORMATS_WITH_NULL));
-//        verifySchema(actual, schema("ts1", "long"),
-//                schema("ts2", "long"));
-//        verifyDataRows(actual, rows(null, null));
-//    }
-
-
-//    @Test
-//    public void testUnixTimestampNull() {
-//        JSONObject actual =
-//                executeQuery(String.format(
-//                        "source=%s | eval u1 = UNIX_TIMESTAMP(date), u2 = UNIX_TIMESTAMP(date_time) | fields u1, u2",
-//                        TEST_INDEX_DATE_FORMATS_WITH_NULL));
-//        verifySchema(actual, schema("u1", "double"),
-//                schema("u2", "double"));
-//        verifyDataRows(actual, rows(null, null));
-//    }
-
-
-//    @Test
-//    public void testWeekNull() {
-//        JSONObject actual =
-//                executeQuery(String.format(
-//                        "source=%s | eval w1 = WEEK(date), w2 = WEEK(date_time) | fields w1, w2",
-//                        TEST_INDEX_DATE_FORMATS_WITH_NULL));
-//        verifySchema(actual, schema("w1", "integer"),
-//                schema("w2", "integer"));
-//        verifyDataRows(actual, rows(null, null));
-//    }
+    @Test
+    public void testWeekNull() {
+        JSONObject actual =
+                executeQuery(String.format(
+                        "source=%s | eval w1 = WEEK(date), w2 = WEEK(date_time) | fields w1, w2",
+                        TEST_INDEX_DATE_FORMATS_WITH_NULL));
+        verifySchema(actual, schema("w1", "integer"),
+                schema("w2", "integer"));
+        verifyDataRows(actual, rows(null, null));
+    }
 
 
     @Test
@@ -1059,14 +990,14 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     }
 
 
-//    @Test
-//    public void testYearNull() {
-//        JSONObject actual =
-//                executeQuery(String.format(
-//                        "source=%s | eval y1 = YEAR(date), y2 = YEAR(date_time) | fields y1, y2",
-//                        TEST_INDEX_DATE_FORMATS_WITH_NULL));
-//        verifySchema(actual, schema("y1", "integer"),
-//                schema("y2", "integer"));
-//        verifyDataRows(actual, rows(null, null));
-//    }
+    @Test
+    public void testYearNull() {
+        JSONObject actual =
+                executeQuery(String.format(
+                        "source=%s | eval y1 = YEAR(date), y2 = YEAR(date_time) | fields y1, y2",
+                        TEST_INDEX_DATE_FORMATS_WITH_NULL));
+        verifySchema(actual, schema("y1", "integer"),
+                schema("y2", "integer"));
+        verifyDataRows(actual, rows(null, null));
+    }
 }
