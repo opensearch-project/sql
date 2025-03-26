@@ -27,6 +27,9 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 public class MakeDateFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     UserDefinedFunctionUtils.validateArgumentCount("MAKE_DATE", 2, args.length, false);
     UserDefinedFunctionUtils.validateArgumentTypes(
         Arrays.asList(args),

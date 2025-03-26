@@ -9,12 +9,16 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprSecTo
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprSecToTimeWithNanos;
 
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 
 public class SecondToTimeFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     Number candidate = (Number) args[0];
     ExprValue returnTimeValue;
     ExprValue transferredValue;

@@ -12,6 +12,9 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 public class MinuteOfDay implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     UserDefinedFunctionUtils.validateArgumentCount("MINUTE_OF_DAY", 1, args.length, false);
     UserDefinedFunctionUtils.validateArgumentTypes(
         Arrays.asList(args), ImmutableList.of(Number.class));

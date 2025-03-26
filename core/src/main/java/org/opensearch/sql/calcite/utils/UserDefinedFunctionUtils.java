@@ -251,6 +251,10 @@ public class UserDefinedFunctionUtils {
     validateArgumentTypes(objects, types, Collections.nCopies(types.size(), false));
   }
 
+  public static void validateArgumentTypes(List<Object> objects, List<Class<?>> types, boolean nullable) {
+    validateArgumentTypes(objects, types, Collections.nCopies(types.size(), nullable));
+  }
+
   public static void validateArgumentTypes(
       List<Object> objects, List<Class<?>> types, List<Boolean> nullables) {
     if (objects.size() < types.size()) {

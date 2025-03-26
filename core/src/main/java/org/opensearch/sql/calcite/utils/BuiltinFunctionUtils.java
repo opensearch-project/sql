@@ -231,7 +231,7 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.DATE;
       case "DATE_ADD":
         return TransferUserDefinedFunction(
-            DateAddSubFunction.class, "DATE_ADD", createNullableReturnType(SqlTypeName.TIMESTAMP));
+            DateAddSubFunction.class, "DATE_ADD", ReturnTypes.TIMESTAMP);
       case "ADDDATE":
         return TransferUserDefinedFunction(
             DateAddSubFunction.class,
@@ -244,7 +244,7 @@ public interface BuiltinFunctionUtils {
             DateAddSubFunction.getReturnTypeForAddOrSubDate(true));
       case "DATE_SUB":
         return TransferUserDefinedFunction(
-            DateAddSubFunction.class, "DATE_SUB", createNullableReturnType(SqlTypeName.TIMESTAMP));
+            DateAddSubFunction.class, "DATE_SUB", ReturnTypes.TIMESTAMP);
       case "ADDTIME", "SUBTIME":
         return TransferUserDefinedFunction(
             TimeAddSubFunction.class,
@@ -260,10 +260,10 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(ExtractFunction.class, "EXTRACT", ReturnTypes.BIGINT);
       case "CONVERT_TZ":
         return TransferUserDefinedFunction(
-            ConvertTZFunction.class, "CONVERT_TZ", createNullableReturnType(SqlTypeName.TIMESTAMP));
+            ConvertTZFunction.class, "CONVERT_TZ", ReturnTypes.TIMESTAMP);
       case "DATETIME":
         return TransferUserDefinedFunction(
-            DatetimeFunction.class, "DATETIME", createNullableReturnType(SqlTypeName.TIMESTAMP));
+            DatetimeFunction.class, "DATETIME", ReturnTypes.TIMESTAMP);
 
       case "FROM_DAYS":
         return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", ReturnTypes.DATE);
@@ -292,6 +292,8 @@ public interface BuiltinFunctionUtils {
             "STR_TO_DATE",
             createNullableReturnType(SqlTypeName.TIMESTAMP));
       case "WEEK", "WEEK_OF_YEAR":
+        // WEEK in PPL support an additional mode argument, therefore we need to use a custom
+        // implementation.
         return TransferUserDefinedFunction(WeekFunction.class, "WEEK", ReturnTypes.INTEGER);
         // UDF Functions
       case "SPAN":
@@ -369,7 +371,7 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.DATE_PART;
       case "YEARWEEK":
         return TransferUserDefinedFunction(
-            YearWeekFunction.class, "YEARWEEK", createNullableReturnType(SqlTypeName.INTEGER));
+            YearWeekFunction.class, "YEARWEEK", ReturnTypes.INTEGER);
       case "FROM_UNIXTIME":
         return TransferUserDefinedFunction(
             FromUnixTimestampFunction.class,
@@ -716,7 +718,7 @@ public interface BuiltinFunctionUtils {
 
   static RelDataType deriveReturnType(
       String funcName, RexBuilder rexBuilder, SqlOperator operator, List<? extends RexNode> exprs) {
-    return switch (funcName.toUpperCase()) {
+    RelDataType returnType = switch (funcName.toUpperCase()) {
         // This effectively invalidates the operand type check, which leads to unnecessary
         // incompatible parameter type errors
       case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
@@ -738,10 +740,11 @@ public interface BuiltinFunctionUtils {
           "MINUTE_OF_HOUR",
           "QUARTER",
           "SECOND",
-          "SECOND_OF_MINUTE" -> createNullableReturnType(
-          rexBuilder.getTypeFactory(), SqlTypeName.INTEGER);
+          "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
       default -> rexBuilder.deriveReturnType(operator, exprs);
     };
+    // Make all return types nullable
+    return rexBuilder.getTypeFactory().createTypeWithNullability(returnType, true);
   }
 
   private static RexNode convertToDateIfNecessary(CalcitePlanContext context, RexNode expr) {

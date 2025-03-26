@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
@@ -26,6 +27,9 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 public class DatetimeFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     Object argTimestamp = args[0];
     ExprValue argTimestampExpr = new ExprStringValue(argTimestamp.toString());
     ExprValue datetimeExpr;

@@ -400,7 +400,7 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
         JSONObject actual =
                 executeQuery(String.format(
                         "source=%s | where age = 10 | eval d1 = DATETIME(date_time) | fields d1",
-                        TEST_INDEX_DATE_FORMATS_WITH_NULL));
+                        TEST_INDEX_STATE_COUNTRY_WITH_NULL));
         verifySchema(actual, schema("d1", "timestamp"));
         verifyDataRows(actual, rows((Object) null));
     }
@@ -589,10 +589,10 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     public void testStrToDateNull() {
         JSONObject actual =
                 executeQuery(String.format(
-                        "source=%s | eval s = STR_TO_DATE(MONTHNAME(date_time), '%M') | fields s",
+                        "source=%s | eval s = STR_TO_DATE(MONTHNAME(date_time), '%%M') | fields s",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL));
         verifySchema(actual, schema("s", "timestamp"));
-        verifyDataRows(actual, rows(null));
+        verifyDataRows(actual, rows((Object) null));
     }
 
 
@@ -628,7 +628,7 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                         "source=%s | eval t1 = TIME(date_time) | fields t1",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL));
         verifySchema(actual, schema("t1", "time"));
-        verifyDataRows(actual, rows(null));
+        verifyDataRows(actual, rows((Object) null));
     }
 
 
@@ -636,10 +636,10 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     public void testTimeFormatNull() {
         JSONObject actual =
                 executeQuery(String.format(
-                        "source=%s | eval tf1 = TIME_FORMAT(time, '%H:%i:%s') | fields tf1",
+                        "source=%s | eval tf1 = TIME_FORMAT(time, '%%H:%%i:%%s') | fields tf1",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL));
         verifySchema(actual, schema("tf1", "string"));
-        verifyDataRows(actual, rows(null));
+        verifyDataRows(actual, rows((Object) null));
     }
 
 
@@ -650,7 +650,7 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
                         "source=%s | eval ts1 = TIME_TO_SEC(time) | fields ts1",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL));
         verifySchema(actual, schema("ts1", "long"));
-        verifyDataRows(actual, rows(null));
+        verifyDataRows(actual, rows((Object) null));
     }
 
 

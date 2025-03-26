@@ -30,6 +30,9 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 public class StrToDateFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     UserDefinedFunctionUtils.validateArgumentCount("STR_TO_DATE", 2, args.length, true);
     UserDefinedFunctionUtils.validateArgumentTypes(
         Arrays.asList(args), List.of(String.class, String.class));

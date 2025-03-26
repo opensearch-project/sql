@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -20,6 +21,11 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 public class ConvertTZFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
+
     Object argTimestamp = args[0];
     Object fromTz = args[1];
     Object toTz = args[2];

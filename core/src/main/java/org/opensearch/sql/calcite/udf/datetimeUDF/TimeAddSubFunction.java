@@ -17,6 +17,9 @@ import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 public class TimeAddSubFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     Object argBase = args[0];
     SqlTypeName baseType = (SqlTypeName) args[1];
     Object argInterval = args[2];

@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
 /**
@@ -20,6 +21,9 @@ import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 public class TimestampFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     LocalDateTime datetime;
     Instant dateTimeBase;
     Instant addTime;

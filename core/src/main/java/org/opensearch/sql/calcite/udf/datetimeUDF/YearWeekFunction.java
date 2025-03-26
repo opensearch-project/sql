@@ -15,6 +15,7 @@ import java.util.Objects;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
@@ -24,6 +25,11 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 public class YearWeekFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
+
     Instant basetime;
     int mode;
     if (Objects.isNull(args[0])) {

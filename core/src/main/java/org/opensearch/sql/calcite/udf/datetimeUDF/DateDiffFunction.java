@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -25,6 +26,9 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 public class DateDiffFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     SqlTypeName sqlTypeName1 = (SqlTypeName) args[1];
     Instant timestamp1 = InstantUtils.convertToInstant(args[0], sqlTypeName1);
     SqlTypeName sqlTypeName2 = (SqlTypeName) args[3];

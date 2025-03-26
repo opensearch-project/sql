@@ -29,6 +29,11 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 public class DateAddSubFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
+
     UserDefinedFunctionUtils.validateArgumentCount("DATE_ADD / DATE_SUB", 6, args.length, false);
     UserDefinedFunctionUtils.validateArgumentTypes(
         Arrays.asList(args),
