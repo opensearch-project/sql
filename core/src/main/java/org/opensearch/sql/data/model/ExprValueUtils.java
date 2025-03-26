@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.data.model;
 
+import static org.opensearch.sql.utils.ExpressionUtils.PATH_SEP;
+
 import inet.ipaddr.IPAddress;
 import java.sql.Date;
 import java.sql.Time;
@@ -214,5 +216,19 @@ public class ExprValueUtils {
 
   public static Boolean getBooleanValue(ExprValue exprValue) {
     return exprValue.booleanValue();
+  }
+
+  public static ExprValue resolveRefPaths(ExprValue value, List<String> paths) {
+    ExprValue wholePathValue = value.keyValue(String.join(PATH_SEP, paths));
+    // For array types only first index currently supported.
+    if (value.type().equals(ExprCoreType.ARRAY)) {
+      wholePathValue = value.collectionValue().getFirst().keyValue(paths.getFirst());
+    }
+
+    if (!wholePathValue.isMissing() || paths.size() == 1) {
+      return wholePathValue;
+    } else {
+      return resolveRefPaths(value.keyValue(paths.getFirst()), paths.subList(1, paths.size()));
+    }
   }
 }
