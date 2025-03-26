@@ -127,16 +127,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                     """,
                 TEST_INDEX_STATE_COUNTRY));
     verifyDataRows(
-        result,
-        rows(
-            "INTEGER",
-            "BOOLEAN",
-            "DOUBLE",
-            "KEYWORD",
-            "KEYWORD",
-            "KEYWORD",
-            "INTEGER",
-            "INTERVAL"));
+        result, rows("INT", "BOOLEAN", "DOUBLE", "STRING", "STRING", "STRING", "INT", "INTERVAL"));
   }
 
   @Ignore("https://github.com/opensearch-project/sql/issues/3400")
