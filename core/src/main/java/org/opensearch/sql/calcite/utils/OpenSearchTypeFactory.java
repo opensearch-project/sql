@@ -23,13 +23,16 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 
 import java.lang.reflect.Type;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.type.CalciteBasicSqlUDT;
 import org.opensearch.sql.calcite.type.ExprTimeStampSqlType;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -45,6 +48,23 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   private OpenSearchTypeFactory(RelDataTypeSystem typeSystem) {
     super(typeSystem);
+  }
+
+
+  @Override
+  public RelDataType createTypeWithNullability(RelDataType type, boolean nullable) {
+    if (type instanceof CalciteBasicSqlUDT udt) {
+      return udt.createWithNullability(nullable);
+    }
+    return super.createTypeWithNullability(type, nullable);
+  }
+
+  @Override
+  public RelDataType createTypeWithCharsetAndCollation(RelDataType type, Charset charset, SqlCollation collation) {
+    if (type instanceof CalciteBasicSqlUDT udt) {
+      return udt.createWithCharsetAndCollation(charset, collation);
+    }
+    return super.createTypeWithCharsetAndCollation(type, charset, collation);
   }
 
   public RelDataType createSqlType(SqlTypeName typeName, boolean nullable) {
@@ -135,49 +155,30 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
-    switch (type.getSqlTypeName()) {
-      case TINYINT:
-        return BYTE;
-      case SMALLINT:
-        return SHORT;
-      case INTEGER:
-        return INTEGER;
-      case BIGINT:
-        return LONG;
-      case REAL:
-        return FLOAT;
-      case DOUBLE:
-        return DOUBLE;
-      case CHAR:
-      case VARCHAR:
-        return STRING;
-      case BOOLEAN:
-        return BOOLEAN;
-      case DATE:
-        return DATE;
-      case TIME:
-        return TIME;
-      case TIMESTAMP:
-        return TIMESTAMP;
-      case GEOMETRY:
-        return IP;
-      case INTERVAL_YEAR:
-      case INTERVAL_MONTH:
-      case INTERVAL_DAY:
-      case INTERVAL_HOUR:
-      case INTERVAL_MINUTE:
-      case INTERVAL_SECOND:
-        return INTERVAL;
-      case ARRAY:
-        return ARRAY;
-      case MAP:
-        return STRUCT;
-      case NULL:
-        return UNDEFINED;
-      default:
-        throw new IllegalArgumentException(
+    if (type instanceof CalciteBasicSqlUDT udt)  {
+      return udt.getExprTypeName();
+    } else
+      return switch (type.getSqlTypeName()) {
+        case TINYINT -> BYTE;
+        case SMALLINT -> SHORT;
+        case INTEGER -> INTEGER;
+        case BIGINT -> LONG;
+        case REAL -> FLOAT;
+        case DOUBLE -> DOUBLE;
+        case CHAR, VARCHAR -> STRING;
+        case BOOLEAN -> BOOLEAN;
+        case DATE -> DATE;
+        case TIME -> TIME;
+        case TIMESTAMP -> TIMESTAMP;
+        case GEOMETRY -> IP;
+        case INTERVAL_YEAR, INTERVAL_MONTH, INTERVAL_DAY, INTERVAL_HOUR, INTERVAL_MINUTE,
+             INTERVAL_SECOND -> INTERVAL;
+        case ARRAY -> ARRAY;
+        case MAP -> STRUCT;
+        case NULL -> UNDEFINED;
+        default -> throw new IllegalArgumentException(
             "Unsupported conversion for Relational Data type: " + type.getSqlTypeName());
-    }
+      };
   }
 
   public static ExprValue getExprValueByExprType(ExprType type, Object value) {

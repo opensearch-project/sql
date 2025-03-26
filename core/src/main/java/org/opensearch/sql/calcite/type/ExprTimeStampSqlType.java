@@ -7,18 +7,33 @@ package org.opensearch.sql.calcite.type;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.nio.charset.Charset;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
-import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.SerializableCharset;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 
-public class ExprTimeStampSqlType extends BasicSqlType {
+public class ExprTimeStampSqlType extends CalciteBasicSqlUDT {
 
   public ExprTimeStampSqlType(RelDataTypeSystem typeSystem, boolean isNullable) {
     super(typeSystem, SqlTypeName.VARCHAR, isNullable);
+  }
+
+  public ExprTimeStampSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName, boolean nullable,
+      int precision,
+      int scale,
+      @Nullable SqlCollation collation,
+      @Nullable SerializableCharset wrappedCharset) {
+    super(typeSystem, typeName, nullable, precision, scale, collation, wrappedCharset);
+  }
+
+  @Override
+  protected CalciteBasicSqlUDT createInstance(RelDataTypeSystem typeSystem, SqlTypeName typeName,
+      boolean nullable, int precision, int scale, @Nullable SqlCollation collation,
+      @Nullable SerializableCharset wrappedCharset) {
+    return new ExprTimeStampSqlType(typeSystem, typeName, nullable, precision, scale, collation, wrappedCharset);
   }
 
   @Override
@@ -26,20 +41,8 @@ public class ExprTimeStampSqlType extends BasicSqlType {
     sb.append("expr_timestamp");
   }
 
-  BasicSqlType createWithNullability(boolean nullable) {
-    if (nullable == this.isNullable) {
-      return this;
-    }
-    return new ExprTimeStampSqlType(this.typeSystem, nullable);
-  }
-
-  /**
-   * Constructs a type with charset and collation.
-   *
-   * <p>This must be a character type.
-   */
-  BasicSqlType createWithCharsetAndCollation(Charset charset, SqlCollation collation) {
-    checkArgument(SqlTypeUtil.inCharFamily(this));
-    return new ExprTimeStampSqlType(this.typeSystem, this.isNullable);
+  @Override
+  public ExprType getExprTypeName() {
+    return ExprCoreType.TIMESTAMP;
   }
 }

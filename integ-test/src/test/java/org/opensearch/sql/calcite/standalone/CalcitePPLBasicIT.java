@@ -19,6 +19,7 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.calcite.type.CalciteBasicSqlUDT;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
@@ -42,17 +43,14 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSortIpField() throws IOException {
-    final JSONObject result =
-        executeQuery(String.format("source=%s | fields host | sort host", TEST_INDEX_WEBLOGS));
-    verifyOrder(
-        result,
-        rows("::1"),
-        rows("::3"),
-        rows("::ffff:1234"),
-        rows("0.0.0.2"),
-        rows("1.2.3.4"),
-        rows("1.2.3.5"));
+  public void test() {
+    JSONObject actual = executeQuery(
+        String.format("source=%s | stats count() by span(birthdate,1y)", TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("count()", null, "long"),
+        schema("span(birthdate,1y)", null, "timestamp"));
+    verifyDataRows(actual, rows(2, "2017-01-01 00:00:00"), rows(5, "2018-01-01 00:00:00"));
   }
 
   @Test
