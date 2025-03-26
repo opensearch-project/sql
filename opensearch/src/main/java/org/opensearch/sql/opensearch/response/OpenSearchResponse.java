@@ -155,7 +155,9 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   private void addMetaDataFieldsToBuilder(
       ImmutableMap.Builder<String, ExprValue> builder, SearchHit hit) {
     List<String> metaDataFieldSet =
-        includes.stream().filter(METADATAFIELD_TYPE_MAP::containsKey).collect(Collectors.toList());
+        includes.isEmpty()
+            ? METADATAFIELD_TYPE_MAP.keySet().stream().toList()
+            : includes.stream().filter(METADATAFIELD_TYPE_MAP::containsKey).toList();
     ExprFloatValue maxScore =
         Float.isNaN(hits.getMaxScore()) ? null : new ExprFloatValue(hits.getMaxScore());
 
@@ -176,7 +178,9 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
           } else if (metaDataField.equals(METADATA_FIELD_SORT)) {
             builder.put(METADATA_FIELD_SORT, new ExprLongValue(hit.getSeqNo()));
           } else { // if (metaDataField.equals(METADATA_FIELD_ROUTING)){
-            builder.put(METADATA_FIELD_ROUTING, new ExprStringValue(hit.getShard().toString()));
+            builder.put(
+                METADATA_FIELD_ROUTING,
+                new ExprStringValue(hit.getShard() == null ? null : hit.getShard().toString()));
           }
         });
   }

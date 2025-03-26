@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.standalone;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -13,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import org.hamcrest.MatcherAssert;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -89,7 +92,10 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   public void testFieldsShouldBeCaseSensitive() {
     IllegalStateException e =
         assertThrows(IllegalStateException.class, () -> execute("source=test | fields NAME"));
-    verifyErrorMessageContains(e, "field [NAME] not found; input fields are: [name, age]");
+    verifyErrorMessageContains(
+        e,
+        "field [NAME] not found; input fields are: [name, age, _id, _index, _score, _maxscore,"
+            + " _sort, _routing]");
   }
 
   @Test
@@ -518,5 +524,17 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
                 "source=%s | where firstname='Hattie' xor age=36 | fields firstname, age",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows("Elinor", 36));
+  }
+
+  @Test
+  public void testMetaFieldAlias() {
+    Exception e =
+        assertThrows(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format("source=%s | stats count() as _score", TEST_INDEX_ACCOUNT)));
+    MatcherAssert.assertThat(
+        e.getMessage(), containsString("Cannot use metadata field [_score] as the alias."));
   }
 }

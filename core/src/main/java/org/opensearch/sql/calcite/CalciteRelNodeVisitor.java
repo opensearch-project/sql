@@ -68,6 +68,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -144,7 +145,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
     List<RexNode> projectList;
-    if (node.getProjectList().stream().anyMatch(e -> e instanceof AllFields)) {
+    if (node.getProjectList().size() == 1
+        && node.getProjectList().getFirst() instanceof AllFields allFields) {
+      // Exclude meta fields if it's explicitly specified or there's no other project visited.
+      if (allFields.isExcludeMeta() || !context.isProjectVisited()) {
+        List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
+        List<RexNode> metaFieldsRef =
+            originalFields.stream()
+                .filter(OpenSearchConstants.METADATAFIELD_TYPE_MAP::containsKey)
+                .map(metaField -> (RexNode) context.relBuilder.field(metaField))
+                .toList();
+        // Remove metadata fields if there is and ensure there are other fields.
+        if (!metaFieldsRef.isEmpty() && metaFieldsRef.size() != originalFields.size()) {
+          context.relBuilder.projectExcept(metaFieldsRef);
+        }
+      }
       return context.relBuilder.peek();
     } else {
       projectList =
@@ -155,6 +170,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (node.isExcluded()) {
       context.relBuilder.projectExcept(projectList);
     } else {
+      // Only set when not resolving subquery and don't apply to the projectExcept.
+      if (!context.isResolvingSubquery()) {
+        context.setProjectVisited(true);
+      }
       context.relBuilder.project(projectList);
     }
     return context.relBuilder.peek();
