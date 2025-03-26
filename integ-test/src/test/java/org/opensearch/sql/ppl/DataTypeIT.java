@@ -11,7 +11,9 @@ import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -88,5 +90,31 @@ public class DataTypeIT extends PPLIntegTestCase {
                 "source=%s | where alias_col > 1 " + "| fields original_col, alias_col ",
                 TEST_INDEX_ALIAS));
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
+  }
+
+  @Test
+  public void test_exponent_literal_converting_to_double_type() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval `9e1` = 9e1, `+9e+1` = +9e+1, `900e-1` = 900e-1, `9.0e1` ="
+                    + " 9.0e1, `9.0e+1` = 9.0e+1, `9.0E1` = 9.0E1, `.9e+2` = .9e+2, `0.09e+3` ="
+                    + " 0.09e+3, `900.0e-1` = 900.0e-1, `-900.0E-1` = -900.0E-1 | fields `9e1`,"
+                    + " `+9e+1`, `900e-1`, `9.0e1`, `9.0e+1`, `9.0E1`, `.9e+2`, `0.09e+3`,"
+                    + " `900.0e-1`, `-900.0E-1`",
+                TEST_INDEX_DATATYPE_NUMERIC));
+    verifySchema(
+        result,
+        schema("9e1", "double"),
+        schema("+9e+1", "double"),
+        schema("900e-1", "double"),
+        schema("9.0e1", "double"),
+        schema("9.0e+1", "double"),
+        schema("9.0E1", "double"),
+        schema(".9e+2", "double"),
+        schema("0.09e+3", "double"),
+        schema("900.0e-1", "double"),
+        schema("-900.0E-1", "double"));
+    verifyDataRows(result, rows(90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, -90.0));
   }
 }
