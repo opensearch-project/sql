@@ -97,10 +97,7 @@ public class PrometheusDescribeMetricRequest implements PrometheusSystemRequest 
     List<ExprValue> results = new ArrayList<>();
     for (Map.Entry<String, ExprType> entry : getFieldTypes().entrySet()) {
       results.add(
-          row(
-              entry.getKey(),
-              entry.getValue().legacyTypeName().toLowerCase(),
-              dataSourceSchemaName));
+          row(entry.getKey(), entry.getValue().typeName().toLowerCase(), dataSourceSchemaName));
     }
     return results;
   }
