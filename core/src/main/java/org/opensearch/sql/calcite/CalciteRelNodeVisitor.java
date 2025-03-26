@@ -15,10 +15,12 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
@@ -146,6 +148,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     List<RexNode> projectList;
     if (node.getProjectList().stream().anyMatch(e -> e instanceof AllFields)) {
+      tryToRemoveNestedFields(context);
       return context.relBuilder.peek();
     } else {
       projectList =
@@ -159,6 +162,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.project(projectList);
     }
     return context.relBuilder.peek();
+  }
+
+  /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
+  private void tryToRemoveNestedFields(CalcitePlanContext context) {
+    Set<String> allFields = new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
+    List<RexNode> duplicatedNestedFields =
+        allFields.stream()
+            .filter(
+                field -> {
+                  int lastDot = field.lastIndexOf(".");
+                  return -1 != lastDot && allFields.contains(field.substring(0, lastDot));
+                })
+            .map(field -> (RexNode) context.relBuilder.field(field))
+            .toList();
+    if (!duplicatedNestedFields.isEmpty()) {
+      context.relBuilder.projectExcept(duplicatedNestedFields);
+    }
   }
 
   @Override
