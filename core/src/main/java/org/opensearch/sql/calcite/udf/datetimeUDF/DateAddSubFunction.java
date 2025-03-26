@@ -84,12 +84,11 @@ public class DateAddSubFunction implements UserDefinedFunction {
     }
   }
 
-  public static SqlReturnTypeInference getReturnTypeForAddOrSubDate(boolean nullable) {
+  public static SqlReturnTypeInference getReturnTypeForAddOrSubDate() {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(6);
       SqlTypeName typeName = operandType0.getSqlTypeName();
-      RelDataType returnType = opBinding.getTypeFactory().createSqlType(typeName);
-      return opBinding.getTypeFactory().createTypeWithNullability(returnType, nullable);
+      return opBinding.getTypeFactory().createSqlType(typeName);
     };
   }
 }

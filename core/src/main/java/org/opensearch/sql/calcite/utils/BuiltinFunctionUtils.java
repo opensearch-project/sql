@@ -236,12 +236,12 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(
             DateAddSubFunction.class,
             "ADDDATE",
-            DateAddSubFunction.getReturnTypeForAddOrSubDate(true));
+            DateAddSubFunction.getReturnTypeForAddOrSubDate());
       case "SUBDATE":
         return TransferUserDefinedFunction(
             DateAddSubFunction.class,
             "SUBDATE",
-            DateAddSubFunction.getReturnTypeForAddOrSubDate(true));
+            DateAddSubFunction.getReturnTypeForAddOrSubDate());
       case "DATE_SUB":
         return TransferUserDefinedFunction(
             DateAddSubFunction.class, "DATE_SUB", ReturnTypes.TIMESTAMP);
