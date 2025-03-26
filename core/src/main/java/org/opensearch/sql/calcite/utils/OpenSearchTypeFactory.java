@@ -22,10 +22,13 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
+import static org.opensearch.sql.executor.QueryType.PPL;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -36,6 +39,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.OpenSearchTypeSystem;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.storage.Table;
 
 /** This class is used to create RelDataType and map RelDataType to Java data type */
@@ -194,7 +198,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   }
 
   /** Get legacy name for a SqlTypeName. */
-  public static String getLegacyTypeName(SqlTypeName sqlTypeName) {
+  public static String getLegacyTypeName(SqlTypeName sqlTypeName, QueryType queryType) {
     switch (sqlTypeName) {
       case BINARY:
       case VARBINARY:
@@ -202,7 +206,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case GEOMETRY:
         return "GEO_POINT";
       default:
-        return convertSqlTypeNameToExprType(sqlTypeName).legacyTypeName();
+        ExprType type = convertSqlTypeNameToExprType(sqlTypeName);
+        return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
+            .toUpperCase(Locale.ROOT);
     }
   }
 
