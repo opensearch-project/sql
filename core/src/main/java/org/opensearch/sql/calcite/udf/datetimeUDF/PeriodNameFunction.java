@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Objects;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
@@ -23,6 +24,9 @@ import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 public class PeriodNameFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     Object candiate = args[0];
     Object type = args[1];
     SqlTypeName argumentType = (SqlTypeName) args[2];

@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import java.sql.Time;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
@@ -14,6 +15,9 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 public class MakeTimeFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     ExprValue timeExpr =
         DateTimeFunctions.exprMakeTime(
             new ExprDoubleValue(((Number) args[0]).doubleValue()),

@@ -10,12 +10,16 @@ import java.sql.Timestamp;
 import java.time.*;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
 public class TimeAddSubFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     Object argBase = args[0];
     SqlTypeName baseType = (SqlTypeName) args[1];
     Object argInterval = args[2];
