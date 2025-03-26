@@ -59,8 +59,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public enum ExprUDT {
     EXPR_DATE(DATE),
     EXPR_TIME(TIME),
-    EXPR_TIMESTAMP(TIMESTAMP),
-    EXPR_UNDEFINED(UNDEFINED);
+    EXPR_TIMESTAMP(TIMESTAMP);
 
     // Associated `ExprCoreType`
     private final ExprCoreType exprCoreType;
@@ -113,8 +112,6 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
             yield new ExprTimeType(TYPE_FACTORY.getTypeSystem(), nullable);
           case EXPR_TIMESTAMP:
             yield new ExprTimeStampType(TYPE_FACTORY.getTypeSystem(), nullable);
-          case EXPR_UNDEFINED:
-            throw new IllegalArgumentException("Unsupported data type: " + typeName);
         };
     return createTypeWithNullability(udt, nullable);
   }
