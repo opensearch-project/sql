@@ -26,7 +26,7 @@ public class ToDaysFunction implements UserDefinedFunction {
     ExprValue candidateValue =
         new ExprTimestampValue(
             LocalDateTime.ofInstant(
-                InstantUtils.convertToInstant(args[0], sqlTypeName), ZoneOffset.UTC));
+                InstantUtils.convertToInstant(args[0], sqlTypeName, false), ZoneOffset.UTC));
     return exprToDays(candidateValue).longValue();
   }
 }

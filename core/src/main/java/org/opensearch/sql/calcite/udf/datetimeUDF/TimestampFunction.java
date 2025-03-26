@@ -8,6 +8,8 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Objects;
+
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
@@ -24,17 +26,20 @@ public class TimestampFunction implements UserDefinedFunction {
     Instant dateTimeBase;
     Instant addTime;
     long addTimeMills = 0L;
+    if (Objects.isNull(args[0])) {
+      return null;
+    }
     if (args.length == 2) {
       SqlTypeName sqlTypeName = (SqlTypeName) args[1];
-      dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName);
+      dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
     } else {
       SqlTypeName sqlTypeName = (SqlTypeName) args[2];
-      dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName);
+      dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
     }
 
     if (args.length > 2) { // Have something to add
       SqlTypeName addSqlTypeName = (SqlTypeName) args[3];
-      addTime = InstantUtils.convertToInstant(args[1], addSqlTypeName);
+      addTime = InstantUtils.convertToInstant(args[1], addSqlTypeName, false);
       addTimeMills =
           addTime.atZone(ZoneOffset.UTC).toLocalTime().toNanoOfDay()
               / 1_000_000; // transfer it to millisecond

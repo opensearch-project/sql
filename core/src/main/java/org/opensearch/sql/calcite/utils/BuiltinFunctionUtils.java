@@ -278,7 +278,7 @@ public interface BuiltinFunctionUtils {
             "STR_TO_DATE",
             createNullableReturnType(SqlTypeName.TIMESTAMP));
       case "WEEK", "WEEK_OF_YEAR":
-        return TransferUserDefinedFunction(WeekFunction.class, "WEEK", ReturnTypes.INTEGER);
+        return TransferUserDefinedFunction(WeekFunction.class, "WEEK", createNullableReturnType(SqlTypeName.INTEGER));
         // UDF Functions
       case "SPAN":
         return TransferUserDefinedFunction(
@@ -481,7 +481,8 @@ public interface BuiltinFunctionUtils {
           "YEARWEEK",
           "WEEKDAY",
           "TO_SECONDS",
-          "TO_DAYS":
+          "TO_DAYS",
+           "CONVERT_TZ":
         List<RexNode> timestampArgs = new ArrayList<>(argList);
         timestampArgs.addAll(
             argList.stream()
@@ -642,8 +643,6 @@ public interface BuiltinFunctionUtils {
         return List.of(
             domUnit, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
       case "WEEK", "WEEK_OF_YEAR":
-        RexNode timestamp =
-            makeConversionCall("TIMESTAMP", ImmutableList.of(argList.getFirst()), context);
         RexNode woyMode;
         if (argList.size() >= 2) {
           woyMode = argList.get(1);
@@ -652,7 +651,7 @@ public interface BuiltinFunctionUtils {
               context.rexBuilder.makeLiteral(
                   0, context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER));
         }
-        return List.of(timestamp, woyMode);
+        return List.of(argList.getFirst(), woyMode, context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
       case "MINUTE_OF_DAY":
         // Convert STRING/TIME/TIMESTAMP to TIMESTAMP
         return ImmutableList.of(
@@ -662,11 +661,6 @@ public interface BuiltinFunctionUtils {
         return ImmutableList.of(
             argList.getFirst(),
             makeConversionCall("TIMESTAMP", ImmutableList.of(argList.get(1)), context));
-      case "CONVERT_TZ":
-        return ImmutableList.of(
-            makeConversionCall("TIMESTAMP", ImmutableList.of(argList.getFirst()), context),
-            argList.get(1),
-            argList.get(2));
       case "DATETIME":
         // Convert timestamp to a string to reuse OS PPL V2's implementation
         RexNode argTimestamp = argList.getFirst();

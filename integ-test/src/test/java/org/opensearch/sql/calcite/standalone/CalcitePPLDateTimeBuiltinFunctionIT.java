@@ -1119,9 +1119,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("QUARTER(DATE('2020-08-26'))", "long"),
-        schema("quarter2", "long"),
-        schema("timestampQuarter2", "long"));
+        schema("QUARTER(DATE('2020-08-26'))", "integer"),
+        schema("quarter2", "integer"),
+        schema("timestampQuarter2", "integer"));
     verifyDataRows(actual, rows(3, 2, 2));
   }
 

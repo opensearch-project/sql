@@ -208,7 +208,7 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
         JSONObject actual =
                 executeQuery(
                         String.format(
-                                "source=%s  |  eval timestamp = TO_SECONDS(strict_date_optional_time), date=TO_SECONDS(date), time=TO_SECONDS(time) | fields timestamp, date, time",
+                                "source=%s  |  eval timestamp = UNIX_TIMESTAMP(strict_date_optional_time), date=UNIX_TIMESTAMP(date), time=UNIX_TIMESTAMP(time) | fields timestamp, date, time",
                                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
 
 
@@ -248,18 +248,95 @@ public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
         JSONObject actual =
                 executeQuery(
                         String.format(
-                                "source=%s  |  eval timestamp = UNIX_TIMESTAMP(strict_date_optional_time), date=UNIX_TIMESTAMP(date) | fields timestamp, date",
+                                "source=%s  |  eval timestamp = SECOND(strict_date_optional_time), date=SECOND(date) | fields timestamp, date",
                                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
 
 
         verifySchema(
                 actual,
-                schema("timestamp", "double"),
-                schema("date", "double"));
+                schema("timestamp", "integer"),
+                schema("date", "integer"));
         JSONArray ret = (JSONArray) actual.getJSONArray("datarows").get(0);
         for (int i = 0; i < ret.length(); i++) {
             assertEquals(JSONObject.NULL, ret.get(i));
         }
     }
+
+    @Test
+    public void testDatetimeInvalid() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s  |  eval timestamp = DATETIME('2025-12-01 15:02:61'), date=DATETIME('2025-12-02'), time=DATETIME('16:00:61'), convert1= DATETIME('2025-12-01 12:02:61') " +
+                                        "| fields timestamp, date, time, convert1",
+                                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+
+
+        verifySchema(
+                actual,
+                schema("timestamp", "timestamp"),
+                schema("date", "timestamp"),
+                schema("time", "timestamp"),
+                schema("convert1", "timestamp"));
+        JSONArray ret = (JSONArray) actual.getJSONArray("datarows").get(0);
+        for (int i = 0; i < ret.length(); i++) {
+            assertEquals(JSONObject.NULL, ret.get(i));
+        }
+    }
+
+    @Test
+    public void testStrTDateInvalid1() {
+        assertThrows(Exception.class, () -> {
+            // Code that should throw the exception
+            JSONObject actual =
+                    executeQuery(
+                            String.format(
+                                    "source=%s  | eval a = str_to_date('01,13,2013', '%%d,%%m,%%Y')",
+                                    TEST_INDEX_DATE_FORMATS_WITH_NULL));
+        });
+    }
+
+    @Test
+    public void testStrTDateInvalid2() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s  |  eval timestamp = STR_TO_DATE('2025-13-02', '2025-13-02')" +
+                                        "| fields timestamp",
+                                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+
+
+        verifySchema(
+                actual,
+                schema("timestamp", "timestamp"));
+        JSONArray ret = (JSONArray) actual.getJSONArray("datarows").get(0);
+        for (int i = 0; i < ret.length(); i++) {
+            assertEquals(JSONObject.NULL, ret.get(i));
+        }
+    }
+
+    @Test
+    public void testConvertTZInvalid() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s  |  eval  a =CONVERT_TZ('2025-13-02', '+10:00', '-10:00'), b =CONVERT_TZ('2025-10-02', '+10:00', '-10:00'), c =CONVERT_TZ('2025-12-02 10:61:61', '+10:00', '-10:00'), " +
+                                        "d = CONVERT_TZ('2025-12-02 12:61:61', '+10:00:00', '-10:00')" +
+                                        "| fields a, b, c, d",
+                                TEST_INDEX_DATE_FORMATS_WITH_NULL));
+
+
+        verifySchema(
+                actual,
+                schema("a", "timestamp"),
+                schema("b", "timestamp"),
+                schema("c", "timestamp"),
+                schema("d", "timestamp"));
+        JSONArray ret = (JSONArray) actual.getJSONArray("datarows").get(0);
+        for (int i = 0; i < ret.length(); i++) {
+            assertEquals(JSONObject.NULL, ret.get(i));
+        }
+    }
+
 
 }

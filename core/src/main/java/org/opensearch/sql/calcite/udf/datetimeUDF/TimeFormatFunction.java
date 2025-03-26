@@ -21,7 +21,7 @@ public class TimeFormatFunction implements UserDefinedFunction {
   public Object eval(Object... args) {
     SqlTypeName sqlTypeName = (SqlTypeName) args[2];
     String format = (String) args[1];
-    Instant instant = InstantUtils.convertToInstant(args[0], sqlTypeName);
+    Instant instant = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
     LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     return getFormattedTime(new ExprTimestampValue(localDateTime), new ExprStringValue(format))
         .stringValue();

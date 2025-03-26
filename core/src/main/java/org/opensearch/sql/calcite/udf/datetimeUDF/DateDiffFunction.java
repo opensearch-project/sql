@@ -26,9 +26,9 @@ public class DateDiffFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     SqlTypeName sqlTypeName1 = (SqlTypeName) args[1];
-    Instant timestamp1 = InstantUtils.convertToInstant(args[0], sqlTypeName1);
+    Instant timestamp1 = InstantUtils.convertToInstant(args[0], sqlTypeName1, false);
     SqlTypeName sqlTypeName2 = (SqlTypeName) args[3];
-    Instant timestamp2 = InstantUtils.convertToInstant(args[2], sqlTypeName2);
+    Instant timestamp2 = InstantUtils.convertToInstant(args[2], sqlTypeName2, false);
     LocalDateTime localDateTime1 = LocalDateTime.ofInstant(timestamp1, ZoneOffset.UTC);
     LocalDateTime localDateTime2 = LocalDateTime.ofInstant(timestamp2, ZoneOffset.UTC);
     ExprValue diffResult =

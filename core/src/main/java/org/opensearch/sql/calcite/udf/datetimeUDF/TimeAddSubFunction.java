@@ -22,8 +22,8 @@ public class TimeAddSubFunction implements UserDefinedFunction {
     SqlTypeName argIntervalType = (SqlTypeName) args[3];
     boolean isAdd = (boolean) args[4];
 
-    Instant base = InstantUtils.convertToInstant((Number) argBase, baseType);
-    Instant interval = InstantUtils.convertToInstant((Number) argInterval, argIntervalType);
+    Instant base = InstantUtils.convertToInstant((Number) argBase, baseType, false);
+    Instant interval = InstantUtils.convertToInstant((Number) argInterval, argIntervalType, false);
     LocalTime time = interval.atZone(ZoneOffset.UTC).toLocalTime();
     Duration duration = Duration.between(LocalTime.MIN, time);
 

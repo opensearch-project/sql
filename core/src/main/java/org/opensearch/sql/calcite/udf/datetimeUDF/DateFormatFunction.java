@@ -21,7 +21,7 @@ public class DateFormatFunction implements UserDefinedFunction {
     Object argFormat = args[2];
 
     Instant datetimeInstant =
-        InstantUtils.convertToInstant((Number) argDatetime, (SqlTypeName) argDatetimeType);
+        InstantUtils.convertToInstant((Number) argDatetime, (SqlTypeName) argDatetimeType, false);
     LocalDateTime datetime = LocalDateTime.ofInstant(datetimeInstant, ZoneOffset.UTC);
 
     return DateTimeFormatterUtil.getFormattedDatetime(datetime, argFormat.toString());

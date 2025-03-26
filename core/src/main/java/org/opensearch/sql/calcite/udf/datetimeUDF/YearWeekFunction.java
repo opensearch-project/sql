@@ -33,11 +33,11 @@ public class YearWeekFunction implements UserDefinedFunction {
     SqlTypeName sqlTypeName;
     if (args.length == 2) {
       sqlTypeName = (SqlTypeName) args[1];
-      basetime = InstantUtils.convertToInstant(args[0], sqlTypeName);
+      basetime = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
       mode = 0;
     } else {
       sqlTypeName = (SqlTypeName) args[2];
-      basetime = InstantUtils.convertToInstant(args[0], sqlTypeName);
+      basetime = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
       mode = (int) args[1];
     }
     if (sqlTypeName == SqlTypeName.TIME) {

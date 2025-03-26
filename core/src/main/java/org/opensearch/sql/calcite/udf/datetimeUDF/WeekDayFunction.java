@@ -25,7 +25,7 @@ public class WeekDayFunction implements UserDefinedFunction {
     }
     SqlTypeName sqlTypeName = (SqlTypeName) args[1];
     LocalDate candidateDate =
-        LocalDateTime.ofInstant(InstantUtils.convertToInstant(args[0], sqlTypeName), ZoneOffset.UTC)
+        LocalDateTime.ofInstant(InstantUtils.convertToInstant(args[0], sqlTypeName, false), ZoneOffset.UTC)
             .toLocalDate();
     if (sqlTypeName == SqlTypeName.TIME) {
       return formatNow(new FunctionProperties().getQueryStartClock()).getDayOfWeek().getValue() - 1;
