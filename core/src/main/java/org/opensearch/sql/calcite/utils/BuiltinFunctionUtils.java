@@ -13,10 +13,7 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.transfer
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -563,11 +560,9 @@ public interface BuiltinFunctionUtils {
 
           LocalDateTime dt;
           if (TIME_EXCLUSIVE_OPS.contains(capitalOP)) {
-            LocalTime t = DateTimeParser.parseTime(expression);
-            dt = LocalDateTime.of(LocalDate.now(ZoneId.of("UTC")), t);
+            dt = DateTimeParser.parseTimeOrTimestamp(expression);
           } else {
-            LocalDate d = DateTimeParser.parseDate(expression);
-            dt = d.atStartOfDay();
+            dt = DateTimeParser.parseDateOrTimestamp(expression);
           }
           extractArgs.add(
               context.rexBuilder.makeTimestampLiteral(

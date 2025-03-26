@@ -90,9 +90,7 @@ public class UserDefinedFunctionUtils {
       if (argTypes.isEmpty()) {
         throw new IllegalArgumentException("Function requires at least one argument.");
       }
-      RelDataType firstArgType = argTypes.get(targetPosition);
-      return typeFactory.createTypeWithNullability(
-          typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
+      return argTypes.get(targetPosition);
     };
   }
 
@@ -151,17 +149,15 @@ public class UserDefinedFunctionUtils {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(0);
       SqlTypeName typeName = operandType0.getSqlTypeName();
-      RelDataType t =
-          switch (typeName) {
-            case DATE, TIMESTAMP ->
-            // Return TIMESTAMP
-            opBinding.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
-            case TIME ->
-            // Return TIME
-            opBinding.getTypeFactory().createSqlType(SqlTypeName.TIME);
-            default -> throw new IllegalArgumentException("Unsupported type: " + typeName);
-          };
-      return opBinding.getTypeFactory().createTypeWithNullability(t, true);
+      return switch (typeName) {
+        case DATE, TIMESTAMP ->
+        // Return TIMESTAMP
+        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+        case TIME ->
+        // Return TIME
+        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIME);
+        default -> throw new IllegalArgumentException("Unsupported type: " + typeName);
+      };
     };
   }
 
@@ -251,7 +247,8 @@ public class UserDefinedFunctionUtils {
     validateArgumentTypes(objects, types, Collections.nCopies(types.size(), false));
   }
 
-  public static void validateArgumentTypes(List<Object> objects, List<Class<?>> types, boolean nullable) {
+  public static void validateArgumentTypes(
+      List<Object> objects, List<Class<?>> types, boolean nullable) {
     validateArgumentTypes(objects, types, Collections.nCopies(types.size(), nullable));
   }
 
