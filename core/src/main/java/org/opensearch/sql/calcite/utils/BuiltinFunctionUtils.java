@@ -30,6 +30,8 @@ import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
+import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
+import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
 
 public interface BuiltinFunctionUtils {
 
@@ -66,6 +68,8 @@ public interface BuiltinFunctionUtils {
       case "/":
         return SqlStdOperatorTable.DIVIDE;
         // Built-in String Functions
+      case "ASCII":
+        return SqlStdOperatorTable.ASCII;
       case "CONCAT":
         return SqlLibraryOperators.CONCAT_FUNCTION;
       case "CONCAT_WS":
@@ -84,8 +88,19 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.REVERSE;
       case "RIGHT":
         return SqlLibraryOperators.RIGHT;
-      case "SUBSTRING":
+      case "LEFT":
+        return SqlLibraryOperators.LEFT;
+      case "SUBSTRING", "SUBSTR":
         return SqlStdOperatorTable.SUBSTRING;
+      case "STRCMP":
+        return SqlLibraryOperators.STRCMP;
+      case "REPLACE":
+        return TransferUserDefinedFunction(ReplaceFunction.class, "REPLACE", ReturnTypes.CHAR);
+      case "LOCATE":
+        return TransferUserDefinedFunction(
+            LocateFunction.class,
+            "LOCATE",
+            getNullableReturnTypeInferenceForFixedType(SqlTypeName.INTEGER));
       case "UPPER":
         return SqlStdOperatorTable.UPPER;
         // Built-in Math Functions

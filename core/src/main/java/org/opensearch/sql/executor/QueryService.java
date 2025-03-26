@@ -80,7 +80,7 @@ public class QueryService {
       // TODO https://github.com/opensearch-project/sql/issues/3457
       // Calcite is not available for SQL query now. Maybe release in 3.1.0?
       if (!calciteEnabled || relNodeVisitor == null || queryType == QueryType.SQL) {
-        executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
+        executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
       } else {
         try {
           AccessController.doPrivileged(
@@ -106,7 +106,7 @@ public class QueryService {
             }
           }
           LOG.warn("Fallback to V2 query engine since got exception", t);
-          executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
+          executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
         }
       }
     } catch (Exception e) {
@@ -183,15 +183,15 @@ public class QueryService {
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener) {
     try {
-      executionEngine.explain(plan(analyze(plan)), listener);
+      executionEngine.explain(plan(analyze(plan, queryType)), listener);
     } catch (Exception e) {
       listener.onFailure(e);
     }
   }
 
   /** Analyze {@link UnresolvedPlan}. */
-  public LogicalPlan analyze(UnresolvedPlan plan) {
-    return analyzer.analyze(plan, new AnalysisContext());
+  public LogicalPlan analyze(UnresolvedPlan plan, QueryType queryType) {
+    return analyzer.analyze(plan, new AnalysisContext(queryType));
   }
 
   public RelNode analyze(UnresolvedPlan plan, CalcitePlanContext context) {
