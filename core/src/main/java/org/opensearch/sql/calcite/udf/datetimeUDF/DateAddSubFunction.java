@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.Collections;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -28,6 +29,11 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 public class DateAddSubFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
+
     UserDefinedFunctionUtils.validateArgumentCount("DATE_ADD / DATE_SUB", 6, args.length, false);
     UserDefinedFunctionUtils.validateArgumentTypes(
         Arrays.asList(args),
@@ -37,7 +43,12 @@ public class DateAddSubFunction implements UserDefinedFunction {
             Number.class,
             SqlTypeName.class,
             Boolean.class,
-            SqlTypeName.class));
+            SqlTypeName.class),
+        Collections.nCopies(6, true));
+
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
 
     TimeUnit unit = (TimeUnit) args[0];
     long interval = ((Number) args[1]).longValue();

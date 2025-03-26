@@ -14,6 +14,7 @@ import java.util.Objects;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprLongValue;
@@ -24,6 +25,9 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 public class UnixTimeStampFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     if (args.length == 0) {
       return unixTimeStamp(new FunctionProperties().getQueryStartClock()).longValue();
     }

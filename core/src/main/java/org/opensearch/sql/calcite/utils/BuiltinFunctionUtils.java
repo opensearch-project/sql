@@ -7,7 +7,6 @@ package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createNullableReturnType;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getLeastRestrictiveReturnTypeAmongArgsAt;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getReturnTypeInference;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.transferStringExprToDateValue;
@@ -20,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.calcite.avatica.util.TimeUnit;
@@ -91,8 +91,14 @@ import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
 
 public interface BuiltinFunctionUtils {
 
+  Set<String> TIME_EXCLUSIVE_OPS =
+      Set.of("SECOND", "SECOND_OF_MINUTE", "MINUTE", "MINUTE_OF_HOUR", "HOUR", "HOUR_OF_DAY");
+  Set<String> DATE_EXCLUSIVE_OPS =
+      Set.of("DAY", "DAY_OF_MONTH", "DAYOFMONTH", "MONTH", "MONTH_OF_YEAR", "YEAR", "QUARTER");
+
   static SqlOperator translate(String op) {
-    switch (op.toUpperCase(Locale.ROOT)) {
+    String capitalOP = op.toUpperCase(Locale.ROOT);
+    switch (capitalOP) {
       case "AND":
         return SqlStdOperatorTable.AND;
       case "OR":
@@ -201,9 +207,7 @@ public interface BuiltinFunctionUtils {
         // MOD(3.1, 2.1) = 1.1,
         // whereas SqlStdOperatorTable.MOD supports only integer / long parameters.
         return TransferUserDefinedFunction(
-            ModFunction.class,
-            "MOD",
-            getLeastRestrictiveReturnTypeAmongArgsAt(List.of(0, 1), true));
+            ModFunction.class, "MOD", getLeastRestrictiveReturnTypeAmongArgsAt(List.of(0, 1)));
       case "PI":
         return SqlStdOperatorTable.PI;
       case "POW", "POWER":
@@ -249,7 +253,7 @@ public interface BuiltinFunctionUtils {
       case "ADDTIME", "SUBTIME":
         return TransferUserDefinedFunction(
             TimeAddSubFunction.class,
-            "ADDTIME",
+            capitalOP,
             UserDefinedFunctionUtils.getReturnTypeForTimeAddSub());
       case "DAY_OF_WEEK", "DAY_OF_YEAR", "DAYOFWEEK", "DAYOFYEAR":
         // SqlStdOperatorTable.DAYOFWEEK, SqlStdOperatorTable.DAYOFYEAR is not implemented in
@@ -261,10 +265,10 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(ExtractFunction.class, "EXTRACT", ReturnTypes.BIGINT);
       case "CONVERT_TZ":
         return TransferUserDefinedFunction(
-            ConvertTZFunction.class, "CONVERT_TZ", createNullableReturnType(SqlTypeName.TIMESTAMP));
+            ConvertTZFunction.class, "CONVERT_TZ", ReturnTypes.TIMESTAMP);
       case "DATETIME":
         return TransferUserDefinedFunction(
-            DatetimeFunction.class, "DATETIME", createNullableReturnType(SqlTypeName.TIMESTAMP));
+            DatetimeFunction.class, "DATETIME", ReturnTypes.TIMESTAMP);
 
       case "FROM_DAYS":
         return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", ReturnTypes.DATE);
@@ -277,8 +281,7 @@ public interface BuiltinFunctionUtils {
       case "MAKETIME":
         return TransferUserDefinedFunction(MakeTimeFunction.class, "MAKETIME", ReturnTypes.TIME);
       case "MAKEDATE":
-        return TransferUserDefinedFunction(
-            MakeDateFunction.class, "MAKEDATE", createNullableReturnType(SqlTypeName.DATE));
+        return TransferUserDefinedFunction(MakeDateFunction.class, "MAKEDATE", ReturnTypes.DATE);
       case "MINUTE_OF_DAY":
         return TransferUserDefinedFunction(MinuteOfDay.class, "MINUTE_OF_DAY", ReturnTypes.INTEGER);
       case "PERIOD_ADD":
@@ -289,11 +292,11 @@ public interface BuiltinFunctionUtils {
             PeriodDiffFunction.class, "PERIOD_DIFF", ReturnTypes.INTEGER);
       case "STR_TO_DATE":
         return TransferUserDefinedFunction(
-            StrToDateFunction.class,
-            "STR_TO_DATE",
-            createNullableReturnType(SqlTypeName.TIMESTAMP));
+            StrToDateFunction.class, "STR_TO_DATE", ReturnTypes.TIMESTAMP);
       case "WEEK", "WEEK_OF_YEAR":
-        return TransferUserDefinedFunction(WeekFunction.class, "WEEK", createNullableReturnType(SqlTypeName.INTEGER));
+        // WEEK in PPL support an additional mode argument, therefore we need to use a custom
+        // implementation.
+        return TransferUserDefinedFunction(WeekFunction.class, "WEEK", ReturnTypes.INTEGER);
         // UDF Functions
       case "SPAN":
         return TransferUserDefinedFunction(
@@ -320,7 +323,7 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.LAST_DAY;
       case "UNIX_TIMESTAMP":
         return TransferUserDefinedFunction(
-            UnixTimeStampFunction.class, "unix_timestamp", createNullableReturnType(SqlTypeName.DOUBLE));
+            UnixTimeStampFunction.class, "unix_timestamp", ReturnTypes.DOUBLE);
       case "SYSDATE":
         return TransferUserDefinedFunction(SysdateFunction.class, "SYSDATE", ReturnTypes.TIMESTAMP);
       case "TIME":
@@ -369,14 +372,14 @@ public interface BuiltinFunctionUtils {
           "SECOND_OF_MINUTE":
         return SqlLibraryOperators.DATE_PART;
       case "YEARWEEK":
-        return TransferUserDefinedFunction(YearWeekFunction.class, "YEARWEEK", createNullableReturnType(SqlTypeName.INTEGER));
+        return TransferUserDefinedFunction(YearWeekFunction.class, "YEARWEEK", ReturnTypes.INTEGER);
       case "FROM_UNIXTIME":
         return TransferUserDefinedFunction(
             FromUnixTimestampFunction.class,
             "FROM_UNIXTIME",
             FromUnixTimestampFunction.interReturnTypes());
       case "WEEKDAY":
-        return TransferUserDefinedFunction(WeekDayFunction.class, "WEEKDAY", createNullableReturnType(SqlTypeName.INTEGER));
+        return TransferUserDefinedFunction(WeekDayFunction.class, "WEEKDAY", ReturnTypes.INTEGER);
       case "UTC_TIMESTAMP":
         return TransferUserDefinedFunction(
             UtcTimeStampFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
@@ -404,7 +407,8 @@ public interface BuiltinFunctionUtils {
    */
   static List<RexNode> translateArgument(
       String op, List<RexNode> argList, CalcitePlanContext context) {
-    switch (op.toUpperCase(Locale.ROOT)) {
+    String capitalOP = op.toUpperCase(Locale.ROOT);
+    switch (capitalOP) {
       case "TRIM":
         List<RexNode> trimArgs =
             new ArrayList<>(
@@ -497,7 +501,7 @@ public interface BuiltinFunctionUtils {
           "WEEKDAY",
           "TO_SECONDS",
           "TO_DAYS",
-           "CONVERT_TZ":
+          "CONVERT_TZ":
         List<RexNode> timestampArgs = new ArrayList<>(argList);
         timestampArgs.addAll(
             argList.stream()
@@ -520,7 +524,7 @@ public interface BuiltinFunctionUtils {
       case "DAYNAME", "MONTHNAME":
         List<RexNode> periodNameArgs = new ArrayList<>();
         periodNameArgs.add(argList.getFirst());
-        periodNameArgs.add(context.rexBuilder.makeLiteral(op.toUpperCase(Locale.ROOT)));
+        periodNameArgs.add(context.rexBuilder.makeLiteral(capitalOP));
         periodNameArgs.add(
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return periodNameArgs;
@@ -550,7 +554,7 @@ public interface BuiltinFunctionUtils {
         } else if (op.equalsIgnoreCase("MONTH_OF_YEAR")) {
           timeUnitRange = TimeUnitRange.MONTH;
         } else {
-          timeUnitRange = TimeUnitRange.valueOf(op.toUpperCase(Locale.ROOT));
+          timeUnitRange = TimeUnitRange.valueOf(capitalOP);
         }
         extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
         if (argList.getFirst() instanceof RexLiteral) {
@@ -566,10 +570,16 @@ public interface BuiltinFunctionUtils {
           } else {
             expression = Objects.requireNonNull(stringExpr).toString();
           }
+
+          LocalDateTime dt;
+          if (TIME_EXCLUSIVE_OPS.contains(capitalOP)) {
+            dt = DateTimeParser.parseTimeOrTimestamp(expression);
+          } else {
+            dt = DateTimeParser.parseDateOrTimestamp(expression);
+          }
           extractArgs.add(
               context.rexBuilder.makeTimestampLiteral(
-                  createTimestampString(DateTimeParser.parse(expression)),
-                  RelDataType.PRECISION_NOT_SPECIFIED));
+                  createTimestampString(dt), RelDataType.PRECISION_NOT_SPECIFIED));
         } else {
           extractArgs.add(argList.getFirst());
         }
@@ -666,16 +676,20 @@ public interface BuiltinFunctionUtils {
               context.rexBuilder.makeLiteral(
                   0, context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER));
         }
-        return List.of(argList.getFirst(), woyMode, context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
+        return List.of(
+            argList.getFirst(),
+            woyMode,
+            context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
       case "MINUTE_OF_DAY":
         // Convert STRING/TIME/TIMESTAMP to TIMESTAMP
         return ImmutableList.of(
-            makeConversionCall("TIMESTAMP", ImmutableList.of(argList.getFirst()), context));
+            argList.getFirst(),
+            context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
       case "EXTRACT":
-        // Convert the second argument to TIMESTAMP
         return ImmutableList.of(
             argList.getFirst(),
-            makeConversionCall("TIMESTAMP", ImmutableList.of(argList.get(1)), context));
+            argList.get(1),
+            context.rexBuilder.makeFlag(argList.get(1).getType().getSqlTypeName()));
       case "DATETIME":
         // Convert timestamp to a string to reuse OS PPL V2's implementation
         RexNode argTimestamp = argList.getFirst();
@@ -701,31 +715,34 @@ public interface BuiltinFunctionUtils {
 
   static RelDataType deriveReturnType(
       String funcName, RexBuilder rexBuilder, SqlOperator operator, List<? extends RexNode> exprs) {
-    return switch (funcName.toUpperCase()) {
-        // This effectively invalidates the operand type check, which leads to unnecessary
-        // incompatible parameter type errors
-      case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-      case "TIMESTAMPADD" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
-      case "TIMESTAMPDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-      case "YEAR",
-          "MINUTE",
-          "HOUR",
-          "HOUR_OF_DAY",
-          "MONTH",
-          "MONTH_OF_YEAR",
-          "DAY_OF_YEAR",
-          "DAYOFYEAR",
-          "DAY_OF_MONTH",
-          "DAYOFMONTH",
-          "DAY_OF_WEEK",
-          "DAYOFWEEK",
-          "DAY",
-          "MINUTE_OF_HOUR",
-          "QUARTER",
-          "SECOND",
-          "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createTypeWithNullability(rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER), true);
-      default -> rexBuilder.deriveReturnType(operator, exprs);
-    };
+    RelDataType returnType =
+        switch (funcName.toUpperCase()) {
+            // This effectively invalidates the operand type check, which leads to unnecessary
+            // incompatible parameter type errors
+          case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+          case "TIMESTAMPADD" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+          case "TIMESTAMPDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
+          case "YEAR",
+              "MINUTE",
+              "HOUR",
+              "HOUR_OF_DAY",
+              "MONTH",
+              "MONTH_OF_YEAR",
+              "DAY_OF_YEAR",
+              "DAYOFYEAR",
+              "DAY_OF_MONTH",
+              "DAYOFMONTH",
+              "DAY_OF_WEEK",
+              "DAYOFWEEK",
+              "DAY",
+              "MINUTE_OF_HOUR",
+              "QUARTER",
+              "SECOND",
+              "SECOND_OF_MINUTE" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+          default -> rexBuilder.deriveReturnType(operator, exprs);
+        };
+    // Make all return types nullable
+    return rexBuilder.getTypeFactory().createTypeWithNullability(returnType, true);
   }
 
   private static RexNode convertToDateIfNecessary(CalcitePlanContext context, RexNode expr) {

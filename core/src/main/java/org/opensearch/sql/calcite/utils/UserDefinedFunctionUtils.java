@@ -10,9 +10,12 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VA
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -32,6 +35,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class UserDefinedFunctionUtils {
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
@@ -86,9 +90,7 @@ public class UserDefinedFunctionUtils {
       if (argTypes.isEmpty()) {
         throw new IllegalArgumentException("Function requires at least one argument.");
       }
-      RelDataType firstArgType = argTypes.get(targetPosition);
-      return typeFactory.createTypeWithNullability(
-          typeFactory.createSqlType(firstArgType.getSqlTypeName()), true);
+      return argTypes.get(targetPosition);
     };
   }
 
@@ -101,7 +103,7 @@ public class UserDefinedFunctionUtils {
    * @return The type inference
    */
   public static SqlReturnTypeInference getLeastRestrictiveReturnTypeAmongArgsAt(
-      List<Integer> positions, boolean nullable) {
+      List<Integer> positions) {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
       List<RelDataType> types = new ArrayList<>();
@@ -119,7 +121,7 @@ public class UserDefinedFunctionUtils {
             "Cannot determine a common type for the given positions.");
       }
 
-      return typeFactory.createTypeWithNullability(widerType, nullable);
+      return widerType;
     };
   }
 
@@ -138,6 +140,11 @@ public class UserDefinedFunctionUtils {
     };
   }
 
+  /**
+   * ADDTIME and SUBTIME has special return type maps: (DATE/TIMESTAMP, DATE/TIMESTAMP/TIME) ->
+   * TIMESTAMP (TIME, DATE/TIMESTAMP/TIME) -> TIME Therefore, we create a special return type
+   * inference for them.
+   */
   static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(0);
@@ -169,16 +176,27 @@ public class UserDefinedFunctionUtils {
     };
   }
 
+  static RelDataType createNullableReturnType(
+      RelDataTypeFactory typeFactory, SqlTypeName sqlTypeName) {
+    return typeFactory.createTypeWithNullability(typeFactory.createSqlType(sqlTypeName), true);
+  }
+
   static List<Integer> transferStringExprToDateValue(String timeExpr) {
-    if (timeExpr.contains(":")) {
-      // A timestamp
-      LocalDateTime localDateTime =
-          LocalDateTime.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-      return List.of(
-          localDateTime.getYear(), localDateTime.getMonthValue(), localDateTime.getDayOfMonth());
-    } else {
-      LocalDate localDate = LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-      return List.of(localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth());
+    try {
+      if (timeExpr.contains(":")) {
+        // A timestamp
+        LocalDateTime localDateTime =
+            LocalDateTime.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+        return List.of(
+            localDateTime.getYear(), localDateTime.getMonthValue(), localDateTime.getDayOfMonth());
+      } else {
+        LocalDate localDate =
+            LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
+        return List.of(localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth());
+      }
+    } catch (DateTimeParseException e) {
+      throw new SemanticCheckException(
+          String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", timeExpr));
     }
   }
 
@@ -230,6 +248,11 @@ public class UserDefinedFunctionUtils {
   }
 
   public static void validateArgumentTypes(
+      List<Object> objects, List<Class<?>> types, boolean nullable) {
+    validateArgumentTypes(objects, types, Collections.nCopies(types.size(), nullable));
+  }
+
+  public static void validateArgumentTypes(
       List<Object> objects, List<Class<?>> types, List<Boolean> nullables) {
     if (objects.size() < types.size()) {
       throw new IllegalArgumentException(
@@ -250,5 +273,10 @@ public class UserDefinedFunctionUtils {
                 objects.get(i) == null ? "null" : objects.get(i).getClass().getName()));
       }
     }
+  }
+
+  /** Check whether the given array contains null values. */
+  public static boolean containsNull(Object[] objects) {
+    return Arrays.stream(objects).anyMatch(Objects::isNull);
   }
 }

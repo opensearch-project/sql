@@ -16,6 +16,9 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 public class PeriodDiffFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     UserDefinedFunctionUtils.validateArgumentCount("PERIOD_DIFF", 2, args.length, false);
 
     UserDefinedFunctionUtils.validateArgumentTypes(

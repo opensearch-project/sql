@@ -10,11 +10,15 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprUtcTi
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class UtcTimeStampFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
     return java.sql.Timestamp.valueOf(
         LocalDateTime.ofInstant(
             exprUtcTimeStamp(new FunctionProperties()).timestampValue(), ZoneOffset.UTC));
