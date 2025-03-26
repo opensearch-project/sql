@@ -54,7 +54,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
             String.format("source=%s | stats count() by city.name", TEST_INDEX_DEEP_NESTED));
     verifySchema(
         result,
-        schema("count()", isCalciteEnabled() ? "long" : "integer"),
+        schema("count()", isCalciteEnabled() ? "bigint" : "int"),
         schema("city.name", "string"));
     verifyDataRows(result, rows(1, "Seattle"));
   }
