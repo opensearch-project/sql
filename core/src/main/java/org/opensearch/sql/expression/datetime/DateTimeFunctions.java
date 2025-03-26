@@ -1838,7 +1838,7 @@ public class DateTimeFunctions {
    * @param exprValue ExprValue of Time type or String.
    * @return ExprValue.
    */
-  private ExprValue exprTime(ExprValue exprValue) {
+  public static ExprValue exprTime(ExprValue exprValue) {
     if (exprValue instanceof ExprStringValue) {
       return new ExprTimeValue(exprValue.stringValue());
     } else {
