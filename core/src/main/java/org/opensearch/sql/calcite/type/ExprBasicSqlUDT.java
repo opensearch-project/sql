@@ -38,19 +38,25 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.SerializableCharset;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.data.type.ExprType;
 
 /**
- * CalciteBasicSqlUDT represents a standard atomic SQL type (excluding interval types).
+ * ExprBasicSqlUDT represents a standard atomic SQL type (excluding interval types) for a {@link
+ * ExprType}.
  *
  * <p>Instances of this class are immutable.
  *
- * Comparing to Calcite's BasicSqlType, this class supports flexible inheritance of UDTs.
+ * <p>Compared to Calcite's BasicSqlType, this class supports flexible inheritance of UDTs.
+ *
+ * <p>TODO: may no need to be abstract if it can cover all functions of subclass.
  */
-public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
+public abstract class ExprBasicSqlUDT extends AbstractSqlType implements ExprUserDefinedType {
   // ~ Static fields/initializers ---------------------------------------------
 
   // ~ Instance fields --------------------------------------------------------
+
+  private final ExprUDT exprUDT;
 
   private final int precision;
   private final int scale;
@@ -66,13 +72,21 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
    * @param typeSystem Type system
    * @param typeName Type name
    */
-  public CalciteBasicSqlUDT(RelDataTypeSystem typeSystem, SqlTypeName typeName) {
-    this(typeSystem, typeName, false);
+  public ExprBasicSqlUDT(RelDataTypeSystem typeSystem, SqlTypeName typeName, ExprUDT udtName) {
+    this(typeSystem, typeName, udtName, false);
   }
 
-  protected CalciteBasicSqlUDT(
-      RelDataTypeSystem typeSystem, SqlTypeName typeName, boolean nullable) {
-    this(typeSystem, typeName, nullable, PRECISION_NOT_SPECIFIED, SCALE_NOT_SPECIFIED, null, null);
+  protected ExprBasicSqlUDT(
+      RelDataTypeSystem typeSystem, SqlTypeName sqlTypeName, ExprUDT udtName, boolean nullable) {
+    this(
+        typeSystem,
+        sqlTypeName,
+        udtName,
+        nullable,
+        PRECISION_NOT_SPECIFIED,
+        SCALE_NOT_SPECIFIED,
+        null,
+        null);
     checkPrecScale(typeName, false, false);
   }
 
@@ -83,8 +97,9 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
    * @param typeName Type name
    * @param precision Precision (called length for some types)
    */
-  public CalciteBasicSqlUDT(RelDataTypeSystem typeSystem, SqlTypeName typeName, int precision) {
-    this(typeSystem, typeName, false, precision, SCALE_NOT_SPECIFIED, null, null);
+  public ExprBasicSqlUDT(
+      RelDataTypeSystem typeSystem, SqlTypeName typeName, ExprUDT udtName, int precision) {
+    this(typeSystem, typeName, udtName, false, precision, SCALE_NOT_SPECIFIED, null, null);
     checkPrecScale(typeName, true, false);
   }
 
@@ -96,22 +111,28 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
    * @param precision Precision (called length for some types)
    * @param scale Scale
    */
-  public CalciteBasicSqlUDT(
-      RelDataTypeSystem typeSystem, SqlTypeName typeName, int precision, int scale) {
-    this(typeSystem, typeName, false, precision, scale, null, null);
+  public ExprBasicSqlUDT(
+      RelDataTypeSystem typeSystem,
+      SqlTypeName typeName,
+      ExprUDT udtName,
+      int precision,
+      int scale) {
+    this(typeSystem, typeName, udtName, false, precision, scale, null, null);
     checkPrecScale(typeName, true, true);
   }
 
   /** Internal constructor. */
-  public CalciteBasicSqlUDT(
+  public ExprBasicSqlUDT(
       RelDataTypeSystem typeSystem,
-      SqlTypeName typeName,
+      SqlTypeName sqlTypeName,
+      ExprUDT udtName,
       boolean nullable,
       int precision,
       int scale,
       @Nullable SqlCollation collation,
       @Nullable SerializableCharset wrappedCharset) {
-    super(typeName, nullable, null);
+    super(sqlTypeName, nullable, null);
+    this.exprUDT = requireNonNull(udtName, "udtName");
     this.typeSystem = requireNonNull(typeSystem, "typeSystem");
     this.precision = precision;
     this.scale = scale;
@@ -120,9 +141,10 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
     computeDigest();
   }
 
-  protected abstract CalciteBasicSqlUDT createInstance(
+  protected abstract ExprBasicSqlUDT createInstance(
       RelDataTypeSystem typeSystem,
       SqlTypeName typeName,
+      ExprUDT udt,
       boolean nullable,
       int precision,
       int scale,
@@ -146,13 +168,14 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
   // ~ Methods ----------------------------------------------------------------
 
   /** Constructs a type with nullablity. */
-  public CalciteBasicSqlUDT createWithNullability(boolean nullable) {
+  public ExprBasicSqlUDT createWithNullability(boolean nullable) {
     if (nullable == this.isNullable) {
       return this;
     }
     return createInstance(
         this.typeSystem,
         this.typeName,
+        this.exprUDT,
         nullable,
         this.precision,
         this.scale,
@@ -165,11 +188,12 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
    *
    * <p>This must be a character type.
    */
-  public CalciteBasicSqlUDT createWithCharsetAndCollation(Charset charset, SqlCollation collation) {
+  public ExprBasicSqlUDT createWithCharsetAndCollation(Charset charset, SqlCollation collation) {
     checkArgument(SqlTypeUtil.inCharFamily(this));
     return createInstance(
         this.typeSystem,
         this.typeName,
+        this.exprUDT,
         this.isNullable,
         this.precision,
         this.scale,
@@ -249,6 +273,11 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
     }
   }
 
+  @Override
+  public String toString() {
+    return exprUDT.toString();
+  }
+
   /**
    * Returns a value which is a limit for this type.
    *
@@ -325,5 +354,8 @@ public abstract class CalciteBasicSqlUDT extends AbstractSqlType {
     return typeName.getLimit(sign, limit, beyond, precision, scale);
   }
 
-  public abstract ExprType getExprType();
+  @Override
+  public ExprType getExprType() {
+    return exprUDT.getExprCoreType();
+  }
 }

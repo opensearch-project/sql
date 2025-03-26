@@ -42,11 +42,6 @@ public class ExprDateValue extends AbstractExprValue {
   }
 
   @Override
-  public String valueForCalcite() {
-    return value();
-  }
-
-  @Override
   public ExprType type() {
     return ExprCoreType.DATE;
   }

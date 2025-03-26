@@ -5,14 +5,15 @@
 
 package org.opensearch.sql.calcite.udf;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import org.apache.calcite.linq4j.function.Strict;
-import org.apache.calcite.runtime.SqlFunctions;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.data.model.ExprTimestampValue;
-import org.opensearch.sql.planner.physical.collector.Rounding.DateTimeUnit;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.planner.physical.collector.Rounding;
+import org.opensearch.sql.planner.physical.collector.Rounding.DateRounding;
+import org.opensearch.sql.planner.physical.collector.Rounding.TimeRounding;
+import org.opensearch.sql.planner.physical.collector.Rounding.TimestampRounding;
 
 /**
  * Implement a customized UDF for span function because calcite doesn't have handy function to
@@ -37,39 +38,24 @@ public class SpanFunction implements UserDefinedFunction {
       throw new IllegalArgumentException("Span function requires at least 4 parameters");
     }
 
-    SqlTypeName sqlTypeName = SqlTypeName.valueOf((String) args[1]);
+    String value = (String) args[0];
+    String type = (String) args[1];
     Integer interval = (Integer) args[2];
-    DateTimeUnit dateTimeUnit = DateTimeUnit.resolve((String) args[3]);
+    String unitName = (String) args[3];
 
-    long timestamp =
-        switch (sqlTypeName) {
-          case SqlTypeName.DATE -> {
-            LocalDate date = LocalDate.ofEpochDay(((Integer) args[0]).longValue());
-            long dateEpochValue =
-                dateTimeUnit.round(
-                    date.atStartOfDay().atZone(ZoneOffset.UTC).toInstant().toEpochMilli(),
-                    interval);
-            yield SqlFunctions.timestampToDate(dateEpochValue);
-          }
-          case SqlTypeName.TIME -> {
-            /*
-             * Follow current logic to ignore time frame greater than hour because TIME type like '17:59:59.99' doesn't have day, month, year, etc.
-             * See @org.opensearch.sql.planner.physical.collector.TimeRounding
-             */
-            if (dateTimeUnit.getId() > 4) {
-              throw new IllegalArgumentException(
-                  String.format(
-                      "Unable to set span unit %s for TIME type", dateTimeUnit.getName()));
-            }
-            long timeEpochValue = dateTimeUnit.round(((Integer) args[0]).longValue(), interval);
-            yield SqlFunctions.time(timeEpochValue);
-          }
-          case SqlTypeName.TIMESTAMP -> dateTimeUnit.round((long) args[0], interval);
-          case SqlTypeName.VARCHAR -> dateTimeUnit.round(
-              new ExprTimestampValue((String) args[0]).timestampValue().toEpochMilli(), interval);
-          default -> throw new IllegalArgumentException(
-              "Unsupported time based column in Span function");
-        };
-    return new ExprTimestampValue(Instant.ofEpochMilli(timestamp)).value();
+    ExprValue exprInterval = ExprValueUtils.fromObjectValue(interval, ExprCoreType.INTEGER);
+
+    ExprCoreType exprCoreType = ExprUDT.valueOf(type).getExprCoreType();
+
+    ExprValue exprValue = ExprValueUtils.fromObjectValue(value, exprCoreType);
+
+    Rounding<?> rounding =
+        (switch (exprCoreType) {
+          case ExprCoreType.DATE -> new DateRounding(exprInterval, unitName);
+          case ExprCoreType.TIME -> new TimeRounding(exprInterval, unitName);
+          case ExprCoreType.TIMESTAMP -> new TimestampRounding(exprInterval, unitName);
+          default -> throw new IllegalStateException("Unexpected value: " + exprCoreType);
+        });
+    return rounding.round(exprValue).valueForCalcite();
   }
 }

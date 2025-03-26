@@ -284,10 +284,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           BuiltinFunctionUtils.translate("SPAN"),
           List.of(
               field,
-              context
-                  .relBuilder
-                  .getRexBuilder()
-                  .makeLiteral(field.getType().getSqlTypeName().getName()),
+              context.relBuilder.getRexBuilder().makeLiteral(field.getType().toString()),
               value,
               context.relBuilder.getRexBuilder().makeLiteral(unit.getName())));
     } else {

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote.fallback;
 
-import java.io.IOException;
 import org.opensearch.sql.ppl.StatsCommandIT;
 
 public class CalciteStatsCommandIT extends StatsCommandIT {

@@ -21,19 +21,24 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
+import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import lombok.Getter;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.calcite.type.CalciteBasicSqlUDT;
-import org.opensearch.sql.calcite.type.ExprTimeStampSqlType;
+import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
+import org.opensearch.sql.calcite.type.ExprDateType;
+import org.opensearch.sql.calcite.type.ExprTimeStampType;
+import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -50,9 +55,24 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     super(typeSystem);
   }
 
+  @Getter
+  public enum ExprUDT {
+    EXPR_DATE(DATE),
+    EXPR_TIME(TIME),
+    EXPR_TIMESTAMP(TIMESTAMP),
+    EXPR_UNDEFINED(UNDEFINED);
+
+    // Associated `ExprCoreType`
+    private final ExprCoreType exprCoreType;
+
+    ExprUDT(ExprCoreType exprCoreType) {
+      this.exprCoreType = exprCoreType;
+    }
+  }
+
   @Override
   public RelDataType createTypeWithNullability(RelDataType type, boolean nullable) {
-    if (type instanceof CalciteBasicSqlUDT udt) {
+    if (type instanceof ExprBasicSqlUDT udt) {
       return udt.createWithNullability(nullable);
     }
     return super.createTypeWithNullability(type, nullable);
@@ -61,7 +81,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   @Override
   public RelDataType createTypeWithCharsetAndCollation(
       RelDataType type, Charset charset, SqlCollation collation) {
-    if (type instanceof CalciteBasicSqlUDT udt) {
+    if (type instanceof ExprBasicSqlUDT udt) {
       return udt.createWithCharsetAndCollation(charset, collation);
     }
     return super.createTypeWithCharsetAndCollation(type, charset, collation);
@@ -82,6 +102,21 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   public RelDataType createMapType(RelDataType keyType, RelDataType valueType, boolean nullable) {
     return createTypeWithNullability(super.createMapType(keyType, valueType), nullable);
+  }
+
+  public RelDataType createUDT(ExprUDT typeName, boolean nullable) {
+    RelDataType udt =
+        switch (typeName) {
+          case EXPR_DATE:
+            yield new ExprDateType(TYPE_FACTORY.getTypeSystem(), nullable);
+          case EXPR_TIME:
+            yield new ExprTimeType(TYPE_FACTORY.getTypeSystem(), nullable);
+          case EXPR_TIMESTAMP:
+            yield new ExprTimeStampType(TYPE_FACTORY.getTypeSystem(), nullable);
+          case EXPR_UNDEFINED:
+            throw new IllegalArgumentException("Unsupported data type: " + typeName);
+        };
+    return createTypeWithNullability(udt, nullable);
   }
 
   public static RelDataType convertExprTypeToRelDataType(ExprType field) {
@@ -112,11 +147,11 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         case BOOLEAN:
           return TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN, nullable);
         case DATE:
-          return new ExprTimeStampSqlType(TYPE_FACTORY.getTypeSystem(), nullable);
+          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, nullable);
         case TIME:
-          return TYPE_FACTORY.createSqlType(SqlTypeName.TIME, nullable);
+          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, nullable);
         case TIMESTAMP:
-          return TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP, nullable);
+          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
         case ARRAY:
           return TYPE_FACTORY.createArrayType(
               TYPE_FACTORY.createSqlType(SqlTypeName.ANY, nullable), -1);
@@ -133,11 +168,11 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       if (fieldType.legacyTypeName().equalsIgnoreCase("binary")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.BINARY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("timestamp")) {
-        return new ExprTimeStampSqlType(TYPE_FACTORY.getTypeSystem(), nullable);
+        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("date")) {
-        return TYPE_FACTORY.createSqlType(SqlTypeName.DATE, nullable);
+        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("time")) {
-        return TYPE_FACTORY.createSqlType(SqlTypeName.TIME, nullable);
+        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("geo_point")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.GEOMETRY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("text")) {
@@ -155,7 +190,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
-    if (type instanceof CalciteBasicSqlUDT udt) {
+    if (type instanceof ExprBasicSqlUDT udt) {
       return udt.getExprType();
     } else
       return switch (type.getSqlTypeName()) {
@@ -224,7 +259,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public static RelDataType convertSchema(Table table) {
     List<String> fieldNameList = new ArrayList<>();
     List<RelDataType> typeList = new ArrayList<>();
-    for (Map.Entry<String, ExprType> entry : table.getFieldTypes().entrySet()) {
+    for (Entry<String, ExprType> entry : table.getFieldTypes().entrySet()) {
       fieldNameList.add(entry.getKey());
       typeList.add(OpenSearchTypeFactory.convertExprTypeToRelDataType(entry.getValue()));
     }

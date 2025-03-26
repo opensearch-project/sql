@@ -47,10 +47,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval a = 1 | stats count() as cnt by span(yyyy-MM-dd, 1d) as span",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(
-        result,
-        schema("cnt", null, "bigint"),
-        schema("span", null, "date"));
+    verifySchema(result, schema("cnt", null, "long"), schema("span", null, "date"));
     verifyDataRows(result, rows(2, "1984-04-12"));
   }
 

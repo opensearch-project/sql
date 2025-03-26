@@ -60,7 +60,7 @@ public abstract class Rounding<T> {
 
   public abstract ExprValue round(ExprValue value);
 
-  static class TimestampRounding extends Rounding<Instant> {
+  public static class TimestampRounding extends Rounding<Instant> {
     private final ExprValue interval;
     private final DateTimeUnit dateTimeUnit;
 
@@ -78,7 +78,7 @@ public abstract class Rounding<T> {
     }
   }
 
-  static class DateRounding extends Rounding<LocalDate> {
+  public static class DateRounding extends Rounding<LocalDate> {
     private final ExprValue interval;
     private final DateTimeUnit dateTimeUnit;
 
@@ -98,7 +98,7 @@ public abstract class Rounding<T> {
     }
   }
 
-  static class TimeRounding extends Rounding<LocalTime> {
+  public static class TimeRounding extends Rounding<LocalTime> {
     private final ExprValue interval;
     private final DateTimeUnit dateTimeUnit;
 
