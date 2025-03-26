@@ -37,6 +37,7 @@ import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -68,14 +69,18 @@ public class QueryService {
    * @param listener {@link ResponseListener}
    */
   public void execute(
-      UnresolvedPlan plan, ResponseListener<ExecutionEngine.QueryResponse> listener) {
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     try {
       boolean calciteEnabled = false;
       if (settings != null) {
         calciteEnabled = settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
       }
-      if (!calciteEnabled || relNodeVisitor == null) {
-        executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
+      // TODO https://github.com/opensearch-project/sql/issues/3457
+      // Calcite is not available for SQL query now. Maybe release in 3.1.0?
+      if (!calciteEnabled || relNodeVisitor == null || queryType == QueryType.SQL) {
+        executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
       } else {
         try {
           AccessController.doPrivileged(
@@ -86,16 +91,22 @@ public class QueryService {
                     executePlanByCalcite(analyze(plan, context), context, listener);
                     return null;
                   });
-        } catch (Exception e) {
+        } catch (Throwable t) {
           boolean fallbackAllowed = true;
           if (settings != null) {
             fallbackAllowed = settings.getSettingValue(Settings.Key.CALCITE_FALLBACK_ALLOWED);
           }
           if (!fallbackAllowed) {
-            listener.onFailure(e);
+            if (t instanceof Error) {
+              // Calcite may throw AssertError during query execution.
+              // Convert them to CalciteUnsupportedException.
+              listener.onFailure(new CalciteUnsupportedException(t.getMessage()));
+            } else {
+              listener.onFailure((Exception) t);
+            }
           }
-          LOG.warn("Fallback to V2 query engine since got exception", e);
-          executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
+          LOG.warn("Fallback to V2 query engine since got exception", t);
+          executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
         }
       }
     } catch (Exception e) {
@@ -168,17 +179,19 @@ public class QueryService {
    * @param listener {@link ResponseListener} for explain response
    */
   public void explain(
-      UnresolvedPlan plan, ResponseListener<ExecutionEngine.ExplainResponse> listener) {
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener<ExecutionEngine.ExplainResponse> listener) {
     try {
-      executionEngine.explain(plan(analyze(plan)), listener);
+      executionEngine.explain(plan(analyze(plan, queryType)), listener);
     } catch (Exception e) {
       listener.onFailure(e);
     }
   }
 
   /** Analyze {@link UnresolvedPlan}. */
-  public LogicalPlan analyze(UnresolvedPlan plan) {
-    return analyzer.analyze(plan, new AnalysisContext());
+  public LogicalPlan analyze(UnresolvedPlan plan, QueryType queryType) {
+    return analyzer.analyze(plan, new AnalysisContext(queryType));
   }
 
   public RelNode analyze(UnresolvedPlan plan, CalcitePlanContext context) {

@@ -22,7 +22,6 @@ import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
-  private static boolean calciteEnabled = false;
 
   protected JSONObject executeQuery(String query) throws IOException {
     return jsonify(executeQueryToString(query));
@@ -113,32 +112,31 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     }
   }
 
-  protected static void enableCalcite() throws IOException {
+  protected boolean isCalciteEnabled() throws IOException {
+    return Boolean.parseBoolean(
+        getClusterSetting(Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "persistent"));
+  }
+
+  public static void enableCalcite() throws IOException {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "true"));
-    calciteEnabled = true;
   }
 
-  protected static void disableCalcite() throws IOException {
+  public static void disableCalcite() throws IOException {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
-    calciteEnabled = false;
   }
 
-  protected static boolean isCalciteEnabled() throws IOException {
-    return calciteEnabled;
-  }
-
-  protected static void allowCalciteFallback() throws IOException {
+  public static void allowCalciteFallback() throws IOException {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "true"));
     System.out.println(Settings.Key.CALCITE_FALLBACK_ALLOWED.name() + " enabled");
   }
 
-  protected static void disallowCalciteFallback() throws IOException {
+  public static void disallowCalciteFallback() throws IOException {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));

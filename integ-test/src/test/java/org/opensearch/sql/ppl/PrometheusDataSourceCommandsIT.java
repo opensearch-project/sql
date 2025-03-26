@@ -56,7 +56,8 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
   }
 
   @Override
-  protected void init() throws InterruptedException, IOException {
+  public void init() throws Exception {
+    super.init();
     DataSourceMetadata createDSM =
         new DataSourceMetadata.Builder()
             .setName("my_prometheus")
@@ -212,7 +213,7 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
                 + " span(@timestamp, 15s), handler, job");
     verifySchema(
         response,
-        schema("count()", "integer"),
+        schema("count()", "int"),
         schema("span(@timestamp,15s)", "timestamp"),
         schema("handler", "string"),
         schema("job", "string"));

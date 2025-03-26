@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
+import org.opensearch.sql.executor.QueryType;
 
 /** AbstractPlan represent the execution entity of the Statement. */
 @RequiredArgsConstructor
@@ -20,6 +21,8 @@ public abstract class AbstractPlan {
 
   /** Uniq query id. */
   @Getter private final QueryId queryId;
+
+  @Getter protected final QueryType queryType;
 
   /** Start query execution. */
   public abstract void execute();

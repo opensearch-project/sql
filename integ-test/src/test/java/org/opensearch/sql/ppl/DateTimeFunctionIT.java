@@ -28,7 +28,8 @@ import org.opensearch.sql.common.utils.StringUtils;
 public class DateTimeFunctionIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.DATE);
     loadIndex(Index.PEOPLE2);
     loadIndex(Index.BANK);
@@ -483,13 +484,13 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f =  day(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(16));
 
     result =
         executeQuery(
             String.format("source=%s | eval f =  day('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(16));
   }
 
@@ -500,14 +501,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  day_of_week(date('2020-09-16')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(4));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  day_of_week('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(4));
   }
 
@@ -518,14 +519,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  day_of_month(date('2020-09-16')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(16));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  day_of_month('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(16));
   }
 
@@ -536,14 +537,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  day_of_year(date('2020-09-16')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(260));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  day_of_year('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(260));
   }
 
@@ -571,14 +572,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  dayofmonth(date('2020-09-16')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(16));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  dayofmonth('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(16));
   }
 
@@ -588,14 +589,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f =  dayofweek(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(4));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  dayofweek('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(4));
   }
 
@@ -605,14 +606,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f =  dayofyear(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(260));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  dayofyear('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(260));
   }
 
@@ -632,27 +633,27 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  hour(timestamp('2020-09-16 17:30:00')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(17));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  hour(time('17:30:00')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(17));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  hour('2020-09-16 17:30:00') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(17));
 
     result =
         executeQuery(
             String.format("source=%s | eval f =  hour('17:30:00') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(17));
   }
 
@@ -663,14 +664,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  hour_of_day(timestamp('2020-09-16 17:30:00')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(17));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  hour_of_day(time('17:30:00')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(17));
 
     result =
@@ -678,14 +679,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  hour_of_day('2020-09-16 17:30:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(17));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  hour_of_day('17:30:00') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(17));
   }
 
@@ -697,7 +698,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f =  microsecond(timestamp('2020-09-16 17:30:00.123456')) |"
                     + " fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(123456));
 
     // Explicit timestamp value with less than 6 microsecond digits
@@ -707,7 +708,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f =  microsecond(timestamp('2020-09-16 17:30:00.1234')) | fields"
                     + " f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(123400));
 
     result =
@@ -715,7 +716,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  microsecond(time('17:30:00.000010')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(10));
 
     // Explicit time value with less than 6 microsecond digits
@@ -724,7 +725,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  microsecond(time('17:30:00.1234')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(123400));
 
     result =
@@ -732,7 +733,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  microsecond('2020-09-16 17:30:00.123456') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(123456));
 
     // Implicit timestamp value with less than 6 microsecond digits
@@ -741,7 +742,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  microsecond('2020-09-16 17:30:00.1234') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(123400));
 
     result =
@@ -749,7 +750,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  microsecond('17:30:00.000010') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(10));
 
     // Implicit time value with less than 6 microsecond digits
@@ -757,7 +758,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f =  microsecond('17:30:00.1234') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(123400));
   }
 
@@ -768,27 +769,27 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  minute(timestamp('2020-09-16 17:30:00')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(30));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  minute(time('17:30:00')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(30));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  minute('2020-09-16 17:30:00') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(30));
 
     result =
         executeQuery(
             String.format("source=%s | eval f =  minute('17:30:00') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(30));
   }
 
@@ -799,7 +800,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  minute_of_hour(timestamp('2020-09-16 17:30:00')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(30));
 
     result =
@@ -807,7 +808,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  minute_of_hour(time('17:30:00')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(30));
 
     result =
@@ -815,14 +816,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  minute_of_hour('2020-09-16 17:30:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(30));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  minute_of_hour('17:30:00') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(30));
   }
 
@@ -833,7 +834,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  minute_of_day(timestamp('2020-09-16 17:30:00')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(1050));
 
     result =
@@ -841,7 +842,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  minute_of_day(time('17:30:00')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(1050));
 
     result =
@@ -849,14 +850,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  minute_of_day('2020-09-16 17:30:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(1050));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  minute_of_day('17:30:00') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(1050));
   }
 
@@ -866,13 +867,13 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f =  month(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(9));
 
     result =
         executeQuery(
             String.format("source=%s | eval f =  month('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(9));
   }
 
@@ -883,14 +884,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  month_of_year(date('2020-09-16')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(9));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  month_of_year('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(9));
   }
 
@@ -917,14 +918,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f =  quarter(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(3));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  quarter('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(3));
   }
 
@@ -935,27 +936,27 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  second(timestamp('2020-09-16 17:30:00')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(0));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  second(time('17:30:00')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(0));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  second('2020-09-16 17:30:00') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(0));
 
     result =
         executeQuery(
             String.format("source=%s | eval f =  second('17:30:00') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(0));
   }
 
@@ -967,7 +968,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f =  second_of_minute(timestamp('2020-09-16 17:30:00')) | fields"
                     + " f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(0));
 
     result =
@@ -975,7 +976,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  second_of_minute(time('17:30:00')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(0));
 
     result =
@@ -983,14 +984,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f =  second_of_minute('2020-09-16 17:30:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(0));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  second_of_minute('17:30:00') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(0));
   }
 
@@ -1103,14 +1104,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f =  time_to_sec(time('17:30:00')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifySome(result.getJSONArray("datarows"), rows(63000));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  time_to_sec('17:30:00') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifySome(result.getJSONArray("datarows"), rows(63000));
   }
 
@@ -1120,14 +1121,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f =  to_days(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifySome(result.getJSONArray("datarows"), rows(738049));
 
     result =
         executeQuery(
             String.format(
                 "source=%s | eval f =  to_days('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "long"));
+    verifySchema(result, schema("f", null, "bigint"));
     verifySome(result.getJSONArray("datarows"), rows(738049));
   }
 
@@ -1137,7 +1138,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             StringUtils.format(
                 "source=%s | eval f = week(date('%s'), %d) | fields f",
                 TEST_INDEX_DATE, date, mode));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(expectedResult));
   }
 
@@ -1147,7 +1148,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f = week(date('2008-02-20')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(7));
 
     week("2008-02-20", 0, 7);
@@ -1164,7 +1165,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = week_of_year(date('2008-02-20')) | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(7));
   }
 
@@ -1174,13 +1175,13 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f =  year(date('2020-09-16')) | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(2020));
 
     result =
         executeQuery(
             String.format("source=%s | eval f =  year('2020-09-16') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(2020));
   }
 
@@ -1361,7 +1362,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f1 = PERIOD_ADD(200801, 2), f2 = PERIOD_ADD(200801, -12) | fields"
                     + " f1, f2",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f1", null, "integer"), schema("f2", null, "integer"));
+    verifySchema(result, schema("f1", null, "int"), schema("f2", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(200803, 200701));
   }
 
@@ -1373,7 +1374,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f1 = PERIOD_DIFF(200802, 200703), f2 = PERIOD_DIFF(200802,"
                     + " 201003) | fields f1, f2",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f1", null, "integer"), schema("f2", null, "integer"));
+    verifySchema(result, schema("f1", null, "int"), schema("f2", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(11, -25));
   }
 
@@ -1393,10 +1394,10 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_DATE));
     verifySchema(
         result,
-        schema("'2000-01-02' - '2000-01-01'", null, "long"),
-        schema("'2001-02-01' - '2004-01-01'", null, "long"),
-        schema("'2004-01-01' - '2002-02-01'", null, "long"),
-        schema("today - today", null, "long"));
+        schema("'2000-01-02' - '2000-01-01'", null, "bigint"),
+        schema("'2001-02-01' - '2004-01-01'", null, "bigint"),
+        schema("'2004-01-01' - '2002-02-01'", null, "bigint"),
+        schema("today - today", null, "bigint"));
     verifySome(result.getJSONArray("datarows"), rows(1, -1064, 699, 0));
   }
 
@@ -1449,7 +1450,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f1 = yearweek('2003-10-03') | eval f2 = yearweek('2003-10-03', 3)"
                     + " | fields f1, f2",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f1", null, "integer"), schema("f2", null, "integer"));
+    verifySchema(result, schema("f1", null, "int"), schema("f2", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(200339, 200340));
   }
 
@@ -1459,7 +1460,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval f = weekday('2003-10-03') | fields f", TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "integer"));
+    verifySchema(result, schema("f", null, "int"));
     verifySome(result.getJSONArray("datarows"), rows(4));
   }
 
@@ -1473,7 +1474,10 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                     + "eval f3 = to_seconds(TIMESTAMP('2020-09-16 07:40:00')) | fields f1, f2, f3",
                 TEST_INDEX_DATE));
     verifySchema(
-        result, schema("f1", null, "long"), schema("f2", null, "long"), schema("f3", null, "long"));
+        result,
+        schema("f1", null, "bigint"),
+        schema("f2", null, "bigint"),
+        schema("f3", null, "bigint"));
     verifySome(result.getJSONArray("datarows"), rows(63390556800L, 63767461200L, 63767461200L));
   }
 
@@ -1527,7 +1531,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f1 = extract(YEAR FROM '1997-01-01 00:00:00') | eval f2 ="
                     + " extract(MINUTE FROM time('10:17:36')) | fields f1, f2",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f1", null, "long"), schema("f2", null, "long"));
+    verifySchema(result, schema("f1", null, "bigint"), schema("f2", null, "bigint"));
     verifySome(result.getJSONArray("datarows"), rows(1997L, 17L));
   }
 }

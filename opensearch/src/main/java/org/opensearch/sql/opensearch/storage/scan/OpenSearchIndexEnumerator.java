@@ -11,8 +11,8 @@ import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.calcite.linq4j.Enumerator;
-import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -66,14 +66,13 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
      * See {@link PhysTypeImpl}
      */
     if (fields.size() == 1) {
-      return current
-          .tupleValue()
-          .getOrDefault(fields.getFirst(), ExprNullValue.of())
-          .valueForCalcite();
+      return resolveForCalcite(current, fields.getFirst());
     }
-    return fields.stream()
-        .map(k -> current.tupleValue().getOrDefault(k, ExprNullValue.of()).valueForCalcite())
-        .toArray();
+    return fields.stream().map(field -> resolveForCalcite(current, field)).toArray();
+  }
+
+  private Object resolveForCalcite(ExprValue value, String rawPath) {
+    return ExprValueUtils.resolveRefPaths(value, List.of(rawPath.split("\\."))).valueForCalcite();
   }
 
   @Override

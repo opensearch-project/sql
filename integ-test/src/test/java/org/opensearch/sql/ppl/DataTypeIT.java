@@ -21,7 +21,8 @@ import org.junit.Test;
 public class DataTypeIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(DATA_TYPE_NUMERIC);
     loadIndex(DATA_TYPE_NONNUMERIC);
     loadIndex(DATA_TYPE_ALIAS);
@@ -32,10 +33,10 @@ public class DataTypeIT extends PPLIntegTestCase {
     JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
         result,
-        schema("long_number", "long"),
-        schema("integer_number", "integer"),
-        schema("short_number", "short"),
-        schema("byte_number", "byte"),
+        schema("long_number", "bigint"),
+        schema("integer_number", "int"),
+        schema("short_number", "smallint"),
+        schema("byte_number", "tinyint"),
         schema("double_number", "double"),
         schema("float_number", "float"),
         schema("half_float_number", "float"),
@@ -73,10 +74,10 @@ public class DataTypeIT extends PPLIntegTestCase {
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
         result,
-        schema("int1", "integer"),
-        schema("int2", "integer"),
-        schema("long1", "long"),
-        schema("long2", "long"));
+        schema("int1", "int"),
+        schema("int2", "int"),
+        schema("long1", "bigint"),
+        schema("long2", "bigint"));
   }
 
   @Test
@@ -86,6 +87,6 @@ public class DataTypeIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | where alias_col > 1 " + "| fields original_col, alias_col ",
                 TEST_INDEX_ALIAS));
-    verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
+    verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
   }
 }
