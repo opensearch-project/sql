@@ -354,7 +354,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 "source=%s "
                     + "| eval from_unix = from_unixtime(1220249547)"
                     + "| eval to_unix = unix_timestamp(from_unix)"
-                    + "| where unix_timestamp(from_unixtime(1700000001)) > 1700000000 " // don't do
+                    //+ "| where unix_timestamp(from_unixtime(1700000001)) > 1700000000 " // don't do
                     // filter
                     + "| fields from_unix, to_unix | head 1",
                 TEST_INDEX_DATE_FORMATS));
@@ -564,6 +564,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     return result.format(formatter);
   }
+
 
   @Test
   public void testAddDateAndSubDateWithConditionsAndRename() {

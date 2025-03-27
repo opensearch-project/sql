@@ -501,7 +501,7 @@ public interface BuiltinFunctionUtils {
           RexNode dateNode = context.rexBuilder.makeDateLiteral(dateString);
           LastDateArgs.add(dateNode);
         } else {
-          LastDateArgs.add(lastDayTimestampExpr);
+          LastDateArgs.add(wrapperByPreprocess(lastDayTimestampExpr, context.rexBuilder));
         }
         return LastDateArgs;
       case "TIMESTAMP",
@@ -643,7 +643,7 @@ public interface BuiltinFunctionUtils {
         return ImmutableList.of(datetimeNode, datetimeType, dateFormatPatternExpr);
       case "UNIX_TIMESTAMP":
         List<RexNode> UnixArgs = new ArrayList<>(argList);
-        UnixArgs.add(context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
+        UnixArgs.add(context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.getFirst())));
         return UnixArgs;
       case "DAY_OF_WEEK", "DAYOFWEEK":
         RexNode dowUnit =
@@ -807,7 +807,8 @@ public interface BuiltinFunctionUtils {
     List<RexNode> addOrSubDateRealInput =
         transformDateManipulationArgs(addOrSubDateArgs, rexBuilder);
     addOrSubDateRealInput.add(rexBuilder.makeLiteral(isAdd));
-    if (argList.getFirst().getType().getSqlTypeName() == SqlTypeName.DATE
+    SqlTypeName firstType = transferDateRelatedTimeName(argList.getFirst());
+    if (firstType == SqlTypeName.DATE
         && (addType == SqlTypeName.BIGINT
             || addType == SqlTypeName.DECIMAL
             || addType == SqlTypeName.INTEGER)) {

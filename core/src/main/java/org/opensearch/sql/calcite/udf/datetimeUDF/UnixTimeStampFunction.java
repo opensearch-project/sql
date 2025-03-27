@@ -40,12 +40,12 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
     if (inputTypes == SqlTypeName.DATE) {
       inputValue =
           new ExprDateValue(
-              LocalDateTime.ofInstant(InstantUtils.fromInternalDate((int) input), ZoneOffset.UTC)
+              LocalDateTime.ofInstant(InstantUtils.convertToInstant(input, inputTypes, false), ZoneOffset.UTC)
                   .toLocalDate());
     } else if (inputTypes == SqlTypeName.TIMESTAMP) {
       inputValue =
           new ExprTimestampValue(
-              LocalDateTime.ofInstant(InstantUtils.fromEpochMills((long) input), ZoneOffset.UTC));
+              LocalDateTime.ofInstant(InstantUtils.convertToInstant(input, inputTypes, false), ZoneOffset.UTC));
     } else {
       inputValue = new ExprLongValue((long) input);
     }
