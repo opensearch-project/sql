@@ -10,6 +10,8 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VA
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +21,7 @@ import java.util.Objects;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
@@ -33,8 +36,11 @@ import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
+import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.PreprocessForUDTFunction;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 public class UserDefinedFunctionUtils {
@@ -176,6 +182,7 @@ public class UserDefinedFunctionUtils {
     };
   }
 
+
   static RelDataType createNullableReturnType(
       RelDataTypeFactory typeFactory, SqlTypeName sqlTypeName) {
     return typeFactory.createTypeWithNullability(typeFactory.createSqlType(sqlTypeName), true);
@@ -279,4 +286,43 @@ public class UserDefinedFunctionUtils {
   public static boolean containsNull(Object[] objects) {
     return Arrays.stream(objects).anyMatch(Objects::isNull);
   }
+
+  public static String formatTimestamp(LocalDateTime localDateTime) {
+    String base = localDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    int nano = localDateTime.getNano();
+    if (nano == 0) return base;
+
+    String nanoStr = String.format("%09d", nano); // 保证9位
+    nanoStr = nanoStr.replaceFirst("0+$", "");   // 去除右边多余的0
+
+    return base + "." + nanoStr;
+  }
+
+  public static String formatTime(LocalTime time) {
+    String base = time.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+    int nano = time.getNano();
+    if (nano == 0) return base;
+
+    // 保留 nano 秒并去除尾部多余的 0
+    String nanoStr = String.format("%09d", nano).replaceFirst("0+$", "");
+    return base + "." + nanoStr;
+  }
+
+  public static String formatDate(LocalDate date) {
+    return date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+  }
+
+  public static RexNode wrapperByPreprocess(RexNode candidate, RexBuilder rexBuilder) {
+    ExprBasicSqlUDT dateType = (ExprBasicSqlUDT) candidate.getType();
+    ExprType udtType = dateType.getExprType();
+    List<RexNode> preprocessArgs = List.of(candidate, rexBuilder.makeFlag(PreprocessForUDTFunction.getInputType(udtType)));
+
+    RexNode calciteTypeArgument = rexBuilder.makeCall(
+            TransferUserDefinedFunction(
+                    PreprocessForUDTFunction.class,
+                    "PREPROCESS",
+                    PreprocessForUDTFunction.getSqlReturnTypeInference(udtType)), preprocessArgs);
+    return calciteTypeArgument;
+  }
+
 }

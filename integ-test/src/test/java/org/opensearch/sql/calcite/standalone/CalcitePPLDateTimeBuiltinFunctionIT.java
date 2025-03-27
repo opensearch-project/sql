@@ -439,7 +439,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             String.format(
                 "source=%s | where YEAR(strict_date_optional_time) < 2000| eval"
                     + " timestamp=weekday(TIMESTAMP(strict_date_optional_time)),"
-                    + " time=weekday(TIME(strict_date_optional_time)),"
+                    + " time=weekday(DATE(strict_date_optional_time)),"
                     + " date=weekday(DATE(strict_date_optional_time))| eval `weekday('2020-08-26')`"
                     + " = weekday('2020-08-26') | fields timestamp, time, date,"
                     + " `weekday('2020-08-26')`| head 1 ",

@@ -15,6 +15,8 @@ import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
+
 /**
  * We need to write our own since we are actually implement timestamp add here
  * (STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP (STRING/DATE/TIME/DATETIME/TIMESTAMP,
@@ -52,9 +54,10 @@ public class TimestampFunction implements UserDefinedFunction {
     return addTwoTimestamp(dateTimeBase, addTimeMills);
   }
 
-  private java.sql.Timestamp addTwoTimestamp(Instant timestamp, Long addTime) {
+  private String addTwoTimestamp(Instant timestamp, Long addTime) {
     Instant newInstant = timestamp.plusMillis(addTime);
     LocalDateTime newTime = LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC);
-    return java.sql.Timestamp.valueOf(newTime);
+    return formatTimestamp(newTime);
+    //return java.sql.Timestamp.valueOf(newTime);
   }
 }

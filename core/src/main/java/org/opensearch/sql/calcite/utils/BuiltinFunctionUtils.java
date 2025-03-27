@@ -6,10 +6,10 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.dateInference;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.timestampInference;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getLeastRestrictiveReturnTypeAmongArgsAt;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getReturnTypeInference;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.transferStringExprToDateValue;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
@@ -42,6 +42,8 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.ExtendedRexBuilder;
+import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
+import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.udf.SpanFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
@@ -61,6 +63,8 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.MinuteOfDay;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodAddFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodNameFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessForUDTFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.PreprocessForUDTFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.SecondToTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.StrToDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.SysdateFunction;
@@ -88,6 +92,8 @@ import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
 import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 
 public interface BuiltinFunctionUtils {
 
@@ -237,7 +243,10 @@ public interface BuiltinFunctionUtils {
       case "CURRENT_DATE", "CURDATE":
         return SqlStdOperatorTable.CURRENT_DATE;
       case "DATE":
-        return SqlLibraryOperators.DATE;
+        return TransferUserDefinedFunction(
+          PostprocessForUDTFunction.class, "PROPROCESS", dateInference
+        );
+        //return SqlLibraryOperators.DATE;
       case "DATE_ADD":
         return TransferUserDefinedFunction(
             DateAddSubFunction.class, "DATE_ADD", ReturnTypes.TIMESTAMP);
@@ -325,7 +334,7 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(
             UnixTimeStampFunction.class, "unix_timestamp", ReturnTypes.DOUBLE);
       case "SYSDATE":
-        return TransferUserDefinedFunction(SysdateFunction.class, "SYSDATE", ReturnTypes.TIMESTAMP);
+        return TransferUserDefinedFunction(SysdateFunction.class, "SYSDATE", timestampInference);
       case "TIME":
         return SqlLibraryOperators.TIME;
       case "TIMEDIFF":
@@ -339,11 +348,11 @@ public interface BuiltinFunctionUtils {
       case "TIMESTAMP":
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
-            TimestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP);
+            TimestampFunction.class, "timestamp", timestampInference);
       case "TIMESTAMPADD":
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
-            TimestampAddFunction.class, "TIMESTAMPADD", ReturnTypes.TIMESTAMP);
+            TimestampAddFunction.class, "TIMESTAMPADD", timestampInference);
       case "TIMESTAMPDIFF":
         return TransferUserDefinedFunction(
             TimestampDiffFunction.class, "TIMESTAMPDIFF", ReturnTypes.BIGINT);
@@ -382,7 +391,7 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(WeekDayFunction.class, "WEEKDAY", ReturnTypes.INTEGER);
       case "UTC_TIMESTAMP":
         return TransferUserDefinedFunction(
-            UtcTimeStampFunction.class, "utc_timestamp", ReturnTypes.TIMESTAMP);
+            UtcTimeStampFunction.class, "utc_timestamp", timestampInference);
       case "UTC_TIME":
         return TransferUserDefinedFunction(UtcTimeFunction.class, "utc_time", ReturnTypes.TIME);
       case "UTC_DATE":
@@ -475,9 +484,12 @@ public interface BuiltinFunctionUtils {
                   dateValueList.get(2),
                   context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
         } else {
-          DateArgs.add(timestampExpr);
+          DateArgs.add(wrapperByPreprocess(timestampExpr, context.rexBuilder));
         }
-        return DateArgs;
+        RexNode wrappedCall = context.rexBuilder.makeCall(
+                SqlLibraryOperators.DATE, DateArgs
+        );
+        return List.of(wrappedCall, context.rexBuilder.makeFlag(SqlTypeName.DATE));
       case "LAST_DAY":
         List<RexNode> LastDateArgs = new ArrayList<>();
         RexNode lastDayTimestampExpr = argList.get(0);
@@ -581,7 +593,8 @@ public interface BuiltinFunctionUtils {
               context.rexBuilder.makeTimestampLiteral(
                   createTimestampString(dt), RelDataType.PRECISION_NOT_SPECIFIED));
         } else {
-          extractArgs.add(argList.getFirst());
+          // We need to transfer it to calcite type
+          extractArgs.add(wrapperByPreprocess(argList.getFirst(), context.rexBuilder));
         }
         return extractArgs;
       case "DATE_SUB":

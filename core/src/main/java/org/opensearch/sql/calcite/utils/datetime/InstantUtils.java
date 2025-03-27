@@ -63,28 +63,33 @@ public interface InstantUtils {
    */
   static Instant convertToInstant(Object candidate, SqlTypeName sqlTypeName, boolean onlyForTimestamp) {
     Instant dateTimeBase = null;
-    switch (sqlTypeName) {
-      case DATE:
-        dateTimeBase = InstantUtils.fromInternalDate((int) candidate);
-        break;
-      case TIMESTAMP:
-        dateTimeBase = InstantUtils.fromEpochMills((long) candidate);
-        break;
-      case TIME:
-        dateTimeBase = InstantUtils.fromInternalTime((int) candidate);
-        break;
-      default:
-        String timestampExpression = (String) candidate;
-        if (onlyForTimestamp) {
-          ExprValue timestampExpr = exprDateTimeNoTimezone(new ExprStringValue(timestampExpression));
-          if (timestampExpr.isNull()){
-            throw new IllegalArgumentException("Cannot convert " + timestampExpression + " to Instant");
-          } else {
-            dateTimeBase = timestampExpr.timestampValue();
-          }
+    if (candidate instanceof String) {
+      String timestampExpression = (String) candidate;
+      if (onlyForTimestamp) {
+        ExprValue timestampExpr = exprDateTimeNoTimezone(new ExprStringValue(timestampExpression));
+        if (timestampExpr.isNull()){
+          throw new IllegalArgumentException("Cannot convert " + timestampExpression + " to Instant");
         } else {
-          dateTimeBase = InstantUtils.fromStringExpr(timestampExpression);
+          dateTimeBase = timestampExpr.timestampValue();
         }
+      } else {
+        dateTimeBase = InstantUtils.fromStringExpr(timestampExpression);
+      }
+    }
+    else {
+      switch (sqlTypeName) {
+        case DATE:
+          dateTimeBase = InstantUtils.fromInternalDate((int) candidate);
+          break;
+        case TIMESTAMP:
+          dateTimeBase = InstantUtils.fromEpochMills((long) candidate);
+          break;
+        case TIME:
+          dateTimeBase = InstantUtils.fromInternalTime((int) candidate);
+          break;
+        default:
+          throw new IllegalArgumentException("Cannot convert " + candidate + " to Instant");
+      }
     }
     return dateTimeBase;
   }

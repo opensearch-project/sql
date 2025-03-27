@@ -34,6 +34,7 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
 import org.opensearch.sql.calcite.type.ExprDateType;
@@ -50,6 +51,18 @@ import org.opensearch.sql.storage.Table;
 public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public static final OpenSearchTypeFactory TYPE_FACTORY =
       new OpenSearchTypeFactory(OpenSearchTypeSystem.INSTANCE);
+
+  public static SqlReturnTypeInference timestampInference = opBinding -> {
+    return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
+  };
+
+  public static SqlReturnTypeInference dateInference = opBinding -> {
+    return TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
+  };
+
+  public static SqlReturnTypeInference timeInference = opBinding -> {
+    return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
+  };
 
   private OpenSearchTypeFactory(RelDataTypeSystem typeSystem) {
     super(typeSystem);
