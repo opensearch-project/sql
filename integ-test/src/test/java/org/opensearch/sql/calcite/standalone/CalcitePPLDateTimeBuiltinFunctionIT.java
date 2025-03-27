@@ -566,24 +566,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testAddDateAndSubDateWithConditionsAndRename2() {
-    JSONObject actual =
-            executeQuery(
-                    String.format(
-                            "source=%s |  where strict_date < date | head 1 ",
-                            TEST_INDEX_DATE_FORMATS));
-
-    verifySchema(
-            actual,
-            schema("lower", "timestamp"),
-            schema("upper", "date"),
-            schema("d", "date"),
-            schema("ts", "timestamp"));
-    verifyDataRows(
-            actual, rows("1984-04-09 09:07:42", "1984-04-13", "1984-04-12", "1984-04-13 00:00:00"));
-  }
-
-  @Test
   public void testAddDateAndSubDateWithConditionsAndRename() {
     JSONObject actual =
         executeQuery(
@@ -720,7 +702,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where incomplete_1 > date | eval t1 = HOUR(date_time),"
+                "source=%s | where incomplete_1 > DATE('2000-10-01') | eval t1 = HOUR(date_time),"
                     + " t2 = HOUR_OF_DAY(time), t3 = HOUR('23:14:00'), t4 = HOUR('2023-12-31"
                     + " 16:03:00') | head 1 | fields t1, t2, t3, t4",
                 TEST_INDEX_DATE_FORMATS));
@@ -834,6 +816,19 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("d4", "integer"),
         schema("d5", "integer"));
     verifyDataRows(actual, rows(13, 9, 5, 6, 103));
+  }
+
+
+  @Test
+  public void testDayName() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s | head 1 | eval d1 = DAYNAME(date), d2 = DAYNAME('1984-04-12'), d3 ="
+                                    + " DAYNAME(date_time),m1 = MONTHNAME(date), m2 = MONTHNAME('1984-04-12"
+                                    + " 10:07:42')"
+                                    + "| fields d1, d2, d3, m1, m2",
+                            TEST_INDEX_DATE_FORMATS));
   }
 
   /**

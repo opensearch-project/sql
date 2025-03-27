@@ -327,16 +327,20 @@ public class UserDefinedFunctionUtils {
   }
 
   public static RexNode wrapperByPreprocess(RexNode candidate, RexBuilder rexBuilder) {
-    ExprBasicSqlUDT dateType = (ExprBasicSqlUDT) candidate.getType();
-    ExprType udtType = dateType.getExprType();
-    List<RexNode> preprocessArgs = List.of(candidate, rexBuilder.makeFlag(PreprocessForUDTFunction.getInputType(udtType)));
+    if (candidate.getType() instanceof ExprBasicSqlUDT) {
+      ExprBasicSqlUDT dateType = (ExprBasicSqlUDT) candidate.getType();
+      ExprType udtType = dateType.getExprType();
+      List<RexNode> preprocessArgs = List.of(candidate, rexBuilder.makeFlag(PreprocessForUDTFunction.getInputType(udtType)));
 
-    RexNode calciteTypeArgument = rexBuilder.makeCall(
-            TransferUserDefinedFunction(
-                    PreprocessForUDTFunction.class,
-                    "PREPROCESS",
-                    PreprocessForUDTFunction.getSqlReturnTypeInference(udtType)), preprocessArgs);
-    return calciteTypeArgument;
+      RexNode calciteTypeArgument = rexBuilder.makeCall(
+              TransferUserDefinedFunction(
+                      PreprocessForUDTFunction.class,
+                      "PREPROCESS",
+                      PreprocessForUDTFunction.getSqlReturnTypeInference(udtType)), preprocessArgs);
+      return calciteTypeArgument;
+    } else {
+      return candidate;
+    }
   }
 
   public static SqlTypeName transferDateRelatedTimeName(RexNode candidate) {

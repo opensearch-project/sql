@@ -650,13 +650,13 @@ public interface BuiltinFunctionUtils {
             context.rexBuilder.makeIntervalLiteral(
                 new SqlIntervalQualifier(TimeUnit.DOW, null, SqlParserPos.ZERO));
         return List.of(
-            dowUnit, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
+            dowUnit, wrapperByPreprocess(convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()), context.rexBuilder));
       case "DAY_OF_YEAR", "DAYOFYEAR":
         RexNode domUnit =
             context.rexBuilder.makeIntervalLiteral(
                 new SqlIntervalQualifier(TimeUnit.DOY, null, SqlParserPos.ZERO));
         return List.of(
-            domUnit, convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()));
+            domUnit, wrapperByPreprocess(convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()), context.rexBuilder));
       case "WEEK", "WEEK_OF_YEAR":
         RexNode woyMode;
         if (argList.size() >= 2) {

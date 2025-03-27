@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
@@ -56,15 +57,35 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       new OpenSearchTypeFactory(OpenSearchTypeSystem.INSTANCE);
 
   public static SqlReturnTypeInference timestampInference = opBinding -> {
-    return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
+    //return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
+    Charset charset = TYPE_FACTORY.getDefaultCharset();
+    SqlCollation collation = SqlCollation.IMPLICIT;
+    RelDataType type =  TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
+    if (type instanceof ExprBasicSqlUDT udt) {
+      return udt.createWithCharsetAndCollation(charset, collation);
+    }
+    return type;
   };
 
   public static SqlReturnTypeInference dateInference = opBinding -> {
-    return TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
+    Charset charset = TYPE_FACTORY.getDefaultCharset();
+    SqlCollation collation = SqlCollation.IMPLICIT;
+    RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
+    if (type instanceof ExprBasicSqlUDT udt) {
+      return udt.createWithCharsetAndCollation(charset, collation);
+    }
+    return type;
   };
 
   public static SqlReturnTypeInference timeInference = opBinding -> {
-    return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
+    //return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
+    Charset charset = TYPE_FACTORY.getDefaultCharset();
+    SqlCollation collation = SqlCollation.IMPLICIT;
+    RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
+    if (type instanceof ExprBasicSqlUDT udt) {
+      return udt.createWithCharsetAndCollation(charset, collation);
+    }
+    return type;
   };
 
   public static RelDataType nullableTimeUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
