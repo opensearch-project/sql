@@ -87,7 +87,7 @@ public class QueryService {
               (PrivilegedAction<Void>)
                   () -> {
                     final FrameworkConfig config = buildFrameworkConfig();
-                    final CalcitePlanContext context = CalcitePlanContext.create(config);
+                    final CalcitePlanContext context = CalcitePlanContext.create(config, queryType);
                     executePlanByCalcite(analyze(plan, context), context, listener);
                     return null;
                   });
