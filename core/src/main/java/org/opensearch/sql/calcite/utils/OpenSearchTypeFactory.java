@@ -21,10 +21,14 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
+import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
+import static org.opensearch.sql.executor.QueryType.PPL;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
@@ -35,6 +39,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.OpenSearchTypeSystem;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.storage.Table;
 
 /** This class is used to create RelDataType and map RelDataType to Java data type */
@@ -134,9 +139,13 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     }
   }
 
-  /** Converts a Calcite data type to OpenSearch ExprCoreType. */
-  public static ExprType convertRelDataTypeToExprType(RelDataType type) {
-    switch (type.getSqlTypeName()) {
+  /**
+   * Usually, {@link this#createSqlType(SqlTypeName, boolean)} is used to create RelDataType, then
+   * convert it to ExprType. This is a util to convert when you don't have typeFactory. So they are
+   * all ExprCoreType.
+   */
+  public static ExprType convertSqlTypeNameToExprType(SqlTypeName sqlTypeName) {
+    switch (sqlTypeName) {
       case TINYINT:
         return BYTE;
       case SMALLINT:
@@ -145,6 +154,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return INTEGER;
       case BIGINT:
         return LONG;
+      case FLOAT:
       case REAL:
         return FLOAT;
       case DOUBLE:
@@ -157,16 +167,25 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case DATE:
         return DATE;
       case TIME:
+      case TIME_TZ:
+      case TIME_WITH_LOCAL_TIME_ZONE:
         return TIME;
       case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      case TIMESTAMP_TZ:
         return TIMESTAMP;
-      case GEOMETRY:
-        return IP;
       case INTERVAL_YEAR:
+      case INTERVAL_YEAR_MONTH:
       case INTERVAL_MONTH:
       case INTERVAL_DAY:
+      case INTERVAL_DAY_HOUR:
+      case INTERVAL_DAY_MINUTE:
+      case INTERVAL_DAY_SECOND:
       case INTERVAL_HOUR:
+      case INTERVAL_HOUR_MINUTE:
+      case INTERVAL_HOUR_SECOND:
       case INTERVAL_MINUTE:
+      case INTERVAL_MINUTE_SECOND:
       case INTERVAL_SECOND:
         return INTERVAL;
       case ARRAY:
@@ -176,9 +195,33 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case NULL:
         return UNDEFINED;
       default:
-        throw new IllegalArgumentException(
-            "Unsupported conversion for Relational Data type: " + type.getSqlTypeName());
+        return UNKNOWN;
     }
+  }
+
+  /** Get legacy name for a SqlTypeName. */
+  public static String getLegacyTypeName(SqlTypeName sqlTypeName, QueryType queryType) {
+    switch (sqlTypeName) {
+      case BINARY:
+      case VARBINARY:
+        return "BINARY";
+      case GEOMETRY:
+        return "GEO_POINT";
+      default:
+        ExprType type = convertSqlTypeNameToExprType(sqlTypeName);
+        return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
+            .toUpperCase(Locale.ROOT);
+    }
+  }
+
+  /** Converts a Calcite data type to OpenSearch ExprCoreType. */
+  public static ExprType convertRelDataTypeToExprType(RelDataType type) {
+    ExprType exprType = convertSqlTypeNameToExprType(type.getSqlTypeName());
+    if (exprType == UNKNOWN) {
+      throw new IllegalArgumentException(
+          "Unsupported conversion for Relational Data type: " + type.getSqlTypeName());
+    }
+    return exprType;
   }
 
   public static ExprValue getExprValueByExprType(ExprType type, Object value) {
