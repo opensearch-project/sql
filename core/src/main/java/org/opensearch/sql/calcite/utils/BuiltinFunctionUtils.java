@@ -14,7 +14,6 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.Transfer
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -71,6 +70,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.SysdateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeFormatFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeToSecondFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampAddFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampDiffFunction;
@@ -336,7 +336,7 @@ public interface BuiltinFunctionUtils {
       case "SYSDATE":
         return TransferUserDefinedFunction(SysdateFunction.class, "SYSDATE", timestampInference);
       case "TIME":
-        return SqlLibraryOperators.TIME;
+        return TransferUserDefinedFunction(TimeFunction.class, "TIME", ReturnTypes.TIME);
       case "TIMEDIFF":
         return TransferUserDefinedFunction(TimeDiffFunction.class, "TIMEDIFF", ReturnTypes.TIME);
       case "TIME_TO_SEC":
@@ -624,29 +624,7 @@ public interface BuiltinFunctionUtils {
         subTimeArgs.add(context.rexBuilder.makeLiteral(false));
         return subTimeArgs;
       case "TIME":
-        List<RexNode> timeArgs = new ArrayList<>();
-        RexNode timeExpr = argList.getFirst();
-        RexNode timeNode;
-        if (timeExpr instanceof RexLiteral timeLiteral) {
-          // Convert time string to milliseconds that can be recognized by the builtin TIME function
-          String timeStringValue = Objects.requireNonNull(timeLiteral.getValueAs(String.class));
-          LocalDateTime dateTime = DateTimeParser.parse(timeStringValue);
-          timeNode =
-              context.rexBuilder.makeBigintLiteral(
-                  BigDecimal.valueOf(dateTime.toInstant(ZoneOffset.UTC).toEpochMilli()));
-          timeArgs.add(timeNode);
-        }
-        // Convert date to timestamp
-        else if (timeExpr.getType().getSqlTypeName().equals(SqlTypeName.DATE)) {
-          timeNode =
-              context.rexBuilder.makeCall(
-                  TransferUserDefinedFunction(
-                      TimestampFunction.class, "timestamp", ReturnTypes.TIMESTAMP),
-                  translateArgument("TIMESTAMP", ImmutableList.of(timeExpr), context));
-        } else {
-          timeNode = timeExpr;
-        }
-        return ImmutableList.of(timeNode);
+        return ImmutableList.of(argList.getFirst(), context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
       case "DATE_FORMAT", "FORMAT_TIMESTAMP":
         RexNode dateExpr = argList.get(0);
         RexNode dateFormatPatternExpr = argList.get(1);
@@ -723,7 +701,9 @@ public interface BuiltinFunctionUtils {
       String funcName, List<RexNode> arguments, CalcitePlanContext context) {
     SqlOperator operator = translate(funcName);
     List<RexNode> translatedArguments = translateArgument(funcName, arguments, context);
-    return context.rexBuilder.makeCall(operator, translatedArguments);
+    RelDataType returnType =
+        deriveReturnType(funcName, context.rexBuilder, operator, translatedArguments);
+    return context.rexBuilder.makeCall(returnType, operator, translatedArguments);
   }
 
   static RelDataType deriveReturnType(
