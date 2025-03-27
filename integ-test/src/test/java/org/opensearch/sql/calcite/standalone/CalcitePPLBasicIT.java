@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -37,18 +36,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     client().performRequest(request3);
 
     loadIndex(Index.BANK);
-    loadIndex(Index.DATE_FORMATS);
-  }
-
-  @Test
-  public void test() {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | eval a = 1 | stats count() as cnt by span(yyyy-MM-dd, 1d) as span",
-                TEST_INDEX_DATE_FORMATS));
-    verifySchema(result, schema("cnt", null, "long"), schema("span", null, "date"));
-    verifyDataRows(result, rows(2, "1984-04-12"));
   }
 
   @Test

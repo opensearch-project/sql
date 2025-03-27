@@ -241,7 +241,8 @@ public abstract class ExprBasicSqlUDT extends AbstractSqlType implements ExprUse
   protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     // Called to make the digest, which equals() compares;
     // so equivalent data types must produce identical type strings.
-
+    sb.append(exprUDT.name());
+    sb.append(' ');
     sb.append(typeName.name());
     boolean printPrecision = precision != PRECISION_NOT_SPECIFIED;
     boolean printScale = scale != SCALE_NOT_SPECIFIED;
