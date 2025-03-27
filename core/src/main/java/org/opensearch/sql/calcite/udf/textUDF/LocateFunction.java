@@ -14,8 +14,8 @@ public class LocateFunction implements UserDefinedFunction {
       return new IllegalArgumentException(
           "Invalid number of arguments, locate function expects 2 or 3 arguments");
     }
-    String stringText = (String) args[0];
-    String targetText = (String) args[1];
+    String stringText = (String) args[1];
+    String targetText = (String) args[0];
     if (stringText == null || targetText == null) {
       return null;
     }
