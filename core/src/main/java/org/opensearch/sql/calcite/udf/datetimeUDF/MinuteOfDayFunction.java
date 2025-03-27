@@ -21,9 +21,6 @@ public class MinuteOfDayFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-    //UserDefinedFunctionUtils.validateArgumentCount("MINUTE_OF_DAY", 2, args.length, false);
-    //UserDefinedFunctionUtils.validateArgumentTypes(
-    //    Arrays.asList(args), ImmutableList.of(Number.class, SqlTypeName.class));
     Instant timestamp = InstantUtils.convertToInstant(args[0], (SqlTypeName) args[1], false);
     return DateTimeFunctions.exprMinuteOfDay(new ExprTimestampValue(timestamp)).integerValue();
   }

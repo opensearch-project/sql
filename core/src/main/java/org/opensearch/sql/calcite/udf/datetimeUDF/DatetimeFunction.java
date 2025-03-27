@@ -47,9 +47,5 @@ public class DatetimeFunction implements UserDefinedFunction {
       return null;
     }
     return formatTimestamp(LocalDateTime.ofInstant(datetimeExpr.timestampValue(), ZoneOffset.UTC));
-    // Manually convert to calcite internal representation of Timestamp to circumvent
-    // errors relating to null returns
-    //return SqlFunctions.toLong(
-    //    Timestamp.valueOf(LocalDateTime.ofInstant(datetimeExpr.timestampValue(), ZoneOffset.UTC)));
   }
 }

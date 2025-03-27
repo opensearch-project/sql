@@ -58,6 +58,5 @@ public class TimestampFunction implements UserDefinedFunction {
     Instant newInstant = timestamp.plusMillis(addTime);
     LocalDateTime newTime = LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC);
     return formatTimestamp(newTime);
-    //return java.sql.Timestamp.valueOf(newTime);
   }
 }

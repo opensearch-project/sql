@@ -60,7 +60,6 @@ public class FromUnixTimestampFunction implements UserDefinedFunction {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
-      // Get argument types
       List<RelDataType> argTypes = opBinding.collectOperandTypes();
 
       if (argTypes.isEmpty()) {

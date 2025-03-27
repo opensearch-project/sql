@@ -23,6 +23,5 @@ public class FromDaysFunction implements UserDefinedFunction {
     Number argDays = (Number) args[0];
     ExprValue dateExpr = DateTimeFunctions.exprFromDays(new ExprLongValue(argDays.longValue()));
     return formatDate(dateExpr.dateValue());
-    //return Date.valueOf(dateExpr.dateValue());
   }
 }

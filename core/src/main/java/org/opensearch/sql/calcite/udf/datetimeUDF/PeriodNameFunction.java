@@ -32,12 +32,11 @@ public class PeriodNameFunction implements UserDefinedFunction {
     SqlTypeName argumentType = (SqlTypeName) args[2];
     LocalDate localDate;
     if (candiate instanceof String) {
-      // First transfer it to LocalDate
       localDate = DateTimeParser.parse(candiate.toString()).toLocalDate();
-    } else if (argumentType == SqlTypeName.DATE) { // date
+    } else if (argumentType == SqlTypeName.DATE) {
       localDate =
           LocalDate.ofInstant(InstantUtils.fromInternalDate((int) candiate), ZoneOffset.UTC);
-    } else if (argumentType == SqlTypeName.TIMESTAMP) { // timestamp
+    } else if (argumentType == SqlTypeName.TIMESTAMP) {
       localDate =
           LocalDateTime.ofInstant(InstantUtils.fromEpochMills((long) candiate), ZoneOffset.UTC)
               .toLocalDate();

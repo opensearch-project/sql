@@ -46,8 +46,6 @@ public class StrToDateFunction implements UserDefinedFunction {
       return null;
     }
 
-    // Manually convert to calcite internal representation of Timestamp to circumvent
-    // errors relating to null returns
     return formatTimestamp(LocalDateTime.ofInstant(formatedDateExpr.timestampValue(), ZoneOffset.UTC));
   }
 }

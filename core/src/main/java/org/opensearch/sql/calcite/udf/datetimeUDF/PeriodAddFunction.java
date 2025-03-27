@@ -19,10 +19,6 @@ public class PeriodAddFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-    UserDefinedFunctionUtils.validateArgumentCount("PERIOD_ADD", 2, args.length, false);
-
-    UserDefinedFunctionUtils.validateArgumentTypes(
-        Arrays.asList(args), ImmutableList.of(Number.class, Number.class));
 
     ExprValue periodAddExpr =
         DateTimeFunctions.exprPeriodAdd(

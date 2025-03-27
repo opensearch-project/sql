@@ -33,6 +33,5 @@ public class TimeDiffFunction implements UserDefinedFunction {
             new ExprTimeValue(LocalDateTime.ofInstant(startTime, ZoneOffset.UTC).toLocalTime()),
             new ExprTimeValue(LocalDateTime.ofInstant(endTime, ZoneOffset.UTC).toLocalTime()));
     return formatTime(diffValue.timeValue());
-    //return java.sql.Time.valueOf(diffValue.timeValue());
   }
 }

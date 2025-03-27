@@ -38,10 +38,8 @@ public class TimeAddSubFunction implements UserDefinedFunction {
 
     if (baseType == SqlTypeName.TIME) {
       return formatTime(LocalTime.ofInstant(newInstant, ZoneOffset.UTC));
-      //return Time.valueOf(LocalTime.ofInstant(newInstant, ZoneOffset.UTC));
     } else {
       return formatTimestamp(LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC));
-      //return Timestamp.valueOf(LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC));
     }
   }
 }

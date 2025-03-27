@@ -26,6 +26,5 @@ public class SysdateFunction implements UserDefinedFunction {
       localDateTime = formatNow(Clock.systemDefaultZone(), (int) args[0]);
     }
     return formatTimestamp(localDateTime);
-    //return java.sql.Timestamp.valueOf(localDateTime);
   }
 }

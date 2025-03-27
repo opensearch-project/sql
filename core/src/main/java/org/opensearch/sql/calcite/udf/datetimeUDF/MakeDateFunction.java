@@ -45,6 +45,5 @@ public class MakeDateFunction implements UserDefinedFunction {
       return null;
     }
     return formatDate(date.dateValue());
-    //return SqlFunctions.toInt(java.sql.Date.valueOf(date.dateValue()));
   }
 }
