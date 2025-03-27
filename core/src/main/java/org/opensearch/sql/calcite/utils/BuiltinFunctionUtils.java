@@ -236,11 +236,17 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.CBRT;
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP", "NOW", "LOCALTIMESTAMP", "LOCALTIME":
-        return SqlStdOperatorTable.CURRENT_TIMESTAMP;
+        return TransferUserDefinedFunction(
+                PostprocessForUDTFunction.class, "POSTPROCESS", timestampInference
+        );
       case "CURTIME", "CURRENT_TIME":
-        return SqlStdOperatorTable.CURRENT_TIME;
+        return TransferUserDefinedFunction(
+                PostprocessForUDTFunction.class, "POSTPROCESS", timeInference
+        );
       case "CURRENT_DATE", "CURDATE":
-        return SqlStdOperatorTable.CURRENT_DATE;
+        return TransferUserDefinedFunction(
+                PostprocessForUDTFunction.class, "POSTPROCESS", dateInference
+        );
       case "DATE":
         return TransferUserDefinedFunction(
           PostprocessForUDTFunction.class, "POSTPROCESS", dateInference
@@ -504,6 +510,15 @@ public interface BuiltinFunctionUtils {
           LastDateArgs.add(wrapperByPreprocess(lastDayTimestampExpr, context.rexBuilder));
         }
         return LastDateArgs;
+      case "CURRENT_TIMESTAMP", "NOW", "LOCALTIMESTAMP", "LOCALTIME":
+        RexNode currentTimestampCall = context.rexBuilder.makeCall(SqlStdOperatorTable.CURRENT_TIMESTAMP, List.of());
+        return List.of(currentTimestampCall, context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP));
+      case "CURTIME", "CURRENT_TIME":
+        RexNode currentTimeCall = context.rexBuilder.makeCall(SqlStdOperatorTable.CURRENT_TIME, List.of());
+        return List.of(currentTimeCall, context.rexBuilder.makeFlag(SqlTypeName.TIME));
+      case "CURRENT_DATE", "CURDATE":
+        RexNode currentDateCall = context.rexBuilder.makeCall(SqlStdOperatorTable.CURRENT_DATE, List.of());
+        return List.of(currentDateCall, context.rexBuilder.makeFlag(SqlTypeName.DATE));
       case "TIMESTAMP",
           "TIMEDIFF",
           "TIME_TO_SEC",
