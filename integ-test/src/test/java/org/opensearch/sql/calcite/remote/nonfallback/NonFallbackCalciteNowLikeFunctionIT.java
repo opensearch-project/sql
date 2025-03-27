@@ -40,25 +40,4 @@ public class NonFallbackCalciteNowLikeFunctionIT extends CalciteNowLikeFunctionI
     super.init();
     disallowCalciteFallback();
   }
-
-  @ParametersFactory(argumentFormatting = "%1$s")
-  public static Iterable<Object[]> compareTwoDates() {
-    return Arrays.asList(
-            $$(
-                    $(
-                            "utc_time",
-                            false,
-                            false,
-                            true,
-                            (Supplier<Temporal>) (() -> utcDateTimeNow().toLocalTime()),
-                            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse,
-                            "HH:mm:ss")));
-  }
-
-
-  @Override
-  public void testNowLikeFunctions() throws IOException {
-    super.testNowLikeFunctions();
-  }
-
 }

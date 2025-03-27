@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprUtcTime;
 
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
@@ -18,7 +19,8 @@ public class UtcTimeFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-    return formatTime(exprUtcTime(new FunctionProperties()).timeValue());
+    FunctionProperties restored = restoreFunctionProperties(args[0]);
+    return formatTime(exprUtcTime(restored).timeValue());
     //return java.sql.Time.valueOf(exprUtcTime(new FunctionProperties()).timeValue());
   }
 }

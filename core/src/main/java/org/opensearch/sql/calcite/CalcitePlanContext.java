@@ -19,6 +19,8 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class CalcitePlanContext {
 
@@ -26,6 +28,7 @@ public class CalcitePlanContext {
   public final Connection connection;
   public final RelBuilder relBuilder;
   public final ExtendedRexBuilder rexBuilder;
+  public final FunctionProperties functionProperties;
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingExistsSubquery = false;
@@ -36,6 +39,7 @@ public class CalcitePlanContext {
     this.connection = CalciteToolsHelper.connect(config, TYPE_FACTORY);
     this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
+    this.functionProperties = new FunctionProperties(QueryType.PPL);
   }
 
   public RexNode resolveJoinCondition(

@@ -419,7 +419,7 @@ public interface BuiltinFunctionUtils {
    *     expectations.
    */
   static List<RexNode> translateArgument(
-      String op, List<RexNode> argList, CalcitePlanContext context) {
+      String op, List<RexNode> argList, CalcitePlanContext context, String currentTimestampStr) {
     String capitalOP = op.toUpperCase(Locale.ROOT);
     switch (capitalOP) {
       case "TRIM":
@@ -700,18 +700,20 @@ public interface BuiltinFunctionUtils {
               makeConversionCall(
                   "DATE_FORMAT",
                   ImmutableList.of(argTimestamp, context.rexBuilder.makeLiteral("%Y-%m-%d %T")),
-                  context);
+                  context, currentTimestampStr);
         }
         return Stream.concat(Stream.of(argTimestamp), argList.stream().skip(1)).toList();
+      case "UTC_TIMESTAMP", "UTC_TIME", "UTC_DATE":
+        return List.of(context.rexBuilder.makeLiteral(currentTimestampStr));
       default:
         return argList;
     }
   }
 
   private static RexNode makeConversionCall(
-      String funcName, List<RexNode> arguments, CalcitePlanContext context) {
+      String funcName, List<RexNode> arguments, CalcitePlanContext context, String currentTimestampStr) {
     SqlOperator operator = translate(funcName);
-    List<RexNode> translatedArguments = translateArgument(funcName, arguments, context);
+    List<RexNode> translatedArguments = translateArgument(funcName, arguments, context, currentTimestampStr);
     RelDataType returnType =
         deriveReturnType(funcName, context.rexBuilder, operator, translatedArguments);
     return context.rexBuilder.makeCall(returnType, operator, translatedArguments);
@@ -747,13 +749,6 @@ public interface BuiltinFunctionUtils {
         };
     // Make all return types nullable
     return rexBuilder.getTypeFactory().createTypeWithNullability(returnType, true);
-  }
-
-  private static RexNode convertToDateIfNecessary(CalcitePlanContext context, RexNode expr) {
-    if (!expr.getType().getSqlTypeName().equals(SqlTypeName.DATE)) {
-      return makeConversionCall("DATE", ImmutableList.of(expr), context);
-    }
-    return expr;
   }
 
   private static RexNode convertToDateLiteralIfString(
