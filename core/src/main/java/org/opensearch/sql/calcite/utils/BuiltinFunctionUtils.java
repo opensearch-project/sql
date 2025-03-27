@@ -249,6 +249,9 @@ public interface BuiltinFunctionUtils {
                     context.rexBuilder.makeLiteral(" ")));
         RTrimArgs.addAll(argList);
         return RTrimArgs;
+      case "STRCMP":
+        List<RexNode> StrcmpArgs = List.of(argList.get(1), argList.get(0));
+        return StrcmpArgs;
       case "ATAN":
         List<RexNode> AtanArgs = new ArrayList<>(argList);
         if (AtanArgs.size() == 1) {
