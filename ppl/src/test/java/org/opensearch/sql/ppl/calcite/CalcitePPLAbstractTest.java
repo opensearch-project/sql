@@ -10,6 +10,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.opensearch.sql.executor.QueryType.PPL;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -72,7 +73,7 @@ public class CalcitePPLAbstractTest {
   /** Creates a CalcitePlanContext with transformed config. */
   private CalcitePlanContext createBuilderContext(UnaryOperator<RelBuilder.Config> transform) {
     config.context(Contexts.of(transform.apply(RelBuilder.Config.DEFAULT)));
-    return CalcitePlanContext.create(config.build());
+    return CalcitePlanContext.create(config.build(), PPL);
   }
 
   /** Get the root RelNode of the given PPL query */
