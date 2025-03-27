@@ -826,8 +826,8 @@ public interface BuiltinFunctionUtils {
 
   private static List<RexNode> transformTimeManipulationArgs(
       List<RexNode> argList, ExtendedRexBuilder rexBuilder) {
-    SqlTypeName arg0Type = argList.getFirst().getType().getSqlTypeName();
-    SqlTypeName arg1Type = argList.get(1).getType().getSqlTypeName();
+    SqlTypeName arg0Type = transferDateRelatedTimeName(argList.getFirst());
+    SqlTypeName arg1Type = transferDateRelatedTimeName(argList.get(1));
     RexNode type0 = rexBuilder.makeFlag(arg0Type);
     RexNode type1 = rexBuilder.makeFlag(arg1Type);
     return new ArrayList<>(List.of(argList.getFirst(), type0, argList.get(1), type1));
