@@ -14,7 +14,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
-public class calciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
+public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     @Override
     public void init() throws IOException {
         super.init();
