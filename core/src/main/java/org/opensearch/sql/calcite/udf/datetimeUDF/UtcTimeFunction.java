@@ -19,8 +19,7 @@ public class UtcTimeFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-    FunctionProperties restored = restoreFunctionProperties(args[0]);
+    FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     return formatTime(exprUtcTime(restored).timeValue());
-    //return java.sql.Time.valueOf(exprUtcTime(new FunctionProperties()).timeValue());
   }
 }

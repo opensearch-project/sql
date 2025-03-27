@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
 import static org.opensearch.sql.utils.DateTimeFormatters.*;
 
@@ -28,8 +29,9 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-    if (args.length == 0) {
-      return unixTimeStamp(new FunctionProperties().getQueryStartClock()).longValue();
+    if (args.length == 1) {
+      FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
+      return unixTimeStamp(restored.getQueryStartClock()).longValue();
     }
     Object input = args[0];
     if (Objects.isNull(input)) {

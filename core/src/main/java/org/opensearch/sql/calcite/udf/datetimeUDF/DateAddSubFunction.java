@@ -7,8 +7,7 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableDateUDT;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTimestampUDT;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatDate;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.convertToTemporalAmount;
 
 import com.google.common.collect.ImmutableList;
@@ -79,9 +78,10 @@ public class DateAddSubFunction implements UserDefinedFunction {
         };
 
      */
+    FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     ExprValue resultDatetime =
         DateTimeFunctions.exprDateApplyInterval(
-            new FunctionProperties(),
+                restored,
             new ExprTimestampValue(base),
             convertToTemporalAmount(interval, unit),
             isAdd);

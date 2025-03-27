@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearweek;
 
 import java.time.Instant;
@@ -35,9 +36,10 @@ public class YearWeekFunction implements UserDefinedFunction {
     if (Objects.isNull(args[0])) {
       return null;
     }
+    FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     LocalDate candidateDate;
     SqlTypeName sqlTypeName;
-    if (args.length == 2) {
+    if (args.length == 3) {
       sqlTypeName = (SqlTypeName) args[1];
       basetime = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
       mode = 0;
@@ -48,7 +50,7 @@ public class YearWeekFunction implements UserDefinedFunction {
     }
     if (sqlTypeName == SqlTypeName.TIME) {
       candidateDate =
-          LocalDateTime.now(new FunctionProperties().getQueryStartClock()).toLocalDate();
+          LocalDateTime.now(restored.getQueryStartClock()).toLocalDate();
     } else {
       candidateDate = LocalDateTime.ofInstant(basetime, ZoneOffset.UTC).toLocalDate();
     }

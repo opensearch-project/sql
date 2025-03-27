@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
 
 import java.time.LocalDate;
@@ -22,12 +23,13 @@ public class WeekDayFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
+    FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     SqlTypeName sqlTypeName = (SqlTypeName) args[1];
     LocalDate candidateDate =
         LocalDateTime.ofInstant(InstantUtils.convertToInstant(args[0], sqlTypeName, false), ZoneOffset.UTC)
             .toLocalDate();
     if (sqlTypeName == SqlTypeName.TIME) {
-      return formatNow(new FunctionProperties().getQueryStartClock()).getDayOfWeek().getValue() - 1;
+      return formatNow(restored.getQueryStartClock()).getDayOfWeek().getValue() - 1;
     } else {
       return candidateDate.getDayOfWeek().getValue() - 1;
     }

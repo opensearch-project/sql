@@ -21,6 +21,5 @@ public class UtcDateFunction implements UserDefinedFunction {
     }
     FunctionProperties restored = restoreFunctionProperties(args[0]);
     return formatDate(exprUtcDate(restored).dateValue());
-    //return java.sql.Date.valueOf(exprUtcDate(new FunctionProperties()).dateValue());
   }
 }

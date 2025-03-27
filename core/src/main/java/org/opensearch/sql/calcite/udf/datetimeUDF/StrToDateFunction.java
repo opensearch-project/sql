@@ -18,8 +18,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatDate;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 
 /**
  * str_to_date(string, string) is used to extract a TIMESTAMP from the first argument string using
@@ -36,13 +35,10 @@ public class StrToDateFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-    UserDefinedFunctionUtils.validateArgumentCount("STR_TO_DATE", 2, args.length, true);
-    UserDefinedFunctionUtils.validateArgumentTypes(
-        Arrays.asList(args), List.of(String.class, String.class));
-
+    FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     ExprValue formatedDateExpr =
         DateTimeFunctions.exprStrToDate(
-            new FunctionProperties(),
+                restored,
             new ExprStringValue(args[0].toString()),
             new ExprStringValue(args[1].toString()));
 

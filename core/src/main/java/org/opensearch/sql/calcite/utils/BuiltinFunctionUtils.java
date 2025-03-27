@@ -522,8 +522,6 @@ public interface BuiltinFunctionUtils {
           "TIMEDIFF",
           "TIME_TO_SEC",
           "TIME_FORMAT",
-          "YEARWEEK",
-          "WEEKDAY",
           "TO_SECONDS",
           "TO_DAYS",
           "CONVERT_TZ":
@@ -533,6 +531,14 @@ public interface BuiltinFunctionUtils {
                 .map(p -> context.rexBuilder.makeFlag(p.getType().getSqlTypeName()))
                 .collect(Collectors.toList()));
         return timestampArgs;
+      case "YEARWEEK", "WEEKDAY":
+        List<RexNode> weekdayArgs = new ArrayList<>(argList);
+        weekdayArgs.addAll(
+                argList.stream()
+                        .map(p -> context.rexBuilder.makeFlag(p.getType().getSqlTypeName()))
+                        .collect(Collectors.toList()));
+        weekdayArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
+        return weekdayArgs;
       case "TIMESTAMPADD":
         List<RexNode> timestampAddArgs = new ArrayList<>(argList);
         timestampAddArgs.add(
@@ -545,7 +551,9 @@ public interface BuiltinFunctionUtils {
         return timestampDiffArgs;
       case "DATEDIFF":
         // datediff differs with timestamp diff in that it
-        return buildArgsWithTypes(context.rexBuilder, argList, 0, 1);
+        List<RexNode> dateDiffArgs = buildArgsWithTypes(context.rexBuilder, argList, 0, 1);
+        dateDiffArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
+        return dateDiffArgs;
       case "DAYNAME", "MONTHNAME":
         List<RexNode> periodNameArgs = new ArrayList<>();
         periodNameArgs.add(argList.getFirst());
@@ -615,11 +623,13 @@ public interface BuiltinFunctionUtils {
         // A flag that represents isAdd
         dateSubArgs.add(context.rexBuilder.makeLiteral(false));
         dateSubArgs.add(context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP));
+        dateSubArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
         return dateSubArgs;
       case "DATE_ADD":
         List<RexNode> dateAddArgs = transformDateManipulationArgs(argList, context.rexBuilder);
         dateAddArgs.add(context.rexBuilder.makeLiteral(true));
         dateAddArgs.add(context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP));
+        dateAddArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
         return dateAddArgs;
       case "ADDTIME":
         SqlTypeName arg0Type = transferDateRelatedTimeName(argList.getFirst());
@@ -629,9 +639,9 @@ public interface BuiltinFunctionUtils {
         RexNode isAdd = context.rexBuilder.makeLiteral(true);
         return List.of(argList.getFirst(), type0, argList.get(1), type1, isAdd);
       case "ADDDATE":
-        return transformAddOrSubDateArgs(argList, context.rexBuilder, true);
+        return transformAddOrSubDateArgs(argList, context.rexBuilder, true, currentTimestampStr);
       case "SUBDATE":
-        return transformAddOrSubDateArgs(argList, context.rexBuilder, false);
+        return transformAddOrSubDateArgs(argList, context.rexBuilder, false, currentTimestampStr);
       case "SUBTIME":
         List<RexNode> subTimeArgs = transformTimeManipulationArgs(argList, context.rexBuilder);
         subTimeArgs.add(context.rexBuilder.makeLiteral(false));
@@ -656,6 +666,7 @@ public interface BuiltinFunctionUtils {
       case "UNIX_TIMESTAMP":
         List<RexNode> UnixArgs = new ArrayList<>(argList);
         UnixArgs.add(context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.getFirst())));
+        UnixArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
         return UnixArgs;
       case "DAY_OF_WEEK", "DAYOFWEEK":
         RexNode dowUnit =
@@ -682,6 +693,10 @@ public interface BuiltinFunctionUtils {
             argList.getFirst(),
             woyMode,
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
+      case "STR_TO_DATE":
+        List<RexNode> strToDateArgs = new ArrayList<>(argList);
+        strToDateArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
+        return strToDateArgs;
       case "MINUTE_OF_DAY", "MICROSECOND":
         // Convert STRING/TIME/TIMESTAMP to TIMESTAMP
         return ImmutableList.of(
@@ -796,7 +811,7 @@ public interface BuiltinFunctionUtils {
   }
 
   private static List<RexNode> transformAddOrSubDateArgs(
-      List<RexNode> argList, ExtendedRexBuilder rexBuilder, Boolean isAdd) {
+      List<RexNode> argList, ExtendedRexBuilder rexBuilder, Boolean isAdd, String currentTimestampStr) {
     List<RexNode> addOrSubDateArgs = new ArrayList<>();
     addOrSubDateArgs.add(argList.getFirst());
     SqlTypeName addType = argList.get(1).getType().getSqlTypeName();
@@ -828,6 +843,7 @@ public interface BuiltinFunctionUtils {
           rexBuilder.makeLiteral(
               0L, rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP)));
     }
+    addOrSubDateRealInput.add(rexBuilder.makeLiteral(currentTimestampStr));
     return addOrSubDateRealInput;
   }
 
