@@ -1627,7 +1627,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprMicrosecond(ExprValue time) {
+  public static ExprValue exprMicrosecond(ExprValue time) {
     return new ExprIntegerValue(
         TimeUnit.MICROSECONDS.convert(time.timeValue().getNano(), TimeUnit.NANOSECONDS));
   }

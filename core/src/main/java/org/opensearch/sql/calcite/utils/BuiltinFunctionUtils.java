@@ -40,8 +40,6 @@ import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.ExtendedRexBuilder;
-import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
-import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.udf.SpanFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
@@ -57,12 +55,12 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.FromUnixTimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.GetFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MakeDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MakeTimeFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.MinuteOfDay;
+import org.opensearch.sql.calcite.udf.datetimeUDF.MicrosecondFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.MinuteOfDayFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodAddFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodNameFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessForUDTFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.PreprocessForUDTFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.SecondToTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.StrToDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.SysdateFunction;
@@ -91,8 +89,6 @@ import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
 import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 
 public interface BuiltinFunctionUtils {
 
@@ -297,7 +293,7 @@ public interface BuiltinFunctionUtils {
       case "MAKEDATE":
         return TransferUserDefinedFunction(MakeDateFunction.class, "MAKEDATE", dateInference);
       case "MINUTE_OF_DAY":
-        return TransferUserDefinedFunction(MinuteOfDay.class, "MINUTE_OF_DAY", ReturnTypes.INTEGER);
+        return TransferUserDefinedFunction(MinuteOfDayFunction.class, "MINUTE_OF_DAY", ReturnTypes.INTEGER);
       case "PERIOD_ADD":
         return TransferUserDefinedFunction(
             PeriodAddFunction.class, "PERIOD_ADD", ReturnTypes.INTEGER);
@@ -385,6 +381,9 @@ public interface BuiltinFunctionUtils {
           "SECOND",
           "SECOND_OF_MINUTE":
         return SqlLibraryOperators.DATE_PART;
+      case "MICROSECOND":
+        return TransferUserDefinedFunction(
+                MicrosecondFunction.class, "MICROSECOND", ReturnTypes.INTEGER);
       case "YEARWEEK":
         return TransferUserDefinedFunction(YearWeekFunction.class, "YEARWEEK", ReturnTypes.INTEGER);
       case "FROM_UNIXTIME":
@@ -647,9 +646,7 @@ public interface BuiltinFunctionUtils {
         // Convert to timestamp if is string
         if (dateExpr instanceof RexLiteral dateLiteral) {
           String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
-          datetimeNode =
-              context.rexBuilder.makeTimestampLiteral(
-                  createTimestampString(DateTimeParser.parse(dateStringValue)), 6);
+          datetimeNode = context.rexBuilder.makeLiteral(dateStringValue);
           datetimeType = context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP);
         } else {
           datetimeNode = dateExpr;
@@ -685,7 +682,7 @@ public interface BuiltinFunctionUtils {
             argList.getFirst(),
             woyMode,
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
-      case "MINUTE_OF_DAY":
+      case "MINUTE_OF_DAY", "MICROSECOND":
         // Convert STRING/TIME/TIMESTAMP to TIMESTAMP
         return ImmutableList.of(
             argList.getFirst(),

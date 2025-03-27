@@ -53,6 +53,25 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     return LocalDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
   }
 
+  void verifyDateFormat(String date, String type, String format, String formatted)
+          throws IOException {
+    JSONObject result =
+            executeQuery(
+                    String.format(
+                            "source=%s | eval f = date_format(%s('%s'), '%s') | fields f",
+                            TEST_INDEX_DATE, type, date, format));
+    verifySchema(result, schema("f", null, "string"));
+    verifySome(result.getJSONArray("datarows"), rows(formatted));
+
+    result =
+            executeQuery(
+                    String.format(
+                            "source=%s | eval f = date_format('%s', '%s') | fields f",
+                            TEST_INDEX_DATE, date, format));
+    verifySchema(result, schema("f", null, "string"));
+    verifySome(result.getJSONArray("datarows"), rows(formatted));
+  }
+
   @Test
   public void testDate() {
     JSONObject actual =
@@ -180,7 +199,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows(5));
   }
 
-  @Ignore
   @Test
   public void testTimeStrToDate() {
     JSONObject actual =
@@ -196,19 +214,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows("2013-05-01 00:00:00"));
   }
 
-  @Ignore
-  @Test
-  public void testTimeStrToDateReturnNull() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where YEAR(strict_date_optional_time) < 2000| eval demo ="
-                    + " str_to_date(\"01,5,2013\", \"%%d,%%m\")| where str_to_date(\"01,5,2013\","
-                    + " \"%%d,%%m,%%Y\")=TIMESTAMP('2013-05-01 00:00:00')| fields demo | head 1",
-                TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("demo", "timestamp"));
-    verifyDataRows(actual, rows("2013-05-01 00:00:00"));
-  }
 
   @Test
   public void testTimeFormat() {
@@ -656,8 +661,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         rows("1984-04-12", "1984-04-13 00:00:00"));
   }
 
-  /** Not yet supported */
-  @Ignore
   @Test
   public void testComparisonBetweenDateAndTimestamp() {
     JSONObject actual =
@@ -765,7 +768,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         executeQuery(
             String.format(
                 "source=%s | head 1 | eval d1 = SYSDATE(), d2 = SYSDATE(3), d3 = SYSDATE(6)|eval"
-                    + " df1 = DATE_FORMAT(d1, '%%Y-%%m-%%d %%T'), df2 = DATE_FORMAT(d2,"
+                        + " df1 = DATE_FORMAT(d1, '%%Y-%%m-%%d %%T.%%f'), df2 = DATE_FORMAT(d2,"
                     + " '%%Y-%%m-%%d %%T.%%f'), df3 = DATE_FORMAT(d3, '%%Y-%%m-%%d %%T.%%f') |"
                     + " fields d1, d2, d3, df1, df2, df3",
                 TEST_INDEX_DATE_FORMATS));
@@ -778,20 +781,20 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("df2", "string"),
         schema("df3", "string"));
 
-    // TODO: df3 should show 6-precision microseconds. But it it not implemented yet, neither
-    // does the pattern detect it
-    final String DATETIME_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}$";
-    final String DATETIME_P0_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.000000$";
-    final String DATETIME_P3_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{3}000$";
-    final String DATETIME_P6_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{6}$";
+    final String DATETIME_P0_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}$";
+    final String DATETIME_P3_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{1,3}$";
+    final String DATETIME_P6_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{1,6}$";
+    final String DATETIME_P0_FMT_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.000000$";
+    final String DATETIME_P3_FMT_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{3}000$";
+    final String DATETIME_P6_FMT_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{6}$";
     verify(
-        actual.getJSONArray("datarows").getJSONArray(0),
-        Matchers.matchesPattern(DATETIME_PATTERN),
-        Matchers.matchesPattern(DATETIME_PATTERN),
-        Matchers.matchesPattern(DATETIME_PATTERN),
-        Matchers.matchesPattern(DATETIME_PATTERN),
-        Matchers.matchesPattern(DATETIME_P3_PATTERN),
-        Matchers.matchesPattern(DATETIME_P6_PATTERN));
+            actual.getJSONArray("datarows").getJSONArray(0),
+            Matchers.matchesPattern(DATETIME_P0_PATTERN),
+            Matchers.matchesPattern(DATETIME_P3_PATTERN),
+            Matchers.matchesPattern(DATETIME_P6_PATTERN),
+            Matchers.matchesPattern(DATETIME_P0_FMT_PATTERN),
+            Matchers.matchesPattern(DATETIME_P3_FMT_PATTERN),
+            Matchers.matchesPattern(DATETIME_P6_FMT_PATTERN));
   }
 
   /**
@@ -1187,15 +1190,15 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval r1 = convert_tz('2008-05-15 12:00:00', '+00:00', '+10:00') | eval"
+                    "source=%s | head 1 | eval r1 = convert_tz('2008-05-15 12:00:00', '+00:00', '+10:00') | eval"
                     + " r2 = convert_tz(TIMESTAMP('2008-05-15 12:00:00'), '+00:00', '+10:00') |"
-                    + " eval r3 = convert_tz(strict_date_optional_time_nanos, '+00:00', '+10:00') |"
+                    + " eval r3 = convert_tz(date_time, '+00:00', '+10:00') |"
                     + " eval r4 = convert_tz('2008-05-15 12:00:00', '-00:00', '+00:00') | eval r5 ="
                     + " convert_tz('2008-05-15 12:00:00', '+10:00', '+11:00') | eval r6 ="
                     + " convert_tz('2021-05-12 11:34:50', '-08:00', '+09:00') | eval r7 ="
                     + " convert_tz('2021-05-12 11:34:50', '-12:00', '+12:00') | eval r8 ="
                     + " convert_tz('2021-05-12 13:00:00', '+09:30', '+05:45') | fields r1, r2, r3,"
-                    + " r4, r5, r6, r7, r8| head 1",
+                    + " r4, r5, r6, r7, r8",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
@@ -1366,5 +1369,24 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         rows(
             199701, 1209, 1200, 120907, 120000, 12090742, 12000000, 907, 907, 90742, 90742, 742,
             742));
+  }
+
+  @Test
+  public void testMicrosecond() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s | head 1 |  eval m1 = MICROSECOND(date_time), m2 = MICROSECOND(time), m3"
+                                    + " = MICROSECOND(date), m4 = MICROSECOND('13:45:22.123456789'), m5 ="
+                                    + " MICROSECOND('2012-09-13 13:45:22.123456789')| fields m1, m2, m3, m4, m5",
+                            TEST_INDEX_DATE_FORMATS));
+    verifySchema(
+            actual,
+            schema("m1", "integer"),
+            schema("m2", "integer"),
+            schema("m3", "integer"),
+            schema("m4", "integer"),
+            schema("m5", "integer"));
+    verifyDataRows(actual, rows(0, 0, 0, 123456, 123456));
   }
 }
