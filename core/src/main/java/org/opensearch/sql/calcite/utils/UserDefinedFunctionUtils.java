@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
@@ -306,8 +307,8 @@ public class UserDefinedFunctionUtils {
     int nano = localDateTime.getNano();
     if (nano == 0) return base;
 
-    String nanoStr = String.format("%09d", nano); // 保证9位
-    nanoStr = nanoStr.replaceFirst("0+$", "");   // 去除右边多余的0
+    String nanoStr = String.format(Locale.ENGLISH, "%09d", nano);
+    nanoStr = nanoStr.replaceFirst("0+$", "");
 
     return base + "." + nanoStr;
   }
@@ -317,8 +318,7 @@ public class UserDefinedFunctionUtils {
     int nano = time.getNano();
     if (nano == 0) return base;
 
-    // 保留 nano 秒并去除尾部多余的 0
-    String nanoStr = String.format("%09d", nano).replaceFirst("0+$", "");
+    String nanoStr = String.format(Locale.ENGLISH, "%09d", nano).replaceFirst("0+$", "");
     return base + "." + nanoStr;
   }
 
