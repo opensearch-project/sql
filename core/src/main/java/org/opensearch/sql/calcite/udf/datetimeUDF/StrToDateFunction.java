@@ -18,6 +18,9 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatDate;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
+
 /**
  * str_to_date(string, string) is used to extract a TIMESTAMP from the first argument string using
  * the formats specified in the second argument string. The input argument must have enough
@@ -49,8 +52,6 @@ public class StrToDateFunction implements UserDefinedFunction {
 
     // Manually convert to calcite internal representation of Timestamp to circumvent
     // errors relating to null returns
-    return SqlFunctions.toLong(
-        Timestamp.valueOf(
-            LocalDateTime.ofInstant(formatedDateExpr.timestampValue(), ZoneOffset.UTC)));
+    return formatTimestamp(LocalDateTime.ofInstant(formatedDateExpr.timestampValue(), ZoneOffset.UTC));
   }
 }

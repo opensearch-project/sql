@@ -12,6 +12,8 @@ import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatDate;
+
 public class FromDaysFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
@@ -20,6 +22,7 @@ public class FromDaysFunction implements UserDefinedFunction {
     }
     Number argDays = (Number) args[0];
     ExprValue dateExpr = DateTimeFunctions.exprFromDays(new ExprLongValue(argDays.longValue()));
-    return Date.valueOf(dateExpr.dateValue());
+    return formatDate(dateExpr.dateValue());
+    //return Date.valueOf(dateExpr.dateValue());
   }
 }

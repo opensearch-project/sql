@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimeDiff;
 
 import java.time.Instant;
@@ -31,6 +32,7 @@ public class TimeDiffFunction implements UserDefinedFunction {
         exprTimeDiff(
             new ExprTimeValue(LocalDateTime.ofInstant(startTime, ZoneOffset.UTC).toLocalTime()),
             new ExprTimeValue(LocalDateTime.ofInstant(endTime, ZoneOffset.UTC).toLocalTime()));
-    return java.sql.Time.valueOf(diffValue.timeValue());
+    return formatTime(diffValue.timeValue());
+    //return java.sql.Time.valueOf(diffValue.timeValue());
   }
 }

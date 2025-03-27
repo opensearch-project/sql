@@ -12,6 +12,8 @@ import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
+
 public class MakeTimeFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
@@ -23,6 +25,7 @@ public class MakeTimeFunction implements UserDefinedFunction {
             new ExprDoubleValue(((Number) args[0]).doubleValue()),
             new ExprDoubleValue(((Number) args[1]).doubleValue()),
             new ExprDoubleValue(((Number) args[2]).doubleValue()));
-    return Time.valueOf(timeExpr.timeValue());
+    return formatTime(timeExpr.timeValue());
+    //return Time.valueOf(timeExpr.timeValue());
   }
 }

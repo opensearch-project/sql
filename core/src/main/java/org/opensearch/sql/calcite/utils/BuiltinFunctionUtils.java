@@ -6,8 +6,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.dateInference;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.timestampInference;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
@@ -244,12 +243,12 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.CURRENT_DATE;
       case "DATE":
         return TransferUserDefinedFunction(
-          PostprocessForUDTFunction.class, "PROPROCESS", dateInference
+          PostprocessForUDTFunction.class, "POSTPROCESS", dateInference
         );
         //return SqlLibraryOperators.DATE;
       case "DATE_ADD":
         return TransferUserDefinedFunction(
-            DateAddSubFunction.class, "DATE_ADD", ReturnTypes.TIMESTAMP);
+            DateAddSubFunction.class, "DATE_ADD", timestampInference);
       case "ADDDATE":
         return TransferUserDefinedFunction(
             DateAddSubFunction.class, "ADDDATE", DateAddSubFunction.getReturnTypeForAddOrSubDate());
@@ -258,7 +257,7 @@ public interface BuiltinFunctionUtils {
             DateAddSubFunction.class, "SUBDATE", DateAddSubFunction.getReturnTypeForAddOrSubDate());
       case "DATE_SUB":
         return TransferUserDefinedFunction(
-            DateAddSubFunction.class, "DATE_SUB", ReturnTypes.TIMESTAMP);
+            DateAddSubFunction.class, "DATE_SUB", timestampInference);
       case "ADDTIME", "SUBTIME":
         return TransferUserDefinedFunction(
             TimeAddSubFunction.class,
@@ -274,13 +273,13 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(ExtractFunction.class, "EXTRACT", ReturnTypes.BIGINT);
       case "CONVERT_TZ":
         return TransferUserDefinedFunction(
-            ConvertTZFunction.class, "CONVERT_TZ", ReturnTypes.TIMESTAMP);
+            ConvertTZFunction.class, "CONVERT_TZ", timestampInference);
       case "DATETIME":
         return TransferUserDefinedFunction(
-            DatetimeFunction.class, "DATETIME", ReturnTypes.TIMESTAMP);
+            DatetimeFunction.class, "DATETIME", timestampInference);
 
       case "FROM_DAYS":
-        return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", ReturnTypes.DATE);
+        return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", dateInference);
       case "DATE_FORMAT":
         return TransferUserDefinedFunction(
             DateFormatFunction.class, "DATE_FORMAT", ReturnTypes.VARCHAR);
@@ -288,9 +287,9 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(
             GetFormatFunction.class, "GET_FORMAT", ReturnTypes.VARCHAR);
       case "MAKETIME":
-        return TransferUserDefinedFunction(MakeTimeFunction.class, "MAKETIME", ReturnTypes.TIME);
+        return TransferUserDefinedFunction(MakeTimeFunction.class, "MAKETIME", timeInference);
       case "MAKEDATE":
-        return TransferUserDefinedFunction(MakeDateFunction.class, "MAKEDATE", ReturnTypes.DATE);
+        return TransferUserDefinedFunction(MakeDateFunction.class, "MAKEDATE", dateInference);
       case "MINUTE_OF_DAY":
         return TransferUserDefinedFunction(MinuteOfDay.class, "MINUTE_OF_DAY", ReturnTypes.INTEGER);
       case "PERIOD_ADD":
@@ -336,9 +335,9 @@ public interface BuiltinFunctionUtils {
       case "SYSDATE":
         return TransferUserDefinedFunction(SysdateFunction.class, "SYSDATE", timestampInference);
       case "TIME":
-        return TransferUserDefinedFunction(TimeFunction.class, "TIME", ReturnTypes.TIME);
+        return TransferUserDefinedFunction(TimeFunction.class, "TIME", timeInference);
       case "TIMEDIFF":
-        return TransferUserDefinedFunction(TimeDiffFunction.class, "TIMEDIFF", ReturnTypes.TIME);
+        return TransferUserDefinedFunction(TimeDiffFunction.class, "TIMEDIFF", timeInference);
       case "TIME_TO_SEC":
         return TransferUserDefinedFunction(
             TimeToSecondFunction.class, "TIME_TO_SEC", ReturnTypes.BIGINT);
@@ -365,7 +364,7 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(ToDaysFunction.class, "TO_DAYS", ReturnTypes.BIGINT);
       case "SEC_TO_TIME":
         return TransferUserDefinedFunction(
-            SecondToTimeFunction.class, "SEC_TO_TIME", ReturnTypes.TIME);
+            SecondToTimeFunction.class, "SEC_TO_TIME", timeInference);
       case "YEAR",
           "QUARTER",
           "MINUTE",
@@ -393,9 +392,9 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(
             UtcTimeStampFunction.class, "utc_timestamp", timestampInference);
       case "UTC_TIME":
-        return TransferUserDefinedFunction(UtcTimeFunction.class, "utc_time", ReturnTypes.TIME);
+        return TransferUserDefinedFunction(UtcTimeFunction.class, "utc_time", timeInference);
       case "UTC_DATE":
-        return TransferUserDefinedFunction(UtcDateFunction.class, "utc_date", ReturnTypes.DATE);
+        return TransferUserDefinedFunction(UtcDateFunction.class, "utc_date", dateInference);
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);
     }
@@ -609,8 +608,8 @@ public interface BuiltinFunctionUtils {
         dateAddArgs.add(context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP));
         return dateAddArgs;
       case "ADDTIME":
-        SqlTypeName arg0Type = argList.getFirst().getType().getSqlTypeName();
-        SqlTypeName arg1Type = argList.get(1).getType().getSqlTypeName();
+        SqlTypeName arg0Type = transferDateRelatedTimeName(argList.getFirst());
+        SqlTypeName arg1Type = transferDateRelatedTimeName(argList.get(1));
         RexNode type0 = context.rexBuilder.makeFlag(arg0Type);
         RexNode type1 = context.rexBuilder.makeFlag(arg1Type);
         RexNode isAdd = context.rexBuilder.makeLiteral(true);
@@ -713,7 +712,7 @@ public interface BuiltinFunctionUtils {
             // This effectively invalidates the operand type check, which leads to unnecessary
             // incompatible parameter type errors
           case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-          case "TIMESTAMPADD" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+          //case "TIMESTAMPADD" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
           case "TIMESTAMPDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
           case "YEAR",
               "MINUTE",

@@ -439,7 +439,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             String.format(
                 "source=%s | where YEAR(strict_date_optional_time) < 2000| eval"
                     + " timestamp=weekday(TIMESTAMP(strict_date_optional_time)),"
-                    + " time=weekday(DATE(strict_date_optional_time)),"
+                    + " time=weekday(TIME(strict_date_optional_time)),"
                     + " date=weekday(DATE(strict_date_optional_time))| eval `weekday('2020-08-26')`"
                     + " = weekday('2020-08-26') | fields timestamp, time, date,"
                     + " `weekday('2020-08-26')`| head 1 ",
@@ -563,6 +563,24 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     return result.format(formatter);
+  }
+
+  @Test
+  public void testAddDateAndSubDateWithConditionsAndRename2() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s |  where strict_date < date | head 1 ",
+                            TEST_INDEX_DATE_FORMATS));
+
+    verifySchema(
+            actual,
+            schema("lower", "timestamp"),
+            schema("upper", "date"),
+            schema("d", "date"),
+            schema("ts", "timestamp"));
+    verifyDataRows(
+            actual, rows("1984-04-09 09:07:42", "1984-04-13", "1984-04-12", "1984-04-13 00:00:00"));
   }
 
   @Test
@@ -702,7 +720,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where incomplete_1 > DATE('2000-01-01') | eval t1 = HOUR(date_time),"
+                "source=%s | where incomplete_1 > date | eval t1 = HOUR(date_time),"
                     + " t2 = HOUR_OF_DAY(time), t3 = HOUR('23:14:00'), t4 = HOUR('2023-12-31"
                     + " 16:03:00') | head 1 | fields t1, t2, t3, t4",
                 TEST_INDEX_DATE_FORMATS));

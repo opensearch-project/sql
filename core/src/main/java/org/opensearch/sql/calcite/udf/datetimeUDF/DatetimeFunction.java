@@ -15,6 +15,8 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
+
 /**
  * DATETIME(timestamp)/ DATETIME(date, to_timezone) Converts the datetime to a new timezone. If not
  * specified, the timestamp is regarded to be in system time zone.
@@ -44,9 +46,10 @@ public class DatetimeFunction implements UserDefinedFunction {
     if (datetimeExpr.isNull()) {
       return null;
     }
+    return formatTimestamp(LocalDateTime.ofInstant(datetimeExpr.timestampValue(), ZoneOffset.UTC));
     // Manually convert to calcite internal representation of Timestamp to circumvent
     // errors relating to null returns
-    return SqlFunctions.toLong(
-        Timestamp.valueOf(LocalDateTime.ofInstant(datetimeExpr.timestampValue(), ZoneOffset.UTC)));
+    //return SqlFunctions.toLong(
+    //    Timestamp.valueOf(LocalDateTime.ofInstant(datetimeExpr.timestampValue(), ZoneOffset.UTC)));
   }
 }

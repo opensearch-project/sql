@@ -6,6 +6,8 @@
 package org.opensearch.sql.calcite.utils;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTimeUDT;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTimestampUDT;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import java.time.LocalDate;
@@ -37,6 +39,9 @@ import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
+import org.opensearch.sql.calcite.type.ExprDateType;
+import org.opensearch.sql.calcite.type.ExprTimeStampType;
+import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PreprocessForUDTFunction;
@@ -154,14 +159,23 @@ public class UserDefinedFunctionUtils {
   static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(0);
+      if (operandType0 instanceof ExprBasicSqlUDT) {
+        if (operandType0 instanceof ExprDateType || operandType0 instanceof ExprTimeStampType){
+          return nullableTimestampUDT;
+        } else if (operandType0 instanceof ExprTimeType) {
+          return nullableTimeUDT;
+        } else {
+          throw new IllegalArgumentException("Unsupported UDT type");
+        }
+      }
       SqlTypeName typeName = operandType0.getSqlTypeName();
       return switch (typeName) {
         case DATE, TIMESTAMP ->
         // Return TIMESTAMP
-        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+                nullableTimestampUDT;
         case TIME ->
         // Return TIME
-        opBinding.getTypeFactory().createSqlType(SqlTypeName.TIME);
+                nullableTimeUDT;
         default -> throw new IllegalArgumentException("Unsupported type: " + typeName);
       };
     };
@@ -323,6 +337,20 @@ public class UserDefinedFunctionUtils {
                     "PREPROCESS",
                     PreprocessForUDTFunction.getSqlReturnTypeInference(udtType)), preprocessArgs);
     return calciteTypeArgument;
+  }
+
+  public static SqlTypeName transferDateRelatedTimeName(RexNode candidate) {
+    RelDataType type = candidate.getType();
+    if (type instanceof ExprBasicSqlUDT) {
+      if (type instanceof ExprTimeType) {
+        return SqlTypeName.TIME;
+      } else if (type instanceof ExprTimeStampType) {
+        return SqlTypeName.TIMESTAMP;
+      } else if (type instanceof ExprDateType) {
+        return SqlTypeName.DATE;
+      }
+    }
+    return type.getSqlTypeName();
   }
 
 }

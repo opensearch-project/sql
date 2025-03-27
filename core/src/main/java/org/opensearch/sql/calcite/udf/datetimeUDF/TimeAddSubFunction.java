@@ -14,6 +14,9 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
+
 public class TimeAddSubFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
@@ -26,17 +29,19 @@ public class TimeAddSubFunction implements UserDefinedFunction {
     SqlTypeName argIntervalType = (SqlTypeName) args[3];
     boolean isAdd = (boolean) args[4];
 
-    Instant base = InstantUtils.convertToInstant((Number) argBase, baseType, false);
-    Instant interval = InstantUtils.convertToInstant((Number) argInterval, argIntervalType, false);
+    Instant base = InstantUtils.convertToInstant(argBase, baseType, false);
+    Instant interval = InstantUtils.convertToInstant(argInterval, argIntervalType, false);
     LocalTime time = interval.atZone(ZoneOffset.UTC).toLocalTime();
     Duration duration = Duration.between(LocalTime.MIN, time);
 
     Instant newInstant = DateTimeApplyUtils.applyInterval(base, duration, isAdd);
 
     if (baseType == SqlTypeName.TIME) {
-      return Time.valueOf(LocalTime.ofInstant(newInstant, ZoneOffset.UTC));
+      return formatTime(LocalTime.ofInstant(newInstant, ZoneOffset.UTC));
+      //return Time.valueOf(LocalTime.ofInstant(newInstant, ZoneOffset.UTC));
     } else {
-      return Timestamp.valueOf(LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC));
+      return formatTimestamp(LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC));
+      //return Timestamp.valueOf(LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC));
     }
   }
 }

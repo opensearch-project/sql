@@ -1,5 +1,6 @@
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
 
 import java.time.Clock;
@@ -19,6 +20,7 @@ public class SysdateFunction implements UserDefinedFunction {
     } else {
       localDateTime = formatNow(Clock.systemDefaultZone(), (int) args[0]);
     }
-    return java.sql.Timestamp.valueOf(localDateTime);
+    return formatTimestamp(localDateTime);
+    //return java.sql.Timestamp.valueOf(localDateTime);
   }
 }

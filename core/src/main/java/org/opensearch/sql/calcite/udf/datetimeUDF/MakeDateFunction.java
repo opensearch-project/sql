@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatDate;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import com.google.common.collect.ImmutableList;
@@ -43,6 +44,7 @@ public class MakeDateFunction implements UserDefinedFunction {
     if (date.isNull()) {
       return null;
     }
-    return SqlFunctions.toInt(java.sql.Date.valueOf(date.dateValue()));
+    return formatDate(date.dateValue());
+    //return SqlFunctions.toInt(java.sql.Date.valueOf(date.dateValue()));
   }
 }

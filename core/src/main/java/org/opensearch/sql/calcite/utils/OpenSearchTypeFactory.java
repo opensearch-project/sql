@@ -64,6 +64,10 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
   };
 
+  public static RelDataType nullableTimeUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
+  public static RelDataType nullableDateUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
+  public static RelDataType nullableTimestampUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
+
   private OpenSearchTypeFactory(RelDataTypeSystem typeSystem) {
     super(typeSystem);
   }
