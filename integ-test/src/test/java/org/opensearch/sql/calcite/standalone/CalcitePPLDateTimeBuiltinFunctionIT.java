@@ -7,9 +7,7 @@ package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearweek;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
+import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
@@ -45,6 +43,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
+    loadIndex(Index.DATE);
+    loadIndex(Index.PEOPLE2);
+    loadIndex(Index.BANK);
     initRelativeDocs();
   }
 

@@ -300,7 +300,7 @@ public interface BuiltinFunctionUtils {
             PeriodDiffFunction.class, "PERIOD_DIFF", ReturnTypes.INTEGER);
       case "STR_TO_DATE":
         return TransferUserDefinedFunction(
-            StrToDateFunction.class, "STR_TO_DATE", ReturnTypes.TIMESTAMP);
+            StrToDateFunction.class, "STR_TO_DATE", timestampInference);
       case "WEEK", "WEEK_OF_YEAR":
         // WEEK in PPL support an additional mode argument, therefore we need to use a custom
         // implementation.
