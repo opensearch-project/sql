@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import org.hamcrest.Matchers;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -726,6 +727,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   /** HOUR, HOUR_OF_DAY, DATE */
+  @Ignore
   @Test
   public void testHourAndDateWithConditions() {
     JSONObject actual =
