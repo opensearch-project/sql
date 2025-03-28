@@ -12,7 +12,6 @@ import static org.opensearch.sql.calcite.utils.PlanUtils.intervalUnitToSpanUnit;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
@@ -261,16 +260,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           .peekCorrelVar()
           .map(correlVar -> context.relBuilder.field(correlVar, qualifiedName))
           .orElseGet(() -> context.relBuilder.field(qualifiedName));
-    }
-    // 3. resolve overriding fields, for example, `eval SAL = SAL + 1` will delete the original SAL
-    // and add a SAL0. SAL0 in currentFields, but qualifiedName is SAL.
-    // TODO now we cannot handle the case using a overriding fields in subquery, for example
-    // source = EMP | eval DEPTNO = DEPTNO + 1 | where exists [ source = DEPT | where emp.DEPTNO =
-    // DEPTNO ]
-    Map<String, String> fieldMap =
-        currentFields.stream().collect(Collectors.toMap(s -> s.replaceAll("\\d", ""), s -> s));
-    if (fieldMap.containsKey(qualifiedName)) {
-      return context.relBuilder.field(fieldMap.get(qualifiedName));
     } else {
       throw new IllegalArgumentException(
           String.format(
@@ -325,13 +314,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   private boolean isTimeBased(SpanUnit unit) {
     return !(unit == NONE || unit == UNKNOWN);
   }
-
-  //    @Override
-  //    public RexNode visitAggregateFunction(AggregateFunction node, Context context) {
-  //        RexNode field = analyze(node.getField(), context);
-  //        AggregateCall aggregateCall = translateAggregateCall(node, field, relBuilder);
-  //        return new MyAggregateCall(aggregateCall);
-  //    }
 
   @Override
   public RexNode visitLet(Let node, CalcitePlanContext context) {

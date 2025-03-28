@@ -9,9 +9,9 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
 
-public class CalciteDedupTest extends CalcitePPLAbstractTest {
+public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
 
-  public CalciteDedupTest() {
+  public CalcitePPLDedupTest() {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
   }
 
