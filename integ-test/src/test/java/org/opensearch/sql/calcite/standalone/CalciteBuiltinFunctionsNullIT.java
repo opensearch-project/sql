@@ -29,7 +29,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -59,7 +58,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -69,7 +67,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -83,7 +80,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -93,7 +89,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -107,7 +102,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -117,7 +111,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -128,7 +121,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -162,7 +154,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -172,7 +163,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -204,7 +194,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -214,7 +203,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -266,7 +254,6 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
