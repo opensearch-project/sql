@@ -204,13 +204,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
     SqlOperator op = BuiltinFunctionUtils.translate(node.getOperator());
-    final RexNode left = transferCompareForDateRelated(analyze(node.getLeft(), context), context);
-    final RexNode right = transferCompareForDateRelated(analyze(node.getRight(), context), context);
+    RexNode leftCandidate = analyze(node.getLeft(), context);
+    RexNode rightCandidate = analyze(node.getRight(), context);
+    Boolean whetherCompareByTime = leftCandidate.getType() instanceof ExprBasicSqlUDT || rightCandidate.getType() instanceof ExprBasicSqlUDT;
+
+    final RexNode left = transferCompareForDateRelated(leftCandidate, context, whetherCompareByTime);
+    final RexNode right = transferCompareForDateRelated(rightCandidate, context, whetherCompareByTime);
     return context.relBuilder.call(op, left, right);
   }
 
-  private RexNode transferCompareForDateRelated(RexNode candidate, CalcitePlanContext context) {
-    if (candidate.getType() instanceof ExprBasicSqlUDT) {
+  private RexNode transferCompareForDateRelated(RexNode candidate, CalcitePlanContext context, boolean wrapper) {
+    if (wrapper) {
       SqlOperator postToStringNode = TransferUserDefinedFunction(PostprocessDateToStringFunction.class, "PostprocessDateToString", UserDefinedFunctionUtils.createNullableReturnType(SqlTypeName.CHAR));
       RexNode transferredStringNode = context.rexBuilder.makeCall(
               postToStringNode, List.of(candidate)

@@ -311,6 +311,20 @@ public class UserDefinedFunctionUtils {
     return base + "." + nanoStr;
   }
 
+  public static String formatTimestampWithoutUnnecessaryNanos(LocalDateTime localDateTime) {
+    String base = localDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    int nano = localDateTime.getNano();
+    if (nano == 0) return base;
+
+    String nanoStr = String.format(Locale.ENGLISH, "%09d", nano);
+    nanoStr = nanoStr.replaceFirst("0+$", "");
+    if (!nanoStr.isEmpty()) {
+      return base + "." + nanoStr;
+    }
+    return base;
+    //return base + "." + nanoStr;
+  }
+
   public static String formatTime(LocalTime time) {
     String base = time.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
     int nano = time.getNano();

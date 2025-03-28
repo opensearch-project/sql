@@ -21,8 +21,7 @@ public class PostprocessDateToStringFunction implements UserDefinedFunction {
         }
         Instant instant = InstantUtils.convertToInstant(candidate, SqlTypeName.VARCHAR, false);
         LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.nnnnnnnnn");
-        String formatted = localDateTime.format(formatter);
+        String formatted = formatTimestampWithoutUnnecessaryNanos(localDateTime);
         return formatted;
     }
 }
