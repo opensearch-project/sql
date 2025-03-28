@@ -22,9 +22,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
-
-import java.lang.reflect.Type;
-import java.math.BigDecimal;
 import static org.opensearch.sql.executor.QueryType.PPL;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 
@@ -36,16 +33,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import lombok.Getter;
-import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.locationtech.jts.geom.Geometry;
-import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
-import org.opensearch.sql.calcite.type.ExprDateType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.calcite.type.ExprBasicSqlType;

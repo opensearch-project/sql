@@ -25,7 +25,6 @@ public class NonFallbackCalciteStatsCommandIT extends CalciteStatsCommandIT {
     super.testStatsPercentileByNullValue();
   }
 
-
   @Override
   public void testStatsTimeSpan() throws IOException {
     super.testStatsTimeSpan();

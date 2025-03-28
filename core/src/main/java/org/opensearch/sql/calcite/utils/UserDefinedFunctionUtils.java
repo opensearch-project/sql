@@ -43,7 +43,6 @@ import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.type.ExprBasicSqlType;
-import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;

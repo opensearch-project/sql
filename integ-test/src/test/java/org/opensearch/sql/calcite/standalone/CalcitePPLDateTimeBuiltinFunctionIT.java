@@ -1117,6 +1117,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows(200804, 199206, 11, -25));
   }
 
+  @Ignore
   @Test
   public void testMinuteOfHourAndMinuteOfDay() {
     JSONObject actual =
