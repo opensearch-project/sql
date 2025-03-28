@@ -86,6 +86,12 @@ The query start with search command and then flowing a set of command delimited 
 
   - `metadata commands <cmd/information_schema.rst>`_
 
+  - `(Experimental) join command <cmd/join.rst>`_
+
+  - `(Experimental) lookup command <cmd/lookup.rst>`_
+
+  - `(Experimental) subquery (aka subsearch) command <cmd/subquery.rst>`_
+
 * **Functions**
 
   - `Expressions <functions/expressions.rst>`_
