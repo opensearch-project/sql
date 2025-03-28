@@ -286,10 +286,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           BuiltinFunctionUtils.translate("SPAN"),
           List.of(
               field,
-              context
-                  .relBuilder
-                  .getRexBuilder()
-                  .makeLiteral(field.getType().getSqlTypeName().getName()),
+              context.relBuilder.getRexBuilder().makeLiteral(field.getType().toString()),
               value,
               context.relBuilder.getRexBuilder().makeLiteral(unit.getName())));
     } else {
@@ -392,10 +389,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitCast(Cast node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getExpression(), context);
-    SqlTypeName sqlTypeName =
-        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType())
-            .getSqlTypeName();
-    RelDataType type = context.rexBuilder.getTypeFactory().createSqlType(sqlTypeName);
+    RelDataType type =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType());
     RelDataType nullableType =
         context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
     // call makeCast() instead of cast() because the saft parameter is true could avoid exception.

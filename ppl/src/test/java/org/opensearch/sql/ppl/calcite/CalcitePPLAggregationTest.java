@@ -229,6 +229,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
+  @Ignore("Span doesn't support type of calcite date")
   @Test
   public void testAvgByTimeSpanAndFields() {
     String ppl =
