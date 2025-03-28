@@ -53,7 +53,6 @@ public class NonFallbackCalciteStatsCommandIT extends CalciteStatsCommandIT {
     super.testStatsPercentileBySpan();
   }
 
-  @Ignore("https://github.com/opensearch-project/sql/issues/3354")
   @Override
   public void testStatsTimeSpan() throws IOException {
     super.testStatsTimeSpan();
