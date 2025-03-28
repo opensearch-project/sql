@@ -198,58 +198,36 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    * all ExprCoreType.
    */
   public static ExprType convertSqlTypeNameToExprType(SqlTypeName sqlTypeName) {
-    switch (sqlTypeName) {
-      case TINYINT:
-        return BYTE;
-      case SMALLINT:
-        return SHORT;
-      case INTEGER:
-        return INTEGER;
-      case BIGINT:
-        return LONG;
-      case FLOAT:
-      case REAL:
-        return FLOAT;
-      case DOUBLE:
-        return DOUBLE;
-      case CHAR:
-      case VARCHAR:
-        return STRING;
-      case BOOLEAN:
-        return BOOLEAN;
-      case DATE:
-        return DATE;
-      case TIME:
-      case TIME_TZ:
-      case TIME_WITH_LOCAL_TIME_ZONE:
-        return TIME;
-      case TIMESTAMP:
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      case TIMESTAMP_TZ:
-        return TIMESTAMP;
-      case INTERVAL_YEAR:
-      case INTERVAL_YEAR_MONTH:
-      case INTERVAL_MONTH:
-      case INTERVAL_DAY:
-      case INTERVAL_DAY_HOUR:
-      case INTERVAL_DAY_MINUTE:
-      case INTERVAL_DAY_SECOND:
-      case INTERVAL_HOUR:
-      case INTERVAL_HOUR_MINUTE:
-      case INTERVAL_HOUR_SECOND:
-      case INTERVAL_MINUTE:
-      case INTERVAL_MINUTE_SECOND:
-      case INTERVAL_SECOND:
-        return INTERVAL;
-      case ARRAY:
-        return ARRAY;
-      case MAP:
-        return STRUCT;
-      case NULL:
-        return UNDEFINED;
-      default:
-        return UNKNOWN;
-    }
+    return switch (sqlTypeName) {
+      case TINYINT -> BYTE;
+      case SMALLINT -> SHORT;
+      case INTEGER -> INTEGER;
+      case BIGINT -> LONG;
+      case FLOAT, REAL -> FLOAT;
+      case DOUBLE -> DOUBLE;
+      case CHAR, VARCHAR -> STRING;
+      case BOOLEAN -> BOOLEAN;
+      case DATE -> DATE;
+      case TIME, TIME_TZ, TIME_WITH_LOCAL_TIME_ZONE -> TIME;
+      case TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE, TIMESTAMP_TZ -> TIMESTAMP;
+      case INTERVAL_YEAR,
+          INTERVAL_YEAR_MONTH,
+          INTERVAL_MONTH,
+          INTERVAL_DAY,
+          INTERVAL_DAY_HOUR,
+          INTERVAL_DAY_MINUTE,
+          INTERVAL_DAY_SECOND,
+          INTERVAL_HOUR,
+          INTERVAL_HOUR_MINUTE,
+          INTERVAL_HOUR_SECOND,
+          INTERVAL_MINUTE,
+          INTERVAL_MINUTE_SECOND,
+          INTERVAL_SECOND -> INTERVAL;
+      case ARRAY -> ARRAY;
+      case MAP -> STRUCT;
+      case NULL -> UNDEFINED;
+      default -> UNKNOWN;
+    };
   }
 
   /** Get legacy name for a SqlTypeName. */
@@ -269,6 +247,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
+    if (type instanceof ExprRelDataType udt) {
+      return udt.getExprType();
+    }
     ExprType exprType = convertSqlTypeNameToExprType(type.getSqlTypeName());
     if (exprType == UNKNOWN) {
       throw new IllegalArgumentException(
