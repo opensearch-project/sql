@@ -27,19 +27,7 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_NO_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SINGLE_DIGIT_MONTH;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SINGLE_DIGIT_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_WITH_TZ;
-import static org.opensearch.sql.utils.DateTimeFormatters.FULL_DATE_LENGTH;
-import static org.opensearch.sql.utils.DateTimeFormatters.NO_YEAR_DATE_LENGTH;
-import static org.opensearch.sql.utils.DateTimeFormatters.SHORT_DATE_LENGTH;
-import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_MONTH_DATE_LENGTH;
-import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_YEAR_DATE_LENGTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.*;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
 import static org.opensearch.sql.utils.DateTimeUtils.extractTimestamp;
 
@@ -1348,7 +1336,7 @@ public class DateTimeFunctions {
 
     try {
       LocalDateTime ldtFormatted =
-          LocalDateTime.parse(timestamp.stringValue(), DATE_TIME_FORMATTER_WITH_TZ);
+          LocalDateTime.parse(timestamp.stringValue(), DATE_TIME_FORMATTER_STRICT_WITH_TZ);
       if (timeZone.isNull()) {
         return new ExprTimestampValue(ldtFormatted);
       }
@@ -1364,7 +1352,7 @@ public class DateTimeFunctions {
 
     try {
       ZonedDateTime zdtWithZoneOffset =
-          ZonedDateTime.parse(timestamp.stringValue(), DATE_TIME_FORMATTER_WITH_TZ);
+          ZonedDateTime.parse(timestamp.stringValue(), DATE_TIME_FORMATTER_STRICT_WITH_TZ);
       ZoneId fromTZ = zdtWithZoneOffset.getZone();
 
       tz = new ExprTimestampValue(zdtWithZoneOffset.toLocalDateTime());
