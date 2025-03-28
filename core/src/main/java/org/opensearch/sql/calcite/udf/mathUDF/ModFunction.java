@@ -6,7 +6,12 @@
 package org.opensearch.sql.calcite.udf.mathUDF;
 
 import java.math.BigDecimal;
+import java.util.List;
+
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+
+import static org.opensearch.sql.calcite.udf.UserDefinedFunctionValidator.*;
 
 /**
  * Calculate the remainder of x divided by y<br>
@@ -61,4 +66,10 @@ public class ModFunction implements UserDefinedFunction {
   private boolean isIntegral(Number n) {
     return n instanceof Byte || n instanceof Short || n instanceof Integer || n instanceof Long;
   }
+
+  public static boolean validArgument(List<SqlTypeName> arguments) {
+    return judgeArgumentList(arguments, List.of(DateRelated)) || judgeArgumentList(arguments, List.of(StringRelated))
+            || judgeArgumentList(arguments, List.of(DateRelated, ));
+  }
+
 }

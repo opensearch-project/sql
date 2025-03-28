@@ -11,6 +11,7 @@ import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 
 import java.util.List;
 
+import static org.opensearch.sql.calcite.udf.UserDefinedFunctionValidator.StringRelated;
 import static org.opensearch.sql.calcite.udf.UserDefinedFunctionValidator.judgeArgumentList;
 
 public class LocateFunction implements UserDefinedFunction {
@@ -34,6 +35,6 @@ public class LocateFunction implements UserDefinedFunction {
   }
 
   public static boolean validArgument(List<SqlTypeName> arguments) {
-    return judgeArgumentList(arguments, List.of())
+    return judgeArgumentList(arguments, List.of(StringRelated, StringRelated));
   }
 }

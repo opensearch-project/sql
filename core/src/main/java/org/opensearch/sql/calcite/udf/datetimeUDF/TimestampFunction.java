@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Objects;
 
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -15,6 +16,7 @@ import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 
+import static org.opensearch.sql.calcite.udf.UserDefinedFunctionValidator.*;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
 
 /**
@@ -58,5 +60,9 @@ public class TimestampFunction implements UserDefinedFunction {
     Instant newInstant = timestamp.plusMillis(addTime);
     LocalDateTime newTime = LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC);
     return formatTimestamp(newTime);
+  }
+
+  public static boolean validArgument(List<SqlTypeName> arguments) {
+    return judgeArgumentList(arguments, List.of(CanBeTransferredToDate)) || judgeArgumentList(arguments, List.of(CanBeTransferredToDate, CanBeTransferredToDate));
   }
 }
