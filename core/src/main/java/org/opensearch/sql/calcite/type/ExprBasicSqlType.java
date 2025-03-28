@@ -30,7 +30,10 @@ package org.opensearch.sql.calcite.type;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.nio.charset.Charset;
+import org.apache.calcite.avatica.util.ByteString;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.AbstractSqlType;
@@ -38,6 +41,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.SerializableCharset;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.locationtech.jts.geom.Geometry;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.data.type.ExprType;
 
@@ -51,7 +55,7 @@ import org.opensearch.sql.data.type.ExprType;
  *
  * <p>TODO: may no need to be abstract if it can cover all functions of subclass.
  */
-public abstract class ExprBasicSqlUDT extends AbstractSqlType implements ExprUserDefinedType {
+public abstract class ExprBasicSqlType extends AbstractSqlType implements ExprRelDataType {
   // ~ Static fields/initializers ---------------------------------------------
 
   // ~ Instance fields --------------------------------------------------------
@@ -72,11 +76,11 @@ public abstract class ExprBasicSqlUDT extends AbstractSqlType implements ExprUse
    * @param typeSystem Type system
    * @param typeName Type name
    */
-  public ExprBasicSqlUDT(RelDataTypeSystem typeSystem, SqlTypeName typeName, ExprUDT udtName) {
+  public ExprBasicSqlType(RelDataTypeSystem typeSystem, SqlTypeName typeName, ExprUDT udtName) {
     this(typeSystem, typeName, udtName, false);
   }
 
-  protected ExprBasicSqlUDT(
+  protected ExprBasicSqlType(
       RelDataTypeSystem typeSystem, SqlTypeName sqlTypeName, ExprUDT udtName, boolean nullable) {
     this(
         typeSystem,
@@ -97,7 +101,7 @@ public abstract class ExprBasicSqlUDT extends AbstractSqlType implements ExprUse
    * @param typeName Type name
    * @param precision Precision (called length for some types)
    */
-  public ExprBasicSqlUDT(
+  public ExprBasicSqlType(
       RelDataTypeSystem typeSystem, SqlTypeName typeName, ExprUDT udtName, int precision) {
     this(typeSystem, typeName, udtName, false, precision, SCALE_NOT_SPECIFIED, null, null);
     checkPrecScale(typeName, true, false);
@@ -111,7 +115,7 @@ public abstract class ExprBasicSqlUDT extends AbstractSqlType implements ExprUse
    * @param precision Precision (called length for some types)
    * @param scale Scale
    */
-  public ExprBasicSqlUDT(
+  public ExprBasicSqlType(
       RelDataTypeSystem typeSystem,
       SqlTypeName typeName,
       ExprUDT udtName,
@@ -122,7 +126,7 @@ public abstract class ExprBasicSqlUDT extends AbstractSqlType implements ExprUse
   }
 
   /** Internal constructor. */
-  public ExprBasicSqlUDT(
+  public ExprBasicSqlType(
       RelDataTypeSystem typeSystem,
       SqlTypeName sqlTypeName,
       ExprUDT udtName,
@@ -141,7 +145,7 @@ public abstract class ExprBasicSqlUDT extends AbstractSqlType implements ExprUse
     computeDigest();
   }
 
-  protected abstract ExprBasicSqlUDT createInstance(
+  protected abstract ExprBasicSqlType createInstance(
       RelDataTypeSystem typeSystem,
       SqlTypeName typeName,
       ExprUDT udt,
@@ -168,7 +172,7 @@ public abstract class ExprBasicSqlUDT extends AbstractSqlType implements ExprUse
   // ~ Methods ----------------------------------------------------------------
 
   /** Constructs a type with nullablity. */
-  public ExprBasicSqlUDT createWithNullability(boolean nullable) {
+  public ExprBasicSqlType createWithNullability(boolean nullable) {
     if (nullable == this.isNullable) {
       return this;
     }
@@ -188,7 +192,7 @@ public abstract class ExprBasicSqlUDT extends AbstractSqlType implements ExprUse
    *
    * <p>This must be a character type.
    */
-  public ExprBasicSqlUDT createWithCharsetAndCollation(Charset charset, SqlCollation collation) {
+  public ExprBasicSqlType createWithCharsetAndCollation(Charset charset, SqlCollation collation) {
     checkArgument(SqlTypeUtil.inCharFamily(this));
     return createInstance(
         this.typeSystem,
@@ -358,5 +362,46 @@ public abstract class ExprBasicSqlUDT extends AbstractSqlType implements ExprUse
   @Override
   public ExprType getExprType() {
     return exprUDT.getExprCoreType();
+  }
+
+  public Type getJavaType() {
+    return switch (typeName) {
+      case VARCHAR, CHAR -> String.class;
+      case DATE,
+          TIME,
+          TIME_WITH_LOCAL_TIME_ZONE,
+          TIME_TZ,
+          INTEGER,
+          INTERVAL_YEAR,
+          INTERVAL_YEAR_MONTH,
+          INTERVAL_MONTH -> this.isNullable() ? Integer.class : int.class;
+      case TIMESTAMP,
+          TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+          TIMESTAMP_TZ,
+          BIGINT,
+          INTERVAL_DAY,
+          INTERVAL_DAY_HOUR,
+          INTERVAL_DAY_MINUTE,
+          INTERVAL_DAY_SECOND,
+          INTERVAL_HOUR,
+          INTERVAL_HOUR_MINUTE,
+          INTERVAL_HOUR_SECOND,
+          INTERVAL_MINUTE,
+          INTERVAL_MINUTE_SECOND,
+          INTERVAL_SECOND -> this.isNullable() ? Long.class : long.class;
+      case SMALLINT -> this.isNullable() ? Short.class : short.class;
+      case TINYINT -> this.isNullable() ? Byte.class : byte.class;
+      case DECIMAL -> BigDecimal.class;
+      case BOOLEAN -> this.isNullable() ? Boolean.class : boolean.class;
+      case DOUBLE, FLOAT -> // sic
+      this.isNullable() ? Double.class : double.class;
+      case REAL -> this.isNullable() ? Float.class : float.class;
+      case BINARY, VARBINARY -> ByteString.class;
+      case GEOMETRY -> Geometry.class;
+      case SYMBOL -> Enum.class;
+      case ANY -> Object.class;
+      case NULL -> Void.class;
+      default -> throw new IllegalArgumentException("Unsupported sql type name: " + typeName);
+    };
   }
 }
