@@ -15,7 +15,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
-public class CalciteDedupIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
 
   @Override
   public void init() throws IOException {
