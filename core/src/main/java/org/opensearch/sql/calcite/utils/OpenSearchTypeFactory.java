@@ -26,14 +26,24 @@ import static org.opensearch.sql.executor.QueryType.PPL;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 
 import java.lang.reflect.Type;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
+import lombok.Getter;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.opensearch.sql.calcite.type.ExprBasicSqlType;
+import org.opensearch.sql.calcite.type.ExprDateType;
+import org.opensearch.sql.calcite.type.ExprRelDataType;
+import org.opensearch.sql.calcite.type.ExprTimeStampType;
+import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -51,6 +61,37 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     super(typeSystem);
   }
 
+  @Getter
+  public enum ExprUDT {
+    EXPR_DATE(DATE),
+    EXPR_TIME(TIME),
+    EXPR_TIMESTAMP(TIMESTAMP);
+
+    // Associated `ExprCoreType`
+    private final ExprCoreType exprCoreType;
+
+    ExprUDT(ExprCoreType exprCoreType) {
+      this.exprCoreType = exprCoreType;
+    }
+  }
+
+  @Override
+  public RelDataType createTypeWithNullability(RelDataType type, boolean nullable) {
+    if (type instanceof ExprBasicSqlType udt) {
+      return udt.createWithNullability(nullable);
+    }
+    return super.createTypeWithNullability(type, nullable);
+  }
+
+  @Override
+  public RelDataType createTypeWithCharsetAndCollation(
+      RelDataType type, Charset charset, SqlCollation collation) {
+    if (type instanceof ExprBasicSqlType udt) {
+      return udt.createWithCharsetAndCollation(charset, collation);
+    }
+    return super.createTypeWithCharsetAndCollation(type, charset, collation);
+  }
+
   public RelDataType createSqlType(SqlTypeName typeName, boolean nullable) {
     return createTypeWithNullability(super.createSqlType(typeName), nullable);
   }
@@ -66,6 +107,19 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   public RelDataType createMapType(RelDataType keyType, RelDataType valueType, boolean nullable) {
     return createTypeWithNullability(super.createMapType(keyType, valueType), nullable);
+  }
+
+  public RelDataType createUDT(ExprUDT typeName, boolean nullable) {
+    RelDataType udt =
+        switch (typeName) {
+          case EXPR_DATE:
+            yield new ExprDateType(TYPE_FACTORY.getTypeSystem(), nullable);
+          case EXPR_TIME:
+            yield new ExprTimeType(TYPE_FACTORY.getTypeSystem(), nullable);
+          case EXPR_TIMESTAMP:
+            yield new ExprTimeStampType(TYPE_FACTORY.getTypeSystem(), nullable);
+        };
+    return canonize(SqlTypeUtil.addCharsetAndCollation(udt, this));
   }
 
   public static RelDataType convertExprTypeToRelDataType(ExprType field) {
@@ -96,11 +150,11 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         case BOOLEAN:
           return TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN, nullable);
         case DATE:
-          return TYPE_FACTORY.createSqlType(SqlTypeName.DATE, nullable);
+          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, nullable);
         case TIME:
-          return TYPE_FACTORY.createSqlType(SqlTypeName.TIME, nullable);
+          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, nullable);
         case TIMESTAMP:
-          return TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP, nullable);
+          return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
         case ARRAY:
           return TYPE_FACTORY.createArrayType(
               TYPE_FACTORY.createSqlType(SqlTypeName.ANY, nullable), -1);
@@ -119,11 +173,11 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       if (fieldType.legacyTypeName().equalsIgnoreCase("binary")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.BINARY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("timestamp")) {
-        return TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP, nullable);
+        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("date")) {
-        return TYPE_FACTORY.createSqlType(SqlTypeName.DATE, nullable);
+        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("time")) {
-        return TYPE_FACTORY.createSqlType(SqlTypeName.TIME, nullable);
+        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("geo_point")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.GEOMETRY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("text")) {
@@ -145,70 +199,51 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    * all ExprCoreType.
    */
   public static ExprType convertSqlTypeNameToExprType(SqlTypeName sqlTypeName) {
-    switch (sqlTypeName) {
-      case TINYINT:
-        return BYTE;
-      case SMALLINT:
-        return SHORT;
-      case INTEGER:
-        return INTEGER;
-      case BIGINT:
-        return LONG;
-      case FLOAT:
-      case REAL:
-        return FLOAT;
-      case DOUBLE:
-        return DOUBLE;
-      case CHAR:
-      case VARCHAR:
-        return STRING;
-      case BOOLEAN:
-        return BOOLEAN;
-      case DATE:
-        return DATE;
-      case TIME:
-      case TIME_TZ:
-      case TIME_WITH_LOCAL_TIME_ZONE:
-        return TIME;
-      case TIMESTAMP:
-      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-      case TIMESTAMP_TZ:
-        return TIMESTAMP;
-      case INTERVAL_YEAR:
-      case INTERVAL_YEAR_MONTH:
-      case INTERVAL_MONTH:
-      case INTERVAL_DAY:
-      case INTERVAL_DAY_HOUR:
-      case INTERVAL_DAY_MINUTE:
-      case INTERVAL_DAY_SECOND:
-      case INTERVAL_HOUR:
-      case INTERVAL_HOUR_MINUTE:
-      case INTERVAL_HOUR_SECOND:
-      case INTERVAL_MINUTE:
-      case INTERVAL_MINUTE_SECOND:
-      case INTERVAL_SECOND:
-        return INTERVAL;
-      case ARRAY:
-        return ARRAY;
-      case MAP:
-        return STRUCT;
-      case NULL:
-        return UNDEFINED;
-      default:
-        return UNKNOWN;
-    }
+    return switch (sqlTypeName) {
+      case TINYINT -> BYTE;
+      case SMALLINT -> SHORT;
+      case INTEGER -> INTEGER;
+      case BIGINT -> LONG;
+      case FLOAT, REAL -> FLOAT;
+      case DOUBLE -> DOUBLE;
+      case CHAR, VARCHAR -> STRING;
+      case BOOLEAN -> BOOLEAN;
+      case DATE -> DATE;
+      case TIME, TIME_TZ, TIME_WITH_LOCAL_TIME_ZONE -> TIME;
+      case TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE, TIMESTAMP_TZ -> TIMESTAMP;
+      case INTERVAL_YEAR,
+          INTERVAL_YEAR_MONTH,
+          INTERVAL_MONTH,
+          INTERVAL_DAY,
+          INTERVAL_DAY_HOUR,
+          INTERVAL_DAY_MINUTE,
+          INTERVAL_DAY_SECOND,
+          INTERVAL_HOUR,
+          INTERVAL_HOUR_MINUTE,
+          INTERVAL_HOUR_SECOND,
+          INTERVAL_MINUTE,
+          INTERVAL_MINUTE_SECOND,
+          INTERVAL_SECOND -> INTERVAL;
+      case ARRAY -> ARRAY;
+      case MAP -> STRUCT;
+      case NULL -> UNDEFINED;
+      default -> UNKNOWN;
+    };
   }
 
-  /** Get legacy name for a SqlTypeName. */
-  public static String getLegacyTypeName(SqlTypeName sqlTypeName, QueryType queryType) {
-    switch (sqlTypeName) {
+  /** Get legacy name for a RelDataType. */
+  public static String getLegacyTypeName(RelDataType relDataType, QueryType queryType) {
+    if (relDataType instanceof ExprRelDataType udt) {
+      return udt.getExprType().legacyTypeName();
+    }
+    switch (relDataType.getSqlTypeName()) {
       case BINARY:
       case VARBINARY:
         return "BINARY";
       case GEOMETRY:
         return "GEO_POINT";
       default:
-        ExprType type = convertSqlTypeNameToExprType(sqlTypeName);
+        ExprType type = convertSqlTypeNameToExprType(relDataType.getSqlTypeName());
         return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
             .toUpperCase(Locale.ROOT);
     }
@@ -216,6 +251,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
+    if (type instanceof ExprRelDataType udt) {
+      return udt.getExprType();
+    }
     ExprType exprType = convertSqlTypeNameToExprType(type.getSqlTypeName());
     if (exprType == UNKNOWN) {
       throw new IllegalArgumentException(
@@ -263,7 +301,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public static RelDataType convertSchema(Table table) {
     List<String> fieldNameList = new ArrayList<>();
     List<RelDataType> typeList = new ArrayList<>();
-    for (Map.Entry<String, ExprType> entry : table.getFieldTypes().entrySet()) {
+    for (Entry<String, ExprType> entry : table.getFieldTypes().entrySet()) {
       fieldNameList.add(entry.getKey());
       typeList.add(OpenSearchTypeFactory.convertExprTypeToRelDataType(entry.getValue()));
     }
@@ -273,6 +311,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   /** not in use for now, but let's keep this code for future reference. */
   @Override
   public Type getJavaClass(RelDataType type) {
+    if (type instanceof ExprRelDataType exprRelDataType) {
+      return exprRelDataType.getJavaType();
+    }
     return super.getJavaClass(type);
   }
 }

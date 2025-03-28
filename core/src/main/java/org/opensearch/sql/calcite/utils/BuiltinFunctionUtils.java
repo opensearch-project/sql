@@ -277,8 +277,7 @@ public interface BuiltinFunctionUtils {
       case "TYPEOF":
         return List.of(
             context.rexBuilder.makeLiteral(
-                getLegacyTypeName(
-                    argList.getFirst().getType().getSqlTypeName(), context.queryType)));
+                getLegacyTypeName(argList.getFirst().getType(), context.queryType)));
       default:
         return argList;
     }
