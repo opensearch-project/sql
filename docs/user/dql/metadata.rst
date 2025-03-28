@@ -35,24 +35,26 @@ Example 1: Show All Indices Information
 SQL query::
 
     os> SHOW TABLES LIKE '%'
-    fetched rows / total rows = 13/13
-    +----------------+-------------+-----------------+------------+---------+----------+------------+-----------+---------------------------+----------------+
-    | TABLE_CAT      | TABLE_SCHEM | TABLE_NAME      | TABLE_TYPE | REMARKS | TYPE_CAT | TYPE_SCHEM | TYPE_NAME | SELF_REFERENCING_COL_NAME | REF_GENERATION |
-    |----------------+-------------+-----------------+------------+---------+----------+------------+-----------+---------------------------+----------------|
-    | docTestCluster | null        | .ql-datasources | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | account2        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | accounts        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | apache          | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | books           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | json_test       | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | nested          | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | nyc_taxi        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | occupation      | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | people          | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | state_country   | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | weblogs         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    | docTestCluster | null        | wildcard        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
-    +----------------+-------------+-----------------+------------+---------+----------+------------+-----------+---------------------------+----------------+
+    fetched rows / total rows = 15/15
+    +----------------+-------------+------------------+------------+---------+----------+------------+-----------+---------------------------+----------------+
+    | TABLE_CAT      | TABLE_SCHEM | TABLE_NAME       | TABLE_TYPE | REMARKS | TYPE_CAT | TYPE_SCHEM | TYPE_NAME | SELF_REFERENCING_COL_NAME | REF_GENERATION |
+    |----------------+-------------+------------------+------------+---------+----------+------------+-----------+---------------------------+----------------|
+    | docTestCluster | null        | .ql-datasources  | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | account2         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | accounts         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | apache           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | books            | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | json_test        | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | nested           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | nyc_taxi         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | occupation       | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | people           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | state_country    | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | weblogs          | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | wildcard         | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | work_information | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    | docTestCluster | null        | worker           | BASE TABLE | null    | null     | null       | null      | null                      | null           |
+    +----------------+-------------+------------------+------------+---------+----------+------------+-----------+---------------------------+----------------+
 
 Example 2: Show Specific Index Information
 ------------------------------------------
