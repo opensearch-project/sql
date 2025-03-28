@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.transferDateRelatedTimeName;
 
 public class UserDefinedFunctionValidator {
-    public boolean validateFunction(String op, List<RexNode> argList) {
+    public static boolean validateFunction(String op, List<RexNode> argList) {
         List<SqlTypeName> sqlTypeNames = argList.stream()
                 .map(UserDefinedFunctionUtils::transferDateRelatedTimeName)
                 .toList();
@@ -37,13 +37,13 @@ public class UserDefinedFunctionValidator {
         }
     }
 
-    public static boolean judgeArgumentList(List<SqlTypeName> inputTypes, List<?> candidates) {
-        if (inputTypes.size() != candidates.size()) {
+    public static boolean judgeArgumentList(List<SqlTypeName> inputTypes, List<?> expected) {
+        if (inputTypes.size() != expected.size()) {
             return false;
         }
         for (int i = 0; i < inputTypes.size(); i++) {
             SqlTypeName inputType = inputTypes.get(i);
-            Object candidate = candidates.get(i);
+            Object candidate = expected.get(i);
             if (candidate instanceof SqlTypeName) {
                 SqlTypeName candidateType = (SqlTypeName) candidate;
                 if (candidateType != inputType) {

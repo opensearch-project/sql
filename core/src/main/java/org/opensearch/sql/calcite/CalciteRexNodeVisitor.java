@@ -51,6 +51,7 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.udf.UserDefinedFunctionValidator;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -355,6 +356,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<RexNode> arguments =
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
+    if (!UserDefinedFunctionValidator.validateFunction(node.getFuncName(), arguments)) {
+      throw new IllegalArgumentException();
+    }
     SqlOperator operator = BuiltinFunctionUtils.translate(node.getFuncName());
     List<RexNode> translatedArguments =
         BuiltinFunctionUtils.translateArgument(node.getFuncName(), arguments, context,

@@ -68,8 +68,7 @@ public class ModFunction implements UserDefinedFunction {
   }
 
   public static boolean validArgument(List<SqlTypeName> arguments) {
-    return judgeArgumentList(arguments, List.of(DateRelated)) || judgeArgumentList(arguments, List.of(StringRelated))
-            || judgeArgumentList(arguments, List.of(DateRelated, ));
+    return judgeArgumentList(arguments, List.of(NumberRelated, NumberRelated));
   }
 
 }
