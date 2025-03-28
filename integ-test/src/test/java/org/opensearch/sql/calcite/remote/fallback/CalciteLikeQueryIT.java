@@ -11,7 +11,6 @@ import org.junit.Test;
 import org.opensearch.sql.ppl.LikeQueryIT;
 
 // TODO Like function behaviour in V2 is not correct. Remove when it was fixed in V2.
-//@Ignore("https://github.com/opensearch-project/sql/issues/3428")
 public class CalciteLikeQueryIT extends LikeQueryIT {
   @Override
   public void init() throws Exception {
