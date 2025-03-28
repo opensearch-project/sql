@@ -8,7 +8,6 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createNullableReturnType;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,7 +22,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
@@ -206,19 +204,27 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     SqlOperator op = BuiltinFunctionUtils.translate(node.getOperator());
     RexNode leftCandidate = analyze(node.getLeft(), context);
     RexNode rightCandidate = analyze(node.getRight(), context);
-    Boolean whetherCompareByTime = leftCandidate.getType() instanceof ExprBasicSqlUDT || rightCandidate.getType() instanceof ExprBasicSqlUDT;
+    Boolean whetherCompareByTime =
+        leftCandidate.getType() instanceof ExprBasicSqlUDT
+            || rightCandidate.getType() instanceof ExprBasicSqlUDT;
 
-    final RexNode left = transferCompareForDateRelated(leftCandidate, context, whetherCompareByTime);
-    final RexNode right = transferCompareForDateRelated(rightCandidate, context, whetherCompareByTime);
+    final RexNode left =
+        transferCompareForDateRelated(leftCandidate, context, whetherCompareByTime);
+    final RexNode right =
+        transferCompareForDateRelated(rightCandidate, context, whetherCompareByTime);
     return context.relBuilder.call(op, left, right);
   }
 
-  private RexNode transferCompareForDateRelated(RexNode candidate, CalcitePlanContext context, boolean wrapper) {
+  private RexNode transferCompareForDateRelated(
+      RexNode candidate, CalcitePlanContext context, boolean wrapper) {
     if (wrapper) {
-      SqlOperator postToStringNode = TransferUserDefinedFunction(PostprocessDateToStringFunction.class, "PostprocessDateToString", UserDefinedFunctionUtils.createNullableReturnType(SqlTypeName.CHAR));
-      RexNode transferredStringNode = context.rexBuilder.makeCall(
-              postToStringNode, List.of(candidate)
-      );
+      SqlOperator postToStringNode =
+          TransferUserDefinedFunction(
+              PostprocessDateToStringFunction.class,
+              "PostprocessDateToString",
+              UserDefinedFunctionUtils.createNullableReturnType(SqlTypeName.CHAR));
+      RexNode transferredStringNode =
+          context.rexBuilder.makeCall(postToStringNode, List.of(candidate));
       return transferredStringNode;
     } else {
       return candidate;

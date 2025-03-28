@@ -105,7 +105,8 @@ public class UserDefinedFunctionUtils {
       if (argTypes.isEmpty()) {
         throw new IllegalArgumentException("Function requires at least one argument.");
       }
-      return typeFactory.createTypeWithNullability(typeFactory.createSqlType(argTypes.get(targetPosition).getSqlTypeName()), true);
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(argTypes.get(targetPosition).getSqlTypeName()), true);
     };
   }
 
@@ -199,7 +200,6 @@ public class UserDefinedFunctionUtils {
       return opBinding.getTypeFactory().createTypeWithNullability(relDataType, true);
     };
   }
-
 
   static List<Integer> transferStringExprToDateValue(String timeExpr) {
     try {
@@ -322,7 +322,7 @@ public class UserDefinedFunctionUtils {
       return base + "." + nanoStr;
     }
     return base;
-    //return base + "." + nanoStr;
+    // return base + "." + nanoStr;
   }
 
   public static String formatTime(LocalTime time) {

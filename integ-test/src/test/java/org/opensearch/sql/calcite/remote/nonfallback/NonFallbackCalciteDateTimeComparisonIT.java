@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.remote.nonfallback;
 
-import org.junit.Ignore;
 import org.opensearch.sql.calcite.remote.fallback.CalciteDateTimeComparisonIT;
 
 public class NonFallbackCalciteDateTimeComparisonIT extends CalciteDateTimeComparisonIT {

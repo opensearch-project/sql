@@ -25,7 +25,6 @@ public class NonFallbackCalciteStatsCommandIT extends CalciteStatsCommandIT {
     super.testStatsPercentileByNullValue();
   }
 
-
   /**
    * the super class returns rows(1, 20, "f", "VA") but in Calcite implementation, it returns
    * rows(1, 20, "F", "VA") check {@link CalcitePPLAggregationIT#testStatsByMultipleFieldsAndSpan()}
