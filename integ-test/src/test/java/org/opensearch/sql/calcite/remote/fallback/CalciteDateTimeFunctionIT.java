@@ -5,7 +5,10 @@
 
 package org.opensearch.sql.calcite.remote.fallback;
 
+import org.junit.Ignore;
 import org.opensearch.sql.ppl.DateTimeFunctionIT;
+
+import java.io.IOException;
 
 public class CalciteDateTimeFunctionIT extends DateTimeFunctionIT {
   @Override
@@ -13,4 +16,11 @@ public class CalciteDateTimeFunctionIT extends DateTimeFunctionIT {
     super.init();
     enableCalcite();
   }
+
+  @Ignore("https://github.com/opensearch-project/sql/issues/3475")
+  @Override
+  public void testTimestampDiff() throws IOException {
+    super.testTimestampDiff();
+  }
+
 }

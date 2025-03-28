@@ -19,46 +19,12 @@ public class NonFallbackCalciteStatsCommandIT extends CalciteStatsCommandIT {
     disallowCalciteFallback();
   }
 
-  // @Ignore("Percentile is unsupported in Calcite now")
-  @Override
-  public void testStatsPercentile() throws IOException {
-    super.testStatsPercentile();
-  }
-
-  // @Ignore("Percentile is unsupported in Calcite now")
-  @Override
-  public void testStatsPercentileWithNull() throws IOException {
-    super.testStatsPercentileWithNull();
-  }
-
-  // @Ignore("Percentile is unsupported in Calcite now")
-  @Override
-  public void testStatsPercentileWithCompression() throws IOException {
-    super.testStatsPercentileWithCompression();
-  }
-
-  // @Ignore("Percentile is unsupported in Calcite now")
-  @Override
-  public void testStatsPercentileWhere() throws IOException {
-    super.testStatsPercentileWhere();
-  }
-
   @Ignore("Percentile issue")
   @Override
   public void testStatsPercentileByNullValue() throws IOException {
     super.testStatsPercentileByNullValue();
   }
 
-  // @Ignore("Percentile is unsupported in Calcite now")
-  @Override
-  public void testStatsPercentileBySpan() throws IOException {
-    super.testStatsPercentileBySpan();
-  }
-
-  @Override
-  public void testStatsTimeSpan() throws IOException {
-    super.testStatsTimeSpan();
-  }
 
   /**
    * the super class returns rows(1, 20, "f", "VA") but in Calcite implementation, it returns

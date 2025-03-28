@@ -100,13 +100,12 @@ public class UserDefinedFunctionUtils {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 
-      // Get argument types
       List<RelDataType> argTypes = opBinding.collectOperandTypes();
 
       if (argTypes.isEmpty()) {
         throw new IllegalArgumentException("Function requires at least one argument.");
       }
-      return argTypes.get(targetPosition);
+      return typeFactory.createTypeWithNullability(typeFactory.createSqlType(argTypes.get(targetPosition).getSqlTypeName()), true);
     };
   }
 
@@ -194,17 +193,13 @@ public class UserDefinedFunctionUtils {
    * @param typeName a SqlTypeName
    * @return a nullable RelDataType
    */
-  static SqlReturnTypeInference createNullableReturnType(SqlTypeName typeName) {
+  public static SqlReturnTypeInference createNullableReturnType(SqlTypeName typeName) {
     return opBinding -> {
       RelDataType relDataType = opBinding.getTypeFactory().createSqlType(typeName);
       return opBinding.getTypeFactory().createTypeWithNullability(relDataType, true);
     };
   }
 
-  static RelDataType createNullableReturnType(
-      RelDataTypeFactory typeFactory, SqlTypeName sqlTypeName) {
-    return typeFactory.createTypeWithNullability(typeFactory.createSqlType(sqlTypeName), true);
-  }
 
   static List<Integer> transferStringExprToDateValue(String timeExpr) {
     try {

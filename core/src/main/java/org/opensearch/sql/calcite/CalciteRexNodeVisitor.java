@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createNullableReturnType;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -57,6 +58,7 @@ import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessDateToStringFunction;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -209,7 +211,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   private RexNode transferCompareForDateRelated(RexNode candidate, CalcitePlanContext context) {
     if (candidate.getType() instanceof ExprBasicSqlUDT) {
-      SqlOperator postToStringNode = TransferUserDefinedFunction(PostprocessDateToStringFunction.class, "PostprocessDateToString", ReturnTypes.CHAR);
+      SqlOperator postToStringNode = TransferUserDefinedFunction(PostprocessDateToStringFunction.class, "PostprocessDateToString", UserDefinedFunctionUtils.createNullableReturnType(SqlTypeName.CHAR));
       RexNode transferredStringNode = context.rexBuilder.makeCall(
               postToStringNode, List.of(candidate)
       );

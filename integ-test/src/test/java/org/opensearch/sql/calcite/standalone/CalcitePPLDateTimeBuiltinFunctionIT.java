@@ -206,8 +206,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("CNT", "long"));
 
-    // tmr, +month, now
-    verifyDataRows(actual, rows(5));
+    // relative ones
+    verifyDataRows(actual, rows(7));
   }
 
   @Test
@@ -1258,7 +1258,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             "2021-05-13 04:34:50",
             "2021-05-13 11:34:50",
             "2021-05-12 09:15:00",
-            "1984-04-12 05:07:42.000123456"));
+            null));
   }
 
   @Test

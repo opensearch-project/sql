@@ -313,7 +313,7 @@ public interface BuiltinFunctionUtils {
             IfNullFunction.class, "ifnull", getReturnTypeInference(1));
       case "NULLIF":
         return TransferUserDefinedFunction(
-            NullIfFunction.class, "ifnull", getReturnTypeInference(0));
+            NullIfFunction.class, "nullif", getReturnTypeInference(0));
       case "IS NOT NULL":
         return SqlStdOperatorTable.IS_NOT_NULL;
       case "IS NULL":
