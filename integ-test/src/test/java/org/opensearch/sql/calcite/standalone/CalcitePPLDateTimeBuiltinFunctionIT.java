@@ -1117,7 +1117,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows(200804, 199206, 11, -25));
   }
 
-  @Ignore
   @Test
   public void testMinuteOfHourAndMinuteOfDay() {
     JSONObject actual =
@@ -1127,7 +1126,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + "m2 = MINUTE(time), "
                     + "m3 = MINUTE_OF_DAY(strict_date_time), "
                     + "m4 = MINUTE_OF_DAY(time), "
-                    + "m4 = MINUTE('13:49:23'), "
                     + "m5 = MINUTE('2009-10-19 23:40:27.123456'), "
                     + "m6 = MINUTE_OF_HOUR('16:20:39') "
                     + "| fields m1, m2, m3, m4, m5, m6",
