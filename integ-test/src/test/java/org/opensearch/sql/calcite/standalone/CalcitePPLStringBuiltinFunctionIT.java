@@ -157,7 +157,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where locate(name, 'Ja')=1 | fields name, age",
+                "source=%s | where locate('Ja', name)=1 | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));

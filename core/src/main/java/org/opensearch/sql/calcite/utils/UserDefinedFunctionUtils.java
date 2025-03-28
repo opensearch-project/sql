@@ -35,12 +35,14 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
+import org.opensearch.sql.calcite.type.ExprBasicSqlType;
 import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
@@ -86,7 +88,12 @@ public class UserDefinedFunctionUtils {
     SqlIdentifier udfLtrimIdentifier =
         new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
     return new SqlUserDefinedFunction(
-        udfLtrimIdentifier, SqlKind.OTHER_FUNCTION, returnType, null, null, udfFunction);
+        udfLtrimIdentifier,
+        SqlKind.OTHER_FUNCTION,
+        returnType,
+        InferTypes.ANY_NULLABLE,
+        null,
+        udfFunction);
   }
 
   /**
@@ -164,7 +171,7 @@ public class UserDefinedFunctionUtils {
   static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(0);
-      if (operandType0 instanceof ExprBasicSqlUDT) {
+      if (operandType0 instanceof ExprBasicSqlType) {
         if (operandType0 instanceof ExprDateType || operandType0 instanceof ExprTimeStampType) {
           return nullableTimestampUDT;
         } else if (operandType0 instanceof ExprTimeType) {
@@ -339,8 +346,8 @@ public class UserDefinedFunctionUtils {
   }
 
   public static RexNode wrapperByPreprocess(RexNode candidate, RexBuilder rexBuilder) {
-    if (candidate.getType() instanceof ExprBasicSqlUDT) {
-      ExprBasicSqlUDT dateType = (ExprBasicSqlUDT) candidate.getType();
+    if (candidate.getType() instanceof ExprBasicSqlType) {
+      ExprBasicSqlType dateType = (ExprBasicSqlType) candidate.getType();
       ExprType udtType = dateType.getExprType();
       List<RexNode> preprocessArgs =
           List.of(candidate, rexBuilder.makeFlag(PreprocessForUDTFunction.getInputType(udtType)));
@@ -360,7 +367,7 @@ public class UserDefinedFunctionUtils {
 
   public static SqlTypeName transferDateRelatedTimeName(RexNode candidate) {
     RelDataType type = candidate.getType();
-    if (type instanceof ExprBasicSqlUDT) {
+    if (type instanceof ExprBasicSqlType) {
       if (type instanceof ExprTimeType) {
         return SqlTypeName.TIME;
       } else if (type instanceof ExprTimeStampType) {

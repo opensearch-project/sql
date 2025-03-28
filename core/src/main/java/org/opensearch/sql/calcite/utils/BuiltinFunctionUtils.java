@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
@@ -86,6 +87,7 @@ import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
+import org.opensearch.sql.calcite.udf.systemUDF.TypeOfFunction;
 import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
 import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
@@ -318,6 +320,10 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.IS_NOT_NULL;
       case "IS NULL":
         return SqlStdOperatorTable.IS_NULL;
+      case "TYPEOF":
+        // TODO optimize this function to ImplementableFunction
+        return TransferUserDefinedFunction(
+            TypeOfFunction.class, "typeof", ReturnTypes.VARCHAR_2000_NULLABLE);
         // TODO Add more, ref RexImpTable
       case "DAYNAME":
         return TransferUserDefinedFunction(PeriodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
@@ -440,6 +446,9 @@ public interface BuiltinFunctionUtils {
                     context.rexBuilder.makeLiteral(" ")));
         RTrimArgs.addAll(argList);
         return RTrimArgs;
+      case "STRCMP":
+        List<RexNode> StrcmpArgs = List.of(argList.get(1), argList.get(0));
+        return StrcmpArgs;
       case "ATAN":
         List<RexNode> AtanArgs = new ArrayList<>(argList);
         if (AtanArgs.size() == 1) {
@@ -724,6 +733,10 @@ public interface BuiltinFunctionUtils {
         return Stream.concat(Stream.of(argTimestamp), argList.stream().skip(1)).toList();
       case "UTC_TIMESTAMP", "UTC_TIME", "UTC_DATE":
         return List.of(context.rexBuilder.makeLiteral(currentTimestampStr));
+      case "TYPEOF":
+        return List.of(
+            context.rexBuilder.makeLiteral(
+                getLegacyTypeName(argList.getFirst().getType(), context.queryType)));
       default:
         return argList;
     }

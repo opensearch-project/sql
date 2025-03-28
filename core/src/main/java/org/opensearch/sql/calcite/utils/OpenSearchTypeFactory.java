@@ -25,9 +25,14 @@ import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import static org.opensearch.sql.executor.QueryType.PPL;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
+
+import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import lombok.Getter;
@@ -41,6 +46,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.locationtech.jts.geom.Geometry;
 import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
 import org.opensearch.sql.calcite.type.ExprDateType;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.opensearch.sql.calcite.type.ExprBasicSqlType;
+import org.opensearch.sql.calcite.type.ExprDateType;
+import org.opensearch.sql.calcite.type.ExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.data.model.ExprValue;
@@ -48,6 +58,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.OpenSearchTypeSystem;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.storage.Table;
 
 /** This class is used to create RelDataType and map RelDataType to Java data type */
@@ -61,7 +72,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         Charset charset = TYPE_FACTORY.getDefaultCharset();
         SqlCollation collation = SqlCollation.IMPLICIT;
         RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
-        if (type instanceof ExprBasicSqlUDT udt) {
+        if (type instanceof ExprBasicSqlType udt) {
           return udt.createWithCharsetAndCollation(charset, collation);
         }
         return type;
@@ -72,7 +83,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         Charset charset = TYPE_FACTORY.getDefaultCharset();
         SqlCollation collation = SqlCollation.IMPLICIT;
         RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
-        if (type instanceof ExprBasicSqlUDT udt) {
+        if (type instanceof ExprBasicSqlType udt) {
           return udt.createWithCharsetAndCollation(charset, collation);
         }
         return type;
@@ -84,7 +95,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         Charset charset = TYPE_FACTORY.getDefaultCharset();
         SqlCollation collation = SqlCollation.IMPLICIT;
         RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
-        if (type instanceof ExprBasicSqlUDT udt) {
+        if (type instanceof ExprBasicSqlType udt) {
           return udt.createWithCharsetAndCollation(charset, collation);
         }
         return type;
@@ -99,7 +110,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     Charset charset = TYPE_FACTORY.getDefaultCharset();
     SqlCollation collation = SqlCollation.IMPLICIT;
     RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
-    if (type instanceof ExprBasicSqlUDT udt) {
+    if (type instanceof ExprBasicSqlType udt) {
       return udt.createWithCharsetAndCollation(charset, collation);
     }
     return type;
@@ -109,7 +120,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     Charset charset = TYPE_FACTORY.getDefaultCharset();
     SqlCollation collation = SqlCollation.IMPLICIT;
     RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
-    if (type instanceof ExprBasicSqlUDT udt) {
+    if (type instanceof ExprBasicSqlType udt) {
       return udt.createWithCharsetAndCollation(charset, collation);
     }
     return type;
@@ -119,7 +130,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     Charset charset = TYPE_FACTORY.getDefaultCharset();
     SqlCollation collation = SqlCollation.IMPLICIT;
     RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
-    if (type instanceof ExprBasicSqlUDT udt) {
+    if (type instanceof ExprBasicSqlType udt) {
       return udt.createWithCharsetAndCollation(charset, collation);
     }
     return type;
@@ -145,7 +156,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   @Override
   public RelDataType createTypeWithNullability(RelDataType type, boolean nullable) {
-    if (type instanceof ExprBasicSqlUDT udt) {
+    if (type instanceof ExprBasicSqlType udt) {
       return udt.createWithNullability(nullable);
     }
     return super.createTypeWithNullability(type, nullable);
@@ -154,7 +165,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   @Override
   public RelDataType createTypeWithCharsetAndCollation(
       RelDataType type, Charset charset, SqlCollation collation) {
-    if (type instanceof ExprBasicSqlUDT udt) {
+    if (type instanceof ExprBasicSqlType udt) {
       return udt.createWithCharsetAndCollation(charset, collation);
     }
     return super.createTypeWithCharsetAndCollation(type, charset, collation);
@@ -187,7 +198,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           case EXPR_TIMESTAMP:
             yield new ExprTimeStampType(TYPE_FACTORY.getTypeSystem(), nullable);
         };
-    return createTypeWithNullability(udt, nullable);
+    return canonize(SqlTypeUtil.addCharsetAndCollation(udt, this));
   }
 
   public static RelDataType convertExprTypeToRelDataType(ExprType field) {
@@ -261,36 +272,73 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     }
   }
 
+  /**
+   * Usually, {@link this#createSqlType(SqlTypeName, boolean)} is used to create RelDataType, then
+   * convert it to ExprType. This is a util to convert when you don't have typeFactory. So they are
+   * all ExprCoreType.
+   */
+  public static ExprType convertSqlTypeNameToExprType(SqlTypeName sqlTypeName) {
+    return switch (sqlTypeName) {
+      case TINYINT -> BYTE;
+      case SMALLINT -> SHORT;
+      case INTEGER -> INTEGER;
+      case BIGINT -> LONG;
+      case FLOAT, REAL -> FLOAT;
+      case DOUBLE -> DOUBLE;
+      case CHAR, VARCHAR -> STRING;
+      case BOOLEAN -> BOOLEAN;
+      case DATE -> DATE;
+      case TIME, TIME_TZ, TIME_WITH_LOCAL_TIME_ZONE -> TIME;
+      case TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE, TIMESTAMP_TZ -> TIMESTAMP;
+      case INTERVAL_YEAR,
+          INTERVAL_YEAR_MONTH,
+          INTERVAL_MONTH,
+          INTERVAL_DAY,
+          INTERVAL_DAY_HOUR,
+          INTERVAL_DAY_MINUTE,
+          INTERVAL_DAY_SECOND,
+          INTERVAL_HOUR,
+          INTERVAL_HOUR_MINUTE,
+          INTERVAL_HOUR_SECOND,
+          INTERVAL_MINUTE,
+          INTERVAL_MINUTE_SECOND,
+          INTERVAL_SECOND -> INTERVAL;
+      case ARRAY -> ARRAY;
+      case MAP -> STRUCT;
+      case NULL -> UNDEFINED;
+      default -> UNKNOWN;
+    };
+  }
+
+  /** Get legacy name for a RelDataType. */
+  public static String getLegacyTypeName(RelDataType relDataType, QueryType queryType) {
+    if (relDataType instanceof ExprRelDataType udt) {
+      return udt.getExprType().legacyTypeName();
+    }
+    switch (relDataType.getSqlTypeName()) {
+      case BINARY:
+      case VARBINARY:
+        return "BINARY";
+      case GEOMETRY:
+        return "GEO_POINT";
+      default:
+        ExprType type = convertSqlTypeNameToExprType(relDataType.getSqlTypeName());
+        return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
+            .toUpperCase(Locale.ROOT);
+    }
+  }
+
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
-    if (type instanceof ExprBasicSqlUDT udt) {
+    if (type instanceof ExprRelDataType udt) {
       return udt.getExprType();
-    } else
-      return switch (type.getSqlTypeName()) {
-        case TINYINT -> BYTE;
-        case SMALLINT -> SHORT;
-        case INTEGER -> INTEGER;
-        case BIGINT -> LONG;
-        case REAL -> FLOAT;
-        case DOUBLE -> DOUBLE;
-        case CHAR, VARCHAR -> STRING;
-        case BOOLEAN -> BOOLEAN;
-        case DATE -> DATE;
-        case TIME -> TIME;
-        case TIMESTAMP -> TIMESTAMP;
-        case GEOMETRY -> IP;
-        case INTERVAL_YEAR,
-            INTERVAL_MONTH,
-            INTERVAL_DAY,
-            INTERVAL_HOUR,
-            INTERVAL_MINUTE,
-            INTERVAL_SECOND -> INTERVAL;
-        case ARRAY -> ARRAY;
-        case MAP -> STRUCT;
-        case NULL -> UNDEFINED;
-        default -> throw new IllegalArgumentException(
-            "Unsupported conversion for Relational Data type: " + type.getSqlTypeName());
-      };
+    }
+    ExprType exprType = convertSqlTypeNameToExprType(type.getSqlTypeName());
+    if (exprType == UNKNOWN) {
+      throw new IllegalArgumentException(
+          "Unsupported conversion for Relational Data type: " + type.getSqlTypeName());
+    }
+    return exprType;
   }
 
   public static ExprValue getExprValueByExprType(ExprType type, Object value) {
@@ -342,62 +390,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   /** not in use for now, but let's keep this code for future reference. */
   @Override
   public Type getJavaClass(RelDataType type) {
-    if (type instanceof ExprBasicSqlUDT) {
-      switch (type.getSqlTypeName()) {
-        case VARCHAR:
-        case CHAR:
-          return String.class;
-        case DATE:
-        case TIME:
-        case TIME_WITH_LOCAL_TIME_ZONE:
-        case TIME_TZ:
-        case INTEGER:
-        case INTERVAL_YEAR:
-        case INTERVAL_YEAR_MONTH:
-        case INTERVAL_MONTH:
-          return type.isNullable() ? Integer.class : int.class;
-        case TIMESTAMP:
-        case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-        case TIMESTAMP_TZ:
-        case BIGINT:
-        case INTERVAL_DAY:
-        case INTERVAL_DAY_HOUR:
-        case INTERVAL_DAY_MINUTE:
-        case INTERVAL_DAY_SECOND:
-        case INTERVAL_HOUR:
-        case INTERVAL_HOUR_MINUTE:
-        case INTERVAL_HOUR_SECOND:
-        case INTERVAL_MINUTE:
-        case INTERVAL_MINUTE_SECOND:
-        case INTERVAL_SECOND:
-          return type.isNullable() ? Long.class : long.class;
-        case SMALLINT:
-          return type.isNullable() ? Short.class : short.class;
-        case TINYINT:
-          return type.isNullable() ? Byte.class : byte.class;
-        case DECIMAL:
-          return BigDecimal.class;
-        case BOOLEAN:
-          return type.isNullable() ? Boolean.class : boolean.class;
-        case DOUBLE:
-        case FLOAT: // sic
-          return type.isNullable() ? Double.class : double.class;
-        case REAL:
-          return type.isNullable() ? Float.class : float.class;
-        case BINARY:
-        case VARBINARY:
-          return ByteString.class;
-        case GEOMETRY:
-          return Geometry.class;
-        case SYMBOL:
-          return Enum.class;
-        case ANY:
-          return Object.class;
-        case NULL:
-          return Void.class;
-        default:
-          break;
-      }
+    if (type instanceof ExprRelDataType exprRelDataType) {
+      return exprRelDataType.getJavaType();
     }
     return super.getJavaClass(type);
   }

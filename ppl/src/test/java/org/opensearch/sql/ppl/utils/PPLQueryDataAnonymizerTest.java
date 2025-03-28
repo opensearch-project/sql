@@ -301,6 +301,16 @@ public class PPLQueryDataAnonymizerTest {
         anonymize("source=t | eval id=CAST('1' AS DOUBLE) | fields id"));
   }
 
+  @Test
+  public void testParse() {
+    assertEquals(
+        "source=t | parse email '.+@(?<email>.+)'",
+        anonymize("source=t | parse email '.+@(?<email>.+)'"));
+    assertEquals(
+        "source=t | parse email '.+@(?<host>.+)' | fields + email,host",
+        anonymize("source=t | parse email '.+@(?<host>.+)' | fields email, host"));
+  }
+
   private String anonymize(String query) {
     AstBuilder astBuilder = new AstBuilder(query, settings);
     return anonymize(astBuilder.visit(parser.parse(query)));

@@ -12,10 +12,18 @@ import org.apache.calcite.util.SerializableCharset;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 
-public class ExprTimeType extends ExprBasicSqlUDT {
+public class ExprTimeType extends ExprBasicSqlType {
 
   public ExprTimeType(RelDataTypeSystem typeSystem, boolean isNullable) {
-    super(typeSystem, SqlTypeName.VARCHAR, ExprUDT.EXPR_TIME, isNullable);
+    super(
+        typeSystem,
+        SqlTypeName.VARCHAR,
+        ExprUDT.EXPR_TIME,
+        isNullable,
+        typeSystem.getDefaultPrecision(SqlTypeName.VARCHAR),
+        typeSystem.getDefaultScale(SqlTypeName.VARCHAR),
+        null,
+        null);
   }
 
   public ExprTimeType(
@@ -31,7 +39,7 @@ public class ExprTimeType extends ExprBasicSqlUDT {
   }
 
   @Override
-  protected ExprBasicSqlUDT createInstance(
+  protected ExprBasicSqlType createInstance(
       RelDataTypeSystem typeSystem,
       SqlTypeName typeName,
       ExprUDT udt,

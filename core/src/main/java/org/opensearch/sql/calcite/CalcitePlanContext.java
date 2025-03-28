@@ -29,13 +29,15 @@ public class CalcitePlanContext {
   public final RelBuilder relBuilder;
   public final ExtendedRexBuilder rexBuilder;
   public final FunctionProperties functionProperties;
+  public final QueryType queryType;
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingExistsSubquery = false;
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
 
-  private CalcitePlanContext(FrameworkConfig config) {
+  private CalcitePlanContext(FrameworkConfig config, QueryType queryType) {
     this.config = config;
+    this.queryType = queryType;
     this.connection = CalciteToolsHelper.connect(config, TYPE_FACTORY);
     this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
@@ -71,7 +73,7 @@ public class CalcitePlanContext {
     }
   }
 
-  public static CalcitePlanContext create(FrameworkConfig config) {
-    return new CalcitePlanContext(config);
+  public static CalcitePlanContext create(FrameworkConfig config, QueryType queryType) {
+    return new CalcitePlanContext(config, queryType);
   }
 }
