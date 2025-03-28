@@ -1058,8 +1058,10 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + " '1999-12-31 00:00:00', TIMESTAMPADD(HOUR, -24, date_time)), d7 ="
                     + " TIMESTAMPDIFF(MONTH, TIMESTAMPADD(YEAR, 5, '1994-12-10 13:49:02'),"
                     + " ADDDATE(date_time, 1)), d8 = TIMESTAMPDIFF(QUARTER, MAKEDATE(2008, 153),"
-                    + " date), d9 = TIMESTAMPDIFF(YEAR, date, '2013-06-19 00:00:00')| fields d1,"
-                    + " d2, d3, d4, d5, d6, d7, d8, d9",
+                    + " date), d9 = TIMESTAMPDIFF(YEAR, date, '2013-06-19 00:00:00'), t ="
+                    + " TIMESTAMPADD(MICROSECOND, 1, date_time) | eval d10 ="
+                    + " TIMESTAMPDIFF(MICROSECOND, t, date_time) | fields d1, d2, d3, d4, d5, d6,"
+                    + " d7, d8, d9, t, d10",
                 TEST_INDEX_DATE_FORMATS));
 
     verifySchema(
@@ -1072,9 +1074,12 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("d6", "long"),
         schema("d7", "long"),
         schema("d8", "long"),
-        schema("d9", "long"));
+        schema("d9", "long"),
+        schema("t", "timestamp"),
+        schema("d10", "long"));
 
-    verifyDataRows(actual, rows(0, 24, 547, 3600, 202, -820, -187, -96, 29));
+    verifyDataRows(
+        actual, rows(0, 24, 547, 3600, 202, -820, -187, -96, 29, "1984-04-12 09:07:42.000001", -1));
   }
 
   @Test
