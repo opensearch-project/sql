@@ -5,14 +5,13 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import java.sql.Date;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatDate;
+
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
-
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatDate;
 
 public class FromDaysFunction implements UserDefinedFunction {
   @Override

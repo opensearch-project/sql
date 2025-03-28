@@ -54,7 +54,8 @@ public class TestsConstants {
   public static final String TEST_INDEX_NULL_MISSING = TEST_INDEX + "_null_missing";
   public static final String TEST_INDEX_CALCS = TEST_INDEX + "_calcs";
   public static final String TEST_INDEX_DATE_FORMATS = TEST_INDEX + "_date_formats";
-  public static final String TEST_INDEX_DATE_FORMATS_WITH_NULL = TEST_INDEX + "_date_formats_with_null";
+  public static final String TEST_INDEX_DATE_FORMATS_WITH_NULL =
+      TEST_INDEX + "_date_formats_with_null";
   public static final String TEST_INDEX_WILDCARD = TEST_INDEX + "_wildcard";
   public static final String TEST_INDEX_MULTI_NESTED_TYPE = TEST_INDEX + "_multi_nested";
   public static final String TEST_INDEX_NESTED_WITH_NULLS = TEST_INDEX + "_nested_with_nulls";

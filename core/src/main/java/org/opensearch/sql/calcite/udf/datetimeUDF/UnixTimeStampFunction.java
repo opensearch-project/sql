@@ -12,7 +12,6 @@ import static org.opensearch.sql.utils.DateTimeFormatters.*;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Objects;
-
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -42,12 +41,14 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
     if (inputTypes == SqlTypeName.DATE) {
       inputValue =
           new ExprDateValue(
-              LocalDateTime.ofInstant(InstantUtils.convertToInstant(input, inputTypes, false), ZoneOffset.UTC)
+              LocalDateTime.ofInstant(
+                      InstantUtils.convertToInstant(input, inputTypes, false), ZoneOffset.UTC)
                   .toLocalDate());
     } else if (inputTypes == SqlTypeName.TIMESTAMP) {
       inputValue =
           new ExprTimestampValue(
-              LocalDateTime.ofInstant(InstantUtils.convertToInstant(input, inputTypes, false), ZoneOffset.UTC));
+              LocalDateTime.ofInstant(
+                  InstantUtils.convertToInstant(input, inputTypes, false), ZoneOffset.UTC));
     } else {
       inputValue = new ExprLongValue((long) input);
     }

@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import java.time.Instant;
-
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;

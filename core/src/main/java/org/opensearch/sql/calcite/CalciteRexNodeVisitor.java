@@ -357,8 +357,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
     SqlOperator operator = BuiltinFunctionUtils.translate(node.getFuncName());
     List<RexNode> translatedArguments =
-        BuiltinFunctionUtils.translateArgument(node.getFuncName(), arguments, context,
-                context.functionProperties.getQueryStartClock().instant().toString());
+        BuiltinFunctionUtils.translateArgument(
+            node.getFuncName(),
+            arguments,
+            context,
+            context.functionProperties.getQueryStartClock().instant().toString());
     RelDataType returnType =
         BuiltinFunctionUtils.deriveReturnType(
             node.getFuncName(), context.rexBuilder, operator, translatedArguments);

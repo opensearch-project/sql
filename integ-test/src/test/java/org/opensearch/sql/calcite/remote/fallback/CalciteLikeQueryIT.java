@@ -5,11 +5,10 @@
 
 package org.opensearch.sql.calcite.remote.fallback;
 
+import java.io.IOException;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.LikeQueryIT;
-
-import java.io.IOException;
 
 // TODO Like function behaviour in V2 is not correct. Remove when it was fixed in V2.
 @Ignore("https://github.com/opensearch-project/sql/issues/3428")

@@ -5,17 +5,16 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Objects;
-
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
-
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
 
 /**
  * We need to write our own since we are actually implement timestamp add here

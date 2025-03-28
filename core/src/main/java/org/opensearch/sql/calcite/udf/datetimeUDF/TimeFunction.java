@@ -5,20 +5,16 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
-import org.opensearch.sql.data.model.ExprStringValue;
-import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.expression.datetime.DateTimeFunctions;
-
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
 
 public class TimeFunction implements UserDefinedFunction {
   @Override
@@ -33,6 +29,5 @@ public class TimeFunction implements UserDefinedFunction {
     Instant instant = InstantUtils.convertToInstant(argTime, argType, false);
     LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     return formatTime(localDateTime.toLocalTime());
-
   }
 }

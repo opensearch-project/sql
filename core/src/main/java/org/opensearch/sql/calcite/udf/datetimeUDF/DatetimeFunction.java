@@ -5,17 +5,15 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import java.sql.Timestamp;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
+
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import org.apache.calcite.runtime.SqlFunctions;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
-
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
 
 /**
  * DATETIME(timestamp)/ DATETIME(date, to_timezone) Converts the datetime to a new timezone. If not

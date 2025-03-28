@@ -10,7 +10,6 @@ import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHand
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
-import org.apache.calcite.runtime.SqlFunctions;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprDoubleValue;

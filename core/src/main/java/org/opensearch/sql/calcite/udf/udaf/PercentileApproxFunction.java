@@ -6,18 +6,14 @@
 package org.opensearch.sql.calcite.udf.udaf;
 
 import com.tdunning.math.stats.AVLTreeDigest;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
-/**
- * We write by ourselves since it's an approximate algorithm
- */
+/** We write by ourselves since it's an approximate algorithm */
 public class PercentileApproxFunction
     implements UserDefinedAggFunction<PercentileApproxFunction.PencentileApproAccumulator> {
   SqlTypeName returnType;
@@ -42,8 +38,8 @@ public class PercentileApproxFunction
     }
     percentile = ((Number) allValues.get(1)).intValue() / 100.0;
     returnType = (SqlTypeName) allValues.get(allValues.size() - 1);
-    if (allValues.size() > 3) { //have compression
-        compression = ((Number) allValues.get(allValues.size() - 2)).doubleValue();
+    if (allValues.size() > 3) { // have compression
+      compression = ((Number) allValues.get(allValues.size() - 2)).doubleValue();
     }
 
     acc.evaluate(((Number) targetValue).doubleValue());
@@ -75,7 +71,7 @@ public class PercentileApproxFunction
   public static class PencentileApproAccumulator implements Accumulator {
     private List<Number> candidate;
 
-    public int size(){
+    public int size() {
       return candidate.size();
     }
 
@@ -87,13 +83,12 @@ public class PercentileApproxFunction
       candidate.add(value);
     }
 
-
     @Override
     public Object value(Object... argList) {
       double percent = (double) argList[1];
       double compression = (double) argList[0];
       AVLTreeDigest tree = new AVLTreeDigest(compression);
-      for (Number num: candidate) {
+      for (Number num : candidate) {
         tree.add(num.doubleValue());
       }
       return tree.quantile(percent);

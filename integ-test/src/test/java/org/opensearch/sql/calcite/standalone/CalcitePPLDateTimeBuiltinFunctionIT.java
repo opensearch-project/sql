@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Locale;
 import org.hamcrest.Matchers;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -54,20 +53,20 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   void verifyDateFormat(String date, String type, String format, String formatted)
-          throws IOException {
+      throws IOException {
     JSONObject result =
-            executeQuery(
-                    String.format(
-                            "source=%s | eval f = date_format(%s('%s'), '%s') | fields f",
-                            TEST_INDEX_DATE, type, date, format));
+        executeQuery(
+            String.format(
+                "source=%s | eval f = date_format(%s('%s'), '%s') | fields f",
+                TEST_INDEX_DATE, type, date, format));
     verifySchema(result, schema("f", null, "string"));
     verifySome(result.getJSONArray("datarows"), rows(formatted));
 
     result =
-            executeQuery(
-                    String.format(
-                            "source=%s | eval f = date_format('%s', '%s') | fields f",
-                            TEST_INDEX_DATE, date, format));
+        executeQuery(
+            String.format(
+                "source=%s | eval f = date_format('%s', '%s') | fields f",
+                TEST_INDEX_DATE, date, format));
     verifySchema(result, schema("f", null, "string"));
     verifySome(result.getJSONArray("datarows"), rows(formatted));
   }
@@ -214,7 +213,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows("2013-05-01 00:00:00"));
   }
 
-
   @Test
   public void testTimeFormat() {
     JSONObject actual =
@@ -360,7 +358,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 "source=%s "
                     + "| eval from_unix = from_unixtime(1220249547)"
                     + "| eval to_unix = unix_timestamp(from_unix)"
-                    //+ "| where unix_timestamp(from_unixtime(1700000001)) > 1700000000 " // don't do
+                    // + "| where unix_timestamp(from_unixtime(1700000001)) > 1700000000 " // don't
+                    // do
                     // filter
                     + "| fields from_unix, to_unix | head 1",
                 TEST_INDEX_DATE_FORMATS));
@@ -571,7 +570,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     return result.format(formatter);
   }
 
-
   @Test
   public void testAddDateAndSubDateWithConditionsAndRename() {
     JSONObject actual =
@@ -768,7 +766,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         executeQuery(
             String.format(
                 "source=%s | head 1 | eval d1 = SYSDATE(), d2 = SYSDATE(3), d3 = SYSDATE(6)|eval"
-                        + " df1 = DATE_FORMAT(d1, '%%Y-%%m-%%d %%T.%%f'), df2 = DATE_FORMAT(d2,"
+                    + " df1 = DATE_FORMAT(d1, '%%Y-%%m-%%d %%T.%%f'), df2 = DATE_FORMAT(d2,"
                     + " '%%Y-%%m-%%d %%T.%%f'), df3 = DATE_FORMAT(d3, '%%Y-%%m-%%d %%T.%%f') |"
                     + " fields d1, d2, d3, df1, df2, df3",
                 TEST_INDEX_DATE_FORMATS));
@@ -785,16 +783,17 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     final String DATETIME_P3_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{1,3}$";
     final String DATETIME_P6_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{1,6}$";
     final String DATETIME_P0_FMT_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.000000$";
-    final String DATETIME_P3_FMT_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{3}000$";
+    final String DATETIME_P3_FMT_PATTERN =
+        "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{3}000$";
     final String DATETIME_P6_FMT_PATTERN = "^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}\\.\\d{6}$";
     verify(
-            actual.getJSONArray("datarows").getJSONArray(0),
-            Matchers.matchesPattern(DATETIME_P0_PATTERN),
-            Matchers.matchesPattern(DATETIME_P3_PATTERN),
-            Matchers.matchesPattern(DATETIME_P6_PATTERN),
-            Matchers.matchesPattern(DATETIME_P0_FMT_PATTERN),
-            Matchers.matchesPattern(DATETIME_P3_FMT_PATTERN),
-            Matchers.matchesPattern(DATETIME_P6_FMT_PATTERN));
+        actual.getJSONArray("datarows").getJSONArray(0),
+        Matchers.matchesPattern(DATETIME_P0_PATTERN),
+        Matchers.matchesPattern(DATETIME_P3_PATTERN),
+        Matchers.matchesPattern(DATETIME_P6_PATTERN),
+        Matchers.matchesPattern(DATETIME_P0_FMT_PATTERN),
+        Matchers.matchesPattern(DATETIME_P3_FMT_PATTERN),
+        Matchers.matchesPattern(DATETIME_P6_FMT_PATTERN));
   }
 
   /**
@@ -823,17 +822,16 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows(13, 9, 5, 6, 103));
   }
 
-
   @Test
   public void testDayName() {
     JSONObject actual =
-            executeQuery(
-                    String.format(
-                            "source=%s | head 1 | eval d1 = DAYNAME(date), d2 = DAYNAME('1984-04-12'), d3 ="
-                                    + " DAYNAME(date_time),m1 = MONTHNAME(date), m2 = MONTHNAME('1984-04-12"
-                                    + " 10:07:42')"
-                                    + "| fields d1, d2, d3, m1, m2",
-                            TEST_INDEX_DATE_FORMATS));
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval d1 = DAYNAME(date), d2 = DAYNAME('1984-04-12'), d3 ="
+                    + " DAYNAME(date_time),m1 = MONTHNAME(date), m2 = MONTHNAME('1984-04-12"
+                    + " 10:07:42')"
+                    + "| fields d1, d2, d3, m1, m2",
+                TEST_INDEX_DATE_FORMATS));
   }
 
   /**
@@ -1190,9 +1188,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
-                    "source=%s | head 1 | eval r1 = convert_tz('2008-05-15 12:00:00', '+00:00', '+10:00') | eval"
-                    + " r2 = convert_tz(TIMESTAMP('2008-05-15 12:00:00'), '+00:00', '+10:00') |"
-                    + " eval r3 = convert_tz(date_time, '+00:00', '+10:00') |"
+                "source=%s | head 1 | eval r1 = convert_tz('2008-05-15 12:00:00', '+00:00',"
+                    + " '+10:00') | eval r2 = convert_tz(TIMESTAMP('2008-05-15 12:00:00'),"
+                    + " '+00:00', '+10:00') | eval r3 = convert_tz(date_time, '+00:00', '+10:00') |"
                     + " eval r4 = convert_tz('2008-05-15 12:00:00', '-00:00', '+00:00') | eval r5 ="
                     + " convert_tz('2008-05-15 12:00:00', '+10:00', '+11:00') | eval r6 ="
                     + " convert_tz('2021-05-12 11:34:50', '-08:00', '+09:00') | eval r7 ="
@@ -1374,19 +1372,19 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   @Test
   public void testMicrosecond() {
     JSONObject actual =
-            executeQuery(
-                    String.format(
-                            "source=%s | head 1 |  eval m1 = MICROSECOND(date_time), m2 = MICROSECOND(time), m3"
-                                    + " = MICROSECOND(date), m4 = MICROSECOND('13:45:22.123456789'), m5 ="
-                                    + " MICROSECOND('2012-09-13 13:45:22.123456789')| fields m1, m2, m3, m4, m5",
-                            TEST_INDEX_DATE_FORMATS));
+        executeQuery(
+            String.format(
+                "source=%s | head 1 |  eval m1 = MICROSECOND(date_time), m2 = MICROSECOND(time), m3"
+                    + " = MICROSECOND(date), m4 = MICROSECOND('13:45:22.123456789'), m5 ="
+                    + " MICROSECOND('2012-09-13 13:45:22.123456789')| fields m1, m2, m3, m4, m5",
+                TEST_INDEX_DATE_FORMATS));
     verifySchema(
-            actual,
-            schema("m1", "integer"),
-            schema("m2", "integer"),
-            schema("m3", "integer"),
-            schema("m4", "integer"),
-            schema("m5", "integer"));
+        actual,
+        schema("m1", "integer"),
+        schema("m2", "integer"),
+        schema("m3", "integer"),
+        schema("m4", "integer"),
+        schema("m5", "integer"));
     verifyDataRows(actual, rows(0, 0, 0, 123456, 123456));
   }
 }

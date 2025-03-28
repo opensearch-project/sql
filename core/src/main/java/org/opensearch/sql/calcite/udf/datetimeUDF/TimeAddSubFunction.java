@@ -5,17 +5,15 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import java.sql.Time;
-import java.sql.Timestamp;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
+
 import java.time.*;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
-
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
 
 public class TimeAddSubFunction implements UserDefinedFunction {
   @Override

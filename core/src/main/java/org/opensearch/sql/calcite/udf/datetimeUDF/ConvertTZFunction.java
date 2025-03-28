@@ -5,14 +5,11 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import java.sql.Timestamp;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeParseException;
-import java.util.Objects;
-
-import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -21,9 +18,6 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
-
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
-import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprDateTimeNoTimezone;
 
 public class ConvertTZFunction implements UserDefinedFunction {
   @Override

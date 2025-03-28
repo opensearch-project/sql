@@ -10,13 +10,11 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTim
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTimestampUDT;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
-import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -29,7 +27,6 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
@@ -168,7 +165,7 @@ public class UserDefinedFunctionUtils {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(0);
       if (operandType0 instanceof ExprBasicSqlUDT) {
-        if (operandType0 instanceof ExprDateType || operandType0 instanceof ExprTimeStampType){
+        if (operandType0 instanceof ExprDateType || operandType0 instanceof ExprTimeStampType) {
           return nullableTimestampUDT;
         } else if (operandType0 instanceof ExprTimeType) {
           return nullableTimeUDT;
@@ -180,10 +177,10 @@ public class UserDefinedFunctionUtils {
       return switch (typeName) {
         case DATE, TIMESTAMP ->
         // Return TIMESTAMP
-                nullableTimestampUDT;
+        nullableTimestampUDT;
         case TIME ->
         // Return TIME
-                nullableTimeUDT;
+        nullableTimeUDT;
         default -> throw new IllegalArgumentException("Unsupported type: " + typeName);
       };
     };
@@ -203,7 +200,6 @@ public class UserDefinedFunctionUtils {
       return opBinding.getTypeFactory().createTypeWithNullability(relDataType, true);
     };
   }
-
 
   static RelDataType createNullableReturnType(
       RelDataTypeFactory typeFactory, SqlTypeName sqlTypeName) {
@@ -337,13 +333,16 @@ public class UserDefinedFunctionUtils {
     if (candidate.getType() instanceof ExprBasicSqlUDT) {
       ExprBasicSqlUDT dateType = (ExprBasicSqlUDT) candidate.getType();
       ExprType udtType = dateType.getExprType();
-      List<RexNode> preprocessArgs = List.of(candidate, rexBuilder.makeFlag(PreprocessForUDTFunction.getInputType(udtType)));
+      List<RexNode> preprocessArgs =
+          List.of(candidate, rexBuilder.makeFlag(PreprocessForUDTFunction.getInputType(udtType)));
 
-      RexNode calciteTypeArgument = rexBuilder.makeCall(
+      RexNode calciteTypeArgument =
+          rexBuilder.makeCall(
               TransferUserDefinedFunction(
-                      PreprocessForUDTFunction.class,
-                      "PREPROCESS",
-                      PreprocessForUDTFunction.getSqlReturnTypeInference(udtType)), preprocessArgs);
+                  PreprocessForUDTFunction.class,
+                  "PREPROCESS",
+                  PreprocessForUDTFunction.getSqlReturnTypeInference(udtType)),
+              preprocessArgs);
       return calciteTypeArgument;
     } else {
       return candidate;
@@ -367,8 +366,8 @@ public class UserDefinedFunctionUtils {
   public static FunctionProperties restoreFunctionProperties(Object timestampStr) {
     String expression = (String) timestampStr;
     Instant parsed = Instant.parse(expression);
-    FunctionProperties functionProperties = new FunctionProperties(parsed, ZoneId.systemDefault(), QueryType.PPL);
+    FunctionProperties functionProperties =
+        new FunctionProperties(parsed, ZoneId.systemDefault(), QueryType.PPL);
     return functionProperties;
   }
-
 }

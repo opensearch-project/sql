@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getNullableTimeUDTWithCharset;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getNullableTimestampUDTWithCharset;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTime;
@@ -42,7 +41,8 @@ public class FromUnixTimestampFunction implements UserDefinedFunction {
 
       } else {
         double input = ((Number) value).doubleValue();
-        return formatTimestamp(LocalDateTime.ofInstant(
+        return formatTimestamp(
+            LocalDateTime.ofInstant(
                 exprFromUnixTime(new ExprDoubleValue(input)).timestampValue(), ZoneOffset.UTC));
       }
     } else if (args.length == 2) {

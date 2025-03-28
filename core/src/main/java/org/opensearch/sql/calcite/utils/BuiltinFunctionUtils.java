@@ -86,9 +86,9 @@ import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
 import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeParser;
 
 public interface BuiltinFunctionUtils {
 
@@ -161,9 +161,7 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(ReplaceFunction.class, "REPLACE", ReturnTypes.CHAR);
       case "LOCATE":
         return TransferUserDefinedFunction(
-            LocateFunction.class,
-            "LOCATE",
-                createNullableReturnType(SqlTypeName.INTEGER));
+            LocateFunction.class, "LOCATE", createNullableReturnType(SqlTypeName.INTEGER));
       case "UPPER":
         return SqlStdOperatorTable.UPPER;
         // Built-in Math Functions
@@ -233,21 +231,17 @@ public interface BuiltinFunctionUtils {
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP", "NOW", "LOCALTIMESTAMP", "LOCALTIME":
         return TransferUserDefinedFunction(
-                PostprocessForUDTFunction.class, "POSTPROCESS", timestampInference
-        );
+            PostprocessForUDTFunction.class, "POSTPROCESS", timestampInference);
       case "CURTIME", "CURRENT_TIME":
         return TransferUserDefinedFunction(
-                PostprocessForUDTFunction.class, "POSTPROCESS", timeInference
-        );
+            PostprocessForUDTFunction.class, "POSTPROCESS", timeInference);
       case "CURRENT_DATE", "CURDATE":
         return TransferUserDefinedFunction(
-                PostprocessForUDTFunction.class, "POSTPROCESS", dateInference
-        );
+            PostprocessForUDTFunction.class, "POSTPROCESS", dateInference);
       case "DATE":
         return TransferUserDefinedFunction(
-          PostprocessForUDTFunction.class, "POSTPROCESS", dateInference
-        );
-        //return SqlLibraryOperators.DATE;
+            PostprocessForUDTFunction.class, "POSTPROCESS", dateInference);
+        // return SqlLibraryOperators.DATE;
       case "DATE_ADD":
         return TransferUserDefinedFunction(
             DateAddSubFunction.class, "DATE_ADD", timestampInference);
@@ -277,8 +271,7 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(
             ConvertTZFunction.class, "CONVERT_TZ", timestampInference);
       case "DATETIME":
-        return TransferUserDefinedFunction(
-            DatetimeFunction.class, "DATETIME", timestampInference);
+        return TransferUserDefinedFunction(DatetimeFunction.class, "DATETIME", timestampInference);
 
       case "FROM_DAYS":
         return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", dateInference);
@@ -293,7 +286,8 @@ public interface BuiltinFunctionUtils {
       case "MAKEDATE":
         return TransferUserDefinedFunction(MakeDateFunction.class, "MAKEDATE", dateInference);
       case "MINUTE_OF_DAY":
-        return TransferUserDefinedFunction(MinuteOfDayFunction.class, "MINUTE_OF_DAY", ReturnTypes.INTEGER);
+        return TransferUserDefinedFunction(
+            MinuteOfDayFunction.class, "MINUTE_OF_DAY", ReturnTypes.INTEGER);
       case "PERIOD_ADD":
         return TransferUserDefinedFunction(
             PeriodAddFunction.class, "PERIOD_ADD", ReturnTypes.INTEGER);
@@ -383,7 +377,7 @@ public interface BuiltinFunctionUtils {
         return SqlLibraryOperators.DATE_PART;
       case "MICROSECOND":
         return TransferUserDefinedFunction(
-                MicrosecondFunction.class, "MICROSECOND", ReturnTypes.INTEGER);
+            MicrosecondFunction.class, "MICROSECOND", ReturnTypes.INTEGER);
       case "YEARWEEK":
         return TransferUserDefinedFunction(YearWeekFunction.class, "YEARWEEK", ReturnTypes.INTEGER);
       case "FROM_UNIXTIME":
@@ -490,9 +484,7 @@ public interface BuiltinFunctionUtils {
         } else {
           DateArgs.add(wrapperByPreprocess(timestampExpr, context.rexBuilder));
         }
-        RexNode wrappedCall = context.rexBuilder.makeCall(
-                SqlLibraryOperators.DATE, DateArgs
-        );
+        RexNode wrappedCall = context.rexBuilder.makeCall(SqlLibraryOperators.DATE, DateArgs);
         return List.of(wrappedCall, context.rexBuilder.makeFlag(SqlTypeName.DATE));
       case "LAST_DAY":
         List<RexNode> LastDateArgs = new ArrayList<>();
@@ -510,13 +502,16 @@ public interface BuiltinFunctionUtils {
         }
         return LastDateArgs;
       case "CURRENT_TIMESTAMP", "NOW", "LOCALTIMESTAMP", "LOCALTIME":
-        RexNode currentTimestampCall = context.rexBuilder.makeCall(SqlStdOperatorTable.CURRENT_TIMESTAMP, List.of());
+        RexNode currentTimestampCall =
+            context.rexBuilder.makeCall(SqlStdOperatorTable.CURRENT_TIMESTAMP, List.of());
         return List.of(currentTimestampCall, context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP));
       case "CURTIME", "CURRENT_TIME":
-        RexNode currentTimeCall = context.rexBuilder.makeCall(SqlStdOperatorTable.CURRENT_TIME, List.of());
+        RexNode currentTimeCall =
+            context.rexBuilder.makeCall(SqlStdOperatorTable.CURRENT_TIME, List.of());
         return List.of(currentTimeCall, context.rexBuilder.makeFlag(SqlTypeName.TIME));
       case "CURRENT_DATE", "CURDATE":
-        RexNode currentDateCall = context.rexBuilder.makeCall(SqlStdOperatorTable.CURRENT_DATE, List.of());
+        RexNode currentDateCall =
+            context.rexBuilder.makeCall(SqlStdOperatorTable.CURRENT_DATE, List.of());
         return List.of(currentDateCall, context.rexBuilder.makeFlag(SqlTypeName.DATE));
       case "TIMESTAMP",
           "TIMEDIFF",
@@ -534,9 +529,9 @@ public interface BuiltinFunctionUtils {
       case "YEARWEEK", "WEEKDAY":
         List<RexNode> weekdayArgs = new ArrayList<>(argList);
         weekdayArgs.addAll(
-                argList.stream()
-                        .map(p -> context.rexBuilder.makeFlag(p.getType().getSqlTypeName()))
-                        .collect(Collectors.toList()));
+            argList.stream()
+                .map(p -> context.rexBuilder.makeFlag(p.getType().getSqlTypeName()))
+                .collect(Collectors.toList()));
         weekdayArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
         return weekdayArgs;
       case "TIMESTAMPADD":
@@ -647,7 +642,9 @@ public interface BuiltinFunctionUtils {
         subTimeArgs.add(context.rexBuilder.makeLiteral(false));
         return subTimeArgs;
       case "TIME":
-        return ImmutableList.of(argList.getFirst(), context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
+        return ImmutableList.of(
+            argList.getFirst(),
+            context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
       case "DATE_FORMAT", "FORMAT_TIMESTAMP":
         RexNode dateExpr = argList.get(0);
         RexNode dateFormatPatternExpr = argList.get(1);
@@ -673,13 +670,19 @@ public interface BuiltinFunctionUtils {
             context.rexBuilder.makeIntervalLiteral(
                 new SqlIntervalQualifier(TimeUnit.DOW, null, SqlParserPos.ZERO));
         return List.of(
-            dowUnit, wrapperByPreprocess(convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()), context.rexBuilder));
+            dowUnit,
+            wrapperByPreprocess(
+                convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()),
+                context.rexBuilder));
       case "DAY_OF_YEAR", "DAYOFYEAR":
         RexNode domUnit =
             context.rexBuilder.makeIntervalLiteral(
                 new SqlIntervalQualifier(TimeUnit.DOY, null, SqlParserPos.ZERO));
         return List.of(
-            domUnit, wrapperByPreprocess(convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()), context.rexBuilder));
+            domUnit,
+            wrapperByPreprocess(
+                convertToDateLiteralIfString(context.rexBuilder, argList.getFirst()),
+                context.rexBuilder));
       case "WEEK", "WEEK_OF_YEAR":
         RexNode woyMode;
         if (argList.size() >= 2) {
@@ -715,7 +718,8 @@ public interface BuiltinFunctionUtils {
               makeConversionCall(
                   "DATE_FORMAT",
                   ImmutableList.of(argTimestamp, context.rexBuilder.makeLiteral("%Y-%m-%d %T")),
-                  context, currentTimestampStr);
+                  context,
+                  currentTimestampStr);
         }
         return Stream.concat(Stream.of(argTimestamp), argList.stream().skip(1)).toList();
       case "UTC_TIMESTAMP", "UTC_TIME", "UTC_DATE":
@@ -726,9 +730,13 @@ public interface BuiltinFunctionUtils {
   }
 
   private static RexNode makeConversionCall(
-      String funcName, List<RexNode> arguments, CalcitePlanContext context, String currentTimestampStr) {
+      String funcName,
+      List<RexNode> arguments,
+      CalcitePlanContext context,
+      String currentTimestampStr) {
     SqlOperator operator = translate(funcName);
-    List<RexNode> translatedArguments = translateArgument(funcName, arguments, context, currentTimestampStr);
+    List<RexNode> translatedArguments =
+        translateArgument(funcName, arguments, context, currentTimestampStr);
     RelDataType returnType =
         deriveReturnType(funcName, context.rexBuilder, operator, translatedArguments);
     return context.rexBuilder.makeCall(returnType, operator, translatedArguments);
@@ -741,7 +749,8 @@ public interface BuiltinFunctionUtils {
             // This effectively invalidates the operand type check, which leads to unnecessary
             // incompatible parameter type errors
           case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-          //case "TIMESTAMPADD" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
+            // case "TIMESTAMPADD" ->
+            // rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
           case "TIMESTAMPDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
           case "YEAR",
               "MINUTE",
@@ -811,7 +820,10 @@ public interface BuiltinFunctionUtils {
   }
 
   private static List<RexNode> transformAddOrSubDateArgs(
-      List<RexNode> argList, ExtendedRexBuilder rexBuilder, Boolean isAdd, String currentTimestampStr) {
+      List<RexNode> argList,
+      ExtendedRexBuilder rexBuilder,
+      Boolean isAdd,
+      String currentTimestampStr) {
     List<RexNode> addOrSubDateArgs = new ArrayList<>();
     addOrSubDateArgs.add(argList.getFirst());
     SqlTypeName addType = argList.get(1).getType().getSqlTypeName();
