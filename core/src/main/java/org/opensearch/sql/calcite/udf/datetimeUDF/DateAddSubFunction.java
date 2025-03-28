@@ -33,21 +33,6 @@ public class DateAddSubFunction implements UserDefinedFunction {
       return null;
     }
 
-    // UserDefinedFunctionUtils.validateArgumentCount("DATE_ADD / DATE_SUB", 6, args.length, false);
-    /*
-    UserDefinedFunctionUtils.validateArgumentTypes(
-        Arrays.asList(args),
-        ImmutableList.of(
-            TimeUnit.class,
-            Number.class,
-            Number.class,
-            SqlTypeName.class,
-            Boolean.class,
-            SqlTypeName.class),
-        Collections.nCopies(6, true));
-
-     */
-
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
