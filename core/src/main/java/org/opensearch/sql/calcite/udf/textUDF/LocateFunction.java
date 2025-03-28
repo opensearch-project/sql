@@ -5,7 +5,13 @@
 
 package org.opensearch.sql.calcite.udf.textUDF;
 
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+
+import java.util.List;
+
+import static org.opensearch.sql.calcite.udf.UserDefinedFunctionValidator.judgeArgumentList;
 
 public class LocateFunction implements UserDefinedFunction {
   @Override
@@ -25,5 +31,9 @@ public class LocateFunction implements UserDefinedFunction {
       int fromPosition = (int) args[2];
       return stringText.indexOf(targetText, fromPosition - 1) + 1;
     }
+  }
+
+  public static boolean validArgument(List<SqlTypeName> arguments) {
+    return judgeArgumentList(arguments, List.of())
   }
 }
