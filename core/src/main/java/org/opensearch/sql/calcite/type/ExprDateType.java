@@ -17,7 +17,15 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 public class ExprDateType extends ExprBasicSqlType {
 
   public ExprDateType(RelDataTypeSystem typeSystem, boolean isNullable) {
-    super(typeSystem, SqlTypeName.VARCHAR, EXPR_DATE, isNullable);
+    super(
+        typeSystem,
+        SqlTypeName.VARCHAR,
+        EXPR_DATE,
+        isNullable,
+        typeSystem.getDefaultPrecision(SqlTypeName.VARCHAR),
+        typeSystem.getDefaultScale(SqlTypeName.VARCHAR),
+        null,
+        null);
   }
 
   public ExprDateType(

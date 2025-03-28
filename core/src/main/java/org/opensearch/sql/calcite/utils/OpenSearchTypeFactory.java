@@ -38,6 +38,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.calcite.type.ExprBasicSqlType;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprRelDataType;
@@ -118,7 +119,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           case EXPR_TIMESTAMP:
             yield new ExprTimeStampType(TYPE_FACTORY.getTypeSystem(), nullable);
         };
-    return createTypeWithNullability(udt, nullable);
+    return canonize(SqlTypeUtil.addCharsetAndCollation(udt, this));
   }
 
   public static RelDataType convertExprTypeToRelDataType(ExprType field) {
@@ -230,16 +231,19 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     };
   }
 
-  /** Get legacy name for a SqlTypeName. */
-  public static String getLegacyTypeName(SqlTypeName sqlTypeName, QueryType queryType) {
-    switch (sqlTypeName) {
+  /** Get legacy name for a RelDataType. */
+  public static String getLegacyTypeName(RelDataType relDataType, QueryType queryType) {
+    if (relDataType instanceof ExprRelDataType udt) {
+      return udt.getExprType().legacyTypeName();
+    }
+    switch (relDataType.getSqlTypeName()) {
       case BINARY:
       case VARBINARY:
         return "BINARY";
       case GEOMETRY:
         return "GEO_POINT";
       default:
-        ExprType type = convertSqlTypeNameToExprType(sqlTypeName);
+        ExprType type = convertSqlTypeNameToExprType(relDataType.getSqlTypeName());
         return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
             .toUpperCase(Locale.ROOT);
     }

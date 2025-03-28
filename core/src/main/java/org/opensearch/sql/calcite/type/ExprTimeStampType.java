@@ -15,7 +15,15 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 public class ExprTimeStampType extends ExprBasicSqlType {
 
   public ExprTimeStampType(RelDataTypeSystem typeSystem, boolean isNullable) {
-    super(typeSystem, SqlTypeName.VARCHAR, ExprUDT.EXPR_TIMESTAMP, isNullable);
+    super(
+        typeSystem,
+        SqlTypeName.VARCHAR,
+        ExprUDT.EXPR_TIMESTAMP,
+        isNullable,
+        typeSystem.getDefaultPrecision(SqlTypeName.VARCHAR),
+        typeSystem.getDefaultScale(SqlTypeName.VARCHAR),
+        null,
+        null);
   }
 
   public ExprTimeStampType(
