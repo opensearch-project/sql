@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 
 import java.math.BigDecimal;
@@ -30,6 +31,7 @@ import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
+import org.opensearch.sql.calcite.udf.systemUDF.TypeOfFunction;
 import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
 import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
 
@@ -197,6 +199,10 @@ public interface BuiltinFunctionUtils {
         return SqlStdOperatorTable.IS_NOT_NULL;
       case "IS NULL":
         return SqlStdOperatorTable.IS_NULL;
+      case "TYPEOF":
+        // TODO optimize this function to ImplementableFunction
+        return TransferUserDefinedFunction(
+            TypeOfFunction.class, "typeof", ReturnTypes.VARCHAR_2000_NULLABLE);
         // TODO Add more, ref RexImpTable
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);
@@ -243,6 +249,9 @@ public interface BuiltinFunctionUtils {
                     context.rexBuilder.makeLiteral(" ")));
         RTrimArgs.addAll(argList);
         return RTrimArgs;
+      case "STRCMP":
+        List<RexNode> StrcmpArgs = List.of(argList.get(1), argList.get(0));
+        return StrcmpArgs;
       case "ATAN":
         List<RexNode> AtanArgs = new ArrayList<>(argList);
         if (AtanArgs.size() == 1) {
@@ -265,6 +274,11 @@ public interface BuiltinFunctionUtils {
           throw new IllegalArgumentException("Log cannot accept argument list: " + argList);
         }
         return LogArgs;
+      case "TYPEOF":
+        return List.of(
+            context.rexBuilder.makeLiteral(
+                getLegacyTypeName(
+                    argList.getFirst().getType().getSqlTypeName(), context.queryType)));
       default:
         return argList;
     }

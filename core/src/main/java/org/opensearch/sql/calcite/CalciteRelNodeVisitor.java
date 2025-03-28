@@ -15,10 +15,12 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
@@ -29,6 +31,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
@@ -40,6 +43,8 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
@@ -71,6 +76,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.utils.ParseUtils;
 
 public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalcitePlanContext> {
 
@@ -145,6 +151,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     List<RexNode> projectList;
     if (node.getProjectList().stream().anyMatch(e -> e instanceof AllFields)) {
+      tryToRemoveNestedFields(context);
       return context.relBuilder.peek();
     } else {
       projectList =
@@ -158,6 +165,23 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       context.relBuilder.project(projectList);
     }
     return context.relBuilder.peek();
+  }
+
+  /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
+  private void tryToRemoveNestedFields(CalcitePlanContext context) {
+    Set<String> allFields = new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
+    List<RexNode> duplicatedNestedFields =
+        allFields.stream()
+            .filter(
+                field -> {
+                  int lastDot = field.lastIndexOf(".");
+                  return -1 != lastDot && allFields.contains(field.substring(0, lastDot));
+                })
+            .map(field -> (RexNode) context.relBuilder.field(field))
+            .toList();
+    if (!duplicatedNestedFields.isEmpty()) {
+      context.relBuilder.projectExcept(duplicatedNestedFields);
+    }
   }
 
   @Override
@@ -224,67 +248,84 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   @Override
+  public RelNode visitParse(Parse node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    RexNode sourceField = rexVisitor.analyze(node.getSourceField(), context);
+    ParseMethod parseMethod = node.getParseMethod();
+    java.util.Map<String, Literal> arguments = node.getArguments();
+    String pattern = (String) node.getPattern().getValue();
+    List<String> groupCandidates =
+        ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments);
+    List<RexNode> newFields =
+        groupCandidates.stream()
+            .map(
+                group ->
+                    context.rexBuilder.makeCall(
+                        SqlLibraryOperators.REGEXP_EXTRACT,
+                        sourceField,
+                        context.rexBuilder.makeLiteral(pattern)))
+            .toList();
+    projectPlusOverriding(newFields, groupCandidates, context);
+    return context.relBuilder.peek();
+  }
+
+  @Override
   public RelNode visitEval(Eval node, CalcitePlanContext context) {
     visitChildren(node, context);
     List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
-    List<RexNode> evalList =
-        node.getExpressionList().stream()
-            .map(
-                expr -> {
-                  boolean containsSubqueryExpression = containsSubqueryExpression(expr);
-                  final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
-                  if (containsSubqueryExpression) {
-                    context.relBuilder.variable(v::set);
-                    context.pushCorrelVar(v.get());
-                  }
-                  RexNode eval = rexVisitor.analyze(expr, context);
-                  if (containsSubqueryExpression) {
-                    // RelBuilder.projectPlus doesn't have a parameter with variablesSet:
-                    // projectPlus(Iterable<CorrelationId> variablesSet, RexNode... nodes)
-                    context.relBuilder.project(
-                        Iterables.concat(context.relBuilder.fields(), ImmutableList.of(eval)),
-                        ImmutableList.of(),
-                        false,
-                        ImmutableList.of(v.get().id));
-                    context.popCorrelVar();
-                  } else {
-                    context.relBuilder.projectPlus(eval);
-                  }
-                  return eval;
-                })
-            .collect(Collectors.toList());
-    // Overriding the existing field if the alias has the same name with original field name. For
-    // example, eval field = 1
-    List<String> overriding =
-        evalList.stream()
-            .filter(expr -> expr.getKind() == AS)
-            .map(
-                expr ->
-                    ((RexLiteral) ((RexCall) expr).getOperands().get(1)).getValueAs(String.class))
-            .collect(Collectors.toList());
-    overriding.retainAll(originalFieldNames);
-    if (!overriding.isEmpty()) {
-      List<RexNode> toDrop = context.relBuilder.fields(overriding);
-      context.relBuilder.projectExcept(toDrop);
-
-      // the overriding field in Calcite will add a numeric suffix, for example:
-      // `| eval SAL = SAL + 1` creates a field SAL0 to replace SAL, so we rename it back to SAL,
-      // or query `| eval SAL=SAL + 1 | where exists [ source=DEPT | where emp.SAL=HISAL ]` fails.
-      List<String> newNames =
-          context.relBuilder.peek().getRowType().getFieldNames().stream()
-              .map(
-                  cur -> {
-                    String noNumericSuffix = cur.replaceAll("\\d", "");
-                    if (overriding.contains(noNumericSuffix)) {
-                      return noNumericSuffix;
-                    } else {
-                      return cur;
-                    }
-                  })
-              .toList();
-      context.relBuilder.rename(newNames);
-    }
+    node.getExpressionList()
+        .forEach(
+            expr -> {
+              boolean containsSubqueryExpression = containsSubqueryExpression(expr);
+              final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
+              if (containsSubqueryExpression) {
+                context.relBuilder.variable(v::set);
+                context.pushCorrelVar(v.get());
+              }
+              RexNode eval = rexVisitor.analyze(expr, context);
+              if (containsSubqueryExpression) {
+                // RelBuilder.projectPlus doesn't have a parameter with variablesSet:
+                // projectPlus(Iterable<CorrelationId> variablesSet, RexNode... nodes)
+                context.relBuilder.project(
+                    Iterables.concat(context.relBuilder.fields(), ImmutableList.of(eval)),
+                    ImmutableList.of(),
+                    false,
+                    ImmutableList.of(v.get().id));
+                context.popCorrelVar();
+              } else {
+                // Overriding the existing field if the alias has the same name with original field.
+                String alias =
+                    ((RexLiteral) ((RexCall) eval).getOperands().get(1)).getValueAs(String.class);
+                projectPlusOverriding(List.of(eval), List.of(alias), context);
+              }
+            });
     return context.relBuilder.peek();
+  }
+
+  private void projectPlusOverriding(
+      List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
+    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> toOverrideList =
+        originalFieldNames.stream()
+            .filter(newNames::contains)
+            .map(a -> (RexNode) context.relBuilder.field(a))
+            .toList();
+    // 1. add the new fields, For example "age0, country0"
+    context.relBuilder.projectPlus(newFields);
+    // 2. drop the overriding field list, it's duplicated now. For example "age, country"
+    if (!toOverrideList.isEmpty()) {
+      context.relBuilder.projectExcept(toOverrideList);
+    }
+    // 3. get current fields list, the "age0, country0" should include in it.
+    List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+    int length = currentFields.size();
+    // 4. add new names "age, country" to the end of rename list.
+    List<String> expectedRenameFields =
+        new ArrayList<>(currentFields.subList(0, length - newNames.size()));
+    expectedRenameFields.addAll(newNames);
+    // 5. rename
+    context.relBuilder.rename(expectedRenameFields);
   }
 
   @Override
@@ -582,11 +623,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitFillNull(FillNull fillNull, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("FillNull command is unsupported in Calcite");
-  }
-
-  @Override
-  public RelNode visitParse(Parse node, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("Parse command is unsupported in Calcite");
   }
 
   @Override

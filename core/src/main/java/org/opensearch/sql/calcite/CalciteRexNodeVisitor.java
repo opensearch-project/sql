@@ -8,10 +8,10 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.translateArgument;
+import static org.opensearch.sql.calcite.utils.PlanUtils.intervalUnitToSpanUnit;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
@@ -19,6 +19,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -35,6 +36,7 @@ import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.In;
+import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -114,6 +116,15 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       default:
         throw new UnsupportedOperationException("Unsupported literal type: " + node.getType());
     }
+  }
+
+  @Override
+  public RexNode visitInterval(Interval node, CalcitePlanContext context) {
+    RexNode value = analyze(node.getValue(), context);
+    SqlIntervalQualifier intervalQualifier =
+        context.rexBuilder.createIntervalUntil(intervalUnitToSpanUnit(node.getUnit()));
+    return context.rexBuilder.makeIntervalLiteral(
+        new BigDecimal(value.toString()), intervalQualifier);
   }
 
   @Override
@@ -224,6 +235,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       }
     }
 
+    // TODO: Need to support nested fields https://github.com/opensearch-project/sql/issues/3459
     // 2. resolve QualifiedName in non-join condition
     String qualifiedName = node.toString();
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
@@ -248,16 +260,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           .peekCorrelVar()
           .map(correlVar -> context.relBuilder.field(correlVar, qualifiedName))
           .orElseGet(() -> context.relBuilder.field(qualifiedName));
-    }
-    // 3. resolve overriding fields, for example, `eval SAL = SAL + 1` will delete the original SAL
-    // and add a SAL0. SAL0 in currentFields, but qualifiedName is SAL.
-    // TODO now we cannot handle the case using a overriding fields in subquery, for example
-    // source = EMP | eval DEPTNO = DEPTNO + 1 | where exists [ source = DEPT | where emp.DEPTNO =
-    // DEPTNO ]
-    Map<String, String> fieldMap =
-        currentFields.stream().collect(Collectors.toMap(s -> s.replaceAll("\\d", ""), s -> s));
-    if (fieldMap.containsKey(qualifiedName)) {
-      return context.relBuilder.field(fieldMap.get(qualifiedName));
     } else {
       throw new IllegalArgumentException(
           String.format(
@@ -309,13 +311,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   private boolean isTimeBased(SpanUnit unit) {
     return !(unit == NONE || unit == UNKNOWN);
   }
-
-  //    @Override
-  //    public RexNode visitAggregateFunction(AggregateFunction node, Context context) {
-  //        RexNode field = analyze(node.getField(), context);
-  //        AggregateCall aggregateCall = translateAggregateCall(node, field, relBuilder);
-  //        return new MyAggregateCall(aggregateCall);
-  //    }
 
   @Override
   public RexNode visitLet(Let node, CalcitePlanContext context) {
