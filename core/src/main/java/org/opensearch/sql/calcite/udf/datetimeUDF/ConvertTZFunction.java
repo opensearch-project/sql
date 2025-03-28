@@ -34,7 +34,7 @@ public class ConvertTZFunction implements UserDefinedFunction {
     Instant datetimeInstant;
     try {
       datetimeInstant = InstantUtils.convertToInstant(argTimestamp, sqlTypeName, true);
-    } catch (IllegalArgumentException e) {
+    } catch (Exception e) {
       return null;
     }
     ExprValue datetimeExpr =

@@ -670,6 +670,18 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         rows("1984-04-12", "1984-04-13 00:00:00"));
   }
 
+  @org.junit.Test
+  public void nullDateTimeInvalidDateValueFebruary() throws IOException {
+    JSONObject result =
+            executeQuery(
+                    String.format(
+                            "source=%s | eval f = convert_tz('2021-02-30 10:00:00','+00:00','+00:00') | fields"
+                                    + " f",
+                            TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "timestamp"));
+    verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
+  }
+
   @Test
   public void testComparisonBetweenDateAndTimestamp() {
     JSONObject actual =

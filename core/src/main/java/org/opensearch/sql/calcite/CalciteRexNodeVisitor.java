@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite;
 
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -21,6 +22,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
@@ -51,6 +53,8 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.type.ExprBasicSqlUDT;
+import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessDateToStringFunction;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -198,9 +202,21 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
     SqlOperator op = BuiltinFunctionUtils.translate(node.getOperator());
-    final RexNode left = analyze(node.getLeft(), context);
-    final RexNode right = analyze(node.getRight(), context);
+    final RexNode left = transferCompareForDateRelated(analyze(node.getLeft(), context), context);
+    final RexNode right = transferCompareForDateRelated(analyze(node.getRight(), context), context);
     return context.relBuilder.call(op, left, right);
+  }
+
+  private RexNode transferCompareForDateRelated(RexNode candidate, CalcitePlanContext context) {
+    if (candidate.getType() instanceof ExprBasicSqlUDT) {
+      SqlOperator postToStringNode = TransferUserDefinedFunction(PostprocessDateToStringFunction.class, "PostprocessDateToString", ReturnTypes.CHAR);
+      RexNode transferredStringNode = context.rexBuilder.makeCall(
+              postToStringNode, List.of(candidate)
+      );
+      return transferredStringNode;
+    } else {
+      return candidate;
+    }
   }
 
   @Override
