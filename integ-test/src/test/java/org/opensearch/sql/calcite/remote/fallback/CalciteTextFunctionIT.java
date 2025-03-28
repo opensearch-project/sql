@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.remote.fallback;
 
-import java.io.IOException;
-import org.junit.Ignore;
 import org.opensearch.sql.ppl.TextFunctionIT;
 
 public class CalciteTextFunctionIT extends TextFunctionIT {
@@ -15,14 +13,4 @@ public class CalciteTextFunctionIT extends TextFunctionIT {
     super.init();
     enableCalcite();
   }
-
-  @Ignore("https://github.com/opensearch-project/sql/issues/3481")
-  @Override
-  public void testStrcmp() throws IOException {}
-  ;
-
-  @Ignore("https://github.com/opensearch-project/sql/issues/3481")
-  @Override
-  public void testLocate() throws IOException {}
-  ;
 }
