@@ -23,7 +23,7 @@ public class CalcitePPLDateTimeFunctionTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(added=[DATE(CURRENT_TIMESTAMP)])\n"
+            + "  LogicalProject(added=[POSTPROCESS(DATE(PREPROCESS(POSTPROCESS(CURRENT_TIMESTAMP, FLAG(TIMESTAMP)), FLAG(TIMESTAMP))), FLAG(DATE))])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "added=" + LocalDate.now() + "\n";
@@ -41,7 +41,7 @@ public class CalcitePPLDateTimeFunctionTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(added=[CURRENT_DATE])\n"
+            + "  LogicalProject(added=[POSTPROCESS(CURRENT_DATE, FLAG(DATE))])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "added=" + LocalDate.now() + "\n";
