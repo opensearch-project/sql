@@ -32,7 +32,7 @@ import org.opensearch.sql.expression.function.FunctionProperties;
  * This class converts a SQL style DATE_FORMAT format specifier and converts it to a Java
  * SimpleDateTime format.
  */
-class DateTimeFormatterUtil {
+public class DateTimeFormatterUtil {
   private static final int SUFFIX_SPECIAL_START_TH = 11;
   private static final int SUFFIX_SPECIAL_END_TH = 13;
   private static final String SUFFIX_SPECIAL_TH = "th";
@@ -48,7 +48,7 @@ class DateTimeFormatterUtil {
     String getFormat(LocalDateTime date);
   }
 
-  private static final Map<String, DateTimeFormatHandler> DATE_HANDLERS =
+  public static final Map<String, DateTimeFormatHandler> DATE_HANDLERS =
       ImmutableMap.<String, DateTimeFormatHandler>builder()
           .put("%a", (date) -> "EEE") // %a => EEE - Abbreviated weekday name (Sun..Sat)
           .put("%b", (date) -> "LLL") // %b => LLL - Abbreviated month name (Jan..Dec)
@@ -195,9 +195,20 @@ class DateTimeFormatterUtil {
   private DateTimeFormatterUtil() {}
 
   static StringBuffer getCleanFormat(ExprValue formatExpr) {
+    return getCleanFormat(formatExpr.stringValue());
+  }
+
+  /**
+   * Cleans the given format string by wrapping characters that are not preceded by a '%' and are
+   * not part of the allowed date/time format specifiers in single quotes. This ensures that these
+   * characters are treated as literals in the date/time format.
+   *
+   * @param formatStr the format string to be cleaned
+   * @return a StringBuffer containing the cleaned format string
+   */
+  public static StringBuffer getCleanFormat(String formatStr) {
     final StringBuffer cleanFormat = new StringBuffer();
-    final Matcher m =
-        CHARACTERS_WITH_NO_MOD_LITERAL_BEHIND_PATTERN.matcher(formatExpr.stringValue());
+    final Matcher m = CHARACTERS_WITH_NO_MOD_LITERAL_BEHIND_PATTERN.matcher(formatStr);
 
     while (m.find()) {
       m.appendReplacement(cleanFormat, String.format("'%s'", m.group()));
@@ -215,7 +226,7 @@ class DateTimeFormatterUtil {
    * @param datetime The datetime argument being formatted
    * @return A formatted string expression
    */
-  static ExprValue getFormattedString(
+  public static ExprValue getFormattedString(
       ExprValue formatExpr, Map<String, DateTimeFormatHandler> handler, LocalDateTime datetime) {
     StringBuffer cleanFormat = getCleanFormat(formatExpr);
 
@@ -244,6 +255,18 @@ class DateTimeFormatterUtil {
   }
 
   /**
+   * Format the datetime using the date format String.
+   *
+   * @param datetime the datetime to be formated
+   * @param formatStr the format of String type.
+   * @return Date formatted using format and returned as a String.
+   */
+  public static String getFormattedDatetime(LocalDateTime datetime, String formatStr) {
+    return getFormattedString(new ExprStringValue(formatStr), DATE_HANDLERS, datetime)
+        .stringValue();
+  }
+
+  /**
    * Format the date using the date format String.
    *
    * @param dateExpr the date ExprValue of Date/Timestamp/String type.
@@ -268,7 +291,7 @@ class DateTimeFormatterUtil {
    * @param formatExpr the format ExprValue of String type.
    * @return Date formatted using format and returned as a String.
    */
-  static ExprValue getFormattedTime(ExprValue timeExpr, ExprValue formatExpr) {
+  public static ExprValue getFormattedTime(ExprValue timeExpr, ExprValue formatExpr) {
     // Initializes DateTime with LocalDate.now(). This is safe because the date is ignored.
     // The time_format function will only return 0 or null for invalid string format specifiers.
     final LocalDateTime time = LocalDateTime.of(LocalDate.now(), timeExpr.timeValue());

@@ -8,7 +8,9 @@ package org.opensearch.sql.opensearch.util;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Types;
+import java.time.LocalTime;
 import java.util.Arrays;
 import lombok.experimental.UtilityClass;
 import org.apache.calcite.avatica.util.ArrayImpl;
@@ -92,8 +94,10 @@ public class JdbcOpenSearchDataTypeConvertor {
           return new ExprDateValue(dateStr);
 
         case Types.TIME:
-          String timeStr = rs.getString(i);
-          return new ExprTimeValue(timeStr);
+          Time timeStr = rs.getTime(i);
+          long millisecond = ((timeStr.getTime() % 1000L) + 1000L) % 1000L;
+          LocalTime localTime = timeStr.toLocalTime().plusNanos(millisecond * 1000000);
+          return new ExprTimeValue(localTime);
 
         case Types.TIMESTAMP:
           String timestampStr = rs.getString(i);

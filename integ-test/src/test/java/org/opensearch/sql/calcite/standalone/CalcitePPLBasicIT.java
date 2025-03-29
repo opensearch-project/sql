@@ -14,7 +14,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -494,7 +493,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
 
-  @Ignore("https://github.com/opensearch-project/sql/issues/3400")
   public void testDateBetween() {
     JSONObject actual =
         executeQuery(

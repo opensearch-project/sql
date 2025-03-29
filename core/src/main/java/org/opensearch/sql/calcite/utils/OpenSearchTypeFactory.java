@@ -37,6 +37,7 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.calcite.type.ExprBasicSqlType;
@@ -56,6 +57,76 @@ import org.opensearch.sql.storage.Table;
 public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public static final OpenSearchTypeFactory TYPE_FACTORY =
       new OpenSearchTypeFactory(OpenSearchTypeSystem.INSTANCE);
+
+  public static SqlReturnTypeInference timestampInference =
+      opBinding -> {
+        // return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
+        Charset charset = TYPE_FACTORY.getDefaultCharset();
+        SqlCollation collation = SqlCollation.IMPLICIT;
+        RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
+        if (type instanceof ExprBasicSqlType udt) {
+          return udt.createWithCharsetAndCollation(charset, collation);
+        }
+        return type;
+      };
+
+  public static SqlReturnTypeInference dateInference =
+      opBinding -> {
+        Charset charset = TYPE_FACTORY.getDefaultCharset();
+        SqlCollation collation = SqlCollation.IMPLICIT;
+        RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
+        if (type instanceof ExprBasicSqlType udt) {
+          return udt.createWithCharsetAndCollation(charset, collation);
+        }
+        return type;
+      };
+
+  public static SqlReturnTypeInference timeInference =
+      opBinding -> {
+        // return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
+        Charset charset = TYPE_FACTORY.getDefaultCharset();
+        SqlCollation collation = SqlCollation.IMPLICIT;
+        RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
+        if (type instanceof ExprBasicSqlType udt) {
+          return udt.createWithCharsetAndCollation(charset, collation);
+        }
+        return type;
+      };
+
+  public static RelDataType nullableTimeUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
+  public static RelDataType nullableDateUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
+  public static RelDataType nullableTimestampUDT =
+      TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
+
+  public static RelDataType getNullableTimeUDTWithCharset() {
+    Charset charset = TYPE_FACTORY.getDefaultCharset();
+    SqlCollation collation = SqlCollation.IMPLICIT;
+    RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
+    if (type instanceof ExprBasicSqlType udt) {
+      return udt.createWithCharsetAndCollation(charset, collation);
+    }
+    return type;
+  }
+
+  public static RelDataType getNullableTimestampUDTWithCharset() {
+    Charset charset = TYPE_FACTORY.getDefaultCharset();
+    SqlCollation collation = SqlCollation.IMPLICIT;
+    RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
+    if (type instanceof ExprBasicSqlType udt) {
+      return udt.createWithCharsetAndCollation(charset, collation);
+    }
+    return type;
+  }
+
+  public static RelDataType getNullableDateUDTWithCharset() {
+    Charset charset = TYPE_FACTORY.getDefaultCharset();
+    SqlCollation collation = SqlCollation.IMPLICIT;
+    RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
+    if (type instanceof ExprBasicSqlType udt) {
+      return udt.createWithCharsetAndCollation(charset, collation);
+    }
+    return type;
+  }
 
   private OpenSearchTypeFactory(RelDataTypeSystem typeSystem) {
     super(typeSystem);

@@ -602,6 +602,17 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testPercentile() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats percentile(balance, 50) as p50, percentile(balance, 90) as p90",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("p50", "long"), schema("p90", "long"));
+    verifyDataRows(actual, rows(32838, 48086));
+  }
+
+  @Test
   public void testSumGroupByNullValue() throws IOException {
     JSONObject response =
         executeQuery(

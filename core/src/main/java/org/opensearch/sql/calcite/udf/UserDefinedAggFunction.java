@@ -32,6 +32,6 @@ public interface UserDefinedAggFunction<S extends UserDefinedAggFunction.Accumul
     /**
      * @return the final aggregation value
      */
-    Object value();
+    Object value(Object... args);
   }
 }

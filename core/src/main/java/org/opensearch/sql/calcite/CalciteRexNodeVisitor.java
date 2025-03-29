@@ -7,8 +7,7 @@ package org.opensearch.sql.calcite;
 
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.translateArgument;
-import static org.opensearch.sql.calcite.utils.PlanUtils.intervalUnitToSpanUnit;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -37,6 +36,7 @@ import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -52,8 +52,11 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.type.ExprBasicSqlType;
+import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessDateToStringFunction;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -116,6 +119,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       default:
         throw new UnsupportedOperationException("Unsupported literal type: " + node.getType());
     }
+  }
+
+  private SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
+    return switch (unit) {
+      case MICROSECOND -> SpanUnit.MILLISECOND;
+      case SECOND -> SpanUnit.SECOND;
+      case MINUTE -> SpanUnit.MINUTE;
+      case HOUR -> SpanUnit.HOUR;
+      case DAY -> SpanUnit.DAY;
+      case WEEK -> SpanUnit.WEEK;
+      case MONTH -> SpanUnit.MONTH;
+      case QUARTER -> SpanUnit.QUARTER;
+      case YEAR -> SpanUnit.YEAR;
+      case UNKNOWN -> SpanUnit.UNKNOWN;
+      default -> throw new UnsupportedOperationException("Unsupported interval unit: " + unit);
+    };
   }
 
   @Override
@@ -182,9 +201,33 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
     SqlOperator op = BuiltinFunctionUtils.translate(node.getOperator());
-    final RexNode left = analyze(node.getLeft(), context);
-    final RexNode right = analyze(node.getRight(), context);
+    RexNode leftCandidate = analyze(node.getLeft(), context);
+    RexNode rightCandidate = analyze(node.getRight(), context);
+    Boolean whetherCompareByTime =
+        leftCandidate.getType() instanceof ExprBasicSqlType
+            || rightCandidate.getType() instanceof ExprBasicSqlType;
+
+    final RexNode left =
+        transferCompareForDateRelated(leftCandidate, context, whetherCompareByTime);
+    final RexNode right =
+        transferCompareForDateRelated(rightCandidate, context, whetherCompareByTime);
     return context.relBuilder.call(op, left, right);
+  }
+
+  private RexNode transferCompareForDateRelated(
+      RexNode candidate, CalcitePlanContext context, boolean wrapper) {
+    if (wrapper) {
+      SqlOperator postToStringNode =
+          TransferUserDefinedFunction(
+              PostprocessDateToStringFunction.class,
+              "PostprocessDateToString",
+              UserDefinedFunctionUtils.createNullableReturnType(SqlTypeName.CHAR));
+      RexNode transferredStringNode =
+          context.rexBuilder.makeCall(postToStringNode, List.of(candidate));
+      return transferredStringNode;
+    } else {
+      return candidate;
+    }
   }
 
   @Override
@@ -322,9 +365,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<RexNode> arguments =
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
-    return context.rexBuilder.makeCall(
-        BuiltinFunctionUtils.translate(node.getFuncName()),
-        translateArgument(node.getFuncName(), arguments, context));
+    SqlOperator operator = BuiltinFunctionUtils.translate(node.getFuncName());
+    List<RexNode> translatedArguments =
+        BuiltinFunctionUtils.translateArgument(
+            node.getFuncName(),
+            arguments,
+            context,
+            context.functionProperties.getQueryStartClock().instant().toString());
+    RelDataType returnType =
+        BuiltinFunctionUtils.deriveReturnType(
+            node.getFuncName(), context.rexBuilder, operator, translatedArguments);
+    return context.rexBuilder.makeCall(returnType, operator, translatedArguments);
   }
 
   @Override

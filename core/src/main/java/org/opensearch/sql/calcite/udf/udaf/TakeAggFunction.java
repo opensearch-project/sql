@@ -44,7 +44,7 @@ public class TakeAggFunction implements UserDefinedAggFunction<TakeAggFunction.T
     }
 
     @Override
-    public Object value() {
+    public Object value(Object... argList) {
       return hits;
     }
 
