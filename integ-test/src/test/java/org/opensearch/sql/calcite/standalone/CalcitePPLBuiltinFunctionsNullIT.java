@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS_WITH_NULL;
@@ -13,7 +18,7 @@ import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.SemanticCheckException;
 
-public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
   @Override
   public void init() throws IOException {
     super.init();

@@ -3,17 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite;
+package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS_WITH_NULL;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.calcite.standalone.CalcitePPLIntegTestCase;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
-public class CalciteBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegTestCase {
+public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegTestCase {
   @Override
   public void init() throws IOException {
     super.init();
