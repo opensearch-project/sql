@@ -287,8 +287,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
   @Test
   public void testToSeconds() {
-    LocalDate today = LocalDate.now();
-    LocalDateTime todayStart = today.atStartOfDay();
+    LocalDateTime todayStart = LocalDateTime.now(ZoneOffset.UTC).toLocalDate().atStartOfDay();
     LocalDateTime baseDateTime = LocalDateTime.of(0, 1, 1, 0, 0, 0);
 
     long secondsSinceYearZero =

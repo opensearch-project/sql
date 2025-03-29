@@ -7,9 +7,9 @@ package org.opensearch.sql.calcite.standalone;
 
 import org.opensearch.sql.common.setting.Settings;
 
-public class CalcitePPLBuiltinFunctionsNullPushdownIT extends CalcitePPLBuiltinFunctionsNullIT{
-    @Override
-    protected Settings getSettings() {
-        return enablePushdown();
-    }
+public class CalcitePPLBuiltinFunctionsNullPushdownIT extends CalcitePPLBuiltinFunctionsNullIT {
+  @Override
+  protected Settings getSettings() {
+    return enablePushdown();
+  }
 }

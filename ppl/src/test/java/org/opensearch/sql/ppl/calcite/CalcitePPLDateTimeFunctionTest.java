@@ -21,9 +21,9 @@ public class CalcitePPLDateTimeFunctionTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP | eval added = DATE(CURRENT_TIMESTAMP()) | fields added | head 1";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalSort(fetch=[1])\n"
-            + "  LogicalProject(added=[POSTPROCESS(DATE(PREPROCESS(POSTPROCESS(CURRENT_TIMESTAMP, FLAG(TIMESTAMP)), FLAG(TIMESTAMP))), FLAG(DATE))])\n"
+        "LogicalSort(fetch=[1])\n"
+            + "  LogicalProject(added=[POSTPROCESS(DATE(PREPROCESS(POSTPROCESS(CURRENT_TIMESTAMP,"
+            + " FLAG(TIMESTAMP)), FLAG(TIMESTAMP))), FLAG(DATE))])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "added=" + LocalDate.now() + "\n";
