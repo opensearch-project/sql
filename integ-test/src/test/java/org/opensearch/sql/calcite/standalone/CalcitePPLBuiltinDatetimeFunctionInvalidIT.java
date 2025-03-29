@@ -27,7 +27,6 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -41,7 +40,6 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -51,7 +49,6 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -65,7 +62,6 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
@@ -75,7 +71,6 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
     assertThrows(
         Exception.class,
         () -> {
-          // Code that should throw the exception
           JSONObject actual =
               executeQuery(
                   String.format(
