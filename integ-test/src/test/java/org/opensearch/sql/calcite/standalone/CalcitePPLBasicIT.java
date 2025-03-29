@@ -494,7 +494,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows("Hattie", 36), rows("Elinor", 36));
   }
 
-  @Ignore("https://github.com/opensearch-project/sql/issues/3400")
   public void testDateBetween() {
     JSONObject actual =
         executeQuery(

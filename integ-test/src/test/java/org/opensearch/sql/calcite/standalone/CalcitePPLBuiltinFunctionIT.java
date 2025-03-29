@@ -131,7 +131,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         result, rows("INT", "BOOLEAN", "DOUBLE", "STRING", "STRING", "STRING", "INT", "INTERVAL"));
   }
 
-  @Ignore("https://github.com/opensearch-project/sql/issues/3400")
   public void testTypeOfDateTime() {
     JSONObject result =
         executeQuery(
