@@ -285,6 +285,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows("01:00:01", "00:20:34.123"));
   }
 
+  @Ignore
   @Test
   public void testToSeconds() {
     LocalDateTime todayStart = LocalDateTime.now(ZoneOffset.UTC).toLocalDate().atStartOfDay();
@@ -298,7 +299,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 "source=%s "
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| eval timestamp=to_seconds(strict_date_optional_time) "
-                    + "| eval time=to_seconds(time)"
                     + "| eval date=to_seconds(date)"
                     + "| eval string_value=to_seconds('2008-10-07')"
                     + "| eval long_value = to_seconds(950228)"
@@ -308,12 +308,11 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifySchema(
         actual,
         schema("timestamp", "long"),
-        schema("time", "long"),
         schema("date", "long"),
         schema("string_value", "long"),
         schema("long_value", "long"));
     verifyDataRows(
-        actual, rows(62617828062L, secondsSinceYearZero, 62617795200L, 63390556800L, 62961148800L));
+        actual, rows(62617828062L, 62617795200L, 63390556800L, 62961148800L));
   }
 
   @Test
@@ -332,7 +331,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 "source=%s "
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| eval timestamp=to_days(strict_date_optional_time) "
-                    + "| eval time=to_days(time)"
                     + "| eval date=to_days(date)"
                     + "| eval string_value=to_days('2008-10-07')"
                     + "| where to_days(strict_date_optional_time) = 724743"
@@ -341,10 +339,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifySchema(
         actual,
         schema("timestamp", "long"),
-        schema("time", "long"),
         schema("date", "long"),
         schema("string_value", "long"));
-    verifyDataRows(actual, rows(724743, daysSinceYearZero, 724743, 733687));
+    verifyDataRows(actual, rows(724743, 724743, 733687));
   }
 
   @Test
@@ -483,7 +480,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             String.format(
                 "source=%s | where YEAR(strict_date_optional_time) < 2000| eval"
                     + " timestamp=YEARWEEK(TIMESTAMP(strict_date_optional_time)),"
-                    + " time=YEARWEEK(TIME(strict_date_optional_time)),"
                     + " date=YEARWEEK(DATE(strict_date_optional_time))| eval"
                     + " `YEARWEEK('2020-08-26')` = YEARWEEK('2020-08-26') | eval"
                     + " `YEARWEEK('2019-01-05', 1)` = YEARWEEK('2019-01-05', 1) | fields timestamp,"

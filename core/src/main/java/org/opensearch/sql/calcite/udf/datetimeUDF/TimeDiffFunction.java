@@ -6,6 +6,8 @@
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprTimestampValue;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimeDiff;
 
 import java.time.Instant;
@@ -26,12 +28,12 @@ public class TimeDiffFunction implements UserDefinedFunction {
     }
     SqlTypeName startType = (SqlTypeName) args[2];
     SqlTypeName endType = (SqlTypeName) args[3];
-    Instant startTime = InstantUtils.convertToInstant(args[0], startType, false);
-    Instant endTime = InstantUtils.convertToInstant(args[1], endType, false);
+    //Instant startTime = InstantUtils.convertToInstant(args[0], startType, false);
+    //Instant endTime = InstantUtils.convertToInstant(args[1], endType, false);
     ExprValue diffValue =
         exprTimeDiff(
-            new ExprTimeValue(LocalDateTime.ofInstant(startTime, ZoneOffset.UTC).toLocalTime()),
-            new ExprTimeValue(LocalDateTime.ofInstant(endTime, ZoneOffset.UTC).toLocalTime()));
+                transferInputToExprValue(args[0], startType),
+                transferInputToExprValue(args[1], endType));
     return formatTime(diffValue.timeValue());
   }
 }

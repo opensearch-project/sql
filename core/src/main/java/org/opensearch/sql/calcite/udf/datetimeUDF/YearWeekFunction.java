@@ -6,7 +6,9 @@
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearweek;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.yearweekToday;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -35,25 +37,21 @@ public class YearWeekFunction implements UserDefinedFunction {
     if (Objects.isNull(args[0])) {
       return null;
     }
-    FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
-    LocalDate candidateDate;
     SqlTypeName sqlTypeName;
+    ExprValue exprValue;
     if (args.length == 3) {
       sqlTypeName = (SqlTypeName) args[1];
-      basetime = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
       mode = 0;
     } else {
       sqlTypeName = (SqlTypeName) args[2];
-      basetime = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
       mode = (int) args[1];
     }
+    FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     if (sqlTypeName == SqlTypeName.TIME) {
-      candidateDate = LocalDateTime.now(restored.getQueryStartClock()).toLocalDate();
-    } else {
-      candidateDate = LocalDateTime.ofInstant(basetime, ZoneOffset.UTC).toLocalDate();
+      return yearweekToday(new ExprIntegerValue(mode), restored.getQueryStartClock()).integerValue();
     }
-    ExprDateValue dateValue = new ExprDateValue(candidateDate);
-    ExprValue yearWeekValue = exprYearweek(dateValue, new ExprIntegerValue(mode));
+    exprValue = transferInputToExprValue(args[0], sqlTypeName);
+    ExprValue yearWeekValue = exprYearweek(exprValue, new ExprIntegerValue(mode));
     return yearWeekValue.integerValue();
   }
 }

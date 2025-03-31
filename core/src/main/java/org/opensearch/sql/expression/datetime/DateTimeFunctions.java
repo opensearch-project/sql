@@ -1900,7 +1900,7 @@ public class DateTimeFunctions {
     return new ExprTimestampValue(timestamp.plus(amount, temporalUnit));
   }
 
-  private ExprValue exprTimestampAddForTimeType(
+  public static ExprValue exprTimestampAddForTimeType(
       Clock clock, ExprValue partExpr, ExprValue amountExpr, ExprValue timeExpr) {
     LocalDateTime datetime = LocalDateTime.of(formatNow(clock).toLocalDate(), timeExpr.timeValue());
     return exprTimestampAdd(partExpr, amountExpr, new ExprTimestampValue(datetime));
@@ -1950,7 +1950,7 @@ public class DateTimeFunctions {
         endTimeExpr.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
-  private ExprValue exprTimestampDiffForTimeType(
+  public static ExprValue exprTimestampDiffForTimeType(
       FunctionProperties fp, ExprValue partExpr, ExprValue startTimeExpr, ExprValue endTimeExpr) {
     return getTimeDifference(
         partExpr.stringValue(),
@@ -2094,7 +2094,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String/Timstamp type.
    * @return ExprValue.
    */
-  private ExprValue exprWeekday(ExprValue date) {
+  public static ExprValue exprWeekday(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getDayOfWeek().getValue() - 1);
   }
 
@@ -2235,7 +2235,7 @@ public class DateTimeFunctions {
     return exprYearweek(date, new ExprIntegerValue(0));
   }
 
-  private ExprValue yearweekToday(ExprValue mode, Clock clock) {
+  public static ExprValue yearweekToday(ExprValue mode, Clock clock) {
     return extractYearweek(LocalDateTime.now(clock).toLocalDate(), mode.integerValue());
   }
 

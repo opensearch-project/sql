@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprTimestampValue;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFormattedTime;
 
 import java.time.Instant;
@@ -25,9 +27,9 @@ public class TimeFormatFunction implements UserDefinedFunction {
     }
     SqlTypeName sqlTypeName = (SqlTypeName) args[2];
     String format = (String) args[1];
-    Instant instant = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
-    LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-    return getFormattedTime(new ExprTimestampValue(localDateTime), new ExprStringValue(format))
+    //Instant instant = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
+    //LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
+    return getFormattedTime(transferInputToExprValue(args[0], sqlTypeName), new ExprStringValue(format))
         .stringValue();
   }
 }

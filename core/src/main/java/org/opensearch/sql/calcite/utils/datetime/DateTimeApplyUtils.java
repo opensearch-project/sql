@@ -48,21 +48,6 @@ public interface DateTimeApplyUtils {
     }
   }
 
-  static ExprTimestampValue transferCalciteValueToExprTimeStampValue(
-      SqlTypeName type, Object target) {
-    LocalDateTime dateTime;
-    switch (type) {
-      case DATE:
-        dateTime = LocalDateTime.ofInstant(InstantUtils.fromInternalDate((int) target), UTC);
-        break;
-      case TIME:
-        dateTime = LocalDateTime.ofInstant(InstantUtils.fromInternalTime((int) target), UTC);
-        break;
-      default:
-        dateTime = LocalDateTime.ofInstant(InstantUtils.fromEpochMills((long) target), UTC);
-    }
-    return new ExprTimestampValue(dateTime);
-  }
 
   /**
    * Create a temporal amount of the given number of units. For duration below a day, it returns

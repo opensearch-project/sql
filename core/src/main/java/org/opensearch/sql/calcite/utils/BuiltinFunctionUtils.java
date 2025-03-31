@@ -552,6 +552,7 @@ public interface BuiltinFunctionUtils {
         List<RexNode> timestampDiffArgs = new ArrayList<>();
         timestampDiffArgs.add(argList.getFirst());
         timestampDiffArgs.addAll(buildArgsWithTypes(context.rexBuilder, argList, 1, 2));
+        timestampDiffArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
         return timestampDiffArgs;
       case "DATEDIFF":
         // datediff differs with timestamp diff in that it
@@ -668,7 +669,7 @@ public interface BuiltinFunctionUtils {
           datetimeNode = dateExpr;
           datetimeType = context.rexBuilder.makeFlag(dateExpr.getType().getSqlTypeName());
         }
-        return ImmutableList.of(datetimeNode, datetimeType, dateFormatPatternExpr);
+        return ImmutableList.of(datetimeNode, datetimeType, dateFormatPatternExpr, context.rexBuilder.makeLiteral(currentTimestampStr));
       case "UNIX_TIMESTAMP":
         List<RexNode> UnixArgs = new ArrayList<>(argList);
         UnixArgs.add(context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.getFirst())));
