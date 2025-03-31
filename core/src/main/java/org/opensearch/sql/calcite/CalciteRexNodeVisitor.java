@@ -363,6 +363,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
+    // Re-org the code structure
     List<RexNode> arguments =
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
     SqlOperator operator = BuiltinFunctionUtils.translate(node.getFuncName());

@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.calcite;
 import java.time.LocalDate;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class CalcitePPLDateTimeFunctionTest extends CalcitePPLAbstractTest {
@@ -16,6 +17,7 @@ public class CalcitePPLDateTimeFunctionTest extends CalcitePPLAbstractTest {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
   }
 
+  @Ignore("Ignore since we don't have this data source in real environment")
   @Test
   public void testDateAndCurrentTimestamp() {
     String ppl = "source=EMP | eval added = DATE(CURRENT_TIMESTAMP()) | fields added | head 1";
@@ -34,6 +36,7 @@ public class CalcitePPLDateTimeFunctionTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
+  @Ignore("Ignore since we don't have this data source in real environment")
   @Test
   public void testCurrentDate() {
     String ppl = "source=EMP | eval added = CURRENT_DATE() | fields added | head 1";
