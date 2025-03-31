@@ -30,7 +30,11 @@ public class TimestampDiffFunction implements UserDefinedFunction {
     SqlTypeName sqlTypeName2 = (SqlTypeName) args[4];
     if (sqlTypeName1 == SqlTypeName.TIME || sqlTypeName2 == SqlTypeName.TIME) {
       return exprTimestampDiffForTimeType(
-          restored, new ExprStringValue(addUnit), transferInputToExprValue(args[1], SqlTypeName.TIME), transferInputToExprValue(args[3], SqlTypeName.TIME)).longValue();
+              restored,
+              new ExprStringValue(addUnit),
+              transferInputToExprValue(args[1], SqlTypeName.TIME),
+              transferInputToExprValue(args[3], SqlTypeName.TIME))
+          .longValue();
     }
     ExprValue timestamp1 = transferInputToExprValue(args[1], sqlTypeName1);
     ExprValue timestamp2 = transferInputToExprValue(args[3], sqlTypeName2);

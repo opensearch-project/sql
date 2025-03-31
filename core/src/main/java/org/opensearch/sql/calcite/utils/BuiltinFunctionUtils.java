@@ -471,31 +471,31 @@ public interface BuiltinFunctionUtils {
         }
         return LogArgs;
       case "DATE":
-        List<RexNode> DateArgs = new ArrayList<>();
+        List<RexNode> dateArgs = new ArrayList<>();
         RexNode timestampExpr = argList.get(0);
         if (timestampExpr instanceof RexLiteral) {
           RexLiteral dateLiteral = (RexLiteral) timestampExpr;
           String dateStringValue = dateLiteral.getValueAs(String.class);
           List<Integer> dateValueList = transferStringExprToDateValue(dateStringValue);
-          DateArgs.add(
+          dateArgs.add(
               context.rexBuilder.makeLiteral(
                   dateValueList.get(0),
                   context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
-          DateArgs.add(
+          dateArgs.add(
               context.rexBuilder.makeLiteral(
                   dateValueList.get(1),
                   context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
-          DateArgs.add(
+          dateArgs.add(
               context.rexBuilder.makeLiteral(
                   dateValueList.get(2),
                   context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
         } else {
-          DateArgs.add(wrapperByPreprocess(timestampExpr, context.rexBuilder));
+          dateArgs.add(wrapperByPreprocess(timestampExpr, context.rexBuilder));
         }
-        RexNode wrappedCall = context.rexBuilder.makeCall(SqlLibraryOperators.DATE, DateArgs);
+        RexNode wrappedCall = context.rexBuilder.makeCall(SqlLibraryOperators.DATE, dateArgs);
         return List.of(wrappedCall, context.rexBuilder.makeFlag(SqlTypeName.DATE));
       case "LAST_DAY":
-        List<RexNode> LastDateArgs = new ArrayList<>();
+        List<RexNode> lastDateArgs = new ArrayList<>();
         RexNode lastDayTimestampExpr = argList.get(0);
         if (lastDayTimestampExpr instanceof RexLiteral) {
           RexLiteral dateLiteral = (RexLiteral) lastDayTimestampExpr;
@@ -504,11 +504,11 @@ public interface BuiltinFunctionUtils {
           DateString dateString =
               new DateString(dateValues.get(0), dateValues.get(1), dateValues.get(2));
           RexNode dateNode = context.rexBuilder.makeDateLiteral(dateString);
-          LastDateArgs.add(dateNode);
+          lastDateArgs.add(dateNode);
         } else {
-          LastDateArgs.add(wrapperByPreprocess(lastDayTimestampExpr, context.rexBuilder));
+          lastDateArgs.add(wrapperByPreprocess(lastDayTimestampExpr, context.rexBuilder));
         }
-        return LastDateArgs;
+        return lastDateArgs;
       case "CURRENT_TIMESTAMP", "NOW", "LOCALTIMESTAMP", "LOCALTIME":
         RexNode currentTimestampCall =
             context.rexBuilder.makeCall(SqlStdOperatorTable.CURRENT_TIMESTAMP, List.of());
@@ -644,7 +644,13 @@ public interface BuiltinFunctionUtils {
         RexNode type1 = context.rexBuilder.makeFlag(arg1Type);
         RexNode isAdd = context.rexBuilder.makeLiteral(true);
 
-        return List.of(argList.getFirst(), type0, argList.get(1), type1, isAdd, context.rexBuilder.makeLiteral(currentTimestampStr));
+        return List.of(
+            argList.getFirst(),
+            type0,
+            argList.get(1),
+            type1,
+            isAdd,
+            context.rexBuilder.makeLiteral(currentTimestampStr));
       case "ADDDATE":
         return transformAddOrSubDateArgs(argList, context.rexBuilder, true, currentTimestampStr);
       case "SUBDATE":
@@ -669,10 +675,10 @@ public interface BuiltinFunctionUtils {
             dateFormatPatternExpr,
             context.rexBuilder.makeLiteral(currentTimestampStr));
       case "UNIX_TIMESTAMP":
-        List<RexNode> UnixArgs = new ArrayList<>(argList);
-        UnixArgs.add(context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.getFirst())));
-        UnixArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
-        return UnixArgs;
+        List<RexNode> unixArgs = new ArrayList<>(argList);
+        unixArgs.add(context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.getFirst())));
+        unixArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
+        return unixArgs;
       case "DAY_OF_WEEK", "DAYOFWEEK":
         RexNode dowUnit =
             context.rexBuilder.makeIntervalLiteral(
@@ -762,8 +768,6 @@ public interface BuiltinFunctionUtils {
             // This effectively invalidates the operand type check, which leads to unnecessary
             // incompatible parameter type errors
           case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
-            // case "TIMESTAMPADD" ->
-            // rexBuilder.getTypeFactory().createSqlType(SqlTypeName.TIMESTAMP);
           case "TIMESTAMPDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);
           case "YEAR",
               "MINUTE",
@@ -815,20 +819,9 @@ public interface BuiltinFunctionUtils {
         rexBuilder.makeBigintLiteral(((RexLiteral) intervalExpr).getValueAs(BigDecimal.class));
     dateAddArgs.add(intervalArg);
     // 3. Add timestamp
-    if (baseTimestampExpr instanceof RexLiteral dateLiteral) {
-      String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
-      LocalDateTime dateTime = Objects.requireNonNull(DateTimeParser.parse(dateStringValue));
-      TimestampString timestampString = createTimestampString(dateTime);
-      RexNode timestampNode =
-          rexBuilder.makeTimestampLiteral(timestampString, RelDataType.PRECISION_NOT_SPECIFIED);
-      dateAddArgs.add(timestampNode);
-      // 4. Add timestamp type
-      dateAddArgs.add(rexBuilder.makeFlag(SqlTypeName.TIMESTAMP));
-    } else {
-      dateAddArgs.add(baseTimestampExpr);
-      // 4. Add original sql type
-      dateAddArgs.add(rexBuilder.makeFlag(baseTimestampExpr.getType().getSqlTypeName()));
-    }
+    dateAddArgs.add(baseTimestampExpr);
+    // 4. Add original sql type
+    dateAddArgs.add(rexBuilder.makeFlag(transferDateRelatedTimeName(baseTimestampExpr)));
     return dateAddArgs;
   }
 

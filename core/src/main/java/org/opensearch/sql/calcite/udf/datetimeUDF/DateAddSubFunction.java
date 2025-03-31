@@ -11,18 +11,13 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.convertToTemporalAmount;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -46,12 +41,12 @@ public class DateAddSubFunction implements UserDefinedFunction {
     boolean isAdd = (Boolean) args[4];
     SqlTypeName returnSqlType = (SqlTypeName) args[5];
     ExprValue base = transferInputToExprValue(argBase, sqlTypeName);
-    //Instant base = InstantUtils.convertToInstant(argBase, sqlTypeName, false);
+    // Instant base = InstantUtils.convertToInstant(argBase, sqlTypeName, false);
     FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     ExprValue resultDatetime =
         DateTimeFunctions.exprDateApplyInterval(
             restored, base, convertToTemporalAmount(interval, unit), isAdd);
-    //Instant resultInstant = resultDatetime.timestampValue();
+    // Instant resultInstant = resultDatetime.timestampValue();
     if (returnSqlType == SqlTypeName.TIMESTAMP) {
       return resultDatetime.valueForCalcite();
     } else {
