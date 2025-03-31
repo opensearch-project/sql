@@ -86,4 +86,13 @@ public class SemanticAnalyzerMultiQueryTest extends SemanticAnalyzerTestBase {
     expectValidationFailWithErrorMessages(
         "SELECT age FROM semantics UNION SELECT *, age FROM semantics");
   }
+
+  @Test
+  public void unionSelectWithAliasOfTwoQueriesShouldPass() {
+    validate(
+        "SELECT balance AS numeric FROM semantics UNION SELECT balance AS numeric FROM semantics");
+    validate("SELECT balance AS numeric FROM semantics UNION SELECT age AS numeric FROM semantics");
+    validate("SELECT balance AS age FROM semantics UNION SELECT age FROM semantics");
+    validate("SELECT balance FROM semantics UNION SELECT age AS balance FROM semantics");
+  }
 }
