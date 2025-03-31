@@ -566,7 +566,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     return result.format(formatter);
   }
 
-
   @Test
   public void testAddDateAndSubDateWithConditionsAndRename() {
     JSONObject actual =
@@ -585,15 +584,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("ts", "timestamp"));
     verifyDataRows(
         actual, rows("1984-04-09 09:07:42", "1984-04-13", "1984-04-12", "1984-04-13 00:00:00"));
-  }
-
-  @Test
-  public void testAddDateAndSubDateWithConditionsAndRenameDEBUG() {
-    JSONObject actual =
-            executeQuery(
-                    String.format(
-                            "source=%s | head 1 | eval lower = SUBDATE(date_time, INTERVAL 1 DAY) | fields lower",
-                            TEST_INDEX_DATE_FORMATS));
   }
 
   @Test

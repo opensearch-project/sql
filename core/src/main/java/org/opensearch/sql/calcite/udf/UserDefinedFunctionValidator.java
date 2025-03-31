@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.calcite.udf;
 
 import com.google.common.collect.ImmutableList;
@@ -14,9 +19,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 
 public class UserDefinedFunctionValidator {
+  private static final Logger logger = LogManager.getLogger(UserDefinedFunctionValidator.class);
+
   public static final Set<SqlTypeName> STRING_TYPES = Set.of(SqlTypeName.VARCHAR, SqlTypeName.CHAR);
   public static final Set<SqlTypeName> INTEGRAL_TYPES =
       Set.of(SqlTypeName.INTEGER, SqlTypeName.BIGINT, SqlTypeName.TINYINT, SqlTypeName.SMALLINT);
@@ -56,9 +64,8 @@ public class UserDefinedFunctionValidator {
     op = op.toUpperCase(Locale.ROOT);
     List<List<SqlTypeName>> overloads = getSupportedOverloads(op);
     if (overloads == null) {
-      LogManager.getLogger(UserDefinedFunctionValidator.class)
-          .warn(
-              "Acceptable parameters are not defined for UDF {}, skipping parameter checking", op);
+      logger.warn(
+          "Acceptable parameters are not defined for UDF {}, skipping parameter checking", op);
       return true;
     }
     boolean matched = false;
