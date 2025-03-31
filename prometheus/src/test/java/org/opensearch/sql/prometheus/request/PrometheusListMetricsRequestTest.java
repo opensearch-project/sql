@@ -29,8 +29,8 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
+import org.opensearch.sql.prometheus.model.MetricMetadata;
 import org.opensearch.sql.prometheus.request.system.PrometheusListMetricsRequest;
-import org.opensearch.sql.prometheus.request.system.model.MetricMetadata;
 
 @ExtendWith(MockitoExtension.class)
 public class PrometheusListMetricsRequestTest {

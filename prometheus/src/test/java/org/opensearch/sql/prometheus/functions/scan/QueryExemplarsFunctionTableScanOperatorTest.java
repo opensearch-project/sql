@@ -11,9 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.prometheus.constants.TestConstants.ENDTIME;
-import static org.opensearch.sql.prometheus.constants.TestConstants.QUERY;
-import static org.opensearch.sql.prometheus.constants.TestConstants.STARTTIME;
+import static org.opensearch.sql.prometheus.constant.TestConstants.ENDTIME;
+import static org.opensearch.sql.prometheus.constant.TestConstants.QUERY;
+import static org.opensearch.sql.prometheus.constant.TestConstants.STARTTIME;
 import static org.opensearch.sql.prometheus.utils.TestUtils.getJson;
 
 import java.io.IOException;

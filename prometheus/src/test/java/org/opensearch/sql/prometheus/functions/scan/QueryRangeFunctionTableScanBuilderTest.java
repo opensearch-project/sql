@@ -7,10 +7,10 @@
 
 package org.opensearch.sql.prometheus.functions.scan;
 
-import static org.opensearch.sql.prometheus.constants.TestConstants.ENDTIME;
-import static org.opensearch.sql.prometheus.constants.TestConstants.QUERY;
-import static org.opensearch.sql.prometheus.constants.TestConstants.STARTTIME;
-import static org.opensearch.sql.prometheus.constants.TestConstants.STEP;
+import static org.opensearch.sql.prometheus.constant.TestConstants.ENDTIME;
+import static org.opensearch.sql.prometheus.constant.TestConstants.QUERY;
+import static org.opensearch.sql.prometheus.constant.TestConstants.STARTTIME;
+import static org.opensearch.sql.prometheus.constant.TestConstants.STEP;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

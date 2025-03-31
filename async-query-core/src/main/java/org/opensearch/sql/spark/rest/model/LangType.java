@@ -8,7 +8,8 @@ package org.opensearch.sql.spark.rest.model;
 /** Language type accepted in async query apis. */
 public enum LangType {
   SQL("sql"),
-  PPL("ppl");
+  PPL("ppl"),
+  PROMQL("promql");
   private final String text;
 
   LangType(String text) {
