@@ -32,6 +32,6 @@ public class DateFormatFunction implements UserDefinedFunction {
       return getFormattedDateOfToday(
           new ExprStringValue(argFormat.toString()), candidateValue, restored.getQueryStartClock());
     }
-    return getFormattedDate(candidateValue, new ExprStringValue(argFormat.toString()));
+    return getFormattedDate(candidateValue, new ExprStringValue(argFormat.toString())).stringValue();
   }
 }
