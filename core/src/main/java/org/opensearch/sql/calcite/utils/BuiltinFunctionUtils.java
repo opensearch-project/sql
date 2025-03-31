@@ -547,6 +547,7 @@ public interface BuiltinFunctionUtils {
         List<RexNode> timestampAddArgs = new ArrayList<>(argList);
         timestampAddArgs.add(
             context.rexBuilder.makeFlag(argList.get(2).getType().getSqlTypeName()));
+        timestampAddArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
         return timestampAddArgs;
       case "TIMESTAMPDIFF":
         List<RexNode> timestampDiffArgs = new ArrayList<>();
@@ -658,18 +659,13 @@ public interface BuiltinFunctionUtils {
       case "DATE_FORMAT", "FORMAT_TIMESTAMP":
         RexNode dateExpr = argList.get(0);
         RexNode dateFormatPatternExpr = argList.get(1);
-        RexNode datetimeNode;
         RexNode datetimeType;
-        // Convert to timestamp if is string
-        if (dateExpr instanceof RexLiteral dateLiteral) {
-          String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
-          datetimeNode = context.rexBuilder.makeLiteral(dateStringValue);
-          datetimeType = context.rexBuilder.makeFlag(SqlTypeName.TIMESTAMP);
-        } else {
-          datetimeNode = dateExpr;
-          datetimeType = context.rexBuilder.makeFlag(dateExpr.getType().getSqlTypeName());
-        }
-        return ImmutableList.of(datetimeNode, datetimeType, dateFormatPatternExpr, context.rexBuilder.makeLiteral(currentTimestampStr));
+        datetimeType = context.rexBuilder.makeFlag(transferDateRelatedTimeName(dateExpr));
+        return ImmutableList.of(
+            dateExpr,
+            datetimeType,
+            dateFormatPatternExpr,
+            context.rexBuilder.makeLiteral(currentTimestampStr));
       case "UNIX_TIMESTAMP":
         List<RexNode> UnixArgs = new ArrayList<>(argList);
         UnixArgs.add(context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.getFirst())));
@@ -720,7 +716,7 @@ public interface BuiltinFunctionUtils {
             argList.getFirst(),
             argList.get(1),
             context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.get(1))),
-                context.rexBuilder.makeLiteral(currentTimestampStr));
+            context.rexBuilder.makeLiteral(currentTimestampStr));
       case "DATETIME":
         // Convert timestamp to a string to reuse OS PPL V2's implementation
         RexNode argTimestamp = argList.getFirst();

@@ -9,15 +9,9 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertSqlT
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimeToSec;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
-import org.opensearch.sql.data.model.ExprTimeValue;
 
 public class TimeToSecondFunction implements UserDefinedFunction {
   @Override
@@ -26,6 +20,7 @@ public class TimeToSecondFunction implements UserDefinedFunction {
       return null;
     }
     SqlTypeName timeType = (SqlTypeName) args[1];
-    return exprTimeToSec(fromObjectValue(args[0], convertSqlTypeNameToExprType(timeType))).longValue();
+    return exprTimeToSec(fromObjectValue(args[0], convertSqlTypeNameToExprType(timeType)))
+        .longValue();
   }
 }

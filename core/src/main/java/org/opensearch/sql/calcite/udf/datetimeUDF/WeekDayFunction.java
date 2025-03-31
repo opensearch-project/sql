@@ -10,13 +10,9 @@ import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.trans
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprWeekday;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class WeekDayFunction implements UserDefinedFunction {

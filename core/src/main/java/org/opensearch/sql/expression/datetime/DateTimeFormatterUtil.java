@@ -278,7 +278,8 @@ public class DateTimeFormatterUtil {
     return getFormattedString(formatExpr, DATE_HANDLERS, date);
   }
 
-  public static ExprValue getFormattedDateOfToday(ExprValue formatExpr, ExprValue time, Clock current) {
+  public static ExprValue getFormattedDateOfToday(
+      ExprValue formatExpr, ExprValue time, Clock current) {
     final LocalDateTime date = LocalDateTime.of(LocalDate.now(current), time.timeValue());
 
     return getFormattedString(formatExpr, DATE_HANDLERS, date);

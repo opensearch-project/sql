@@ -5,20 +5,15 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprTimestampValue;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprAddTime;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Objects;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
@@ -33,9 +28,9 @@ public class TimestampFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-    //LocalDateTime datetime;
-    //Instant dateTimeBase;
-    //Instant addTime;
+    // LocalDateTime datetime;
+    // Instant dateTimeBase;
+    // Instant addTime;
     long addTimeMills = 0L;
     if (Objects.isNull(args[0])) {
       return null;
@@ -44,13 +39,13 @@ public class TimestampFunction implements UserDefinedFunction {
       SqlTypeName sqlTypeName = (SqlTypeName) args[1];
       FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
       return transferInputToExprTimestampValue(args[0], sqlTypeName, restored).valueForCalcite();
-      //dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
+      // dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
     } else {
       SqlTypeName sqlTypeName = (SqlTypeName) args[2];
       ExprValue dateTimeBase = transferInputToExprValue(args[0], sqlTypeName);
       ExprValue addTime = transferInputToExprValue(args[1], (SqlTypeName) args[3]);
       return exprAddTime(FunctionProperties.None, dateTimeBase, addTime).valueForCalcite();
-      //dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
+      // dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
     }
   }
 }

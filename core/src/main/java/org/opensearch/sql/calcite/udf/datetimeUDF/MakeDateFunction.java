@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatDate;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import com.google.common.collect.ImmutableList;

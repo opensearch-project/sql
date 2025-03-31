@@ -11,15 +11,10 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearw
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.yearweekToday;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Objects;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
-import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -48,7 +43,8 @@ public class YearWeekFunction implements UserDefinedFunction {
     }
     FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     if (sqlTypeName == SqlTypeName.TIME) {
-      return yearweekToday(new ExprIntegerValue(mode), restored.getQueryStartClock()).integerValue();
+      return yearweekToday(new ExprIntegerValue(mode), restored.getQueryStartClock())
+          .integerValue();
     }
     exprValue = transferInputToExprValue(args[0], sqlTypeName);
     ExprValue yearWeekValue = exprYearweek(exprValue, new ExprIntegerValue(mode));

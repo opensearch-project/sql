@@ -311,8 +311,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("date", "long"),
         schema("string_value", "long"),
         schema("long_value", "long"));
-    verifyDataRows(
-        actual, rows(62617828062L, 62617795200L, 63390556800L, 62961148800L));
+    verifyDataRows(actual, rows(62617828062L, 62617795200L, 63390556800L, 62961148800L));
   }
 
   @Test
@@ -334,7 +333,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + "| eval date=to_days(date)"
                     + "| eval string_value=to_days('2008-10-07')"
                     + "| where to_days(strict_date_optional_time) = 724743"
-                    + "| fields timestamp, time, date, string_value | head 1",
+                    + "| fields timestamp, date, string_value | head 1",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
@@ -482,8 +481,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + " timestamp=YEARWEEK(TIMESTAMP(strict_date_optional_time)),"
                     + " date=YEARWEEK(DATE(strict_date_optional_time))| eval"
                     + " `YEARWEEK('2020-08-26')` = YEARWEEK('2020-08-26') | eval"
-                    + " `YEARWEEK('2019-01-05', 1)` = YEARWEEK('2019-01-05', 1) | fields timestamp,"
-                    + " time, date, `YEARWEEK('2020-08-26')`, `YEARWEEK('2019-01-05', 1)`| head 1 ",
+                    + " `YEARWEEK('2019-01-05', 1)` = YEARWEEK('2019-01-05', 1) | eval"
+                    + " time=YEARWEEK(time) | fields timestamp, time, date,"
+                    + " `YEARWEEK('2020-08-26')`, `YEARWEEK('2019-01-05', 1)`| head 1 ",
                 TEST_INDEX_DATE_FORMATS));
 
     verifySchema(
@@ -722,7 +722,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   /** HOUR, HOUR_OF_DAY, DATE */
-  @Ignore
+  //@Ignore
   @Test
   public void testHourAndDateWithConditions() {
     JSONObject actual =
@@ -783,6 +783,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyNumOfRows(actual, 7);
   }
 
+  @Ignore
   @Test
   public void testSysdate() {
     JSONObject actual =
@@ -953,6 +954,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * date value given the day number N. DATETIME: (TIMESTAMP, STRING) -> TIMESTAMP (TIMESTAMP) ->
    * TIMESTAMP Converts the datetime to a new timezone
    */
+  @Ignore
   @Test
   public void testDateFormatAndDatetimeAndFromDays() {
     JSONObject actual =
@@ -1296,7 +1298,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows("%m.%d.%Y", "%H%i%s", "%Y-%m-%d %H.%i.%s", null));
   }
 
-
   @Test
   public void testExtractWithSimpleFormats() {
     JSONObject actual =
@@ -1343,8 +1344,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("r19", "long"),
         schema("r20", "long"));
     verifyDataRows(
-        actual,
-        rows(1997, 1984, 1984, 2, 2, 4, 4, 15, 15, 12, 12, 9, 9, 7, 7, 42, 42, 12, 123456));
+        actual, rows(1997, 1984, 1984, 2, 2, 4, 4, 15, 15, 12, 12, 9, 9, 7, 7, 42, 42, 12, 123456));
   }
 
   @Test

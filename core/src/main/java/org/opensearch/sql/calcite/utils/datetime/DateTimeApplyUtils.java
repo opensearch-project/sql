@@ -5,18 +5,15 @@
 
 package org.opensearch.sql.calcite.utils.datetime;
 
-import static java.time.ZoneOffset.UTC;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertSqlTypeNameToExprType;
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -33,21 +30,25 @@ public interface DateTimeApplyUtils {
     return fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
   }
 
-  public static ExprValue transferInputToExprTimestampValue(Object candidate, SqlTypeName sqlTypeName, FunctionProperties properties) {
+  public static ExprValue transferInputToExprTimestampValue(
+      Object candidate, SqlTypeName sqlTypeName, FunctionProperties properties) {
     switch (sqlTypeName) {
       case TIME:
-        ExprTimeValue timeValue = (ExprTimeValue) fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
+        ExprTimeValue timeValue =
+            (ExprTimeValue) fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
         return new ExprTimestampValue(timeValue.timestampValue(properties));
       default:
         try {
-          return new ExprTimestampValue(fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName)).timestampValue());
+          return new ExprTimestampValue(
+              fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName))
+                  .timestampValue());
         } catch (SemanticCheckException e) {
-          ExprTimeValue hardTransferredTimeValue = (ExprTimeValue) fromObjectValue(candidate, ExprCoreType.TIME);
+          ExprTimeValue hardTransferredTimeValue =
+              (ExprTimeValue) fromObjectValue(candidate, ExprCoreType.TIME);
           return new ExprTimestampValue(hardTransferredTimeValue.timestampValue(properties));
         }
     }
   }
-
 
   /**
    * Create a temporal amount of the given number of units. For duration below a day, it returns

@@ -6,12 +6,9 @@
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getNullableTimestampUDTWithCharset;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTimeFormat;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;

@@ -11,16 +11,10 @@ import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
 import static org.opensearch.sql.utils.DateTimeFormatters.*;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Objects;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
-import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprLongValue;
-import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
@@ -39,7 +33,8 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
       return null;
     }
     SqlTypeName inputTypes = (SqlTypeName) args[1];
-    ExprValue candidate = fromObjectValue(args[0], convertSqlTypeNameToExprType((SqlTypeName) args[1]));
+    ExprValue candidate =
+        fromObjectValue(args[0], convertSqlTypeNameToExprType((SqlTypeName) args[1]));
     /*
     ExprValue inputValue;
 

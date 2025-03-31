@@ -104,27 +104,29 @@ public class StandaloneIT extends PPLIntegTestCase {
     request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
     client().performRequest(request2);
 
-    String actual = executeByStandaloneQueryEngine("source=test | eval a=to_days(time('12:00:00')) | fields name");
+    String actual =
+        executeByStandaloneQueryEngine(
+            "source=test | eval a=to_days(time('12:00:00')) | fields name");
     assertEquals(
-            "{\n"
-                    + "  \"schema\": [\n"
-                    + "    {\n"
-                    + "      \"name\": \"name\",\n"
-                    + "      \"type\": \"string\"\n"
-                    + "    }\n"
-                    + "  ],\n"
-                    + "  \"datarows\": [\n"
-                    + "    [\n"
-                    + "      \"hello\"\n"
-                    + "    ],\n"
-                    + "    [\n"
-                    + "      \"world\"\n"
-                    + "    ]\n"
-                    + "  ],\n"
-                    + "  \"total\": 2,\n"
-                    + "  \"size\": 2\n"
-                    + "}",
-            actual);
+        "{\n"
+            + "  \"schema\": [\n"
+            + "    {\n"
+            + "      \"name\": \"name\",\n"
+            + "      \"type\": \"string\"\n"
+            + "    }\n"
+            + "  ],\n"
+            + "  \"datarows\": [\n"
+            + "    [\n"
+            + "      \"hello\"\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      \"world\"\n"
+            + "    ]\n"
+            + "  ],\n"
+            + "  \"total\": 2,\n"
+            + "  \"size\": 2\n"
+            + "}",
+        actual);
   }
 
   @Test
