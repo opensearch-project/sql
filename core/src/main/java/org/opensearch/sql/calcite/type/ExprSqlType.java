@@ -29,6 +29,7 @@ public class ExprSqlType extends ExprRelDataType<BasicSqlType> {
   @Override
   protected void generateTypeString(StringBuilder sb, boolean withDetail) {
     sb.append(udt.name());
+    sb.append(' ');
     try {
       Method method =
           BasicSqlType.class.getDeclaredMethod(
