@@ -24,7 +24,6 @@ public class WeekFunction implements UserDefinedFunction {
       return null;
     }
 
-    // Instant i = InstantUtils.convertToInstant(args[0], (SqlTypeName) args[2], false);
     ExprValue candidate =
         fromObjectValue(args[0], convertSqlTypeNameToExprType((SqlTypeName) args[2]));
     ExprValue woyExpr =

@@ -24,13 +24,5 @@ public class GetFormatFunction implements UserDefinedFunction {
         DateTimeFunctions.exprGetFormat(
             new ExprStringValue(argType.toString()), new ExprStringValue(argStandard.toString()));
     return fmt.valueForCalcite();
-    /*
-    if (fmt.isNull()) {
-      return null;
-    }
-
-    return fmt.stringValue();
-
-     */
   }
 }

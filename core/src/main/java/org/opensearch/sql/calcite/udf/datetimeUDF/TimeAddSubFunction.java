@@ -5,15 +5,21 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprAddTime;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprSubTime;
 
 import java.time.*;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.commons.math3.analysis.function.Exp;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class TimeAddSubFunction implements UserDefinedFunction {
   @Override
@@ -26,18 +32,28 @@ public class TimeAddSubFunction implements UserDefinedFunction {
     Object argInterval = args[2];
     SqlTypeName argIntervalType = (SqlTypeName) args[3];
     boolean isAdd = (boolean) args[4];
+    ExprValue baseValue = transferInputToExprValue(args[0], baseType);
+    ExprValue intervalValue = transferInputToExprValue(argInterval, argIntervalType);
+    FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
+    ExprValue result;
+    if (isAdd) {
+       result = exprAddTime(restored, baseValue, intervalValue);
+    }
+    else  {
+      result = exprSubTime(restored, baseValue, intervalValue);
+    }
 
-    Instant base = InstantUtils.convertToInstant(argBase, baseType, false);
-    Instant interval = InstantUtils.convertToInstant(argInterval, argIntervalType, false);
-    LocalTime time = interval.atZone(ZoneOffset.UTC).toLocalTime();
-    Duration duration = Duration.between(LocalTime.MIN, time);
+    //Instant base = InstantUtils.convertToInstant(argBase, baseType, false);
+    //Instant interval = InstantUtils.convertToInstant(argInterval, argIntervalType, false);
+    //LocalTime time = interval.atZone(ZoneOffset.UTC).toLocalTime();
+    //Duration duration = Duration.between(LocalTime.MIN, time);
 
-    Instant newInstant = DateTimeApplyUtils.applyInterval(base, duration, isAdd);
+    //Instant newInstant = DateTimeApplyUtils.applyInterval(base, duration, isAdd);
 
     if (baseType == SqlTypeName.TIME) {
-      return formatTime(LocalTime.ofInstant(newInstant, ZoneOffset.UTC));
+      return new ExprTimeValue(result.timeValue()).valueForCalcite();
     } else {
-      return formatTimestamp(LocalDateTime.ofInstant(newInstant, ZoneOffset.UTC));
+      return result.valueForCalcite();
     }
   }
 }

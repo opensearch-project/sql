@@ -643,7 +643,8 @@ public interface BuiltinFunctionUtils {
         RexNode type0 = context.rexBuilder.makeFlag(arg0Type);
         RexNode type1 = context.rexBuilder.makeFlag(arg1Type);
         RexNode isAdd = context.rexBuilder.makeLiteral(true);
-        return List.of(argList.getFirst(), type0, argList.get(1), type1, isAdd);
+
+        return List.of(argList.getFirst(), type0, argList.get(1), type1, isAdd, context.rexBuilder.makeLiteral(currentTimestampStr));
       case "ADDDATE":
         return transformAddOrSubDateArgs(argList, context.rexBuilder, true, currentTimestampStr);
       case "SUBDATE":
@@ -651,6 +652,7 @@ public interface BuiltinFunctionUtils {
       case "SUBTIME":
         List<RexNode> subTimeArgs = transformTimeManipulationArgs(argList, context.rexBuilder);
         subTimeArgs.add(context.rexBuilder.makeLiteral(false));
+        subTimeArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
         return subTimeArgs;
       case "TIME":
         return ImmutableList.of(

@@ -22,12 +22,5 @@ public class TimeFunction implements UserDefinedFunction {
     Object argTime = args[0];
     SqlTypeName argType = (SqlTypeName) args[1];
     return exprTime(transferInputToExprValue(argTime, argType)).valueForCalcite();
-    /*
-    ExprValue result;
-    Instant instant = InstantUtils.convertToInstant(argTime, argType, false);
-    LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-    return formatTime(localDateTime.toLocalTime());
-
-     */
   }
 }

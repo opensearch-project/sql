@@ -9,6 +9,7 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableDat
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTimestampUDT;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.convertToTemporalAmount;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
+import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
@@ -43,16 +45,17 @@ public class DateAddSubFunction implements UserDefinedFunction {
     SqlTypeName sqlTypeName = (SqlTypeName) args[3];
     boolean isAdd = (Boolean) args[4];
     SqlTypeName returnSqlType = (SqlTypeName) args[5];
-    Instant base = InstantUtils.convertToInstant(argBase, sqlTypeName, false);
+    ExprValue base = transferInputToExprValue(argBase, sqlTypeName);
+    //Instant base = InstantUtils.convertToInstant(argBase, sqlTypeName, false);
     FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     ExprValue resultDatetime =
         DateTimeFunctions.exprDateApplyInterval(
-            restored, new ExprTimestampValue(base), convertToTemporalAmount(interval, unit), isAdd);
-    Instant resultInstant = resultDatetime.timestampValue();
+            restored, base, convertToTemporalAmount(interval, unit), isAdd);
+    //Instant resultInstant = resultDatetime.timestampValue();
     if (returnSqlType == SqlTypeName.TIMESTAMP) {
-      return formatTimestamp(LocalDateTime.ofInstant(resultInstant, ZoneOffset.UTC));
+      return resultDatetime.valueForCalcite();
     } else {
-      return formatDate(LocalDateTime.ofInstant(resultInstant, ZoneOffset.UTC).toLocalDate());
+      return new ExprDateValue(resultDatetime.dateValue()).valueForCalcite();
     }
   }
 

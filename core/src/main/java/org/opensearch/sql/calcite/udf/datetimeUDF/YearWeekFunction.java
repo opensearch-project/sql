@@ -26,8 +26,6 @@ public class YearWeekFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-
-    Instant basetime;
     int mode;
     if (Objects.isNull(args[0])) {
       return null;

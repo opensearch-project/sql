@@ -1810,7 +1810,7 @@ public class DateTimeFunctions {
    * @param temporalDelta A Date/Time/Timestamp to subtract time from.
    * @return A value calculated.
    */
-  private ExprValue exprSubTime(
+  public static ExprValue exprSubTime(
       FunctionProperties functionProperties, ExprValue temporal, ExprValue temporalDelta) {
     return exprApplyTime(functionProperties, temporal, temporalDelta, false);
   }

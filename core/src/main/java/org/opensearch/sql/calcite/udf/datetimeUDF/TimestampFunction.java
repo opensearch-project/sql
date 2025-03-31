@@ -28,10 +28,6 @@ public class TimestampFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-    // LocalDateTime datetime;
-    // Instant dateTimeBase;
-    // Instant addTime;
-    long addTimeMills = 0L;
     if (Objects.isNull(args[0])) {
       return null;
     }
@@ -39,13 +35,11 @@ public class TimestampFunction implements UserDefinedFunction {
       SqlTypeName sqlTypeName = (SqlTypeName) args[1];
       FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
       return transferInputToExprTimestampValue(args[0], sqlTypeName, restored).valueForCalcite();
-      // dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
     } else {
       SqlTypeName sqlTypeName = (SqlTypeName) args[2];
       ExprValue dateTimeBase = transferInputToExprValue(args[0], sqlTypeName);
       ExprValue addTime = transferInputToExprValue(args[1], (SqlTypeName) args[3]);
       return exprAddTime(FunctionProperties.None, dateTimeBase, addTime).valueForCalcite();
-      // dateTimeBase = InstantUtils.convertToInstant(args[0], sqlTypeName, false);
     }
   }
 }

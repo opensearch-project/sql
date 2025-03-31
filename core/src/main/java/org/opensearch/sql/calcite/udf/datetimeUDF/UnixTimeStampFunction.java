@@ -32,28 +32,8 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
     if (Objects.isNull(input)) {
       return null;
     }
-    SqlTypeName inputTypes = (SqlTypeName) args[1];
     ExprValue candidate =
         fromObjectValue(args[0], convertSqlTypeNameToExprType((SqlTypeName) args[1]));
-    /*
-    ExprValue inputValue;
-
-    if (inputTypes == SqlTypeName.DATE) {
-      inputValue =
-          new ExprDateValue(
-              LocalDateTime.ofInstant(
-                      InstantUtils.convertToInstant(input, inputTypes, false), ZoneOffset.UTC)
-                  .toLocalDate());
-    } else if (inputTypes == SqlTypeName.TIMESTAMP) {
-      inputValue =
-          new ExprTimestampValue(
-              LocalDateTime.ofInstant(
-                  InstantUtils.convertToInstant(input, inputTypes, false), ZoneOffset.UTC));
-    } else {
-      inputValue = new ExprLongValue((long) input);
-    }
-
-     */
     return (double) unixTimeStampOf(candidate).longValue();
   }
 }

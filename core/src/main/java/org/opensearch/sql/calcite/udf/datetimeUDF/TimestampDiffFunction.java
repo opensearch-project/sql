@@ -27,13 +27,7 @@ public class TimestampDiffFunction implements UserDefinedFunction {
     SqlTypeName sqlTypeName1 = (SqlTypeName) args[2];
     FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
 
-    // Instant timestamp1;
-    // timestamp1 = InstantUtils.convertToInstant(args[1], sqlTypeName1, false);
     SqlTypeName sqlTypeName2 = (SqlTypeName) args[4];
-
-    // timestamp2 = InstantUtils.convertToInstant(args[3], sqlTypeName2, false);
-    // LocalDateTime localDateTime1 = LocalDateTime.ofInstant(timestamp1, ZoneOffset.UTC);
-    // LocalDateTime localDateTime2 = LocalDateTime.ofInstant(timestamp2, ZoneOffset.UTC);
     if (sqlTypeName1 == SqlTypeName.TIME || sqlTypeName2 == SqlTypeName.TIME) {
       return exprTimestampDiffForTimeType(
           restored, new ExprStringValue(addUnit), transferInputToExprValue(args[1], SqlTypeName.TIME), transferInputToExprValue(args[3], SqlTypeName.TIME)).longValue();

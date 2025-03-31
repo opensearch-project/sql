@@ -22,8 +22,6 @@ public class TimeDiffFunction implements UserDefinedFunction {
     }
     SqlTypeName startType = (SqlTypeName) args[2];
     SqlTypeName endType = (SqlTypeName) args[3];
-    // Instant startTime = InstantUtils.convertToInstant(args[0], startType, false);
-    // Instant endTime = InstantUtils.convertToInstant(args[1], endType, false);
     ExprValue diffValue =
         exprTimeDiff(
             transferInputToExprValue(args[0], startType),

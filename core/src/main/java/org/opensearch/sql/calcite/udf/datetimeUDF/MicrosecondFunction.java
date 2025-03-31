@@ -22,7 +22,6 @@ public class MicrosecondFunction implements UserDefinedFunction {
     }
     ExprValue candidate =
         fromObjectValue(args[0], convertSqlTypeNameToExprType((SqlTypeName) args[1]));
-    // Instant timestamp = InstantUtils.convertToInstant(args[0], (SqlTypeName) args[1], false);
     return DateTimeFunctions.exprMicrosecond(candidate).integerValue();
   }
 }
