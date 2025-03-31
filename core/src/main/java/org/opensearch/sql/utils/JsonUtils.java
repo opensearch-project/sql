@@ -12,6 +12,14 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.InvalidPathException;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
+import com.jayway.jsonpath.PathNotFoundException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -79,6 +87,58 @@ public class JsonUtils {
     return processJsonNode(jsonNode);
   }
 
+  /**
+   * Extract value of JSON string at given JSON path.
+   *
+   * @param json JSON string (e.g. "{\"hello\": \"world\"}").
+   * @param paths list of JSON path (e.g. "$.hello")
+   * @return ExprValue of value at given path of json string.
+   */
+  public static ExprValue extractJson(ExprValue json, ExprValue... paths) {
+    List<ExprValue> resultList = new ArrayList<>();
+
+    for (ExprValue path : paths) {
+      System.out.println("Processing path: " + path);
+      if (json.isNull() || json.isMissing()) {
+        return json;
+      }
+
+      String jsonString = json.stringValue();
+      String jsonPath = path.stringValue();
+
+      resultList.add(extractJsonPath(jsonString, jsonPath));
+    }
+
+    if (resultList.size() == 1) {
+      return resultList.getFirst();
+    } else {
+      return new ExprCollectionValue(resultList);
+    }
+  }
+
+  private static ExprValue extractJsonPath(String json, String path) {
+    if (json.isEmpty() || json.equals("null")) {
+      return LITERAL_NULL;
+    }
+
+    try {
+      Object results = JsonPath.parse(json).read(path);
+      return ExprValueUtils.fromObjectValue(results);
+    } catch (PathNotFoundException ignored) {
+      return LITERAL_NULL;
+    } catch (InvalidPathException invalidPathException) {
+      final String errorFormat = "JSON path '%s' is not valid. Error details: %s";
+      throw new SemanticCheckException(
+          String.format(errorFormat, path, invalidPathException.getMessage()),
+          invalidPathException);
+    } catch (InvalidJsonException invalidJsonException) {
+      final String errorFormat = "JSON string '%s' is not valid. Error details: %s";
+      throw new SemanticCheckException(
+          String.format(errorFormat, json, invalidJsonException.getMessage()),
+          invalidJsonException);
+    }
+  }
+
   private static ExprValue processJsonNode(JsonNode jsonNode) {
     switch (jsonNode.getNodeType()) {
       case ARRAY:
@@ -108,5 +168,61 @@ public class JsonUtils {
         // in all other cases, return null
         return LITERAL_NULL;
     }
+  }
+
+  /**
+   * Perform an upsert operation against the incoming jsonString value with provided jsonPath and
+   * value.
+   *
+   * @param json jsonObject in String format.
+   * @param path upsert reference in the form of JsonPath.
+   * @param valueToInsert value to be added
+   * @return JsonString after the upsert operation.
+   */
+  public static ExprValue setJson(ExprValue json, ExprValue path, ExprValue valueToInsert) {
+
+    String jsonString = json.stringValue();
+    String jsonPathString = path.stringValue();
+    Object valueToInsertObj = valueToInsert.value();
+    Configuration conf =
+        Configuration.defaultConfiguration().addOptions(Option.SUPPRESS_EXCEPTIONS);
+    try {
+      JsonPath jsonPath = JsonPath.compile(jsonPathString);
+      DocumentContext docContext = JsonPath.using(conf).parse(jsonString);
+      Object readResult = docContext.read(jsonPath);
+      if (readResult == null) {
+        recursiveCreate(docContext, jsonPathString, valueToInsertObj);
+      } else {
+        docContext.set(jsonPathString, valueToInsertObj);
+      }
+      return new ExprStringValue(docContext.jsonString());
+
+    } catch (InvalidPathException e) {
+      final String errorFormat = "JSON path '%s' is not valid. Error details: %s";
+      throw new SemanticCheckException(String.format(errorFormat, path, e.getMessage()), e);
+
+    } catch (InvalidJsonException e) {
+      final String errorFormat = "JSON object '%s' is not valid. Error details: %s";
+      throw new SemanticCheckException(String.format(errorFormat, json, e.getMessage()), e);
+    }
+  }
+
+  /**
+   * Helper method to handle recursive scenario.
+   *
+   * @param docContext incoming Json in Java object form.
+   * @param path path in String to perform insertion.
+   * @param value value to be inserted with given path.
+   */
+  private static DocumentContext recursiveCreate(
+      DocumentContext docContext, String path, Object value) {
+    final int pos = path.lastIndexOf('.');
+    final String parent = path.substring(0, pos);
+    final String current = path.substring(pos + 1);
+    // Attempt to read the current path as it is, trigger the recursive in case of deep insert.
+    if (docContext.read(parent) == null) {
+      recursiveCreate(docContext, parent, new LinkedHashMap<>());
+    }
+    return docContext.put(parent, current, value);
   }
 }
