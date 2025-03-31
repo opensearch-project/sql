@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertSqlTypeNameToExprType;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
 import static org.opensearch.sql.utils.DateTimeFormatters.*;
 
@@ -37,7 +39,10 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
       return null;
     }
     SqlTypeName inputTypes = (SqlTypeName) args[1];
+    ExprValue candidate = fromObjectValue(args[0], convertSqlTypeNameToExprType((SqlTypeName) args[1]));
+    /*
     ExprValue inputValue;
+
     if (inputTypes == SqlTypeName.DATE) {
       inputValue =
           new ExprDateValue(
@@ -52,6 +57,8 @@ public class UnixTimeStampFunction implements UserDefinedFunction {
     } else {
       inputValue = new ExprLongValue((long) input);
     }
-    return (double) unixTimeStampOf(inputValue).longValue();
+
+     */
+    return (double) unixTimeStampOf(candidate).longValue();
   }
 }

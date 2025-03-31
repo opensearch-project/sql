@@ -6,6 +6,8 @@
 package org.opensearch.sql.calcite.utils.datetime;
 
 import static java.time.ZoneOffset.UTC;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertSqlTypeNameToExprType;
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -15,10 +17,18 @@ import java.time.temporal.TemporalAmount;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprValue;
 
 public interface DateTimeApplyUtils {
   static Instant applyInterval(Instant base, Duration interval, boolean isAdd) {
     return isAdd ? base.plus(interval) : base.minus(interval);
+  }
+
+  public static ExprValue transferInputToExprValue(Object candidate, SqlTypeName sqlTypeName) {
+    if (sqlTypeName == SqlTypeName.VARCHAR || sqlTypeName == SqlTypeName.CHAR) {
+      return fromObjectValue(candidate, convertSqlTypeNameToExprType(SqlTypeName.TIMESTAMP));
+    }
+    return fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
   }
 
   static ExprTimestampValue transferCalciteValueToExprTimeStampValue(

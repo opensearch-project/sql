@@ -24,6 +24,7 @@ public class MakeTimeFunction implements UserDefinedFunction {
             new ExprDoubleValue(((Number) args[0]).doubleValue()),
             new ExprDoubleValue(((Number) args[1]).doubleValue()),
             new ExprDoubleValue(((Number) args[2]).doubleValue()));
-    return formatTime(timeExpr.timeValue());
+    return timeExpr.valueForCalcite();
+    //return formatTime(timeExpr.timeValue());
   }
 }

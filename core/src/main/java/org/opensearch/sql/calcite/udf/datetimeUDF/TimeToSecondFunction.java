@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertSqlTypeNameToExprType;
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimeToSec;
 
 import java.time.Instant;
@@ -26,6 +28,6 @@ public class TimeToSecondFunction implements UserDefinedFunction {
     SqlTypeName timeType = (SqlTypeName) args[1];
     Instant time = InstantUtils.convertToInstant(args[0], timeType, false);
     LocalTime candidateTime = LocalDateTime.ofInstant(time, ZoneOffset.UTC).toLocalTime();
-    return exprTimeToSec(new ExprTimeValue(candidateTime)).longValue();
+    return exprTimeToSec(fromObjectValue(args[0], convertSqlTypeNameToExprType(timeType))).longValue();
   }
 }

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertSqlTypeNameToExprType;
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprToSeconds;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprToSecondsForIntType;
 
@@ -16,6 +18,7 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprValue;
 
 public class ToSecondsFunction implements UserDefinedFunction {
   @Override
@@ -30,10 +33,7 @@ public class ToSecondsFunction implements UserDefinedFunction {
     SqlTypeName sqlTypeName = (SqlTypeName) args[1];
     switch (sqlTypeName) {
       case DATE, TIME, TIMESTAMP, CHAR, VARCHAR:
-        ExprTimestampValue dateTimeValue =
-            new ExprTimestampValue(
-                LocalDateTime.ofInstant(
-                    InstantUtils.convertToInstant(args[0], sqlTypeName, false), ZoneOffset.UTC));
+        ExprValue dateTimeValue = fromObjectValue(args[0], convertSqlTypeNameToExprType(sqlTypeName));
         return exprToSeconds(dateTimeValue).longValue();
       default:
         return exprToSecondsForIntType(new ExprLongValue((Number) args[0])).longValue();

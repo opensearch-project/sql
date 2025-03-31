@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertSqlTypeNameToExprType;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
 
 import java.time.LocalDateTime;
@@ -31,6 +34,6 @@ public class ToDaysFunction implements UserDefinedFunction {
         new ExprTimestampValue(
             LocalDateTime.ofInstant(
                 InstantUtils.convertToInstant(args[0], sqlTypeName, false), ZoneOffset.UTC));
-    return exprToDays(candidateValue).longValue();
+    return exprToDays(transferInputToExprValue(args[0], sqlTypeName)).longValue();
   }
 }

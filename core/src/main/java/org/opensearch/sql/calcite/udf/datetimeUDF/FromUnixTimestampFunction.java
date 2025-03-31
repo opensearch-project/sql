@@ -41,16 +41,14 @@ public class FromUnixTimestampFunction implements UserDefinedFunction {
 
       } else {
         double input = ((Number) value).doubleValue();
-        return formatTimestamp(
-            LocalDateTime.ofInstant(
-                exprFromUnixTime(new ExprDoubleValue(input)).timestampValue(), ZoneOffset.UTC));
+        return exprFromUnixTime(new ExprDoubleValue(input)).valueForCalcite();
       }
     } else if (args.length == 2) {
       Object value = args[0];
       Object target = args[1];
       return exprFromUnixTimeFormat(
               new ExprDoubleValue((Number) value), new ExprStringValue((String) target))
-          .stringValue();
+          .valueForCalcite();
     } else {
       throw new IllegalArgumentException("Too many arguments for from_unixtimestamp function");
     }

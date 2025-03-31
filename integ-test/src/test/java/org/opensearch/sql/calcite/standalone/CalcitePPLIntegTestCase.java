@@ -111,7 +111,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
               .put(Key.FIELD_TYPE_TOLERANCE, true)
-              .put(Key.CALCITE_ENGINE_ENABLED, true)
+              .put(Key.CALCITE_ENGINE_ENABLED, false)
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)
               .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
               .build();

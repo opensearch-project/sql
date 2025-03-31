@@ -15,6 +15,9 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertSqlTypeNameToExprType;
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
+
 /** WEEK & WEEK_OF_YEAR */
 public class WeekFunction implements UserDefinedFunction {
   @Override
@@ -24,10 +27,11 @@ public class WeekFunction implements UserDefinedFunction {
       return null;
     }
 
-    Instant i = InstantUtils.convertToInstant(args[0], (SqlTypeName) args[2], false);
+    //Instant i = InstantUtils.convertToInstant(args[0], (SqlTypeName) args[2], false);
+    ExprValue candidate = fromObjectValue(args[0], convertSqlTypeNameToExprType((SqlTypeName) args[2]));
     ExprValue woyExpr =
         DateTimeFunctions.exprWeek(
-            new ExprTimestampValue(i), new ExprIntegerValue((Number) args[1]));
+                candidate, new ExprIntegerValue((Number) args[1]));
     return woyExpr.integerValue();
   }
 }

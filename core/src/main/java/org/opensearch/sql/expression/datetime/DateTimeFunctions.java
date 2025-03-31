@@ -1457,7 +1457,7 @@ public class DateTimeFunctions {
    * @param time The time to be formatted.
    * @return A LONG
    */
-  private ExprValue exprExtractForTime(
+  public static ExprValue exprExtractForTime(
       FunctionProperties functionProperties, ExprValue part, ExprValue time) {
     return formatExtractFunction(
         part, new ExprTimestampValue(extractTimestamp(time, functionProperties)));

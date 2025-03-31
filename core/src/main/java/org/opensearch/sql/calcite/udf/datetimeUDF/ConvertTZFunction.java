@@ -30,22 +30,12 @@ public class ConvertTZFunction implements UserDefinedFunction {
     Object argTimestamp = args[0];
     Object fromTz = args[1];
     Object toTz = args[2];
-    SqlTypeName sqlTypeName = (SqlTypeName) args[3];
-    Instant datetimeInstant;
-    try {
-      datetimeInstant = InstantUtils.convertToInstant(argTimestamp, sqlTypeName, true);
-    } catch (Exception e) {
-      return null;
-    }
     ExprValue datetimeExpr =
         DateTimeFunctions.exprConvertTZ(
-            new ExprTimestampValue(datetimeInstant),
+            new ExprStringValue(argTimestamp.toString()),
             new ExprStringValue(fromTz.toString()),
             new ExprStringValue(toTz.toString()));
 
-    if (datetimeExpr.isNull()) {
-      return null;
-    }
-    return formatTimestamp(LocalDateTime.ofInstant(datetimeExpr.timestampValue(), ZoneOffset.UTC));
+    return datetimeExpr.valueForCalcite();
   }
 }

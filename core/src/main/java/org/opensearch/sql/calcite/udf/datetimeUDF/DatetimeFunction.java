@@ -41,9 +41,13 @@ public class DatetimeFunction implements UserDefinedFunction {
           DateTimeFunctions.exprDateTime(
               argTimestampExpr, new ExprStringValue(argTimezone.toString()));
     }
+    return datetimeExpr.valueForCalcite();
+    /*
     if (datetimeExpr.isNull()) {
       return null;
     }
     return formatTimestamp(LocalDateTime.ofInstant(datetimeExpr.timestampValue(), ZoneOffset.UTC));
+
+     */
   }
 }

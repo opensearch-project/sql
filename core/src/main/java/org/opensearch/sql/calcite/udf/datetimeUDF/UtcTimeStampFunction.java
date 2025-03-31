@@ -22,7 +22,6 @@ public class UtcTimeStampFunction implements UserDefinedFunction {
       return null;
     }
     FunctionProperties restored = restoreFunctionProperties(args[0]);
-    return formatTimestamp(
-        LocalDateTime.ofInstant(exprUtcTimeStamp(restored).timestampValue(), ZoneOffset.UTC));
+    return exprUtcTimeStamp(restored).valueForCalcite();
   }
 }

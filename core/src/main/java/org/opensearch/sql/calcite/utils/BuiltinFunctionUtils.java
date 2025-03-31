@@ -532,14 +532,14 @@ public interface BuiltinFunctionUtils {
         List<RexNode> timestampArgs = new ArrayList<>(argList);
         timestampArgs.addAll(
             argList.stream()
-                .map(p -> context.rexBuilder.makeFlag(p.getType().getSqlTypeName()))
+                .map(p -> context.rexBuilder.makeFlag(transferDateRelatedTimeName(p)))
                 .collect(Collectors.toList()));
         return timestampArgs;
       case "YEARWEEK", "WEEKDAY":
         List<RexNode> weekdayArgs = new ArrayList<>(argList);
         weekdayArgs.addAll(
             argList.stream()
-                .map(p -> context.rexBuilder.makeFlag(p.getType().getSqlTypeName()))
+                .map(p -> context.rexBuilder.makeFlag(transferDateRelatedTimeName(p)))
                 .collect(Collectors.toList()));
         weekdayArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
         return weekdayArgs;

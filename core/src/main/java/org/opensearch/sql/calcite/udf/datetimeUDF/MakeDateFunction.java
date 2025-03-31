@@ -39,10 +39,13 @@ public class MakeDateFunction implements UserDefinedFunction {
     ExprDoubleValue v1 = new ExprDoubleValue((Number) args[0]);
     ExprDoubleValue v2 = new ExprDoubleValue((Number) args[1]);
     ExprValue date = nullMissingHandling(DateTimeFunctions::exprMakeDate).apply(v1, v2);
-
+    return date.valueForCalcite();
+    /*
     if (date.isNull()) {
       return null;
     }
     return formatDate(date.dateValue());
+
+     */
   }
 }

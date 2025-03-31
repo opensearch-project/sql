@@ -20,6 +20,6 @@ public class UtcTimeFunction implements UserDefinedFunction {
       return null;
     }
     FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
-    return formatTime(exprUtcTime(restored).timeValue());
+    return exprUtcTime(restored).valueForCalcite();
   }
 }
