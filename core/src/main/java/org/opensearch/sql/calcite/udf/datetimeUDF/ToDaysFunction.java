@@ -25,10 +25,6 @@ public class ToDaysFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-    if (args.length != 2) {
-      throw new IllegalArgumentException(
-          "To seconds Expected at least one arguments, got " + (args.length - 1));
-    }
     SqlTypeName sqlTypeName = (SqlTypeName) args[1];
     return exprToDays(transferInputToExprValue(args[0], sqlTypeName)).longValue();
   }

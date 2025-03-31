@@ -25,7 +25,6 @@ public class MinuteOfDayFunction implements UserDefinedFunction {
       return null;
     }
     ExprValue candidate = fromObjectValue(args[0], convertSqlTypeNameToExprType((SqlTypeName) args[1]));
-    Instant timestamp = InstantUtils.convertToInstant(args[0], (SqlTypeName) args[1], false);
     return DateTimeFunctions.exprMinuteOfDay(candidate).integerValue();
   }
 }

@@ -533,6 +533,7 @@ public interface BuiltinFunctionUtils {
             argList.stream()
                 .map(p -> context.rexBuilder.makeFlag(transferDateRelatedTimeName(p)))
                 .collect(Collectors.toList()));
+        timestampArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
         return timestampArgs;
       case "YEARWEEK", "WEEKDAY":
         List<RexNode> weekdayArgs = new ArrayList<>(argList);
@@ -652,7 +653,7 @@ public interface BuiltinFunctionUtils {
       case "TIME":
         return ImmutableList.of(
             argList.getFirst(),
-            context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
+            context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.getFirst())));
       case "DATE_FORMAT", "FORMAT_TIMESTAMP":
         RexNode dateExpr = argList.get(0);
         RexNode dateFormatPatternExpr = argList.get(1);

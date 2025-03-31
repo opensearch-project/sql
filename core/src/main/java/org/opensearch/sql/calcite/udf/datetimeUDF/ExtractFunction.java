@@ -31,7 +31,6 @@ public class ExtractFunction implements UserDefinedFunction {
     Object argTimestamp = args[1];
     SqlTypeName argType = (SqlTypeName) args[2];
 
-    Instant datetimeInstant = InstantUtils.convertToInstant(argTimestamp, argType, false);
     ExprValue candidate = fromObjectValue(argTimestamp, convertSqlTypeNameToExprType(argType));
     if (argType == SqlTypeName.TIME) {
       FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);

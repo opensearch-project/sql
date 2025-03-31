@@ -6,6 +6,8 @@
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTime;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -25,9 +27,13 @@ public class TimeFunction implements UserDefinedFunction {
 
     Object argTime = args[0];
     SqlTypeName argType = (SqlTypeName) args[1];
+    return exprTime(transferInputToExprValue(argTime, argType)).valueForCalcite();
+    /*
     ExprValue result;
     Instant instant = InstantUtils.convertToInstant(argTime, argType, false);
     LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     return formatTime(localDateTime.toLocalTime());
+
+     */
   }
 }

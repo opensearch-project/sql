@@ -16,8 +16,13 @@ import java.time.Period;
 import java.time.temporal.TemporalAmount;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 public interface DateTimeApplyUtils {
   static Instant applyInterval(Instant base, Duration interval, boolean isAdd) {
@@ -26,6 +31,21 @@ public interface DateTimeApplyUtils {
 
   public static ExprValue transferInputToExprValue(Object candidate, SqlTypeName sqlTypeName) {
     return fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
+  }
+
+  public static ExprValue transferInputToExprTimestampValue(Object candidate, SqlTypeName sqlTypeName, FunctionProperties properties) {
+    switch (sqlTypeName) {
+      case TIME:
+        ExprTimeValue timeValue = (ExprTimeValue) fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
+        return new ExprTimestampValue(timeValue.timestampValue(properties));
+      default:
+        try {
+          return new ExprTimestampValue(fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName)).timestampValue());
+        } catch (SemanticCheckException e) {
+          ExprTimeValue hardTransferredTimeValue = (ExprTimeValue) fromObjectValue(candidate, ExprCoreType.TIME);
+          return new ExprTimestampValue(hardTransferredTimeValue.timestampValue(properties));
+        }
+    }
   }
 
   static ExprTimestampValue transferCalciteValueToExprTimeStampValue(

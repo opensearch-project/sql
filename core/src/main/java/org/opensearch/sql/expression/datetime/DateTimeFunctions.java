@@ -1252,7 +1252,7 @@ public class DateTimeFunctions {
    * @param temporalDelta A Date/Time/Timestamp object to add time from.
    * @return A value calculated.
    */
-  private ExprValue exprAddTime(
+  public static ExprValue exprAddTime(
       FunctionProperties functionProperties, ExprValue temporal, ExprValue temporalDelta) {
     return exprApplyTime(functionProperties, temporal, temporalDelta, true);
   }
