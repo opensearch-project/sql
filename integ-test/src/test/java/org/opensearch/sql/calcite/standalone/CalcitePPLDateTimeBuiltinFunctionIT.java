@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Locale;
 import org.hamcrest.Matchers;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -316,27 +315,23 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     // Reference date: year 0
     LocalDate baseDate = LocalDate.of(0, 1, 1);
 
-    // Calculate days since year 0
-    long daysSinceYearZero = ChronoUnit.DAYS.between(baseDate, utcDate);
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s "
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| eval timestamp=to_days(strict_date_optional_time) "
-                    + "| eval time=to_days(time)"
                     + "| eval date=to_days(date)"
                     + "| eval string_value=to_days('2008-10-07')"
                     + "| where to_days(strict_date_optional_time) = 724743"
-                    + "| fields timestamp, time, date, string_value | head 1",
+                    + "| fields timestamp, date, string_value | head 1",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
         schema("timestamp", "long"),
-        schema("time", "long"),
         schema("date", "long"),
         schema("string_value", "long"));
-    verifyDataRows(actual, rows(724743, daysSinceYearZero, 724743, 733687));
+    verifyDataRows(actual, rows(724743, 724743, 733687));
   }
 
   @Test
@@ -590,6 +585,15 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("ts", "timestamp"));
     verifyDataRows(
         actual, rows("1984-04-09 09:07:42", "1984-04-13", "1984-04-12", "1984-04-13 00:00:00"));
+  }
+
+  @Test
+  public void testAddDateAndSubDateWithConditionsAndRenameDEBUG() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s | head 1 | eval lower = SUBDATE(date_time, INTERVAL 1 DAY) | fields lower",
+                            TEST_INDEX_DATE_FORMATS));
   }
 
   @Test

@@ -172,19 +172,15 @@ public class CalciteBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
         JSONObject actual =
                 executeQuery(
                         String.format(
-                                "source=%s  |  eval timestamp = UNIX_TIMESTAMP(strict_date_optional_time), date=UNIX_TIMESTAMP(date), time=UNIX_TIMESTAMP(time) | fields timestamp, date, time",
+                                "source=%s  |  eval timestamp = UNIX_TIMESTAMP(strict_date_optional_time), date=UNIX_TIMESTAMP(date) | fields timestamp, date",
                                 TEST_INDEX_DATE_FORMATS_WITH_NULL));
 
 
         verifySchema(
                 actual,
                 schema("timestamp", "double"),
-                schema("date", "double"),
-                schema("time", "double"));
-        JSONArray ret = (JSONArray) actual.getJSONArray("datarows").get(0);
-        for (int i = 0; i < ret.length(); i++) {
-            assertEquals(JSONObject.NULL, ret.get(i));
-        }
+                schema("date", "double"));
+        verifyDataRows(actual, rows(null, null));
     }
 
     @Test

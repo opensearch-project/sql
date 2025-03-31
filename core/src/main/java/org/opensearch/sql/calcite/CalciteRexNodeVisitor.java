@@ -54,6 +54,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.udf.UserDefinedFunctionValidator;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -357,12 +358,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> arguments =
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
     if (!UserDefinedFunctionValidator.validateFunction(node.getFuncName(), arguments)) {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException(
+          String.format(
+              "Function %s got incompatible arguments: (%s)",
+              node.getFuncName(),
+              arguments.stream()
+                  .map(UserDefinedFunctionUtils::transferDateRelatedTimeName)
+                  .map(SqlTypeName::toString)
+                  .collect(Collectors.joining(", "))));
     }
     SqlOperator operator = BuiltinFunctionUtils.translate(node.getFuncName());
     List<RexNode> translatedArguments =
-        BuiltinFunctionUtils.translateArgument(node.getFuncName(), arguments, context,
-                context.functionProperties.getQueryStartClock().instant().toString());
+        BuiltinFunctionUtils.translateArgument(
+            node.getFuncName(),
+            arguments,
+            context,
+            context.functionProperties.getQueryStartClock().instant().toString());
     RelDataType returnType =
         BuiltinFunctionUtils.deriveReturnType(
             node.getFuncName(), context.rexBuilder, operator, translatedArguments);

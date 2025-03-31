@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -16,8 +18,6 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
-
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 
 /**
  * Calculates the difference of date parts of given values. If the first argument is time, today's
@@ -40,7 +40,7 @@ public class DateDiffFunction implements UserDefinedFunction {
     LocalDateTime localDateTime2 = LocalDateTime.ofInstant(timestamp2, ZoneOffset.UTC);
     ExprValue diffResult =
         DateTimeFunctions.exprDateDiff(
-                restored,
+            restored,
             new ExprTimestampValue(localDateTime1),
             new ExprTimestampValue(localDateTime2));
     return diffResult.longValue();

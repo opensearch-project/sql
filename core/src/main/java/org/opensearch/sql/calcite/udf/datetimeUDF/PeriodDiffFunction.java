@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprIntegerValue;
@@ -19,11 +17,6 @@ public class PeriodDiffFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-    UserDefinedFunctionUtils.validateArgumentCount("PERIOD_DIFF", 2, args.length, false);
-
-    UserDefinedFunctionUtils.validateArgumentTypes(
-        Arrays.asList(args), ImmutableList.of(Number.class, Number.class));
-
     ExprValue periodDiffExpr =
         DateTimeFunctions.exprPeriodDiff(
             new ExprIntegerValue((Number) args[0]), new ExprIntegerValue((Number) args[1]));

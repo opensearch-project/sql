@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprIntegerValue;

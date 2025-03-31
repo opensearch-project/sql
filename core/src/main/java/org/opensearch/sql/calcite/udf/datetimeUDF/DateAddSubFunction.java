@@ -10,13 +10,9 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTim
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.convertToTemporalAmount;
 
-import com.google.common.collect.ImmutableList;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Arrays;
-import java.util.Collections;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -37,25 +33,6 @@ public class DateAddSubFunction implements UserDefinedFunction {
       return null;
     }
 
-    //UserDefinedFunctionUtils.validateArgumentCount("DATE_ADD / DATE_SUB", 6, args.length, false);
-    /*
-    UserDefinedFunctionUtils.validateArgumentTypes(
-        Arrays.asList(args),
-        ImmutableList.of(
-            TimeUnit.class,
-            Number.class,
-            Number.class,
-            SqlTypeName.class,
-            Boolean.class,
-            SqlTypeName.class),
-        Collections.nCopies(6, true));
-
-     */
-
-    if (UserDefinedFunctionUtils.containsNull(args)) {
-      return null;
-    }
-
     TimeUnit unit = (TimeUnit) args[0];
     long interval = ((Number) args[1]).longValue();
     Object argBase = args[2];
@@ -66,10 +43,7 @@ public class DateAddSubFunction implements UserDefinedFunction {
     FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     ExprValue resultDatetime =
         DateTimeFunctions.exprDateApplyInterval(
-                restored,
-            new ExprTimestampValue(base),
-            convertToTemporalAmount(interval, unit),
-            isAdd);
+            restored, new ExprTimestampValue(base), convertToTemporalAmount(interval, unit), isAdd);
     Instant resultInstant = resultDatetime.timestampValue();
     if (returnSqlType == SqlTypeName.TIMESTAMP) {
       return formatTimestamp(LocalDateTime.ofInstant(resultInstant, ZoneOffset.UTC));

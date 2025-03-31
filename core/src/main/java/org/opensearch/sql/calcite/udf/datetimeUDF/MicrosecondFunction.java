@@ -14,12 +14,12 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 
 public class MicrosecondFunction implements UserDefinedFunction {
-    @Override
-    public Object eval(Object... args) {
-        if (UserDefinedFunctionUtils.containsNull(args)) {
-            return null;
-        }
-        Instant timestamp = InstantUtils.convertToInstant(args[0], (SqlTypeName) args[1], false);
-        return DateTimeFunctions.exprMicrosecond(new ExprTimestampValue(timestamp)).integerValue();
+  @Override
+  public Object eval(Object... args) {
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
     }
+    Instant timestamp = InstantUtils.convertToInstant(args[0], (SqlTypeName) args[1], false);
+    return DateTimeFunctions.exprMicrosecond(new ExprTimestampValue(timestamp)).integerValue();
+  }
 }

@@ -10,13 +10,11 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTim
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTimestampUDT;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
-import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -29,7 +27,6 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
@@ -168,7 +165,7 @@ public class UserDefinedFunctionUtils {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(0);
       if (operandType0 instanceof ExprBasicSqlUDT) {
-        if (operandType0 instanceof ExprDateType || operandType0 instanceof ExprTimeStampType){
+        if (operandType0 instanceof ExprDateType || operandType0 instanceof ExprTimeStampType) {
           return nullableTimestampUDT;
         } else if (operandType0 instanceof ExprTimeType) {
           return nullableTimeUDT;
@@ -180,10 +177,10 @@ public class UserDefinedFunctionUtils {
       return switch (typeName) {
         case DATE, TIMESTAMP ->
         // Return TIMESTAMP
-                nullableTimestampUDT;
+        nullableTimestampUDT;
         case TIME ->
         // Return TIME
-                nullableTimeUDT;
+        nullableTimeUDT;
         default -> throw new IllegalArgumentException("Unsupported type: " + typeName);
       };
     };
@@ -204,12 +201,6 @@ public class UserDefinedFunctionUtils {
     };
   }
 
-
-  static RelDataType createNullableReturnType(
-      RelDataTypeFactory typeFactory, SqlTypeName sqlTypeName) {
-    return typeFactory.createTypeWithNullability(typeFactory.createSqlType(sqlTypeName), true);
-  }
-
   static List<Integer> transferStringExprToDateValue(String timeExpr) {
     try {
       if (timeExpr.contains(":")) {
@@ -226,81 +217,6 @@ public class UserDefinedFunctionUtils {
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(
           String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", timeExpr));
-    }
-  }
-
-  /**
-   * Check whether a function gets enough arguments.
-   *
-   * @param funcName the name of the function
-   * @param expectedArguments the number of expected arguments
-   * @param actualArguments the number of actual arguments
-   * @param exactMatch whether the number of actual arguments should precisely match the number of
-   *     expected arguments. If false, it suffices as long as the number of actual number of
-   *     arguments is not smaller that the number of expected arguments.
-   * @throws IllegalArgumentException if the argument length does not match the expected one
-   */
-  public static void validateArgumentCount(
-      String funcName, int expectedArguments, int actualArguments, boolean exactMatch) {
-    if (exactMatch) {
-      if (actualArguments != expectedArguments) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Mismatch arguments: function %s expects %d arguments, but got %d",
-                funcName, expectedArguments, actualArguments));
-      }
-    } else {
-      if (actualArguments < expectedArguments) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Mismatch arguments: function %s expects at least %d arguments, but got %d",
-                funcName, expectedArguments, actualArguments));
-      }
-    }
-  }
-
-  /**
-   * Validates that the given list of objects matches the given list of types.
-   *
-   * <p>This function first checks if the sizes of the two lists match. If not, it throws an {@code
-   * IllegalArgumentException}. Then, it iterates through the lists and checks if each object is an
-   * instance of the corresponding type. If any object is not of the expected type, it throws an
-   * {@code IllegalArgumentException} with a descriptive message.
-   *
-   * @param objects the list of objects to validate
-   * @param types the list of expected types
-   * @throws IllegalArgumentException if the sizes of the lists do not match or if any object is not
-   *     an instance of the corresponding type
-   */
-  public static void validateArgumentTypes(List<Object> objects, List<Class<?>> types) {
-    validateArgumentTypes(objects, types, Collections.nCopies(types.size(), false));
-  }
-
-  public static void validateArgumentTypes(
-      List<Object> objects, List<Class<?>> types, boolean nullable) {
-    validateArgumentTypes(objects, types, Collections.nCopies(types.size(), nullable));
-  }
-
-  public static void validateArgumentTypes(
-      List<Object> objects, List<Class<?>> types, List<Boolean> nullables) {
-    if (objects.size() < types.size()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Mismatch in the number of objects and types. Got %d objects and %d types",
-              objects.size(), types.size()));
-    }
-    for (int i = 0; i < types.size(); i++) {
-      if (objects.get(i) == null && nullables.get(i)) {
-        continue;
-      }
-      if (!types.get(i).isInstance(objects.get(i))) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Object at index %d is not of type %s (Got %s)",
-                i,
-                types.get(i).getName(),
-                objects.get(i) == null ? "null" : objects.get(i).getClass().getName()));
-      }
     }
   }
 
@@ -337,13 +253,16 @@ public class UserDefinedFunctionUtils {
     if (candidate.getType() instanceof ExprBasicSqlUDT) {
       ExprBasicSqlUDT dateType = (ExprBasicSqlUDT) candidate.getType();
       ExprType udtType = dateType.getExprType();
-      List<RexNode> preprocessArgs = List.of(candidate, rexBuilder.makeFlag(PreprocessForUDTFunction.getInputType(udtType)));
+      List<RexNode> preprocessArgs =
+          List.of(candidate, rexBuilder.makeFlag(PreprocessForUDTFunction.getInputType(udtType)));
 
-      RexNode calciteTypeArgument = rexBuilder.makeCall(
+      RexNode calciteTypeArgument =
+          rexBuilder.makeCall(
               TransferUserDefinedFunction(
-                      PreprocessForUDTFunction.class,
-                      "PREPROCESS",
-                      PreprocessForUDTFunction.getSqlReturnTypeInference(udtType)), preprocessArgs);
+                  PreprocessForUDTFunction.class,
+                  "PREPROCESS",
+                  PreprocessForUDTFunction.getSqlReturnTypeInference(udtType)),
+              preprocessArgs);
       return calciteTypeArgument;
     } else {
       return candidate;
@@ -367,8 +286,8 @@ public class UserDefinedFunctionUtils {
   public static FunctionProperties restoreFunctionProperties(Object timestampStr) {
     String expression = (String) timestampStr;
     Instant parsed = Instant.parse(expression);
-    FunctionProperties functionProperties = new FunctionProperties(parsed, ZoneId.systemDefault(), QueryType.PPL);
+    FunctionProperties functionProperties =
+        new FunctionProperties(parsed, ZoneId.systemDefault(), QueryType.PPL);
     return functionProperties;
   }
-
 }

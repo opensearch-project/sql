@@ -5,14 +5,13 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import java.sql.Time;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
+
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
-
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
 
 public class MakeTimeFunction implements UserDefinedFunction {
   @Override
