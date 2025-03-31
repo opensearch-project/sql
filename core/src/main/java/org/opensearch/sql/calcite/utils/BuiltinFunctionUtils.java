@@ -471,25 +471,7 @@ public interface BuiltinFunctionUtils {
       case "DATE":
         List<RexNode> dateArgs = new ArrayList<>();
         RexNode timestampExpr = argList.get(0);
-        if (timestampExpr instanceof RexLiteral) {
-          RexLiteral dateLiteral = (RexLiteral) timestampExpr;
-          String dateStringValue = dateLiteral.getValueAs(String.class);
-          List<Integer> dateValueList = transferStringExprToDateValue(dateStringValue);
-          dateArgs.add(
-              context.rexBuilder.makeLiteral(
-                  dateValueList.get(0),
-                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
-          dateArgs.add(
-              context.rexBuilder.makeLiteral(
-                  dateValueList.get(1),
-                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
-          dateArgs.add(
-              context.rexBuilder.makeLiteral(
-                  dateValueList.get(2),
-                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER)));
-        } else {
-          dateArgs.add(wrapperByPreprocess(timestampExpr, context.rexBuilder));
-        }
+        dateArgs.add(wrapperByPreprocess(timestampExpr, context.rexBuilder));
         RexNode wrappedCall = context.rexBuilder.makeCall(SqlLibraryOperators.DATE, dateArgs);
         return List.of(wrappedCall, context.rexBuilder.makeFlag(SqlTypeName.DATE));
       case "LAST_DAY":
