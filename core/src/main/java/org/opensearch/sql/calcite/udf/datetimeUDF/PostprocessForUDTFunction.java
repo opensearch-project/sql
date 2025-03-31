@@ -9,6 +9,9 @@ import java.util.Objects;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.datetime.InstantUtils;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 
 public class PostprocessForUDTFunction implements UserDefinedFunction {
   @Override
@@ -22,11 +25,11 @@ public class PostprocessForUDTFunction implements UserDefinedFunction {
     LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     switch (sqlTypeName) {
       case DATE:
-        return formatDate(localDateTime.toLocalDate());
+        return new ExprDateValue(localDateTime.toLocalDate()).valueForCalcite();
       case TIME:
-        return formatTime(localDateTime.toLocalTime());
+        return new ExprTimeValue(localDateTime.toLocalTime()).valueForCalcite();
       case TIMESTAMP:
-        return formatTimestamp(localDateTime);
+        return new ExprTimestampValue(localDateTime).valueForCalcite();
       default:
         throw new IllegalArgumentException("Unsupported datetime type: " + sqlTypeName);
     }

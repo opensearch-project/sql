@@ -13,7 +13,6 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VA
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -306,17 +305,6 @@ public class UserDefinedFunctionUtils {
     return Arrays.stream(objects).anyMatch(Objects::isNull);
   }
 
-  public static String formatTimestamp(LocalDateTime localDateTime) {
-    String base = localDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-    int nano = localDateTime.getNano();
-    if (nano == 0) return base;
-
-    String nanoStr = String.format(Locale.ENGLISH, "%09d", nano);
-    nanoStr = nanoStr.replaceFirst("0+$", "");
-
-    return base + "." + nanoStr;
-  }
-
   public static String formatTimestampWithoutUnnecessaryNanos(LocalDateTime localDateTime) {
     String base = localDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     int nano = localDateTime.getNano();
@@ -328,20 +316,6 @@ public class UserDefinedFunctionUtils {
       return base + "." + nanoStr;
     }
     return base;
-    // return base + "." + nanoStr;
-  }
-
-  public static String formatTime(LocalTime time) {
-    String base = time.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-    int nano = time.getNano();
-    if (nano == 0) return base;
-
-    String nanoStr = String.format(Locale.ENGLISH, "%09d", nano).replaceFirst("0+$", "");
-    return base + "." + nanoStr;
-  }
-
-  public static String formatDate(LocalDate date) {
-    return date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
   }
 
   public static RexNode wrapperByPreprocess(RexNode candidate, RexBuilder rexBuilder) {

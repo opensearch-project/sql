@@ -98,30 +98,10 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public static RelDataType nullableTimestampUDT =
       TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
 
-  public static RelDataType getNullableTimeUDTWithCharset() {
-    Charset charset = TYPE_FACTORY.getDefaultCharset();
-    SqlCollation collation = SqlCollation.IMPLICIT;
-    RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
-    if (type instanceof ExprBasicSqlType udt) {
-      return udt.createWithCharsetAndCollation(charset, collation);
-    }
-    return type;
-  }
-
   public static RelDataType getNullableTimestampUDTWithCharset() {
     Charset charset = TYPE_FACTORY.getDefaultCharset();
     SqlCollation collation = SqlCollation.IMPLICIT;
     RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
-    if (type instanceof ExprBasicSqlType udt) {
-      return udt.createWithCharsetAndCollation(charset, collation);
-    }
-    return type;
-  }
-
-  public static RelDataType getNullableDateUDTWithCharset() {
-    Charset charset = TYPE_FACTORY.getDefaultCharset();
-    SqlCollation collation = SqlCollation.IMPLICIT;
-    RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
     if (type instanceof ExprBasicSqlType udt) {
       return udt.createWithCharsetAndCollation(charset, collation);
     }

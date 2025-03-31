@@ -5,13 +5,13 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 
 public class SysdateFunction implements UserDefinedFunction {
   @Override
@@ -25,6 +25,6 @@ public class SysdateFunction implements UserDefinedFunction {
     } else {
       localDateTime = formatNow(Clock.systemDefaultZone(), (int) args[0]);
     }
-    return formatTimestamp(localDateTime);
+    return new ExprTimestampValue(localDateTime).valueForCalcite();
   }
 }

@@ -722,7 +722,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   /** HOUR, HOUR_OF_DAY, DATE */
-  // @Ignore
+  @Ignore
   @Test
   public void testHourAndDateWithConditions() {
     JSONObject actual =

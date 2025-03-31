@@ -5,14 +5,11 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTimestamp;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimestampAdd;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimestampAddForTimeType;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -41,6 +38,6 @@ public class TimestampAddFunction implements UserDefinedFunction {
     }
     ExprValue returnValue =
         exprTimestampAdd(new ExprStringValue(addUnit), new ExprLongValue(amount), timestampBase);
-    return formatTimestamp(LocalDateTime.ofInstant(returnValue.timestampValue(), ZoneOffset.UTC));
+    return returnValue.valueForCalcite();
   }
 }

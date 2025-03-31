@@ -5,12 +5,8 @@
 
 package org.opensearch.sql.calcite.utils.datetime;
 
-import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprDateTimeNoTimezone;
-
 import java.time.*;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.data.model.ExprStringValue;
-import org.opensearch.sql.data.model.ExprValue;
 
 public interface InstantUtils {
 
@@ -64,33 +60,18 @@ public interface InstantUtils {
   static Instant convertToInstant(
       Object candidate, SqlTypeName sqlTypeName, boolean onlyForTimestamp) {
     Instant dateTimeBase = null;
-    if (candidate instanceof String) {
-      String timestampExpression = (String) candidate;
-      if (onlyForTimestamp) {
-        ExprValue timestampExpr = exprDateTimeNoTimezone(new ExprStringValue(timestampExpression));
-        if (timestampExpr.isNull()) {
-          throw new IllegalArgumentException(
-              "Cannot convert " + timestampExpression + " to Instant");
-        } else {
-          dateTimeBase = timestampExpr.timestampValue();
-        }
-      } else {
-        dateTimeBase = InstantUtils.fromStringExpr(timestampExpression);
-      }
-    } else {
-      switch (sqlTypeName) {
-        case DATE:
-          dateTimeBase = InstantUtils.fromInternalDate((int) candidate);
-          break;
-        case TIMESTAMP:
-          dateTimeBase = InstantUtils.fromEpochMills((long) candidate);
-          break;
-        case TIME:
-          dateTimeBase = InstantUtils.fromInternalTime((int) candidate);
-          break;
-        default:
-          throw new IllegalArgumentException("Cannot convert " + candidate + " to Instant");
-      }
+    switch (sqlTypeName) {
+      case DATE:
+        dateTimeBase = InstantUtils.fromInternalDate((int) candidate);
+        break;
+      case TIMESTAMP:
+        dateTimeBase = InstantUtils.fromEpochMills((long) candidate);
+        break;
+      case TIME:
+        dateTimeBase = InstantUtils.fromInternalTime((int) candidate);
+        break;
+      default:
+        dateTimeBase = InstantUtils.fromStringExpr((String) candidate);
     }
     return dateTimeBase;
   }

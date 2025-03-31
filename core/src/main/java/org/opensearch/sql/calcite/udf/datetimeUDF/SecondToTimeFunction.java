@@ -5,12 +5,12 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprSecToTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprSecToTimeWithNanos;
 
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 
@@ -36,6 +36,6 @@ public class SecondToTimeFunction implements UserDefinedFunction {
       transferredValue = ExprValueUtils.floatValue((Float) candidate);
       returnTimeValue = exprSecToTimeWithNanos(transferredValue);
     }
-    return formatTime(returnTimeValue.timeValue());
+    return new ExprTimeValue(returnTimeValue.timeValue()).valueForCalcite();
   }
 }

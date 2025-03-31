@@ -5,13 +5,13 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.formatTime;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimeDiff;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprValue;
 
 public class TimeDiffFunction implements UserDefinedFunction {
@@ -26,6 +26,6 @@ public class TimeDiffFunction implements UserDefinedFunction {
         exprTimeDiff(
             transferInputToExprValue(args[0], startType),
             transferInputToExprValue(args[1], endType));
-    return formatTime(diffValue.timeValue());
+    return new ExprTimeValue(diffValue.timeValue()).valueForCalcite();
   }
 }

@@ -95,8 +95,6 @@ public interface BuiltinFunctionUtils {
 
   Set<String> TIME_EXCLUSIVE_OPS =
       Set.of("SECOND", "SECOND_OF_MINUTE", "MINUTE", "MINUTE_OF_HOUR", "HOUR", "HOUR_OF_DAY");
-  Set<String> DATE_EXCLUSIVE_OPS =
-      Set.of("DAY", "DAY_OF_MONTH", "DAYOFMONTH", "MONTH", "MONTH_OF_YEAR", "YEAR", "QUARTER");
 
   static SqlOperator translate(String op) {
     String capitalOP = op.toUpperCase(Locale.ROOT);
