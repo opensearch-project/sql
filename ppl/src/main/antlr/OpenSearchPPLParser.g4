@@ -983,6 +983,7 @@ keywordsCanBeId
    | multiFieldRelevanceFunctionName
    | commandName
    | comparisonOperator
+   | patternMethod
    // commands assist keywords
    | IN
    | BETWEEN
@@ -994,6 +995,9 @@ keywordsCanBeId
    | FROM
    | PATTERN
    | NEW_FIELD
+   | VARIABLE_COUNT_THRESHOLD
+   | FREQUENCY_THRESHOLD_PERCENTAGE
+   | WITH
    | REGEX
    | PUNCT
    | USING
@@ -1048,10 +1052,6 @@ keywordsCanBeId
    | LAST
    | LIST
    | VALUES
-   | EARLIEST
-   | EARLIEST_TIME
-   | LATEST
-   | LATEST_TIME
    | PER_DAY
    | PER_HOUR
    | PER_MINUTE
@@ -1069,4 +1069,6 @@ keywordsCanBeId
    | FULL
    | SEMI
    | ANTI
+   | LEFT_HINT
+   | RIGHT_HINT
    ;
