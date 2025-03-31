@@ -30,10 +30,6 @@ public class ToDaysFunction implements UserDefinedFunction {
           "To seconds Expected at least one arguments, got " + (args.length - 1));
     }
     SqlTypeName sqlTypeName = (SqlTypeName) args[1];
-    ExprValue candidateValue =
-        new ExprTimestampValue(
-            LocalDateTime.ofInstant(
-                InstantUtils.convertToInstant(args[0], sqlTypeName, false), ZoneOffset.UTC));
     return exprToDays(transferInputToExprValue(args[0], sqlTypeName)).longValue();
   }
 }

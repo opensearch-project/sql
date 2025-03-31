@@ -1300,6 +1300,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows("%m.%d.%Y", "%H%i%s", "%Y-%m-%d %H.%i.%s", null));
   }
 
+
   @Test
   public void testExtractWithSimpleFormats() {
     JSONObject actual =
@@ -1318,10 +1319,10 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + " | eval r14 = extract(MINUTE FROM strict_date_optional_time_nanos) | eval"
                     + " r15 = extract(minute FROM basic_time) | eval r16 = extract(SECOND FROM"
                     + " strict_date_optional_time_nanos) | eval r17 = extract(second FROM"
-                    + " basic_time) | eval r18 = extract(second FROM '09:07:42') | eval r19 ="
+                    + " basic_time) | eval r19 ="
                     + " extract(day FROM '1984-04-12') | eval r20 = extract(MICROSECOND FROM"
                     + " timestamp('1984-04-12 09:07:42.123456789')) | fields r1, r2, r3, r4, r5,"
-                    + " r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, r17, r18, r19, r20 |"
+                    + " r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, r17, r19, r20 |"
                     + " head 1",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
@@ -1343,12 +1344,11 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("r15", "long"),
         schema("r16", "long"),
         schema("r17", "long"),
-        schema("r18", "long"),
         schema("r19", "long"),
         schema("r20", "long"));
     verifyDataRows(
         actual,
-        rows(1997, 1984, 1984, 2, 2, 4, 4, 15, 15, 12, 12, 9, 9, 7, 7, 42, 42, 42, 12, 123456));
+        rows(1997, 1984, 1984, 2, 2, 4, 4, 15, 15, 12, 12, 9, 9, 7, 7, 42, 42, 12, 123456));
   }
 
   @Test

@@ -16,7 +16,7 @@ public class CalciteStatsCommandIT extends StatsCommandIT {
     enableCalcite();
   }
 
-  @Ignore("https://github.com/opensearch-project/sql/issues/3475")
+  @Ignore("https://github.com/opensearch-project/sql/issues/3495")
   @Override
   public void testStatsPercentileByNullValue() throws IOException {
     super.testStatsPercentileByNullValue();

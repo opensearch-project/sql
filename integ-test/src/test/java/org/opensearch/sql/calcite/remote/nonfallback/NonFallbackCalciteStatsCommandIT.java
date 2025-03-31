@@ -19,7 +19,7 @@ public class NonFallbackCalciteStatsCommandIT extends CalciteStatsCommandIT {
     disallowCalciteFallback();
   }
 
-  @Ignore("Percentile issue")
+  @Ignore("https://github.com/opensearch-project/sql/issues/3495")
   @Override
   public void testStatsPercentileByNullValue() throws IOException {
     super.testStatsPercentileByNullValue();

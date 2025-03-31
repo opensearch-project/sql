@@ -25,9 +25,6 @@ public interface DateTimeApplyUtils {
   }
 
   public static ExprValue transferInputToExprValue(Object candidate, SqlTypeName sqlTypeName) {
-    if (sqlTypeName == SqlTypeName.VARCHAR || sqlTypeName == SqlTypeName.CHAR) {
-      return fromObjectValue(candidate, convertSqlTypeNameToExprType(SqlTypeName.TIMESTAMP));
-    }
     return fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
   }
 

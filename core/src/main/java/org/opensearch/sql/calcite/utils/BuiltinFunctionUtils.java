@@ -9,7 +9,6 @@ import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
@@ -713,12 +712,13 @@ public interface BuiltinFunctionUtils {
         // Convert STRING/TIME/TIMESTAMP to TIMESTAMP
         return ImmutableList.of(
             argList.getFirst(),
-            context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
+            context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.getFirst())));
       case "EXTRACT":
         return ImmutableList.of(
             argList.getFirst(),
             argList.get(1),
-            context.rexBuilder.makeFlag(argList.get(1).getType().getSqlTypeName()));
+            context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.get(1))),
+                context.rexBuilder.makeLiteral(currentTimestampStr));
       case "DATETIME":
         // Convert timestamp to a string to reuse OS PPL V2's implementation
         RexNode argTimestamp = argList.getFirst();
@@ -906,7 +906,7 @@ public interface BuiltinFunctionUtils {
     for (int index : indexes) {
       RexNode arg = args.get(index);
       result.add(arg);
-      result.add(rexBuilder.makeFlag(arg.getType().getSqlTypeName()));
+      result.add(rexBuilder.makeFlag(transferDateRelatedTimeName(arg)));
     }
     return result;
   }
