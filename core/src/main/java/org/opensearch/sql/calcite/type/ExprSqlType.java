@@ -36,7 +36,7 @@ public class ExprSqlType extends ExprRelDataType<BasicSqlType> {
       method.setAccessible(true);
       method.invoke(super.relType, sb, withDetail);
     } catch (Exception e) {
-      throw new IllegalStateException("cannot invoke");
+      throw new IllegalStateException("Unable to invoke generateTypeString for BasicSqlType", e);
     }
   }
 
