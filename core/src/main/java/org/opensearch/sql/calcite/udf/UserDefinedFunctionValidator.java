@@ -19,14 +19,17 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 public class UserDefinedFunctionValidator {
   public static final Set<SqlTypeName> STRING_TYPES = Set.of(SqlTypeName.VARCHAR, SqlTypeName.CHAR);
   public static final Set<SqlTypeName> INTEGRAL_TYPES =
-      Set.of(SqlTypeName.INTEGER, SqlTypeName.BIGINT);
+      Set.of(SqlTypeName.INTEGER, SqlTypeName.BIGINT, SqlTypeName.TINYINT, SqlTypeName.SMALLINT);
   public static final Set<SqlTypeName> NUMERIC_TYPES =
       Set.of(
+          SqlTypeName.TINYINT,
+          SqlTypeName.SMALLINT,
           SqlTypeName.INTEGER,
           SqlTypeName.DECIMAL,
           SqlTypeName.DOUBLE,
           SqlTypeName.FLOAT,
-          SqlTypeName.BIGINT);
+          SqlTypeName.BIGINT,
+          SqlTypeName.REAL);
   public static final Set<SqlTypeName> DATE_TIMESTAMP_TYPES =
       Set.of(SqlTypeName.DATE, SqlTypeName.TIMESTAMP, SqlTypeName.VARCHAR, SqlTypeName.CHAR);
   public static final Set<SqlTypeName> DATE_TIME_TIMESTAMP_TYPES =
@@ -40,12 +43,13 @@ public class UserDefinedFunctionValidator {
       ImmutableSet.copyOf(SqlTypeFamily.DATETIME_INTERVAL.getTypeNames());
   public static final List<List<SqlTypeName>> EMPTY_ARG = ImmutableList.of(ImmutableList.of());
 
-    /**
-     * Validate the function arguments against the supported overloads.
-     * @param op The name of the function to be validated. It is case-insensitive.
-     * @param argList The list of arguments passed to the function. Each argument is a RexNode.
-     * @return True if the arguments match one of the supported overloads of the function.
-     */
+  /**
+   * Validate the function arguments against the supported overloads.
+   *
+   * @param op The name of the function to be validated. It is case-insensitive.
+   * @param argList The list of arguments passed to the function. Each argument is a RexNode.
+   * @return True if the arguments match one of the supported overloads of the function.
+   */
   public static boolean validateFunction(String op, List<RexNode> argList) {
     List<SqlTypeName> argTypeNames =
         argList.stream().map(UserDefinedFunctionUtils::transferDateRelatedTimeName).toList();
@@ -82,7 +86,35 @@ public class UserDefinedFunctionValidator {
             // STRING FUNCTIONS
           case "REPLACE" -> overload(STRING_TYPES, STRING_TYPES, STRING_TYPES);
             // MATH FUNCTIONS
-          case "MOD" -> overload(NUMERIC_TYPES, NUMERIC_TYPES);
+          case "ABS",
+              "ACOS",
+              "ASIN",
+              "COS",
+              "COT",
+              "DEGREES",
+              "EXP",
+              "FLOOR",
+              "LN",
+              "LOG2",
+              "LOG10",
+              "RADIANS",
+              "SIGN",
+              "SIN",
+              "SQRT",
+              "CBRT" -> overload(NUMERIC_TYPES);
+          case "ATAN", "LOG" -> Iterables.concat(
+              overload(NUMERIC_TYPES), overload(NUMERIC_TYPES, NUMERIC_TYPES));
+          case "ATAN2", "MOD", "POW", "POWER" -> overload(NUMERIC_TYPES, NUMERIC_TYPES);
+          case "CEIL", "CEILING" -> overload(NUMERIC_TYPES);
+          case "CONV" -> Iterables.concat(
+              overload(STRING_TYPES, INTEGRAL_TYPES, INTEGRAL_TYPES),
+              overload(INTEGRAL_TYPES, INTEGRAL_TYPES, INTEGRAL_TYPES));
+          case "CRC32" -> overload(STRING_TYPES);
+          case "E", "PI" -> EMPTY_ARG;
+          case "RAND" -> Iterables.concat(EMPTY_ARG, overload(INTEGRAL_TYPES));
+          case "ROUND" -> Iterables.concat(
+              overload(NUMERIC_TYPES), overload(NUMERIC_TYPES, INTEGRAL_TYPES));
+
             // DATE TIME FUNCTIONS
           case "ADDDATE", "SUBDATE" -> Iterables.concat(
               overload(DATE_TIME_TIMESTAMP_TYPES, INTERVAL_TYPES),
