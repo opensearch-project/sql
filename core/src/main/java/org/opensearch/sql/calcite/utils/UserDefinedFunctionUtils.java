@@ -37,6 +37,7 @@ import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
@@ -54,6 +55,8 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class UserDefinedFunctionUtils {
+  public static SqlReturnTypeInference INTEGER_FORCE_NULLABLE =
+      ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE);
   public static RelDataType nullableTimeUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
   public static RelDataType nullableDateUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
   public static RelDataType nullableTimestampUDT =

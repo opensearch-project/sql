@@ -29,7 +29,6 @@ import java.util.Locale;
 import org.hamcrest.Matchers;
 import org.json.JSONObject;
 import org.junit.Ignore;
-import org.junit.experimental.categories.Categories;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -288,7 +287,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows("01:00:01", "00:20:34.123"));
   }
 
-  // @Ignore
   @Test
   public void testToSeconds() {
     JSONObject actual =
@@ -720,7 +718,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   /** HOUR, HOUR_OF_DAY, DATE */
-  @Ignore
   @Test
   public void testHourAndDateWithConditions() {
     JSONObject actual =
@@ -822,7 +819,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * DAY, DAY_OF_MONTH, DAYOFMONTH, DAY_OF_WEEK, DAYOFWEEK, DAY_OF_YEAR, DAYOFYEAR f.t. ADDDATE,
    * SUBDATE
    */
-  @Ignore
   @Test
   public void testDayOfAndAddSubDateWithConditions() {
     JSONObject actual =
@@ -864,7 +860,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * LAST_DAY(DATE/STRING/TIMESTAMP/TIME) -> DATE (last day of the month as a DATE for a valid
    * argument.) MAKE_DATE(DOUBLE, DOUBLE) -> DATE (Create a date from the year and day of year.)
    */
-  @Ignore
   @Test
   public void testDayNameAndMonthNameAndMakeDate() {
     JSONObject actual =
@@ -954,7 +949,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * date value given the day number N. DATETIME: (TIMESTAMP, STRING) -> TIMESTAMP (TIMESTAMP) ->
    * TIMESTAMP Converts the datetime to a new timezone
    */
-  @Ignore
   @Test
   public void testDateFormatAndDatetimeAndFromDays() {
     JSONObject actual =
@@ -1114,7 +1108,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows(200804, 199206, 11, -25));
   }
 
-  @Ignore
   @Test
   public void testMinuteOfHourAndMinuteOfDay() {
     JSONObject actual =

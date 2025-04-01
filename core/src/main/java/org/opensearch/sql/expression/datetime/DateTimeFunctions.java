@@ -1115,7 +1115,7 @@ public class DateTimeFunctions {
     return new ExprIntegerValue(LocalDateTime.now(clock).getDayOfMonth());
   }
 
-  private ExprValue dayOfYearToday(Clock clock) {
+  public static ExprValue dayOfYearToday(Clock clock) {
     return new ExprIntegerValue(LocalDateTime.now(clock).getDayOfYear());
   }
 
@@ -1130,7 +1130,7 @@ public class DateTimeFunctions {
    * @param clock Current clock taken from function properties
    * @return ExprValue.
    */
-  private ExprValue dayOfWeekToday(Clock clock) {
+  public static ExprValue dayOfWeekToday(Clock clock) {
     return new ExprIntegerValue((formatNow(clock).getDayOfWeek().getValue() % 7) + 1);
   }
 
@@ -1393,7 +1393,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String/Time/Timestamp type.
    * @return ExprValue.
    */
-  private ExprValue exprDayOfMonth(ExprValue date) {
+  public static ExprValue exprDayOfMonth(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getDayOfMonth());
   }
 
@@ -1403,7 +1403,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String/Timstamp type.
    * @return ExprValue.
    */
-  private ExprValue exprDayOfWeek(ExprValue date) {
+  public static ExprValue exprDayOfWeek(ExprValue date) {
     return new ExprIntegerValue((date.dateValue().getDayOfWeek().getValue() % 7) + 1);
   }
 
@@ -1413,7 +1413,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String type.
    * @return ExprValue.
    */
-  private ExprValue exprDayOfYear(ExprValue date) {
+  public static ExprValue exprDayOfYear(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getDayOfYear());
   }
 
@@ -1525,7 +1525,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprHour(ExprValue time) {
+  public static ExprValue exprHour(ExprValue time) {
     return new ExprIntegerValue(HOURS.between(LocalTime.MIN, time.timeValue()));
   }
 
@@ -1546,7 +1546,7 @@ public class DateTimeFunctions {
    * @param timestamp A DATE/TIMESTAMP/STRING ExprValue.
    * @return An DATE value corresponding to the last day of the month of the given argument.
    */
-  private ExprValue exprLastDay(ExprValue timestamp) {
+  public static ExprValue exprLastDay(ExprValue timestamp) {
     return new ExprDateValue(getLastDay(timestamp.dateValue()));
   }
 
@@ -1556,7 +1556,7 @@ public class DateTimeFunctions {
    * @param clock The clock for the query start time from functionProperties.
    * @return An DATE value corresponding to the last day of the month of the given argument.
    */
-  private ExprValue exprLastDayToday(Clock clock) {
+  public static ExprValue exprLastDayToday(Clock clock) {
     return new ExprDateValue(getLastDay(formatNow(clock).toLocalDate()));
   }
 
@@ -1628,7 +1628,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprMinute(ExprValue time) {
+  public static ExprValue exprMinute(ExprValue time) {
     return new ExprIntegerValue((MINUTES.between(LocalTime.MIN, time.timeValue()) % 60));
   }
 
@@ -1648,7 +1648,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String type.
    * @return ExprValue.
    */
-  private ExprValue exprMonth(ExprValue date) {
+  public static ExprValue exprMonth(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getMonthValue());
   }
 
@@ -1724,7 +1724,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String type.
    * @return ExprValue.
    */
-  private ExprValue exprQuarter(ExprValue date) {
+  public static ExprValue exprQuarter(ExprValue date) {
     int month = date.dateValue().getMonthValue();
     return new ExprIntegerValue((month / 3) + ((month % 3) == 0 ? 0 : 1));
   }
@@ -1775,7 +1775,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprSecond(ExprValue time) {
+  public static ExprValue exprSecond(ExprValue time) {
     return new ExprIntegerValue((SECONDS.between(LocalTime.MIN, time.timeValue()) % 60));
   }
 
@@ -2192,7 +2192,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String type.
    * @return ExprValue.
    */
-  private ExprValue exprYear(ExprValue date) {
+  public static ExprValue exprYear(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getYear());
   }
 
@@ -2241,7 +2241,7 @@ public class DateTimeFunctions {
     return extractYearweek(LocalDateTime.now(clock).toLocalDate(), mode.integerValue());
   }
 
-  private ExprValue monthOfYearToday(Clock clock) {
+  public static ExprValue monthOfYearToday(Clock clock) {
     return new ExprIntegerValue(LocalDateTime.now(clock).getMonthValue());
   }
 

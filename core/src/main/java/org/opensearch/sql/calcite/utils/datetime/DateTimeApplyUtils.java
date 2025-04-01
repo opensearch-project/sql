@@ -77,4 +77,9 @@ public interface DateTimeApplyUtils {
           "No mapping defined for Calcite TimeUnit: " + unit);
     };
   }
+
+  static ExprValue transferTimeToTimestamp(
+      ExprValue candidate, FunctionProperties functionProperties) {
+    return new ExprTimestampValue(((ExprTimeValue) candidate).timestampValue(functionProperties));
+  }
 }
