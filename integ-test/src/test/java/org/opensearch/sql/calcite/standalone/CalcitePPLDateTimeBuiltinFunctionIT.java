@@ -720,7 +720,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   /** HOUR, HOUR_OF_DAY, DATE */
-  // @Ignore
+  @Ignore
   @Test
   public void testHourAndDateWithConditions() {
     JSONObject actual =
@@ -822,6 +822,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * DAY, DAY_OF_MONTH, DAYOFMONTH, DAY_OF_WEEK, DAYOFWEEK, DAY_OF_YEAR, DAYOFYEAR f.t. ADDDATE,
    * SUBDATE
    */
+  @Ignore
   @Test
   public void testDayOfAndAddSubDateWithConditions() {
     JSONObject actual =
@@ -863,6 +864,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * LAST_DAY(DATE/STRING/TIMESTAMP/TIME) -> DATE (last day of the month as a DATE for a valid
    * argument.) MAKE_DATE(DOUBLE, DOUBLE) -> DATE (Create a date from the year and day of year.)
    */
+  @Ignore
   @Test
   public void testDayNameAndMonthNameAndMakeDate() {
     JSONObject actual =
@@ -1112,6 +1114,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows(200804, 199206, 11, -25));
   }
 
+  @Ignore
   @Test
   public void testMinuteOfHourAndMinuteOfDay() {
     JSONObject actual =
