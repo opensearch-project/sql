@@ -21,13 +21,13 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.data.type.ExprType;
 
 @Getter
-public abstract class ExprRelDataType<T extends RelDataType> extends RelDataTypeImpl {
+public abstract class AbstractExprRelDataType<T extends RelDataType> extends RelDataTypeImpl {
 
   protected final ExprUDT udt;
 
   protected final T relType;
 
-  protected ExprRelDataType(ExprUDT udt, T relType) {
+  protected AbstractExprRelDataType(ExprUDT udt, T relType) {
     this.udt = udt;
     this.relType = relType;
     computeDigest();

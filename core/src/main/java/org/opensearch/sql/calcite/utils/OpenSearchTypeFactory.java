@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_IP;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
@@ -40,9 +39,9 @@ import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprIPType;
-import org.opensearch.sql.calcite.type.ExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.data.model.ExprValue;
@@ -79,7 +78,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   @Override
   public RelDataType createTypeWithNullability(RelDataType type, boolean nullable) {
-    if (type instanceof ExprRelDataType<?> udt) {
+    if (type instanceof AbstractExprRelDataType<?> udt) {
       return udt.createWithNullability(this, nullable);
     }
     return super.createTypeWithNullability(type, nullable);
@@ -88,7 +87,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   @Override
   public RelDataType createTypeWithCharsetAndCollation(
       RelDataType type, Charset charset, SqlCollation collation) {
-    if (type instanceof ExprRelDataType<?> udt) {
+    if (type instanceof AbstractExprRelDataType<?> udt) {
       return udt.createWithCharsetAndCollation(this, charset, collation);
     }
     return super.createTypeWithCharsetAndCollation(type, charset, collation);
@@ -242,7 +241,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Get legacy name for a RelDataType. */
   public static String getLegacyTypeName(RelDataType relDataType, QueryType queryType) {
-    if (relDataType instanceof ExprRelDataType<?> udt) {
+    if (relDataType instanceof AbstractExprRelDataType<?> udt) {
       return udt.getExprType().legacyTypeName();
     }
     switch (relDataType.getSqlTypeName()) {
@@ -260,7 +259,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
-    if (type instanceof ExprRelDataType<?> udt) {
+    if (type instanceof AbstractExprRelDataType<?> udt) {
       return udt.getExprType();
     }
     ExprType exprType = convertSqlTypeNameToExprType(type.getSqlTypeName());
@@ -320,7 +319,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   /** not in use for now, but let's keep this code for future reference. */
   @Override
   public Type getJavaClass(RelDataType type) {
-    if (type instanceof ExprRelDataType<?> exprRelDataType) {
+    if (type instanceof AbstractExprRelDataType<?> exprRelDataType) {
       return exprRelDataType.getJavaType();
     }
     return super.getJavaClass(type);

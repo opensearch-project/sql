@@ -12,7 +12,11 @@ import org.apache.calcite.sql.SqlCollation;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 
-public class ExprJavaType extends ExprRelDataType<JavaType> {
+/**
+ * The JavaType for ExprUDT. The UDT which needs to use self-implemented java class should extend
+ * this.
+ */
+public class ExprJavaType extends AbstractExprRelDataType<JavaType> {
   public ExprJavaType(OpenSearchTypeFactory typeFactory, ExprUDT exprUDT, Class<?> javaClazz) {
     super(exprUDT, (JavaType) typeFactory.createJavaType(javaClazz));
   }

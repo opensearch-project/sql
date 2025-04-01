@@ -17,7 +17,8 @@ import org.locationtech.jts.geom.Geometry;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 
-public class ExprSqlType extends ExprRelDataType<BasicSqlType> {
+/** The SqlType for ExprUDT. The UDT which uses a standard SQL type should extend this. */
+public class ExprSqlType extends AbstractExprRelDataType<BasicSqlType> {
   public ExprSqlType(OpenSearchTypeFactory typeFactory, ExprUDT exprUDT, SqlTypeName sqlTypeName) {
     this(exprUDT, (BasicSqlType) typeFactory.createSqlType(sqlTypeName));
   }
