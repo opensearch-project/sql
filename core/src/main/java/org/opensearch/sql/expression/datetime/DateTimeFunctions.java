@@ -1425,7 +1425,7 @@ public class DateTimeFunctions {
    * @return is a LONG formatted according to the input arguments.
    */
   public static ExprLongValue formatExtractFunction(ExprValue part, ExprValue timestamp) {
-    String partName = part.stringValue().toUpperCase();
+    String partName = part.stringValue().toUpperCase(Locale.ROOT);
     LocalDateTime arg = timestamp.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();
 
     // Override "Week" to use the IsoFields week-of-week-based-year format
@@ -1509,9 +1509,11 @@ public class DateTimeFunctions {
    * @return ExprValue..
    */
   public static ExprValue exprGetFormat(ExprValue type, ExprValue format) {
-    if (formats.contains(type.stringValue().toLowerCase(), format.stringValue().toLowerCase())) {
+    if (formats.contains(
+        type.stringValue().toLowerCase(), format.stringValue().toLowerCase(Locale.ROOT))) {
       return new ExprStringValue(
-          formats.get(type.stringValue().toLowerCase(), format.stringValue().toLowerCase()));
+          formats.get(
+              type.stringValue().toLowerCase(), format.stringValue().toLowerCase(Locale.ROOT)));
     }
 
     return ExprNullValue.of();

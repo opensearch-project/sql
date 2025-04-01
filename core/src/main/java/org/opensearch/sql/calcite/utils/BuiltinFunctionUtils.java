@@ -33,8 +33,10 @@ import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.OrdinalReturnTypeInference;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.TimestampString;
@@ -162,7 +164,9 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(ReplaceFunction.class, "REPLACE", ReturnTypes.CHAR);
       case "LOCATE":
         return TransferUserDefinedFunction(
-            LocateFunction.class, "LOCATE", createNullableReturnType(SqlTypeName.INTEGER));
+            LocateFunction.class,
+            "LOCATE",
+            ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE));
       case "UPPER":
         return SqlStdOperatorTable.UPPER;
         // Built-in Math Functions
@@ -309,13 +313,18 @@ public interface BuiltinFunctionUtils {
             SpanFunction.class, "SPAN", ReturnTypes.ARG0_FORCE_NULLABLE);
         // Built-in condition functions
       case "IF":
-        return TransferUserDefinedFunction(IfFunction.class, "if", getReturnTypeInference(1));
+        return TransferUserDefinedFunction(
+            IfFunction.class,
+            "if",
+            new OrdinalReturnTypeInference(1).andThen(SqlTypeTransforms.FORCE_NULLABLE));
       case "IFNULL":
         return TransferUserDefinedFunction(
-            IfNullFunction.class, "ifnull", getReturnTypeInference(1));
+            IfNullFunction.class,
+            "ifnull",
+            new OrdinalReturnTypeInference(1).andThen(SqlTypeTransforms.FORCE_NULLABLE));
       case "NULLIF":
         return TransferUserDefinedFunction(
-            NullIfFunction.class, "nullif", getReturnTypeInference(0));
+            NullIfFunction.class, "nullif", ReturnTypes.ARG0_FORCE_NULLABLE);
       case "IS NOT NULL":
         return SqlStdOperatorTable.IS_NOT_NULL;
       case "IS NULL":
@@ -748,7 +757,7 @@ public interface BuiltinFunctionUtils {
   static RelDataType deriveReturnType(
       String funcName, RexBuilder rexBuilder, SqlOperator operator, List<? extends RexNode> exprs) {
     RelDataType returnType =
-        switch (funcName.toUpperCase()) {
+        switch (funcName.toUpperCase(Locale.ROOT)) {
             // This effectively invalidates the operand type check, which leads to unnecessary
             // incompatible parameter type errors
           case "DATEDIFF" -> rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BIGINT);

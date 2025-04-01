@@ -191,21 +191,6 @@ public class UserDefinedFunctionUtils {
     };
   }
 
-  /**
-   * Create a RelDataType based on a SqlTypeName, then convert it to nullable. This functions
-   * effectively the same as <code>ReturnTypes.TYPE_NAME.andThen(SqlTypeTransforms.FORCE_NULLABLE)
-   * </code>
-   *
-   * @param typeName a SqlTypeName
-   * @return a nullable RelDataType
-   */
-  public static SqlReturnTypeInference createNullableReturnType(SqlTypeName typeName) {
-    return opBinding -> {
-      RelDataType relDataType = opBinding.getTypeFactory().createSqlType(typeName);
-      return opBinding.getTypeFactory().createTypeWithNullability(relDataType, true);
-    };
-  }
-
   static List<Integer> transferStringExprToDateValue(String timeExpr) {
     try {
       if (timeExpr.contains(":")) {

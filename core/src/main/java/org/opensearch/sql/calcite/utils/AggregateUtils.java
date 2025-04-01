@@ -10,7 +10,6 @@ import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_SAMP_NU
 import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_POP_NULLABLE;
 import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_SAMP_NULLABLE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.getReturnTypeInference;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -20,6 +19,7 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -78,7 +78,7 @@ public interface AggregateUtils {
         return TransferUserDefinedAggFunction(
             PercentileApproxFunction.class,
             "percentile_approx",
-            getReturnTypeInference(0),
+            ReturnTypes.ARG0_FORCE_NULLABLE,
             List.of(field),
             newArgList,
             context.relBuilder);

@@ -21,6 +21,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
@@ -56,7 +57,6 @@ import org.opensearch.sql.calcite.type.ExprBasicSqlType;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessDateToStringFunction;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
-import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -221,7 +221,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           TransferUserDefinedFunction(
               PostprocessDateToStringFunction.class,
               "PostprocessDateToString",
-              UserDefinedFunctionUtils.createNullableReturnType(SqlTypeName.CHAR));
+              ReturnTypes.CHAR_FORCE_NULLABLE);
       RexNode transferredStringNode =
           context.rexBuilder.makeCall(postToStringNode, List.of(candidate));
       return transferredStringNode;
