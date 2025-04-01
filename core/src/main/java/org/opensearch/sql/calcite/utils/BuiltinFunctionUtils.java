@@ -48,6 +48,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.ConvertTZFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateFormatFunction;
+import org.opensearch.sql.calcite.udf.datetimeUDF.DateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.FromDaysFunction;
@@ -239,7 +240,9 @@ public interface BuiltinFunctionUtils {
             PostprocessForUDTFunction.class, "POSTPROCESS", dateInference);
       case "DATE":
         return TransferUserDefinedFunction(
-            PostprocessForUDTFunction.class, "POSTPROCESS", dateInference);
+                DateFunction.class, "DATE", dateInference);
+        //return TransferUserDefinedFunction(
+        //    PostprocessForUDTFunction.class, "POSTPROCESS", dateInference);
         // return SqlLibraryOperators.DATE;
       case "DATE_ADD":
         return TransferUserDefinedFunction(
@@ -469,11 +472,8 @@ public interface BuiltinFunctionUtils {
         }
         return LogArgs;
       case "DATE":
-        List<RexNode> dateArgs = new ArrayList<>();
-        RexNode timestampExpr = argList.get(0);
-        dateArgs.add(wrapperByPreprocess(timestampExpr, context.rexBuilder));
-        RexNode wrappedCall = context.rexBuilder.makeCall(SqlLibraryOperators.DATE, dateArgs);
-        return List.of(wrappedCall, context.rexBuilder.makeFlag(SqlTypeName.DATE));
+        List<RexNode> dateArgs = List.of(argList.get(0), context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.get(0))), context.rexBuilder.makeLiteral(currentTimestampStr));
+        return dateArgs;
       case "LAST_DAY":
         List<RexNode> lastDateArgs = new ArrayList<>();
         RexNode lastDayTimestampExpr = argList.get(0);

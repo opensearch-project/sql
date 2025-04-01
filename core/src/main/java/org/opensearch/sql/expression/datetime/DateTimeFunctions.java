@@ -1300,7 +1300,7 @@ public class DateTimeFunctions {
    * @param exprValue ExprValue of Date type or String type.
    * @return ExprValue.
    */
-  private ExprValue exprDate(ExprValue exprValue) {
+  public static ExprValue exprDate(ExprValue exprValue) {
     if (exprValue instanceof ExprStringValue) {
       return new ExprDateValue(exprValue.stringValue());
     } else {

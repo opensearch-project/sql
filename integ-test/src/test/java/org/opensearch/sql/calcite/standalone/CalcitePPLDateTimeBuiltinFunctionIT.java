@@ -49,8 +49,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     initRelativeDocs();
   }
 
-  private static String getFormattedUtcDate() {
-    return LocalDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+  private static String getFormattedLocalDate() {
+    return LocalDateTime.now(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
   }
 
   void verifyDateFormat(String date, String type, String format, String formatted)
@@ -147,7 +147,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             "2020-08-26 13:49:00",
             "2020-08-26 00:00:00",
             "2020-08-26 13:49:00",
-            getFormattedUtcDate() + " 13:49:00",
+            getFormattedLocalDate() + " 13:49:00",
             "2020-08-26 13:59:10",
             "2020-08-26 13:59:10",
             "2020-08-26 13:49:00",
@@ -288,11 +288,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   @Ignore
   @Test
   public void testToSeconds() {
-    LocalDateTime todayStart = LocalDateTime.now(ZoneOffset.UTC).toLocalDate().atStartOfDay();
-    LocalDateTime baseDateTime = LocalDateTime.of(0, 1, 1, 0, 0, 0);
-
-    long secondsSinceYearZero =
-        ChronoUnit.SECONDS.between(baseDateTime, todayStart) + 9 * 3600 + 7 * 60 + 42;
     JSONObject actual =
         executeQuery(
             String.format(
@@ -599,7 +594,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
   @Test
   public void testDateAddAndSub() {
-    String expectedDate = getFormattedUtcDate();
+    String expectedDate = getFormattedLocalDate();
 
     JSONObject actual =
         executeQuery(
