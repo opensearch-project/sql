@@ -111,17 +111,19 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   @Override
   public void execute(
       RelNode rel, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
-    AccessController.doPrivileged(
-        (PrivilegedAction<Void>)
-            () -> {
-              try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
-                ResultSet result = statement.executeQuery();
-                buildResultSet(result, rel.getRowType(), listener);
-                return null;
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
-              }
-            });
+    client.schedule(
+        () ->
+            AccessController.doPrivileged(
+                (PrivilegedAction<Void>)
+                    () -> {
+                      try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
+                        ResultSet result = statement.executeQuery();
+                        buildResultSet(result, rel.getRowType(), listener);
+                      } catch (SQLException e) {
+                        listener.onFailure(e);
+                      }
+                      return null;
+                    }));
   }
 
   private void buildResultSet(
