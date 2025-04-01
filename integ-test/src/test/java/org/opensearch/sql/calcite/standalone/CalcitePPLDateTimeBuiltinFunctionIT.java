@@ -50,7 +50,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   private static String getFormattedLocalDate() {
-    return LocalDateTime.now(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    return LocalDateTime.now(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
   }
 
   void verifyDateFormat(String date, String type, String format, String formatted)

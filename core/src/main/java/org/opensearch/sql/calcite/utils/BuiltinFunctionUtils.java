@@ -239,9 +239,8 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(
             PostprocessForUDTFunction.class, "POSTPROCESS", dateInference);
       case "DATE":
-        return TransferUserDefinedFunction(
-                DateFunction.class, "DATE", dateInference);
-        //return TransferUserDefinedFunction(
+        return TransferUserDefinedFunction(DateFunction.class, "DATE", dateInference);
+        // return TransferUserDefinedFunction(
         //    PostprocessForUDTFunction.class, "POSTPROCESS", dateInference);
         // return SqlLibraryOperators.DATE;
       case "DATE_ADD":
@@ -472,7 +471,11 @@ public interface BuiltinFunctionUtils {
         }
         return LogArgs;
       case "DATE":
-        List<RexNode> dateArgs = List.of(argList.get(0), context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.get(0))), context.rexBuilder.makeLiteral(currentTimestampStr));
+        List<RexNode> dateArgs =
+            List.of(
+                argList.get(0),
+                context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.get(0))),
+                context.rexBuilder.makeLiteral(currentTimestampStr));
         return dateArgs;
       case "LAST_DAY":
         List<RexNode> lastDateArgs = new ArrayList<>();
