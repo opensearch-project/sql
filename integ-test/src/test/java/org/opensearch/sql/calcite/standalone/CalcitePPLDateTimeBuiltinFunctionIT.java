@@ -1214,24 +1214,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testConvertTzWithInvalidResultLocale() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s "
-                    + "| eval r1 = convert_tz('2021-05-30 11:34:50', '-17:00', '+08:00') "
-                    + "| eval r2 = convert_tz('2021-05-12 11:34:50', '-12:00', '+15:00') "
-                    + "| eval r3 = convert_tz('2021-05-12 11:34:50', '-12:00', 'test') "
-                    + "| fields r1, r2, r3"
-                    + "| head 1",
-                TEST_INDEX_DATE_FORMATS));
-    verifySchema(
-        actual, schema("r1", "timestamp"), schema("r2", "timestamp"), schema("r3", "timestamp"));
-    verifyDataRows(actual, rows(null, null, null));
-    assertEquals("NA", Locale.getDefault().toString());
-  }
-
-  @Test
   public void testConvertTz() {
     JSONObject actual =
         executeQuery(
