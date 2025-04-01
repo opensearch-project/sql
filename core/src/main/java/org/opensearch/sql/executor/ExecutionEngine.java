@@ -48,6 +48,9 @@ public interface ExecutionEngine {
   default void execute(
       RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {}
 
+  default void explain(
+      RelNode plan, CalcitePlanContext context, ResponseListener<ExplainResponse> listener) {}
+
   /** Data class that encapsulates ExprValue. */
   @Data
   class QueryResponse {
@@ -72,9 +75,19 @@ public interface ExecutionEngine {
    * Data class that encapsulates explain result. This can help decouple core engine from concrete
    * explain response format.
    */
-  @Data
   class ExplainResponse {
     private final ExplainResponseNode root;
+    private final String logical; // used in Calcite plan explain
+
+    public ExplainResponse(ExplainResponseNode root) {
+      this.root = root;
+      this.logical = null;
+    }
+
+    public ExplainResponse(String logical) {
+      this.root = null;
+      this.logical = logical;
+    }
   }
 
   @AllArgsConstructor

@@ -109,6 +109,19 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   }
 
   @Override
+  public void explain(
+      RelNode rel, CalcitePlanContext context, ResponseListener<ExplainResponse> listener) {
+    client.schedule(
+        () -> {
+          try {
+            listener.onResponse(new ExplainResponse(rel.explain()));
+          } catch (Exception e) {
+            listener.onFailure(e);
+          }
+        });
+  }
+
+  @Override
   public void execute(
       RelNode rel, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
     client.schedule(
