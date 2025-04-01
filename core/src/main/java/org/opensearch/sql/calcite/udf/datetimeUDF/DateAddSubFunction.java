@@ -28,10 +28,6 @@ public class DateAddSubFunction implements UserDefinedFunction {
       return null;
     }
 
-    if (UserDefinedFunctionUtils.containsNull(args)) {
-      return null;
-    }
-
     TimeUnit unit = (TimeUnit) args[0];
     long interval = ((Number) args[1]).longValue();
     Object argBase = args[2];
@@ -39,12 +35,10 @@ public class DateAddSubFunction implements UserDefinedFunction {
     boolean isAdd = (Boolean) args[4];
     SqlTypeName returnSqlType = (SqlTypeName) args[5];
     ExprValue base = transferInputToExprValue(argBase, sqlTypeName);
-    // Instant base = InstantUtils.convertToInstant(argBase, sqlTypeName, false);
     FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     ExprValue resultDatetime =
         DateTimeFunctions.exprDateApplyInterval(
             restored, base, convertToTemporalAmount(interval, unit), isAdd);
-    // Instant resultInstant = resultDatetime.timestampValue();
     if (returnSqlType == SqlTypeName.TIMESTAMP) {
       return resultDatetime.valueForCalcite();
     } else {

@@ -5,12 +5,11 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprAddTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprSubTime;
 
-import java.time.*;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -38,13 +37,6 @@ public class TimeAddSubFunction implements UserDefinedFunction {
     } else {
       result = exprSubTime(restored, baseValue, intervalValue);
     }
-
-    // Instant base = InstantUtils.convertToInstant(argBase, baseType, false);
-    // Instant interval = InstantUtils.convertToInstant(argInterval, argIntervalType, false);
-    // LocalTime time = interval.atZone(ZoneOffset.UTC).toLocalTime();
-    // Duration duration = Duration.between(LocalTime.MIN, time);
-
-    // Instant newInstant = DateTimeApplyUtils.applyInterval(base, duration, isAdd);
 
     if (baseType == SqlTypeName.TIME) {
       return new ExprTimeValue(result.timeValue()).valueForCalcite();

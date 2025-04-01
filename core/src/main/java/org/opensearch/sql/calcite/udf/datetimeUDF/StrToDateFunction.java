@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;

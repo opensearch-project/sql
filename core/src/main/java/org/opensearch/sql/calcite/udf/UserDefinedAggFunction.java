@@ -6,7 +6,7 @@
 package org.opensearch.sql.calcite.udf;
 
 /**
- * TO DO. support init with constant arguments https://github.com/opensearch-project/sql/issues/3490
+ * TODO. support init with constant arguments https://github.com/opensearch-project/sql/issues/3490
  */
 public interface UserDefinedAggFunction<S extends UserDefinedAggFunction.Accumulator> {
   /**

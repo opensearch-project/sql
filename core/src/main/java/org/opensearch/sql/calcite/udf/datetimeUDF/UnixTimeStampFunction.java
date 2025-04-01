@@ -8,8 +8,8 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertSqlTypeNameToExprType;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
-import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
-import static org.opensearch.sql.utils.DateTimeFormatters.*;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.unixTimeStamp;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.unixTimeStampOf;
 
 import java.util.Objects;
 import org.apache.calcite.sql.type.SqlTypeName;

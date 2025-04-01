@@ -97,7 +97,7 @@ import org.opensearch.sql.calcite.udf.systemUDF.TypeOfFunction;
 import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
 import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
 
-/** TO DO: We need to refactor code to make all */
+/** TODO: We need to refactor code to make all */
 public interface BuiltinFunctionUtils {
 
   Set<String> TIME_EXCLUSIVE_OPS =
@@ -330,7 +330,6 @@ public interface BuiltinFunctionUtils {
         // TODO optimize this function to ImplementableFunction
         return TransferUserDefinedFunction(
             TypeOfFunction.class, "typeof", ReturnTypes.VARCHAR_2000_NULLABLE);
-        // TODO Add more, ref RexImpTable
       case "DAYNAME":
         return TransferUserDefinedFunction(PeriodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
       case "MONTHNAME":
@@ -407,6 +406,7 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(UtcTimeFunction.class, "utc_time", timeInference);
       case "UTC_DATE":
         return TransferUserDefinedFunction(UtcDateFunction.class, "utc_date", dateInference);
+        // TODO Add more, ref RexImpTable
       default:
         throw new IllegalArgumentException("Unsupported operator: " + op);
     }

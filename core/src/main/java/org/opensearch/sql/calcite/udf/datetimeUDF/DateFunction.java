@@ -30,12 +30,5 @@ public class DateFunction implements UserDefinedFunction {
       return new ExprDateValue(((ExprTimeValue) candidate).dateValue(restored)).valueForCalcite();
     }
     return exprDate(candidate).valueForCalcite();
-
-    // try {
-    //  return exprDate(transferInputToExprTimestampValue(args[0], (SqlTypeName) args[1], restored))
-    //      .valueForCalcite();
-    // } catch (SemanticCheckException e) {
-    //  return null;
-    // }
   }
 }

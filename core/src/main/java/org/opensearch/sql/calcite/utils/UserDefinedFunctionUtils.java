@@ -308,6 +308,7 @@ public class UserDefinedFunctionUtils {
     return type.getSqlTypeName();
   }
 
+  // TODO: pass the function properties directly to the UDF instead of string
   public static FunctionProperties restoreFunctionProperties(Object timestampStr) {
     String expression = (String) timestampStr;
     Instant parsed = Instant.parse(expression);

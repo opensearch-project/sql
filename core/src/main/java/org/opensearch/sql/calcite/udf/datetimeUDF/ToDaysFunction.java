@@ -6,7 +6,7 @@
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
-import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprToDays;
 
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;

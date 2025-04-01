@@ -1,6 +1,9 @@
-package org.opensearch.sql.calcite.udf.datetimeUDF;
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
+package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
