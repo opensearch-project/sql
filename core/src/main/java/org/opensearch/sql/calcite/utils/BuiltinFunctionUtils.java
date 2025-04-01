@@ -12,7 +12,6 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -35,8 +34,6 @@ import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
-import org.apache.calcite.util.DateString;
-import org.apache.calcite.util.TimestampString;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.calcite.udf.SpanFunction;
@@ -568,53 +565,6 @@ public interface BuiltinFunctionUtils {
         periodNameArgs.add(
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
         return periodNameArgs;
-        /*
-         case
-         List<RexNode> extractArgs = new ArrayList<>();
-         TimeUnitRange timeUnitRange;
-         if (op.equalsIgnoreCase("MINUTE_OF_HOUR")) {
-           timeUnitRange = TimeUnitRange.MINUTE;
-         } else if (op.equalsIgnoreCase("SECOND_OF_MINUTE")) {
-           timeUnitRange = TimeUnitRange.SECOND;
-         } else if (op.equalsIgnoreCase("DAY_OF_MONTH") || op.equalsIgnoreCase("DAYOFMONTH")) {
-           timeUnitRange = TimeUnitRange.DAY;
-         } else if (op.equalsIgnoreCase("HOUR_OF_DAY")) {
-           timeUnitRange = TimeUnitRange.HOUR;
-         } else if (op.equalsIgnoreCase("MONTH_OF_YEAR")) {
-           timeUnitRange = TimeUnitRange.MONTH;
-         } else {
-           timeUnitRange = TimeUnitRange.valueOf(capitalOP);
-         }
-         extractArgs.add(context.rexBuilder.makeFlag(timeUnitRange));
-         if (argList.getFirst() instanceof RexLiteral) {
-           Object stringExpr = ((RexLiteral) argList.getFirst()).getValue();
-           if (!(argList.getFirst().getType().getSqlTypeName() == SqlTypeName.CHAR
-               || argList.getFirst().getType().getSqlTypeName() == SqlTypeName.VARCHAR)) {
-             throw new IllegalArgumentException(
-                 op + " need first argument string/datetime/time/timestamp");
-           }
-           String expression;
-           if (stringExpr instanceof NlsString) {
-             expression = ((NlsString) stringExpr).getValue();
-           } else {
-             expression = Objects.requireNonNull(stringExpr).toString();
-           }
-
-           LocalDateTime dt;
-           if (TIME_EXCLUSIVE_OPS.contains(capitalOP)) {
-             dt = DateTimeParser.parseTimeOrTimestamp(expression);
-           } else {
-             dt = DateTimeParser.parseDateOrTimestamp(expression);
-           }
-           extractArgs.add(
-               context.rexBuilder.makeTimestampLiteral(
-                   createTimestampString(dt), RelDataType.PRECISION_NOT_SPECIFIED));
-         } else {
-           // We need to transfer it to calcite type
-           extractArgs.add(wrapperByPreprocess(argList.getFirst(), context.rexBuilder));
-         }
-         return extractArgs;
-        */
       case "DATE_SUB":
         List<RexNode> dateSubArgs = transformDateManipulationArgs(argList, context.rexBuilder);
         // A flag that represents isAdd
@@ -765,18 +715,6 @@ public interface BuiltinFunctionUtils {
     return rexBuilder.getTypeFactory().createTypeWithNullability(returnType, true);
   }
 
-  private static RexNode convertToDateLiteralIfString(
-      RexBuilder rexBuilder, RexNode dateOrTimestampExpr) {
-    if (dateOrTimestampExpr instanceof RexLiteral dateLiteral) {
-      String dateStringValue = Objects.requireNonNull(dateLiteral.getValueAs(String.class));
-      List<Integer> dateValues = transferStringExprToDateValue(dateStringValue);
-      DateString dateString =
-          new DateString(dateValues.get(0), dateValues.get(1), dateValues.get(2));
-      return rexBuilder.makeDateLiteral(dateString);
-    }
-    return dateOrTimestampExpr;
-  }
-
   private static List<RexNode> transformDateManipulationArgs(
       List<RexNode> argList, ExtendedRexBuilder rexBuilder) {
     List<RexNode> dateAddArgs = new ArrayList<>();
@@ -845,17 +783,6 @@ public interface BuiltinFunctionUtils {
     RexNode type0 = rexBuilder.makeFlag(arg0Type);
     RexNode type1 = rexBuilder.makeFlag(arg1Type);
     return new ArrayList<>(List.of(argList.getFirst(), type0, argList.get(1), type1));
-  }
-
-  private static TimestampString createTimestampString(LocalDateTime dateTime) {
-    return new TimestampString(
-            dateTime.getYear(),
-            dateTime.getMonthValue(),
-            dateTime.getDayOfMonth(),
-            dateTime.getHour(),
-            dateTime.getMinute(),
-            dateTime.getSecond())
-        .withNanos(dateTime.getNano());
   }
 
   /**

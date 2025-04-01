@@ -24,7 +24,6 @@ import java.util.Objects;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
@@ -48,8 +47,6 @@ import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.PreprocessForUDTFunction;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -295,26 +292,6 @@ public class UserDefinedFunctionUtils {
       return base + "." + nanoStr;
     }
     return base;
-  }
-
-  public static RexNode wrapperByPreprocess(RexNode candidate, RexBuilder rexBuilder) {
-    if (candidate.getType() instanceof ExprBasicSqlType) {
-      ExprBasicSqlType dateType = (ExprBasicSqlType) candidate.getType();
-      ExprType udtType = dateType.getExprType();
-      List<RexNode> preprocessArgs =
-          List.of(candidate, rexBuilder.makeFlag(PreprocessForUDTFunction.getInputType(udtType)));
-
-      RexNode calciteTypeArgument =
-          rexBuilder.makeCall(
-              TransferUserDefinedFunction(
-                  PreprocessForUDTFunction.class,
-                  "PREPROCESS",
-                  PreprocessForUDTFunction.getSqlReturnTypeInference(udtType)),
-              preprocessArgs);
-      return calciteTypeArgument;
-    } else {
-      return candidate;
-    }
   }
 
   public static SqlTypeName transferDateRelatedTimeName(RexNode candidate) {
