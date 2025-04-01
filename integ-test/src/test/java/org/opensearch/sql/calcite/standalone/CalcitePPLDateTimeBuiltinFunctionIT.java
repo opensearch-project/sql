@@ -1213,6 +1213,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows(3, 42, 0, 42));
   }
 
+
   @Test
   public void testConvertTz() {
     JSONObject actual =

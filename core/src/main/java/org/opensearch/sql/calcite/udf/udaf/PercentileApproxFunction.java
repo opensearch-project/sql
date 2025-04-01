@@ -31,15 +31,14 @@ public class PercentileApproxFunction
   // Add values to the accumulator
   @Override
   public PencentileApproAccumulator add(PencentileApproAccumulator acc, Object... values) {
-    List<Object> allValues = Arrays.asList(values);
-    Object targetValue = allValues.get(0);
+    Object targetValue = values[0];
     if (Objects.isNull(targetValue)) {
       return acc;
     }
-    percentile = ((Number) allValues.get(1)).intValue() / 100.0;
-    returnType = (SqlTypeName) allValues.get(allValues.size() - 1);
-    if (allValues.size() > 3) { // have compression
-      compression = ((Number) allValues.get(allValues.size() - 2)).doubleValue();
+    percentile = ((Number) values[1]).intValue() / 100.0;
+    returnType = (SqlTypeName) values[values.length - 1];
+    if (values.length > 3) { // have compression
+      compression = ((Number) values[values.length - 2]).doubleValue();
     }
 
     acc.evaluate(((Number) targetValue).doubleValue());
