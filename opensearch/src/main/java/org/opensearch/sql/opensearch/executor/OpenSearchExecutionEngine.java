@@ -145,7 +145,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         RelDataType fieldType = fieldTypes.get(i - 1);
         ExprValue exprValue =
             JdbcOpenSearchDataTypeConvertor.getExprValueFromSqlType(
-                resultSet, i, sqlType, fieldType);
+                resultSet, i, sqlType, fieldType, columnName);
         row.put(columnName, exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));

@@ -5,11 +5,9 @@
 
 package org.opensearch.sql.calcite.remote.nonfallback;
 
-import org.junit.Ignore;
-import org.opensearch.sql.calcite.remote.fallback.CalciteGeoIpFunctionsIT;
+import org.opensearch.sql.calcite.remote.fallback.CalciteGeoPointFormatsIT;
 
-@Ignore("https://github.com/opensearch-project/sql/issues/3506")
-public class NonFallbackCalciteGeoIpFunctionsIT extends CalciteGeoIpFunctionsIT {
+public class NonFallbackNonFallbackCalciteGeoIpFunctionsIT extends CalciteGeoPointFormatsIT {
   @Override
   public void init() throws Exception {
     super.init();

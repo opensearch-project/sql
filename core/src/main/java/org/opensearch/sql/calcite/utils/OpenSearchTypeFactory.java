@@ -11,6 +11,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.GEO_POINT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
 import static org.opensearch.sql.data.type.ExprCoreType.IP;
@@ -234,6 +235,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           INTERVAL_SECOND -> INTERVAL;
       case ARRAY -> ARRAY;
       case MAP -> STRUCT;
+      case GEOMETRY -> GEO_POINT;
       case NULL -> UNDEFINED;
       default -> UNKNOWN;
     };
