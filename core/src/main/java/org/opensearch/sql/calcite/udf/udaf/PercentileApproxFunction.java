@@ -7,7 +7,6 @@ package org.opensearch.sql.calcite.udf.udaf;
 
 import com.tdunning.math.stats.AVLTreeDigest;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.apache.calcite.sql.type.SqlTypeName;
