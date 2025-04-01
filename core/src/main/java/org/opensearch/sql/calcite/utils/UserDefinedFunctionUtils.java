@@ -6,8 +6,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTimeUDT;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTimestampUDT;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import java.time.Instant;
@@ -35,6 +34,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
@@ -54,6 +54,18 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class UserDefinedFunctionUtils {
+  public static RelDataType nullableTimeUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
+  public static RelDataType nullableDateUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
+  public static RelDataType nullableTimestampUDT =
+      TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
+
+  public static SqlReturnTypeInference timestampInference =
+      ReturnTypes.explicit(nullableTimestampUDT);
+
+  public static SqlReturnTypeInference timeInference = ReturnTypes.explicit(nullableTimeUDT);
+
+  public static SqlReturnTypeInference dateInference = ReturnTypes.explicit(nullableDateUDT);
+
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,
       String functionName,
@@ -92,27 +104,6 @@ public class UserDefinedFunctionUtils {
         InferTypes.ANY_NULLABLE,
         null,
         udfFunction);
-  }
-
-  /**
-   * For some udf/udaf, when giving a list of arguments, we need to infer the return type from the
-   * arguments.
-   *
-   * @param targetPosition
-   * @return a inference function
-   */
-  public static SqlReturnTypeInference getReturnTypeInference(int targetPosition) {
-    return opBinding -> {
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-
-      List<RelDataType> argTypes = opBinding.collectOperandTypes();
-
-      if (argTypes.isEmpty()) {
-        throw new IllegalArgumentException("Function requires at least one argument.");
-      }
-      return typeFactory.createTypeWithNullability(
-          typeFactory.createSqlType(argTypes.get(targetPosition).getSqlTypeName()), true);
-    };
   }
 
   /**

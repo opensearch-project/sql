@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableDateUDT;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.nullableTimestampUDT;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.convertToTemporalAmount;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;

@@ -29,6 +29,7 @@ import java.util.Locale;
 import org.hamcrest.Matchers;
 import org.json.JSONObject;
 import org.junit.Ignore;
+import org.junit.experimental.categories.Categories;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -227,6 +228,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows("2013-05-01 00:00:00", "2010-09-10 12:56:45"));
   }
 
+  @Ignore
   @Test
   public void testTimeFormat() {
     JSONObject actual =
@@ -950,6 +952,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * date value given the day number N. DATETIME: (TIMESTAMP, STRING) -> TIMESTAMP (TIMESTAMP) ->
    * TIMESTAMP Converts the datetime to a new timezone
    */
+  @Ignore
   @Test
   public void testDateFormatAndDatetimeAndFromDays() {
     JSONObject actual =

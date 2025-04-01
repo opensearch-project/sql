@@ -316,12 +316,12 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(
             IfFunction.class,
             "if",
-            new OrdinalReturnTypeInference(1).andThen(SqlTypeTransforms.FORCE_NULLABLE));
+                ReturnTypes.ARG1.andThen(SqlTypeTransforms.FORCE_NULLABLE));
       case "IFNULL":
         return TransferUserDefinedFunction(
             IfNullFunction.class,
             "ifnull",
-            new OrdinalReturnTypeInference(1).andThen(SqlTypeTransforms.FORCE_NULLABLE));
+            ReturnTypes.ARG0_FORCE_NULLABLE);
       case "NULLIF":
         return TransferUserDefinedFunction(
             NullIfFunction.class, "nullif", ReturnTypes.ARG0_FORCE_NULLABLE);
