@@ -17,7 +17,7 @@ public class PostprocessDateToStringFunction implements UserDefinedFunction {
     if (Objects.isNull(candidate)) {
       return null;
     }
-    Instant instant = InstantUtils.convertToInstant(candidate, SqlTypeName.VARCHAR, false);
+    Instant instant = InstantUtils.convertToInstant(candidate, SqlTypeName.VARCHAR);
     LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     String formatted = formatTimestampWithoutUnnecessaryNanos(localDateTime);
     return formatted;

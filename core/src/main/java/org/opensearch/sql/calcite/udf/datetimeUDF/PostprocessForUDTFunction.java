@@ -21,7 +21,7 @@ public class PostprocessForUDTFunction implements UserDefinedFunction {
       return null;
     }
     SqlTypeName sqlTypeName = (SqlTypeName) args[1];
-    Instant instant = InstantUtils.convertToInstant(candidate, sqlTypeName, false);
+    Instant instant = InstantUtils.convertToInstant(candidate, sqlTypeName);
     LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     switch (sqlTypeName) {
       case DATE:

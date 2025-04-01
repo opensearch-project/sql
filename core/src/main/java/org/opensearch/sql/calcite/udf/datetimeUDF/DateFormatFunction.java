@@ -30,7 +30,10 @@ public class DateFormatFunction implements UserDefinedFunction {
     ExprValue candidateValue = transferInputToExprValue(argDatetime, (SqlTypeName) argDatetimeType);
     if (argDatetimeType == SqlTypeName.TIME) {
       return getFormattedDateOfToday(
-          new ExprStringValue(argFormat.toString()), candidateValue, restored.getQueryStartClock());
+              new ExprStringValue(argFormat.toString()),
+              candidateValue,
+              restored.getQueryStartClock())
+          .stringValue();
     }
     return getFormattedDate(candidateValue, new ExprStringValue(argFormat.toString()))
         .stringValue();

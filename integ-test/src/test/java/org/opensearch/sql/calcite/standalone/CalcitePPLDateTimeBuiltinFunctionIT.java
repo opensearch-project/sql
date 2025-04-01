@@ -286,7 +286,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows("01:00:01", "00:20:34.123"));
   }
 
-  @Ignore
+  // @Ignore
   @Test
   public void testToSeconds() {
     JSONObject actual =
@@ -299,7 +299,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + "| eval string_value=to_seconds('2008-10-07')"
                     + "| eval long_value = to_seconds(950228)"
                     + "| where to_seconds(strict_date_optional_time) > 62617795199"
-                    + "| fields timestamp, time, date, string_value, long_value | head 1",
+                    + "| fields timestamp, date, string_value, long_value | head 1",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
@@ -718,7 +718,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   /** HOUR, HOUR_OF_DAY, DATE */
-  @Ignore
+  // @Ignore
   @Test
   public void testHourAndDateWithConditions() {
     JSONObject actual =
@@ -950,7 +950,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * date value given the day number N. DATETIME: (TIMESTAMP, STRING) -> TIMESTAMP (TIMESTAMP) ->
    * TIMESTAMP Converts the datetime to a new timezone
    */
-  @Ignore
   @Test
   public void testDateFormatAndDatetimeAndFromDays() {
     JSONObject actual =
@@ -1035,7 +1034,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("d9", "long"),
         schema("t", "time"));
 
-    LocalDate today = LocalDate.now(ZoneOffset.UTC);
+    LocalDate today = LocalDate.now(ZoneId.systemDefault());
     long dateDiffWithToday = ChronoUnit.DAYS.between(LocalDate.parse("1984-04-12"), today);
     verifyDataRows(
         actual,
@@ -1212,6 +1211,24 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("secondForDate", "integer"),
         schema("secondForTimestamp", "integer"));
     verifyDataRows(actual, rows(3, 42, 0, 42));
+  }
+
+  @Test
+  public void testConvertTzWithInvalidResultLocale() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s "
+                    + "| eval r1 = convert_tz('2021-05-30 11:34:50', '-17:00', '+08:00') "
+                    + "| eval r2 = convert_tz('2021-05-12 11:34:50', '-12:00', '+15:00') "
+                    + "| eval r3 = convert_tz('2021-05-12 11:34:50', '-12:00', 'test') "
+                    + "| fields r1, r2, r3"
+                    + "| head 1",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(
+        actual, schema("r1", "timestamp"), schema("r2", "timestamp"), schema("r3", "timestamp"));
+    verifyDataRows(actual, rows(null, null, null));
+    assertEquals("NA", Locale.getDefault().toString());
   }
 
   @Test

@@ -50,15 +50,14 @@ public interface InstantUtils {
   }
 
   /**
-   * Convert internal date/time/timestamp to Instant.
+   * Convert internal calcite date/time/timestamp to Instant.
    *
    * @param candidate internal date/time/timestamp. Date is represented as days since epoch, time is
    *     represented as milliseconds, and timestamp is represented as epoch milliseconds
    * @param sqlTypeName type of the internalDatetime
    * @return Instant that represents the given internalDatetime
    */
-  static Instant convertToInstant(
-      Object candidate, SqlTypeName sqlTypeName, boolean onlyForTimestamp) {
+  static Instant convertToInstant(Object candidate, SqlTypeName sqlTypeName) {
     Instant dateTimeBase = null;
     switch (sqlTypeName) {
       case DATE:
