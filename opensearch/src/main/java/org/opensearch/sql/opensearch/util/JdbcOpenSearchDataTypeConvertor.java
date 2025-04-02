@@ -17,6 +17,7 @@ import org.apache.calcite.avatica.util.ArrayImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.calcite.type.ExprJavaType;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
@@ -64,6 +65,10 @@ public class JdbcOpenSearchDataTypeConvertor {
     Object value = rs.getObject(i);
     if (value == null) {
       return ExprNullValue.of();
+    }
+
+    if (fieldType instanceof ExprJavaType && value instanceof ExprValue) {
+      return (ExprValue) value;
     }
 
     try {
