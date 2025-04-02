@@ -5,10 +5,8 @@
 
 package org.opensearch.sql.calcite.remote.nonfallback;
 
-import org.junit.Ignore;
 import org.opensearch.sql.calcite.remote.fallback.CalciteIPFunctionsIT;
 
-@Ignore("https://github.com/opensearch-project/sql/issues/3395")
 public class NonFallbackCalciteIPFunctionsIT extends CalciteIPFunctionsIT {
   @Override
   public void init() throws Exception {
