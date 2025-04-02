@@ -7,6 +7,11 @@ package org.opensearch.sql.calcite.utils.datetime;
 
 import java.time.*;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.FunctionProperties;
 
 public interface InstantUtils {
 
@@ -74,4 +79,67 @@ public interface InstantUtils {
     }
     return dateTimeBase;
   }
+
+  static LocalDateTime parseStringToTimestamp(String input, FunctionProperties functionProperties) {
+    try {
+      return parseTimeOrTimestamp(input, functionProperties);
+    } catch (SemanticCheckException e) {
+      return parseDateOrTimestamp(input);
+    }
+  }
+
+  static LocalDateTime parseTimeOrTimestamp(String input, FunctionProperties functionProperties) {
+    if (input == null || input.trim().isEmpty()) {
+      throw new SemanticCheckException("Cannot parse a null/empty date-time string.");
+    }
+
+    try {
+      return parseTimestamp(input);
+    } catch (Exception ignored) {
+    }
+
+    try {
+      return parseTime(input, functionProperties);
+    } catch (Exception ignored) {
+    }
+
+    throw new SemanticCheckException(
+            String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", input));
+  }
+
+  static LocalDateTime parseDateOrTimestamp(String input) {
+    if (input == null || input.trim().isEmpty()) {
+      throw new SemanticCheckException("Cannot parse a null/empty date-time string.");
+    }
+
+    try {
+      return parseTimestamp(input);
+    } catch (Exception ignored) {
+    }
+
+    try {
+      return parseDate(input);
+    } catch (Exception ignored) {
+    }
+
+    throw new SemanticCheckException(
+            String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", input));
+  }
+
+  static LocalDateTime parseTimestamp(String input) {
+    return LocalDateTime.ofInstant(
+            ExprValueUtils.fromObjectValue(input, ExprCoreType.TIMESTAMP).timestampValue(),
+            ZoneOffset.UTC);
+  }
+
+  static LocalDateTime parseTime(String input, FunctionProperties functionProperties) {
+    return LocalDateTime.ofInstant(
+            (new ExprTimeValue(input)).timestampValue(functionProperties), ZoneOffset.UTC);
+  }
+
+  static LocalDateTime parseDate(String input) {
+    return LocalDateTime.ofInstant(
+            ExprValueUtils.fromObjectValue(input, ExprCoreType.DATE).timestampValue(), ZoneOffset.UTC);
+  }
+
 }

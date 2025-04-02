@@ -215,15 +215,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   private RexNode transferCompareForDateRelated(
-      RexNode candidate, CalcitePlanContext context, boolean wrapper) {
-    if (wrapper) {
+      RexNode candidate, CalcitePlanContext context, boolean whetherCompareByTime) {
+    if (whetherCompareByTime) {
       SqlOperator postToStringNode =
           TransferUserDefinedFunction(
               PostprocessDateToStringFunction.class,
               "PostprocessDateToString",
               ReturnTypes.CHAR_FORCE_NULLABLE);
       RexNode transferredStringNode =
-          context.rexBuilder.makeCall(postToStringNode, List.of(candidate));
+          context.rexBuilder.makeCall(postToStringNode, List.of(candidate,
+                  context.rexBuilder.makeLiteral(context.functionProperties.getQueryStartClock().instant().toString())));
       return transferredStringNode;
     } else {
       return candidate;
