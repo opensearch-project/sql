@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -92,6 +93,27 @@ public class UserDefinedFunctionValidator {
         switch (op) {
             // STRING FUNCTIONS
           case "REPLACE" -> overload(STRING_TYPES, STRING_TYPES, STRING_TYPES);
+          case "ASCII", "LENGTH", "LOWER", "LTRIM", "REVERSE", "RTRIM", "UPPER", "TRIM" -> overload(
+              STRING_TYPES);
+          case "CONCAT_WS" -> overload(STRING_TYPES, STRING_TYPES, STRING_TYPES);
+          case "SUBSTRING", "SUBSTR" -> overload(STRING_TYPES, INTEGRAL_TYPES, INTEGRAL_TYPES);
+          case "LOCATE" -> Iterables.concat(
+              overload(STRING_TYPES, STRING_TYPES),
+              overload(STRING_TYPES, STRING_TYPES, INTEGRAL_TYPES));
+          case "POSITION", "STRCMP" -> overload(STRING_TYPES, STRING_TYPES);
+          case "LEFT", "RIGHT" -> overload(STRING_TYPES, INTEGRAL_TYPES);
+          case "CONCAT" -> {
+            List<Iterable<List<SqlTypeName>>> overloadList = new ArrayList<>();
+            final int CONCAT_MAX_ARITY = 9;
+            for (int arity = 1; arity <= CONCAT_MAX_ARITY; arity++) {
+              @SuppressWarnings("unchecked")
+              Set<SqlTypeName>[] params = new Set[arity];
+              Arrays.fill(params, STRING_TYPES);
+              overloadList.add(overload((Object[]) params));
+            }
+            yield Iterables.concat(overloadList);
+          }
+
             // MATH FUNCTIONS
           case "ABS",
               "ACOS",
