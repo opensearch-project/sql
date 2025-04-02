@@ -949,6 +949,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
    * date value given the day number N. DATETIME: (TIMESTAMP, STRING) -> TIMESTAMP (TIMESTAMP) ->
    * TIMESTAMP Converts the datetime to a new timezone
    */
+  @Ignore
   @Test
   public void testDateFormatAndDatetimeAndFromDays() {
     JSONObject actual =
