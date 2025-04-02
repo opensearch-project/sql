@@ -104,7 +104,7 @@ public interface InstantUtils {
     }
 
     throw new SemanticCheckException(
-            String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", input));
+        String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", input));
   }
 
   static LocalDateTime parseDateOrTimestamp(String input) {
@@ -123,23 +123,22 @@ public interface InstantUtils {
     }
 
     throw new SemanticCheckException(
-            String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", input));
+        String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", input));
   }
 
   static LocalDateTime parseTimestamp(String input) {
     return LocalDateTime.ofInstant(
-            ExprValueUtils.fromObjectValue(input, ExprCoreType.TIMESTAMP).timestampValue(),
-            ZoneOffset.UTC);
+        ExprValueUtils.fromObjectValue(input, ExprCoreType.TIMESTAMP).timestampValue(),
+        ZoneOffset.UTC);
   }
 
   static LocalDateTime parseTime(String input, FunctionProperties functionProperties) {
     return LocalDateTime.ofInstant(
-            (new ExprTimeValue(input)).timestampValue(functionProperties), ZoneOffset.UTC);
+        (new ExprTimeValue(input)).timestampValue(functionProperties), ZoneOffset.UTC);
   }
 
   static LocalDateTime parseDate(String input) {
     return LocalDateTime.ofInstant(
-            ExprValueUtils.fromObjectValue(input, ExprCoreType.DATE).timestampValue(), ZoneOffset.UTC);
+        ExprValueUtils.fromObjectValue(input, ExprCoreType.DATE).timestampValue(), ZoneOffset.UTC);
   }
-
 }

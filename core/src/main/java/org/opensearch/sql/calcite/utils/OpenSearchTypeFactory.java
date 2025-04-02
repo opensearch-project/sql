@@ -42,6 +42,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprIPType;
+import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.data.model.ExprValue;
@@ -61,7 +62,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     Charset charset = TYPE_FACTORY.getDefaultCharset();
     SqlCollation collation = SqlCollation.IMPLICIT;
     RelDataType type = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
-    if (type instanceof ExprBasicSqlType udt) {
+    if (type instanceof ExprSqlType udt) {
       return udt.createWithCharsetAndCollation(charset, collation);
     }
     return type;

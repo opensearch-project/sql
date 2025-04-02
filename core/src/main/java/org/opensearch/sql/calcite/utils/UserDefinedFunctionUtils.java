@@ -41,8 +41,8 @@ import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
-import org.opensearch.sql.calcite.type.ExprBasicSqlType;
 import org.opensearch.sql.calcite.type.ExprDateType;
+import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
@@ -160,7 +160,7 @@ public class UserDefinedFunctionUtils {
   static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(0);
-      if (operandType0 instanceof ExprBasicSqlType) {
+      if (operandType0 instanceof ExprSqlType) {
         if (operandType0 instanceof ExprDateType || operandType0 instanceof ExprTimeStampType) {
           return nullableTimestampUDT;
         } else if (operandType0 instanceof ExprTimeType) {
@@ -296,7 +296,7 @@ public class UserDefinedFunctionUtils {
 
   public static SqlTypeName transferDateRelatedTimeName(RexNode candidate) {
     RelDataType type = candidate.getType();
-    if (type instanceof ExprBasicSqlType) {
+    if (type instanceof ExprSqlType) {
       if (type instanceof ExprTimeType) {
         return SqlTypeName.TIME;
       } else if (type instanceof ExprTimeStampType) {

@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getNullableTimestampUDTWithCharset;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.nullableTimestampUDT;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTimeFormat;
 
@@ -61,7 +61,7 @@ public class FromUnixTimestampFunction implements UserDefinedFunction {
         throw new IllegalArgumentException("Function requires at least one argument.");
       }
       if (argTypes.size() == 1) {
-        return getNullableTimestampUDTWithCharset();
+        return nullableTimestampUDT;
       }
       return typeFactory.createSqlType(SqlTypeName.CHAR);
     };

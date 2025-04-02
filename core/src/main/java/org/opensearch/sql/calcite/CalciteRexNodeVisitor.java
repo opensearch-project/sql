@@ -53,7 +53,7 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.calcite.type.ExprBasicSqlType;
+import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessDateToStringFunction;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -204,8 +204,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     RexNode leftCandidate = analyze(node.getLeft(), context);
     RexNode rightCandidate = analyze(node.getRight(), context);
     Boolean whetherCompareByTime =
-        leftCandidate.getType() instanceof ExprBasicSqlType
-            || rightCandidate.getType() instanceof ExprBasicSqlType;
+        leftCandidate.getType() instanceof ExprSqlType
+            || rightCandidate.getType() instanceof ExprSqlType;
 
     final RexNode left =
         transferCompareForDateRelated(leftCandidate, context, whetherCompareByTime);
@@ -223,8 +223,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
               "PostprocessDateToString",
               ReturnTypes.CHAR_FORCE_NULLABLE);
       RexNode transferredStringNode =
-          context.rexBuilder.makeCall(postToStringNode, List.of(candidate,
-                  context.rexBuilder.makeLiteral(context.functionProperties.getQueryStartClock().instant().toString())));
+          context.rexBuilder.makeCall(
+              postToStringNode,
+              List.of(
+                  candidate,
+                  context.rexBuilder.makeLiteral(
+                      context.functionProperties.getQueryStartClock().instant().toString())));
       return transferredStringNode;
     } else {
       return candidate;
