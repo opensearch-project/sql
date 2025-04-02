@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.utils;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import java.time.Instant;
@@ -41,10 +42,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
-import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.type.ExprTimeStampType;
-import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -54,8 +52,8 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 public class UserDefinedFunctionUtils {
   public static SqlReturnTypeInference INTEGER_FORCE_NULLABLE =
       ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE);
-  public static RelDataType nullableTimeUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, true);
-  public static RelDataType nullableDateUDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE, true);
+  public static RelDataType nullableTimeUDT = TYPE_FACTORY.createUDT(EXPR_TIME, true);
+  public static RelDataType nullableDateUDT = TYPE_FACTORY.createUDT(EXPR_DATE, true);
   public static RelDataType nullableTimestampUDT =
       TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
 
@@ -161,9 +159,10 @@ public class UserDefinedFunctionUtils {
     return opBinding -> {
       RelDataType operandType0 = opBinding.getOperandType(0);
       if (operandType0 instanceof ExprSqlType) {
-        if (operandType0 instanceof ExprDateType || operandType0 instanceof ExprTimeStampType) {
+        ExprUDT exprUDT = ((ExprSqlType) operandType0).getUdt();
+        if (exprUDT == EXPR_DATE || exprUDT == EXPR_TIMESTAMP) {
           return nullableTimestampUDT;
-        } else if (operandType0 instanceof ExprTimeType) {
+        } else if (exprUDT == EXPR_TIME) {
           return nullableTimeUDT;
         } else {
           throw new IllegalArgumentException("Unsupported UDT type");
@@ -297,11 +296,12 @@ public class UserDefinedFunctionUtils {
   public static SqlTypeName transferDateRelatedTimeName(RexNode candidate) {
     RelDataType type = candidate.getType();
     if (type instanceof ExprSqlType) {
-      if (type instanceof ExprTimeType) {
+      ExprUDT exprUDT = ((ExprSqlType) type).getUdt();
+      if (exprUDT == EXPR_TIME) {
         return SqlTypeName.TIME;
-      } else if (type instanceof ExprTimeStampType) {
+      } else if (exprUDT == EXPR_TIMESTAMP) {
         return SqlTypeName.TIMESTAMP;
-      } else if (type instanceof ExprDateType) {
+      } else if (exprUDT == EXPR_DATE) {
         return SqlTypeName.DATE;
       }
     }

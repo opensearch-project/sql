@@ -97,7 +97,10 @@ import org.opensearch.sql.calcite.udf.systemUDF.TypeOfFunction;
 import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
 import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
 
-/** TODO: We need to refactor code to make all */
+/**
+ * TODO: We need to refactor code to make all related part together and directly return call TODO:
+ * Remove all makeFlag and use literal directly
+ */
 public interface BuiltinFunctionUtils {
 
   Set<String> TIME_EXCLUSIVE_OPS =
