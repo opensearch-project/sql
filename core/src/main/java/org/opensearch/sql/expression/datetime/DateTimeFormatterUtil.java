@@ -76,39 +76,46 @@ public class DateTimeFormatterUtil {
           .put(
               "%D",
               (date) -> // %w - Day of month with English suffix
-              String.format("'%d%s'", date.getDayOfMonth(), getSuffix(date.getDayOfMonth())))
+              String.format(
+                      Locale.ROOT, "'%d%s'", date.getDayOfMonth(), getSuffix(date.getDayOfMonth())))
           .put(
               "%f",
               (date) -> // %f - Microseconds
-              String.format(NANO_SEC_FORMAT, (date.getNano() / 1000)))
+              String.format(Locale.ROOT, NANO_SEC_FORMAT, (date.getNano() / 1000)))
           .put(
               "%w",
               (date) -> // %w - Day of week (0 indexed)
-              String.format("'%d'", date.getDayOfWeek().getValue()))
+              String.format(Locale.ROOT, "'%d'", date.getDayOfWeek().getValue()))
           .put(
               "%U",
               (date) -> // %U Week where Sunday is the first day - WEEK() mode 0
-              String.format("'%d'", CalendarLookup.getWeekNumber(0, date.toLocalDate())))
+              String.format(
+                      Locale.ROOT, "'%d'", CalendarLookup.getWeekNumber(0, date.toLocalDate())))
           .put(
               "%u",
               (date) -> // %u Week where Monday is the first day - WEEK() mode 1
-              String.format("'%d'", CalendarLookup.getWeekNumber(1, date.toLocalDate())))
+              String.format(
+                      Locale.ROOT, "'%d'", CalendarLookup.getWeekNumber(1, date.toLocalDate())))
           .put(
               "%V",
               (date) -> // %V Week where Sunday is the first day - WEEK() mode 2 used with %X
-              String.format("'%d'", CalendarLookup.getWeekNumber(2, date.toLocalDate())))
+              String.format(
+                      Locale.ROOT, "'%d'", CalendarLookup.getWeekNumber(2, date.toLocalDate())))
           .put(
               "%v",
               (date) -> // %v Week where Monday is the first day - WEEK() mode 3 used with %x
-              String.format("'%d'", CalendarLookup.getWeekNumber(3, date.toLocalDate())))
+              String.format(
+                      Locale.ROOT, "'%d'", CalendarLookup.getWeekNumber(3, date.toLocalDate())))
           .put(
               "%X",
               (date) -> // %X Year for week where Sunday is the first day, 4 digits used with %V
-              String.format("'%d'", CalendarLookup.getYearNumber(2, date.toLocalDate())))
+              String.format(
+                      Locale.ROOT, "'%d'", CalendarLookup.getYearNumber(2, date.toLocalDate())))
           .put(
               "%x",
               (date) -> // %x Year for week where Monday is the first day, 4 digits used with %v
-              String.format("'%d'", CalendarLookup.getYearNumber(3, date.toLocalDate())))
+              String.format(
+                      Locale.ROOT, "'%d'", CalendarLookup.getYearNumber(3, date.toLocalDate())))
           .build();
 
   // Handlers for the time_format function.
@@ -140,7 +147,7 @@ public class DateTimeFormatterUtil {
           .put("%y", (date) -> "00")
           .put("%D", (date) -> null)
           // %f - Microseconds
-          .put("%f", (date) -> String.format(NANO_SEC_FORMAT, (date.getNano() / 1000)))
+          .put("%f", (date) -> String.format(Locale.ROOT, NANO_SEC_FORMAT, (date.getNano() / 1000)))
           .put("%w", (date) -> null)
           .put("%U", (date) -> null)
           .put("%u", (date) -> null)
