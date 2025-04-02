@@ -164,7 +164,7 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertEquals(
         "= function expected {[BYTE,BYTE],[SHORT,SHORT],[INTEGER,INTEGER],[LONG,LONG],"
             + "[FLOAT,FLOAT],[DOUBLE,DOUBLE],[STRING,STRING],[BOOLEAN,BOOLEAN],[DATE,DATE],"
-            + "[TIME,TIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],[IP,IP],"
+            + "[TIME,TIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],[IP,IP],[GEO_POINT,GEO_POINT],"
             + "[STRUCT,STRUCT],[ARRAY,ARRAY]}, but got [STRING,INTEGER]",
         exception.getMessage());
   }

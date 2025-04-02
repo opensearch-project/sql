@@ -7,10 +7,13 @@ package org.opensearch.sql.opensearch.data.value;
 
 import java.util.Objects;
 import lombok.Data;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Point;
 import org.opensearch.sql.data.model.AbstractExprValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchGeoPointType;
+import org.opensearch.sql.opensearch.data.utils.GeometryUtils;
 
 /**
  * OpenSearch GeoPointValue.<br>
@@ -27,6 +30,13 @@ public class OpenSearchExprGeoPointValue extends AbstractExprValue {
   @Override
   public Object value() {
     return geoPoint;
+  }
+
+  @Override
+  public Point valueForCalcite() {
+    // Usually put longitude on x, latitude on y for a Geometry point.
+    return GeometryUtils.defaultFactory.createPoint(
+        new Coordinate(this.geoPoint.lon, this.geoPoint.lat));
   }
 
   @Override
