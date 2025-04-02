@@ -80,8 +80,6 @@ public class SystemFunctionIT extends PPLIntegTestCase {
                     + " | fields `text`, `date`, `date_nanos`, `boolean`, `object`, `keyword`,"
                     + " `ip`, `binary`, `geo_point`",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
-    // TODO https://github.com/opensearch-project/sql/issues/3322
-    // TO support IP, we need support UDT.
     verifyDataRows(
         response,
         rows(
@@ -91,7 +89,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
             "BOOLEAN",
             "STRUCT",
             "STRING",
-            isCalciteEnabled() ? "STRING" : "IP",
+            "IP",
             "BINARY",
             "GEO_POINT"));
   }
