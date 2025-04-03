@@ -52,4 +52,9 @@ public abstract class AbstractExprNumberValue extends AbstractExprValue {
   public int hashCode() {
     return Objects.hashCode(value);
   }
+
+  @Override
+  public boolean isNull() {
+    return value == null;
+  }
 }
