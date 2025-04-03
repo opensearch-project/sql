@@ -316,8 +316,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     // Reference date: year 0
     LocalDate baseDate = LocalDate.of(0, 1, 1);
 
-    // Calculate days since year 0
-    long daysSinceYearZero = ChronoUnit.DAYS.between(baseDate, utcDate);
     JSONObject actual =
         executeQuery(
             String.format(

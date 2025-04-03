@@ -26,9 +26,6 @@ public class YearWeekFunction implements UserDefinedFunction {
       return null;
     }
     int mode;
-    if (Objects.isNull(args[0])) {
-      return null;
-    }
     SqlTypeName sqlTypeName;
     ExprValue exprValue;
     if (args.length == 3) {

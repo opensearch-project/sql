@@ -109,7 +109,6 @@ public class UserDefinedFunctionUtils {
    * E.g. (Integer, Long) -> Long; (Double, Float, SHORT) -> Double
    *
    * @param positions positions where the return type should be inferred from
-   * @param nullable whether the returned value is nullable
    * @return The type inference
    */
   public static SqlReturnTypeInference getLeastRestrictiveReturnTypeAmongArgsAt(
@@ -197,81 +196,6 @@ public class UserDefinedFunctionUtils {
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(
           String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", timeExpr));
-    }
-  }
-
-  /**
-   * Check whether a function gets enough arguments.
-   *
-   * @param funcName the name of the function
-   * @param expectedArguments the number of expected arguments
-   * @param actualArguments the number of actual arguments
-   * @param exactMatch whether the number of actual arguments should precisely match the number of
-   *     expected arguments. If false, it suffices as long as the number of actual number of
-   *     arguments is not smaller that the number of expected arguments.
-   * @throws IllegalArgumentException if the argument length does not match the expected one
-   */
-  public static void validateArgumentCount(
-      String funcName, int expectedArguments, int actualArguments, boolean exactMatch) {
-    if (exactMatch) {
-      if (actualArguments != expectedArguments) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Mismatch arguments: function %s expects %d arguments, but got %d",
-                funcName, expectedArguments, actualArguments));
-      }
-    } else {
-      if (actualArguments < expectedArguments) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Mismatch arguments: function %s expects at least %d arguments, but got %d",
-                funcName, expectedArguments, actualArguments));
-      }
-    }
-  }
-
-  /**
-   * Validates that the given list of objects matches the given list of types.
-   *
-   * <p>This function first checks if the sizes of the two lists match. If not, it throws an {@code
-   * IllegalArgumentException}. Then, it iterates through the lists and checks if each object is an
-   * instance of the corresponding type. If any object is not of the expected type, it throws an
-   * {@code IllegalArgumentException} with a descriptive message.
-   *
-   * @param objects the list of objects to validate
-   * @param types the list of expected types
-   * @throws IllegalArgumentException if the sizes of the lists do not match or if any object is not
-   *     an instance of the corresponding type
-   */
-  public static void validateArgumentTypes(List<Object> objects, List<Class<?>> types) {
-    validateArgumentTypes(objects, types, Collections.nCopies(types.size(), false));
-  }
-
-  public static void validateArgumentTypes(
-      List<Object> objects, List<Class<?>> types, boolean nullable) {
-    validateArgumentTypes(objects, types, Collections.nCopies(types.size(), nullable));
-  }
-
-  public static void validateArgumentTypes(
-      List<Object> objects, List<Class<?>> types, List<Boolean> nullables) {
-    if (objects.size() < types.size()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Mismatch in the number of objects and types. Got %d objects and %d types",
-              objects.size(), types.size()));
-    }
-    for (int i = 0; i < types.size(); i++) {
-      if (objects.get(i) == null && nullables.get(i)) {
-        continue;
-      }
-      if (!types.get(i).isInstance(objects.get(i))) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Object at index %d is not of type %s (Got %s)",
-                i,
-                types.get(i).getName(),
-                objects.get(i) == null ? "null" : objects.get(i).getClass().getName()));
-      }
     }
   }
 
