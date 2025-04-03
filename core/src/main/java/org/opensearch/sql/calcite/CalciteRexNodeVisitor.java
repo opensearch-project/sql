@@ -37,7 +37,6 @@ import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
-import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -57,6 +56,7 @@ import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessDateToStringFunction;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -121,27 +121,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
   }
 
-  private SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
-    return switch (unit) {
-      case MICROSECOND -> SpanUnit.MILLISECOND;
-      case SECOND -> SpanUnit.SECOND;
-      case MINUTE -> SpanUnit.MINUTE;
-      case HOUR -> SpanUnit.HOUR;
-      case DAY -> SpanUnit.DAY;
-      case WEEK -> SpanUnit.WEEK;
-      case MONTH -> SpanUnit.MONTH;
-      case QUARTER -> SpanUnit.QUARTER;
-      case YEAR -> SpanUnit.YEAR;
-      case UNKNOWN -> SpanUnit.UNKNOWN;
-      default -> throw new UnsupportedOperationException("Unsupported interval unit: " + unit);
-    };
-  }
-
   @Override
   public RexNode visitInterval(Interval node, CalcitePlanContext context) {
     RexNode value = analyze(node.getValue(), context);
     SqlIntervalQualifier intervalQualifier =
-        context.rexBuilder.createIntervalUntil(intervalUnitToSpanUnit(node.getUnit()));
+        context.rexBuilder.createIntervalUntil(PlanUtils.intervalUnitToSpanUnit(node.getUnit()));
     return context.rexBuilder.makeIntervalLiteral(
         new BigDecimal(value.toString()), intervalQualifier);
   }
