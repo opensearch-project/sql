@@ -99,10 +99,8 @@ public class JdbcOpenSearchDataTypeConvertor {
           return new ExprDateValue(dateStr);
 
         case Types.TIME:
-          Time timeStr = rs.getTime(i);
-          long millisecond = ((timeStr.getTime() % 1000L) + 1000L) % 1000L;
-          LocalTime localTime = timeStr.toLocalTime().plusNanos(millisecond * 1000000);
-          return new ExprTimeValue(localTime);
+          String timeStr = rs.getString(i);
+          return new ExprTimeValue(timeStr);
 
         case Types.TIMESTAMP:
           String timestampStr = rs.getString(i);

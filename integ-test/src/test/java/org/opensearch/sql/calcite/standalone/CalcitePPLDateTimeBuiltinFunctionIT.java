@@ -1148,6 +1148,14 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
+  public void test1(){
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s | head 1 | eval t2 = ADDTIME(time, date) ", TEST_INDEX_DATE_FORMATS));
+  }
+
+  @Test
   public void testQuarter() {
     JSONObject actual =
         executeQuery(
