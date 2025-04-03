@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.lang.Math.E;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 
@@ -139,7 +138,8 @@ public interface BuiltinFunctionUtils {
       case "*":
         return SqlStdOperatorTable.MULTIPLY;
       case "/":
-        return TransferUserDefinedFunction(DivideFunction.class, "/", ReturnTypes.DOUBLE);
+        return TransferUserDefinedFunction(
+            DivideFunction.class, "/", ReturnTypes.QUOTIENT_NULLABLE);
         // Built-in String Functions
       case "ASCII":
         return SqlStdOperatorTable.ASCII;
@@ -217,8 +217,7 @@ public interface BuiltinFunctionUtils {
         // The MOD function in PPL supports floating-point parameters, e.g., MOD(5.5, 2) = 1.5,
         // MOD(3.1, 2.1) = 1.1,
         // whereas SqlStdOperatorTable.MOD supports only integer / long parameters.
-        return TransferUserDefinedFunction(
-            ModFunction.class, "MOD", getLeastRestrictiveReturnTypeAmongArgsAt(List.of(0, 1)));
+        return TransferUserDefinedFunction(ModFunction.class, "MOD", ReturnTypes.LEAST_RESTRICTIVE);
       case "PI":
         return SqlStdOperatorTable.PI;
       case "POW", "POWER":
@@ -266,9 +265,7 @@ public interface BuiltinFunctionUtils {
             DateAddSubFunction.class, "DATE_SUB", timestampInference);
       case "ADDTIME", "SUBTIME":
         return TransferUserDefinedFunction(
-            TimeAddSubFunction.class,
-            capitalOP,
-            UserDefinedFunctionUtils.getReturnTypeForTimeAddSub());
+            TimeAddSubFunction.class, capitalOP, TimeAddSubFunction.getReturnTypeForTimeAddSub());
       case "DAY_OF_WEEK", "DAYOFWEEK":
         return TransferUserDefinedFunction(
             DayOfWeekFunction.class, capitalOP, INTEGER_FORCE_NULLABLE);

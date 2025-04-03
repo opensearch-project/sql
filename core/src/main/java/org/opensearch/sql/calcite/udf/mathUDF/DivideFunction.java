@@ -6,13 +6,28 @@
 package org.opensearch.sql.calcite.udf.mathUDF;
 
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.MathUtils;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 
 public class DivideFunction implements UserDefinedFunction {
 
   @Override
   public Object eval(Object... args) {
-    double dividend = ((Number) args[0]).doubleValue();
-    double divisor = ((Number) args[1]).doubleValue();
-    return dividend / divisor;
+    if (UserDefinedFunctionUtils.containsNull(args)) {
+      return null;
+    }
+
+    Number dividend = (Number) args[0];
+    Number divisor = (Number) args[1];
+
+    if (Math.abs(divisor.doubleValue()) < MathUtils.EPSILON) {
+      return null;
+    }
+
+    double result = dividend.doubleValue() / divisor.doubleValue();
+    if (MathUtils.isIntegral(dividend) && MathUtils.isIntegral(divisor)) {
+      return MathUtils.coerceToWidestIntegralType(dividend, divisor, (long) result);
+    }
+    return MathUtils.coerceToWidestFloatingType(dividend, divisor, result);
   }
 }
