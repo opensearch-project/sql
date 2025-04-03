@@ -10,7 +10,6 @@ import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.trans
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearweek;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.yearweekToday;
 
-import java.util.Objects;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;

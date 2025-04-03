@@ -24,7 +24,7 @@ public class QuarterFunction implements UserDefinedFunction {
     }
     FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     ExprValue candidate = transferInputToExprValue(args[0], (SqlTypeName) args[1]);
-    if ((SqlTypeName) args[1] == SqlTypeName.TIME) {
+    if (args[1] == SqlTypeName.TIME) {
       return extractForTime(candidate, restored).valueForCalcite();
     }
     return extract(candidate).valueForCalcite();

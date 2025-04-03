@@ -28,7 +28,7 @@ public class TimeAddSubFunction implements UserDefinedFunction {
     Object argInterval = args[2];
     SqlTypeName argIntervalType = (SqlTypeName) args[3];
     boolean isAdd = (boolean) args[4];
-    ExprValue baseValue = transferInputToExprValue(args[0], baseType);
+    ExprValue baseValue = transferInputToExprValue(argBase, baseType);
     ExprValue intervalValue = transferInputToExprValue(argInterval, argIntervalType);
     FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     ExprValue result;
