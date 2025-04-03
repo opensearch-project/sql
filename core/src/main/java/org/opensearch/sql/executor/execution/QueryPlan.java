@@ -71,12 +71,17 @@ public class QueryPlan extends AbstractPlan {
 
   @Override
   public void explain(ResponseListener<ExecutionEngine.ExplainResponse> listener) {
+    explain(false, listener);
+  }
+
+  @Override
+  public void explain(boolean codegen, ResponseListener<ExecutionEngine.ExplainResponse> listener) {
     if (pageSize.isPresent()) {
       listener.onFailure(
           new NotImplementedException(
               "`explain` feature for paginated requests is not implemented yet."));
     } else {
-      queryService.explain(plan, getQueryType(), listener);
+      queryService.explain(plan, getQueryType(), codegen, listener);
     }
   }
 }

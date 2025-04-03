@@ -81,6 +81,7 @@ public class SQLService {
           request.getCursor().get(),
           isExplainRequest,
           SQL_QUERY,
+          request.codegen(),
           queryListener.orElse(null),
           explainListener.orElse(null));
     } else {
@@ -93,6 +94,7 @@ public class SQLService {
                   AstStatementBuilder.StatementBuilderContext.builder()
                       .isExplain(isExplainRequest)
                       .fetchSize(request.getFetchSize())
+                      .codegen(request.codegen())
                       .build()));
 
       return queryExecutionFactory.create(statement, queryListener, explainListener);

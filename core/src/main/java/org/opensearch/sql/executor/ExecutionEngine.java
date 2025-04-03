@@ -49,7 +49,10 @@ public interface ExecutionEngine {
       RelNode plan, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {}
 
   default void explain(
-      RelNode plan, CalcitePlanContext context, ResponseListener<ExplainResponse> listener) {}
+      RelNode plan,
+      boolean codegen,
+      CalcitePlanContext context,
+      ResponseListener<ExplainResponse> listener) {}
 
   /** Data class that encapsulates ExprValue. */
   @Data
@@ -77,16 +80,23 @@ public interface ExecutionEngine {
    */
   class ExplainResponse {
     private final ExplainResponseNode root;
-    private final String logical; // used in Calcite plan explain
+    // used in Calcite plan explain
+    private final String logical;
+    private final String physical;
+    private final String codegen;
 
     public ExplainResponse(ExplainResponseNode root) {
       this.root = root;
       this.logical = null;
+      this.physical = null;
+      this.codegen = null;
     }
 
-    public ExplainResponse(String logical) {
+    public ExplainResponse(String logical, String physical, String codegen) {
       this.root = null;
       this.logical = logical;
+      this.physical = physical;
+      this.codegen = codegen;
     }
   }
 

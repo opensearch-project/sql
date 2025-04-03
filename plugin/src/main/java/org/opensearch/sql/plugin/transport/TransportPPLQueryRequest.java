@@ -43,6 +43,11 @@ public class TransportPPLQueryRequest extends ActionRequest {
   @Setter
   @Getter
   @Accessors(fluent = true)
+  private boolean codegen = false;
+
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
   private JsonResponseFormatter.Style style = JsonResponseFormatter.Style.COMPACT;
 
   /** Constructor of TransportPPLQueryRequest from PPLQueryRequest. */
@@ -53,6 +58,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     format = pplQueryRequest.getFormat();
     sanitize = pplQueryRequest.sanitize();
     style = pplQueryRequest.style();
+    codegen = pplQueryRequest.codegen();
   }
 
   /** Constructor of TransportPPLQueryRequest from StreamInput. */
@@ -65,6 +71,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     path = in.readOptionalString();
     sanitize = in.readBoolean();
     style = in.readEnum(JsonResponseFormatter.Style.class);
+    codegen = in.readBoolean();
   }
 
   /** Re-create the object from the actionRequest. */
@@ -95,6 +102,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     out.writeOptionalString(path);
     out.writeBoolean(sanitize);
     out.writeEnum(style);
+    out.writeBoolean(codegen);
   }
 
   public String getRequest() {
@@ -131,6 +139,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     PPLQueryRequest pplQueryRequest = new PPLQueryRequest(pplQuery, jsonContent, path, format);
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
+    pplQueryRequest.codegen(codegen);
     return pplQueryRequest;
   }
 }

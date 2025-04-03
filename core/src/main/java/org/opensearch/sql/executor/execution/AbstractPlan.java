@@ -33,4 +33,13 @@ public abstract class AbstractPlan {
    * @param listener query explain response listener.
    */
   public abstract void explain(ResponseListener<ExecutionEngine.ExplainResponse> listener);
+
+  /**
+   * Explain query execution with displaying codegen.
+   *
+   * @param listener query explain response listener.
+   */
+  public void explain(boolean codegen, ResponseListener<ExecutionEngine.ExplainResponse> listener) {
+    explain(listener);
+  }
 }

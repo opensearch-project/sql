@@ -17,23 +17,34 @@ import org.opensearch.sql.executor.QueryType;
 public class ExplainPlan extends AbstractPlan {
 
   private final AbstractPlan plan;
+  private final boolean codegen;
 
   private final ResponseListener<ExecutionEngine.ExplainResponse> explainListener;
+
+  public ExplainPlan(
+      QueryId queryId,
+      QueryType queryType,
+      AbstractPlan plan,
+      ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
+    this(queryId, queryType, plan, false, explainListener);
+  }
 
   /** Constructor. */
   public ExplainPlan(
       QueryId queryId,
       QueryType queryType,
       AbstractPlan plan,
+      boolean codegen,
       ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     super(queryId, queryType);
     this.plan = plan;
+    this.codegen = codegen;
     this.explainListener = explainListener;
   }
 
   @Override
   public void execute() {
-    plan.explain(explainListener);
+    plan.explain(codegen, explainListener);
   }
 
   @Override

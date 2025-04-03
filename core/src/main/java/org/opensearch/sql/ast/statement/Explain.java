@@ -20,6 +20,7 @@ public class Explain extends Statement {
 
   private final Statement statement;
   private final QueryType queryType;
+  private final boolean codegen;
 
   @Override
   public <R, C> R accept(AbstractNodeVisitor<R, C> visitor, C context) {

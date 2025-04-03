@@ -38,7 +38,8 @@ public class ExplainPlanTest {
   public void execute() {
     doNothing().when(queryPlan).explain(any());
 
-    ExplainPlan explainPlan = new ExplainPlan(queryId, queryType, queryPlan, explainListener);
+    ExplainPlan explainPlan =
+        new ExplainPlan(queryId, queryType, queryPlan, false, explainListener);
     explainPlan.execute();
 
     verify(queryPlan, times(1)).explain(explainListener);

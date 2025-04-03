@@ -162,9 +162,10 @@ public class QueryService {
 
   public void explainPlanByCalcite(
       RelNode plan,
+      boolean codegen,
       CalcitePlanContext context,
       ResponseListener<ExecutionEngine.ExplainResponse> listener) {
-    executionEngine.explain(convertToCalcitePlan(optimize(plan)), context, listener);
+    executionEngine.explain(convertToCalcitePlan(optimize(plan)), codegen, context, listener);
   }
 
   /**
@@ -201,6 +202,7 @@ public class QueryService {
   public void explain(
       UnresolvedPlan plan,
       QueryType queryType,
+      boolean codegen,
       ResponseListener<ExecutionEngine.ExplainResponse> listener) {
     try {
       if (shouldUseCalcite(queryType)) {
@@ -210,7 +212,7 @@ public class QueryService {
                   () -> {
                     final FrameworkConfig config = buildFrameworkConfig();
                     final CalcitePlanContext context = CalcitePlanContext.create(config, queryType);
-                    explainPlanByCalcite(analyze(plan, context), context, listener);
+                    explainPlanByCalcite(analyze(plan, context), codegen, context, listener);
                     return null;
                   });
         } catch (Throwable t) {

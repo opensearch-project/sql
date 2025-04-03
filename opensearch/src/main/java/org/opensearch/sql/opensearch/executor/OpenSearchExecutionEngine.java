@@ -17,10 +17,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.Hook;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -108,13 +112,41 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         });
   }
 
+  private Hook.Closeable getPhysicalPlanInHook(AtomicReference<String> physical) {
+    return Hook.PLAN_BEFORE_IMPLEMENTATION.addThread(
+        obj -> {
+          RelRoot relRoot = (RelRoot) obj;
+          physical.set(relRoot.rel.explain());
+        });
+  }
+
+  private Hook.Closeable getCodegenInHook(AtomicReference<String> codegen) {
+    return Hook.JAVA_PLAN.addThread(
+        obj -> {
+          codegen.set((String) obj);
+        });
+  }
+
   @Override
   public void explain(
-      RelNode rel, CalcitePlanContext context, ResponseListener<ExplainResponse> listener) {
+      RelNode rel, boolean codegen, CalcitePlanContext context, ResponseListener<ExplainResponse> listener) {
     client.schedule(
         () -> {
           try {
-            listener.onResponse(new ExplainResponse(rel.explain()));
+            String logical = rel.explain();
+            AtomicReference<String> physical = new AtomicReference<>();
+            AtomicReference<String> javaCode = new AtomicReference<>();
+            try (Hook.Closeable closeable = getPhysicalPlanInHook(physical)) {
+              if (codegen)  {
+                getCodegenInHook(javaCode);
+              }
+              // triggers the hook
+              AccessController.doPrivileged(
+                  (PrivilegedAction<PreparedStatement>)
+                      () -> OpenSearchRelRunners.run(context, rel));
+            }
+            listener.onResponse(
+                new ExplainResponse(logical, physical.get(), javaCode.get()));
           } catch (Exception e) {
             listener.onFailure(e);
           }

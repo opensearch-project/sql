@@ -22,6 +22,7 @@ public class PPLQueryRequestFactory {
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
   private static final String DEFAULT_RESPONSE_FORMAT = "jdbc";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
+  private static final String QUERY_PARAMS_CODEGEN = "codegen";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -75,6 +76,10 @@ public class PPLQueryRequestFactory {
     if (pretty) {
       pplRequest.style(JsonResponseFormatter.Style.PRETTY);
     }
+    // set codegen option
+    if (restRequest.params().containsKey(QUERY_PARAMS_CODEGEN)) {
+      pplRequest.codegen(getCodegenOption(restRequest.params()));
+    }
     return pplRequest;
   }
 
@@ -106,6 +111,13 @@ public class PPLQueryRequestFactory {
         return true;
       }
       return Boolean.parseBoolean(prettyValue);
+    }
+    return false;
+  }
+
+  private static boolean getCodegenOption(Map<String, String> requestParams) {
+    if (requestParams.containsKey(QUERY_PARAMS_CODEGEN)) {
+      return Boolean.parseBoolean(requestParams.get(QUERY_PARAMS_CODEGEN));
     }
     return false;
   }
