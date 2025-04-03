@@ -54,7 +54,7 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
-import org.opensearch.sql.prometheus.constants.TestConstants;
+import org.opensearch.sql.prometheus.constant.TestConstants;
 import org.opensearch.sql.prometheus.functions.scan.QueryRangeFunctionTableScanBuilder;
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
 import org.opensearch.sql.storage.read.TableScanBuilder;

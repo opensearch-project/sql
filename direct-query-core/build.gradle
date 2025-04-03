@@ -1,0 +1,105 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+plugins {
+    id 'java-library'
+    id "io.freefair.lombok"
+    id 'jacoco'
+    id 'java-test-fixtures'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api project(':core')
+    implementation project(':datasources')
+    implementation project(':async-query-core')
+    
+    // Common dependencies
+    implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
+    implementation group: 'org.json', name: 'json', version: '20231013'
+    implementation group: 'commons-io', name: 'commons-io', version: "${commons_io_version}"
+
+    // Test dependencies
+    testImplementation(platform("org.junit:junit-bom:5.9.3"))
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
+    testImplementation group: 'com.squareup.okhttp3', name: 'mockwebserver', version: '4.12.0'
+
+    testCompileOnly('junit:junit:4.13.1') {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine") {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testImplementation("org.opensearch.test:framework:${opensearch_version}")
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
+task junit4(type: Test) {
+    useJUnitPlatform {
+        includeEngines("junit-vintage")
+    }
+    systemProperty 'tests.security.manager', 'false'
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
+
+jacocoTestReport {
+    dependsOn test, junit4
+    executionData test, junit4
+    reports {
+        html.required = true
+        xml.required = true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it)
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn test, junit4
+    executionData test, junit4
+    violationRules {
+        rule {
+            element = 'CLASS'
+            excludes = [
+                'org.opensearch.sql.prometheus.model.*',
+                'org.opensearch.sql.directquery.rest.model.*'
+            ]
+            limit {
+                counter = 'LINE'
+                minimum = 1.0
+            }
+            limit {
+                counter = 'BRANCH'
+                minimum = 1.0
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it)
+        }))
+    }
+}
+check.dependsOn jacocoTestCoverageVerification
+jacocoTestCoverageVerification.dependsOn jacocoTestReport
