@@ -27,19 +27,7 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_NO_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SINGLE_DIGIT_MONTH;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SINGLE_DIGIT_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_STRICT_WITH_TZ;
-import static org.opensearch.sql.utils.DateTimeFormatters.FULL_DATE_LENGTH;
-import static org.opensearch.sql.utils.DateTimeFormatters.NO_YEAR_DATE_LENGTH;
-import static org.opensearch.sql.utils.DateTimeFormatters.SHORT_DATE_LENGTH;
-import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_MONTH_DATE_LENGTH;
-import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_YEAR_DATE_LENGTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.*;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
 import static org.opensearch.sql.utils.DateTimeUtils.extractTimestamp;
 
@@ -1127,7 +1115,7 @@ public class DateTimeFunctions {
     return new ExprIntegerValue(LocalDateTime.now(clock).getDayOfMonth());
   }
 
-  private ExprValue dayOfYearToday(Clock clock) {
+  public static ExprValue dayOfYearToday(Clock clock) {
     return new ExprIntegerValue(LocalDateTime.now(clock).getDayOfYear());
   }
 
@@ -1142,7 +1130,7 @@ public class DateTimeFunctions {
    * @param clock Current clock taken from function properties
    * @return ExprValue.
    */
-  private ExprValue dayOfWeekToday(Clock clock) {
+  public static ExprValue dayOfWeekToday(Clock clock) {
     return new ExprIntegerValue((formatNow(clock).getDayOfWeek().getValue() % 7) + 1);
   }
 
@@ -1168,7 +1156,7 @@ public class DateTimeFunctions {
    * @param isAdd A flag: true to isAdd, false to subtract.
    * @return Timestamp calculated.
    */
-  private ExprValue exprDateApplyInterval(
+  public static ExprValue exprDateApplyInterval(
       FunctionProperties functionProperties,
       ExprValue datetime,
       TemporalAmount interval,
@@ -1264,7 +1252,7 @@ public class DateTimeFunctions {
    * @param temporalDelta A Date/Time/Timestamp object to add time from.
    * @return A value calculated.
    */
-  private ExprValue exprAddTime(
+  public static ExprValue exprAddTime(
       FunctionProperties functionProperties, ExprValue temporal, ExprValue temporalDelta) {
     return exprApplyTime(functionProperties, temporal, temporalDelta, true);
   }
@@ -1278,7 +1266,8 @@ public class DateTimeFunctions {
    * @param toTz ExprValue of time zone, representing the time to convert to.
    * @return Timestamp that has been converted to the to_tz timezone.
    */
-  private ExprValue exprConvertTZ(ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
+  public static ExprValue exprConvertTZ(
+      ExprValue startingDateTime, ExprValue fromTz, ExprValue toTz) {
     if (startingDateTime.type() == ExprCoreType.STRING) {
       startingDateTime = exprDateTimeNoTimezone(startingDateTime);
     }
@@ -1311,7 +1300,7 @@ public class DateTimeFunctions {
    * @param exprValue ExprValue of Date type or String type.
    * @return ExprValue.
    */
-  private ExprValue exprDate(ExprValue exprValue) {
+  public static ExprValue exprDate(ExprValue exprValue) {
     if (exprValue instanceof ExprStringValue) {
       return new ExprDateValue(exprValue.stringValue());
     } else {
@@ -1327,7 +1316,7 @@ public class DateTimeFunctions {
    * @param second The second value.
    * @return The diff.
    */
-  private ExprValue exprDateDiff(
+  public static ExprValue exprDateDiff(
       FunctionProperties functionProperties, ExprValue first, ExprValue second) {
     // java inverses the value, so we have to swap 1 and 2
     return new ExprLongValue(
@@ -1342,7 +1331,7 @@ public class DateTimeFunctions {
    * @param timeZone ExprValue of String type (or null).
    * @return ExprValue of date type.
    */
-  private ExprValue exprDateTime(ExprValue timestamp, ExprValue timeZone) {
+  public static ExprValue exprDateTime(ExprValue timestamp, ExprValue timeZone) {
     String defaultTimeZone = TimeZone.getDefault().getID();
 
     try {
@@ -1383,7 +1372,7 @@ public class DateTimeFunctions {
    * @param dateTime ExprValue of String type.
    * @return ExprValue of date type.
    */
-  private ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
+  public static ExprValue exprDateTimeNoTimezone(ExprValue dateTime) {
     return exprDateTime(dateTime, ExprNullValue.of());
   }
 
@@ -1404,7 +1393,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String/Time/Timestamp type.
    * @return ExprValue.
    */
-  private ExprValue exprDayOfMonth(ExprValue date) {
+  public static ExprValue exprDayOfMonth(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getDayOfMonth());
   }
 
@@ -1414,7 +1403,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String/Timstamp type.
    * @return ExprValue.
    */
-  private ExprValue exprDayOfWeek(ExprValue date) {
+  public static ExprValue exprDayOfWeek(ExprValue date) {
     return new ExprIntegerValue((date.dateValue().getDayOfWeek().getValue() % 7) + 1);
   }
 
@@ -1424,7 +1413,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String type.
    * @return ExprValue.
    */
-  private ExprValue exprDayOfYear(ExprValue date) {
+  public static ExprValue exprDayOfYear(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getDayOfYear());
   }
 
@@ -1435,8 +1424,8 @@ public class DateTimeFunctions {
    * @param timestamp the date to be formatted as an ExprValue.
    * @return is a LONG formatted according to the input arguments.
    */
-  public ExprLongValue formatExtractFunction(ExprValue part, ExprValue timestamp) {
-    String partName = part.stringValue().toUpperCase();
+  public static ExprLongValue formatExtractFunction(ExprValue part, ExprValue timestamp) {
+    String partName = part.stringValue().toUpperCase(Locale.ROOT);
     LocalDateTime arg = timestamp.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();
 
     // Override "Week" to use the IsoFields week-of-week-based-year format
@@ -1468,7 +1457,7 @@ public class DateTimeFunctions {
    * @param time The time to be formatted.
    * @return A LONG
    */
-  private ExprValue exprExtractForTime(
+  public static ExprValue exprExtractForTime(
       FunctionProperties functionProperties, ExprValue part, ExprValue time) {
     return formatExtractFunction(
         part, new ExprTimestampValue(extractTimestamp(time, functionProperties)));
@@ -1480,11 +1469,11 @@ public class DateTimeFunctions {
    * @param exprValue Day number N.
    * @return ExprValue.
    */
-  private ExprValue exprFromDays(ExprValue exprValue) {
+  public static ExprValue exprFromDays(ExprValue exprValue) {
     return new ExprDateValue(LocalDate.ofEpochDay(exprValue.longValue() - DAYS_0000_TO_1970));
   }
 
-  private ExprValue exprFromUnixTime(ExprValue time) {
+  public static ExprValue exprFromUnixTime(ExprValue time) {
     if (0 > time.doubleValue()) {
       return ExprNullValue.of();
     }
@@ -1504,7 +1493,7 @@ public class DateTimeFunctions {
         .withNano((int) ((time.doubleValue() % 1) * 1E9));
   }
 
-  private ExprValue exprFromUnixTimeFormat(ExprValue time, ExprValue format) {
+  public static ExprValue exprFromUnixTimeFormat(ExprValue time, ExprValue format) {
     var value = exprFromUnixTime(time);
     if (value.equals(ExprNullValue.of())) {
       return ExprNullValue.of();
@@ -1519,10 +1508,12 @@ public class DateTimeFunctions {
    * @param format ExprValue of Time/String type
    * @return ExprValue..
    */
-  private ExprValue exprGetFormat(ExprValue type, ExprValue format) {
-    if (formats.contains(type.stringValue().toLowerCase(), format.stringValue().toLowerCase())) {
+  public static ExprValue exprGetFormat(ExprValue type, ExprValue format) {
+    if (formats.contains(
+        type.stringValue().toLowerCase(), format.stringValue().toLowerCase(Locale.ROOT))) {
       return new ExprStringValue(
-          formats.get(type.stringValue().toLowerCase(), format.stringValue().toLowerCase()));
+          formats.get(
+              type.stringValue().toLowerCase(), format.stringValue().toLowerCase(Locale.ROOT)));
     }
 
     return ExprNullValue.of();
@@ -1534,7 +1525,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprHour(ExprValue time) {
+  public static ExprValue exprHour(ExprValue time) {
     return new ExprIntegerValue(HOURS.between(LocalTime.MIN, time.timeValue()));
   }
 
@@ -1555,7 +1546,7 @@ public class DateTimeFunctions {
    * @param timestamp A DATE/TIMESTAMP/STRING ExprValue.
    * @return An DATE value corresponding to the last day of the month of the given argument.
    */
-  private ExprValue exprLastDay(ExprValue timestamp) {
+  public static ExprValue exprLastDay(ExprValue timestamp) {
     return new ExprDateValue(getLastDay(timestamp.dateValue()));
   }
 
@@ -1565,7 +1556,7 @@ public class DateTimeFunctions {
    * @param clock The clock for the query start time from functionProperties.
    * @return An DATE value corresponding to the last day of the month of the given argument.
    */
-  private ExprValue exprLastDayToday(Clock clock) {
+  public static ExprValue exprLastDayToday(Clock clock) {
     return new ExprDateValue(getLastDay(formatNow(clock).toLocalDate()));
   }
 
@@ -1584,7 +1575,7 @@ public class DateTimeFunctions {
    * @param dayOfYearExp day of the @year, starting from 1
    * @return Date - ExprDateValue object with LocalDate
    */
-  private ExprValue exprMakeDate(ExprValue yearExpr, ExprValue dayOfYearExp) {
+  public static ExprValue exprMakeDate(ExprValue yearExpr, ExprValue dayOfYearExp) {
     var year = Math.round(yearExpr.doubleValue());
     var dayOfYear = Math.round(dayOfYearExp.doubleValue());
     // We need to do this to comply with MySQL
@@ -1606,7 +1597,8 @@ public class DateTimeFunctions {
    * @param secondExpr second
    * @return Time - ExprTimeValue object with LocalTime
    */
-  private ExprValue exprMakeTime(ExprValue hourExpr, ExprValue minuteExpr, ExprValue secondExpr) {
+  public static ExprValue exprMakeTime(
+      ExprValue hourExpr, ExprValue minuteExpr, ExprValue secondExpr) {
     var hour = Math.round(hourExpr.doubleValue());
     var minute = Math.round(minuteExpr.doubleValue());
     var second = secondExpr.doubleValue();
@@ -1615,7 +1607,8 @@ public class DateTimeFunctions {
     }
     return new ExprTimeValue(
         LocalTime.parse(
-            String.format("%02d:%02d:%012.9f", hour, minute, second), DateTimeFormatter.ISO_TIME));
+            String.format(Locale.US, "%02d:%02d:%012.9f", hour, minute, second),
+            DateTimeFormatter.ISO_TIME));
   }
 
   /**
@@ -1624,7 +1617,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprMicrosecond(ExprValue time) {
+  public static ExprValue exprMicrosecond(ExprValue time) {
     return new ExprIntegerValue(
         TimeUnit.MICROSECONDS.convert(time.timeValue().getNano(), TimeUnit.NANOSECONDS));
   }
@@ -1635,7 +1628,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprMinute(ExprValue time) {
+  public static ExprValue exprMinute(ExprValue time) {
     return new ExprIntegerValue((MINUTES.between(LocalTime.MIN, time.timeValue()) % 60));
   }
 
@@ -1645,7 +1638,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprMinuteOfDay(ExprValue time) {
+  public static ExprValue exprMinuteOfDay(ExprValue time) {
     return new ExprIntegerValue(MINUTES.between(LocalTime.MIN, time.timeValue()));
   }
 
@@ -1655,7 +1648,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String type.
    * @return ExprValue.
    */
-  private ExprValue exprMonth(ExprValue date) {
+  public static ExprValue exprMonth(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getMonthValue());
   }
 
@@ -1695,7 +1688,7 @@ public class DateTimeFunctions {
    * @param months Amount of months to add.
    * @return ExprIntegerValue.
    */
-  private ExprValue exprPeriodAdd(ExprValue period, ExprValue months) {
+  public static ExprValue exprPeriodAdd(ExprValue period, ExprValue months) {
     // We should add a day to make string parsable and remove it afterwards
     var input = period.integerValue() * 100 + 1; // adds 01 to end of the string
     var parsedDate = parseDatePeriod(input);
@@ -1716,7 +1709,7 @@ public class DateTimeFunctions {
    * @param period2 Period in the format YYMM or YYYYMM.
    * @return ExprIntegerValue.
    */
-  private ExprValue exprPeriodDiff(ExprValue period1, ExprValue period2) {
+  public static ExprValue exprPeriodDiff(ExprValue period1, ExprValue period2) {
     var parsedDate1 = parseDatePeriod(period1.integerValue() * 100 + 1);
     var parsedDate2 = parseDatePeriod(period2.integerValue() * 100 + 1);
     if (parsedDate1 == null || parsedDate2 == null) {
@@ -1731,7 +1724,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String type.
    * @return ExprValue.
    */
-  private ExprValue exprQuarter(ExprValue date) {
+  public static ExprValue exprQuarter(ExprValue date) {
     int month = date.dateValue().getMonthValue();
     return new ExprIntegerValue((month / 3) + ((month % 3) == 0 ? 0 : 1));
   }
@@ -1742,7 +1735,7 @@ public class DateTimeFunctions {
    * @param totalSeconds The total number of seconds
    * @return A TIME value
    */
-  private ExprValue exprSecToTime(ExprValue totalSeconds) {
+  public static ExprValue exprSecToTime(ExprValue totalSeconds) {
     return new ExprTimeValue(LocalTime.MIN.plus(Duration.ofSeconds(totalSeconds.longValue())));
   }
 
@@ -1769,7 +1762,7 @@ public class DateTimeFunctions {
    * @param totalSeconds The total number of seconds
    * @return A TIME value
    */
-  private ExprValue exprSecToTimeWithNanos(ExprValue totalSeconds) {
+  public static ExprValue exprSecToTimeWithNanos(ExprValue totalSeconds) {
     long nanos = formatNanos(totalSeconds);
 
     return new ExprTimeValue(
@@ -1782,7 +1775,7 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprSecond(ExprValue time) {
+  public static ExprValue exprSecond(ExprValue time) {
     return new ExprIntegerValue((SECONDS.between(LocalTime.MIN, time.timeValue()) % 60));
   }
 
@@ -1819,12 +1812,12 @@ public class DateTimeFunctions {
    * @param temporalDelta A Date/Time/Timestamp to subtract time from.
    * @return A value calculated.
    */
-  private ExprValue exprSubTime(
+  public static ExprValue exprSubTime(
       FunctionProperties functionProperties, ExprValue temporal, ExprValue temporalDelta) {
     return exprApplyTime(functionProperties, temporal, temporalDelta, false);
   }
 
-  private ExprValue exprStrToDate(
+  public static ExprValue exprStrToDate(
       FunctionProperties fp, ExprValue dateTimeExpr, ExprValue formatStringExp) {
     return DateTimeFormatterUtil.parseStringWithDateOrTime(fp, dateTimeExpr, formatStringExp);
   }
@@ -1835,7 +1828,7 @@ public class DateTimeFunctions {
    * @param exprValue ExprValue of Time type or String.
    * @return ExprValue.
    */
-  private ExprValue exprTime(ExprValue exprValue) {
+  public static ExprValue exprTime(ExprValue exprValue) {
     if (exprValue instanceof ExprStringValue) {
       return new ExprTimeValue(exprValue.stringValue());
     } else {
@@ -1850,7 +1843,7 @@ public class DateTimeFunctions {
    * @param second The second value.
    * @return The diff.
    */
-  private ExprValue exprTimeDiff(ExprValue first, ExprValue second) {
+  public static ExprValue exprTimeDiff(ExprValue first, ExprValue second) {
     // java inverses the value, so we have to swap 1 and 2
     return new ExprTimeValue(
         LocalTime.MIN.plus(Duration.between(second.timeValue(), first.timeValue())));
@@ -1862,11 +1855,11 @@ public class DateTimeFunctions {
    * @param time ExprValue of Time/String type.
    * @return ExprValue.
    */
-  private ExprValue exprTimeToSec(ExprValue time) {
+  public static ExprValue exprTimeToSec(ExprValue time) {
     return new ExprLongValue(time.timeValue().toSecondOfDay());
   }
 
-  private ExprValue exprTimestampAdd(
+  public static ExprValue exprTimestampAdd(
       ExprValue partExpr, ExprValue amountExpr, ExprValue datetimeExpr) {
     String part = partExpr.stringValue();
     int amount = amountExpr.integerValue();
@@ -1909,7 +1902,7 @@ public class DateTimeFunctions {
     return new ExprTimestampValue(timestamp.plus(amount, temporalUnit));
   }
 
-  private ExprValue exprTimestampAddForTimeType(
+  public static ExprValue exprTimestampAddForTimeType(
       Clock clock, ExprValue partExpr, ExprValue amountExpr, ExprValue timeExpr) {
     LocalDateTime datetime = LocalDateTime.of(formatNow(clock).toLocalDate(), timeExpr.timeValue());
     return exprTimestampAdd(partExpr, amountExpr, new ExprTimestampValue(datetime));
@@ -1951,7 +1944,7 @@ public class DateTimeFunctions {
     return new ExprLongValue(returnVal);
   }
 
-  private ExprValue exprTimestampDiff(
+  public static ExprValue exprTimestampDiff(
       ExprValue partExpr, ExprValue startTimeExpr, ExprValue endTimeExpr) {
     return getTimeDifference(
         partExpr.stringValue(),
@@ -1959,7 +1952,7 @@ public class DateTimeFunctions {
         endTimeExpr.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
-  private ExprValue exprTimestampDiffForTimeType(
+  public static ExprValue exprTimestampDiffForTimeType(
       FunctionProperties fp, ExprValue partExpr, ExprValue startTimeExpr, ExprValue endTimeExpr) {
     return getTimeDifference(
         partExpr.stringValue(),
@@ -1973,7 +1966,7 @@ public class DateTimeFunctions {
    * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
-  private ExprValue exprUtcDate(FunctionProperties functionProperties) {
+  public static ExprValue exprUtcDate(FunctionProperties functionProperties) {
     return new ExprDateValue(exprUtcTimeStamp(functionProperties).dateValue());
   }
 
@@ -1983,7 +1976,7 @@ public class DateTimeFunctions {
    * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
-  private ExprValue exprUtcTime(FunctionProperties functionProperties) {
+  public static ExprValue exprUtcTime(FunctionProperties functionProperties) {
     return new ExprTimeValue(exprUtcTimeStamp(functionProperties).timeValue());
   }
 
@@ -1993,7 +1986,7 @@ public class DateTimeFunctions {
    * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
-  private ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
+  public static ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
     var zdt =
         ZonedDateTime.now(functionProperties.getQueryStartClock())
             .withZoneSameInstant(ZoneOffset.UTC);
@@ -2006,7 +1999,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String type.
    * @return ExprValue.
    */
-  private ExprValue exprToDays(ExprValue date) {
+  public static ExprValue exprToDays(ExprValue date) {
     return new ExprLongValue(date.dateValue().toEpochDay() + DAYS_0000_TO_1970);
   }
 
@@ -2016,7 +2009,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/Timestamp/String type.
    * @return ExprValue.
    */
-  private ExprValue exprToSeconds(ExprValue date) {
+  public static ExprValue exprToSeconds(ExprValue date) {
     return new ExprLongValue(
         date.timestampValue().atOffset(ZoneOffset.UTC).toEpochSecond()
             + DAYS_0000_TO_1970 * SECONDS_PER_DAY);
@@ -2070,7 +2063,7 @@ public class DateTimeFunctions {
    * @param dateExpr ExprValue of an Integer/Long formatted for a date (e.g., 950501 = 1995-05-01)
    * @return ExprValue.
    */
-  private ExprValue exprToSecondsForIntType(ExprValue dateExpr) {
+  public static ExprValue exprToSecondsForIntType(ExprValue dateExpr) {
     try {
       // Attempt to parse integer argument as date
       LocalDate date =
@@ -2092,7 +2085,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/Timestamp/String type.
    * @param mode ExprValue of Integer type.
    */
-  private ExprValue exprWeek(ExprValue date, ExprValue mode) {
+  public static ExprValue exprWeek(ExprValue date, ExprValue mode) {
     return new ExprIntegerValue(
         CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));
   }
@@ -2103,15 +2096,15 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String/Timstamp type.
    * @return ExprValue.
    */
-  private ExprValue exprWeekday(ExprValue date) {
+  public static ExprValue exprWeekday(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getDayOfWeek().getValue() - 1);
   }
 
-  private ExprValue unixTimeStamp(Clock clock) {
+  public static ExprValue unixTimeStamp(Clock clock) {
     return new ExprLongValue(Instant.now(clock).getEpochSecond());
   }
 
-  private ExprValue unixTimeStampOf(ExprValue value) {
+  public static ExprValue unixTimeStampOf(ExprValue value) {
     var res = unixTimeStampOfImpl(value);
     if (res == null) {
       return ExprNullValue.of();
@@ -2127,6 +2120,45 @@ public class DateTimeFunctions {
     return new ExprDoubleValue(res);
   }
 
+  public static Double transferUnixTimeStampFromDoubleInput(Double value) {
+    var format = new DecimalFormat("0.#");
+    format.setMinimumFractionDigits(0);
+    format.setMaximumFractionDigits(6);
+    String input = format.format(value);
+    double fraction = 0;
+    if (input.contains(".")) {
+      // Keeping fraction second part and adding it to the result, don't parse it
+      // Because `toEpochSecond` returns only `long`
+      // input = 12345.6789 becomes input = 12345 and fraction = 0.6789
+      fraction = value - Math.round(Math.ceil(value));
+      input = input.substring(0, input.indexOf('.'));
+    }
+    try {
+      var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_SHORT_YEAR);
+      return res.toEpochSecond(ZoneOffset.UTC) + fraction;
+    } catch (DateTimeParseException ignored) {
+      // nothing to do, try another format
+    }
+    try {
+      var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_LONG_YEAR);
+      return res.toEpochSecond(ZoneOffset.UTC) + fraction;
+    } catch (DateTimeParseException ignored) {
+      // nothing to do, try another format
+    }
+    try {
+      var res = LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);
+      return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+    } catch (DateTimeParseException ignored) {
+      // nothing to do, try another format
+    }
+    try {
+      var res = LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);
+      return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+    } catch (DateTimeParseException ignored) {
+      return null;
+    }
+  }
+
   private Double unixTimeStampOfImpl(ExprValue value) {
     // Also, according to MySQL documentation:
     //    The date argument may be a DATE, DATETIME, or TIMESTAMP ...
@@ -2139,43 +2171,7 @@ public class DateTimeFunctions {
         //     ... or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
         //     If the argument includes a time part, it may optionally include a fractional
         //     seconds part.
-
-        var format = new DecimalFormat("0.#");
-        format.setMinimumFractionDigits(0);
-        format.setMaximumFractionDigits(6);
-        String input = format.format(value.doubleValue());
-        double fraction = 0;
-        if (input.contains(".")) {
-          // Keeping fraction second part and adding it to the result, don't parse it
-          // Because `toEpochSecond` returns only `long`
-          // input = 12345.6789 becomes input = 12345 and fraction = 0.6789
-          fraction = value.doubleValue() - Math.round(Math.ceil(value.doubleValue()));
-          input = input.substring(0, input.indexOf('.'));
-        }
-        try {
-          var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_SHORT_YEAR);
-          return res.toEpochSecond(ZoneOffset.UTC) + fraction;
-        } catch (DateTimeParseException ignored) {
-          // nothing to do, try another format
-        }
-        try {
-          var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_LONG_YEAR);
-          return res.toEpochSecond(ZoneOffset.UTC) + fraction;
-        } catch (DateTimeParseException ignored) {
-          // nothing to do, try another format
-        }
-        try {
-          var res = LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);
-          return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
-        } catch (DateTimeParseException ignored) {
-          // nothing to do, try another format
-        }
-        try {
-          var res = LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);
-          return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
-        } catch (DateTimeParseException ignored) {
-          return null;
-        }
+        return transferUnixTimeStampFromDoubleInput(value.doubleValue());
     }
   }
 
@@ -2196,7 +2192,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/String type.
    * @return ExprValue.
    */
-  private ExprValue exprYear(ExprValue date) {
+  public static ExprValue exprYear(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getYear());
   }
 
@@ -2226,7 +2222,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/Time/Timestamp/String type.
    * @param mode ExprValue of Integer type.
    */
-  private ExprValue exprYearweek(ExprValue date, ExprValue mode) {
+  public static ExprValue exprYearweek(ExprValue date, ExprValue mode) {
     return extractYearweek(date.dateValue(), mode.integerValue());
   }
 
@@ -2241,15 +2237,15 @@ public class DateTimeFunctions {
     return exprYearweek(date, new ExprIntegerValue(0));
   }
 
-  private ExprValue yearweekToday(ExprValue mode, Clock clock) {
+  public static ExprValue yearweekToday(ExprValue mode, Clock clock) {
     return extractYearweek(LocalDateTime.now(clock).toLocalDate(), mode.integerValue());
   }
 
-  private ExprValue monthOfYearToday(Clock clock) {
+  public static ExprValue monthOfYearToday(Clock clock) {
     return new ExprIntegerValue(LocalDateTime.now(clock).getMonthValue());
   }
 
-  private LocalDateTime formatNow(Clock clock) {
+  public static LocalDateTime formatNow(Clock clock) {
     return formatNow(clock, 0);
   }
 
@@ -2260,7 +2256,7 @@ public class DateTimeFunctions {
    *     value includes a fractional seconds part of that many digits.
    * @return LocalDateTime object.
    */
-  private LocalDateTime formatNow(Clock clock, Integer fsp) {
+  public static LocalDateTime formatNow(Clock clock, Integer fsp) {
     var res = LocalDateTime.now(clock);
     var defaultPrecision = 9; // There are 10^9 nanoseconds in one second
     if (fsp < 0 || fsp > 6) { // Check that the argument is in the allowed range [0, 6]
