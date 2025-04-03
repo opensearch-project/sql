@@ -90,6 +90,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.YearFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.YearWeekFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.DivideFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
@@ -138,7 +139,7 @@ public interface BuiltinFunctionUtils {
       case "*":
         return SqlStdOperatorTable.MULTIPLY;
       case "/":
-        return SqlStdOperatorTable.DIVIDE;
+        return TransferUserDefinedFunction(DivideFunction.class, "/", ReturnTypes.DOUBLE);
         // Built-in String Functions
       case "ASCII":
         return SqlStdOperatorTable.ASCII;

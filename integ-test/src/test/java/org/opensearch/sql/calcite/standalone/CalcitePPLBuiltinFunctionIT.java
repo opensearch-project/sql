@@ -377,4 +377,14 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         actual, schema("name", "string"), schema("age", "integer"), schema("thirty_one", "double"));
     verifyDataRows(actual, rows("Hello", 30, 31));
   }
+
+  @Test
+  public void testDivide() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where name = 'Hello' | eval res1 = 22 / 7, res2 = age / 11 | fields res1", TEST_INDEX_STATE_COUNTRY));
+    verifySchema(actual, schema("res1", "double"));
+    verifyDataRows(actual, closeTo(3.142857142857143, 2.727272727272727));
+  }
 }
