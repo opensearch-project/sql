@@ -1332,7 +1332,7 @@ public class DateTimeFunctions {
    * @return ExprValue of date type.
    */
   public static ExprValue exprDateTime(ExprValue timestamp, ExprValue timeZone) {
-    String defaultTimeZone = TimeZone.getDefault().getID();
+    String defaultTimeZone = TimeZone.getDefault().toZoneId().toString();
 
     try {
       LocalDateTime ldtFormatted =
