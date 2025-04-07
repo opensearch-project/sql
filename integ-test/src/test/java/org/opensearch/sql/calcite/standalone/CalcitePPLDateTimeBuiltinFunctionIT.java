@@ -202,7 +202,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where strict_date_optional_time > DATE_SUB(TIMESTAMP('1999-04-12"
+                "source=%s | where strict_date_optional_time > DATE_SUB(TIMESTAMP('1984-04-12"
                     + " 20:07:00'), INTERVAL 12 HOUR) | stats COUNT() AS CNT ",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("CNT", "long"));
