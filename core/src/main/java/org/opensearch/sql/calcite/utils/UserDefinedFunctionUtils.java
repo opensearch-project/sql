@@ -104,37 +104,6 @@ public class UserDefinedFunctionUtils {
         udfFunction);
   }
 
-  /**
-   * Infer return argument type as the widest return type among arguments as specified positions.
-   * E.g. (Integer, Long) -> Long; (Double, Float, SHORT) -> Double
-   *
-   * @param positions positions where the return type should be inferred from
-   * @param nullable whether the returned value is nullable
-   * @return The type inference
-   */
-  public static SqlReturnTypeInference getLeastRestrictiveReturnTypeAmongArgsAt(
-      List<Integer> positions) {
-    return opBinding -> {
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-      List<RelDataType> types = new ArrayList<>();
-
-      for (int position : positions) {
-        if (position < 0 || position >= opBinding.getOperandCount()) {
-          throw new IllegalArgumentException("Invalid argument position: " + position);
-        }
-        types.add(opBinding.getOperandType(position));
-      }
-
-      RelDataType widerType = typeFactory.leastRestrictive(types);
-      if (widerType == null) {
-        throw new IllegalArgumentException(
-            "Cannot determine a common type for the given positions.");
-      }
-
-      return widerType;
-    };
-  }
-
   static SqlReturnTypeInference getReturnTypeInferenceForArray() {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
@@ -147,37 +116,6 @@ public class UserDefinedFunctionUtils {
       }
       RelDataType firstArgType = argTypes.getFirst();
       return createArrayType(typeFactory, firstArgType, true);
-    };
-  }
-
-  /**
-   * ADDTIME and SUBTIME has special return type maps: (DATE/TIMESTAMP, DATE/TIMESTAMP/TIME) ->
-   * TIMESTAMP (TIME, DATE/TIMESTAMP/TIME) -> TIME Therefore, we create a special return type
-   * inference for them.
-   */
-  static SqlReturnTypeInference getReturnTypeForTimeAddSub() {
-    return opBinding -> {
-      RelDataType operandType0 = opBinding.getOperandType(0);
-      if (operandType0 instanceof ExprSqlType) {
-        ExprUDT exprUDT = ((ExprSqlType) operandType0).getUdt();
-        if (exprUDT == EXPR_DATE || exprUDT == EXPR_TIMESTAMP) {
-          return nullableTimestampUDT;
-        } else if (exprUDT == EXPR_TIME) {
-          return nullableTimeUDT;
-        } else {
-          throw new IllegalArgumentException("Unsupported UDT type");
-        }
-      }
-      SqlTypeName typeName = operandType0.getSqlTypeName();
-      return switch (typeName) {
-        case DATE, TIMESTAMP ->
-        // Return TIMESTAMP
-        nullableTimestampUDT;
-        case TIME ->
-        // Return TIME
-        nullableTimeUDT;
-        default -> throw new IllegalArgumentException("Unsupported type: " + typeName);
-      };
     };
   }
 
