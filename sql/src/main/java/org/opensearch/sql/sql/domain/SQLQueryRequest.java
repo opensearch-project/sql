@@ -31,7 +31,6 @@ public class SQLQueryRequest {
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
-  private static final String QUERY_PARAMS_CODEGEN = "codegen";
 
   /** JSON payload in REST request. */
   private final JSONObject jsonContent;
@@ -43,7 +42,7 @@ public class SQLQueryRequest {
   private final String path;
 
   /** Request format. */
-  private final String format;
+  @Getter private final String format;
 
   /** Request params. */
   private Map<String, String> params = Collections.emptyMap();
@@ -55,10 +54,6 @@ public class SQLQueryRequest {
   @Getter
   @Accessors(fluent = true)
   private boolean pretty = false;
-
-  @Getter
-  @Accessors(fluent = true)
-  private boolean codegen = false;
 
   private String cursor;
 
@@ -77,7 +72,6 @@ public class SQLQueryRequest {
     this.sanitize = shouldSanitize(params);
     this.pretty = shouldPretty(params);
     this.cursor = cursor;
-    this.codegen = showCodegen(params);
   }
 
   /**
@@ -106,7 +100,8 @@ public class SQLQueryRequest {
 
     return (validCursor || validQuery) // It's a valid cursor or a valid query
         && isOnlySupportedFieldInPayload() // and request must contain supported fields only
-        && isSupportedFormat(); // and request must be a supported format
+        && (isSupportedFormat()
+            || isSupportedFormatForExplain()); // and request must be a supported format
   }
 
   private boolean isCursor() {
@@ -153,6 +148,10 @@ public class SQLQueryRequest {
     return Stream.of("csv", "jdbc", "raw").anyMatch(format::equalsIgnoreCase);
   }
 
+  private boolean isSupportedFormatForExplain() {
+    return Stream.of("jdbc", "simple", "standard", "codegen").anyMatch(format::equalsIgnoreCase);
+  }
+
   private String getFormat(Map<String, String> params) {
     return params.getOrDefault(QUERY_PARAMS_FORMAT, "jdbc");
   }
@@ -167,13 +166,6 @@ public class SQLQueryRequest {
   private boolean shouldPretty(Map<String, String> params) {
     if (params.containsKey(QUERY_PARAMS_PRETTY)) {
       return Boolean.parseBoolean(params.get(QUERY_PARAMS_PRETTY));
-    }
-    return false;
-  }
-
-  private boolean showCodegen(Map<String, String> params) {
-    if (params.containsKey(QUERY_PARAMS_CODEGEN)) {
-      return Boolean.parseBoolean(params.get(QUERY_PARAMS_CODEGEN));
     }
     return false;
   }

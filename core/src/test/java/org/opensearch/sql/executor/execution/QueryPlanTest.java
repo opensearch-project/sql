@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.DefaultExecutionEngine;
@@ -58,7 +59,7 @@ class QueryPlanTest {
   @Test
   public void explain_no_page_size() {
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
-    query.explain(explainListener);
+    query.explain(explainListener, Explain.ExplainFormat.STANDARD);
 
     verify(queryService, times(1)).explain(plan, queryType, explainListener);
   }
@@ -123,6 +124,7 @@ class QueryPlanTest {
               public void onFailure(Exception e) {
                 assertTrue(e instanceof NotImplementedException);
               }
-            });
+            },
+            Explain.ExplainFormat.STANDARD);
   }
 }

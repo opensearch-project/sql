@@ -10,6 +10,7 @@ package org.opensearch.sql.executor.execution;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
@@ -32,14 +33,6 @@ public abstract class AbstractPlan {
    *
    * @param listener query explain response listener.
    */
-  public abstract void explain(ResponseListener<ExecutionEngine.ExplainResponse> listener);
-
-  /**
-   * Explain query execution with displaying codegen.
-   *
-   * @param listener query explain response listener.
-   */
-  public void explain(boolean codegen, ResponseListener<ExecutionEngine.ExplainResponse> listener) {
-    explain(listener);
-  }
+  public abstract void explain(
+      ResponseListener<ExecutionEngine.ExplainResponse> listener, Explain.ExplainFormat format);
 }

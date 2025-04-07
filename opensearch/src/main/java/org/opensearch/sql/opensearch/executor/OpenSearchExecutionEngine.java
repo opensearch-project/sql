@@ -17,14 +17,16 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -129,24 +131,31 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
   @Override
   public void explain(
-      RelNode rel, boolean codegen, CalcitePlanContext context, ResponseListener<ExplainResponse> listener) {
+      RelNode rel,
+      ExplainFormat format,
+      CalcitePlanContext context,
+      ResponseListener<ExplainResponse> listener) {
     client.schedule(
         () -> {
           try {
-            String logical = rel.explain();
-            AtomicReference<String> physical = new AtomicReference<>();
-            AtomicReference<String> javaCode = new AtomicReference<>();
-            try (Hook.Closeable closeable = getPhysicalPlanInHook(physical)) {
-              if (codegen)  {
-                getCodegenInHook(javaCode);
+            if (format == ExplainFormat.SIMPLE) {
+              String logical = RelOptUtil.toString(rel, SqlExplainLevel.NO_ATTRIBUTES);
+              listener.onResponse(new ExplainResponse(logical, null, null));
+            } else {
+              String logical = rel.explain();
+              AtomicReference<String> physical = new AtomicReference<>();
+              AtomicReference<String> javaCode = new AtomicReference<>();
+              try (Hook.Closeable closeable = getPhysicalPlanInHook(physical)) {
+                if (format == ExplainFormat.CODEGEN) {
+                  getCodegenInHook(javaCode);
+                }
+                // triggers the hook
+                AccessController.doPrivileged(
+                    (PrivilegedAction<PreparedStatement>)
+                        () -> OpenSearchRelRunners.run(context, rel));
               }
-              // triggers the hook
-              AccessController.doPrivileged(
-                  (PrivilegedAction<PreparedStatement>)
-                      () -> OpenSearchRelRunners.run(context, rel));
+              listener.onResponse(new ExplainResponse(logical, physical.get(), javaCode.get()));
             }
-            listener.onResponse(
-                new ExplainResponse(logical, physical.get(), javaCode.get()));
           } catch (Exception e) {
             listener.onFailure(e);
           }

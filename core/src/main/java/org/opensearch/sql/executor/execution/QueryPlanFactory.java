@@ -74,14 +74,16 @@ public class QueryPlanFactory
       String cursor,
       boolean isExplain,
       QueryType queryType,
-      boolean codegen,
+      String format,
       ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener,
       ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     QueryId queryId = QueryId.queryId();
     var plan =
         new QueryPlan(
             queryId, queryType, new FetchCursor(cursor), queryService, queryResponseListener);
-    return isExplain ? new ExplainPlan(queryId, queryType, plan, codegen, explainListener) : plan;
+    return isExplain
+        ? new ExplainPlan(queryId, queryType, plan, Explain.format(format), explainListener)
+        : plan;
   }
 
   boolean canConvertToCursor(UnresolvedPlan plan) {
@@ -148,7 +150,7 @@ public class QueryPlanFactory
         QueryId.queryId(),
         node.getQueryType(),
         create(node.getStatement(), Optional.of(NO_CONSUMER_RESPONSE_LISTENER), Optional.empty()),
-        node.isCodegen(),
+        node.getFormat(),
         context.getRight().get());
   }
 }

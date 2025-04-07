@@ -30,6 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
@@ -162,10 +163,10 @@ public class QueryService {
 
   public void explainPlanByCalcite(
       RelNode plan,
-      boolean codegen,
+      Explain.ExplainFormat format,
       CalcitePlanContext context,
       ResponseListener<ExecutionEngine.ExplainResponse> listener) {
-    executionEngine.explain(convertToCalcitePlan(optimize(plan)), codegen, context, listener);
+    executionEngine.explain(convertToCalcitePlan(optimize(plan)), format, context, listener);
   }
 
   /**
@@ -192,6 +193,13 @@ public class QueryService {
     return calcitePlan;
   }
 
+  public void explain(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      ResponseListener<ExecutionEngine.ExplainResponse> listener) {
+    explain(plan, queryType, listener, Explain.ExplainFormat.STANDARD);
+  }
+
   /**
    * Explain the query in {@link UnresolvedPlan} using {@link ResponseListener} to get and format
    * explain response.
@@ -202,8 +210,8 @@ public class QueryService {
   public void explain(
       UnresolvedPlan plan,
       QueryType queryType,
-      boolean codegen,
-      ResponseListener<ExecutionEngine.ExplainResponse> listener) {
+      ResponseListener<ExecutionEngine.ExplainResponse> listener,
+      Explain.ExplainFormat format) {
     try {
       if (shouldUseCalcite(queryType)) {
         try {
@@ -212,7 +220,7 @@ public class QueryService {
                   () -> {
                     final FrameworkConfig config = buildFrameworkConfig();
                     final CalcitePlanContext context = CalcitePlanContext.create(config, queryType);
-                    explainPlanByCalcite(analyze(plan, context), codegen, context, listener);
+                    explainPlanByCalcite(analyze(plan, context), format, context, listener);
                     return null;
                   });
         } catch (Throwable t) {

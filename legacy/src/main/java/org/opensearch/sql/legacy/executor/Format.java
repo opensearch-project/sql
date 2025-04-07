@@ -16,7 +16,11 @@ public enum Format {
   JDBC("jdbc"),
   CSV("csv"),
   RAW("raw"),
-  TABLE("table");
+  TABLE("table"),
+  // format of explain response
+  SIMPLE("simple"),
+  STANDARD("standard"),
+  CODEGEN("codegen");
 
   @Getter private final String formatName;
 

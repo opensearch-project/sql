@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
@@ -36,13 +37,12 @@ public class ExplainPlanTest {
 
   @Test
   public void execute() {
-    doNothing().when(queryPlan).explain(any());
+    doNothing().when(queryPlan).explain(any(), any());
 
-    ExplainPlan explainPlan =
-        new ExplainPlan(queryId, queryType, queryPlan, false, explainListener);
+    ExplainPlan explainPlan = new ExplainPlan(queryId, queryType, queryPlan, explainListener);
     explainPlan.execute();
 
-    verify(queryPlan, times(1)).explain(explainListener);
+    verify(queryPlan, times(1)).explain(explainListener, Explain.ExplainFormat.STANDARD);
   }
 
   @Test
@@ -53,7 +53,7 @@ public class ExplainPlanTest {
         assertThrows(
             UnsupportedOperationException.class,
             () -> {
-              explainPlan.explain(explainListener);
+              explainPlan.explain(explainListener, Explain.ExplainFormat.STANDARD);
             });
     assertEquals("explain query can not been explained.", unsupportedExplainException.getMessage());
   }
