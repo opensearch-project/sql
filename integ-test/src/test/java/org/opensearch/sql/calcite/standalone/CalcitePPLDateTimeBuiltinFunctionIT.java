@@ -1345,8 +1345,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             String.format(
                 "source=%s | where strict_date <= subdate(date('1998-12-01'), 90) | stats COUNT()",
                 TEST_INDEX_DATE_FORMATS));
-    verifyDataRows(
-            actual, rows(2));
+    verifyDataRows(actual, rows(2));
   }
 
   @Test
