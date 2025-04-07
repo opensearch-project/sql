@@ -22,10 +22,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import javax.annotation.Nullable;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
@@ -35,6 +37,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
@@ -88,11 +91,19 @@ public class UserDefinedFunctionUtils {
   }
 
   public static SqlOperator TransferUserDefinedFunction(
-      Class<? extends UserDefinedFunction> UDF,
+      Class<? extends UserDefinedFunction> udf,
       String functionName,
       SqlReturnTypeInference returnType) {
+    return TransferUserDefinedFunction(udf, functionName, returnType, null);
+  }
+
+  public static SqlOperator TransferUserDefinedFunction(
+      Class<? extends UserDefinedFunction> udf,
+      String functionName,
+      SqlReturnTypeInference returnType,
+      @Nullable SqlOperandMetadata operandMetadata) {
     final ScalarFunction udfFunction =
-        ScalarFunctionImpl.create(Types.lookupMethod(UDF, "eval", Object[].class));
+        ScalarFunctionImpl.create(Types.lookupMethod(udf, "eval", Object[].class));
     SqlIdentifier udfLtrimIdentifier =
         new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
     return new SqlUserDefinedFunction(
@@ -100,8 +111,24 @@ public class UserDefinedFunctionUtils {
         SqlKind.OTHER_FUNCTION,
         returnType,
         InferTypes.ANY_NULLABLE,
-        null,
+        operandMetadata,
         udfFunction);
+  }
+
+  public static SqlOperator UserDefinedFunction(
+      ImplementableFunction udf,
+      String functionName,
+      SqlReturnTypeInference returnType,
+      @Nullable SqlOperandMetadata operandMetadata) {
+    SqlIdentifier udfLtrimIdentifier =
+        new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
+    return new SqlUserDefinedFunction(
+        udfLtrimIdentifier,
+        SqlKind.OTHER_FUNCTION,
+        returnType,
+        InferTypes.ANY_NULLABLE,
+        operandMetadata,
+        udf);
   }
 
   /**
@@ -109,7 +136,6 @@ public class UserDefinedFunctionUtils {
    * E.g. (Integer, Long) -> Long; (Double, Float, SHORT) -> Double
    *
    * @param positions positions where the return type should be inferred from
-   * @param nullable whether the returned value is nullable
    * @return The type inference
    */
   public static SqlReturnTypeInference getLeastRestrictiveReturnTypeAmongArgsAt(
