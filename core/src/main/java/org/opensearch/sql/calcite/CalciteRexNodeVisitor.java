@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite;
 
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
+import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
@@ -205,7 +206,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           TransferUserDefinedFunction(
               PostprocessDateToStringFunction.class,
               "PostprocessDateToString",
-              ReturnTypes.CHAR_FORCE_NULLABLE);
+                  VARCHAR_FORCE_NULLABLE);
       RexNode transferredStringNode =
           context.rexBuilder.makeCall(
               postToStringNode,

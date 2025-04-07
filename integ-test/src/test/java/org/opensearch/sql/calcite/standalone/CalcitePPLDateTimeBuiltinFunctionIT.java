@@ -1339,6 +1339,17 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
+  public void testTpchQueryDate() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where strict_date <= subdate(date('1998-12-01'), 90) | stats COUNT()",
+                TEST_INDEX_DATE_FORMATS));
+    verifyDataRows(
+            actual, rows(2));
+  }
+
+  @Test
   public void testExtractWithComplexFormats() {
     JSONObject actual =
         executeQuery(
