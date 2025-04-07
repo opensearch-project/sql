@@ -375,6 +375,7 @@ percentileApproxFunction
 numericLiteral
     : integerLiteral
     | decimalLiteral
+    | exponentLiteral
     ;
 
 // expressions
@@ -849,6 +850,7 @@ literalValue
    | stringLiteral
    | integerLiteral
    | decimalLiteral
+   | exponentLiteral
    | booleanLiteral
    | datetimeLiteral //#datetime
    ;
@@ -868,6 +870,10 @@ integerLiteral
 
 decimalLiteral
    : (PLUS | MINUS)? DECIMAL_LITERAL
+   ;
+
+exponentLiteral
+   : (PLUS | MINUS)? EXPONENT_LITERAL
    ;
 
 booleanLiteral
