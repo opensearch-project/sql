@@ -20,14 +20,15 @@ public class DivideFunction implements UserDefinedFunction {
     Number dividend = (Number) args[0];
     Number divisor = (Number) args[1];
 
-    if (Math.abs(divisor.doubleValue()) < MathUtils.EPSILON) {
+    if (divisor.doubleValue() == 0) {
       return null;
     }
 
-    double result = dividend.doubleValue() / divisor.doubleValue();
     if (MathUtils.isIntegral(dividend) && MathUtils.isIntegral(divisor)) {
-      return MathUtils.coerceToWidestIntegralType(dividend, divisor, (long) result);
+      long result = dividend.longValue() / divisor.longValue();
+      return MathUtils.coerceToWidestIntegralType(dividend, divisor, result);
     }
+    double result = dividend.doubleValue() / divisor.doubleValue();
     return MathUtils.coerceToWidestFloatingType(dividend, divisor, result);
   }
 }

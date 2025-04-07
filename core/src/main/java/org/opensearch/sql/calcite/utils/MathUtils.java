@@ -6,8 +6,6 @@
 package org.opensearch.sql.calcite.utils;
 
 public class MathUtils {
-  public static final double EPSILON = 0.0000001;
-
   public static boolean isIntegral(Number n) {
     return n instanceof Byte || n instanceof Short || n instanceof Integer || n instanceof Long;
   }

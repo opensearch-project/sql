@@ -33,7 +33,7 @@ public class ModFunction implements UserDefinedFunction {
               arg0.getClass().getSimpleName(), arg1.getClass().getSimpleName()));
     }
 
-    if (Math.abs(num1.doubleValue()) < MathUtils.EPSILON) {
+    if (num1.doubleValue() == 0) {
       return null;
     }
 
