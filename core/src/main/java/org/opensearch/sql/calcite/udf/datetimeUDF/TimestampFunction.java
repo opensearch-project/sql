@@ -10,7 +10,6 @@ import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.trans
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprAddTime;
 
-import java.util.Objects;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -26,9 +25,6 @@ public class TimestampFunction implements UserDefinedFunction {
   @Override
   public Object eval(Object... args) {
     if (UserDefinedFunctionUtils.containsNull(args)) {
-      return null;
-    }
-    if (Objects.isNull(args[0])) {
       return null;
     }
     if (args.length == 3) {

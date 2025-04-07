@@ -7,8 +7,6 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
-import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprDoubleValue;
@@ -29,11 +27,6 @@ public class MakeDateFunction implements UserDefinedFunction {
     if (UserDefinedFunctionUtils.containsNull(args)) {
       return null;
     }
-    UserDefinedFunctionUtils.validateArgumentCount("MAKE_DATE", 2, args.length, false);
-    UserDefinedFunctionUtils.validateArgumentTypes(
-        Arrays.asList(args),
-        ImmutableList.of(Number.class, Number.class),
-        ImmutableList.of(true, true));
 
     ExprDoubleValue v1 = new ExprDoubleValue((Number) args[0]);
     ExprDoubleValue v2 = new ExprDoubleValue((Number) args[1]);
