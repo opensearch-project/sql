@@ -1,0 +1,40 @@
+{"index":{"_id":"1"}}
+{"l_orderkey":1,"l_partkey":1552,"l_suppkey":78,"l_linenumber":1,"l_quantity":24,"l_extendedprice":34850.16,"l_discount":0.02,"l_tax":0.08,"l_returnflag":"N","l_linestatus":"O","l_shipdate":"1996-03-13","l_commitdate":"1996-02-12","l_receiptdate":"1995-07-19","l_shipinstruct":"DELIVER IN PERSON","l_shipmode":"TRUCK","l_comment":"carefully regular deposits"}
+{"index":{"_id":"2"}}
+{"l_orderkey":1,"l_partkey":674,"l_suppkey":75,"l_linenumber":2,"l_quantity":36,"l_extendedprice":56789.23,"l_discount":0.05,"l_tax":0.06,"l_returnflag":"R","l_linestatus":"F","l_shipdate":"1996-01-29","l_commitdate":"1996-03-05","l_receiptdate":"1996-01-31","l_shipinstruct":"TAKE BACK RETURN","l_shipmode":"MAIL","l_comment":"pending packages sleep"}
+{"index":{"_id":"3"}}
+{"l_orderkey":2,"l_partkey":2345,"l_suppkey":92,"l_linenumber":1,"l_quantity":15,"l_extendedprice":23456.78,"l_discount":0.03,"l_tax":0.07,"l_returnflag":"N","l_linestatus":"O","l_shipdate":"1994-12-01","l_commitdate":"1994-12-12","l_receiptdate":"1995-02-01","l_shipinstruct":"NONE","l_shipmode":"AIR","l_comment":"express requests wake"}
+{"index":{"_id":"4"}}
+{"l_orderkey":3,"l_partkey":1678,"l_suppkey":83,"l_linenumber":1,"l_quantity":42,"l_extendedprice":45678.90,"l_discount":0.04,"l_tax":0.05,"l_returnflag":"R","l_linestatus":"F","l_shipdate":"1998-05-22","l_commitdate":"1998-05-01","l_receiptdate":"1998-06-03","l_shipinstruct":"COLLECT COD","l_shipmode":"RAIL","l_comment":"regular accounts boost"}
+{"index":{"_id":"5"}}
+{"l_orderkey":3,"l_partkey":890,"l_suppkey":45,"l_linenumber":2,"l_quantity":18,"l_extendedprice":12345.67,"l_discount":0.06,"l_tax":0.08,"l_returnflag":"N","l_linestatus":"O","l_shipdate":"1997-07-24","l_commitdate":"1997-08-02","l_receiptdate":"1997-08-07","l_shipinstruct":"DELIVER IN PERSON","l_shipmode":"SHIP","l_comment":"carefully final deposits"}
+{"index":{"_id":"6"}}
+{"l_orderkey":4,"l_partkey":3456,"l_suppkey":67,"l_linenumber":1,"l_quantity":30,"l_extendedprice":67890.12,"l_discount":0.07,"l_tax":0.06,"l_returnflag":"R","l_linestatus":"F","l_shipdate":"1998-04-12","l_commitdate":"1998-03-20","l_receiptdate":"1998-04-15","l_shipinstruct":"NONE","l_shipmode":"FOB","l_comment":"pending requests detect"}
+{"index":{"_id":"7"}}
+{"l_orderkey":5,"l_partkey":2167,"l_suppkey":89,"l_linenumber":1,"l_quantity":21,"l_extendedprice":34567.89,"l_discount":0.08,"l_tax":0.07,"l_returnflag":"N","l_linestatus":"O","l_shipdate":"1992-08-08","l_commitdate":"1992-07-07","l_receiptdate":"1992-08-20","l_shipinstruct":"TAKE BACK RETURN","l_shipmode":"TRUCK","l_comment":"express packages sleep"}
+{"index":{"_id":"8"}}
+{"l_orderkey":6,"l_partkey":1234,"l_suppkey":56,"l_linenumber":1,"l_quantity":45,"l_extendedprice":78901.23,"l_discount":0.09,"l_tax":0.05,"l_returnflag":"R","l_linestatus":"F","l_shipdate":"1997-09-27","l_commitdate":"1997-11-15","l_receiptdate":"1997-10-07","l_shipinstruct":"COLLECT COD","l_shipmode":"MAIL","l_comment":"regular ideas wake"}
+{"index":{"_id":"9"}}
+{"l_orderkey":7,"l_partkey":4567,"l_suppkey":78,"l_linenumber":1,"l_quantity":27,"l_extendedprice":45678.90,"l_discount":0.01,"l_tax":0.08,"l_returnflag":"N","l_linestatus":"O","l_shipdate":"1995-04-02","l_commitdate":"1995-05-06","l_receiptdate":"1995-04-13","l_shipinstruct":"DELIVER IN PERSON","l_shipmode":"AIR","l_comment":"special deposits boost"}
+{"index":{"_id":"10"}}
+{"l_orderkey":8,"l_partkey":789,"l_suppkey":34,"l_linenumber":1,"l_quantity":33,"l_extendedprice":56789.01,"l_discount":0.02,"l_tax":0.06,"l_returnflag":"R","l_linestatus":"F","l_shipdate":"1998-06-18","l_commitdate":"1998-08-14","l_receiptdate":"1998-06-20","l_shipinstruct":"NONE","l_shipmode":"RAIL","l_comment":"carefully regular packages"}
+{"index":{"_id":"11"}}
+{"l_orderkey":9,"l_partkey":5678,"l_suppkey":91,"l_linenumber":1,"l_quantity":39,"l_extendedprice":67890.12,"l_discount":0.03,"l_tax":0.07,"l_returnflag":"N","l_linestatus":"O","l_shipdate":"1997-12-26","l_commitdate":"1998-01-03","l_receiptdate":"1998-01-12","l_shipinstruct":"TAKE BACK RETURN","l_shipmode":"SHIP","l_comment":"pending accounts sleep"}
+{"index":{"_id":"12"}}
+{"l_orderkey":10,"l_partkey":901,"l_suppkey":23,"l_linenumber":1,"l_quantity":48,"l_extendedprice":78901.23,"l_discount":0.04,"l_tax":0.05,"l_returnflag":"R","l_linestatus":"F","l_shipdate":"1994-09-24","l_commitdate":"1994-11-24","l_receiptdate":"1994-10-01","l_shipinstruct":"COLLECT COD","l_shipmode":"FOB","l_comment":"express
+{"index":{"_id":"13"}}
+{"l_orderkey":11,"l_partkey":3456,"l_suppkey":67,"l_linenumber":1,"l_quantity":25,"l_extendedprice":45632.18,"l_discount":0.05,"l_tax":0.07,"l_returnflag":"N","l_linestatus":"O","l_shipdate":"1995-04-09","l_commitdate":"1995-02-20","l_receiptdate":"1995-05-09","l_shipinstruct":"DELIVER IN PERSON","l_shipmode":"TRUCK","l_comment":"final deposits wake"}
+{"index":{"_id":"14"}}
+{"l_orderkey":12,"l_partkey":2345,"l_suppkey":45,"l_linenumber":1,"l_quantity":31,"l_extendedprice":54789.23,"l_discount":0.06,"l_tax":0.06,"l_returnflag":"R","l_linestatus":"F","l_shipdate":"1996-02-21","l_commitdate":"1996-01-17","l_receiptdate":"1996-02-26","l_shipinstruct":"NONE","l_shipmode":"MAIL","l_comment":"regular packages detect"}
+{"index":{"_id":"15"}}
+{"l_orderkey":13,"l_partkey":4567,"l_suppkey":89,"l_linenumber":1,"l_quantity":42,"l_extendedprice":67890.34,"l_discount":0.07,"l_tax":0.08,"l_returnflag":"N","l_linestatus":"O","l_shipdate":"1994-04-25","l_commitdate":"1994-05-25","l_receiptdate":"1994-04-30","l_shipinstruct":"TAKE BACK RETURN","l_shipmode":"AIR","l_comment":"carefully special requests"}
+{"index":{"_id":"16"}}
+{"l_orderkey":14,"l_partkey":1234,"l_suppkey":34,"l_linenumber":1,"l_quantity":19,"l_extendedprice":34567.89,"l_discount":0.08,"l_tax":0.05,"l_returnflag":"R","l_linestatus":"F","l_shipdate":"1999-05-30","l_commitdate":"1999-06-30","l_receiptdate":"1999-06-04","l_shipinstruct":"COLLECT COD","l_shipmode":"RAIL","l_comment":"pending ideas sleep"}
+{"index":{"_id":"17"}}
+{"l_orderkey":15,"l_partkey":5678,"l_suppkey":78,"l_linenumber":1,"l_quantity":37,"l_extendedprice":89012.45,"l_discount":0.09,"l_tax":0.07,"l_returnflag":"N","l_linestatus":"O","l_shipdate":"1998-07-05","l_commitdate":"1998-08-05","l_receiptdate":"1998-07-10","l_shipinstruct":"DELIVER IN PERSON","l_shipmode":"SHIP","l_comment":"express accounts boost"}
+{"index":{"_id":"18"}}
+{"l_orderkey":16,"l_partkey":890,"l_suppkey":23,"l_linenumber":1,"l_quantity":28,"l_extendedprice":45678.90,"l_discount":0.01,"l_tax":0.06,"l_returnflag":"R","l_linestatus":"F","l_shipdate":"1992-08-10","l_commitdate":"1992-09-10","l_receiptdate":"1992-08-15","l_shipinstruct":"NONE","l_shipmode":"FOB","l_comment":"regular deposits wake"}
+{"index":{"_id":"19"}}
+{"l_orderkey":17,"l_partkey":6789,"l_suppkey":91,"l_linenumber":1,"l_quantity":44,"l_extendedprice":78901.23,"l_discount":0.02,"l_tax":0.08,"l_returnflag":"N","l_linestatus":"O","l_shipdate":"1997-09-15","l_commitdate":"1997-10-15","l_receiptdate":"1997-09-20","l_shipinstruct":"TAKE BACK RETURN","l_shipmode":"TRUCK","l_comment":"special packages detect"}
+{"index":{"_id":"20"}}
+{"l_orderkey":18,"l_partkey":1234,"l_suppkey":45,"l_linenumber":1,"l_quantity":23,"l_extendedprice":34567.89,"l_discount":0.03,"l_tax":0.05,"l_returnflag":"R","l_linestatus":"F","l_shipdate":"2000-10-20","l_commitdate":"2000-11-20","l_receiptdate":"2000-10-25","l_shipinstruct":"COLLECT COD","l_shipmode":"MAIL","l_comment":"carefully final ideas"}

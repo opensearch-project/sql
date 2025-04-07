@@ -36,6 +36,7 @@ import org.opensearch.transport.client.Client;
 public class TestUtils {
 
   private static final String MAPPING_FILE_PATH = "src/test/resources/indexDefinitions/";
+  private static final String TPCH_MAPPING_FILE_PATH = "src/test/resources/tpch/mappings/";
 
   /**
    * Create test index by REST client.
@@ -295,6 +296,47 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getTpchOrdersIndexMapping() {
+    String mappingFile = "orders_index_mapping.json";
+    return getTpchMappingFile(mappingFile);
+  }
+
+  public static String getTpchLineitemIndexMapping() {
+    String mappingFile = "lineitem_index_mapping.json";
+    return getTpchMappingFile(mappingFile);
+  }
+
+  public static String getTpchCustomerIndexMapping() {
+    String mappingFile = "customer_index_mapping.json";
+    return getTpchMappingFile(mappingFile);
+  }
+
+  public static String getTpchSupplierIndexMapping() {
+    String mappingFile = "supplier_index_mapping.json";
+    return getTpchMappingFile(mappingFile);
+  }
+
+  public static String getTpchPartIndexMapping() {
+    String mappingFile = "part_index_mapping.json";
+    return getTpchMappingFile(mappingFile);
+  }
+
+  public static String getTpchPartsuppIndexMapping() {
+    String mappingFile = "partsupp_index_mapping.json";
+    return getTpchMappingFile(mappingFile);
+  }
+
+  public static String getTpchNationIndexMapping() {
+    String mappingFile = "nation_index_mapping.json";
+    return getTpchMappingFile(mappingFile);
+  }
+
+  public static String getTpchRegionIndexMapping() {
+    String mappingFile = "region_index_mapping.json";
+    return getTpchMappingFile(mappingFile);
+  }
+
+
   public static void loadBulk(Client client, String jsonPath, String defaultIndex)
       throws Exception {
     System.out.println(String.format("Loading file %s into opensearch cluster", jsonPath));
@@ -450,6 +492,14 @@ public class TestUtils {
     }
 
     return result;
+  }
+
+  public static String getTpchMappingFile(String fileName) {
+    try {
+      return fileToString(TPCH_MAPPING_FILE_PATH + fileName, false);
+    } catch (IOException e) {
+      return null;
+    }
   }
 
   public static String getMappingFile(String fileName) {

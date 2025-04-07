@@ -1,0 +1,40 @@
+{"index":{"_id":"1"}}
+{"o_orderkey":1,"o_custkey":101,"o_orderstatus":"O","o_totalprice":456789,"o_orderdate":"2023-01-15","o_orderpriority":"1-URGENT","o_clerk":"Clerk#000000951","o_shippriority":0,"o_comment":"regular deposits boost against the packages"}
+{"index":{"_id":"2"}}
+{"o_orderkey":2,"o_custkey":101,"o_orderstatus":"F","o_totalprice":123456,"o_orderdate":"2023-02-20","o_orderpriority":"2-HIGH","o_clerk":"Clerk#000000952","o_shippriority":0,"o_comment":"carefully pending requests"}
+{"index":{"_id":"3"}}
+{"o_orderkey":3,"o_custkey":120,"o_orderstatus":"P","o_totalprice":789012,"o_orderdate":"2023-03-10","o_orderpriority":"3-MEDIUM","o_clerk":"Clerk#000000953","o_shippriority":0,"o_comment":"quickly regular packages sleep"}
+{"index":{"_id":"4"}}
+{"o_orderkey":4,"o_custkey":103,"o_orderstatus":"O","o_totalprice":234567,"o_orderdate":"2023-04-05","o_orderpriority":"4-NOT URGENT","o_clerk":"Clerk#000000954","o_shippriority":0,"o_comment":"pending orders wake carefully"}
+{"index":{"_id":"5"}}
+{"o_orderkey":5,"o_custkey":104,"o_orderstatus":"F","o_totalprice":345678,"o_orderdate":"2023-05-12","o_orderpriority":"5-LOW","o_clerk":"Clerk#000000955","o_shippriority":0,"o_comment":"final accounts wake quickly"}
+{"index":{"_id":"6"}}
+{"o_orderkey":6,"o_custkey":102,"o_orderstatus":"O","o_totalprice":567890,"o_orderdate":"2023-06-18","o_orderpriority":"1-URGENT","o_clerk":"Clerk#000000956","o_shippriority":0,"o_comment":"special packages sleep carefully"}
+{"index":{"_id":"7"}}
+{"o_orderkey":7,"o_custkey":111,"o_orderstatus":"P","o_totalprice":678901,"o_orderdate":"2023-07-22","o_orderpriority":"2-HIGH","o_clerk":"Clerk#000000957","o_shippriority":0,"o_comment":"express deposits wake quickly"}
+{"index":{"_id":"8"}}
+{"o_orderkey":8,"o_custkey":112,"o_orderstatus":"F","o_totalprice":890123,"o_orderdate":"2023-08-30","o_orderpriority":"3-MEDIUM","o_clerk":"Clerk#000000958","o_shippriority":0,"o_comment":"carefully regular deposits"}
+{"index":{"_id":"9"}}
+{"o_orderkey":9,"o_custkey":107,"o_orderstatus":"O","o_totalprice":901234,"o_orderdate":"2023-09-05","o_orderpriority":"4-NOT URGENT","o_clerk":"Clerk#000000959","o_shippriority":0,"o_comment":"carefully final packages"}
+{"index":{"_id":"10"}}
+{"o_orderkey":10,"o_custkey":102,"o_orderstatus":"P","o_totalprice":432109,"o_orderdate":"2023-10-11","o_orderpriority":"5-LOW","o_clerk":"Clerk#000000960","o_shippriority":0,"o_comment":"regular ideas wake carefully"}
+{"index":{"_id":"11"}}
+{"o_orderkey":11,"o_custkey":118,"o_orderstatus":"F","o_totalprice":543210,"o_orderdate":"2023-11-15","o_orderpriority":"1-URGENT","o_clerk":"Clerk#000000961","o_shippriority":0,"o_comment":"pending requests sleep"}
+{"index":{"_id":"12"}}
+{"o_orderkey":12,"o_custkey":106,"o_orderstatus":"O","o_totalprice":654321,"o_orderdate":"2023-12-20","o_orderpriority":"2-HIGH","o_clerk":"Clerk#000000962","o_shippriority":0,"o_comment":"express packages detect quickly"}
+{"index":{"_id":"13"}}
+{"o_orderkey":13,"o_custkey":122,"o_orderstatus":"P","o_totalprice":765432,"o_orderdate":"2023-01-25","o_orderpriority":"3-MEDIUM","o_clerk":"Clerk#000000963","o_shippriority":0,"o_comment":"carefully special deposits"}
+{"index":{"_id":"14"}}
+{"o_orderkey":14,"o_custkey":119,"o_orderstatus":"F","o_totalprice":876543,"o_orderdate":"2023-02-28","o_orderpriority":"4-NOT URGENT","o_clerk":"Clerk#000000964","o_shippriority":0,"o_comment":"regular accounts wake"}
+{"index":{"_id":"15"}}
+{"o_orderkey":15,"o_custkey":110,"o_orderstatus":"O","o_totalprice":987654,"o_orderdate":"2023-03-05","o_orderpriority":"5-LOW","o_clerk":"Clerk#000000965","o_shippriority":0,"o_comment":"special requests boost"}
+{"index":{"_id":"16"}}
+{"o_orderkey":16,"o_custkey":120,"o_orderstatus":"P","o_totalprice":198765,"o_orderdate":"2023-04-10","o_orderpriority":"1-URGENT","o_clerk":"Clerk#000000966","o_shippriority":0,"o_comment":"pending packages sleep carefully"}
+{"index":{"_id":"17"}}
+{"o_orderkey":17,"o_custkey":106,"o_orderstatus":"F","o_totalprice":289876,"o_orderdate":"2023-05-15","o_orderpriority":"2-HIGH","o_clerk":"Clerk#000000967","o_shippriority":0,"o_comment":"carefully regular requests"}
+{"index":{"_id":"18"}}
+{"o_orderkey":18,"o_custkey":104,"o_orderstatus":"O","o_totalprice":376543,"o_orderdate":"2023-06-20","o_orderpriority":"3-MEDIUM","o_clerk":"Clerk#000000968","o_shippriority":0,"o_comment":"final deposits wake blithely"}
+{"index":{"_id":"19"}}
+{"o_orderkey":19,"o_custkey":111,"o_orderstatus":"P","o_totalprice":465432,"o_orderdate":"2023-07-25","o_orderpriority":"4-NOT URGENT","o_clerk":"Clerk#000000969","o_shippriority":0,"o_comment":"express ideas wake carefully"}
+{"index":{"_id":"20"}}
+{"o_orderkey":20,"o_custkey":119,"o_orderstatus":"F","o_totalprice":554321,"o_orderdate":"2023-08-30","o_orderpriority":"5-LOW","o_clerk":"Clerk#000000970","o_shippriority":0,"o_comment":"regular packages boost"}

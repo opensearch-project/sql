@@ -39,6 +39,14 @@ import static org.opensearch.sql.legacy.TestUtils.getPhraseIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestUtils.getStateCountryIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getStringIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getTpchCustomerIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getTpchLineitemIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getTpchNationIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getTpchOrdersIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getTpchPartIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getTpchPartsuppIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getTpchRegionIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getTpchSupplierIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getUnexpandedObjectIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getWeblogsIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getWorkInformationIndexMapping;
@@ -842,7 +850,47 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE,
         "duplication_nullable",
         getDuplicationNullableIndexMapping(),
-        "src/test/resources/duplication_nullable.json");
+        "src/test/resources/duplication_nullable.json"),
+    TPCH_ORDERS(
+        TestsConstants.TEST_INDEX_TPCH_ORDERS,
+        "tpch",
+        getTpchOrdersIndexMapping(),
+        "src/test/resources/tpch/data/orders.json"),
+    TPCH_NATION(
+        TestsConstants.TEST_INDEX_TPCH_NATION,
+        "tpch",
+        getTpchNationIndexMapping(),
+        "src/test/resources/tpch/data/nation.json"),
+    TPCH_REGION(
+        TestsConstants.TEST_INDEX_TPCH_REGION,
+        "tpch",
+        getTpchRegionIndexMapping(),
+        "src/test/resources/tpch/data/region.json"),
+    TPCH_LINEITEM(
+        TestsConstants.TEST_INDEX_TPCH_LINEITEM,
+        "tpch",
+        getTpchLineitemIndexMapping(),
+        "src/test/resources/tpch/data/lineitem.json"),
+    TPCH_PARTSUPP(
+        TestsConstants.TEST_INDEX_TPCH_PARTSUPP,
+        "tpch",
+        getTpchPartsuppIndexMapping(),
+        "src/test/resources/tpch/data/partsupp.json"),
+    TPCH_SUPPLIER(
+        TestsConstants.TEST_INDEX_TPCH_SUPPLIER,
+        "tpch",
+        getTpchSupplierIndexMapping(),
+        "src/test/resources/tpch/data/supplier.json"),
+    TPCH_PART(
+        TestsConstants.TEST_INDEX_TPCH_PART,
+        "tpch",
+        getTpchPartIndexMapping(),
+        "src/test/resources/tpch/data/part.json"),
+    TPCH_CUSTOMER(
+        TestsConstants.TEST_INDEX_TPCH_CUSTOMER,
+        "tpch",
+        getTpchCustomerIndexMapping(),
+        "src/test/resources/tpch/data/customer.json");
 
     private final String name;
     private final String type;

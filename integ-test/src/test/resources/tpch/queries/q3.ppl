@@ -1,0 +1,7 @@
+source = customer
+| join ON c_custkey = o_custkey orders
+| join ON l_orderkey = o_orderkey lineitem
+| where c_mktsegment = 'BUILDING' AND o_orderdate < date('1995-03-15') AND l_shipdate > date('1995-03-15')
+| stats sum(l_extendedprice * (1 - l_discount)) as revenue by l_orderkey, o_orderdate, o_shippriority
+| sort - revenue, o_orderdate
+| head 10

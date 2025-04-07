@@ -1,0 +1,8 @@
+source = [
+    source = customer
+    | left outer join ON c_custkey = o_custkey AND not like(o_comment, '%special%requests%')
+      orders
+    | stats count(o_orderkey) as c_count by c_custkey
+  ] as c_orders
+| stats count() as custdist by c_count
+| sort - custdist, - c_count

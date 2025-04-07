@@ -1,0 +1,40 @@
+{"index":{"_id":"1"}}
+{"c_custkey":101,"c_name":"Customer#000000101","c_address":"123 Oak Street","c_nationkey":3,"c_phone":"13-678-901-2345","c_acctbal":5789.32,"c_mktsegment":"AUTOMOBILE","c_comment":"regular deposits wake carefully"}
+{"index":{"_id":"2"}}
+{"c_custkey":102,"c_name":"Customer#000000102","c_address":"456 Pine Avenue","c_nationkey":5,"c_phone":"15-901-234-5678","c_acctbal":3456.78,"c_mktsegment":"BUILDING","c_comment":"special requests sleep quickly"}
+{"index":{"_id":"3"}}
+{"c_custkey":103,"c_name":"Customer#000000103","c_address":"789 Maple Drive","c_nationkey":7,"c_phone":"17-234-567-8901","c_acctbal":8901.23,"c_mktsegment":"MACHINERY","c_comment":"carefully final packages boost"}
+{"index":{"_id":"4"}}
+{"c_custkey":104,"c_name":"Customer#000000104","c_address":"321 Elm Road","c_nationkey":1,"c_phone":"11-345-678-9012","c_acctbal":2345.67,"c_mktsegment":"HOUSEHOLD","c_comment":"pending accounts wake blithely"}
+{"index":{"_id":"5"}}
+{"c_custkey":105,"c_name":"Customer#000000105","c_address":"654 Birch Lane","c_nationkey":9,"c_phone":"19-567-890-1234","c_acctbal":6789.01,"c_mktsegment":"FURNITURE","c_comment":"express deposits detect quickly"}
+{"index":{"_id":"6"}}
+{"c_custkey":106,"c_name":"Customer#000000106","c_address":"987 Cedar Street","c_nationkey":12,"c_phone":"12-890-123-4567","c_acctbal":4567.89,"c_mktsegment":"AUTOMOBILE","c_comment":"regular requests haggle carefully"}
+{"index":{"_id":"7"}}
+{"c_custkey":107,"c_name":"Customer#000000107","c_address":"147 Spruce Court","c_nationkey":15,"c_phone":"15-123-456-7890","c_acctbal":7890.12,"c_mktsegment":"BUILDING","c_comment":"final accounts sleep carefully"}
+{"index":{"_id":"8"}}
+{"c_custkey":108,"c_name":"Customer#000000108","c_address":"258 Willow Way","c_nationkey":18,"c_phone":"18-456-789-0123","c_acctbal":3210.98,"c_mktsegment":"MACHINERY","c_comment":"carefully regular deposits wake"}
+{"index":{"_id":"9"}}
+{"c_custkey":109,"c_name":"Customer#000000109","c_address":"369 Ash Boulevard","c_nationkey":2,"c_phone":"12-678-901-2345","c_acctbal":9012.34,"c_mktsegment":"HOUSEHOLD","c_comment":"special packages boost quickly"}
+{"index":{"_id":"10"}}
+{"c_custkey":110,"c_name":"Customer#000000110","c_address":"741 Poplar Place","c_nationkey":4,"c_phone":"14-890-123-4567","c_acctbal":1234.56,"c_mktsegment":"FURNITURE","c_comment":"pending requests sleep blithely"}
+{"index":{"_id":"11"}}
+{"c_custkey":111,"c_name":"Customer#000000111","c_address":"852 Sycamore Street","c_nationkey":6,"c_phone":"16-123-456-7890","c_acctbal":6543.21,"c_mktsegment":"AUTOMOBILE","c_comment":"express ideas wake carefully"}
+{"index":{"_id":"12"}}
+{"c_custkey":112,"c_name":"Customer#000000112","c_address":"963 Redwood Road","c_nationkey":8,"c_phone":"18-345-678-9012","c_acctbal":8765.43,"c_mktsegment":"BUILDING","c_comment":"regular packages detect"}
+{"index":{"_id":"13"}}
+{"c_custkey":113,"c_name":"Customer#000000113","c_address":"159 Sequoia Drive","c_nationkey":10,"c_phone":"10-567-890-1234","c_acctbal":2109.87,"c_mktsegment":"MACHINERY","c_comment":"carefully final requests sleep"}
+{"index":{"_id":"14"}}
+{"c_custkey":114,"c_name":"Customer#000000114","c_address":"357 Dogwood Lane","c_nationkey":13,"c_phone":"13-789-012-3456","c_acctbal":4321.09,"c_mktsegment":"HOUSEHOLD","c_comment":"pending accounts boost"}
+{"index":{"_id":"15"}}
+{"c_custkey":115,"c_name":"Customer#000000115","c_address":"753 Magnolia Avenue","c_nationkey":16,"c_phone":"16-901-234-5678","c_acctbal":7654.32,"c_mktsegment":"FURNITURE","c_comment":"express deposits sleep"}
+{"index":{"_id":"16"}}
+{"c_custkey":116,"c_name":"Customer#000000116","c_address":"951 Cherry Street","c_nationkey":19,"c_phone":"19-234-567-8901","c_acctbal":5432.10,"c_mktsegment":"AUTOMOBILE","c_comment":"regular requests wake"}
+{"index":{"_id":"17"}}
+{"c_custkey":117,"c_name":"Customer#000000117","c_address":"264 Beech Road","c_nationkey":11,"c_phone":"11-456-789-0123","c_acctbal":8901.23,"c_mktsegment":"BUILDING","c_comment":"special packages sleep"}
+{"index":{"_id":"18"}}
+{"c_custkey":118,"c_name":"Customer#000000118","c_address":"375 Walnut Way","c_nationkey":14,"c_phone":"14-678-901-2345","c_acctbal":3456.78,"c_mktsegment":"MACHINERY","c_comment":"final accounts detect"}
+{"index":{"_id":"19"}}
+{"c_custkey":119,"c_name":"Customer#000000119","c_address":"486 Cypress Court","c_nationkey":17,"c_phone":"17-890-123-4567","c_acctbal":6789.01,"c_mktsegment":"HOUSEHOLD","c_comment":"carefully regular packages boost"}
+{"index":{"_id":"20"}}
+{"c_custkey":120,"c_name":"Customer#000000120","c_address":"597 Linden Boulevard","c_nationkey":20,"c_phone":"20-123-456-7890","c_acctbal":1234.56,"c_mktsegment":"FURNITURE","c_comment":"pending requests wake"}
