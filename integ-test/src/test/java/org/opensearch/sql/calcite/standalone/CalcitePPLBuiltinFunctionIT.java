@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.standalone;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -28,6 +29,7 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.DATA_TYPE_NUMERIC);
     loadIndex(Index.DOG);
+    loadIndex(Index.NULL_MISSING);
   }
 
   @Test
@@ -291,8 +293,8 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval b = byte_number %% 2, i = mod(integer_number, 3), l ="
-                    + " mod(long_number, 2), f = float_number %% 2, d = mod(double_number, 2) |"
-                    + " fields b, i, l, f, d",
+                    + " mod(long_number, 2), f = float_number %% 2, d = mod(double_number, 2), s ="
+                    + " short_number %% byte_number | fields b, i, l, f, d, s",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
         actual,
@@ -300,8 +302,9 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         schema("i", "integer"),
         schema("l", "long"),
         schema("f", "float"),
-        schema("d", "double"));
-    verifyDataRows(actual, closeTo(0, 2, 1, 0.2, 1.1));
+        schema("d", "double"),
+        schema("s", "short"));
+    verifyDataRows(actual, closeTo(0, 2, 1, 0.2, 1.1, 3));
   }
 
   @Test
@@ -376,5 +379,63 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual, schema("name", "string"), schema("age", "integer"), schema("thirty_one", "double"));
     verifyDataRows(actual, rows("Hello", 30, 31));
+  }
+
+  @Test
+  public void testDivide() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval r1 = 22 / 7, r2 = integer_number / 1, r3 = 21 / 7, r4 ="
+                    + " byte_number / short_number, r5 = half_float_number / float_number, r6 ="
+                    + " float_number / short_number, r7 = 22 / 7.0, r8 = 22.0 / 7, r9 = 21.0 / 7.0,"
+                    + " r10 = half_float_number / short_number, r11 = double_number / float_number"
+                    + " | fields r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11",
+                TEST_INDEX_DATATYPE_NUMERIC));
+    verifySchema(
+        actual,
+        schema("r1", "integer"),
+        schema("r2", "integer"),
+        schema("r3", "integer"),
+        schema("r4", "short"),
+        schema("r5", "float"),
+        schema("r6", "float"),
+        schema("r7", "double"),
+        schema("r8", "double"),
+        schema("r9", "double"),
+        schema("r10", "float"),
+        schema("r11", "double"));
+    verifyDataRows(
+        actual,
+        closeTo(
+            3,
+            2,
+            3,
+            1,
+            1.1774194,
+            2.0666666,
+            3.142857142857143,
+            3.142857142857143,
+            3.0,
+            2.4333334,
+            0.8225806704669051));
+  }
+
+  @Test
+  public void testDivideShouldReturnNull() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where key = 'null' | head 1 | eval r2 = 4 / dbl, r3 = `int` / 5, r4 ="
+                    + " 22 / 0, r5 = 22.0 / 0, r6 = 22.0 / 0.0 | fields r2, r3, r4, r5, r6",
+                TEST_INDEX_NULL_MISSING));
+    verifySchema(
+        actual,
+        schema("r2", "double"),
+        schema("r3", "integer"),
+        schema("r4", "integer"),
+        schema("r5", "double"),
+        schema("r6", "double"));
+    verifyDataRows(actual, rows(null, null, null, null, null));
   }
 }
