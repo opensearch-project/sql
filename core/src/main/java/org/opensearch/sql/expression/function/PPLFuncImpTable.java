@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function;
 import static java.lang.Math.E;
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ACOS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADD;
@@ -65,6 +66,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TYPEOF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
 
 import com.google.common.collect.ImmutableMap;
@@ -83,6 +85,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.executor.QueryType;
 
 public class PPLFuncImpTable {
 
@@ -316,6 +319,11 @@ public class PPLFuncImpTable {
                       SqlLibraryOperators.LOG,
                       arg,
                       builder.makeApproxLiteral(BigDecimal.valueOf(E)))));
+      register(
+          TYPEOF,
+          (FunctionImp1)
+              (builder, arg) ->
+                  builder.makeLiteral(getLegacyTypeName(arg.getType(), QueryType.PPL)));
     }
   }
 

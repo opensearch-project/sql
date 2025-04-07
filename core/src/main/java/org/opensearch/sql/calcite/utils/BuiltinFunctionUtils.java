@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 
 import com.google.common.collect.ImmutableList;
@@ -87,7 +86,6 @@ import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
-import org.opensearch.sql.calcite.udf.systemUDF.TypeOfFunction;
 import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
 import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
 
@@ -214,10 +212,6 @@ public interface BuiltinFunctionUtils {
       case "NULLIF":
         return TransferUserDefinedFunction(
             NullIfFunction.class, "nullif", ReturnTypes.ARG0_FORCE_NULLABLE);
-      case "TYPEOF":
-        // TODO optimize this function to ImplementableFunction
-        return TransferUserDefinedFunction(
-            TypeOfFunction.class, "typeof", ReturnTypes.VARCHAR_2000_NULLABLE);
       case "DAYNAME":
         return TransferUserDefinedFunction(PeriodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
       case "MONTHNAME":
@@ -501,10 +495,6 @@ public interface BuiltinFunctionUtils {
         return Stream.concat(Stream.of(argTimestamp), argList.stream().skip(1)).toList();
       case "UTC_TIMESTAMP", "UTC_TIME", "UTC_DATE":
         return List.of(context.rexBuilder.makeLiteral(currentTimestampStr));
-      case "TYPEOF":
-        return List.of(
-            context.rexBuilder.makeLiteral(
-                getLegacyTypeName(argList.getFirst().getType(), context.queryType)));
       default:
         return argList;
     }
