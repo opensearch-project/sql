@@ -207,6 +207,7 @@ public enum BuiltinFunctionName {
   /** Json Functions. */
   JSON_VALID(FunctionName.of("json_valid")),
   JSON(FunctionName.of("json")),
+  JSON_OBJECT(FunctionName.of("json_object")),
 
   /** GEOSPATIAL Functions. */
   GEOIP(FunctionName.of("geoip")),

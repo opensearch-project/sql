@@ -349,6 +349,7 @@ BETWEEN:                            'BETWEEN';
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
 JSON:                               'JSON';
+JSON_OBJECT:                        'JSON_OBJECT';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';
