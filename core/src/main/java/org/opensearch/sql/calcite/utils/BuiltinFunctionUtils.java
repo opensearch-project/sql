@@ -106,8 +106,9 @@ public interface BuiltinFunctionUtils {
   static SqlOperator translate(String op) {
     String capitalOP = op.toUpperCase(Locale.ROOT);
     switch (capitalOP) {
-      case "XOR":
-        return SqlStdOperatorTable.NOT_EQUALS;
+      case "/":
+        return TransferUserDefinedFunction(
+            DivideFunction.class, "/", ReturnTypes.QUOTIENT_NULLABLE);
       case "REPLACE":
         return TransferUserDefinedFunction(
             ReplaceFunction.class, "REPLACE", VARCHAR_FORCE_NULLABLE);

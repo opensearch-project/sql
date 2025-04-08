@@ -23,7 +23,6 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
@@ -226,7 +225,7 @@ public class PPLFuncImpTable {
       registerOperator(ADD, SqlStdOperatorTable.PLUS);
       registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
-      registerOperator(DIVIDE, SqlStdOperatorTable.DIVIDE);
+      // registerOperator(DIVIDE, SqlStdOperatorTable.DIVIDE);
       registerOperator(ASCII, SqlStdOperatorTable.ASCII);
       registerOperator(LENGTH, SqlStdOperatorTable.CHAR_LENGTH);
       registerOperator(LOWER, SqlStdOperatorTable.LOWER);
