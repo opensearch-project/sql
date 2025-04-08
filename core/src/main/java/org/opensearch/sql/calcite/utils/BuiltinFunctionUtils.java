@@ -26,6 +26,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -83,6 +84,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.YearFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.YearWeekFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
+import org.opensearch.sql.calcite.udf.mathUDF.DivideFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
@@ -98,13 +100,17 @@ public interface BuiltinFunctionUtils {
   Set<String> TIME_EXCLUSIVE_OPS =
       Set.of("SECOND", "SECOND_OF_MINUTE", "MINUTE", "MINUTE_OF_HOUR", "HOUR", "HOUR_OF_DAY");
 
+  static SqlReturnTypeInference VARCHAR_FORCE_NULLABLE =
+      ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
   static SqlOperator translate(String op) {
     String capitalOP = op.toUpperCase(Locale.ROOT);
     switch (capitalOP) {
       case "XOR":
         return SqlStdOperatorTable.NOT_EQUALS;
       case "REPLACE":
-        return TransferUserDefinedFunction(ReplaceFunction.class, "REPLACE", ReturnTypes.CHAR);
+        return TransferUserDefinedFunction(
+            ReplaceFunction.class, "REPLACE", VARCHAR_FORCE_NULLABLE);
       case "LOCATE":
         return TransferUserDefinedFunction(
             LocateFunction.class,
@@ -113,7 +119,7 @@ public interface BuiltinFunctionUtils {
       case "CONV":
         // The CONV function in PPL converts between numerical bases,
         // while SqlStdOperatorTable.CONVERT converts between charsets.
-        return TransferUserDefinedFunction(ConvFunction.class, "CONVERT", ReturnTypes.VARCHAR);
+        return TransferUserDefinedFunction(ConvFunction.class, "CONVERT", VARCHAR_FORCE_NULLABLE);
       case "CRC32":
         return TransferUserDefinedFunction(CRC32Function.class, "CRC32", ReturnTypes.BIGINT);
       case "E":
@@ -122,8 +128,7 @@ public interface BuiltinFunctionUtils {
         // The MOD function in PPL supports floating-point parameters, e.g., MOD(5.5, 2) = 1.5,
         // MOD(3.1, 2.1) = 1.1,
         // whereas SqlStdOperatorTable.MOD supports only integer / long parameters.
-        return TransferUserDefinedFunction(
-            ModFunction.class, "MOD", getLeastRestrictiveReturnTypeAmongArgsAt(List.of(0, 1)));
+        return TransferUserDefinedFunction(ModFunction.class, "MOD", ReturnTypes.LEAST_RESTRICTIVE);
       case "SQRT":
         // SqlStdOperatorTable.SQRT is declared but not implemented, therefore we use a custom
         // implementation.
@@ -155,9 +160,7 @@ public interface BuiltinFunctionUtils {
             DateAddSubFunction.class, "DATE_SUB", timestampInference);
       case "ADDTIME", "SUBTIME":
         return TransferUserDefinedFunction(
-            TimeAddSubFunction.class,
-            capitalOP,
-            UserDefinedFunctionUtils.getReturnTypeForTimeAddSub());
+            TimeAddSubFunction.class, capitalOP, TimeAddSubFunction.getReturnTypeForTimeAddSub());
       case "DAY_OF_WEEK", "DAYOFWEEK":
         return TransferUserDefinedFunction(
             DayOfWeekFunction.class, capitalOP, INTEGER_FORCE_NULLABLE);
@@ -177,10 +180,10 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", dateInference);
       case "DATE_FORMAT":
         return TransferUserDefinedFunction(
-            DateFormatFunction.class, "DATE_FORMAT", ReturnTypes.VARCHAR);
+            DateFormatFunction.class, "DATE_FORMAT", VARCHAR_FORCE_NULLABLE);
       case "GET_FORMAT":
         return TransferUserDefinedFunction(
-            GetFormatFunction.class, "GET_FORMAT", ReturnTypes.VARCHAR);
+            GetFormatFunction.class, "GET_FORMAT", VARCHAR_FORCE_NULLABLE);
       case "MAKETIME":
         return TransferUserDefinedFunction(MakeTimeFunction.class, "MAKETIME", timeInference);
       case "MAKEDATE":
@@ -213,9 +216,11 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(
             NullIfFunction.class, "nullif", ReturnTypes.ARG0_FORCE_NULLABLE);
       case "DAYNAME":
-        return TransferUserDefinedFunction(PeriodNameFunction.class, "DAYNAME", ReturnTypes.CHAR);
+        return TransferUserDefinedFunction(
+            PeriodNameFunction.class, "DAYNAME", VARCHAR_FORCE_NULLABLE);
       case "MONTHNAME":
-        return TransferUserDefinedFunction(PeriodNameFunction.class, "MONTHNAME", ReturnTypes.CHAR);
+        return TransferUserDefinedFunction(
+            PeriodNameFunction.class, "MONTHNAME", VARCHAR_FORCE_NULLABLE);
       case "LAST_DAY":
         return TransferUserDefinedFunction(LastDayFunction.class, "LAST_DAY", dateInference);
       case "UNIX_TIMESTAMP":
@@ -232,7 +237,7 @@ public interface BuiltinFunctionUtils {
             TimeToSecondFunction.class, "TIME_TO_SEC", ReturnTypes.BIGINT);
       case "TIME_FORMAT":
         return TransferUserDefinedFunction(
-            TimeFormatFunction.class, "TIME_FORMAT", ReturnTypes.CHAR);
+            TimeFormatFunction.class, "TIME_FORMAT", VARCHAR_FORCE_NULLABLE);
       case "TIMESTAMP":
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(

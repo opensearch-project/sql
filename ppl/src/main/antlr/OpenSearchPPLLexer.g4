@@ -7,7 +7,7 @@
 lexer grammar OpenSearchPPLLexer;
 
 channels { WHITESPACE, ERRORCHANNEL }
-
+options { caseInsensitive = true; }
 
 // COMMAND KEYWORDS
 SEARCH:                             'SEARCH';
@@ -36,7 +36,6 @@ AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 TRENDLINE:                          'TRENDLINE';
-PATTERN_METHOD:                     'PATTERN_METHOD';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';
 VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
@@ -428,5 +427,7 @@ fragment DEC_DIGIT:                 [0-9];
 // metadata field.  Two underscores (or more) is acceptable, such as '__field'.
 fragment ID_LITERAL:                ([@*A-Z_])+?[*A-Z_\-0-9]*;
 
+LINE_COMMENT:                       '//' ('\\\n' | ~[\r\n])* '\r'? '\n'? -> channel(HIDDEN);
+BLOCK_COMMENT:                      '/*' .*? '*/' -> channel(HIDDEN);
 
 ERROR_RECOGNITION:                  .    -> channel(ERRORCHANNEL);

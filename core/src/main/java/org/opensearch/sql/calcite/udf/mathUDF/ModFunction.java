@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.udf.mathUDF;
 
 import java.math.BigDecimal;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.MathUtils;
 
 /**
  * Calculate the remainder of x divided by y<br>
@@ -32,33 +33,22 @@ public class ModFunction implements UserDefinedFunction {
               arg0.getClass().getSimpleName(), arg1.getClass().getSimpleName()));
     }
 
-    // TODO: This precision check is arbitrary.
-    if (Math.abs(num1.doubleValue()) < 0.0000001) {
+    if (num1.doubleValue() == 0) {
       return null;
     }
 
-    if (isIntegral(num0) && isIntegral(num1)) {
+    if (MathUtils.isIntegral(num0) && MathUtils.isIntegral(num1)) {
       long l0 = num0.longValue();
       long l1 = num1.longValue();
       // It returns negative values when l0 is negative
       long result = l0 % l1;
       // Return the wider type between l0 and l1
-      if (num0 instanceof Long || num1 instanceof Long) {
-        return result;
-      }
-      return (int) result;
+      return MathUtils.coerceToWidestIntegralType(num0, num1, result);
     }
 
     BigDecimal b0 = new BigDecimal(num0.toString());
     BigDecimal b1 = new BigDecimal(num1.toString());
     BigDecimal result = b0.remainder(b1);
-    if (num0 instanceof Double || num1 instanceof Double) {
-      return result.doubleValue();
-    }
-    return result.floatValue();
-  }
-
-  private boolean isIntegral(Number n) {
-    return n instanceof Byte || n instanceof Short || n instanceof Integer || n instanceof Long;
+    return MathUtils.coerceToWidestFloatingType(num0, num1, result.doubleValue());
   }
 }
