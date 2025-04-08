@@ -7,6 +7,7 @@ package org.opensearch.sql.executor;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -98,6 +99,22 @@ public interface ExecutionEngine {
       this.logical = logical;
       this.physical = physical;
       this.codegen = codegen;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      ExplainResponse that = (ExplainResponse) o;
+      return Objects.equals(root, that.root)
+          || (Objects.equals(logical, that.logical)
+              && Objects.equals(physical, that.physical)
+              && Objects.equals(codegen, that.codegen));
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(root, logical, physical, codegen);
     }
   }
 

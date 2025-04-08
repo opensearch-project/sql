@@ -66,6 +66,7 @@ public class CommandPlanTest {
     QueryService qs = mock(QueryService.class);
     ResponseListener listener = mock(ResponseListener.class);
     ResponseListener explainListener = mock(ResponseListener.class);
+    Explain.ExplainFormat format = mock(Explain.ExplainFormat.class);
 
     var exception =
         assertThrows(
@@ -77,7 +78,7 @@ public class CommandPlanTest {
                         mock(UnresolvedPlan.class),
                         qs,
                         listener)
-                    .explain(explainListener, Explain.ExplainFormat.STANDARD));
+                    .explain(explainListener, format));
     assertEquals("CommandPlan does not support explain", exception.getMessage());
 
     verify(listener, never()).onResponse(any());

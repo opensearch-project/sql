@@ -22,14 +22,6 @@ public class ExplainPlan extends AbstractPlan {
 
   private final ResponseListener<ExecutionEngine.ExplainResponse> explainListener;
 
-  public ExplainPlan(
-      QueryId queryId,
-      QueryType queryType,
-      AbstractPlan plan,
-      ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
-    this(queryId, queryType, plan, Explain.ExplainFormat.STANDARD, explainListener);
-  }
-
   /** Constructor. */
   public ExplainPlan(
       QueryId queryId,

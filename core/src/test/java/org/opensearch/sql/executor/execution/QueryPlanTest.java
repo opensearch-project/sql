@@ -48,6 +48,8 @@ class QueryPlanTest {
 
   @Mock private ResponseListener<ExecutionEngine.QueryResponse> queryListener;
 
+  @Mock private Explain.ExplainFormat format;
+
   @Test
   public void execute_no_page_size() {
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
@@ -59,9 +61,9 @@ class QueryPlanTest {
   @Test
   public void explain_no_page_size() {
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
-    query.explain(explainListener, Explain.ExplainFormat.STANDARD);
+    query.explain(explainListener, format);
 
-    verify(queryService, times(1)).explain(plan, queryType, explainListener);
+    verify(queryService, times(1)).explain(plan, queryType, explainListener, format);
   }
 
   @Test
@@ -125,6 +127,6 @@ class QueryPlanTest {
                 assertTrue(e instanceof NotImplementedException);
               }
             },
-            Explain.ExplainFormat.STANDARD);
+            format);
   }
 }
