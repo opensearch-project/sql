@@ -63,7 +63,6 @@ import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
-import org.opensearch.sql.expression.function.PPLFuncImpTable.FunctionImp;
 
 @RequiredArgsConstructor
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {
@@ -197,9 +196,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         transferCompareForDateRelated(leftCandidate, context, whetherCompareByTime);
     final RexNode right =
         transferCompareForDateRelated(rightCandidate, context, whetherCompareByTime);
-    return PPLFuncImpTable.INSTANCE
-        .resolve(node.getOperator(), List.of(left, right))
-        .apply(context.rexBuilder, left, right);
+    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, node.getOperator(), left, right);
   }
 
   private RexNode transferCompareForDateRelated(
@@ -319,9 +316,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     RexBuilder rexBuilder = context.relBuilder.getRexBuilder();
     RexNode unitNode =
         isTimeBased(unit) ? rexBuilder.makeLiteral(unit.getName()) : rexBuilder.constantNull();
-    return PPLFuncImpTable.INSTANCE
-        .resolve(BuiltinFunctionName.SPAN, List.of(field, value))
-        .apply(context.rexBuilder, field, value, unitNode);
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder, BuiltinFunctionName.SPAN, field, value, unitNode);
   }
 
   private boolean isTimeBased(SpanUnit unit) {
@@ -338,11 +334,14 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<RexNode> arguments =
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
-    FunctionImp imp = PPLFuncImpTable.INSTANCE.resolveSafe(node.getFuncName(), arguments);
-    if (imp != null) {
-      return imp.apply(context.rexBuilder, arguments.toArray(new RexNode[0]));
+    RexNode resolvedNode =
+        PPLFuncImpTable.INSTANCE.resolveSafe(
+            context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));
+    if (resolvedNode != null) {
+      return resolvedNode;
     }
-    // TODO: Remove below code after migrating all functions to PPLFuncImpTable
+    // TODO: Remove below code after migrating all functions to PPLFuncImpTable,
+    //  https://github.com/opensearch-project/sql/issues/3524
     SqlOperator operator = BuiltinFunctionUtils.translate(node.getFuncName());
     List<RexNode> translatedArguments =
         BuiltinFunctionUtils.translateArgument(

@@ -15,6 +15,16 @@ import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 
+/**
+ * The interface helps to construct a SqlUserDefinedFunction
+ *
+ * <p>1. getFunction - returns the implementation of the UDF
+ *
+ * <p>2. getReturnTypeInference - returns the return type of the UDF
+ *
+ * <p>3. getOperandMetadata - returns the operand metadata of the UDF. This is for checking the
+ * operand when validation, default null without checking.
+ */
 public interface UserDefinedFunctionHelper {
 
   ImplementableFunction getFunction();
@@ -24,7 +34,6 @@ public interface UserDefinedFunctionHelper {
   default SqlOperandMetadata getOperandMetadata() {
     return null;
   }
-  ;
 
   default SqlUserDefinedFunction toUDF(String functionName) {
     SqlIdentifier udfLtrimIdentifier =

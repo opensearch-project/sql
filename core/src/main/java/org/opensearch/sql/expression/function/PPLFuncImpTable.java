@@ -6,7 +6,6 @@
 package org.opensearch.sql.expression.function;
 
 import static java.lang.Math.E;
-import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
@@ -68,9 +67,11 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRAC
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TYPEOF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
 
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,7 +93,7 @@ public class PPLFuncImpTable {
   public interface FunctionImp {
     RelDataType ANY_TYPE = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
 
-    RexNode apply(RexBuilder builder, RexNode... args);
+    RexNode resolve(RexBuilder builder, RexNode... args);
 
     /**
      * @return the list of parameters. Default return null implies unknown parameters {@link
@@ -106,14 +107,14 @@ public class PPLFuncImpTable {
   public interface FunctionImp1 extends FunctionImp {
     List<RelDataType> ANY_TYPE_1 = List.of(ANY_TYPE);
 
-    RexNode apply(RexBuilder builder, RexNode arg1);
+    RexNode resolve(RexBuilder builder, RexNode arg1);
 
     @Override
-    default RexNode apply(RexBuilder builder, RexNode... args) {
+    default RexNode resolve(RexBuilder builder, RexNode... args) {
       if (args.length != 1) {
         throw new IllegalArgumentException("This function requires exactly 1 arguments");
       }
-      return apply(builder, args[0]);
+      return resolve(builder, args[0]);
     }
 
     @Override
@@ -125,14 +126,14 @@ public class PPLFuncImpTable {
   public interface FunctionImp2 extends FunctionImp {
     List<RelDataType> ANY_TYPE_2 = List.of(ANY_TYPE, ANY_TYPE);
 
-    RexNode apply(RexBuilder builder, RexNode arg1, RexNode arg2);
+    RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2);
 
     @Override
-    default RexNode apply(RexBuilder builder, RexNode... args) {
+    default RexNode resolve(RexBuilder builder, RexNode... args) {
       if (args.length != 2) {
         throw new IllegalArgumentException("This function requires exactly 2 arguments");
       }
-      return apply(builder, args[0], args[1]);
+      return resolve(builder, args[0], args[1]);
     }
 
     @Override
@@ -159,44 +160,44 @@ public class PPLFuncImpTable {
     this.map = ImmutableMap.copyOf(mapBuilder.build());
   }
 
-  public @Nullable FunctionImp get(final BuiltinFunctionName functionName) {
-    final PairList<CalciteFuncSignature, FunctionImp> implementList =
-        requireNonNull(map.get(functionName));
-    if (implementList.isEmpty()) {
-      throw new NullPointerException();
-    }
-    return implementList.getFirst().getValue();
-  }
-
-  public @Nullable FunctionImp resolveSafe(final String functionName, List<RexNode> args) {
+  public @Nullable RexNode resolveSafe(
+      final RexBuilder builder, final String functionName, RexNode... args) {
     try {
-      return resolve(functionName, args);
-    } catch (IllegalStateException e) {
+      return resolve(builder, functionName, args);
+    } catch (Exception e) {
       return null;
     }
   }
 
-  public FunctionImp resolve(final String functionName, List<RexNode> args) {
+  public RexNode resolve(final RexBuilder builder, final String functionName, RexNode... args) {
     Optional<BuiltinFunctionName> funcNameOpt = BuiltinFunctionName.of(functionName);
     if (funcNameOpt.isEmpty()) {
       throw new IllegalArgumentException(String.format("Unsupported function: %s", functionName));
     }
-    BuiltinFunctionName.of(functionName);
-    return resolve(funcNameOpt.get(), args);
+    return resolve(builder, funcNameOpt.get(), args);
   }
 
-  public FunctionImp resolve(final BuiltinFunctionName functionName, List<RexNode> args) {
+  public RexNode resolve(
+      final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
     final PairList<CalciteFuncSignature, FunctionImp> implementList = map.get(functionName);
     if (implementList == null || implementList.isEmpty()) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
-    List<RelDataType> argTypes = args.stream().map(RexNode::getType).toList();
-    for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
-      if (implement.getKey().match(functionName.getName(), argTypes)) {
-        return implement.getValue();
+    List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
+    try {
+      for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
+        if (implement.getKey().match(functionName.getName(), argTypes)) {
+          return implement.getValue().resolve(builder, args);
+        }
       }
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Cannot resolve function: %s, arguments: %s, caused by: %s",
+              functionName, argTypes, e.getMessage()),
+          e);
     }
-    throw new IllegalStateException(
+    throw new IllegalArgumentException(
         String.format("Cannot resolve function: %s, arguments: %s", functionName, argTypes));
   }
 
@@ -216,8 +217,6 @@ public class PPLFuncImpTable {
       registerOperator(AND, SqlStdOperatorTable.AND);
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
-      // registerOperator(XOR, SqlStdOperatorTable.NOT_EQUALS); Migrate from BuiltinFunctionUtils
-      // while seems not right
       registerOperator(NOTEQUAL, SqlStdOperatorTable.NOT_EQUALS);
       registerOperator(EQUAL, SqlStdOperatorTable.EQUALS);
       registerOperator(GREATER, SqlStdOperatorTable.GREATER_THAN);
@@ -324,6 +323,7 @@ public class PPLFuncImpTable {
           (FunctionImp1)
               (builder, arg) ->
                   builder.makeLiteral(getLegacyTypeName(arg.getType(), QueryType.PPL)));
+      register(XOR, new XOR_FUNC());
     }
   }
 
@@ -340,6 +340,23 @@ public class PPLFuncImpTable {
       } else {
         map.put(functionName, PairList.of(signature, implement));
       }
+    }
+  }
+
+  // -------------------------------------------------------------
+  //                   FUNCTIONS
+  // -------------------------------------------------------------
+  /** Implement XOR via NOT_EQUAL, and limit the arguments' type to boolean only */
+  private static class XOR_FUNC implements FunctionImp2 {
+    @Override
+    public RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2) {
+      return builder.makeCall(SqlStdOperatorTable.NOT_EQUALS, arg1, arg2);
+    }
+
+    @Override
+    public List<RelDataType> getParams() {
+      RelDataType boolType = TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN);
+      return List.of(boolType, boolType);
     }
   }
 }

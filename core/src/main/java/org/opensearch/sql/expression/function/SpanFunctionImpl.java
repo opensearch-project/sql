@@ -44,8 +44,8 @@ public class SpanFunctionImpl extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      assert call.getOperands().size() == 3;
-      assert translatedOperands.size() == 3;
+      assert call.getOperands().size() == 3 : "SPAN should have 3 arguments";
+      assert translatedOperands.size() == 3 : "SPAN should have 3 arguments";
       Expression field = translatedOperands.get(0);
       Expression interval = translatedOperands.get(1);
 
