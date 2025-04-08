@@ -193,13 +193,6 @@ public class QueryService {
     return calcitePlan;
   }
 
-  public void explain(
-      UnresolvedPlan plan,
-      QueryType queryType,
-      ResponseListener<ExecutionEngine.ExplainResponse> listener) {
-    explain(plan, queryType, listener, Explain.ExplainFormat.STANDARD);
-  }
-
   /**
    * Explain the query in {@link UnresolvedPlan} using {@link ResponseListener} to get and format
    * explain response.
