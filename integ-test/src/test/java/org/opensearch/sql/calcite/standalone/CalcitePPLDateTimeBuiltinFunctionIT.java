@@ -202,7 +202,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where strict_date_optional_time > DATE_SUB(TIMESTAMP('1999-04-12"
+                "source=%s | where strict_date_optional_time > DATE_SUB(TIMESTAMP('1984-04-12"
                     + " 20:07:00'), INTERVAL 12 HOUR) | stats COUNT() AS CNT ",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(actual, schema("CNT", "long"));
@@ -1336,6 +1336,16 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("r20", "long"));
     verifyDataRows(
         actual, rows(1997, 1984, 1984, 2, 2, 4, 4, 15, 15, 12, 12, 9, 9, 7, 7, 42, 42, 12, 123456));
+  }
+
+  @Test
+  public void testTpchQueryDate() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where strict_date <= subdate(date('1998-12-01'), 90) | stats COUNT()",
+                TEST_INDEX_DATE_FORMATS));
+    verifyDataRows(actual, rows(2));
   }
 
   @Test
