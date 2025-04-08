@@ -436,5 +436,7 @@ fragment DEC_DIGIT:                 [0-9];
 // metadata field.  Two underscores (or more) is acceptable, such as '__field'.
 fragment ID_LITERAL:                ([@*A-Z_])+?[*A-Z_\-0-9]*;
 
+LINE_COMMENT:                       '//' ('\\\n' | ~[\r\n])* '\r'? '\n'? -> channel(HIDDEN);
+BLOCK_COMMENT:                      '/*' .*? '*/' -> channel(HIDDEN);
 
 ERROR_RECOGNITION:                  .    -> channel(ERRORCHANNEL);
