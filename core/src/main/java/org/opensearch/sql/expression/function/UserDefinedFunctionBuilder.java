@@ -25,7 +25,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
  * <p>3. getOperandMetadata - returns the operand metadata of the UDF. This is for checking the
  * operand when validation, default null without checking.
  */
-public interface UserDefinedFunctionHelper {
+public interface UserDefinedFunctionBuilder {
 
   ImplementableFunction getFunction();
 

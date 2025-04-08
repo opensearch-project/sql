@@ -10,7 +10,7 @@ import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 
 /** The UDF which implements its functionality by invoking the `eval` method of a class */
-public abstract class ScalarUDF implements UserDefinedFunctionHelper {
+public abstract class ScalarUDF implements UserDefinedFunctionBuilder {
   private final Class<?> clazz;
 
   protected ScalarUDF(Class<?> clazz) {

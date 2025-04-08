@@ -14,11 +14,13 @@ import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.ImplementableFunction;
 
 /** The UDF which implements its functionality by NotNullImplementor */
-public abstract class ImplementorUDF implements UserDefinedFunctionHelper {
+public abstract class ImplementorUDF implements UserDefinedFunctionBuilder {
   private final NotNullImplementor implementor;
+  private final NullPolicy nullPolicy;
 
-  protected ImplementorUDF(NotNullImplementor implementor) {
+  protected ImplementorUDF(NotNullImplementor implementor, NullPolicy nullPolicy) {
     this.implementor = implementor;
+    this.nullPolicy = nullPolicy;
   }
 
   @Override
@@ -31,7 +33,7 @@ public abstract class ImplementorUDF implements UserDefinedFunctionHelper {
 
       @Override
       public CallImplementor getImplementor() {
-        return RexImpTable.createImplementor(implementor, NullPolicy.NONE, false);
+        return RexImpTable.createImplementor(implementor, nullPolicy, false);
       }
     };
   }

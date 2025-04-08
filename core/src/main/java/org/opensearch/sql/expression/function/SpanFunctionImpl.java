@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function;
 
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.function.Parameter;
@@ -22,6 +23,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -32,7 +34,7 @@ import org.opensearch.sql.planner.physical.collector.Rounding.TimestampRounding;
 
 public class SpanFunctionImpl extends ImplementorUDF {
   protected SpanFunctionImpl() {
-    super(new SpanImplementor());
+    super(new SpanImplementor(), NullPolicy.ARG0);
   }
 
   @Override
@@ -68,7 +70,7 @@ public class SpanFunctionImpl extends ImplementorUDF {
               case EXPR_TIME -> "evalTime";
               case EXPR_TIMESTAMP -> "evalTimestamp";
               default -> throw new IllegalArgumentException(
-                  String.format("Unsupported expr udt: %s", exprSqlType.getUdt()));
+                  String.format("Unsupported expr type: %s", exprSqlType.getExprType()));
             };
         ScalarFunctionImpl function =
             (ScalarFunctionImpl)
@@ -77,7 +79,10 @@ public class SpanFunctionImpl extends ImplementorUDF {
                         SpanFunctionImpl.class, methodName, String.class, int.class, String.class));
         return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
       }
-      throw new IllegalArgumentException(String.format("Unsupported RelDataType: %s", fieldType));
+      throw new IllegalArgumentException(
+          String.format(
+              "Unsupported expr type: %s",
+              OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType)));
     }
   }
 
