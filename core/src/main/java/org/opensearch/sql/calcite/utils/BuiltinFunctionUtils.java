@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import static java.lang.Math.E;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 
 import com.google.common.collect.ImmutableList;
@@ -20,7 +18,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -28,7 +25,6 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -36,7 +32,6 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.ExtendedRexBuilder;
-import org.opensearch.sql.calcite.udf.SpanFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
@@ -94,7 +89,6 @@ import org.opensearch.sql.calcite.udf.mathUDF.DivideFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
-import org.opensearch.sql.calcite.udf.systemUDF.TypeOfFunction;
 import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
 import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
 
@@ -113,34 +107,6 @@ public interface BuiltinFunctionUtils {
   static SqlOperator translate(String op) {
     String capitalOP = op.toUpperCase(Locale.ROOT);
     switch (capitalOP) {
-      case "AND":
-        return SqlStdOperatorTable.AND;
-      case "OR":
-        return SqlStdOperatorTable.OR;
-      case "NOT":
-        return SqlStdOperatorTable.NOT;
-      case "XOR":
-      case "!=":
-        return SqlStdOperatorTable.NOT_EQUALS;
-      case "=":
-        return SqlStdOperatorTable.EQUALS;
-      case "<>":
-      case ">":
-        return SqlStdOperatorTable.GREATER_THAN;
-      case ">=":
-        return SqlStdOperatorTable.GREATER_THAN_OR_EQUAL;
-      case "<":
-        return SqlStdOperatorTable.LESS_THAN;
-      case "<=":
-        return SqlStdOperatorTable.LESS_THAN_OR_EQUAL;
-      case "REGEXP":
-        return SqlLibraryOperators.REGEXP;
-      case "+":
-        return SqlStdOperatorTable.PLUS;
-      case "-":
-        return SqlStdOperatorTable.MINUS;
-      case "*":
-        return SqlStdOperatorTable.MULTIPLY;
       case "/":
         return TransferUserDefinedFunction(
             DivideFunction.class, "/", ReturnTypes.QUOTIENT_NULLABLE);
@@ -199,14 +165,8 @@ public interface BuiltinFunctionUtils {
         // The CONV function in PPL converts between numerical bases,
         // while SqlStdOperatorTable.CONVERT converts between charsets.
         return TransferUserDefinedFunction(ConvFunction.class, "CONVERT", VARCHAR_FORCE_NULLABLE);
-      case "COS":
-        return SqlStdOperatorTable.COS;
-      case "COT":
-        return SqlStdOperatorTable.COT;
       case "CRC32":
         return TransferUserDefinedFunction(CRC32Function.class, "CRC32", ReturnTypes.BIGINT);
-      case "DEGREES":
-        return SqlStdOperatorTable.DEGREES;
       case "E":
         return TransferUserDefinedFunction(EulerFunction.class, "E", ReturnTypes.DOUBLE);
       case "EXP":
@@ -247,8 +207,6 @@ public interface BuiltinFunctionUtils {
         // implementation.
         return TransferUserDefinedFunction(
             SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE_FORCE_NULLABLE);
-      case "CBRT":
-        return SqlStdOperatorTable.CBRT;
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP", "NOW", "LOCALTIMESTAMP", "LOCALTIME":
         return TransferUserDefinedFunction(
@@ -320,9 +278,6 @@ public interface BuiltinFunctionUtils {
         // implementation.
         return TransferUserDefinedFunction(WeekFunction.class, "WEEK", ReturnTypes.INTEGER);
         // UDF Functions
-      case "SPAN":
-        return TransferUserDefinedFunction(
-            SpanFunction.class, "SPAN", ReturnTypes.ARG0_FORCE_NULLABLE);
         // Built-in condition functions
       case "IF":
         return TransferUserDefinedFunction(
@@ -333,14 +288,6 @@ public interface BuiltinFunctionUtils {
       case "NULLIF":
         return TransferUserDefinedFunction(
             NullIfFunction.class, "nullif", ReturnTypes.ARG0_FORCE_NULLABLE);
-      case "IS NOT NULL":
-        return SqlStdOperatorTable.IS_NOT_NULL;
-      case "IS NULL":
-        return SqlStdOperatorTable.IS_NULL;
-      case "TYPEOF":
-        // TODO optimize this function to ImplementableFunction
-        return TransferUserDefinedFunction(
-            TypeOfFunction.class, "typeof", ReturnTypes.VARCHAR_2000_NULLABLE);
       case "DAYNAME":
         return TransferUserDefinedFunction(
             PeriodNameFunction.class, "DAYNAME", VARCHAR_FORCE_NULLABLE);
@@ -675,10 +622,6 @@ public interface BuiltinFunctionUtils {
         return Stream.concat(Stream.of(argTimestamp), argList.stream().skip(1)).toList();
       case "UTC_TIMESTAMP", "UTC_TIME", "UTC_DATE":
         return List.of(context.rexBuilder.makeLiteral(currentTimestampStr));
-      case "TYPEOF":
-        return List.of(
-            context.rexBuilder.makeLiteral(
-                getLegacyTypeName(argList.getFirst().getType(), context.queryType)));
       default:
         return argList;
     }
