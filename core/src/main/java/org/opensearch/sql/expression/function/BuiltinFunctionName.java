@@ -54,6 +54,7 @@ public enum BuiltinFunctionName {
   RADIANS(FunctionName.of("radians")),
   SIN(FunctionName.of("sin")),
   TAN(FunctionName.of("tan")),
+  SPAN(FunctionName.of("span")),
 
   /** Date and Time Functions. */
   ADDDATE(FunctionName.of("adddate")),
