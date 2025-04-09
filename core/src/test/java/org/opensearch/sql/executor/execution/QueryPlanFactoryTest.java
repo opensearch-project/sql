@@ -80,9 +80,9 @@ class QueryPlanFactoryTest {
   @Test
   public void create_from_cursor_should_success() {
     AbstractPlan queryExecution =
-        factory.create("", false, queryType, queryListener, explainListener);
+        factory.create("", false, queryType, null, queryListener, explainListener);
     AbstractPlan explainExecution =
-        factory.create("", true, queryType, queryListener, explainListener);
+        factory.create("", true, queryType, null, queryListener, explainListener);
     assertAll(
         () -> assertTrue(queryExecution instanceof QueryPlan),
         () -> assertTrue(explainExecution instanceof ExplainPlan));

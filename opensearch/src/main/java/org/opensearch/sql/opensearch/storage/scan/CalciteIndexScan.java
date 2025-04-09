@@ -23,7 +23,7 @@ import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 /** Relational expression representing a scan of an OpenSearchIndex type. */
 @Getter
 public abstract class CalciteIndexScan extends TableScan {
-  protected final OpenSearchIndex osIndex;
+  public final OpenSearchIndex osIndex;
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
   // changed by push down operations.
   protected final RelDataType schema;
@@ -55,8 +55,11 @@ public abstract class CalciteIndexScan extends TableScan {
 
   @Override
   public RelWriter explainTerms(RelWriter pw) {
+    OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
+    pushDownContext.forEach(action -> action.apply(requestBuilder));
+    String explainString = pushDownContext + ", " + requestBuilder;
     return super.explainTerms(pw)
-        .itemIf("PushDownContext", pushDownContext, !pushDownContext.isEmpty());
+        .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
 
   // TODO: should we consider equivalent among PushDownContexts with different push down sequence?
@@ -109,7 +112,7 @@ public abstract class CalciteIndexScan extends TableScan {
 
     @Override
     public String toString() {
-      return type + ":" + digest;
+      return type + "->" + digest;
     }
 
     public void apply(OpenSearchRequestBuilder requestBuilder) {

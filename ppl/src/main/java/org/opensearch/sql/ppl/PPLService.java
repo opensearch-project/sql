@@ -89,6 +89,7 @@ public class PPLService {
 >>>>>>> 0d749958b (Improved patterns command with new algorithm (#3263) (#3335))
                 AstStatementBuilder.StatementBuilderContext.builder()
                     .isExplain(request.isExplainRequest())
+                    .format(request.getFormat())
                     .build()));
 
     LOG.info(

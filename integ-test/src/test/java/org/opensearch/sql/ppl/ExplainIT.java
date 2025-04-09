@@ -23,7 +23,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_output.json");
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_output.json")
+            : loadFromFile("expectedOutput/ppl/explain_output.json");
     assertJsonEquals(
         expected,
         explainQueryToString(
@@ -39,7 +42,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterPushDownExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_filter_push.json");
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_filter_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_filter_push.json");
 
     assertJsonEquals(
         expected,
@@ -53,7 +59,11 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterAndAggPushDownExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_filter_agg_push.json");
+    // TODO check why the agg pushdown doesn't work in calcite
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_filter_agg_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_filter_agg_push.json");
 
     assertJsonEquals(
         expected,
@@ -65,7 +75,11 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testSortPushDownExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_sort_push.json");
+    // TODO fix after https://github.com/opensearch-project/sql/issues/3380
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_sort_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_sort_push.json");
 
     assertJsonEquals(
         expected,
@@ -78,7 +92,11 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testLimitPushDownExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_limit_push.json");
+    // TODO fix after https://github.com/opensearch-project/sql/issues/3381
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_push.json");
 
     assertJsonEquals(
         expected,

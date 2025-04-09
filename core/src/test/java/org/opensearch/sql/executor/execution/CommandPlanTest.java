@@ -22,6 +22,7 @@ import static org.mockito.Mockito.withSettings;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.QueryId;
@@ -65,6 +66,7 @@ public class CommandPlanTest {
     QueryService qs = mock(QueryService.class);
     ResponseListener listener = mock(ResponseListener.class);
     ResponseListener explainListener = mock(ResponseListener.class);
+    Explain.ExplainFormat format = mock(Explain.ExplainFormat.class);
 
     var exception =
         assertThrows(
@@ -76,7 +78,7 @@ public class CommandPlanTest {
                         mock(UnresolvedPlan.class),
                         qs,
                         listener)
-                    .explain(explainListener));
+                    .explain(explainListener, format));
     assertEquals("CommandPlan does not support explain", exception.getMessage());
 
     verify(listener, never()).onResponse(any());
