@@ -7,7 +7,7 @@
 lexer grammar OpenSearchPPLLexer;
 
 channels { WHITESPACE, ERRORCHANNEL }
-
+options { caseInsensitive = true; }
 
 // COMMAND KEYWORDS
 SEARCH:                             'SEARCH';
@@ -23,7 +23,9 @@ DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
 HEAD:                               'HEAD';
+TOP_APPROX:                         'TOP_APPROX';
 TOP:                                'TOP';
+RARE_APPROX:                        'RARE_APPROX';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
 METHOD:                             'METHOD';
@@ -40,6 +42,7 @@ FILLNULL:                           'FILLNULL';
 EXPAND:                             'EXPAND';
 FLATTEN:                            'FLATTEN';
 TRENDLINE:                          'TRENDLINE';
+APPENDCOL:                          'APPENDCOL';
 
 //Native JOIN KEYWORDS
 JOIN:                               'JOIN';
@@ -80,12 +83,12 @@ DATASOURCES:                        'DATASOURCES';
 USING:                              'USING';
 WITH:                               'WITH';
 
-// FIELD KEYWORDS
+// SORT FIELD KEYWORDS
+// TODO #963: Implement 'num', 'str', and 'ip' sort syntax
 AUTO:                               'AUTO';
 STR:                                'STR';
 IP:                                 'IP';
 NUM:                                'NUM';
-
 
 // FIELDSUMMARY keywords
 FIELDSUMMARY:                       'FIELDSUMMARY';
@@ -95,6 +98,9 @@ NULLS:                              'NULLS';
 //TRENDLINE KEYWORDS
 SMA:                                'SMA';
 WMA:                                'WMA';
+
+// APPENDCOL options
+OVERRIDE:                           'OVERRIDE';
 
 // ARGUMENT KEYWORDS
 KEEPEMPTY:                          'KEEPEMPTY';
@@ -217,6 +223,7 @@ BIT_XOR_OP:                         '^';
 AVG:                                'AVG';
 COUNT:                              'COUNT';
 DISTINCT_COUNT:                     'DISTINCT_COUNT';
+DISTINCT_COUNT_APPROX:              'DISTINCT_COUNT_APPROX';
 ESTDC:                              'ESTDC';
 ESTDC_ERROR:                        'ESTDC_ERROR';
 MAX:                                'MAX';
@@ -240,10 +247,6 @@ FIRST:                              'FIRST';
 LAST:                               'LAST';
 LIST:                               'LIST';
 VALUES:                             'VALUES';
-EARLIEST:                           'EARLIEST';
-EARLIEST_TIME:                      'EARLIEST_TIME';
-LATEST:                             'LATEST';
-LATEST_TIME:                        'LATEST_TIME';
 PER_DAY:                            'PER_DAY';
 PER_HOUR:                           'PER_HOUR';
 PER_MINUTE:                         'PER_MINUTE';
@@ -352,6 +355,11 @@ UTC_TIMESTAMP:                      'UTC_TIMESTAMP';
 WEEKDAY:                            'WEEKDAY';
 YEARWEEK:                           'YEARWEEK';
 
+// RELATIVE TIME FUNCTIONS
+RELATIVE_TIMESTAMP:                 'RELATIVE_TIMESTAMP';
+EARLIEST:                           'EARLIEST';
+LATEST:                             'LATEST';
+
 // TEXT FUNCTIONS
 SUBSTR:                             'SUBSTR';
 SUBSTRING:                          'SUBSTRING';
@@ -382,12 +390,12 @@ JSON_ARRAY:                         'JSON_ARRAY';
 JSON_ARRAY_LENGTH:                  'JSON_ARRAY_LENGTH';
 TO_JSON_STRING:                     'TO_JSON_STRING';
 JSON_EXTRACT:                       'JSON_EXTRACT';
+JSON_DELETE :                       'JSON_DELETE';
 JSON_KEYS:                          'JSON_KEYS';
 JSON_VALID:                         'JSON_VALID';
-//JSON_APPEND:                        'JSON_APPEND';
-//JSON_DELETE:                        'JSON_DELETE';
-//JSON_EXTEND:                        'JSON_EXTEND';
-//JSON_SET:                           'JSON_SET';
+JSON_APPEND:                        'JSON_APPEND';
+JSON_EXTEND :                       'JSON_EXTEND';
+JSON_SET:                           'JSON_SET';
 //JSON_ARRAY_ALL_MATCH:               'JSON_ARRAY_ALL_MATCH';
 //JSON_ARRAY_ANY_MATCH:               'JSON_ARRAY_ANY_MATCH';
 //JSON_ARRAY_FILTER:                  'JSON_ARRAY_FILTER';
@@ -421,6 +429,18 @@ TYPEOF:                             'TYPEOF';
 
 //OTHER CONDITIONAL EXPRESSIONS
 COALESCE:                           'COALESCE';
+
+//GEOLOCATION FUNCTIONS
+GEOIP:                              'GEOIP';
+
+//GEOLOCATION PROPERTIES
+COUNTRY_ISO_CODE:                   'COUNTRY_ISO_CODE';
+COUNTRY_NAME:                       'COUNTRY_NAME';
+CONTINENT_NAME:                     'CONTINENT_NAME';
+REGION_ISO_CODE:                    'REGION_ISO_CODE';
+REGION_NAME:                        'REGION_NAME';
+CITY_NAME:                          'CITY_NAME';
+LOCATION:                           'LOCATION';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';
