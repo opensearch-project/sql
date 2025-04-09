@@ -41,7 +41,9 @@ Description
 
 To translate your query, send it to explain endpoint. The explain output is OpenSearch domain specific language (DSL) in JSON format. You can just copy and paste it to your console to run it against OpenSearch directly.
 
-Example
+For queries which run with Calcite engine (V3), explain output could be set different formats: ``standard`` (the default format), ``simple`` and ``extended``.
+
+Example 1
 -------
 
 Explain query::
@@ -90,6 +92,121 @@ Explain::
 	    "excludes" : [ ]
 	  }
 	}
+
+Example 2 with Calcite: standard
+-------
+To enable Calcite engine, set `plugins.calcite.enabled <../../admin/settings.rst>`_ to ``true``.
+
+Explain query::
+
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql/_explain -d '{
+	  "query" : "source = state_country | where country = 'USA' OR country = 'England' | stats count() by country"
+	}'
+
+Explain::
+
+    {
+      "calcite": {
+        "logical": """LogicalProject(count()=[$1], country=[$0])
+      LogicalAggregate(group=[{1}], count()=[COUNT()])
+        LogicalFilter(condition=[SEARCH($1, Sarg['England', 'USA':CHAR(7)]:CHAR(7))])
+          CalciteLogicalIndexScan(table=[[OpenSearch, state_country]])
+    """,
+        "physical": """EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], country=[$t0])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, state_country]], PushDownContext=[[FILTER->SEARCH($1, Sarg['England', 'USA':CHAR(7)]:CHAR(7)), AGGREGATION->rel#57:LogicalAggregate.NONE.[](input=RelSubset#47,group={1},count()=COUNT())], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"terms":{"country":["England","USA"],"boost":1.0}},"sort":[{"_doc":{"order":"asc"}}],"aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"country":{"terms":{"field":"country","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"count()":{"value_count":{"field":"_index"}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
+    """
+      }
+    }
+
+Example 3 with Calcite: simple
+-------
+
+To enable Calcite engine, set `plugins.calcite.enabled <../../admin/settings.rst>`_ to ``true``.
+
+Explain query::
+
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql/_explain?format=simple -d '{
+	  "query" : "source = state_country | where country = 'USA' OR country = 'England' | stats count() by country"
+	}'
+
+Explain::
+
+    {
+      "calcite": {
+        "logical": """LogicalProject
+      LogicalAggregate
+        LogicalFilter
+          CalciteLogicalIndexScan
+    """
+      }
+    }
+
+Example 4 with Calcite: extended
+-------
+
+To enable Calcite engine, set `plugins.calcite.enabled <../../admin/settings.rst>`_ to ``true``.
+
+Explain query::
+
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql/_explain?format=extended -d '{
+	  "query" : "source = state_country | where country = 'USA' OR country = 'England' | stats count() by country"
+	}'
+
+Explain::
+
+    {
+      "calcite": {
+        "logical": """LogicalProject(count()=[$1], country=[$0])
+      LogicalAggregate(group=[{1}], count()=[COUNT()])
+        LogicalFilter(condition=[SEARCH($1, Sarg['England', 'USA':CHAR(7)]:CHAR(7))])
+          CalciteLogicalIndexScan(table=[[OpenSearch, state_country]])
+    """,
+        "physical": """EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], country=[$t0])
+      CalciteEnumerableIndexScan(table=[[OpenSearch, state_country]], PushDownContext=[[FILTER->SEARCH($1, Sarg['England', 'USA':CHAR(7)]:CHAR(7)), AGGREGATION->rel#125:LogicalAggregate.NONE.[](input=RelSubset#115,group={1},count()=COUNT())], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"terms":{"country":["England","USA"],"boost":1.0}},"sort":[{"_doc":{"order":"asc"}}],"aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"country":{"terms":{"field":"country","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"count()":{"value_count":{"field":"_index"}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
+    """,
+        "extended": """public org.apache.calcite.linq4j.Enumerable bind(final org.apache.calcite.DataContext root) {
+      final org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan v1stashed = (org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan) root.get("v1stashed");
+      final org.apache.calcite.linq4j.Enumerable _inputEnumerable = v1stashed.scan();
+      return new org.apache.calcite.linq4j.AbstractEnumerable(){
+          public org.apache.calcite.linq4j.Enumerator enumerator() {
+            return new org.apache.calcite.linq4j.Enumerator(){
+                public final org.apache.calcite.linq4j.Enumerator inputEnumerator = _inputEnumerable.enumerator();
+                public void reset() {
+                  inputEnumerator.reset();
+                }
+
+                public boolean moveNext() {
+                  return inputEnumerator.moveNext();
+                }
+
+                public void close() {
+                  inputEnumerator.close();
+                }
+
+                public Object current() {
+                  final Object[] current = (Object[]) inputEnumerator.current();
+                  final Object input_value = current[1];
+                  final Object input_value0 = current[0];
+                  return new Object[] {
+                      input_value,
+                      input_value0};
+                }
+
+              };
+          }
+
+        };
+    }
+
+
+    public Class getElementType() {
+      return java.lang.Object[].class;
+    }
+
+
+    """
+      }
+    }
 
 Cursor
 ======
