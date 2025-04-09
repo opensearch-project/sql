@@ -140,13 +140,14 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
           try {
             if (format == ExplainFormat.SIMPLE) {
               String logical = RelOptUtil.toString(rel, SqlExplainLevel.NO_ATTRIBUTES);
-              listener.onResponse(new ExplainResponse(logical, null, null));
+              listener.onResponse(
+                  new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
             } else {
               String logical = rel.explain();
               AtomicReference<String> physical = new AtomicReference<>();
               AtomicReference<String> javaCode = new AtomicReference<>();
               try (Hook.Closeable closeable = getPhysicalPlanInHook(physical)) {
-                if (format == ExplainFormat.CODEGEN) {
+                if (format == ExplainFormat.EXTENDED) {
                   getCodegenInHook(javaCode);
                 }
                 // triggers the hook
@@ -154,7 +155,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                     (PrivilegedAction<PreparedStatement>)
                         () -> OpenSearchRelRunners.run(context, rel));
               }
-              listener.onResponse(new ExplainResponse(logical, physical.get(), javaCode.get()));
+              listener.onResponse(
+                  new ExplainResponse(
+                      new ExplainResponseNodeV2(logical, physical.get(), javaCode.get())));
             }
           } catch (Exception e) {
             listener.onFailure(e);

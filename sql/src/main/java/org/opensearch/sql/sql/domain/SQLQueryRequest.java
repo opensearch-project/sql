@@ -150,7 +150,7 @@ public class SQLQueryRequest {
   }
 
   private boolean isSupportedExplainFormat() {
-    return Stream.of("simple", "standard", "codegen").anyMatch(format::equalsIgnoreCase);
+    return Stream.of("simple", "standard", "extended").anyMatch(format::equalsIgnoreCase);
   }
 
   private String getFormat(Map<String, String> params) {

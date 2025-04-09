@@ -83,22 +83,16 @@ public interface ExecutionEngine {
   class ExplainResponse {
     private final ExplainResponseNode root;
     // used in Calcite plan explain
-    private final String logical;
-    private final String physical;
-    private final String codegen;
+    private final ExplainResponseNodeV2 calcite;
 
     public ExplainResponse(ExplainResponseNode root) {
       this.root = root;
-      this.logical = null;
-      this.physical = null;
-      this.codegen = null;
+      this.calcite = null;
     }
 
-    public ExplainResponse(String logical, String physical, String codegen) {
+    public ExplainResponse(ExplainResponseNodeV2 calcite) {
       this.root = null;
-      this.logical = logical;
-      this.physical = physical;
-      this.codegen = codegen;
+      this.calcite = calcite;
     }
 
     @Override
@@ -106,15 +100,12 @@ public interface ExecutionEngine {
       if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
       ExplainResponse that = (ExplainResponse) o;
-      return Objects.equals(root, that.root)
-          || (Objects.equals(logical, that.logical)
-              && Objects.equals(physical, that.physical)
-              && Objects.equals(codegen, that.codegen));
+      return Objects.equals(root, that.root) || Objects.equals(calcite, that.calcite);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(root, logical, physical, codegen);
+      return Objects.hash(root, calcite);
     }
   }
 
@@ -125,5 +116,12 @@ public interface ExecutionEngine {
     private final String name;
     private Map<String, Object> description;
     private List<ExplainResponseNode> children;
+  }
+
+  @RequiredArgsConstructor
+  class ExplainResponseNodeV2 {
+    private final String logical;
+    private final String physical;
+    private final String extended;
   }
 }

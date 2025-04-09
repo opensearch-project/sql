@@ -70,6 +70,7 @@ public class OpenSearchRequestBuilder {
 
   private int startFrom = 0;
 
+  @ToString.Exclude
   private final Settings settings;
 
   /** Constructor. */

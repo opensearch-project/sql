@@ -10,7 +10,6 @@ package org.opensearch.sql.ast.statement;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.executor.QueryType;
 
@@ -41,17 +40,13 @@ public class Explain extends Statement {
   public enum ExplainFormat {
     SIMPLE,
     STANDARD,
-    CODEGEN
+    EXTENDED
   }
 
   public static ExplainFormat format(String format) {
-    if (Strings.isBlank(format)) {
-      return ExplainFormat.STANDARD; // Default value
-    }
-
     try {
       return ExplainFormat.valueOf(format.toUpperCase());
-    } catch (IllegalArgumentException e) {
+    } catch (Exception e) {
       return ExplainFormat.STANDARD;
     }
   }

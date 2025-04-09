@@ -35,11 +35,6 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private JsonResponseFormatter.Style style = JsonResponseFormatter.Style.COMPACT;
 
-  @Setter
-  @Getter
-  @Accessors(fluent = true)
-  private boolean codegen = false;
-
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
     this(pplQuery, jsonContent, path, "");
   }
