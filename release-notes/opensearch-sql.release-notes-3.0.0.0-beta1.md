@@ -38,6 +38,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 3.0.0.0-beta1
 * Add math UDF ([#3390](https://github.com/opensearch-project/sql/pull/3390))
 * Add condition UDFs ([#3412](https://github.com/opensearch-project/sql/pull/3412))
 * Register OpenSearchTypeSystem to OpenSearchTypeFactory ([#3349](https://github.com/opensearch-project/sql/pull/3349))
+* Enable update calcite setting through _plugins/_query/settings API ([#3531](https://github.com/opensearch-project/sql/pull/3531))
 
 ### Enhancements
 * Support line comment and block comment in PPL ([#2806](https://github.com/opensearch-project/sql/pull/2806))
