@@ -37,7 +37,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     Response response = client().performRequest(buildRequest(query, EXPLAIN_API_ENDPOINT));
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     String responseBody = getResponseBody(response, true);
-    return responseBody.replace("\r\n", "\n");
+    return responseBody.replace("\\r\\n", "\\n");
   }
 
   protected String executeCsvQuery(String query, boolean sanitize) throws IOException {
