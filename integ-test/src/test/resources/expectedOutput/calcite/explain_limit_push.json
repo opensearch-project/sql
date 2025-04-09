@@ -1,4 +1,6 @@
 {
-  "logical": "LogicalProject(ageMinus=[$11])\n  LogicalSort(fetch=[5])\n    LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], ageMinus=[-($8, 30)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-  "physical": "EnumerableCalc(expr#0..10=[{inputs}], expr#11=[30], expr#12=[-($t8, $t11)], ageMinus=[$t12])\n  EnumerableLimit(fetch=[5])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  "calcite": {
+    "logical": "LogicalProject(ageMinus=[$11])\n  LogicalSort(fetch=[5])\n    LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], ageMinus=[-($8, 30)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0..10=[{inputs}], expr#11=[30], expr#12=[-($t8, $t11)], ageMinus=[$t12])\n  EnumerableLimit(fetch=[5])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  }
 }

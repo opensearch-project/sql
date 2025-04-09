@@ -1,4 +1,6 @@
 {
-  "logical": "LogicalProject(avg_age=[$2], state=[$1], city=[$0])\n  LogicalAggregate(group=[{5, 7}], avg_age=[AVG($8)])\n    LogicalFilter(condition=[>($8, 30)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-  "physical": "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[null:BIGINT], expr#7=[CASE($t5, $t6, $t2)], expr#8=[CAST($t7):DOUBLE], expr#9=[/($t8, $t3)], avg_age=[$t9], state=[$t1], city=[$t0])\n  EnumerableAggregate(group=[{5, 7}], agg#0=[$SUM0($8)], agg#1=[COUNT($8)])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[FILTER:>($8, 30)]])\n"
+  "calcite": {
+    "logical": "LogicalProject(avg_age=[$2], state=[$1], city=[$0])\n  LogicalAggregate(group=[{5, 7}], avg_age=[AVG($8)])\n    LogicalFilter(condition=[>($8, 30)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[null:BIGINT], expr#7=[CASE($t5, $t6, $t2)], expr#8=[CAST($t7):DOUBLE], expr#9=[/($t8, $t3)], avg_age=[$t9], state=[$t1], city=[$t0])\n  EnumerableAggregate(group=[{5, 7}], agg#0=[$SUM0($8)], agg#1=[COUNT($8)])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[FILTER->>($8, 30)], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"query\":{\"range\":{\"age\":{\"from\":30,\"to\":null,\"include_lower\":false,\"include_upper\":true,\"boost\":1.0}}},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n"
+  }
 }
