@@ -2,6 +2,8 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 3.0.0.0-beta1
 
 ### Breaking Changes
 * Unified OpenSearch PPL Data Type ([#3345](https://github.com/opensearch-project/sql/pull/3345))
+* Add datetime functions ([#3473](https://github.com/opensearch-project/sql/pull/3473))
+* Support CAST function with Calcite ([#3439](https://github.com/opensearch-project/sql/pull/3439))
 
 ### Features
 * Framework of Calcite Engine: Parser, Catalog Binding and Plan Converter ([#3249](https://github.com/opensearch-project/sql/pull/3249))
@@ -18,7 +20,6 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 3.0.0.0-beta1
 * Implement ppl `dedup` command with Calcite ([#3416](https://github.com/opensearch-project/sql/pull/3416))
 * Support `parse` command with Calcite ([#3474](https://github.com/opensearch-project/sql/pull/3474))
 * Support `TYPEOF` function with Calcite ([#3446](https://github.com/opensearch-project/sql/pull/3446))
-* Support CAST function with Calcite ([#3439](https://github.com/opensearch-project/sql/pull/3439))
 * New output for explain endpoint with Calcite engine ([#3521](https://github.com/opensearch-project/sql/pull/3521))
 * Make basic aggregation working ([#3318](https://github.com/opensearch-project/sql/pull/3318), [#3355](https://github.com/opensearch-project/sql/pull/3355))
 * Push down project and filter operator into index scan ([#3327](https://github.com/opensearch-project/sql/pull/3327))
@@ -35,7 +36,6 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 3.0.0.0-beta1
 * Add missing text function ([#3471](https://github.com/opensearch-project/sql/pull/3471))
 * Add string builtin functions ([#3393](https://github.com/opensearch-project/sql/pull/3393))
 * Add math UDF ([#3390](https://github.com/opensearch-project/sql/pull/3390))
-* Add datetime functions ([#3473](https://github.com/opensearch-project/sql/pull/3473))
 * Add condition UDFs ([#3412](https://github.com/opensearch-project/sql/pull/3412))
 * Register OpenSearchTypeSystem to OpenSearchTypeFactory ([#3349](https://github.com/opensearch-project/sql/pull/3349))
 
