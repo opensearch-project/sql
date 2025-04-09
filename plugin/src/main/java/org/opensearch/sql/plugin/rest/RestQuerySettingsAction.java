@@ -35,11 +35,16 @@ public class RestQuerySettingsAction extends BaseRestHandler {
   private static final String TRANSIENT = "transient";
   private static final String SQL_SETTINGS_PREFIX = "plugins.sql.";
   private static final String PPL_SETTINGS_PREFIX = "plugins.ppl.";
+  private static final String CALCITE_SETTINGS_PREFIX = "plugins.calcite.";
   private static final String COMMON_SETTINGS_PREFIX = "plugins.query.";
   private static final String EXECUTION_ENGINE_SETTINGS_PREFIX = "plugins.query.executionengine";
   public static final String DATASOURCES_SETTINGS_PREFIX = "plugins.query.datasources";
   private static final List<String> SETTINGS_PREFIX =
-      ImmutableList.of(SQL_SETTINGS_PREFIX, PPL_SETTINGS_PREFIX, COMMON_SETTINGS_PREFIX);
+      ImmutableList.of(
+          SQL_SETTINGS_PREFIX,
+          PPL_SETTINGS_PREFIX,
+          COMMON_SETTINGS_PREFIX,
+          CALCITE_SETTINGS_PREFIX);
 
   private static final List<String> DENY_LIST_SETTINGS_PREFIX =
       ImmutableList.of(EXECUTION_ENGINE_SETTINGS_PREFIX, DATASOURCES_SETTINGS_PREFIX);
