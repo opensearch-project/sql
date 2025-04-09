@@ -882,3 +882,18 @@ plugins.query.field_type_tolerance setting is enabled, the SQL/PPL plugin will h
 scalar data types, allowing basic queries (e.g., SELECT * FROM tbl WHERE condition). However, using multi-value
 fields in expressions or functions will result in exceptions. If this setting is disabled or absent, only the
 first element of an array is returned, preserving the default behavior.
+
+plugins.calcite.enabled
+=======================
+
+Description
+-----------
+
+This setting is present from 3.0.0-beta. You can enable Calcite as new query optimizer and execution engine to all coming requests.
+
+1. The default value is false in 3.0.0-beta.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+Check `introduce v3 engine <../../../dev/intro-v3-engine.md>`_ for more details.
+Check `join doc <../../ppl/cmd/join.rst>`_ for example.

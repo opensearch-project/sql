@@ -95,7 +95,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
             new JSONObject("{\"query\": \"SELECT -123\"}"),
             "SELECT -123",
             EXPLAIN_API_ENDPOINT,
-            "jdbc");
+            "standard");
 
     RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     queryAction
