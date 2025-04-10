@@ -119,7 +119,7 @@ public class PPLServiceTest {
               return null;
             })
         .when(queryService)
-        .explain(any(), any(), any());
+        .explain(any(), any(), any(), any());
 
     pplService.explain(
         new PPLQueryRequest("search source=t a=1", null, EXPLAIN),

@@ -175,7 +175,7 @@ class SQLServiceTest {
               return null;
             })
         .when(queryService)
-        .explain(any(), any(), any());
+        .explain(any(), any(), any(), any());
 
     sqlService.explain(
         new SQLQueryRequest(new JSONObject(), "SELECT 123", EXPLAIN, "csv"),
