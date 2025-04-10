@@ -73,6 +73,10 @@ import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
  * debug the service side execution of PPL in IDE.
  */
 public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
+  private static final String QUERY = "/_plugins/_ppl";
+
+  private static final String EXPLAIN = "/_plugins/_ppl/_explain";
+
   protected PPLService pplService;
 
   @Override
@@ -158,7 +162,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
   protected String execute(String query) {
     AtomicReference<String> actual = new AtomicReference<>();
     pplService.execute(
-        new PPLQueryRequest(query, null, null),
+        new PPLQueryRequest(query, null, QUERY),
         new ResponseListener<ExecutionEngine.QueryResponse>() {
 
           @Override
@@ -176,11 +180,31 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     return actual.get();
   }
 
+  protected String explain(String query) {
+    AtomicReference<String> actual = new AtomicReference<>();
+    pplService.explain(
+        new PPLQueryRequest(query, null, EXPLAIN),
+        new ResponseListener<ExecutionEngine.ExplainResponse>() {
+
+          @Override
+          public void onResponse(ExecutionEngine.ExplainResponse response) {
+            String plan = response.getCalcite().getLogical();
+            actual.set(plan);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            throw new IllegalStateException("Exception happened during execution", e);
+          }
+        });
+    return actual.get();
+  }
+
   @Override
   protected JSONObject executeQuery(String query) {
     AtomicReference<JSONObject> actual = new AtomicReference<>();
     pplService.execute(
-        new PPLQueryRequest(query, null, null),
+        new PPLQueryRequest(query, null, QUERY),
         new ResponseListener<ExecutionEngine.QueryResponse>() {
 
           @Override
