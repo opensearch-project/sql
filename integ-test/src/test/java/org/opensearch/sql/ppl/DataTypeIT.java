@@ -11,7 +11,9 @@ import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -85,8 +87,9 @@ public class DataTypeIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | where alias_col > 1 " + "| fields original_col, alias_col ",
+                "source=%s | eval a = 1 | where alias_col > 1 | fields original_col, alias_col ",
                 TEST_INDEX_ALIAS));
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
+    verifyDataRows(result, rows(2, 2), rows(3, 3));
   }
 }
