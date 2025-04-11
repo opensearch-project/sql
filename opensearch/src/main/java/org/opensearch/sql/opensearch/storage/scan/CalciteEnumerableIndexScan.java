@@ -94,10 +94,16 @@ public class CalciteEnumerableIndexScan extends CalciteIndexScan implements Enum
       public Enumerator<Object> enumerator() {
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
-            List.copyOf(getRowType().getFieldNames()),
+            getFieldPath(),
             requestBuilder.getMaxResponseSize(),
             osIndex.buildRequest(requestBuilder));
       }
     };
+  }
+
+  private List<String> getFieldPath() {
+    return getRowType().getFieldNames().stream()
+        .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
+        .toList();
   }
 }
