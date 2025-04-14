@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.utils;
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprTimestampValue;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import java.time.Instant;
@@ -22,6 +23,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.TimeZone;
+
+import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
@@ -248,10 +252,26 @@ public class UserDefinedFunctionUtils {
 
   // TODO: pass the function properties directly to the UDF instead of string
   public static FunctionProperties restoreFunctionProperties(Object timestampStr) {
-    String expression = (String) timestampStr;
-    Instant parsed = Instant.parse(expression);
-    FunctionProperties functionProperties =
-        new FunctionProperties(parsed, ZoneId.systemDefault(), QueryType.PPL);
-    return functionProperties;
+    if (timestampStr instanceof String) {
+      String expression = (String) timestampStr;
+      Instant parsed = Instant.parse(expression);
+      FunctionProperties functionProperties =
+              new FunctionProperties(parsed, ZoneId.systemDefault(), QueryType.PPL);
+      return functionProperties;
+    } else if (timestampStr instanceof DataContext) {
+      DataContext dataContext = (DataContext) timestampStr;
+      long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(dataContext);
+      Instant instant = Instant.ofEpochSecond(
+              currentTimeInNanos / 1_000_000_000,
+              currentTimeInNanos % 1_000_000_000
+      );
+      TimeZone timeZone = DataContext.Variable.TIME_ZONE.get(dataContext);
+      ZoneId zoneId = ZoneId.of(timeZone.getID());
+      FunctionProperties functionProperties = new FunctionProperties(instant, zoneId, QueryType.PPL);
+      return functionProperties;
+    } else {
+      throw new IllegalArgumentException("wrong input type");
+    }
+
   }
 }

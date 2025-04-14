@@ -373,13 +373,22 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         executeQuery(
             String.format(
                 "source=%s "
-                    + "| eval timestamp=UTC_TIMESTAMP() "
-                    + "| eval time=UTC_TIME()"
-                    + "| eval date=UTC_DATE()"
-                    + "| fields timestamp, time, date ",
+                    + " | eval a =timestamp(time('12:00:00'), time('12:00:00')) | fields a",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual, schema("timestamp", "timestamp"), schema("date", "date"), schema("time", "time"));
+  }
+
+  @Test
+  public void testUtcTimestampWithTimeInput() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s "
+                                    + " | eval a =timestamp(time('12:00:00'), time('12:00:00')) | fields a",
+                            TEST_INDEX_DATE_FORMATS));
+    verifySchema(
+            actual, schema("timestamp", "timestamp"), schema("date", "date"), schema("time", "time"));
   }
 
   @Test

@@ -37,9 +37,10 @@ public class TimestampFunction implements UserDefinedFunction {
       return transferInputToExprTimestampValue(args[0], sqlTypeName, restored).valueForCalcite();
     } else {
       SqlTypeName sqlTypeName = (SqlTypeName) args[2];
-      ExprValue dateTimeBase = transferInputToExprValue(args[0], sqlTypeName);
-      ExprValue addTime = transferInputToExprValue(args[1], (SqlTypeName) args[3]);
-      return exprAddTime(FunctionProperties.None, dateTimeBase, addTime).valueForCalcite();
+      FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
+      ExprValue dateTimeBase = transferInputToExprTimestampValue(args[0], sqlTypeName, restored);
+      ExprValue addTime = transferInputToExprTimestampValue(args[1], (SqlTypeName) args[3], restored);
+      return exprAddTime(restored, dateTimeBase, addTime).valueForCalcite();
     }
   }
 }

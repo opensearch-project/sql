@@ -21,6 +21,7 @@ import org.apache.calcite.util.BuiltInMethod;
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   public static final SqlOperator SPAN = new SpanFunctionImpl().toUDF("SPAN");
+  public static final SqlOperator TIMESTAMP = new TimestampImpl().toUDF("TIMESTAMP");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
