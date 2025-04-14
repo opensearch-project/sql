@@ -18,9 +18,11 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 
 /**
  * We need to write our own since we are actually implement timestamp add here
- * (STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP (STRING/DATE/TIME/DATETIME/TIMESTAMP,
- * STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP It's implicitly transferred into timestamp, so
- * we need to do the same thing
+ * _FUNC_(STRING/DATE/TIME/TIMESTAMP) -> TIMESTAMP
+ *
+ * <p>_FUNC_(STRING/DATE/TIME/TIMESTAMP, STRING/DATE/TIME/TIMESTAMP) -> TIMESTAMP
+ *
+ * <p>In v2, it's implicitly transferred into timestamp, so we need to do the same thing
  */
 public class TimestampFunction implements UserDefinedFunction {
   @Override
