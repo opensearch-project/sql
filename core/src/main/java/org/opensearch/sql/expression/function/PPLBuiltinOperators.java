@@ -16,11 +16,23 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.mathUDF.CRC32FunctionImpl;
+import org.opensearch.sql.calcite.udf.mathUDF.ConvFunctionImpl;
+import org.opensearch.sql.calcite.udf.mathUDF.DivideFunctionImpl;
+import org.opensearch.sql.calcite.udf.mathUDF.EulerFunctionImpl;
+import org.opensearch.sql.calcite.udf.mathUDF.ModFunctionImpl;
+import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunctionImpl;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   public static final SqlOperator SPAN = new SpanFunctionImpl().toUDF("SPAN");
+  public static final SqlOperator E = new EulerFunctionImpl().toUDF("E");
+  public static final SqlOperator SQRT = new SqrtFunctionImpl().toUDF("SQRT");
+  public static final SqlOperator CONV = new ConvFunctionImpl().toUDF("CONVERT");
+  public static final SqlOperator MOD = new ModFunctionImpl().toUDF("MOD");
+  public static final SqlOperator CRC32 = new CRC32FunctionImpl().toUDF("CRC32");
+  public static final SqlOperator DIVIDE = new DivideFunctionImpl().toUDF("DIVIDE");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

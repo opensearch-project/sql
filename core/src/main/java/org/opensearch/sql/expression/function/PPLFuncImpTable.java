@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression.function;
 
-import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
@@ -20,9 +19,13 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.CBRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEILING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT_WS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONV;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CRC32;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.E;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
@@ -41,6 +44,9 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG2;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOWER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MOD;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUS;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MODULUSFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
@@ -59,6 +65,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIGN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SQRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRCMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTRING;
@@ -271,6 +278,16 @@ public class PPLFuncImpTable {
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
+      registerOperator(E, PPLBuiltinOperators.E);
+      // SqlStdOperatorTable.SQRT is declared but not implemented, therefore we use a custom
+      // implementation.
+      registerOperator(SQRT, PPLBuiltinOperators.SQRT);
+      registerOperator(CONV, PPLBuiltinOperators.CONV);
+      registerOperator(MOD, PPLBuiltinOperators.MOD);
+      registerOperator(MODULUS, PPLBuiltinOperators.MOD);
+      registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);
+      registerOperator(CRC32, PPLBuiltinOperators.CRC32);
+      registerOperator(DIVIDE, PPLBuiltinOperators.DIVIDE);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
@@ -316,7 +333,7 @@ public class PPLFuncImpTable {
                   builder.makeCall(
                       SqlLibraryOperators.LOG,
                       arg,
-                      builder.makeApproxLiteral(BigDecimal.valueOf(E)))));
+                      builder.makeApproxLiteral(BigDecimal.valueOf(Math.E)))));
       register(
           TYPEOF,
           (FunctionImp1)

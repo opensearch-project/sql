@@ -82,12 +82,6 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.WeekDayFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.WeekFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.YearFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.YearWeekFunction;
-import org.opensearch.sql.calcite.udf.mathUDF.CRC32Function;
-import org.opensearch.sql.calcite.udf.mathUDF.ConvFunction;
-import org.opensearch.sql.calcite.udf.mathUDF.DivideFunction;
-import org.opensearch.sql.calcite.udf.mathUDF.EulerFunction;
-import org.opensearch.sql.calcite.udf.mathUDF.ModFunction;
-import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunction;
 import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
 import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
 
@@ -106,9 +100,6 @@ public interface BuiltinFunctionUtils {
   static SqlOperator translate(String op) {
     String capitalOP = op.toUpperCase(Locale.ROOT);
     switch (capitalOP) {
-      case "/":
-        return TransferUserDefinedFunction(
-            DivideFunction.class, "/", ReturnTypes.QUOTIENT_NULLABLE);
       case "REPLACE":
         return TransferUserDefinedFunction(
             ReplaceFunction.class, "REPLACE", VARCHAR_FORCE_NULLABLE);
@@ -117,24 +108,6 @@ public interface BuiltinFunctionUtils {
             LocateFunction.class,
             "LOCATE",
             ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE));
-      case "CONV":
-        // The CONV function in PPL converts between numerical bases,
-        // while SqlStdOperatorTable.CONVERT converts between charsets.
-        return TransferUserDefinedFunction(ConvFunction.class, "CONVERT", VARCHAR_FORCE_NULLABLE);
-      case "CRC32":
-        return TransferUserDefinedFunction(CRC32Function.class, "CRC32", ReturnTypes.BIGINT);
-      case "E":
-        return TransferUserDefinedFunction(EulerFunction.class, "E", ReturnTypes.DOUBLE);
-      case "MOD", "%":
-        // The MOD function in PPL supports floating-point parameters, e.g., MOD(5.5, 2) = 1.5,
-        // MOD(3.1, 2.1) = 1.1,
-        // whereas SqlStdOperatorTable.MOD supports only integer / long parameters.
-        return TransferUserDefinedFunction(ModFunction.class, "MOD", ReturnTypes.LEAST_RESTRICTIVE);
-      case "SQRT":
-        // SqlStdOperatorTable.SQRT is declared but not implemented, therefore we use a custom
-        // implementation.
-        return TransferUserDefinedFunction(
-            SqrtFunction.class, "SQRT", ReturnTypes.DOUBLE_FORCE_NULLABLE);
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP", "NOW", "LOCALTIMESTAMP", "LOCALTIME":
         return TransferUserDefinedFunction(
