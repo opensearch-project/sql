@@ -1821,58 +1821,55 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void simple_pattern_window_function_with_no_additional_args() {
-    UnresolvedPlan unresolvedWindow =
-        AstDSL.project(
-            AstDSL.window(
-                AstDSL.relation("schema"),
-                PatternMethod.SIMPLE_PATTERN,
-                AstDSL.field("string_value"),
-                "patterns_field",
-                ImmutableList.of()),
-            AstDSL.field("string_value"));
-    LogicalPlan expectedPlan =
-        LogicalPlanDSL.project(
-            LogicalPlanDSL.window(
-                LogicalPlanDSL.relation("schema", table),
-                DSL.named(
-                    "patterns_field",
-                    DSL.simple_pattern(DSL.ref("string_value", STRING)),
-                    "patterns_field"),
-                new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
-            DSL.named("string_value", DSL.ref("string_value", STRING)));
+  public void parse_relation_with_patterns_expression() {
+    Map<String, Literal> arguments =
+        ImmutableMap.<String, Literal>builder()
+            .put("new_field", AstDSL.stringLiteral("custom_field"))
+            .put("pattern", AstDSL.stringLiteral("custom_pattern"))
+            .build();
 
-    assertAnalyzeEqual(expectedPlan, unresolvedWindow);
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(
+                DSL.named(
+                    "custom_field",
+                    DSL.patterns(
+                        DSL.ref("string_value", STRING),
+                        DSL.literal("custom_pattern"),
+                        DSL.literal("custom_field"))))),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PATTERNS,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("custom_pattern"),
+                arguments),
+            AstDSL.alias("string_value", qualifiedName("string_value"))));
   }
 
   @Test
-  public void simple_pattern_window_function() {
-    UnresolvedPlan unresolvedWindow =
-        AstDSL.project(
-            AstDSL.window(
-                AstDSL.relation("schema"),
-                PatternMethod.SIMPLE_PATTERN,
-                AstDSL.field("string_value"),
-                "custom_field",
-                ImmutableList.of(
-                    new Argument(
-                        "pattern", AstDSL.stringLiteral("[0-9]")))), // with pattern argument
-            AstDSL.field("string_value"));
-    LogicalPlan expectedPlan =
+  public void parse_relation_with_patterns_expression_no_args() {
+    assertAnalyzeEqual(
         LogicalPlanDSL.project(
-            LogicalPlanDSL.window(
-                LogicalPlanDSL.relation("schema", table),
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(
                 DSL.named(
-                    "custom_field",
-                    DSL.simple_pattern(
+                    "patterns_field",
+                    DSL.patterns(
                         DSL.ref("string_value", STRING),
-                        DSL.namedArgument(
-                            "pattern", DSL.literal("[0-9]"))), // with additional pattern argument
-                    "custom_field"),
-                new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
-            DSL.named("string_value", DSL.ref("string_value", STRING)));
-
-    assertAnalyzeEqual(expectedPlan, unresolvedWindow);
+                        DSL.literal(""),
+                        DSL.literal("patterns_field"))))),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PATTERNS,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral(""),
+                ImmutableMap.of()),
+            AstDSL.alias("string_value", qualifiedName("string_value"))));
   }
 
   @Test

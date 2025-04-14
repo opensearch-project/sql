@@ -224,7 +224,6 @@ public enum BuiltinFunctionName {
   RANK(FunctionName.of("rank")),
   DENSE_RANK(FunctionName.of("dense_rank")),
 
-  SIMPLE_PATTERN(FunctionName.of("simple_pattern")),
   BRAIN(FunctionName.of("brain")),
 
   INTERVAL(FunctionName.of("interval")),
