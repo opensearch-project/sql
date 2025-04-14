@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.expression.function.datetimeUDF;
 
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -38,11 +43,7 @@ public class DateImpl extends ImplementorUDF {
     public static class DateImplementor implements NotNullImplementor {
         @Override
         public Expression implement(RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
-            List<Expression> newList = new ArrayList<>(list);
-            for (RexNode rexNode : rexCall.getOperands()) {
-                newList.add(Expressions.constant(transferDateRelatedTimeName(rexNode)));
-            }
-            newList.add(rexToLixTranslator.getRoot());
+            List<Expression> newList =addTypeWithCurrentTimestamp(list, rexCall, rexToLixTranslator.getRoot());
             return Expressions.call( Types.lookupMethod(
                     DateImpl.class, "eval", Object[].class),  newList);
         }

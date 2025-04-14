@@ -26,9 +26,12 @@ import java.util.Objects;
 import java.util.TimeZone;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
@@ -274,4 +277,27 @@ public class UserDefinedFunctionUtils {
     }
 
   }
+
+  public static List<Expression> addTypeWithCurrentTimestamp(List<Expression> candidate, RexCall rexCall, Expression root) {
+    List<Expression> newList = new ArrayList<>(candidate);
+    for (RexNode rexNode : rexCall.getOperands()) {
+      newList.add(Expressions.constant(transferDateRelatedTimeName(rexNode)));
+    }
+    newList.add(root);
+    return newList;
+  }
+
+  public static List<Expression> buildArgsWithTypesForExpression(List<Expression> candidate, RexCall rexCall, Expression root, int... indexes)  {
+    List<Expression> result = new ArrayList<>();
+    List<RexNode> operands = rexCall.getOperands();
+    for (int index : indexes) {
+      Expression arg = candidate.get(index);
+      result.add(arg);
+      result.add(Expressions.constant(transferDateRelatedTimeName(operands.get(index))));
+    }
+    result.add(root);
+    return result;
+
+  }
+
 }

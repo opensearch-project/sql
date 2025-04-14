@@ -20,8 +20,7 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.timeInference;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprUtcTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprUtcTimeStamp;
 
@@ -38,8 +37,7 @@ public class UTCTimestampImpl extends ImplementorUDF {
     public static class TimestampImplementor implements NotNullImplementor {
         @Override
         public Expression implement(RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
-            List<Expression> newList = new ArrayList<>(list);
-            newList.add(rexToLixTranslator.getRoot());
+            List<Expression> newList = addTypeWithCurrentTimestamp(list, rexCall, rexToLixTranslator.getRoot());
             return Expressions.call( Types.lookupMethod(
                     UTCTimestampImpl.class, "eval", Object[].class),  newList);
         }

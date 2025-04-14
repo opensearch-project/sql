@@ -19,9 +19,15 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.expression.function.datetimeUDF.DateImpl;
 import org.opensearch.sql.expression.function.datetimeUDF.TimeImpl;
 import org.opensearch.sql.expression.function.datetimeUDF.TimestampImpl;
+import org.opensearch.sql.expression.function.datetimeUDF.TodaysImpl;
+import org.opensearch.sql.expression.function.datetimeUDF.TosecondsImpl;
 import org.opensearch.sql.expression.function.datetimeUDF.UTCDateImpl;
 import org.opensearch.sql.expression.function.datetimeUDF.UTCTimeImpl;
 import org.opensearch.sql.expression.function.datetimeUDF.UTCTimestampImpl;
+import org.opensearch.sql.expression.function.datetimeUDF.UnixTimestampImpl;
+import org.opensearch.sql.expression.function.datetimeUDF.WeekdayImpl;
+import org.opensearch.sql.expression.function.datetimeUDF.YearImpl;
+import org.opensearch.sql.expression.function.datetimeUDF.YearweekImpl;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
@@ -33,6 +39,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator UTC_DATE = new UTCDateImpl().toUDF("UTC_DATE");
   public static final SqlOperator DATE = new DateImpl().toUDF("DATE");
   public static final SqlOperator TIME = new TimeImpl().toUDF("TIME");
+  public static final SqlOperator YEAR = new YearImpl().toUDF("YEAR");
+  public static final SqlOperator YEARWEEK = new YearweekImpl().toUDF("YEARWEEK");
+  public static final SqlOperator WEEKDAY = new WeekdayImpl().toUDF("WEEKDAY");
+  public static final SqlOperator UNIX_TIMESTAMP = new UnixTimestampImpl().toUDF("UNIX_TIMESTAMP");
+  public static final SqlOperator TO_SECONDS = new TosecondsImpl().toUDF("TO_SECONDS");
+  public static final SqlOperator TO_DAYS = new TodaysImpl().toUDF("TO_DAYS");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

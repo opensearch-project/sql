@@ -13,32 +13,34 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
-import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprUtcTime;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprWeekday;
+import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
 
-public class UTCTimeImpl extends ImplementorUDF {
-    public UTCTimeImpl() {
-        super(new UTCTimeImplementor(), NullPolicy.ALL);
+public class WeekdayImpl extends ImplementorUDF {
+    public WeekdayImpl() {
+        super(new WeekdayImplementor(), NullPolicy.ANY);
     }
 
     @Override
     public SqlReturnTypeInference getReturnTypeInference() {
-        return timeInference;
+        return INTEGER_FORCE_NULLABLE;
     }
 
-    public static class UTCTimeImplementor implements NotNullImplementor {
+    public static class WeekdayImplementor implements NotNullImplementor {
         @Override
         public Expression implement(RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
             List<Expression> newList = addTypeWithCurrentTimestamp(list, rexCall, rexToLixTranslator.getRoot());
             return Expressions.call( Types.lookupMethod(
-                    UTCTimeImpl.class, "eval", Object[].class),  newList);
+                    WeekdayImpl.class, "eval", Object[].class),  newList);
         }
     }
 
@@ -47,6 +49,11 @@ public class UTCTimeImpl extends ImplementorUDF {
             return null;
         }
         FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
-        return exprUtcTime(restored).valueForCalcite();
+        SqlTypeName sqlTypeName = (SqlTypeName) args[1];
+        if (sqlTypeName == SqlTypeName.TIME) {
+            return formatNow(restored.getQueryStartClock()).getDayOfWeek().getValue() - 1;
+        } else {
+            return exprWeekday(transferInputToExprValue(args[0], sqlTypeName)).integerValue();
+        }
     }
 }

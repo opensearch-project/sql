@@ -221,6 +221,12 @@ public class PPLFuncImpTable {
       registerOperator(UTC_TIME, PPLBuiltinOperators.UTC_TIME);
       registerOperator(UTC_DATE, PPLBuiltinOperators.UTC_DATE);
       registerOperator(UTC_TIMESTAMP, PPLBuiltinOperators.UTC_TIMESTAMP);
+      registerOperator(YEAR, PPLBuiltinOperators.YEAR);
+      registerOperator(YEARWEEK, PPLBuiltinOperators.YEARWEEK);
+      registerOperator(WEEKDAY, PPLBuiltinOperators.WEEKDAY);
+      registerOperator(UNIX_TIMESTAMP, PPLBuiltinOperators.UNIX_TIMESTAMP);
+      registerOperator(TO_SECONDS, PPLBuiltinOperators.TO_SECONDS);
+      registerOperator(TO_DAYS, PPLBuiltinOperators.TO_DAYS);
 
 
       // Register implementation.
