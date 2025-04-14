@@ -143,4 +143,21 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
     System.out.println(Settings.Key.CALCITE_FALLBACK_ALLOWED.name() + " disabled");
   }
+
+  public static void withFallbackEnabled(Runnable f, String msg) throws IOException {
+    System.out.printf("Need fallback to v2 due to %s%n", msg);
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "true"));
+    System.out.println(Settings.Key.CALCITE_FALLBACK_ALLOWED.name() + " enabled");
+    try {
+      System.out.println("Run test with fallback");
+      f.run();
+    } finally {
+      updateClusterSettings(
+          new SQLIntegTestCase.ClusterSetting(
+              "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
+      System.out.println(Settings.Key.CALCITE_FALLBACK_ALLOWED.name() + " disabled");
+    }
+  }
 }
