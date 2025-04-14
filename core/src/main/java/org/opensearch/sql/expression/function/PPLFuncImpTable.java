@@ -38,6 +38,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LN;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOCATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG10;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG2;
@@ -58,6 +59,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.POWER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.REPLACE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
@@ -288,6 +290,8 @@ public class PPLFuncImpTable {
       registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);
       registerOperator(CRC32, PPLBuiltinOperators.CRC32);
       registerOperator(DIVIDE, PPLBuiltinOperators.DIVIDE);
+      registerOperator(LOCATE, PPLBuiltinOperators.LOCATE);
+      registerOperator(REPLACE, PPLBuiltinOperators.REPLACE);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.

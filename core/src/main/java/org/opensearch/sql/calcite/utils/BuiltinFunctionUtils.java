@@ -82,8 +82,6 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.WeekDayFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.WeekFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.YearFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.YearWeekFunction;
-import org.opensearch.sql.calcite.udf.textUDF.LocateFunction;
-import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunction;
 
 /**
  * TODO: We need to refactor code to make all related part together and directly return call TODO:
@@ -100,14 +98,6 @@ public interface BuiltinFunctionUtils {
   static SqlOperator translate(String op) {
     String capitalOP = op.toUpperCase(Locale.ROOT);
     switch (capitalOP) {
-      case "REPLACE":
-        return TransferUserDefinedFunction(
-            ReplaceFunction.class, "REPLACE", VARCHAR_FORCE_NULLABLE);
-      case "LOCATE":
-        return TransferUserDefinedFunction(
-            LocateFunction.class,
-            "LOCATE",
-            ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE));
         // Built-in Date Functions
       case "CURRENT_TIMESTAMP", "NOW", "LOCALTIMESTAMP", "LOCALTIME":
         return TransferUserDefinedFunction(

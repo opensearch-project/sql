@@ -22,10 +22,13 @@ import org.opensearch.sql.calcite.udf.mathUDF.DivideFunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.EulerFunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.ModFunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunctionImpl;
+import org.opensearch.sql.calcite.udf.textUDF.LocateFunctionImpl;
+import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunctionImpl;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
+  // Math functions
   public static final SqlOperator SPAN = new SpanFunctionImpl().toUDF("SPAN");
   public static final SqlOperator E = new EulerFunctionImpl().toUDF("E");
   public static final SqlOperator SQRT = new SqrtFunctionImpl().toUDF("SQRT");
@@ -33,6 +36,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator MOD = new ModFunctionImpl().toUDF("MOD");
   public static final SqlOperator CRC32 = new CRC32FunctionImpl().toUDF("CRC32");
   public static final SqlOperator DIVIDE = new DivideFunctionImpl().toUDF("DIVIDE");
+
+  // Text function
+  public static final SqlOperator LOCATE = new LocateFunctionImpl().toUDF("LOCATE");
+  public static final SqlOperator REPLACE = new ReplaceFunctionImpl().toUDF("REPLACE");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
