@@ -102,6 +102,20 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
+  public void testTimestampWithTimeInput() {
+    String utcTomorrow = LocalDate.now().plusDays(1).toString();
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s "
+                    + "| eval timestamp = timestamp(time('12:00:00'), time('12:00:00'))"
+                    + "| fields timestamp | head 1",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("timestamp", "timestamp"));
+    verifyDataRows(actual, rows(utcTomorrow + " 00:00:00"));
+  }
+
+  @Test
   public void testTimestamp() {
     JSONObject actual =
         executeQuery(
