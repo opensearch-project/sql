@@ -805,11 +805,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "work_information",
         getWorkInformationIndexMapping(),
         "src/test/resources/work_information.json"),
-    DUPLICATION_NULLABLE(
-        TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE,
-        "duplication_nullable",
-        getDuplicationNullableIndexMapping(),
-        "src/test/resources/duplication_nullable.json"),
     JSON_TEST(
         TestsConstants.TEST_INDEX_JSON_TEST,
         "json",
@@ -819,7 +814,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_ALIAS,
         "alias",
         getAliasIndexMapping(),
-        "src/test/resources/alias.json");
+        "src/test/resources/alias.json"),
+    DUPLICATION_NULLABLE(
+        TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE,
+        "duplication_nullable",
+        getDuplicationNullableIndexMapping(),
+        "src/test/resources/duplication_nullable.json");
 
     private final String name;
     private final String type;
