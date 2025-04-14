@@ -213,7 +213,7 @@ public class PPLFuncImpTable {
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
-      //registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);
+      registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.

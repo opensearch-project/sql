@@ -58,22 +58,6 @@ public class TimestampImpl extends ImplementorUDF {
         }
     }
 
-    public static Object evalOneTimestampValue(
-            @Parameter(name = "value") String value,
-            @Parameter(name = "type") SqlTypeName type,
-            @Parameter(name = "root") DataContext root
-    ) {
-        long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(root);
-        Instant instant = Instant.ofEpochSecond(
-                currentTimeInNanos / 1_000_000_000,
-                currentTimeInNanos % 1_000_000_000
-        );
-        TimeZone timeZone = DataContext.Variable.TIME_ZONE.get(root);
-        ZoneId zoneId = ZoneId.of(timeZone.getID());
-        FunctionProperties functionProperties = new FunctionProperties(instant, zoneId, QueryType.PPL);
-        return transferInputToExprTimestampValue(value, type, functionProperties).valueForCalcite();
-    }
-
     public static Object eval(
             Object... args
     ) {
@@ -89,9 +73,9 @@ public class TimestampImpl extends ImplementorUDF {
             return transferInputToExprTimestampValue(args[0], sqlTypeName, restored).valueForCalcite();
         } else {
             SqlTypeName sqlTypeName = (SqlTypeName) args[2];
-            ExprValue dateTimeBase = transferInputToExprValue(args[0], sqlTypeName);
             FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
-            ExprValue addTime = transferInputToExprValue(args[1], (SqlTypeName) args[3]);
+            ExprValue dateTimeBase = transferInputToExprTimestampValue(args[0], sqlTypeName, restored);
+            ExprValue addTime = transferInputToExprTimestampValue(args[1], (SqlTypeName) args[3], restored);
             return exprAddTime(restored, dateTimeBase, addTime).valueForCalcite();
         }
     }

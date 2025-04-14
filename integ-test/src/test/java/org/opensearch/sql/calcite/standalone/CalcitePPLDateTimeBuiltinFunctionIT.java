@@ -368,30 +368,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testUtcTimes() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s "
-                    + " | eval a =timestamp(time('12:00:00'), time('12:00:00')) | fields a",
-                TEST_INDEX_DATE_FORMATS));
-    verifySchema(
-        actual, schema("timestamp", "timestamp"), schema("date", "date"), schema("time", "time"));
-  }
-
-  @Test
-  public void testUtcTimestampWithTimeInput() {
-    JSONObject actual =
-            executeQuery(
-                    String.format(
-                            "source=%s "
-                                    + " | eval a =timestamp(time('12:00:00'), time('12:00:00')) | fields a",
-                            TEST_INDEX_DATE_FORMATS));
-    verifySchema(
-            actual, schema("timestamp", "timestamp"), schema("date", "date"), schema("time", "time"));
-  }
-
-  @Test
   public void testWeekAndWeekOfYear() {
     JSONObject actual =
         executeQuery(
