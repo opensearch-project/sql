@@ -1817,10 +1817,12 @@ public class DateTimeFunctions {
    */
   public static ExprValue exprGetFormat(ExprValue type, ExprValue format) {
     if (formats.contains(
-        type.stringValue().toLowerCase(), format.stringValue().toLowerCase(Locale.ROOT))) {
+        type.stringValue().toLowerCase(Locale.ROOT),
+        format.stringValue().toLowerCase(Locale.ROOT))) {
       return new ExprStringValue(
           formats.get(
-              type.stringValue().toLowerCase(), format.stringValue().toLowerCase(Locale.ROOT)));
+              type.stringValue().toLowerCase(Locale.ROOT),
+              format.stringValue().toLowerCase(Locale.ROOT)));
     }
 
     return ExprNullValue.of();
