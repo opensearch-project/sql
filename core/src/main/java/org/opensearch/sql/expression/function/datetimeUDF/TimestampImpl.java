@@ -1,41 +1,36 @@
-package org.opensearch.sql.expression.function;
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import org.apache.calcite.DataContext;
+package org.opensearch.sql.expression.function.datetimeUDF;
+
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
-import org.apache.calcite.linq4j.function.Parameter;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.commons.math3.analysis.function.Exp;
-import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampFunction;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.ImplementorUDF;
 
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.TimeZone;
-import java.util.stream.Collectors;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprTimestampValue;
-import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprAddTime;
 
 public class TimestampImpl extends ImplementorUDF {
-    protected TimestampImpl() {
+    public TimestampImpl() {
         super(new TimestampImplementor(), NullPolicy.ALL);
     }
 
