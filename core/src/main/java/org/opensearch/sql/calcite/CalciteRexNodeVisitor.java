@@ -7,11 +7,11 @@ package org.opensearch.sql.calcite;
 
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.translateArgument;
+import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
@@ -19,6 +19,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -35,6 +36,7 @@ import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.In;
+import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -50,12 +52,17 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessDateToStringFunction;
 import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 @RequiredArgsConstructor
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {
@@ -117,6 +124,15 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   @Override
+  public RexNode visitInterval(Interval node, CalcitePlanContext context) {
+    RexNode value = analyze(node.getValue(), context);
+    SqlIntervalQualifier intervalQualifier =
+        context.rexBuilder.createIntervalUntil(PlanUtils.intervalUnitToSpanUnit(node.getUnit()));
+    return context.rexBuilder.makeIntervalLiteral(
+        new BigDecimal(value.toString()), intervalQualifier);
+  }
+
+  @Override
   public RexNode visitAnd(And node, CalcitePlanContext context) {
     final RelDataType booleanType =
         context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN);
@@ -170,10 +186,38 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
-    SqlOperator op = BuiltinFunctionUtils.translate(node.getOperator());
-    final RexNode left = analyze(node.getLeft(), context);
-    final RexNode right = analyze(node.getRight(), context);
-    return context.relBuilder.call(op, left, right);
+    RexNode leftCandidate = analyze(node.getLeft(), context);
+    RexNode rightCandidate = analyze(node.getRight(), context);
+    Boolean whetherCompareByTime =
+        leftCandidate.getType() instanceof ExprSqlType
+            || rightCandidate.getType() instanceof ExprSqlType;
+
+    final RexNode left =
+        transferCompareForDateRelated(leftCandidate, context, whetherCompareByTime);
+    final RexNode right =
+        transferCompareForDateRelated(rightCandidate, context, whetherCompareByTime);
+    return PPLFuncImpTable.INSTANCE.resolve(context.rexBuilder, node.getOperator(), left, right);
+  }
+
+  private RexNode transferCompareForDateRelated(
+      RexNode candidate, CalcitePlanContext context, boolean whetherCompareByTime) {
+    if (whetherCompareByTime) {
+      SqlOperator postToStringNode =
+          TransferUserDefinedFunction(
+              PostprocessDateToStringFunction.class,
+              "PostprocessDateToString",
+              VARCHAR_FORCE_NULLABLE);
+      RexNode transferredStringNode =
+          context.rexBuilder.makeCall(
+              postToStringNode,
+              List.of(
+                  candidate,
+                  context.rexBuilder.makeLiteral(
+                      context.functionProperties.getQueryStartClock().instant().toString())));
+      return transferredStringNode;
+    } else {
+      return candidate;
+    }
   }
 
   @Override
@@ -224,6 +268,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       }
     }
 
+    // TODO: Need to support nested fields https://github.com/opensearch-project/sql/issues/3459
     // 2. resolve QualifiedName in non-join condition
     String qualifiedName = node.toString();
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
@@ -248,16 +293,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           .peekCorrelVar()
           .map(correlVar -> context.relBuilder.field(correlVar, qualifiedName))
           .orElseGet(() -> context.relBuilder.field(qualifiedName));
-    }
-    // 3. resolve overriding fields, for example, `eval SAL = SAL + 1` will delete the original SAL
-    // and add a SAL0. SAL0 in currentFields, but qualifiedName is SAL.
-    // TODO now we cannot handle the case using a overriding fields in subquery, for example
-    // source = EMP | eval DEPTNO = DEPTNO + 1 | where exists [ source = DEPT | where emp.DEPTNO =
-    // DEPTNO ]
-    Map<String, String> fieldMap =
-        currentFields.stream().collect(Collectors.toMap(s -> s.replaceAll("\\d", ""), s -> s));
-    if (fieldMap.containsKey(qualifiedName)) {
-      return context.relBuilder.field(fieldMap.get(qualifiedName));
     } else {
       throw new IllegalArgumentException(
           String.format(
@@ -277,48 +312,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitSpan(Span node, CalcitePlanContext context) {
     RexNode field = analyze(node.getField(), context);
     RexNode value = analyze(node.getValue(), context);
-    RelDataTypeFactory typeFactory = context.rexBuilder.getTypeFactory();
     SpanUnit unit = node.getUnit();
-    if (isTimeBased(unit)) {
-      return context.rexBuilder.makeCall(
-          BuiltinFunctionUtils.translate("SPAN"),
-          List.of(
-              field,
-              context
-                  .relBuilder
-                  .getRexBuilder()
-                  .makeLiteral(field.getType().getSqlTypeName().getName()),
-              value,
-              context.relBuilder.getRexBuilder().makeLiteral(unit.getName())));
-    } else {
-      // if the unit is not time base - create a math expression to bucket the span partitions
-      SqlTypeName type = field.getType().getSqlTypeName();
-      return context.rexBuilder.makeCall(
-          typeFactory.createSqlType(type),
-          SqlStdOperatorTable.MULTIPLY,
-          List.of(
-              context.rexBuilder.makeCall(
-                  typeFactory.createSqlType(type),
-                  SqlStdOperatorTable.FLOOR,
-                  List.of(
-                      context.rexBuilder.makeCall(
-                          typeFactory.createSqlType(type),
-                          SqlStdOperatorTable.DIVIDE,
-                          List.of(field, value)))),
-              value));
-    }
+    RexBuilder rexBuilder = context.relBuilder.getRexBuilder();
+    RexNode unitNode =
+        isTimeBased(unit) ? rexBuilder.makeLiteral(unit.getName()) : rexBuilder.constantNull();
+    return PPLFuncImpTable.INSTANCE.resolve(
+        context.rexBuilder, BuiltinFunctionName.SPAN, field, value, unitNode);
   }
 
   private boolean isTimeBased(SpanUnit unit) {
     return !(unit == NONE || unit == UNKNOWN);
   }
-
-  //    @Override
-  //    public RexNode visitAggregateFunction(AggregateFunction node, Context context) {
-  //        RexNode field = analyze(node.getField(), context);
-  //        AggregateCall aggregateCall = translateAggregateCall(node, field, relBuilder);
-  //        return new MyAggregateCall(aggregateCall);
-  //    }
 
   @Override
   public RexNode visitLet(Let node, CalcitePlanContext context) {
@@ -330,9 +334,25 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<RexNode> arguments =
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
-    return context.rexBuilder.makeCall(
-        BuiltinFunctionUtils.translate(node.getFuncName()),
-        translateArgument(node.getFuncName(), arguments, context));
+    RexNode resolvedNode =
+        PPLFuncImpTable.INSTANCE.resolveSafe(
+            context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));
+    if (resolvedNode != null) {
+      return resolvedNode;
+    }
+    // TODO: Remove below code after migrating all functions to PPLFuncImpTable,
+    //  https://github.com/opensearch-project/sql/issues/3524
+    SqlOperator operator = BuiltinFunctionUtils.translate(node.getFuncName());
+    List<RexNode> translatedArguments =
+        BuiltinFunctionUtils.translateArgument(
+            node.getFuncName(),
+            arguments,
+            context,
+            context.functionProperties.getQueryStartClock().instant().toString());
+    RelDataType returnType =
+        BuiltinFunctionUtils.deriveReturnType(
+            node.getFuncName(), context.rexBuilder, operator, translatedArguments);
+    return context.rexBuilder.makeCall(returnType, operator, translatedArguments);
   }
 
   @Override
@@ -403,10 +423,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitCast(Cast node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getExpression(), context);
-    SqlTypeName sqlTypeName =
-        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType())
-            .getSqlTypeName();
-    RelDataType type = context.rexBuilder.getTypeFactory().createSqlType(sqlTypeName);
+    RelDataType type =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType());
     RelDataType nullableType =
         context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
     // call makeCast() instead of cast() because the saft parameter is true could avoid exception.

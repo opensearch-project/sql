@@ -50,6 +50,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
+import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -301,6 +302,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     Integer size = node.getSize();
     return StringUtils.format("%s | head %d", child, size);
+  }
+
+  @Override
+  public String visitParse(Parse node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String source = visitExpression(node.getSourceField());
+    String regrex = node.getPattern().toString();
+    return StringUtils.format("%s | parse %s '%s'", child, source, regrex);
   }
 
   @Override

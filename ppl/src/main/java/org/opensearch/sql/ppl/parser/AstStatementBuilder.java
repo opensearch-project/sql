@@ -32,7 +32,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   @Override
   public Statement visitDmlStatement(OpenSearchPPLParser.DmlStatementContext ctx) {
     Query query = new Query(addSelectAll(astBuilder.visit(ctx)), context.getFetchSize(), PPL);
-    return context.isExplain ? new Explain(query, PPL) : query;
+    return context.isExplain ? new Explain(query, PPL, context.format) : query;
   }
 
   @Override
@@ -45,6 +45,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   public static class StatementBuilderContext {
     private final boolean isExplain;
     private final int fetchSize;
+    private final String format;
   }
 
   private UnresolvedPlan addSelectAll(UnresolvedPlan plan) {

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.remote.nonfallback;
 
+import static org.opensearch.sql.util.MatcherUtils.*;
+
 import java.io.IOException;
 import org.junit.Ignore;
 import org.opensearch.sql.calcite.remote.fallback.CalciteStatsCommandIT;
@@ -17,43 +19,12 @@ public class NonFallbackCalciteStatsCommandIT extends CalciteStatsCommandIT {
     disallowCalciteFallback();
   }
 
-  @Ignore("Percentile is unsupported in Calcite now")
-  @Override
-  public void testStatsPercentile() throws IOException {
-    super.testStatsPercentile();
-  }
-
-  @Ignore("Percentile is unsupported in Calcite now")
-  @Override
-  public void testStatsPercentileWithNull() throws IOException {
-    super.testStatsPercentileWithNull();
-  }
-
-  @Ignore("Percentile is unsupported in Calcite now")
-  @Override
-  public void testStatsPercentileWithCompression() throws IOException {
-    super.testStatsPercentileWithCompression();
-  }
-
-  @Ignore("Percentile is unsupported in Calcite now")
-  @Override
-  public void testStatsPercentileWhere() throws IOException {
-    super.testStatsPercentileWhere();
-  }
-
-  @Ignore("Percentile is unsupported in Calcite now")
+  @Ignore("https://github.com/opensearch-project/sql/issues/3495")
   @Override
   public void testStatsPercentileByNullValue() throws IOException {
     super.testStatsPercentileByNullValue();
   }
 
-  @Ignore("Percentile is unsupported in Calcite now")
-  @Override
-  public void testStatsPercentileBySpan() throws IOException {
-    super.testStatsPercentileBySpan();
-  }
-
-  @Ignore("https://github.com/opensearch-project/sql/issues/3354")
   @Override
   public void testStatsTimeSpan() throws IOException {
     super.testStatsTimeSpan();

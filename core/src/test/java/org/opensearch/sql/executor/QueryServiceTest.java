@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.analysis.Analyzer;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.pagination.Cursor;
@@ -56,6 +57,8 @@ class QueryServiceTest {
   @Mock private PlanContext planContext;
 
   @Mock private Split split;
+
+  @Mock private Explain.ExplainFormat format;
 
   @Test
   public void executeWithoutContext() {
@@ -214,7 +217,8 @@ class QueryServiceTest {
             public void onFailure(Exception e) {
               fail();
             }
-          });
+          },
+          format);
     }
 
     void handledByExplainOnFailure() {
@@ -231,7 +235,8 @@ class QueryServiceTest {
             public void onFailure(Exception e) {
               assertTrue(e instanceof IllegalStateException);
             }
-          });
+          },
+          format);
     }
   }
 }

@@ -10,7 +10,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -84,6 +86,9 @@ public class OpenSearchIndex extends OpenSearchTable {
   /** The cached ExprType of fields. */
   private Map<String, ExprType> cachedFieldTypes = null;
 
+  /** The cached mapping of alias type field to its original path. */
+  private Map<String, String> aliasMapping = null;
+
   /** The cached max result window setting of index. */
   private Integer cachedMaxResultWindow = null;
 
@@ -149,6 +154,22 @@ public class OpenSearchIndex extends OpenSearchTable {
   @Override
   public Map<String, ExprType> getReservedFieldTypes() {
     return METADATAFIELD_TYPE_MAP;
+  }
+
+  public Map<String, String> getAliasMapping() {
+    if (cachedFieldOpenSearchTypes == null) {
+      cachedFieldOpenSearchTypes =
+          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
+    }
+    if (aliasMapping == null) {
+      aliasMapping =
+          cachedFieldOpenSearchTypes.entrySet().stream()
+              .filter(entry -> entry.getValue().getOriginalPath().isPresent())
+              .collect(
+                  Collectors.toUnmodifiableMap(
+                      Entry::getKey, entry -> entry.getValue().getOriginalPath().get()));
+    }
+    return aliasMapping;
   }
 
   /**

@@ -137,7 +137,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
                     + "eval casted=cast(json(json_string) as int) | "
                     + "fields test_name, casted",
                 TEST_INDEX_JSON_TEST));
-    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "integer"));
+    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "int"));
     verifyDataRows(result, rows("json scalar int", 1234));
 
     result =
@@ -148,7 +148,7 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
                     + "eval casted=cast(json(json_string) as long) | "
                     + "fields test_name, casted",
                 TEST_INDEX_JSON_TEST));
-    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "long"));
+    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "bigint"));
     verifyDataRows(result, rows("json scalar int", 1234l));
 
     result =

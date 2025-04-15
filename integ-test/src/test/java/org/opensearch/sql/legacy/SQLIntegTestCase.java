@@ -762,6 +762,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "date_formats",
         getMappingFile("date_formats_index_mapping.json"),
         "src/test/resources/date_formats.json"),
+    DATE_FORMATS_WITH_NULL(
+        TestsConstants.TEST_INDEX_DATE_FORMATS_WITH_NULL,
+        "date_formats_null",
+        getMappingFile("date_formats_index_mapping.json"),
+        "src/test/resources/date_formats_with_null.json"),
     WILDCARD(
         TestsConstants.TEST_INDEX_WILDCARD,
         "wildcard",
@@ -832,7 +837,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_ALIAS,
         "alias",
         getAliasIndexMapping(),
-        "src/test/resources/work_information.json"),
+        "src/test/resources/alias.json"),
     DUPLICATION_NULLABLE(
         TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE,
         "duplication_nullable",

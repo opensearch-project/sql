@@ -11,7 +11,9 @@ import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -33,10 +35,10 @@ public class DataTypeIT extends PPLIntegTestCase {
     JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
         result,
-        schema("long_number", "long"),
-        schema("integer_number", "integer"),
-        schema("short_number", "short"),
-        schema("byte_number", "byte"),
+        schema("long_number", "bigint"),
+        schema("integer_number", "int"),
+        schema("short_number", "smallint"),
+        schema("byte_number", "tinyint"),
         schema("double_number", "double"),
         schema("float_number", "float"),
         schema("half_float_number", "float"),
@@ -74,10 +76,10 @@ public class DataTypeIT extends PPLIntegTestCase {
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
         result,
-        schema("int1", "integer"),
-        schema("int2", "integer"),
-        schema("long1", "long"),
-        schema("long2", "long"));
+        schema("int1", "int"),
+        schema("int2", "int"),
+        schema("long1", "bigint"),
+        schema("long2", "bigint"));
   }
 
   @Test
@@ -85,8 +87,9 @@ public class DataTypeIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | where alias_col > 1 " + "| fields original_col, alias_col ",
+                "source=%s | where alias_col > 1 | fields original_col, alias_col ",
                 TEST_INDEX_ALIAS));
-    verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
+    verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
+    verifyDataRows(result, rows(2, 2), rows(3, 3));
   }
 }

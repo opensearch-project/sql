@@ -12,15 +12,18 @@ import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_SAMP_NULLA
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
@@ -70,10 +73,15 @@ public interface AggregateUtils {
             argList,
             context.relBuilder);
       case PERCENTILE_APPROX:
-        throw new UnsupportedOperationException("PERCENTILE_APPROX is not supported in PPL");
-        //            case APPROX_COUNT_DISTINCT:
-        //                return
-        // context.relBuilder.aggregateCall(SqlStdOperatorTable.APPROX_COUNT_DISTINCT, field);
+        List<RexNode> newArgList = new ArrayList<>(argList);
+        newArgList.add(context.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
+        return TransferUserDefinedAggFunction(
+            PercentileApproxFunction.class,
+            "percentile_approx",
+            ReturnTypes.ARG0_FORCE_NULLABLE,
+            List.of(field),
+            newArgList,
+            context.relBuilder);
     }
     throw new IllegalStateException("Not Supported value: " + agg.getFuncName());
   }

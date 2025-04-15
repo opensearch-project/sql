@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.data.model;
 
+import static org.opensearch.sql.data.type.ExprCoreType.*;
+import static org.opensearch.sql.utils.ExpressionUtils.PATH_SEP;
+
 import inet.ipaddr.IPAddress;
 import java.sql.Date;
 import java.sql.Time;
@@ -21,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 /** The definition of {@link ExprValue} factory. */
@@ -159,7 +163,7 @@ public class ExprValueUtils {
   }
 
   /** Construct ExprValue from Object with ExprCoreType. */
-  public static ExprValue fromObjectValue(Object o, ExprCoreType type) {
+  public static ExprValue fromObjectValue(Object o, ExprType type) {
     switch (type) {
       case TIMESTAMP:
         return new ExprTimestampValue((String) o);
@@ -214,5 +218,19 @@ public class ExprValueUtils {
 
   public static Boolean getBooleanValue(ExprValue exprValue) {
     return exprValue.booleanValue();
+  }
+
+  public static ExprValue resolveRefPaths(ExprValue value, List<String> paths) {
+    ExprValue wholePathValue = value.keyValue(String.join(PATH_SEP, paths));
+    // For array types only first index currently supported.
+    if (value.type().equals(ExprCoreType.ARRAY)) {
+      wholePathValue = value.collectionValue().getFirst().keyValue(paths.getFirst());
+    }
+
+    if (!wholePathValue.isMissing() || paths.size() == 1) {
+      return wholePathValue;
+    } else {
+      return resolveRefPaths(value.keyValue(paths.getFirst()), paths.subList(1, paths.size()));
+    }
   }
 }

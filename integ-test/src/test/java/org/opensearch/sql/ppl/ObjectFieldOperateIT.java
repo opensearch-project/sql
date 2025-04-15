@@ -52,7 +52,10 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format("source=%s | stats count() by city.name", TEST_INDEX_DEEP_NESTED));
-    verifySchema(result, schema("count()", "integer"), schema("city.name", "string"));
+    verifySchema(
+        result,
+        schema("count()", isCalciteEnabled() ? "bigint" : "int"),
+        schema("city.name", "string"));
     verifyDataRows(result, rows(1, "Seattle"));
   }
 
@@ -65,5 +68,17 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
                 TEST_INDEX_DEEP_NESTED));
     verifySchema(result, schema("city.name", "string"), schema("city.location.latitude", "double"));
     verifyDataRows(result, rows("Seattle", 10.5));
+  }
+
+  @Test
+  public void verify_schema_without_fields() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | sort city.name ", TEST_INDEX_DEEP_NESTED));
+    verifySchema(
+        result,
+        schema("projects", "array"),
+        schema("accounts", "struct"),
+        schema("city", "struct"),
+        schema("account", "struct"));
   }
 }

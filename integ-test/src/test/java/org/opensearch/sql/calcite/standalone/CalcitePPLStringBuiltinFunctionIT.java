@@ -24,6 +24,23 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testAscii() throws IOException {
+    Request request1 =
+        new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/10?refresh=true");
+    request1.setJsonEntity(
+        "{\"name\":\"EeD\",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
+    client().performRequest(request1);
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where ascii(name) = 69 | fields name, age", TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+
+    verifyDataRows(actual, rows("EeD", 27));
+  }
+
+  @Test
   public void testConcat() {
     JSONObject actual =
         executeQuery(
@@ -122,6 +139,7 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows("Hello", 30));
   }
 
+  @Test
   public void testLike() {
     JSONObject actual =
         executeQuery(
@@ -135,11 +153,37 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testLocate() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where locate('Ja', name)=1 | fields name, age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+
+    verifyDataRows(actual, rows("Jake", 70), rows("Jane", 20));
+  }
+
+  @Test
   public void testSubstring() {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | where substring(name, 3, 2) = 'hn' | fields name, age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+
+    verifyDataRows(actual, rows("John", 25));
+  }
+
+  @Test
+  public void testSubstr() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where substr(name, 3, 2) = 'hn' | fields name, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
@@ -236,6 +280,45 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
 
     verifyDataRows(actual, rows("Hello", 30));
+  }
+
+  @Test
+  public void testReplace() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where replace(name, 'J', 'M')='Mane' | fields name, age",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+
+    verifyDataRows(actual, rows("Jane", 20));
+  }
+
+  @Test
+  public void testLeft() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where left(name, 2) = 'Ja' | fields name, age",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+
+    verifyDataRows(actual, rows("Jane", 20), rows("Jake", 70));
+  }
+
+  @Test
+  public void testStrCmp() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where strcmp(name, 'Jane') = 0 | fields name, age",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+
+    verifyDataRows(actual, rows("Jane", 20));
   }
 
   private void prepareTrim() throws IOException {

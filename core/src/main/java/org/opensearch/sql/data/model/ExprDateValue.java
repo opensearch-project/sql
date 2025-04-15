@@ -42,11 +42,6 @@ public class ExprDateValue extends AbstractExprValue {
   }
 
   @Override
-  public Integer valueForCalcite() {
-    return (int) date.toEpochDay();
-  }
-
-  @Override
   public ExprType type() {
     return ExprCoreType.DATE;
   }

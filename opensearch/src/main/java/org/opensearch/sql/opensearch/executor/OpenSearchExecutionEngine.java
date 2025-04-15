@@ -17,10 +17,16 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.opensearch.sql.ast.statement.Explain.ExplainFormat;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -108,20 +114,73 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         });
   }
 
+  private Hook.Closeable getPhysicalPlanInHook(AtomicReference<String> physical) {
+    return Hook.PLAN_BEFORE_IMPLEMENTATION.addThread(
+        obj -> {
+          RelRoot relRoot = (RelRoot) obj;
+          physical.set(relRoot.rel.explain());
+        });
+  }
+
+  private Hook.Closeable getCodegenInHook(AtomicReference<String> codegen) {
+    return Hook.JAVA_PLAN.addThread(
+        obj -> {
+          codegen.set((String) obj);
+        });
+  }
+
+  @Override
+  public void explain(
+      RelNode rel,
+      ExplainFormat format,
+      CalcitePlanContext context,
+      ResponseListener<ExplainResponse> listener) {
+    client.schedule(
+        () -> {
+          try {
+            if (format == ExplainFormat.SIMPLE) {
+              String logical = RelOptUtil.toString(rel, SqlExplainLevel.NO_ATTRIBUTES);
+              listener.onResponse(
+                  new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
+            } else {
+              String logical = rel.explain();
+              AtomicReference<String> physical = new AtomicReference<>();
+              AtomicReference<String> javaCode = new AtomicReference<>();
+              try (Hook.Closeable closeable = getPhysicalPlanInHook(physical)) {
+                if (format == ExplainFormat.EXTENDED) {
+                  getCodegenInHook(javaCode);
+                }
+                // triggers the hook
+                AccessController.doPrivileged(
+                    (PrivilegedAction<PreparedStatement>)
+                        () -> OpenSearchRelRunners.run(context, rel));
+              }
+              listener.onResponse(
+                  new ExplainResponse(
+                      new ExplainResponseNodeV2(logical, physical.get(), javaCode.get())));
+            }
+          } catch (Exception e) {
+            listener.onFailure(e);
+          }
+        });
+  }
+
   @Override
   public void execute(
       RelNode rel, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
-    AccessController.doPrivileged(
-        (PrivilegedAction<Void>)
-            () -> {
-              try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
-                ResultSet result = statement.executeQuery();
-                buildResultSet(result, rel.getRowType(), listener);
-                return null;
-              } catch (SQLException e) {
-                throw new RuntimeException(e);
-              }
-            });
+    client.schedule(
+        () ->
+            AccessController.doPrivileged(
+                (PrivilegedAction<Void>)
+                    () -> {
+                      try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
+                        ResultSet result = statement.executeQuery();
+                        buildResultSet(result, rel.getRowType(), listener);
+                      } catch (SQLException e) {
+                        listener.onFailure(e);
+                      }
+                      return null;
+                    }));
   }
 
   private void buildResultSet(
@@ -143,7 +202,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         RelDataType fieldType = fieldTypes.get(i - 1);
         ExprValue exprValue =
             JdbcOpenSearchDataTypeConvertor.getExprValueFromSqlType(
-                resultSet, i, sqlType, fieldType);
+                resultSet, i, sqlType, fieldType, columnName);
         row.put(columnName, exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
