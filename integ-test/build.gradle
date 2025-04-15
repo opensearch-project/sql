@@ -419,6 +419,10 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     }
 }
 
+yamlRestTest {
+    systemProperty 'tests.security.manager', 'false'
+}
+
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
     useCluster testClusters.remoteCluster
