@@ -14,11 +14,8 @@ import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
-import org.apache.commons.lang3.tuple.Triple;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -31,9 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
-import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
-import org.opensearch.search.sort.SortOrder;
+import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
@@ -61,14 +56,25 @@ class BucketAggregationBuilderTest {
   void should_build_bucket_with_field() {
     assertEquals(
         "{\n"
-            + "  \"terms\" : {\n"
-            + "    \"field\" : \"age\",\n"
-            + "    \"missing_bucket\" : true,\n"
-            + "    \"missing_order\" : \"first\",\n"
-            + "    \"order\" : \"asc\"\n"
+            + "  \"age\" : {\n"
+            + "    \"terms\" : {\n"
+            + "      \"field\" : \"age\",\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"min_doc_count\" : 1,\n"
+            + "      \"shard_min_doc_count\" : 0,\n"
+            + "      \"show_term_doc_count_error\" : false,\n"
+            + "      \"order\" : [\n"
+            + "        {\n"
+            + "          \"_count\" : \"desc\"\n"
+            + "        },\n"
+            + "        {\n"
+            + "          \"_key\" : \"asc\"\n"
+            + "        }\n"
+            + "      ]\n"
+            + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(Arrays.asList(asc(named("age", ref("age", INTEGER))))));
+        buildQuery(named("age", ref("age", INTEGER))));
   }
 
   @Test
@@ -77,42 +83,61 @@ class BucketAggregationBuilderTest {
     when(serializer.serialize(literal)).thenReturn("mock-serialize");
     assertEquals(
         "{\n"
-            + "  \"terms\" : {\n"
-            + "    \"script\" : {\n"
-            + "      \"source\" : \"mock-serialize\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
-            + "    },\n"
-            + "    \"missing_bucket\" : true,\n"
-            + "    \"missing_order\" : \"first\",\n"
-            + "    \"order\" : \"asc\"\n"
+            + "  \"1\" : {\n"
+            + "    \"terms\" : {\n"
+            + "      \"script\" : {\n"
+            + "        \"source\" : \"mock-serialize\",\n"
+            + "        \"lang\" : \"opensearch_query_expression\"\n"
+            + "      },\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"min_doc_count\" : 1,\n"
+            + "      \"shard_min_doc_count\" : 0,\n"
+            + "      \"show_term_doc_count_error\" : false,\n"
+            + "      \"order\" : [\n"
+            + "        {\n"
+            + "          \"_count\" : \"desc\"\n"
+            + "        },\n"
+            + "        {\n"
+            + "          \"_key\" : \"asc\"\n"
+            + "        }\n"
+            + "      ]\n"
+            + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(Arrays.asList(asc(named(literal)))));
+        buildQuery(named(literal)));
   }
 
   @Test
   void should_build_bucket_with_keyword_field() {
     assertEquals(
         "{\n"
-            + "  \"terms\" : {\n"
-            + "    \"field\" : \"name.keyword\",\n"
-            + "    \"missing_bucket\" : true,\n"
-            + "    \"missing_order\" : \"first\",\n"
-            + "    \"order\" : \"asc\"\n"
+            + "  \"name\" : {\n"
+            + "    \"terms\" : {\n"
+            + "      \"field\" : \"name.keyword\",\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"min_doc_count\" : 1,\n"
+            + "      \"shard_min_doc_count\" : 0,\n"
+            + "      \"show_term_doc_count_error\" : false,\n"
+            + "      \"order\" : [\n"
+            + "        {\n"
+            + "          \"_count\" : \"desc\"\n"
+            + "        },\n"
+            + "        {\n"
+            + "          \"_key\" : \"asc\"\n"
+            + "        }\n"
+            + "      ]\n"
+            + "    }\n"
             + "  }\n"
             + "}",
         buildQuery(
-            Arrays.asList(
-                asc(
-                    named(
-                        "name",
-                        ref(
-                            "name",
-                            OpenSearchTextType.of(
-                                Map.of(
-                                    "words",
-                                    OpenSearchDataType.of(
-                                        OpenSearchDataType.MappingType.Keyword)))))))));
+            named(
+                "name",
+                ref(
+                    "name",
+                    OpenSearchTextType.of(
+                        Map.of(
+                            "words",
+                            OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))))));
   }
 
   @Test
@@ -122,17 +147,28 @@ class BucketAggregationBuilderTest {
     when(serializer.serialize(parseExpression)).thenReturn("mock-serialize");
     assertEquals(
         "{\n"
-            + "  \"terms\" : {\n"
-            + "    \"script\" : {\n"
-            + "      \"source\" : \"mock-serialize\",\n"
-            + "      \"lang\" : \"opensearch_query_expression\"\n"
-            + "    },\n"
-            + "    \"missing_bucket\" : true,\n"
-            + "    \"missing_order\" : \"first\",\n"
-            + "    \"order\" : \"asc\"\n"
+            + "  \"name\" : {\n"
+            + "    \"terms\" : {\n"
+            + "      \"script\" : {\n"
+            + "        \"source\" : \"mock-serialize\",\n"
+            + "        \"lang\" : \"opensearch_query_expression\"\n"
+            + "      },\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"min_doc_count\" : 1,\n"
+            + "      \"shard_min_doc_count\" : 0,\n"
+            + "      \"show_term_doc_count_error\" : false,\n"
+            + "      \"order\" : [\n"
+            + "        {\n"
+            + "          \"_count\" : \"desc\"\n"
+            + "        },\n"
+            + "        {\n"
+            + "          \"_key\" : \"asc\"\n"
+            + "        }\n"
+            + "      ]\n"
+            + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(Arrays.asList(asc(named("name", parseExpression)))));
+        buildQuery(named("name", parseExpression)));
   }
 
   @Test
@@ -141,15 +177,26 @@ class BucketAggregationBuilderTest {
 
     assertEquals(
         "{\n"
-            + "  \"terms\" : {\n"
-            + "    \"field\" : \"date\",\n"
-            + "    \"missing_bucket\" : true,\n"
-            + "    \"value_type\" : \"long\",\n"
-            + "    \"missing_order\" : \"first\",\n"
-            + "    \"order\" : \"asc\"\n"
+            + "  \"date\" : {\n"
+            + "    \"terms\" : {\n"
+            + "      \"field\" : \"date\",\n"
+            + "      \"value_type\" : \"long\",\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"min_doc_count\" : 1,\n"
+            + "      \"shard_min_doc_count\" : 0,\n"
+            + "      \"show_term_doc_count_error\" : false,\n"
+            + "      \"order\" : [\n"
+            + "        {\n"
+            + "          \"_count\" : \"desc\"\n"
+            + "        },\n"
+            + "        {\n"
+            + "          \"_key\" : \"asc\"\n"
+            + "        }\n"
+            + "      ]\n"
+            + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(Arrays.asList(asc(named("date", ref("date", dataType))))));
+        buildQuery(named("date", ref("date", dataType))));
   }
 
   @Test
@@ -158,14 +205,25 @@ class BucketAggregationBuilderTest {
 
     assertEquals(
         "{\n"
-            + "  \"terms\" : {\n"
-            + "    \"field\" : \"date\",\n"
-            + "    \"missing_bucket\" : true,\n"
-            + "    \"missing_order\" : \"first\",\n"
-            + "    \"order\" : \"asc\"\n"
+            + "  \"date\" : {\n"
+            + "    \"terms\" : {\n"
+            + "      \"field\" : \"date\",\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"min_doc_count\" : 1,\n"
+            + "      \"shard_min_doc_count\" : 0,\n"
+            + "      \"show_term_doc_count_error\" : false,\n"
+            + "      \"order\" : [\n"
+            + "        {\n"
+            + "          \"_count\" : \"desc\"\n"
+            + "        },\n"
+            + "        {\n"
+            + "          \"_key\" : \"asc\"\n"
+            + "        }\n"
+            + "      ]\n"
+            + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(Arrays.asList(asc(named("date", ref("date", dataType))))));
+        buildQuery(named("date", ref("date", dataType))));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -175,30 +233,35 @@ class BucketAggregationBuilderTest {
   void terms_bucket_for_datetime_types_uses_long(ExprType dataType) {
     assertEquals(
         "{\n"
-            + "  \"terms\" : {\n"
-            + "    \"field\" : \"date\",\n"
-            + "    \"missing_bucket\" : true,\n"
-            + "    \"value_type\" : \"long\",\n"
-            + "    \"missing_order\" : \"first\",\n"
-            + "    \"order\" : \"asc\"\n"
+            + "  \"date\" : {\n"
+            + "    \"terms\" : {\n"
+            + "      \"field\" : \"date\",\n"
+            + "      \"value_type\" : \"long\",\n"
+            + "      \"size\" : 1000,\n"
+            + "      \"min_doc_count\" : 1,\n"
+            + "      \"shard_min_doc_count\" : 0,\n"
+            + "      \"show_term_doc_count_error\" : false,\n"
+            + "      \"order\" : [\n"
+            + "        {\n"
+            + "          \"_count\" : \"desc\"\n"
+            + "        },\n"
+            + "        {\n"
+            + "          \"_key\" : \"asc\"\n"
+            + "        }\n"
+            + "      ]\n"
+            + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(Arrays.asList(asc(named("date", ref("date", dataType))))));
+        buildQuery(named("date", ref("date", dataType))));
   }
 
   @SneakyThrows
-  private String buildQuery(
-      List<Triple<NamedExpression, SortOrder, MissingOrder>> groupByExpressions) {
+  private String buildQuery(NamedExpression groupByExpression) {
     XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
     builder.startObject();
-    CompositeValuesSourceBuilder<?> sourceBuilder =
-        aggregationBuilder.build(groupByExpressions).get(0);
+    ValuesSourceAggregationBuilder<?> sourceBuilder = aggregationBuilder.build(groupByExpression);
     sourceBuilder.toXContent(builder, EMPTY_PARAMS);
     builder.endObject();
     return BytesReference.bytes(builder).utf8ToString();
-  }
-
-  private Triple<NamedExpression, SortOrder, MissingOrder> asc(NamedExpression expression) {
-    return Triple.of(expression, SortOrder.ASC, MissingOrder.FIRST);
   }
 }

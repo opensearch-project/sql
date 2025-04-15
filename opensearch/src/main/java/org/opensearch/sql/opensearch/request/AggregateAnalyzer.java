@@ -49,12 +49,14 @@ import org.opensearch.search.aggregations.AggregatorFactories.Builder;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
+import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
+import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -126,6 +128,12 @@ public class AggregateAnalyzer {
         return Pair.of(
             ImmutableList.copyOf(metricBuilder.getAggregatorFactories()),
             new NoBucketAggregationParser(metricParserList));
+      } else if (aggregate.getGroupSet().length() == 1) {
+        ValuesSourceAggregationBuilder<?> bucketBuilder =
+            createBucketAggregation(groupList.getFirst(), fieldExpressionCreator);
+        return Pair.of(
+            Collections.singletonList(bucketBuilder.subAggregations(metricBuilder)),
+            new BucketAggregationParser(metricParserList));
       } else {
         List<CompositeValuesSourceBuilder<?>> buckets =
             createCompositeBuckets(groupList, fieldExpressionCreator);
@@ -262,6 +270,28 @@ public class AggregateAnalyzer {
     if (List.of(TIMESTAMP, TIME, DATE)
         .contains(groupExpr.getOpenSearchDataType().getExprCoreType())) {
       sourceBuilder.userValuetypeHint(ValueType.LONG);
+    }
+
+    return sourceBuilder;
+  }
+
+  private static ValuesSourceAggregationBuilder<?> createBucketAggregation(
+      Integer group, FieldExpressionCreator fieldExpressionCreator) {
+    NamedFieldExpression groupExpr = fieldExpressionCreator.create(group);
+    // TODO: support histogram bucket(i.e. PPL span expression)
+    // https://github.com/opensearch-project/sql/issues/3384
+    return createTermsAggregationBuilder(groupExpr);
+  }
+
+  private static TermsAggregationBuilder createTermsAggregationBuilder(
+      NamedFieldExpression groupExpr) {
+
+    TermsAggregationBuilder sourceBuilder =
+        new TermsAggregationBuilder(groupExpr.getRootName()).size(AGGREGATION_BUCKET_SIZE);
+    // Time types values are converted to LONG in ExpressionAggregationScript::execute
+    if (List.of(TIMESTAMP, TIME, DATE)
+        .contains(groupExpr.getOpenSearchDataType().getExprCoreType())) {
+      sourceBuilder.userValueTypeHint(ValueType.LONG);
     }
 
     return sourceBuilder;
