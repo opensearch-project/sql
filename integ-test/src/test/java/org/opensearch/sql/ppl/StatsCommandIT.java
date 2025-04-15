@@ -467,12 +467,12 @@ public class StatsCommandIT extends PPLIntegTestCase {
     verifySchema(response, schema("p50", null, "bigint"), schema("age", null, "int"));
     verifyDataRows(
         response,
-        rows(0, null),
+        rows(isCalciteEnabled() ? null : 0, null),
         rows(32838, 28),
         rows(39225, 32),
         rows(4180, 33),
         rows(48086, 34),
-        rows(0, 36));
+        rows(isCalciteEnabled() ? null : 0, 36));
   }
 
   @Test
