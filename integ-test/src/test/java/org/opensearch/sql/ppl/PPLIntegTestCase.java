@@ -11,6 +11,8 @@ import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOI
 
 import java.io.IOException;
 import java.util.Locale;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Assert;
@@ -22,6 +24,7 @@ import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
+  private static final Logger LOG = LogManager.getLogger();
 
   protected JSONObject executeQuery(String query) throws IOException {
     return jsonify(executeQueryToString(query));
@@ -144,13 +147,39 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "true"));
-    System.out.println(Settings.Key.CALCITE_FALLBACK_ALLOWED.name() + " enabled");
+    LOG.info("{} enabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
   }
 
   public static void disallowCalciteFallback() throws IOException {
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
-    System.out.println(Settings.Key.CALCITE_FALLBACK_ALLOWED.name() + " disabled");
+    LOG.info("{} disabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
+  }
+
+  protected static boolean isFallbackEnabled() throws IOException {
+    return Boolean.parseBoolean(
+        getClusterSetting(Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "persistent"));
+  }
+
+  public static void withFallbackEnabled(Runnable f, String msg) throws IOException {
+    LOG.info("Need fallback to v2 due to {}", msg);
+    boolean isFallbackEnabled = isFallbackEnabled();
+    if (isFallbackEnabled) f.run();
+    else {
+      try {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "true"));
+        LOG.info(
+            "Set {} to enabled and run the test", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
+        f.run();
+      } finally {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
+        LOG.info("Reset {} back to disabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
+      }
+    }
   }
 }
