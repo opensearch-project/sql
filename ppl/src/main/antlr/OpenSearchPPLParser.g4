@@ -153,12 +153,11 @@ patternsMethod
    ;
 
 patternsCommand
-   : PATTERNS (patternsParameter)* (source_field = expression) (pattern_method = patternMethod)*
+   : PATTERNS (NEW_FIELD EQUAL new_field = stringLiteral)? (patternsParameter)* (source_field = expression) (pattern_method = patternMethod)*
    ;
 
 patternsParameter
-   : (NEW_FIELD EQUAL new_field = stringLiteral)
-   | (PATTERN EQUAL pattern = stringLiteral)
+   : (PATTERN EQUAL pattern = stringLiteral)
    | (VARIABLE_COUNT_THRESHOLD EQUAL variable_count_threshold = integerLiteral)
    | (FREQUENCY_THRESHOLD_PERCENTAGE EQUAL frequency_threshold_percentage = decimalLiteral)
    ;

@@ -24,6 +24,7 @@ import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapp
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeoIpIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getHdfsLogsIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getHobbiesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJsonTestIndexMapping;
@@ -842,7 +843,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE,
         "duplication_nullable",
         getDuplicationNullableIndexMapping(),
-        "src/test/resources/duplication_nullable.json");
+        "src/test/resources/duplication_nullable.json"),
+    HDFS_LOGS(
+        TestsConstants.TEST_INDEX_HDFS_LOGS,
+        "hdfs_logs",
+        getHdfsLogsIndexMapping(),
+        "src/test/resources/hdfs_logs.json");
 
     private final String name;
     private final String type;

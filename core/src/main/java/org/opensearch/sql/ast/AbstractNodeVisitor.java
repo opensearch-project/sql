@@ -58,6 +58,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -68,7 +69,6 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.ast.tree.Window;
 
 /** AST nodes visitor Defines the traverse path. */
 public abstract class AbstractNodeVisitor<T, C> {
@@ -338,8 +338,8 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(fillNull, context);
   }
 
-  public T visitWindow(Window window, C context) {
-    return visitChildren(window, context);
+  public T visitPatterns(Patterns patterns, C context) {
+    return visitChildren(patterns, context);
   }
 
   public T visitJoin(Join node, C context) {

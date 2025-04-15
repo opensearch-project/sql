@@ -16,6 +16,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN2;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.BRAIN_LOG_PARSER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CBRT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEILING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT;
@@ -275,6 +276,7 @@ public class PPLFuncImpTable {
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
+      registerOperator(BRAIN_LOG_PARSER, PPLBuiltinOperators.BRAIN_LOG_PARSER);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.

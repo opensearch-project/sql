@@ -40,12 +40,14 @@ import org.apache.calcite.util.Holder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
@@ -64,6 +66,7 @@ import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -77,6 +80,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.utils.ParseUtils;
 
@@ -84,10 +88,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   private final CalciteRexNodeVisitor rexVisitor;
   private final CalciteAggCallVisitor aggVisitor;
+  private final CalciteWindowVisitor windowVisitor;
 
   public CalciteRelNodeVisitor() {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
+    this.windowVisitor = new CalciteWindowVisitor(rexVisitor, aggVisitor);
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
@@ -276,6 +282,27 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                             true)))
             .toList();
     projectPlusOverriding(newFields, groupCandidates, context);
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitPatterns(Patterns node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    Alias alias = (Alias) node.getWindowFunction();
+    RexNode windowNode = windowVisitor.analyze(alias.getDelegated(), context);
+    RexNode nestedNode = windowNode;
+    if (PatternMethod.BRAIN.equals(node.getPatternMethod())) {
+      nestedNode =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.BRAIN_LOG_PARSER,
+              rexVisitor.analyze(node.getSourceField(), context),
+              windowNode);
+    }
+    context.relBuilder.projectPlus(
+        context.relBuilder.alias(
+            nestedNode,
+            Strings.isNullOrEmpty(alias.getAlias()) ? alias.getName() : alias.getAlias()));
     return context.relBuilder.peek();
   }
 

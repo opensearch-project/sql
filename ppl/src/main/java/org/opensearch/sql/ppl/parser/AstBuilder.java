@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -66,6 +67,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -76,7 +78,6 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -411,8 +412,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitPatternsCommand(OpenSearchPPLParser.PatternsCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
     ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
+    Literal newField = null;
+    if (ctx.new_field != null) {
+      newField = (Literal) internalVisitExpression(ctx.new_field);
+      builder.put("new_field", newField);
+    }
     List<UnresolvedExpression> unresolvedArguments = new ArrayList<>();
-    unresolvedArguments.add(sourceField);
     ctx.patternsParameter()
         .forEach(
             x -> {
@@ -423,18 +428,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             });
     java.util.Map<String, Literal> arguments = builder.build();
     Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
-    String newField =
-        arguments
-            .getOrDefault("new_field", AstDSL.stringLiteral("patterns_field"))
-            .getValue()
-            .toString();
     String patternMethod =
         ctx.pattern_method != null
-            ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText()).toLowerCase(Locale.ROOT)
+            ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText()).toUpperCase(Locale.ROOT)
             : settings
                 .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
                 .toString()
-                .toLowerCase(Locale.ROOT);
+                .toUpperCase(Locale.ROOT);
     if (patternMethod.equalsIgnoreCase(PatternMethod.SIMPLE_PATTERN.getName())) {
       /*
        * Legacy patterns command is a subclass of Parse plan, which enables Expression pushdown as part of DSL AggregationScript.
@@ -443,14 +443,22 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
        **/
       return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
     } else {
-      return new Window(
+      String newFieldStr = newField != null ? newField.getValue().toString() : "patterns_field";
+      // order by argument name to easily call function signature
+      unresolvedArguments.sort(Comparator.comparing(e -> ((Argument) e).getArgName()));
+      List<UnresolvedExpression> funcParamList = new ArrayList<>();
+      funcParamList.add(sourceField);
+      funcParamList.addAll(unresolvedArguments);
+      return new Patterns(
           new Alias(
-              newField,
+              newFieldStr,
               new WindowFunction(
-                  new Function(patternMethod, unresolvedArguments),
+                  new Function(patternMethod, funcParamList),
                   List.of(), // ignore partition by list for now as we haven't seen such requirement
                   List.of()), // ignore sort by list for now as we haven't seen such requirement
-              newField));
+              newFieldStr),
+          sourceField,
+          PatternMethod.valueOf(patternMethod));
     }
   }
 

@@ -227,6 +227,7 @@ public enum BuiltinFunctionName {
   DENSE_RANK(FunctionName.of("dense_rank")),
 
   BRAIN(FunctionName.of("brain")),
+  BRAIN_LOG_PARSER(FunctionName.of("brain_log_parser")),
 
   INTERVAL(FunctionName.of("interval")),
 
@@ -305,6 +306,7 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
+          .put("brain", BuiltinFunctionName.BRAIN)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

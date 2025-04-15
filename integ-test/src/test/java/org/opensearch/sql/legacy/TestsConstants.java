@@ -73,6 +73,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_WORKER = TEST_INDEX + "_worker";
   public static final String TEST_INDEX_WORK_INFORMATION = TEST_INDEX + "_work_information";
   public static final String TEST_INDEX_DUPLICATION_NULLABLE = TEST_INDEX + "_duplication_nullable";
+  public static final String TEST_INDEX_HDFS_LOGS = TEST_INDEX + "_hdfs_logs";
 
   public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
   public static final String TS_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";

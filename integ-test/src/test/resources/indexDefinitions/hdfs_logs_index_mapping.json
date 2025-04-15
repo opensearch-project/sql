@@ -1,0 +1,26 @@
+{
+  "mappings": {
+    "properties": {
+      "date": {
+        "type": "date",
+        "format": "uuuuMMdd"
+      },
+      "time": {
+        "type": "date",
+        "format": "HHmmss"
+      },
+      "pid": {
+        "type": "integer"
+      },
+      "level": {
+        "type": "text"
+      },
+      "component": {
+        "type": "text"
+      },
+      "content": {
+        "type": "text"
+      }
+    }
+  }
+}

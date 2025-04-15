@@ -14,22 +14,29 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
+/**
+ * Logical plan node of Patterns command to represent complex nested function calling than single
+ * window function.
+ */
 @Getter
 @Setter
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 @AllArgsConstructor
-public class Window extends UnresolvedPlan {
+public class Patterns extends UnresolvedPlan {
 
   private final UnresolvedExpression windowFunction;
+  private final UnresolvedExpression sourceField;
+  private final PatternMethod patternMethod;
 
   private UnresolvedPlan child;
 
   @Override
-  public Window attach(UnresolvedPlan child) {
+  public Patterns attach(UnresolvedPlan child) {
     this.child = child;
     return this;
   }
@@ -41,6 +48,6 @@ public class Window extends UnresolvedPlan {
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitWindow(this, context);
+    return nodeVisitor.visitPatterns(this, context);
   }
 }

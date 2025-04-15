@@ -1873,10 +1873,10 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void brain_window_function_with_no_additional_args() {
-    UnresolvedPlan unresolvedWindow =
+  public void brain_patterns_command_with_no_additional_args() {
+    UnresolvedPlan patterns =
         AstDSL.project(
-            AstDSL.window(
+            AstDSL.patterns(
                 AstDSL.relation("schema"),
                 PatternMethod.BRAIN,
                 AstDSL.field("string_value"),
@@ -1892,14 +1892,14 @@ class AnalyzerTest extends AnalyzerTestBase {
                 new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
             DSL.named("string_value", DSL.ref("string_value", STRING)));
 
-    assertAnalyzeEqual(expectedPlan, unresolvedWindow);
+    assertAnalyzeEqual(expectedPlan, patterns);
   }
 
   @Test
-  public void brain_window_function() {
-    UnresolvedPlan unresolvedWindow =
+  public void brain_patterns_command() {
+    UnresolvedPlan patterns =
         AstDSL.project(
-            AstDSL.window(
+            AstDSL.patterns(
                 AstDSL.relation("schema"),
                 PatternMethod.BRAIN,
                 AstDSL.field("string_value"),
@@ -1930,6 +1930,6 @@ class AnalyzerTest extends AnalyzerTestBase {
                 new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
             DSL.named("string_value", DSL.ref("string_value", STRING)));
 
-    assertAnalyzeEqual(expectedPlan, unresolvedWindow);
+    assertAnalyzeEqual(expectedPlan, patterns);
   }
 }
