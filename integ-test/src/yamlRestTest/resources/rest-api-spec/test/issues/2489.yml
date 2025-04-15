@@ -16,6 +16,16 @@ setup:
           transient:
             plugins.calcite.enabled : true
             plugins.calcite.fallback.allowed : false
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
 ---
 "Handle epoch field in string format":
   - skip:
@@ -23,7 +33,7 @@ setup:
         - headers
   - do:
       bulk:
-        index: test_1
+        index: test
         refresh: true
         body:
           - '{"index": {}}'
