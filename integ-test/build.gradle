@@ -443,10 +443,10 @@ integTest {
     }
 
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
-//    if(getOSFamilyType() != "windows") {
-//        dependsOn startPrometheus
-//        finalizedBy stopPrometheus
-//    }
+    if(getOSFamilyType() != "windows") {
+        dependsOn startPrometheus
+        finalizedBy stopPrometheus
+    }
 
     // enable calcite codegen in IT
     systemProperty 'calcite.debug', 'false'
@@ -509,10 +509,6 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
-
-    exclude 'org/opensearch/sql/ppl/**'
-    exclude 'org/opensearch/sql/datasource/**'
-    exclude 'org/opensearch/sql/calcite/**'
 }
 
 
