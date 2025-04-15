@@ -154,19 +154,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (node.getProjectList().size() == 1
         && node.getProjectList().getFirst() instanceof AllFields allFields) {
       tryToRemoveNestedFields(context);
-      // Exclude meta fields if it's explicitly specified or there's no other project visited.
-      if (allFields.isExcludeMeta() || !context.isProjectVisited()) {
-        List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
-        List<RexNode> metaFieldsRef =
-            originalFields.stream()
-                .filter(OpenSearchConstants.METADATAFIELD_TYPE_MAP::containsKey)
-                .map(metaField -> (RexNode) context.relBuilder.field(metaField))
-                .toList();
-        // Remove metadata fields if there is and ensure there are other fields.
-        if (!metaFieldsRef.isEmpty() && metaFieldsRef.size() != originalFields.size()) {
-          context.relBuilder.projectExcept(metaFieldsRef);
-        }
-      }
+      tryToRemoveMetaFields(context, allFields.isExcludeMeta());
       return context.relBuilder.peek();
     } else {
       projectList =
@@ -177,7 +165,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (node.isExcluded()) {
       context.relBuilder.projectExcept(projectList);
     } else {
-      // Only set when not resolving subquery and don't apply to the projectExcept.
+      // Only set when not resolving subquery and it's not projectExcept.
       if (!context.isResolvingSubquery()) {
         context.setProjectVisited(true);
       }
@@ -200,6 +188,31 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .toList();
     if (!duplicatedNestedFields.isEmpty()) {
       context.relBuilder.projectExcept(duplicatedNestedFields);
+    }
+  }
+
+  /**
+   * Try to remove metadata fields in two cases:
+   *
+   * <p>1. It's explicitly specified excluding by force, usually for join or subquery.
+   *
+   * <p>2. There is no other project ever visited in the main query
+   *
+   * @param context CalcitePlanContext
+   * @param excludeByForce whether exclude metadata fields by force
+   */
+  private static void tryToRemoveMetaFields(CalcitePlanContext context, boolean excludeByForce) {
+    if (excludeByForce || !context.isProjectVisited()) {
+      List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
+      List<RexNode> metaFieldsRef =
+          originalFields.stream()
+              .filter(OpenSearchConstants.METADATAFIELD_TYPE_MAP::containsKey)
+              .map(metaField -> (RexNode) context.relBuilder.field(metaField))
+              .toList();
+      // Remove metadata fields if there is and ensure there are other fields.
+      if (!metaFieldsRef.isEmpty() && metaFieldsRef.size() != originalFields.size()) {
+        context.relBuilder.projectExcept(metaFieldsRef);
+      }
     }
   }
 

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
@@ -14,10 +13,10 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import org.hamcrest.MatcherAssert;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -104,7 +103,6 @@ public class FieldsCommandIT extends PPLIntegTestCase {
                 executeQuery(
                     String.format(
                         "source=%s | eval _id = 1 | fields firstname, _id", TEST_INDEX_ACCOUNT)));
-    MatcherAssert.assertThat(
-        e.getMessage(), containsString("Cannot use metadata field [_id] as the eval field."));
+    verifyErrorMessageContains(e, "Cannot use metadata field [_id] as the eval field.");
   }
 }

@@ -5,9 +5,8 @@
 
 package org.opensearch.sql.calcite.standalone;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
-import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -16,7 +15,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import org.hamcrest.MatcherAssert;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -545,7 +543,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format("source=%s | stats count() as _score", TEST_INDEX_ACCOUNT)));
-    MatcherAssert.assertThat(
-        e.getMessage(), containsString("Cannot use metadata field [_score] as the alias."));
+    verifyErrorMessageContains(e, "Cannot use metadata field [_score] as the alias.");
   }
 }
