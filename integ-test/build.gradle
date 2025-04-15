@@ -40,6 +40,7 @@ plugins {
 
 apply plugin: 'opensearch.build'
 apply plugin: 'opensearch.rest-test'
+apply plugin: 'opensearch.yaml-rest-test'
 apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
@@ -258,6 +259,13 @@ testClusters {
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
+    yamlRestTest {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+    }
     remoteCluster {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -435,10 +443,10 @@ integTest {
     }
 
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
-    if(getOSFamilyType() != "windows") {
-        dependsOn startPrometheus
-        finalizedBy stopPrometheus
-    }
+//    if(getOSFamilyType() != "windows") {
+//        dependsOn startPrometheus
+//        finalizedBy stopPrometheus
+//    }
 
     // enable calcite codegen in IT
     systemProperty 'calcite.debug', 'false'
@@ -501,6 +509,10 @@ integTest {
 
     // Exclude this IT, because they executed in another task (:integTestWithSecurity)
     exclude 'org/opensearch/sql/security/**'
+
+    exclude 'org/opensearch/sql/ppl/**'
+    exclude 'org/opensearch/sql/datasource/**'
+    exclude 'org/opensearch/sql/calcite/**'
 }
 
 

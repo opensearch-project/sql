@@ -1,0 +1,40 @@
+setup:
+  - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              timestamp:
+                type: date
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.fallback.allowed : false
+---
+"Handle epoch field in string format":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test_1
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"timestamp": "1705642934886"}'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | fields timestamp'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "timestamp", "type": "timestamp"}]}
+  - match: {"datarows": [["2024-01-19 05:42:14.886"]]}
+
