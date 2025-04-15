@@ -182,6 +182,6 @@ public class WhereCommandIT extends PPLIntegTestCase {
         ExprCoreType.coreTypes().stream()
             .map(type -> String.format("[%s,%s]", type.typeName(), type.typeName()))
             .collect(Collectors.joining(",", "{", "}")),
-        "[LONG, STRING]");
+        "[LONG,STRING]");
   }
 }
