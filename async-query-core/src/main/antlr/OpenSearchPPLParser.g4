@@ -56,6 +56,7 @@ commands
    | flattenCommand
    | expandCommand
    | trendlineCommand
+   | appendcolCommand
    ;
 
 commandName
@@ -76,7 +77,9 @@ commandName
    | SORT
    | HEAD
    | TOP
+   | TOP_APPROX
    | RARE
+   | RARE_APPROX
    | EVAL
    | GROK
    | PARSE
@@ -88,6 +91,7 @@ commandName
    | FIELDSUMMARY
    | FLATTEN
    | TRENDLINE
+   | APPENDCOL
    ;
 
 searchCommand
@@ -180,11 +184,11 @@ headCommand
    ;
 
 topCommand
-   : TOP (number = integerLiteral)? fieldList (byClause)?
+   : (TOP | TOP_APPROX) (number = integerLiteral)? fieldList (byClause)?
    ;
 
 rareCommand
-   : RARE fieldList (byClause)?
+   : (RARE | RARE_APPROX) (number = integerLiteral)? fieldList (byClause)?
    ;
 
 grokCommand
@@ -235,21 +239,16 @@ fillnullCommand
    | fillNullWithFieldVariousValues)
    ;
 
- fillNullWithTheSameValue
- : WITH nullReplacement IN nullableField (COMMA nullableField)*
- ;
-
- fillNullWithFieldVariousValues
- : USING nullableField EQUAL nullReplacement (COMMA nullableField EQUAL nullReplacement)*
- ;
-
-
-   nullableField
-   : fieldExpression
+fillNullWithTheSameValue
+   : WITH nullReplacement = valueExpression IN nullableFieldList = fieldList
    ;
 
-   nullReplacement
-   : expression
+fillNullWithFieldVariousValues
+   : USING nullableReplacementExpression (COMMA nullableReplacementExpression)*
+   ;
+
+nullableReplacementExpression
+   : nullableField = fieldExpression EQUAL nullableReplacement = valueExpression
    ;
 
 expandCommand
@@ -271,6 +270,10 @@ trendlineClause
 trendlineType
    : SMA
    | WMA
+   ;
+
+appendcolCommand
+   : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
    ;
 
 kmeansCommand
@@ -346,7 +349,7 @@ joinType
    ;
 
 sideAlias
-   : (LEFT EQUAL leftAlias = ident)? COMMA? (RIGHT EQUAL rightAlias = ident)?
+   : (LEFT EQUAL leftAlias = qualifiedName)? COMMA? (RIGHT EQUAL rightAlias = qualifiedName)?
    ;
 
 joinCriteria
@@ -390,6 +393,11 @@ sortbyClause
 
 evalClause
    : fieldExpression EQUAL expression
+   | geoipCommand
+   ;
+
+geoipCommand
+   : fieldExpression EQUAL GEOIP LT_PRTHS ipAddress = functionArg (COMMA properties = geoIpPropertyList)? RT_PRTHS
    ;
 
 // aggregation terms
@@ -401,7 +409,7 @@ statsAggTerm
 statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS                                                                            # statsFunctionCall
    | COUNT LT_PRTHS RT_PRTHS                                                                                                        # countAllFunctionCall
-   | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS                                                                        # distinctCountFunctionCall
+   | (DISTINCT_COUNT | DC | DISTINCT_COUNT_APPROX) LT_PRTHS valueExpression RT_PRTHS                                                                        # distinctCountFunctionCall
    | percentileFunctionName = (PERCENTILE | PERCENTILE_APPROX) LT_PRTHS valueExpression COMMA percent = integerLiteral RT_PRTHS     # percentileFunctionCall
    ;
 
@@ -459,6 +467,7 @@ primaryExpression
    : evalFunctionCall
    | fieldExpression
    | literalValue
+   | dataTypeFunctionCall
    ;
 
 positionFunction
@@ -521,6 +530,8 @@ sortField
 
 sortFieldExpression
    : fieldExpression
+
+   // TODO #963: Implement 'num', 'str', and 'ip' sort syntax
    | AUTO LT_PRTHS fieldExpression RT_PRTHS
    | STR LT_PRTHS fieldExpression RT_PRTHS
    | IP LT_PRTHS fieldExpression RT_PRTHS
@@ -768,6 +779,13 @@ dateTimeFunctionName
    | WEEK_OF_YEAR
    | YEAR
    | YEARWEEK
+   | relativeTimeFunctionName
+   ;
+
+relativeTimeFunctionName
+   : RELATIVE_TIMESTAMP
+   | EARLIEST
+   | LATEST
    ;
 
 getFormatFunction
@@ -835,6 +853,8 @@ conditionFunctionBase
    | NULLIF
    | ISPRESENT
    | JSON_VALID
+   | EARLIEST
+   | LATEST
    ;
 
 systemFunctionName
@@ -870,12 +890,12 @@ jsonFunctionName
    | JSON_ARRAY_LENGTH
    | TO_JSON_STRING
    | JSON_EXTRACT
+   | JSON_DELETE
+   | JSON_APPEND
    | JSON_KEYS
    | JSON_VALID
-//   | JSON_APPEND
-//   | JSON_DELETE
-//   | JSON_EXTEND
-//   | JSON_SET
+   | JSON_EXTEND
+   | JSON_SET
 //   | JSON_ARRAY_ALL_MATCH
 //   | JSON_ARRAY_ANY_MATCH
 //   | JSON_ARRAY_FILTER
@@ -895,13 +915,28 @@ lambdaFunctionName
    | TRANSFORM
    | REDUCE
    ;
-
+    
 positionFunctionName
    : POSITION
    ;
 
 coalesceFunctionName
    : COALESCE
+   ;
+
+geoIpPropertyList
+   : geoIpProperty (COMMA geoIpProperty)*
+   ;
+
+geoIpProperty
+   : COUNTRY_ISO_CODE
+   | COUNTRY_NAME
+   | CONTINENT_NAME
+   | REGION_ISO_CODE
+   | REGION_NAME
+   | CITY_NAME
+   | TIME_ZONE
+   | LOCATION
    ;
 
 // operators
@@ -1080,16 +1115,16 @@ keywordsCanBeId
    | comparisonOperator
    | explainMode
    | correlationType
+   | geoIpProperty
    // commands assist keywords
+   | GEOIP
+   | OVERRIDE
+   | ARROW
    | IN
    | SOURCE
    | INDEX
    | DESC
    | DATASOURCES
-   | AUTO
-   | STR
-   | IP
-   | NUM
    | FROM
    | PATTERN
    | NEW_FIELD
@@ -1129,6 +1164,7 @@ keywordsCanBeId
    // AGGREGATIONS
    | statsFunctionName
    | DISTINCT_COUNT
+   | DISTINCT_COUNT_APPROX
    | PERCENTILE
    | PERCENTILE_APPROX
    | ESTDC
@@ -1147,10 +1183,6 @@ keywordsCanBeId
    | LAST
    | LIST
    | VALUES
-   | EARLIEST
-   | EARLIEST_TIME
-   | LATEST
-   | LATEST_TIME
    | PER_DAY
    | PER_HOUR
    | PER_MINUTE
@@ -1171,4 +1203,9 @@ keywordsCanBeId
    | BETWEEN
    | CIDRMATCH
    | trendlineType
+   // SORT FIELD KEYWORDS
+   | AUTO
+   | STR
+   | IP
+   | NUM
    ;
