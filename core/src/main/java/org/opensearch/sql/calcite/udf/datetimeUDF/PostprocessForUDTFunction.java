@@ -24,17 +24,17 @@ public class PostprocessForUDTFunction implements UserDefinedFunction {
       return null;
     }
     SqlTypeName sqlTypeName = (SqlTypeName) args[1];
-    Instant instant = InstantUtils.convertToInstant(candidate, sqlTypeName);
+    return internalDatetimeToExprValue(candidate, sqlTypeName);
+  }
+
+  public static Object internalDatetimeToExprValue(Object internalValue, SqlTypeName sqlTypeName) {
+    Instant instant = InstantUtils.convertToInstant(internalValue, sqlTypeName);
     LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-    switch (sqlTypeName) {
-      case DATE:
-        return new ExprDateValue(localDateTime.toLocalDate()).valueForCalcite();
-      case TIME:
-        return new ExprTimeValue(localDateTime.toLocalTime()).valueForCalcite();
-      case TIMESTAMP:
-        return new ExprTimestampValue(localDateTime).valueForCalcite();
-      default:
-        throw new IllegalArgumentException("Unsupported datetime type: " + sqlTypeName);
-    }
+    return switch (sqlTypeName) {
+      case DATE -> new ExprDateValue(localDateTime.toLocalDate()).valueForCalcite();
+      case TIME -> new ExprTimeValue(localDateTime.toLocalTime()).valueForCalcite();
+      case TIMESTAMP -> new ExprTimestampValue(localDateTime).valueForCalcite();
+      default -> throw new IllegalArgumentException("Unsupported datetime type: " + sqlTypeName);
+    };
   }
 }

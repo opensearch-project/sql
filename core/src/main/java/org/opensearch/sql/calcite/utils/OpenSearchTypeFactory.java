@@ -85,6 +85,10 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     return type.getSqlTypeName();
   }
 
+  public static RelDataType convertSqlTypeToRelDataType(SqlTypeName sqlTypeName) {
+    return convertExprTypeToRelDataType(convertSqlTypeNameToExprType(sqlTypeName));
+  }
+
   @Getter
   public enum ExprUDT {
     EXPR_DATE(DATE),

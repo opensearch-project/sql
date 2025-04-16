@@ -23,7 +23,6 @@ public class PostprocessDateToStringFunction implements UserDefinedFunction {
     }
     FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
     LocalDateTime localDateTime = parseStringToTimestamp((String) candidate, restored);
-    String formatted = formatTimestampWithoutUnnecessaryNanos(localDateTime);
-    return formatted;
+    return formatTimestampWithoutUnnecessaryNanos(localDateTime);
   }
 }

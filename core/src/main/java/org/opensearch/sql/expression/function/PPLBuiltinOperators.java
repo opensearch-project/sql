@@ -15,12 +15,16 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.datetimeUDF.CurrentFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DatePartFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunctionImpl;
+import org.opensearch.sql.calcite.udf.datetimeUDF.FormatFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MinuteOfDayFunctionImpl;
+import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodNameFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32FunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunctionImpl;
@@ -92,6 +96,29 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new DatePartFunctionImpl(TimeUnit.SECOND).toUDF("SECOND_OF_MINUTE");
   public static final SqlOperator MICROSECOND =
       new DatePartFunctionImpl(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
+  public static final SqlOperator CURRENT_TIMESTAMP =
+      new CurrentFunctionImpl(SqlTypeName.TIMESTAMP).toUDF("CURRENT_TIMESTAMP");
+  public static final SqlOperator NOW = new CurrentFunctionImpl(SqlTypeName.TIMESTAMP).toUDF("NOW");
+  public static final SqlOperator LOCALTIMESTAMP =
+      new CurrentFunctionImpl(SqlTypeName.TIMESTAMP).toUDF("LOCALTIMESTAMP");
+  public static final SqlOperator LOCALTIME =
+      new CurrentFunctionImpl(SqlTypeName.TIMESTAMP).toUDF("LOCALTIME");
+  public static final SqlOperator CURTIME =
+      new CurrentFunctionImpl(SqlTypeName.TIME).toUDF("CURTIME");
+  public static final SqlOperator CURRENT_TIME =
+      new CurrentFunctionImpl(SqlTypeName.TIME).toUDF("CURRENT_TIME");
+  public static final SqlOperator CURRENT_DATE =
+      new CurrentFunctionImpl(SqlTypeName.DATE).toUDF("CURRENT_DATE");
+  public static final SqlOperator CURDATE =
+      new CurrentFunctionImpl(SqlTypeName.DATE).toUDF("CURDATE");
+  public static final SqlOperator DATE_FORMAT =
+      new FormatFunctionImpl(SqlTypeName.DATE).toUDF("DATE_FORMAT");
+  public static final SqlOperator TIME_FORMAT =
+      new FormatFunctionImpl(SqlTypeName.TIME).toUDF("TIME_FORMAT");
+  public static final SqlOperator DAYNAME =
+      new PeriodNameFunctionImpl(TimeUnit.DAY).toUDF("DAYNAME");
+  public static final SqlOperator MONTHNAME =
+      new PeriodNameFunctionImpl(TimeUnit.MONTH).toUDF("MONTHNAME");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
