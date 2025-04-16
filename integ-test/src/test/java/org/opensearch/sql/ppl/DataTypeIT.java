@@ -14,7 +14,9 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMER
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
 import org.json.JSONArray;
@@ -49,19 +51,19 @@ public class DataTypeIT extends PPLIntegTestCase {
   @Test
   public void test_nonnumeric_data_types() throws IOException {
     JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_DATATYPE_NONNUMERIC));
-    verifySchema(
+    verifySchemaInOrder(
         result,
-        schema("boolean_value", "boolean"),
-        schema("keyword_value", "string"),
         schema("text_value", "string"),
-        schema("binary_value", "binary"),
-        schema("date_value", "timestamp"),
         schema("date_nanos_value", "timestamp"),
+        schema("date_value", "timestamp"),
+        schema("boolean_value", "boolean"),
         schema("ip_value", "ip"),
-        schema("object_value", "struct"),
         schema("nested_value", "array"),
-        schema("geo_point_value", "geo_point"));
-    verifyDataRows(
+        schema("object_value", "struct"),
+        schema("keyword_value", "string"),
+        schema("geo_point_value", "geo_point"),
+        schema("binary_value", "binary"));
+    verifyDataRowsInOrder(
         result,
         rows(
             "text",
