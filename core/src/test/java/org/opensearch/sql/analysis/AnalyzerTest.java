@@ -161,12 +161,7 @@ class AnalyzerTest extends AnalyzerTestBase {
 
     ExpressionEvaluationException exception =
         assertThrows(ExpressionEvaluationException.class, () -> analyze(typeMismatchPlan));
-    assertEquals(
-        "= function expected {[BYTE,BYTE],[SHORT,SHORT],[INTEGER,INTEGER],[LONG,LONG],"
-            + "[FLOAT,FLOAT],[DOUBLE,DOUBLE],[STRING,STRING],[BOOLEAN,BOOLEAN],[DATE,DATE],"
-            + "[TIME,TIME],[DATETIME,DATETIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],"
-            + "[STRUCT,STRUCT],[ARRAY,ARRAY]}, but get [STRING,INTEGER]",
-        exception.getMessage());
+    assertEquals(getIncompatibleTypeErrMsg(STRING, INTEGER), exception.getMessage());
   }
 
   @Test
