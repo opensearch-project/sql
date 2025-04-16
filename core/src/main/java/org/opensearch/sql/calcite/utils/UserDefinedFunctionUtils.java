@@ -42,7 +42,6 @@ import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
-import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -233,17 +232,7 @@ public class UserDefinedFunctionUtils {
 
   public static SqlTypeName transferDateRelatedTimeName(RexNode candidate) {
     RelDataType type = candidate.getType();
-    if (type instanceof ExprSqlType) {
-      ExprUDT exprUDT = ((ExprSqlType) type).getUdt();
-      if (exprUDT == EXPR_TIME) {
-        return SqlTypeName.TIME;
-      } else if (exprUDT == EXPR_TIMESTAMP) {
-        return SqlTypeName.TIMESTAMP;
-      } else if (exprUDT == EXPR_DATE) {
-        return SqlTypeName.DATE;
-      }
-    }
-    return type.getSqlTypeName();
+    return OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(type);
   }
 
   // TODO: pass the function properties directly to the UDF instead of string

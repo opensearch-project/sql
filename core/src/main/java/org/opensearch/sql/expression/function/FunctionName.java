@@ -7,7 +7,6 @@ package org.opensearch.sql.expression.function;
 
 import java.io.Serializable;
 import java.util.Locale;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

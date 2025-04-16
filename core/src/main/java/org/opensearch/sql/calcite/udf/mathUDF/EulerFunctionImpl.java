@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.calcite.udf.mathUDF;
 
 import java.util.List;
@@ -8,6 +13,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -15,6 +21,11 @@ public class EulerFunctionImpl extends ImplementorUDF {
   public EulerFunctionImpl() {
     // NullPolicy.NONE: The function does not depend on the nullability of its arguments
     super(new EulerImplementor(), NullPolicy.NONE);
+  }
+
+  @Override
+  public SqlOperandMetadata getOperandMetadata() {
+    return super.getOperandMetadata();
   }
 
   @Override

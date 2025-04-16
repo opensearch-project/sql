@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.calcite.udf.textUDF;
 
 import java.util.List;
@@ -24,14 +29,6 @@ public class ReplaceFunctionImpl extends ImplementorUDF {
   }
 
   public static class ReplaceImplementor implements NotNullImplementor {
-    /**
-     * Implements a call with assumption that all the null-checking is implemented by caller.
-     *
-     * @param translator translator to implement the code
-     * @param call call to implement
-     * @param translatedOperands arguments of a call
-     * @return expression that implements given call
-     */
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {

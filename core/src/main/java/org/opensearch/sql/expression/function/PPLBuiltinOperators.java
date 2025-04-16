@@ -11,11 +11,17 @@ import java.util.List;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexImpTable.RexCallImplementor;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunctionImpl;
+import org.opensearch.sql.calcite.udf.datetimeUDF.DatePartFunctionImpl;
+import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunctionImpl;
+import org.opensearch.sql.calcite.udf.datetimeUDF.MinuteOfDayFunctionImpl;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32FunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.DivideFunctionImpl;
@@ -40,6 +46,52 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   // Text function
   public static final SqlOperator LOCATE = new LocateFunctionImpl().toUDF("LOCATE");
   public static final SqlOperator REPLACE = new ReplaceFunctionImpl().toUDF("REPLACE");
+
+  // Datetime function
+  public static final SqlOperator ADDTIME = new TimeAddSubFunctionImpl(true).toUDF("ADDTIME");
+  public static final SqlOperator SUBTIME = new TimeAddSubFunctionImpl(false).toUDF("SUBTIME");
+  public static final SqlOperator ADDDATE =
+      new DateAddSubFunctionImpl(true, false).toUDF("ADDDATE");
+  public static final SqlOperator SUBDATE =
+      new DateAddSubFunctionImpl(false, false).toUDF("SUBDATE");
+  public static final SqlOperator DATE_ADD =
+      new DateAddSubFunctionImpl(true, true).toUDF("DATE_ADD");
+  public static final SqlOperator DATE_SUB =
+      new DateAddSubFunctionImpl(false, true).toUDF("DATE_SUB");
+  public static final SqlOperator EXTRACT = new ExtractFunctionImpl().toUDF("EXTRACT");
+  public static final SqlOperator QUARTER =
+      new DatePartFunctionImpl(TimeUnit.QUARTER).toUDF("QUARTER");
+  public static final SqlOperator MONTH = new DatePartFunctionImpl(TimeUnit.MONTH).toUDF("MONTH");
+  public static final SqlOperator MONTH_OF_YEAR =
+      new DatePartFunctionImpl(TimeUnit.MONTH).toUDF("MONTH_OF_YEAR");
+  public static final SqlOperator DAY = new DatePartFunctionImpl(TimeUnit.DAY).toUDF("DAY");
+  public static final SqlOperator DAYOFMONTH =
+      new DatePartFunctionImpl(TimeUnit.DAY).toUDF("DAYOFMONTH");
+  public static final SqlOperator DAY_OF_MONTH =
+      new DatePartFunctionImpl(TimeUnit.DAY).toUDF("DAY_OF_MONTH");
+  public static final SqlOperator DAYOFWEEK =
+      new DatePartFunctionImpl(TimeUnit.DOW).toUDF("DAYOFWEEK");
+  public static final SqlOperator DAY_OF_WEEK =
+      new DatePartFunctionImpl(TimeUnit.DOW).toUDF("DAY_OF_WEEK");
+  public static final SqlOperator DAYOFYEAR =
+      new DatePartFunctionImpl(TimeUnit.DOY).toUDF("DAYOFYEAR");
+  public static final SqlOperator DAY_OF_YEAR =
+      new DatePartFunctionImpl(TimeUnit.DOY).toUDF("DAY_OF_YEAR");
+  public static final SqlOperator HOUR = new DatePartFunctionImpl(TimeUnit.HOUR).toUDF("HOUR");
+  public static final SqlOperator HOUR_OF_DAY =
+      new DatePartFunctionImpl(TimeUnit.HOUR).toUDF("HOUR_OF_DAY");
+  public static final SqlOperator MINUTE =
+      new DatePartFunctionImpl(TimeUnit.MINUTE).toUDF("MINUTE");
+  public static final SqlOperator MINUTE_OF_HOUR =
+      new DatePartFunctionImpl(TimeUnit.MINUTE).toUDF("MINUTE_OF_HOUR");
+  public static final SqlOperator MINUTE_OF_DAY =
+      new MinuteOfDayFunctionImpl().toUDF("MINUTE_OF_DAY");
+  public static final SqlOperator SECOND =
+      new DatePartFunctionImpl(TimeUnit.SECOND).toUDF("SECOND");
+  public static final SqlOperator SECOND_OF_MINUTE =
+      new DatePartFunctionImpl(TimeUnit.SECOND).toUDF("SECOND_OF_MINUTE");
+  public static final SqlOperator MICROSECOND =
+      new DatePartFunctionImpl(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

@@ -26,11 +26,11 @@ public interface DateTimeApplyUtils {
     return isAdd ? base.plus(interval) : base.minus(interval);
   }
 
-  public static ExprValue transferInputToExprValue(Object candidate, SqlTypeName sqlTypeName) {
+  static ExprValue transferInputToExprValue(Object candidate, SqlTypeName sqlTypeName) {
     return fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
   }
 
-  public static ExprValue transferInputToExprTimestampValue(
+  static ExprValue transferInputToExprTimestampValue(
       Object candidate, SqlTypeName sqlTypeName, FunctionProperties properties) {
     switch (sqlTypeName) {
       case TIME:

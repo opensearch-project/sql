@@ -128,6 +128,8 @@ public class DateTimeFunctions {
           .put("DAY_HOUR", "ddHH")
           .put("YEAR_MONTH", "yyyyMM")
           .put("QUARTER", "Q")
+          .put("DOY", "D")
+          .put("DOW", "e")
           .build();
 
   // Map used to determine format output for the get_format function
