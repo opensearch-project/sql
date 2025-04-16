@@ -49,6 +49,11 @@ public enum ExprCoreType implements ExprType {
   /** IP Address. */
   IP(STRING),
 
+  /** Geometry. Only support point now. */
+  GEO_POINT(UNDEFINED),
+
+  BINARY(UNDEFINED),
+
   /** Struct. */
   STRUCT(UNDEFINED),
 
