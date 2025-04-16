@@ -12,6 +12,7 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -31,11 +32,13 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
+import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
@@ -250,11 +253,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitParse(Parse node, CalcitePlanContext context) {
     visitChildren(node, context);
-    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
     RexNode sourceField = rexVisitor.analyze(node.getSourceField(), context);
     ParseMethod parseMethod = node.getParseMethod();
     java.util.Map<String, Literal> arguments = node.getArguments();
     String pattern = (String) node.getPattern().getValue();
+    // TODO: Support Grok parse method
+    Pair<SqlOperator, String> operatorPatternPair =
+        switch (parseMethod) {
+          case ParseMethod.PATTERNS -> Pair.of(
+              SqlLibraryOperators.REGEXP_REPLACE_2,
+              Strings.isNullOrEmpty(pattern) ? "[a-zA-Z0-9]" : pattern);
+          default -> Pair.of(SqlLibraryOperators.REGEXP_EXTRACT, pattern);
+        };
     List<String> groupCandidates =
         ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments);
     List<RexNode> newFields =
@@ -262,9 +272,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .map(
                 group ->
                     context.rexBuilder.makeCall(
-                        SqlLibraryOperators.REGEXP_EXTRACT,
+                        operatorPatternPair.getKey(),
                         sourceField,
-                        context.rexBuilder.makeLiteral(pattern)))
+                        context.rexBuilder.makeLiteral(operatorPatternPair.getValue())))
             .toList();
     projectPlusOverriding(newFields, groupCandidates, context);
     return context.relBuilder.peek();
