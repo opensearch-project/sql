@@ -11,6 +11,7 @@ import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORC
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
@@ -423,6 +425,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
     // call makeCast() instead of cast() because the saft parameter is true could avoid exception.
     return context.rexBuilder.makeCast(nullableType, expr, true, true);
+  }
+
+  @Override
+  public RexNode visitCase(Case node, CalcitePlanContext context) {
+    List<RexNode> caseOperands = new ArrayList<>();
+    for (When when : node.getWhenClauses()) {
+      caseOperands.add(analyze(when.getCondition(), context));
+      caseOperands.add(analyze(when.getResult(), context));
+    }
+    caseOperands.add(analyze(node.getElseClause(), context));
+    return context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, caseOperands);
   }
 
   /*
