@@ -12,9 +12,11 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import java.util.stream.Collectors;
 import org.hamcrest.MatcherAssert;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.data.type.ExprCoreType;
 
 public class WhereCommandIT extends PPLIntegTestCase {
 
@@ -175,8 +177,11 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   protected String getIncompatibleTypeErrMsg() {
-    return "function expected"
-               + " {[BYTE,BYTE],[SHORT,SHORT],[INTEGER,INTEGER],[LONG,LONG],[FLOAT,FLOAT],[DOUBLE,DOUBLE],[STRING,STRING],[BOOLEAN,BOOLEAN],[DATE,DATE],[TIME,TIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],[IP,IP],[GEO_POINT,GEO_POINT],[STRUCT,STRUCT],[ARRAY,ARRAY]},"
-               + " but got [LONG,STRING]";
+    return String.format(
+        "function expected %s, but got %s",
+        ExprCoreType.coreTypes().stream()
+            .map(type -> String.format("[%s,%s]", type.typeName(), type.typeName()))
+            .collect(Collectors.joining(",", "{", "}")),
+        "[LONG,STRING]");
   }
 }
