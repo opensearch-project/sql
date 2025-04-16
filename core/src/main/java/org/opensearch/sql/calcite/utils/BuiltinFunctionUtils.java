@@ -33,8 +33,6 @@ import org.opensearch.sql.calcite.ExtendedRexBuilder;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.ConvertTZFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.DateDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.FromDaysFunction;
@@ -52,7 +50,6 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.TimeDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeToSecondFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampAddFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ToDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ToSecondsFunction;
@@ -83,9 +80,6 @@ public interface BuiltinFunctionUtils {
         // Built-in Date Functions
       case "DATE":
         return TransferUserDefinedFunction(DateFunction.class, "DATE", dateInference);
-      case "CONVERT_TZ":
-        return TransferUserDefinedFunction(
-            ConvertTZFunction.class, "CONVERT_TZ", timestampInference);
       case "DATETIME":
         return TransferUserDefinedFunction(DatetimeFunction.class, "DATETIME", timestampInference);
       case "FROM_DAYS":
@@ -143,11 +137,6 @@ public interface BuiltinFunctionUtils {
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
             TimestampAddFunction.class, "TIMESTAMPADD", timestampInference);
-      case "TIMESTAMPDIFF":
-        return TransferUserDefinedFunction(
-            TimestampDiffFunction.class, "TIMESTAMPDIFF", ReturnTypes.BIGINT);
-      case "DATEDIFF":
-        return TransferUserDefinedFunction(DateDiffFunction.class, "DATEDIFF", ReturnTypes.BIGINT);
       case "TO_SECONDS":
         return TransferUserDefinedFunction(
             ToSecondsFunction.class, "TO_SECONDS", ReturnTypes.BIGINT);
@@ -209,13 +198,7 @@ public interface BuiltinFunctionUtils {
             argList.get(0),
             context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.get(0))),
             context.rexBuilder.makeLiteral(currentTimestampStr));
-      case "TIMESTAMP",
-          "TIMEDIFF",
-          "TIME_TO_SEC",
-          "TIME_FORMAT",
-          "TO_SECONDS",
-          "TO_DAYS",
-          "CONVERT_TZ":
+      case "TIMESTAMP", "TIMEDIFF", "TIME_TO_SEC", "TIME_FORMAT", "TO_SECONDS", "TO_DAYS":
         List<RexNode> timestampArgs = new ArrayList<>(argList);
         timestampArgs.addAll(
             argList.stream()
@@ -237,17 +220,6 @@ public interface BuiltinFunctionUtils {
             context.rexBuilder.makeFlag(argList.get(2).getType().getSqlTypeName()));
         timestampAddArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
         return timestampAddArgs;
-      case "TIMESTAMPDIFF":
-        List<RexNode> timestampDiffArgs = new ArrayList<>();
-        timestampDiffArgs.add(argList.getFirst());
-        timestampDiffArgs.addAll(buildArgsWithTypes(context.rexBuilder, argList, 1, 2));
-        timestampDiffArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
-        return timestampDiffArgs;
-      case "DATEDIFF":
-        // datediff differs with timestamp diff in that it
-        List<RexNode> dateDiffArgs = buildArgsWithTypes(context.rexBuilder, argList, 0, 1);
-        dateDiffArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
-        return dateDiffArgs;
       case "TIME":
         return ImmutableList.of(
             argList.getFirst(),

@@ -22,6 +22,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEILING
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT_WS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONV;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONVERT_TZ;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CRC32;
@@ -30,6 +31,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURRENT_TIMESTAMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CURTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATEDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_ADD;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_FORMAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DATE_SUB;
@@ -108,6 +110,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMPDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME_FORMAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TYPEOF;
@@ -366,6 +369,9 @@ public class PPLFuncImpTable {
       registerOperator(TIME_FORMAT, PPLBuiltinOperators.TIME_FORMAT);
       registerOperator(DAYNAME, PPLBuiltinOperators.DAYNAME);
       registerOperator(MONTHNAME, PPLBuiltinOperators.MONTHNAME);
+      registerOperator(CONVERT_TZ, PPLBuiltinOperators.CONVERT_TZ);
+      registerOperator(DATEDIFF, PPLBuiltinOperators.DATEDIFF);
+      registerOperator(TIMESTAMPDIFF, PPLBuiltinOperators.TIMESTAMPDIFF);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.

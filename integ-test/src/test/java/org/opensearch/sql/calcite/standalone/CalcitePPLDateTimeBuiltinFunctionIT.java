@@ -1056,7 +1056,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + " DAY), date), d2 = TIMESTAMPDIFF(HOUR, date_time, TIMESTAMPADD(DAY, 1,"
                     + " date_time)), d3 = TIMESTAMPDIFF(MINUTE, date, date_time), d4 ="
                     + " TIMESTAMPDIFF(SECOND, date_time, ADDDATE(date_time, INTERVAL 1 HOUR)), d5 ="
-                    + " TIMESTAMPDIFF(MINUTE, time, '12:30:00'), d6 = TIMESTAMPDIFF(WEEK,"
+                    + " TIMESTAMPDIFF(MINUTE, time, TIME('12:30:00')), d6 = TIMESTAMPDIFF(WEEK,"
                     + " '1999-12-31 00:00:00', TIMESTAMPADD(HOUR, -24, date_time)), d7 ="
                     + " TIMESTAMPDIFF(MONTH, TIMESTAMPADD(YEAR, 5, '1994-12-10 13:49:02'),"
                     + " ADDDATE(date_time, 1)), d8 = TIMESTAMPDIFF(QUARTER, MAKEDATE(2008, 153),"

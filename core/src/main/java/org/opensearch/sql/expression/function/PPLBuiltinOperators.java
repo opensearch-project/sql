@@ -18,9 +18,11 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.datetimeUDF.ConvertTZFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.CurrentFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DatePartFunctionImpl;
+import org.opensearch.sql.calcite.udf.datetimeUDF.DiffFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.FormatFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MinuteOfDayFunctionImpl;
@@ -119,6 +121,10 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new PeriodNameFunctionImpl(TimeUnit.DAY).toUDF("DAYNAME");
   public static final SqlOperator MONTHNAME =
       new PeriodNameFunctionImpl(TimeUnit.MONTH).toUDF("MONTHNAME");
+  public static final SqlOperator CONVERT_TZ = new ConvertTZFunctionImpl().toUDF("CONVERT_TZ");
+  public static final SqlOperator DATEDIFF = DiffFunctionImpl.datediff().toUDF("DATEDIFF");
+  public static final SqlOperator TIMESTAMPDIFF =
+      DiffFunctionImpl.timestampdiff().toUDF("TIMESTAMPDIFF");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
