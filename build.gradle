@@ -86,6 +86,7 @@ plugins {
 // import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
 // versions https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/version.properties
 apply plugin: 'opensearch.java'
+apply plugin: 'opensearch.java-agent'
 
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
@@ -147,29 +148,6 @@ allprojects {
         resolutionStrategy.force 'org.apache.commons:commons-text:1.11.0'
         resolutionStrategy.force 'commons-io:commons-io:2.15.0'
         resolutionStrategy.force 'org.yaml:snakeyaml:2.2'
-    }
-
-    configurations {
-        agent
-    }
-
-    dependencies {
-    }
-
-    task prepareAgent(type: Copy) {
-        from(configurations.agent)
-        into "$buildDir/agent"
-    }
-
-    dependencies {
-        agent "org.opensearch:opensearch-agent-bootstrap:${opensearch_version}"
-        agent "org.opensearch:opensearch-agent:${opensearch_version}"
-        agent "net.bytebuddy:byte-buddy:${versions.bytebuddy}"
-    }
-
-    tasks.withType(Test) {
-        dependsOn prepareAgent
-        jvmArgs += ["-javaagent:" + project.layout.buildDirectory.file("agent/opensearch-agent-${opensearch_version}.jar").get()]
     }
 }
 

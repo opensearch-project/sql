@@ -1519,7 +1519,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f = timestampdiff(YEAR, '1997-01-01 00:00:00', '2001-03-06"
                     + " 00:00:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "timestamp"));
+    verifySchema(result, schema("f", null, isCalciteEnabled() ? "bigint" : "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(4));
   }
 
