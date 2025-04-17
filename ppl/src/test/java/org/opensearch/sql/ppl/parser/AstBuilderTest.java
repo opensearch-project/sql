@@ -832,16 +832,21 @@ public class AstBuilderTest {
   public void testPatternsCommand() {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEqual(
-        "source=t | patterns new_field=\"custom_field\" pattern=\"custom_pattern\" raw",
-        window(
+        "source=t | patterns new_field=\"custom_field\" " + "pattern=\"custom_pattern\" raw",
+        parse(
             relation("t"),
-            PatternMethod.SIMPLE_PATTERN,
+            ParseMethod.PATTERNS,
             field("raw"),
-            "custom_field",
-            Arrays.asList(
-                new Argument("new_field", new Literal("custom_field", DataType.STRING)),
-                new Argument("pattern", new Literal("custom_pattern", DataType.STRING)))));
+            stringLiteral("custom_pattern"),
+            ImmutableMap.<String, Literal>builder()
+                .put("new_field", stringLiteral("custom_field"))
+                .put("pattern", stringLiteral("custom_pattern"))
+                .build()));
+  }
 
+  @Test
+  public void testPatternsCommandWithBrainMethod() {
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEqual(
         "source=t | patterns variable_count_threshold=2 frequency_threshold_percentage=0.1 raw"
             + " BRAIN",
@@ -861,12 +866,12 @@ public class AstBuilderTest {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEqual(
         "source=t | patterns raw",
-        window(
+        parse(
             relation("t"),
-            PatternMethod.SIMPLE_PATTERN,
+            ParseMethod.PATTERNS,
             field("raw"),
-            "patterns_field",
-            Arrays.asList()));
+            stringLiteral(""),
+            ImmutableMap.of()));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {
