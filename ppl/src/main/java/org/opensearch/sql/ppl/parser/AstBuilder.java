@@ -436,6 +436,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                 .toString()
                 .toLowerCase(Locale.ROOT);
     if (patternMethod.equalsIgnoreCase(PatternMethod.SIMPLE_PATTERN.getName())) {
+      /*
+       * Legacy patterns command is a subclass of Parse plan, which enables Expression pushdown as part of DSL AggregationScript.
+       * Keep this logic here until we implement pushdown with new script engine for calcite expressions.
+       * Also, there is opportunity of refactoring Parse plan as Project logical plan.
+       **/
       return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
     } else {
       return new Window(

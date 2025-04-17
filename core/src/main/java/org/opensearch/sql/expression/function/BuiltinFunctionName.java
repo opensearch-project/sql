@@ -204,6 +204,8 @@ public enum BuiltinFunctionName {
   SUBSTRING(FunctionName.of("substring")),
   TRIM(FunctionName.of("trim")),
   UPPER(FunctionName.of("upper")),
+  REGEXP_EXTRACT(FunctionName.of("regexp_extract")),
+  REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2")),
 
   /** Json Functions. */
   JSON_VALID(FunctionName.of("json_valid")),

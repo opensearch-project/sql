@@ -12,6 +12,7 @@ import lombok.experimental.UtilityClass;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.parse.GrokExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.parse.PatternsExpression;
@@ -26,6 +27,11 @@ public class ParseUtils {
           ParseMethod.REGEX, RegexExpression::new,
           ParseMethod.GROK, GrokExpression::new,
           ParseMethod.PATTERNS, PatternsExpression::new);
+  // TODO: Support Grok parse method with correct function
+  public static final Map<ParseMethod, BuiltinFunctionName> BUILTIN_FUNCTION_MAP =
+      ImmutableMap.of(
+          ParseMethod.REGEX, BuiltinFunctionName.REGEXP_EXTRACT,
+          ParseMethod.PATTERNS, BuiltinFunctionName.REGEXP_REPLACE_2);
 
   /**
    * Construct corresponding ParseExpression by {@link ParseMethod}.
