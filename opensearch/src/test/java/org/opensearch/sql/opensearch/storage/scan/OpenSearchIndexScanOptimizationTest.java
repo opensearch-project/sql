@@ -11,14 +11,13 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
-import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
+import static org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
@@ -56,8 +55,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
-import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
-import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
+import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.sort.NestedSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
@@ -75,10 +73,9 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
-import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
-import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -637,23 +634,15 @@ class OpenSearchIndexScanOptimizationTest {
       AggregationAssertHelper.AggregationAssertHelperBuilder aggregation) {
 
     // Assume single term bucket and AVG metric in all tests in this suite
-    CompositeAggregationBuilder aggBuilder =
-        AggregationBuilders.composite(
-                "composite_buckets",
-                Collections.singletonList(
-                    new TermsValuesSourceBuilder(aggregation.groupBy)
-                        .field(aggregation.groupBy)
-                        .order(aggregation.sortBy.getSortOrder() == ASC ? "asc" : "desc")
-                        .missingOrder(
-                            aggregation.sortBy.getNullOrder() == NULL_FIRST ? "first" : "last")
-                        .missingBucket(true)))
-            .subAggregation(
-                AggregationBuilders.avg(aggregation.aggregateName).field(aggregation.aggregateBy))
-            .size(AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE);
-
+    TermsAggregationBuilder aggBuilder =
+        new TermsAggregationBuilder(aggregation.groupBy)
+            .field(aggregation.groupBy)
+            .size(AGGREGATION_BUCKET_SIZE);
+    aggBuilder.subAggregation(
+        AggregationBuilders.avg(aggregation.aggregateName).field(aggregation.aggregateBy));
     List<AggregationBuilder> aggBuilders = Collections.singletonList(aggBuilder);
     OpenSearchAggregationResponseParser responseParser =
-        new CompositeAggregationParser(new SingleValueParser(aggregation.aggregateName));
+        new BucketAggregationParser(new SingleValueParser(aggregation.aggregateName));
 
     return () -> {
       verify(requestBuilder, times(1)).pushDownAggregation(Pair.of(aggBuilders, responseParser));

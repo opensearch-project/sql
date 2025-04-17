@@ -29,11 +29,13 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
+import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.CompositeAggregationBuilder;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.MetricAggregationBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
@@ -50,12 +52,16 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
   /** Bucket Aggregation builder. */
   private final BucketAggregationBuilder bucketBuilder;
 
+  /** Composite Aggregation builder for multiple buckets. */
+  private final CompositeAggregationBuilder compositeBuilder;
+
   /** Metric Aggregation builder. */
   private final MetricAggregationBuilder metricBuilder;
 
   /** Aggregation Query Builder Constructor. */
   public AggregationQueryBuilder(ExpressionSerializer serializer) {
     this.bucketBuilder = new BucketAggregationBuilder(serializer);
+    this.compositeBuilder = new CompositeAggregationBuilder(serializer);
     this.metricBuilder = new MetricAggregationBuilder(serializer);
   }
 
@@ -74,13 +80,20 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
       return Pair.of(
           ImmutableList.copyOf(metrics.getLeft().getAggregatorFactories()),
           new NoBucketAggregationParser(metrics.getRight()));
+    } else if (groupByList.size() == 1) {
+      // one bucket, use values source bucket builder for getting better performance
+      return Pair.of(
+          Collections.singletonList(
+              bucketBuilder.build(groupByList.getFirst()).subAggregations(metrics.getLeft())),
+          new BucketAggregationParser(metrics.getRight()));
     } else {
+      // multiple bucket, use composite builder
       GroupSortOrder groupSortOrder = new GroupSortOrder(sortList);
       return Pair.of(
           Collections.singletonList(
               AggregationBuilders.composite(
                       "composite_buckets",
-                      bucketBuilder.build(
+                      compositeBuilder.build(
                           groupByList.stream()
                               .sorted(groupSortOrder)
                               .map(
