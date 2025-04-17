@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.utils;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 
 import com.google.common.collect.ImmutableList;
+import com.google.gson.Gson;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,6 +103,7 @@ public interface BuiltinFunctionUtils {
 
   static SqlReturnTypeInference VARCHAR_FORCE_NULLABLE =
       ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+  static Gson gson = new Gson();
 
   static SqlOperator translate(String op) {
     String capitalOP = op.toUpperCase(Locale.ROOT);

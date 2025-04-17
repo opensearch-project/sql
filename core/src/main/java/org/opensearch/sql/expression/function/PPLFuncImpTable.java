@@ -8,65 +8,7 @@ package org.opensearch.sql.expression.function;
 import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.ACOS;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.ADD;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.AND;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASCII;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.ASIN;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.ATAN2;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.CBRT;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.CEILING;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.CONCAT_WS;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.COS;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.COT;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.EQUAL;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.GREATER;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.GTE;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LENGTH;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LESS;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LN;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG10;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG2;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOWER;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.OR;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.PI;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.POW;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.POWER;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIGN;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRCMP;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTRING;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACT;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRIM;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.TYPEOF;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
@@ -271,6 +213,10 @@ public class PPLFuncImpTable {
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
+
+      // Register Json function
+      registerOperator(JSON, PPLBuiltinOperators.JSON);
+      registerOperator(JSON_OBJECT, PPLBuiltinOperators.JSON_OBJECT);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
