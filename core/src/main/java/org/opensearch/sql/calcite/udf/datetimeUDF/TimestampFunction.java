@@ -7,7 +7,6 @@ package org.opensearch.sql.calcite.udf.datetimeUDF;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprTimestampValue;
-import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprAddTime;
 
 import java.util.Objects;
@@ -19,8 +18,11 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 
 /**
  * We need to write our own since we are actually implement timestamp add here
- * (STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP (STRING/DATE/TIME/DATETIME/TIMESTAMP,
- * STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
+ * _FUNC_(STRING/DATE/TIME/TIMESTAMP) -> TIMESTAMP
+ *
+ * <p>_FUNC_(STRING/DATE/TIME/TIMESTAMP, STRING/DATE/TIME/TIMESTAMP) -> TIMESTAMP
+ *
+ * <p>In v2, it's implicitly transferred into timestamp, so we need to do the same thing
  */
 public class TimestampFunction implements UserDefinedFunction {
   @Override
@@ -37,8 +39,10 @@ public class TimestampFunction implements UserDefinedFunction {
       return transferInputToExprTimestampValue(args[0], sqlTypeName, restored).valueForCalcite();
     } else {
       SqlTypeName sqlTypeName = (SqlTypeName) args[2];
-      ExprValue dateTimeBase = transferInputToExprValue(args[0], sqlTypeName);
-      ExprValue addTime = transferInputToExprValue(args[1], (SqlTypeName) args[3]);
+      FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
+      ExprValue dateTimeBase = transferInputToExprTimestampValue(args[0], sqlTypeName, restored);
+      ExprValue addTime =
+          transferInputToExprTimestampValue(args[1], (SqlTypeName) args[3], restored);
       return exprAddTime(FunctionProperties.None, dateTimeBase, addTime).valueForCalcite();
     }
   }
