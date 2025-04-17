@@ -217,6 +217,12 @@ public class PPLFuncImpTable {
       // Register Json function
       registerOperator(JSON, PPLBuiltinOperators.JSON);
       registerOperator(JSON_OBJECT, PPLBuiltinOperators.JSON_OBJECT);
+      registerOperator(JSON_ARRAY, PPLBuiltinOperators.JSON_ARRAY);
+      registerOperator(TO_JSON_STRING, PPLBuiltinOperators.TO_JSON_STRING);
+      registerOperator(JSON_ARRAY_LENGTH, PPLBuiltinOperators.JSON_ARRAY_LENGTH);
+      registerOperator(JSON_EXTRACT, PPLBuiltinOperators.JSON_EXTRACT);
+      registerOperator(JSON_KEYS, PPLBuiltinOperators.JSON_KEYS);
+      registerOperator(JSON_VALID, PPLBuiltinOperators.JSON_VALID);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
