@@ -530,4 +530,10 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
     verifyDataRows(result, rows(2, 2), rows(3, 3));
   }
+
+  @Test
+  public void testExplainCommand() {
+    String result = explainQuery("explain source=test | where age = 20 | fields name, age");
+    assertEquals("", result);
+  }
 }

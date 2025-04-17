@@ -143,7 +143,12 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
               listener.onResponse(
                   new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
             } else {
-              String logical = rel.explain();
+              String logical;
+              if (format == ExplainFormat.COST) {
+                logical = RelOptUtil.toString(rel, SqlExplainLevel.ALL_ATTRIBUTES);
+              } else {
+                logical = RelOptUtil.toString(rel, SqlExplainLevel.EXPPLAN_ATTRIBUTES);
+              }
               AtomicReference<String> physical = new AtomicReference<>();
               AtomicReference<String> javaCode = new AtomicReference<>();
               try (Hook.Closeable closeable = getPhysicalPlanInHook(physical)) {

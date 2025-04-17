@@ -211,6 +211,26 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     return actual.get();
   }
 
+  @Override
+  protected String explainQuery(String query) {
+    AtomicReference<String> actual = new AtomicReference<>();
+    pplService.explain(
+        new PPLQueryRequest(query, null, null),
+        new ResponseListener<ExecutionEngine.ExplainResponse>() {
+
+          @Override
+          public void onResponse(ExecutionEngine.ExplainResponse response) {
+            actual.set(response.getCalcite().toString());
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            throw new IllegalStateException("Exception happened during execution", e);
+          }
+        });
+    return actual.get();
+  }
+
   public static DataSourceMetadataStorage getDataSourceMetadataStorage() {
     return new DataSourceMetadataStorage() {
       @Override
