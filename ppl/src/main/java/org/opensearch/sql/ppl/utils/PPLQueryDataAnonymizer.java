@@ -16,9 +16,11 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Between;
@@ -154,13 +156,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitSubqueryAlias(SubqueryAlias node, String context) {
-    String child = node.getChild().get(0).accept(this, context);
-    if (node.getChild().get(0).getChild().isEmpty()) {
-      return StringUtils.format("%s as %s", child, node.getAlias());
-    } else {
-      // add "[]" only if its child is not a root
-      return StringUtils.format("[ %s ] as %s", child, node.getAlias());
+    Node childNode = node.getChild().get(0);
+    String child = childNode.accept(this, context);
+    if (childNode instanceof Project project
+        && project.getProjectList().get(0) instanceof AllFields) {
+      childNode = childNode.getChild().get(0);
     }
+    // add "[]" only if its child is not a root
+    String format = childNode.getChild().isEmpty() ? "%s as %s" : "[ %s ] as %s";
+    return StringUtils.format(format, child, node.getAlias());
   }
 
   @Override
@@ -228,11 +232,6 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         node.getCommandType().name().toLowerCase(),
         noOfResults,
         String.join(" ", fields, groupBy(group)).trim());
-  }
-
-  @Override
-  public String visitAllFields(AllFields node, String context) {
-    return "";
   }
 
   /** Build {@link LogicalProject} or {@link LogicalRemove} from {@link Field}. */
@@ -470,6 +469,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
     @Override
     public String visitAllFields(AllFields node, String context) {
+      return "";
+    }
+
+    @Override
+    public String visitAllFieldsExcludeMeta(AllFieldsExcludeMeta node, String context) {
       return "";
     }
 
