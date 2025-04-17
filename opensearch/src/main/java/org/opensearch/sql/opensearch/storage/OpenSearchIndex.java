@@ -61,13 +61,16 @@ public class OpenSearchIndex extends OpenSearchTable {
   public static final String METADATA_FIELD_ROUTING = "_routing";
 
   public static final java.util.Map<String, ExprType> METADATAFIELD_TYPE_MAP =
-      Map.of(
-          METADATA_FIELD_ID, ExprCoreType.STRING,
-          METADATA_FIELD_INDEX, ExprCoreType.STRING,
-          METADATA_FIELD_SCORE, ExprCoreType.FLOAT,
-          METADATA_FIELD_MAXSCORE, ExprCoreType.FLOAT,
-          METADATA_FIELD_SORT, ExprCoreType.LONG,
-          METADATA_FIELD_ROUTING, ExprCoreType.STRING);
+      new LinkedHashMap<>() {
+        {
+          put(METADATA_FIELD_ID, ExprCoreType.STRING);
+          put(METADATA_FIELD_INDEX, ExprCoreType.STRING);
+          put(METADATA_FIELD_SCORE, ExprCoreType.FLOAT);
+          put(METADATA_FIELD_MAXSCORE, ExprCoreType.FLOAT);
+          put(METADATA_FIELD_SORT, ExprCoreType.LONG);
+          put(METADATA_FIELD_ROUTING, ExprCoreType.STRING);
+        }
+      };
 
   /** OpenSearch client connection. */
   @Getter private final OpenSearchClient client;

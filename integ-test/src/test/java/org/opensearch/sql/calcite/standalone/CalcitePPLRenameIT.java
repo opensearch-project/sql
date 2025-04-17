@@ -56,7 +56,8 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
                    """,
                         TEST_INDEX_STATE_COUNTRY)));
     assertEquals(
-        "field [age] not found; input fields are: [name, country, state, month, year, renamed_age]",
+        "field [age] not found; input fields are: [name, country, state, month, year, renamed_age,"
+            + " _id, _index, _score, _maxscore, _sort, _routing]",
         e.getMessage());
   }
 
@@ -73,8 +74,41 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
                    """,
                         TEST_INDEX_STATE_COUNTRY)));
     assertEquals(
-        "field [renamed_age] not found; input fields are: [name, country, state, month, year, age]",
+        "field [renamed_age] not found; input fields are: [name, country, state, month, year, age,"
+            + " _id, _index, _score, _maxscore, _sort, _routing]",
         e.getMessage());
+  }
+
+  @Test
+  public void testRenameToMetaField() {
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        """
+                   source = %s | rename name as _id
+                   """,
+                        TEST_INDEX_STATE_COUNTRY)));
+    assertEquals("Cannot use metadata field [_id] in Rename command.", e.getMessage());
+
+    // Test rename to _ID, which is allowed as metadata fields name is case-sensitive
+    JSONObject result =
+        executeQuery(
+            String.format(
+                """
+                   source = %s | rename age as _ID
+                   """,
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("_ID", "integer"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "integer"),
+        schema("month", "integer"));
   }
 
   @Test

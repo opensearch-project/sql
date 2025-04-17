@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -83,5 +84,25 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format("source=%s | fields firstname, `_id`, `_index`", TEST_INDEX_ACCOUNT));
     verifyColumn(result, columnName("firstname"), columnName("_id"), columnName("_index"));
+  }
+
+  @Test
+  public void testMetadataFieldsWithEval() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | eval a = 1 | fields firstname, _index", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("_index"));
+  }
+
+  @Test
+  public void testMetadataFieldsWithEvalMetaField() {
+    Exception e =
+        assertThrows(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval _id = 1 | fields firstname, _id", TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(e, "Cannot use metadata field [_id] as the eval field.");
   }
 }
