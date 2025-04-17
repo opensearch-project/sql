@@ -534,6 +534,49 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   @Test
   public void testExplainCommand() {
     String result = explainQuery("explain source=test | where age = 20 | fields name, age");
-    assertEquals("", result);
+    assertEquals(
+        "{\n"
+            + "  \"calcite\": {\n"
+            + "    \"logical\": \"LogicalFilter(condition=[=($1, 20)])\\n"
+            + "  CalciteLogicalIndexScan(table=[[OpenSearch, test]])\\n"
+            + "\",\n"
+            + "    \"physical\": \"EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[=($t1,"
+            + " $t2)], proj#0..1=[{exprs}], $condition=[$t3])\\n"
+            + "  CalciteEnumerableIndexScan(table=[[OpenSearch, test]])\\n"
+            + "\"\n"
+            + "  }\n"
+            + "}",
+        result);
+  }
+
+  @Test
+  public void testExplainCommandExtended() {
+    String result =
+        explainQuery("explain extended source=test | where age = 20 | fields name, age");
+    assertTrue(
+        result.contains(
+            "public org.apache.calcite.linq4j.Enumerable bind(final org.apache.calcite.DataContext"
+                + " root)"));
+  }
+
+  @Test
+  public void testExplainCommandCost() {
+    String result = explainQuery("explain cost source=test | where age = 20 | fields name, age");
+    assertTrue(
+        result.contains(
+            "CalciteEnumerableIndexScan(table=[[OpenSearch, test]]): rowcount = 100.0, cumulative"
+                + " cost = {100.0 rows, 101.0 cpu, 0.0 io}"));
+  }
+
+  @Test
+  public void testExplainCommandSimple() {
+    String result = explainQuery("explain simple source=test | where age = 20 | fields name, age");
+    assertEquals(
+        "{\n"
+            + "  \"calcite\": {\n"
+            + "    \"logical\": \"LogicalFilter\\n  CalciteLogicalIndexScan\\n\"\n"
+            + "  }\n"
+            + "}",
+        result);
   }
 }
