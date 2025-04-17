@@ -15,11 +15,11 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 @ToString
 @Getter
+@RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class Join extends UnresolvedPlan {
   private UnresolvedPlan left;
@@ -30,29 +30,9 @@ public class Join extends UnresolvedPlan {
   private final Optional<UnresolvedExpression> joinCondition;
   private final JoinHint joinHint;
 
-  public Join(
-      UnresolvedPlan apply,
-      Optional<String> leftAlias,
-      Optional<String> rightAlias,
-      JoinType joinType,
-      Optional<UnresolvedExpression> joinCondition,
-      JoinHint joinHint) {
-    // Exclude metadata fields for join since they're meaningless for a new record
-    this.right = AllFields.excludeMeta().wrapProjectIfNecessary(apply);
-    this.leftAlias = leftAlias;
-    this.rightAlias = rightAlias;
-    this.joinType = joinType;
-    this.joinCondition = joinCondition;
-    this.joinHint = joinHint;
-  }
-
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
-    // Exclude metadata fields for join since they're meaningless for a new record
-    this.left =
-        AllFields.excludeMeta()
-            .wrapProjectIfNecessary(
-                leftAlias.isEmpty() ? child : new SubqueryAlias(leftAlias.get(), child));
+    this.left = leftAlias.isEmpty() ? child : new SubqueryAlias(leftAlias.get(), child);
     return this;
   }
 

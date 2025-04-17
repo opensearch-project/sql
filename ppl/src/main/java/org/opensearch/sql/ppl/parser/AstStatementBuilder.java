@@ -10,6 +10,7 @@ package org.opensearch.sql.ppl.parser;
 
 import static org.opensearch.sql.executor.QueryType.PPL;
 
+import com.google.common.collect.ImmutableList;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
@@ -49,6 +51,10 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   }
 
   private UnresolvedPlan addSelectAll(UnresolvedPlan plan) {
-    return AllFields.of().wrapProjectIfNecessary(plan);
+    if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
+      return plan;
+    } else {
+      return new Project(ImmutableList.of(AllFields.of())).attach(plan);
+    }
   }
 }
