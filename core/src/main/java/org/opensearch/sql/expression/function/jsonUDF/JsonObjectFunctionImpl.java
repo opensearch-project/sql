@@ -23,7 +23,7 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class JsonObjectFunctionImpl extends ImplementorUDF {
   public JsonObjectFunctionImpl() {
-    super(new JsonObjectImplementor(), NullPolicy.ANY);
+    super(new JsonObjectImplementor(), NullPolicy.ALL);
   }
 
   @Override
