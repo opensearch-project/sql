@@ -58,8 +58,9 @@ As v3 engine is experimental in 3.0.0-beta, not all PPL commands could work unde
 For the following commands or functions, we add some defensive restrictions to ensure security.
 
 #### New Restrictions
-- `Eval` won't allow to use [Metadata Fields of OpenSearch](https://docs.opensearch.org/docs/latest/field-types/metadata-fields/index/) as the fields
-- `Rename` won't allow renaming to a [Metadata Fields of OpenSearch](https://docs.opensearch.org/docs/latest/field-types/metadata-fields/index/)
+- `EVAL` won't allow to use [Metadata Fields of OpenSearch](https://docs.opensearch.org/docs/latest/field-types/metadata-fields/index/) as the fields
+- `RENAME` won't allow renaming to a [Metadata Fields of OpenSearch](https://docs.opensearch.org/docs/latest/field-types/metadata-fields/index/)
+- `as` won't allow to use [Metadata Fields of OpenSearch](https://docs.opensearch.org/docs/latest/field-types/metadata-fields/index/) as the alias name
 
 For the following functionalities in V3 engine, the query will be forwarded to the V2 query engine and thus you cannot use new features in [2. What's New](#2-whats-new).
 
