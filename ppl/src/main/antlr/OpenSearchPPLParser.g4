@@ -648,6 +648,16 @@ trigonometricFunctionName
    | TAN
    ;
 
+jsonFunctionName
+   : JSON
+   | JSON_OBJECT
+   | JSON_ARRAY
+   | TO_JSON_STRING
+   | JSON_ARRAY_LENGTH
+   | JSON_EXTRACT
+   | JSON_KEYS
+   ;
+
 dateTimeFunctionName
    : ADDDATE
    | ADDTIME
@@ -815,10 +825,6 @@ positionFunctionName
    : POSITION
    ;
 
-jsonFunctionName
-   : JSON
-   ;
-
 // operators
  comparisonOperator
    : EQUAL
@@ -976,6 +982,7 @@ keywordsCanBeId
    | timespanUnit
    | SPAN
    | evalFunctionName
+   | jsonFunctionName
    | relevanceArgName
    | intervalUnit
    | trendlineType
