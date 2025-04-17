@@ -144,6 +144,18 @@ public class StandaloneIT extends PPLIntegTestCase {
           public void onFailure(Exception e) {
             throw new IllegalStateException("Exception happened during execution", e);
           }
+        },
+        new ResponseListener<ExecutionEngine.ExplainResponse>() {
+
+          @Override
+          public void onResponse(ExecutionEngine.ExplainResponse response) {
+            assertNotNull(response);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail();
+          }
         });
     return actual.get();
   }

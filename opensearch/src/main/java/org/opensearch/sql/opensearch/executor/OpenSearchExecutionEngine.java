@@ -114,11 +114,12 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         });
   }
 
-  private Hook.Closeable getPhysicalPlanInHook(AtomicReference<String> physical) {
+  private Hook.Closeable getPhysicalPlanInHook(
+      AtomicReference<String> physical, SqlExplainLevel level) {
     return Hook.PLAN_BEFORE_IMPLEMENTATION.addThread(
         obj -> {
           RelRoot relRoot = (RelRoot) obj;
-          physical.set(relRoot.rel.explain());
+          physical.set(RelOptUtil.toString(relRoot.rel, level));
         });
   }
 
@@ -143,10 +144,14 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
               listener.onResponse(
                   new ExplainResponse(new ExplainResponseNodeV2(logical, null, null)));
             } else {
-              String logical = rel.explain();
+              SqlExplainLevel level =
+                  format == ExplainFormat.COST
+                      ? SqlExplainLevel.ALL_ATTRIBUTES
+                      : SqlExplainLevel.EXPPLAN_ATTRIBUTES;
+              String logical = RelOptUtil.toString(rel, level);
               AtomicReference<String> physical = new AtomicReference<>();
               AtomicReference<String> javaCode = new AtomicReference<>();
-              try (Hook.Closeable closeable = getPhysicalPlanInHook(physical)) {
+              try (Hook.Closeable closeable = getPhysicalPlanInHook(physical, level)) {
                 if (format == ExplainFormat.EXTENDED) {
                   getCodegenInHook(javaCode);
                 }

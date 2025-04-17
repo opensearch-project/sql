@@ -34,7 +34,15 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   @Override
   public Statement visitDmlStatement(OpenSearchPPLParser.DmlStatementContext ctx) {
     Query query = new Query(addSelectAll(astBuilder.visit(ctx)), context.getFetchSize(), PPL);
-    return context.isExplain ? new Explain(query, PPL, context.format) : query;
+    if (ctx.explainStatement() != null) {
+      if (ctx.explainStatement().explainMode() == null) {
+        return new Explain(query, PPL);
+      } else {
+        return new Explain(query, PPL, ctx.explainStatement().explainMode().getText());
+      }
+    } else {
+      return context.isExplain ? new Explain(query, PPL, context.format) : query;
+    }
   }
 
   @Override

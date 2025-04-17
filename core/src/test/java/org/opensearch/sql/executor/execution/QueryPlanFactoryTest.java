@@ -17,7 +17,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
 
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -64,16 +63,14 @@ class QueryPlanFactoryTest {
   @Test
   public void create_from_query_should_success() {
     Statement query = new Query(plan, 0, queryType);
-    AbstractPlan queryExecution =
-        factory.create(query, Optional.of(queryListener), Optional.empty());
+    AbstractPlan queryExecution = factory.create(query, queryListener, explainListener);
     assertTrue(queryExecution instanceof QueryPlan);
   }
 
   @Test
   public void create_from_explain_should_success() {
     Statement query = new Explain(new Query(plan, 0, queryType), queryType);
-    AbstractPlan queryExecution =
-        factory.create(query, Optional.empty(), Optional.of(explainListener));
+    AbstractPlan queryExecution = factory.create(query, queryListener, explainListener);
     assertTrue(queryExecution instanceof ExplainPlan);
   }
 
@@ -86,28 +83,6 @@ class QueryPlanFactoryTest {
     assertAll(
         () -> assertTrue(queryExecution instanceof QueryPlan),
         () -> assertTrue(explainExecution instanceof ExplainPlan));
-  }
-
-  @Test
-  public void create_from_query_without_query_listener_should_throw_exception() {
-    Statement query = new Query(plan, 0, queryType);
-
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> factory.create(query, Optional.empty(), Optional.empty()));
-    assertEquals("[BUG] query listener must be not null", exception.getMessage());
-  }
-
-  @Test
-  public void create_from_explain_without_explain_listener_should_throw_exception() {
-    Statement query = new Explain(new Query(plan, 0, queryType), queryType);
-
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> factory.create(query, Optional.empty(), Optional.empty()));
-    assertEquals("[BUG] explain listener must be not null", exception.getMessage());
   }
 
   @Test
@@ -132,8 +107,7 @@ class QueryPlanFactoryTest {
     when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.TRUE);
     factory = new QueryPlanFactory(queryService);
     Statement query = new Query(plan, 10, queryType);
-    AbstractPlan queryExecution =
-        factory.create(query, Optional.of(queryListener), Optional.empty());
+    AbstractPlan queryExecution = factory.create(query, queryListener, explainListener);
     assertTrue(queryExecution instanceof QueryPlan);
   }
 
@@ -144,7 +118,7 @@ class QueryPlanFactoryTest {
     Statement query = new Query(plan, 10, queryType);
     assertThrows(
         UnsupportedCursorRequestException.class,
-        () -> factory.create(query, Optional.of(queryListener), Optional.empty()));
+        () -> factory.create(query, queryListener, explainListener));
   }
 
   @Test
