@@ -109,13 +109,6 @@ public class DateTimeFormatters {
   public static final DateTimeFormatter SQL_LITERAL_DATE_TIME_FORMAT =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-  public static final DateTimeFormatter DATE_TIME_FORMATTER =
-      new DateTimeFormatterBuilder()
-          .appendOptional(SQL_LITERAL_DATE_TIME_FORMAT)
-          .appendOptional(STRICT_DATE_OPTIONAL_TIME_FORMATTER)
-          .appendOptional(STRICT_HOUR_MINUTE_SECOND_FORMATTER)
-          .toFormatter();
-
   /** todo. only support timestamp in format yyyy-MM-dd HH:mm:ss. */
   public static final DateTimeFormatter DATE_TIME_FORMATTER_WITHOUT_NANO =
       SQL_LITERAL_DATE_TIME_FORMAT;

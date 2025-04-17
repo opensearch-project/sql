@@ -1,0 +1,22 @@
+{
+  "query.settings": {
+    "documentation": {
+      "url": "https://github.com/opensearch-project/sql/blob/main/docs/user/admin/settings.rst",
+      "description": "Query Settings"
+    },
+    "stability" : "stable",
+    "url": {
+      "paths": [
+        {
+          "path" : "/_plugins/_query/settings",
+          "methods" : ["PUT"]
+        }
+      ]
+    },
+    "params": {},
+    "body": {
+      "description": "Query Settings",
+      "required":true
+    }
+  }
+}

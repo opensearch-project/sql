@@ -231,6 +231,8 @@ Most of the time you just need to run ./gradlew build which will make sure you p
      - Run all unit tests.
    * - ./gradlew :integ-test:integTest
      - Run all integration test (this takes time).
+   * - ./gradlew :integ-test:yamlRestTest
+     - Run rest integration test.
    * - ./gradlew :doctest:doctest
      - Run doctests
    * - ./gradlew build
