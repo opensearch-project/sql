@@ -21,6 +21,7 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
@@ -34,6 +35,7 @@ import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
@@ -491,6 +493,23 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     public String visitExistsSubquery(ExistsSubquery node, String context) {
       String subquery = queryAnonymizer.anonymizeData(node.getQuery());
       return StringUtils.format("exists [ %s ]", subquery);
+    }
+
+    @Override
+    public String visitCase(Case node, String context) {
+      StringBuilder builder = new StringBuilder();
+      builder.append("cast(");
+      for (When when : node.getWhenClauses()) {
+        builder.append(analyze(when.getCondition(), context));
+        builder.append(",");
+        builder.append(analyze(when.getResult(), context));
+        builder.append(",");
+      }
+      builder.deleteCharAt(builder.lastIndexOf(","));
+      builder.append(" else ");
+      builder.append(analyze(node.getElseClause(), context));
+      builder.append(")");
+      return builder.toString();
     }
 
     @Override
