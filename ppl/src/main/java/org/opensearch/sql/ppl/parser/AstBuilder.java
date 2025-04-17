@@ -117,14 +117,14 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedPlan pplCommand = visit(ctx.pplCommands());
     return ctx.commands().stream()
         .map(this::visit)
-        .reduce(pplCommand, (r, e) -> e.attach(e instanceof Join ? addAllFieldsExcludeMeta(r) : r));
+        .reduce(pplCommand, (r, e) -> e.attach(e instanceof Join ? projectExceptMeta(r) : r));
   }
 
   @Override
   public UnresolvedPlan visitSubSearch(OpenSearchPPLParser.SubSearchContext ctx) {
     UnresolvedPlan searchCommand = visit(ctx.searchCommand());
     // Exclude metadata fields for subquery
-    return addAllFieldsExcludeMeta(
+    return projectExceptMeta(
         ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r)));
   }
 
@@ -211,7 +211,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             ? Optional.empty()
             : Optional.of(expressionBuilder.visitJoinCriteria(ctx.joinCriteria()));
     return new Join(
-        addAllFieldsExcludeMeta(right), leftAlias, rightAlias, joinType, joinCondition, joinHint);
+        projectExceptMeta(right), leftAlias, rightAlias, joinType, joinCondition, joinHint);
   }
 
   private Join.JoinHint getJoinHint(OpenSearchPPLParser.JoinHintListContext ctx) {
@@ -623,7 +623,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    * @param plan The input plan needs to be wrapped with a project
    * @return The wrapped plan of the input plan, i.e., project(plan)
    */
-  private UnresolvedPlan addAllFieldsExcludeMeta(UnresolvedPlan plan) {
+  private UnresolvedPlan projectExceptMeta(UnresolvedPlan plan) {
     if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
       return plan;
     } else {
