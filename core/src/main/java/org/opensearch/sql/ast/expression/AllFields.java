@@ -49,7 +49,14 @@ public class AllFields extends UnresolvedExpression {
     return nodeVisitor.visitAllFields(this, context);
   }
 
-  public UnresolvedPlan apply(UnresolvedPlan plan) {
+  /**
+   * Try to wrap the plan with a project node of this AllFields expression. Only wrap it if the plan
+   * is not a project node or if the project is type of excluded.
+   *
+   * @param plan The input plan needs to be wrapped with a project
+   * @return The wrapped plan of the input plan, i.e., project(plan)
+   */
+  public UnresolvedPlan wrapProjectIfNecessary(UnresolvedPlan plan) {
     if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
       return plan;
     } else {

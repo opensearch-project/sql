@@ -38,7 +38,7 @@ public class Join extends UnresolvedPlan {
       Optional<UnresolvedExpression> joinCondition,
       JoinHint joinHint) {
     // Exclude metadata fields for join since they're meaningless for a new record
-    this.right = AllFields.excludeMeta().apply(apply);
+    this.right = AllFields.excludeMeta().wrapProjectIfNecessary(apply);
     this.leftAlias = leftAlias;
     this.rightAlias = rightAlias;
     this.joinType = joinType;
@@ -51,7 +51,8 @@ public class Join extends UnresolvedPlan {
     // Exclude metadata fields for join since they're meaningless for a new record
     this.left =
         AllFields.excludeMeta()
-            .apply(leftAlias.isEmpty() ? child : new SubqueryAlias(leftAlias.get(), child));
+            .wrapProjectIfNecessary(
+                leftAlias.isEmpty() ? child : new SubqueryAlias(leftAlias.get(), child));
     return this;
   }
 

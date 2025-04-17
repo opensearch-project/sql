@@ -92,6 +92,23 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
                    """,
                         TEST_INDEX_STATE_COUNTRY)));
     assertEquals("Cannot use metadata field [_id] in Rename command.", e.getMessage());
+
+    // Test rename to _ID, which is allowed as metadata fields name is case-sensitive
+    JSONObject result =
+        executeQuery(
+            String.format(
+                """
+                   source = %s | rename age as _ID
+                   """,
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("_ID", "integer"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("year", "integer"),
+        schema("month", "integer"));
   }
 
   @Test

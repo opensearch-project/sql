@@ -49,6 +49,6 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   }
 
   private UnresolvedPlan addSelectAll(UnresolvedPlan plan) {
-    return AllFields.of().apply(plan);
+    return AllFields.of().wrapProjectIfNecessary(plan);
   }
 }

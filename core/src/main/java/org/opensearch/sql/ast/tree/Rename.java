@@ -26,19 +26,19 @@ public class Rename extends UnresolvedPlan {
   public Rename(List<Map> renameList, UnresolvedPlan child) {
     this.renameList = renameList;
     this.child = child;
-    checkRename();
+    validate();
   }
 
   public Rename(List<Map> renameList) {
     this.renameList = renameList;
-    checkRename();
+    validate();
   }
 
-  private void checkRename() {
-    renameList.forEach(rename -> checkFieldName(rename.getTarget()));
+  private void validate() {
+    renameList.forEach(rename -> validate(rename.getTarget()));
   }
 
-  private void checkFieldName(UnresolvedExpression expr) {
+  private void validate(UnresolvedExpression expr) {
     if (expr instanceof Field field) {
       String name = field.getField().toString();
       if (OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(name)) {

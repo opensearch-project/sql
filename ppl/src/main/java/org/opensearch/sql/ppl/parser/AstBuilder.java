@@ -123,7 +123,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedPlan searchCommand = visit(ctx.searchCommand());
     // Exclude metadata fields for subquery
     return AllFields.excludeMeta()
-        .apply(
+        .wrapProjectIfNecessary(
             ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r)));
   }
 

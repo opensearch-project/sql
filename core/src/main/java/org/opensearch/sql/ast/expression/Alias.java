@@ -42,12 +42,17 @@ public class Alias extends UnresolvedExpression {
     this(name, expr, alias, false);
   }
 
-  public Alias(String name, UnresolvedExpression expr, boolean metaMetaFieldAllowed) {
-    this(name, expr, null, metaMetaFieldAllowed);
+  public Alias(String name, UnresolvedExpression expr, boolean metaDataFieldAllowed) {
+    this(name, expr, null, metaDataFieldAllowed);
   }
 
-  public Alias(String name, UnresolvedExpression expr, String alias, boolean metaMetaFieldAllowed) {
-    if (!metaMetaFieldAllowed && OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(name)) {
+  /**
+   * @param metadataFieldAllowed Whether do we allow metadata field as alias name. Should Only be
+   *     true for SQL, see {@link Alias::newAliasAllowMetaMetaField}
+   */
+  private Alias(
+      String name, UnresolvedExpression expr, String alias, boolean metadataFieldAllowed) {
+    if (!metadataFieldAllowed && OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(name)) {
       throw new IllegalArgumentException(
           String.format("Cannot use metadata field [%s] as the alias.", name));
     }
