@@ -37,6 +37,27 @@ public class CalcitePPLCaseFunctionTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testCaseWhenNoElse() {
+    String ppl =
+        "source=EMP | eval a = case(DEPTNO >= 20 AND DEPTNO < 30, 'A', DEPTNO >= 30 AND DEPTNO <"
+            + " 40, 'B', DEPTNO >= 40 AND DEPTNO < 50, 'C', DEPTNO >= 50 AND DEPTNO < 60, 'D') |"
+            + " fields a";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(a=[CASE(SEARCH($7, Sarg[[20..30)]), 'A', SEARCH($7, Sarg[[30..40)]), 'B',"
+            + " SEARCH($7, Sarg[[40..50)]), 'C', SEARCH($7, Sarg[[50..60)]), 'D', null:NULL)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedSparkSql =
+        "SELECT CASE WHEN `DEPTNO` >= 20 AND `DEPTNO` < 30 THEN 'A' WHEN `DEPTNO` >= 30 AND"
+            + " `DEPTNO` < 40 THEN 'B' WHEN `DEPTNO` >= 40 AND `DEPTNO` < 50 THEN 'C' WHEN `DEPTNO`"
+            + " >= 50 AND `DEPTNO` < 60 THEN 'D' ELSE NULL END `a`\n"
+            + "FROM `scott`.`EMP`";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testCaseWhenInFilter() {
     String ppl =
         "source=EMP | where not true = case(DEPTNO in (20, 21), true, DEPTNO in (30, 31), false,"

@@ -299,6 +299,12 @@ public class PPLQueryDataAnonymizerTest {
         anonymize(
             "source=t | eval level=CASE(score >= 90, 'A', score >= 80 AND score < 90, 'B' else 'C')"
                 + " | fields level"));
+    assertEquals(
+        "source=t | eval level=cast(score >= ***,***,score >= *** and score < ***,***) | fields +"
+            + " level",
+        anonymize(
+            "source=t | eval level=CASE(score >= 90, 'A', score >= 80 AND score < 90, 'B')"
+                + " | fields level"));
   }
 
   @Test

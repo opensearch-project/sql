@@ -47,6 +47,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -250,15 +251,13 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
                   return new When(condition, result);
                 })
             .collect(Collectors.toList());
-    UnresolvedExpression elseValue = new Literal(null, DataType.NULL);
-    if (ctx.caseFunction().valueExpression().size()
-        > ctx.caseFunction().logicalExpression().size()) {
-      // else value is present
+    UnresolvedExpression elseValue = null;
+    if (ctx.caseFunction().ELSE() != null) {
       elseValue =
           visit(
               ctx.caseFunction().valueExpression(ctx.caseFunction().valueExpression().size() - 1));
     }
-    return new Case(null, whens, elseValue);
+    return new Case(null, whens, Optional.ofNullable(elseValue));
   }
 
   /** Eval function. */

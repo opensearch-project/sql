@@ -506,8 +506,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         builder.append(",");
       }
       builder.deleteCharAt(builder.lastIndexOf(","));
-      builder.append(" else ");
-      builder.append(analyze(node.getElseClause(), context));
+      node.getElseClause()
+          .ifPresent(
+              elseClause -> {
+                builder.append(" else ");
+                builder.append(analyze(elseClause, context));
+              });
       builder.append(")");
       return builder.toString();
     }
