@@ -25,7 +25,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.linq4j.tree.Expression;
@@ -33,6 +35,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ScalarFunction;
@@ -250,11 +253,49 @@ public class UserDefinedFunctionUtils {
 
   // TODO: pass the function properties directly to the UDF instead of string
   public static FunctionProperties restoreFunctionProperties(Object timestampStr) {
-    String expression = (String) timestampStr;
-    Instant parsed = Instant.parse(expression);
-    FunctionProperties functionProperties =
-        new FunctionProperties(parsed, ZoneId.systemDefault(), QueryType.PPL);
-    return functionProperties;
+    if (timestampStr instanceof String) {
+      String expression = (String) timestampStr;
+      Instant parsed = Instant.parse(expression);
+      FunctionProperties functionProperties =
+          new FunctionProperties(parsed, ZoneId.systemDefault(), QueryType.PPL);
+      return functionProperties;
+    } else if (timestampStr instanceof DataContext) {
+      DataContext dataContext = (DataContext) timestampStr;
+      long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(dataContext);
+      Instant instant =
+          Instant.ofEpochSecond(
+              currentTimeInNanos / 1_000_000_000, currentTimeInNanos % 1_000_000_000);
+      TimeZone timeZone = DataContext.Variable.TIME_ZONE.get(dataContext);
+      ZoneId zoneId = ZoneId.of(timeZone.getID());
+      FunctionProperties functionProperties =
+          new FunctionProperties(instant, zoneId, QueryType.PPL);
+      return functionProperties;
+    } else {
+      throw new IllegalArgumentException("wrong input type");
+    }
+  }
+
+  public static List<Expression> addTypeWithCurrentTimestamp(
+      List<Expression> candidate, RexCall rexCall, Expression root) {
+    List<Expression> newList = new ArrayList<>(candidate);
+    for (RexNode rexNode : rexCall.getOperands()) {
+      newList.add(Expressions.constant(transferDateRelatedTimeName(rexNode)));
+    }
+    newList.add(root);
+    return newList;
+  }
+
+  public static List<Expression> buildArgsWithTypesForExpression(
+      List<Expression> candidate, RexCall rexCall, Expression root, int... indexes) {
+    List<Expression> result = new ArrayList<>();
+    List<RexNode> operands = rexCall.getOperands();
+    for (int index : indexes) {
+      Expression arg = candidate.get(index);
+      result.add(arg);
+      result.add(Expressions.constant(transferDateRelatedTimeName(operands.get(index))));
+    }
+    result.add(root);
+    return result;
   }
 
   public static Object toInternal(Object obj, SqlTypeName type) {
@@ -293,9 +334,9 @@ public class UserDefinedFunctionUtils {
   }
 
   /**
-   * Convert java objects to ExprValue, so that the parameters fit the expr function signature.
-   * It invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue.
-   * Note that date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
+   * Convert java objects to ExprValue, so that the parameters fit the expr function signature. It
+   * invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue. Note that
+   * date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
    *
    * @param operands the operands to convert
    * @return the converted operands
@@ -308,9 +349,10 @@ public class UserDefinedFunctionUtils {
   }
 
   /**
-   * Adapt a static expr method to a UserDefinedFunctionBuilder.
-   * It first converts the operands to ExprValue, then calls the method, and finally converts the result to
-   * values recognizable by Calcite by calling exprValue.valueForCalcite.
+   * Adapt a static expr method to a UserDefinedFunctionBuilder. It first converts the operands to
+   * ExprValue, then calls the method, and finally converts the result to values recognizable by
+   * Calcite by calling exprValue.valueForCalcite.
+   *
    * @param type the class containing the static method
    * @param methodName the name of the method
    * @param returnTypeInference the return type inference of the UDF
