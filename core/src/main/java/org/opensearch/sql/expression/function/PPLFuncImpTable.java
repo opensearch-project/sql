@@ -6,7 +6,7 @@
 package org.opensearch.sql.expression.function;
 
 import static java.lang.Math.E;
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+import static org.apache.calcite.sql.type.SqlTypeFamily.IGNORE;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ABS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ACOS;
@@ -67,6 +67,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TYPEOF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
+import static org.opensearch.sql.expression.function.PPLTypeChecker.family;
+import static org.opensearch.sql.expression.function.PPLTypeChecker.familyWrapper;
 
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
@@ -83,6 +85,9 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
+import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.executor.QueryType;
@@ -90,23 +95,21 @@ import org.opensearch.sql.executor.QueryType;
 public class PPLFuncImpTable {
 
   public interface FunctionImp {
-    RelDataType ANY_TYPE = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
-
     RexNode resolve(RexBuilder builder, RexNode... args);
 
     /**
-     * @return the list of parameters. Default return null implies unknown parameters {@link
+     * @return the PPLTypeChecker. Default return null implies unknown parameters {@link
      *     CalciteFuncSignature} won't check parameters if it's null
      */
-    default List<RelDataType> getParams() {
+    default PPLTypeChecker getTypeChecker() {
       return null;
     }
   }
 
   public interface FunctionImp1 extends FunctionImp {
-    List<RelDataType> ANY_TYPE_1 = List.of(ANY_TYPE);
-
     RexNode resolve(RexBuilder builder, RexNode arg1);
+
+    PPLTypeChecker IGNORE_1 = family(IGNORE);
 
     @Override
     default RexNode resolve(RexBuilder builder, RexNode... args) {
@@ -117,13 +120,13 @@ public class PPLFuncImpTable {
     }
 
     @Override
-    default List<RelDataType> getParams() {
-      return ANY_TYPE_1;
+    default PPLTypeChecker getTypeChecker() {
+      return IGNORE_1;
     }
   }
 
   public interface FunctionImp2 extends FunctionImp {
-    List<RelDataType> ANY_TYPE_2 = List.of(ANY_TYPE, ANY_TYPE);
+    PPLTypeChecker IGNORE_2 = family(IGNORE, IGNORE);
 
     RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2);
 
@@ -136,8 +139,8 @@ public class PPLFuncImpTable {
     }
 
     @Override
-    default List<RelDataType> getParams() {
-      return ANY_TYPE_2;
+    default PPLTypeChecker getTypeChecker() {
+      return IGNORE_2;
     }
   }
 
@@ -207,8 +210,26 @@ public class PPLFuncImpTable {
     abstract void register(BuiltinFunctionName functionName, FunctionImp functionImp);
 
     void registerOperator(BuiltinFunctionName functionName, SqlOperator operator) {
-      register(
-          functionName, (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
+      SqlOperandTypeChecker typeChecker = operator.getOperandTypeChecker();
+      if (typeChecker instanceof ImplicitCastOperandTypeChecker innerTypeChecker) {
+        FunctionImp func =
+            new FunctionImp() {
+              @Override
+              public RexNode resolve(RexBuilder builder, RexNode... args) {
+                return builder.makeCall(operator, args);
+              }
+
+              @Override
+              public PPLTypeChecker getTypeChecker() {
+                return familyWrapper(innerTypeChecker);
+              }
+            };
+        register(functionName, func);
+      } else {
+        register(
+            functionName,
+            (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
+      }
     }
 
     void populate() {
@@ -333,7 +354,7 @@ public class PPLFuncImpTable {
     @Override
     void register(BuiltinFunctionName functionName, FunctionImp implement) {
       CalciteFuncSignature signature =
-          new CalciteFuncSignature(functionName.getName(), implement.getParams());
+          new CalciteFuncSignature(functionName.getName(), implement.getTypeChecker());
       if (map.containsKey(functionName)) {
         map.get(functionName).add(signature, implement);
       } else {
@@ -353,9 +374,9 @@ public class PPLFuncImpTable {
     }
 
     @Override
-    public List<RelDataType> getParams() {
-      RelDataType boolType = TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN);
-      return List.of(boolType, boolType);
+    public PPLTypeChecker getTypeChecker() {
+      SqlTypeFamily booleanFamily = SqlTypeName.BOOLEAN.getFamily();
+      return family(booleanFamily, booleanFamily);
     }
   }
 }
