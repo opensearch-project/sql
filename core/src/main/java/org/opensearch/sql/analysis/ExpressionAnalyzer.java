@@ -336,7 +336,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     }
 
     Expression defaultResult =
-        (node.getElseClause() == null) ? null : analyze(node.getElseClause(), context);
+        node.getElseClause().map(elseClause -> analyze(elseClause, context)).orElse(null);
     CaseClause caseClause = new CaseClause(whens, defaultResult);
 
     // To make this simple, require all result type same regardless of implicit convert
