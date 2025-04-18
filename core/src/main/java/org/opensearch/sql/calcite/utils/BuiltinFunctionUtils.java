@@ -35,16 +35,7 @@ import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.FromDaysFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.FromUnixTimestampFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.GetFormatFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.LastDayFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.MakeDateFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.MakeTimeFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodAddFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.SecondToTimeFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.StrToDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.SysdateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeFunction;
@@ -82,24 +73,6 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(DateFunction.class, "DATE", dateInference);
       case "DATETIME":
         return TransferUserDefinedFunction(DatetimeFunction.class, "DATETIME", timestampInference);
-      case "FROM_DAYS":
-        return TransferUserDefinedFunction(FromDaysFunction.class, "FROM_DAYS", dateInference);
-      case "GET_FORMAT":
-        return TransferUserDefinedFunction(
-            GetFormatFunction.class, "GET_FORMAT", VARCHAR_FORCE_NULLABLE);
-      case "MAKETIME":
-        return TransferUserDefinedFunction(MakeTimeFunction.class, "MAKETIME", timeInference);
-      case "MAKEDATE":
-        return TransferUserDefinedFunction(MakeDateFunction.class, "MAKEDATE", dateInference);
-      case "PERIOD_ADD":
-        return TransferUserDefinedFunction(
-            PeriodAddFunction.class, "PERIOD_ADD", ReturnTypes.INTEGER);
-      case "PERIOD_DIFF":
-        return TransferUserDefinedFunction(
-            PeriodDiffFunction.class, "PERIOD_DIFF", ReturnTypes.INTEGER);
-      case "STR_TO_DATE":
-        return TransferUserDefinedFunction(
-            StrToDateFunction.class, "STR_TO_DATE", timestampInference);
       case "WEEK", "WEEK_OF_YEAR":
         // WEEK in PPL support an additional mode argument, therefore we need to use a custom
         // implementation.
@@ -115,8 +88,6 @@ public interface BuiltinFunctionUtils {
       case "NULLIF":
         return TransferUserDefinedFunction(
             NullIfFunction.class, "nullif", ReturnTypes.ARG0_FORCE_NULLABLE);
-      case "LAST_DAY":
-        return TransferUserDefinedFunction(LastDayFunction.class, "LAST_DAY", dateInference);
       case "UNIX_TIMESTAMP":
         return TransferUserDefinedFunction(
             UnixTimeStampFunction.class, "unix_timestamp", ReturnTypes.DOUBLE);
@@ -149,11 +120,6 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(YearFunction.class, capitalOP, INTEGER_FORCE_NULLABLE);
       case "YEARWEEK":
         return TransferUserDefinedFunction(YearWeekFunction.class, "YEARWEEK", ReturnTypes.INTEGER);
-      case "FROM_UNIXTIME":
-        return TransferUserDefinedFunction(
-            FromUnixTimestampFunction.class,
-            "FROM_UNIXTIME",
-            FromUnixTimestampFunction.interReturnTypes());
       case "WEEKDAY":
         return TransferUserDefinedFunction(WeekDayFunction.class, "WEEKDAY", ReturnTypes.INTEGER);
       case "UTC_TIMESTAMP":
@@ -242,10 +208,6 @@ public interface BuiltinFunctionUtils {
             argList.getFirst(),
             woyMode,
             context.rexBuilder.makeFlag(argList.getFirst().getType().getSqlTypeName()));
-      case "STR_TO_DATE":
-        List<RexNode> strToDateArgs = new ArrayList<>(argList);
-        strToDateArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
-        return strToDateArgs;
       case "DATETIME":
         // Convert timestamp to a string to reuse OS PPL V2's implementation
         RexNode argTimestamp = argList.getFirst();

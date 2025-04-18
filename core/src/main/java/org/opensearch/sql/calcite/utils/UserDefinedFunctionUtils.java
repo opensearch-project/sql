@@ -10,10 +10,13 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -22,10 +25,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
@@ -44,9 +53,13 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.UserDefinedFunction;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class UserDefinedFunctionUtils {
   public static SqlReturnTypeInference INTEGER_FORCE_NULLABLE =
@@ -242,5 +255,127 @@ public class UserDefinedFunctionUtils {
     FunctionProperties functionProperties =
         new FunctionProperties(parsed, ZoneId.systemDefault(), QueryType.PPL);
     return functionProperties;
+  }
+
+  public static Object toInternal(Object obj, SqlTypeName type) {
+    // TODO: This implementation is problematic, as strings in input will not be
+    //  converted to date/time/timestamp, and it's not possible to known when
+    //  to convert. Therefore, it can not handle functions where it accepts
+    //  date/time/timestamp/string as input.
+    if (type.equals(SqlTypeName.DATE)
+        || type.equals(SqlTypeName.TIME)
+        || type.equals(SqlTypeName.TIMESTAMP)) {
+      ExprValue value = DateTimeApplyUtils.transferInputToExprValue(obj, type);
+      return switch (type) {
+        case SqlTypeName.DATE -> SqlFunctions.toInt(java.sql.Date.valueOf(value.dateValue()));
+        case SqlTypeName.TIME -> SqlFunctions.toInt(java.sql.Time.valueOf(value.timeValue()));
+        case SqlTypeName.TIMESTAMP -> SqlFunctions.toLong(
+            java.sql.Timestamp.from(value.timestampValue()));
+        default -> throw new IllegalStateException("Unexpected type: " + type);
+      };
+    }
+    return obj;
+  }
+
+  public static Object fromInternal(Object obj, SqlTypeName type) {
+    if (type.equals(SqlTypeName.DATE)) {
+      LocalDate localDate = SqlFunctions.internalToDate((int) obj).toLocalDate();
+      return ExprValueUtils.dateValue(localDate).valueForCalcite();
+    } else if (type.equals(SqlTypeName.TIME)) {
+      LocalTime localTime = SqlFunctions.internalToTime((int) obj).toLocalTime();
+      return ExprValueUtils.timeValue(localTime).valueForCalcite();
+    } else if (type.equals(SqlTypeName.TIMESTAMP)) {
+      LocalDateTime localDateTime = SqlFunctions.internalToTimestamp((long) obj).toLocalDateTime();
+      return ExprValueUtils.timestampValue(localDateTime.toInstant(ZoneOffset.UTC))
+          .valueForCalcite();
+    }
+    return obj;
+  }
+
+  /**
+   * Convert java objects to ExprValue, so that the parameters fit the expr function signature.
+   * It invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue.
+   * Note that date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
+   *
+   * @param operands the operands to convert
+   * @return the converted operands
+   */
+  public static List<Expression> convertToExprTypes(List<Expression> operands) {
+    return operands.stream()
+        .map(operand -> Expressions.convert_(operand, Object.class)) // Eliminate primitive types
+        .map(operand -> Expressions.call(ExprValueUtils.class, "fromObjectValue", operand))
+        .collect(Collectors.toUnmodifiableList());
+  }
+
+  /**
+   * Adapt a static expr method to a UserDefinedFunctionBuilder.
+   * It first converts the operands to ExprValue, then calls the method, and finally converts the result to
+   * values recognizable by Calcite by calling exprValue.valueForCalcite.
+   * @param type the class containing the static method
+   * @param methodName the name of the method
+   * @param returnTypeInference the return type inference of the UDF
+   * @param nullPolicy the null policy of the UDF
+   * @return an adapted ImplementorUDF with the expr method, which is a UserDefinedFunctionBuilder
+   */
+  public static ImplementorUDF adaptExprMethodToUDF(
+      java.lang.reflect.Type type,
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy) {
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          List<Expression> operands = convertToExprTypes(translatedOperands);
+          Expression exprResult = Expressions.call(type, methodName, operands);
+          return Expressions.call(exprResult, "valueForCalcite");
+        };
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+    };
+  }
+
+  public static ImplementorUDF adaptSqlMethodToUDF(
+      Method method,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy,
+      Class<?>... parameterTypes) {
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          List<Expression> operands = new ArrayList<>();
+          for (int i = 0; i < call.getOperands().size(); i++) {
+            RelDataType operandRelType = call.getOperands().get(i).getType();
+            SqlTypeName operandType =
+                OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(operandRelType);
+            Class<?> operandClass = parameterTypes[i];
+            operands.add(
+                Expressions.convert_(
+                    Expressions.call(
+                        UserDefinedFunctionUtils.class,
+                        "toInternal",
+                        Expressions.convert_(translatedOperands.get(i), Object.class),
+                        Expressions.constant(operandType)),
+                    operandClass));
+          }
+
+          Expression result = Expressions.call(method, operands.toArray(new Expression[0]));
+
+          SqlTypeName returnType =
+              OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(call.getType());
+
+          return Expressions.call(
+              UserDefinedFunctionUtils.class,
+              "fromInternal",
+              Expressions.convert_(result, Object.class),
+              Expressions.constant(returnType));
+        };
+
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+    };
   }
 }

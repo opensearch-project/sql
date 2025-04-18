@@ -338,7 +338,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testUnixTimeStampTwoArgument() {
+  public void testFromUnixTimeTwoArgument() {
     JSONObject actual =
         executeQuery(
             String.format(

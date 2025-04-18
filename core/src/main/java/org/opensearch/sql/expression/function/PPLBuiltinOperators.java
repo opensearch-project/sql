@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexImpTable.RexCallImplementor;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -15,7 +16,9 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ConvertTZFunctionImpl;
@@ -25,8 +28,11 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.DatePartFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DiffFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.FormatFunctionImpl;
+import org.opensearch.sql.calcite.udf.datetimeUDF.FromUnixTimeFunctionImpl;
+import org.opensearch.sql.calcite.udf.datetimeUDF.LastDayFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.MinuteOfDayFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodNameFunctionImpl;
+import org.opensearch.sql.calcite.udf.datetimeUDF.StrToDateFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32FunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunctionImpl;
@@ -36,6 +42,8 @@ import org.opensearch.sql.calcite.udf.mathUDF.ModFunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunctionImpl;
 import org.opensearch.sql.calcite.udf.textUDF.LocateFunctionImpl;
 import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunctionImpl;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
@@ -125,6 +133,53 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator DATEDIFF = DiffFunctionImpl.datediff().toUDF("DATEDIFF");
   public static final SqlOperator TIMESTAMPDIFF =
       DiffFunctionImpl.timestampdiff().toUDF("TIMESTAMPDIFF");
+  public static final SqlOperator LAST_DAY = new LastDayFunctionImpl().toUDF("LAST_DAY");
+  public static final SqlOperator FROM_DAYS =
+      UserDefinedFunctionUtils.adaptExprMethodToUDF(
+              DateTimeFunctions.class,
+              "exprFromDays",
+              op -> UserDefinedFunctionUtils.nullableDateUDT,
+              NullPolicy.ANY)
+          .toUDF("FROM_DAYS");
+  public static final SqlOperator FROM_UNIXTIME =
+      new FromUnixTimeFunctionImpl().toUDF("FROM_UNIXTIME");
+  public static final SqlOperator GET_FORMAT =
+      UserDefinedFunctionUtils.adaptExprMethodToUDF(
+              DateTimeFunctions.class,
+              "exprGetFormat",
+              ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+              NullPolicy.ANY)
+          .toUDF("GET_FORMAT");
+  public static final SqlOperator MAKEDATE =
+      UserDefinedFunctionUtils.adaptExprMethodToUDF(
+              DateTimeFunctions.class,
+              "exprMakeDate",
+              op -> UserDefinedFunctionUtils.nullableDateUDT,
+              NullPolicy.ANY)
+          .toUDF("MAKEDATE");
+  public static final SqlOperator MAKETIME =
+      UserDefinedFunctionUtils.adaptExprMethodToUDF(
+              DateTimeFunctions.class,
+              "exprMakeTime",
+              op -> UserDefinedFunctionUtils.nullableTimeUDT,
+              NullPolicy.ANY)
+          .toUDF("MAKETIME");
+  public static final SqlOperator PERIOD_DIFF =
+      UserDefinedFunctionUtils.adaptExprMethodToUDF(
+              DateTimeFunctions.class,
+              "exprPeriodDiff",
+              ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+              NullPolicy.ANY)
+          .toUDF("PERIOD_DIFF");
+  public static final SqlOperator PERIOD_ADD =
+      UserDefinedFunctionUtils.adaptExprMethodToUDF(
+              DateTimeFunctions.class,
+              "exprPeriodAdd",
+              ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE),
+              NullPolicy.ANY)
+          .toUDF("PERIOD_ADD");
+  public static final SqlOperator STR_TO_DATE = new StrToDateFunctionImpl().toUDF("STR_TO_DATE");
+
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
