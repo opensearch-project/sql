@@ -1,0 +1,3 @@
+,query,expected_status,,,,
+,"source=opensearch_dashboards_sample_data_flights | patterns FlightDelayType","SUCCESS",,,
+,"source=opensearch_dashboards_sample_data_flights_2 | patterns FlightDelayType","FAILED",,,
