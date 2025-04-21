@@ -24,7 +24,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(ENAME=[$1], patterns_field=[REGEXP_REPLACE($1, '[a-zA-Z0-9]')])\n"
+        "LogicalProject(ENAME=[$1], patterns_field=[REGEXP_REPLACE($1, '[a-zA-Z0-9]':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -41,7 +41,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(ENAME=[$1], patterns_field=[REGEXP_REPLACE($1, '[A-H]')])\n"
+        "LogicalProject(ENAME=[$1], patterns_field=[REGEXP_REPLACE($1, '[A-H]':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -60,7 +60,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(ENAME=[$1], new_range=[REGEXP_REPLACE($1, '[A-H]')])\n"
+        "LogicalProject(ENAME=[$1], new_range=[REGEXP_REPLACE($1, '[A-H]':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
