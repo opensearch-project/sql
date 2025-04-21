@@ -7,7 +7,6 @@ package org.opensearch.sql.calcite;
 
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
@@ -22,7 +21,9 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
@@ -54,7 +55,6 @@ import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessDateToStringFunction;
-import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -206,7 +206,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           TransferUserDefinedFunction(
               PostprocessDateToStringFunction.class,
               "PostprocessDateToString",
-              VARCHAR_FORCE_NULLABLE);
+                  ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE));
       RexNode transferredStringNode =
           context.rexBuilder.makeCall(
               postToStringNode,
@@ -340,19 +340,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     if (resolvedNode != null) {
       return resolvedNode;
     }
+    throw new IllegalArgumentException("Unsupported operator: " + node.getFuncName());
     // TODO: Remove below code after migrating all functions to PPLFuncImpTable,
     //  https://github.com/opensearch-project/sql/issues/3524
-    SqlOperator operator = BuiltinFunctionUtils.translate(node.getFuncName());
-    List<RexNode> translatedArguments =
-        BuiltinFunctionUtils.translateArgument(
-            node.getFuncName(),
-            arguments,
-            context,
-            context.functionProperties.getQueryStartClock().instant().toString());
-    RelDataType returnType =
-        BuiltinFunctionUtils.deriveReturnType(
-            node.getFuncName(), context.rexBuilder, operator, translatedArguments);
-    return context.rexBuilder.makeCall(returnType, operator, translatedArguments);
   }
 
   @Override

@@ -2186,7 +2186,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/Timestamp/String type.
    * @return ExprValue.
    */
-  private ExprValue exprWeekWithoutMode(ExprValue date) {
+  public static ExprValue exprWeekWithoutMode(ExprValue date) {
     return exprWeek(date, DEFAULT_WEEK_OF_YEAR_MODE);
   }
 

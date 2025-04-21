@@ -21,6 +21,9 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.conditionUDF.IfImpl;
+import org.opensearch.sql.calcite.udf.conditionUDF.IfNullImpl;
+import org.opensearch.sql.calcite.udf.conditionUDF.NullIfImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ConvertTZFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.CurrentFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunctionImpl;
@@ -55,6 +58,7 @@ import org.opensearch.sql.expression.function.datetimeUDF.UTCDateImpl;
 import org.opensearch.sql.expression.function.datetimeUDF.UTCTimeImpl;
 import org.opensearch.sql.expression.function.datetimeUDF.UTCTimestampImpl;
 import org.opensearch.sql.expression.function.datetimeUDF.UnixTimestampImpl;
+import org.opensearch.sql.expression.function.datetimeUDF.WeekImpl;
 import org.opensearch.sql.expression.function.datetimeUDF.WeekdayImpl;
 import org.opensearch.sql.expression.function.datetimeUDF.YearImpl;
 import org.opensearch.sql.expression.function.datetimeUDF.YearweekImpl;
@@ -79,7 +83,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator TIMESTAMP = new TimestampImpl().toUDF("TIMESTAMP");
   public static final SqlOperator UTC_TIME = new UTCTimeImpl().toUDF("UTC_TIME");
   public static final SqlOperator UTC_TIMESTAMP = new UTCTimestampImpl().toUDF("UTC_TIMESTAMP");
-  public static final SqlOperator UTC_DATE = new UTCDateImpl().toUDF("UTC_DATE");
+//  public static final SqlOperator UTC_DATE = new UTCDateImpl().toUDF("UTC_DATE");
   public static final SqlOperator DATE = new DateImpl().toUDF("DATE");
 //  public static final SqlOperator TIME = new TimeImpl().toUDF("TIME");
   public static final SqlOperator YEAR = new YearImpl().toUDF("YEAR");
@@ -220,6 +224,15 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator TIMESTAMPADD = new TimestampAddFunctionImpl().toUDF("TIMESTAMPADD");
   public static final SqlOperator TO_DAYS = UserDefinedFunctionUtils.adaptExprMethodToUDF(DateTimeFunctions.class, "exprToDays", ReturnTypes.BIGINT_FORCE_NULLABLE, NullPolicy.ARG0).toUDF("TO_DAYS");
   public static final SqlOperator DATETIME = new DatetimeFunctionImpl().toUDF("DATETIME");
+  public static final SqlOperator UTC_DATE = UserDefinedFunctionUtils.adaptExprMethodWithPropertiesToUDF(DateTimeFunctions.class, "exprUtcDate", op -> UserDefinedFunctionUtils.nullableDateUDT, NullPolicy.NONE).toUDF("UTC_DATE");
+
+  public static final SqlOperator WEEK = new WeekImpl().toUDF("WEEK");
+  public static final SqlOperator WEEK_OF_YEAR = new WeekImpl().toUDF("WEEK_OF_YEAR");
+  public static final SqlOperator WEEKOFYEAR = new WeekImpl().toUDF("WEEKOFYEAR");
+
+  public static final SqlOperator IF = new IfImpl().toUDF("IF");
+  public static final SqlOperator IFNULL = new IfNullImpl().toUDF("IFNULL");
+  public static final SqlOperator NULLIF = new NullIfImpl().toUDF("NULLIF");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

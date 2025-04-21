@@ -294,6 +294,13 @@ public class PPLFuncImpTable {
       registerOperator(TIME_TO_SEC, PPLBuiltinOperators.TIME_TO_SEC);
       registerOperator(TIMEDIFF, PPLBuiltinOperators.TIMEDIFF);
       registerOperator(TIMESTAMPADD, PPLBuiltinOperators.TIMESTAMPADD);
+      registerOperator(WEEK, PPLBuiltinOperators.WEEK);
+      registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK_OF_YEAR);
+      registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK_OF_YEAR);
+
+      registerOperator(IF, PPLBuiltinOperators.IF);
+      registerOperator(IFNULL, PPLBuiltinOperators.IFNULL);
+      registerOperator(NULLIF, PPLBuiltinOperators.NULLIF);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
