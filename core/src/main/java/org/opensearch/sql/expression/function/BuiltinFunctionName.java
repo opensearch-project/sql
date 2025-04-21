@@ -9,11 +9,13 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /** Builtin Function Name. */
 @Getter
+@AllArgsConstructor
 @RequiredArgsConstructor
 public enum BuiltinFunctionName {
   /** Mathematical Functions. */
@@ -204,8 +206,6 @@ public enum BuiltinFunctionName {
   SUBSTRING(FunctionName.of("substring")),
   TRIM(FunctionName.of("trim")),
   UPPER(FunctionName.of("upper")),
-  REGEXP_EXTRACT(FunctionName.of("regexp_extract")),
-  REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2")),
 
   /** Json Functions. */
   JSON_VALID(FunctionName.of("json_valid")),
@@ -269,9 +269,14 @@ public enum BuiltinFunctionName {
   MULTIMATCH(FunctionName.of("multimatch")),
   MULTIMATCHQUERY(FunctionName.of("multimatchquery")),
   WILDCARDQUERY(FunctionName.of("wildcardquery")),
-  WILDCARD_QUERY(FunctionName.of("wildcard_query"));
+  WILDCARD_QUERY(FunctionName.of("wildcard_query")),
+
+  /** Internal functions that are not exposed to customers. */
+  INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
+  INTERNAL_REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2"), true);
 
   private final FunctionName name;
+  private boolean isInternal;
 
   private static final Map<FunctionName, BuiltinFunctionName> ALL_NATIVE_FUNCTIONS;
 

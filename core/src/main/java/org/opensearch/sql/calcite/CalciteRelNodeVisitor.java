@@ -33,6 +33,7 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
@@ -269,7 +270,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                         context.rexBuilder,
                         ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod),
                         sourceField,
-                        context.rexBuilder.makeLiteral(pattern)))
+                        context.rexBuilder.makeLiteral(
+                            pattern,
+                            context
+                                .rexBuilder
+                                .getTypeFactory()
+                                .createSqlType(SqlTypeName.VARCHAR))))
             .toList();
     projectPlusOverriding(newFields, groupCandidates, context);
     return context.relBuilder.peek();

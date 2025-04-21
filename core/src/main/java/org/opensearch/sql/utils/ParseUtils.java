@@ -30,8 +30,8 @@ public class ParseUtils {
   // TODO: Support Grok parse method with correct function
   public static final Map<ParseMethod, BuiltinFunctionName> BUILTIN_FUNCTION_MAP =
       ImmutableMap.of(
-          ParseMethod.REGEX, BuiltinFunctionName.REGEXP_EXTRACT,
-          ParseMethod.PATTERNS, BuiltinFunctionName.REGEXP_REPLACE_2);
+          ParseMethod.REGEX, BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT,
+          ParseMethod.PATTERNS, BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_2);
 
   /**
    * Construct corresponding ParseExpression by {@link ParseMethod}.
