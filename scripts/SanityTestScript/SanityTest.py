@@ -6,7 +6,6 @@ import sys
 import requests
 import json
 import csv
-import time
 import logging
 from datetime import datetime
 import pandas as pd
@@ -20,7 +19,7 @@ Environment: python3
 
 Example to use this script:
 
-python SanityTest.py --base-url ${URL_ADDRESS} --username *** --password *** --input-csv test_queries.csv --output-file test_report --max-workers 2 --check-interval 10 --timeout 600
+python SanityTest.py --base-url ${URL_ADDRESS} --username *** --password *** --input-csv test_queries.csv --output-file test_report --max-workers 2
 
 The input file test_queries.csv should contain column: `query`
 
@@ -31,18 +30,16 @@ python SanityTest.py --help
 """
 
 class PPLTester:
-  def __init__(self, base_url, username, password, max_workers, check_interval, timeout, output_file, start_row, end_row, log_level):
+  def __init__(self, base_url, username, password, max_workers, timeout, output_file, start_row, end_row, log_level):
     self.base_url = base_url
     self.auth = HTTPBasicAuth(username, password)
     self.headers = { 'Content-Type': 'application/json' }
     self.max_workers = max_workers
-    self.check_interval = check_interval
     self.timeout = timeout
     self.output_file = output_file
     self.start = start_row - 1 if start_row else None
     self.end = end_row - 1 if end_row else None
     self.log_level = log_level
-    self.max_attempts = (int)(timeout / check_interval)
     self.logger = self._setup_logger()
     self.executor = ThreadPoolExecutor(max_workers=self.max_workers)
     self.thread_local = threading.local()
@@ -78,8 +75,7 @@ class PPLTester:
       "query": query,
     }
     try:
-      response = requests.post(url, auth=self.auth, headers=self.headers, json=payload)
-      print(response)
+      response = requests.post(url, auth=self.auth, headers=self.headers, json=payload, timeout=self.timeout)
       response_json = response.json()
       response.raise_for_status()
       return response_json
@@ -99,7 +95,7 @@ class PPLTester:
         "expected_status": expected_status,
         "status": "SUBMIT_FAILED",
         "check_status": "SUBMIT_FAILED" == expected_status if expected_status else None,
-        "error": submit_result["response"]["error"],
+        "error": submit_result["error"] if "error" in submit_result else submit_result["response"]["error"],
         "duration": 0,
         "start_time": start_time,
         "end_time": datetime.now()
@@ -187,7 +183,6 @@ def main():
   parser.add_argument("--input-csv", required=True, help="Path to the CSV file containing test queries")
   parser.add_argument("--output-file", required=True, help="Path to the output report file")
   parser.add_argument("--max-workers", type=int, default=2, help="optional, Maximum number of worker threads (default: 2)")
-  parser.add_argument("--check-interval", type=int, default=5, help="optional, Check interval in seconds (default: 5)")
   parser.add_argument("--timeout", type=int, default=600, help="optional, Timeout in seconds (default: 600)")
   parser.add_argument("--start-row", type=int, default=None, help="optional, The start row of the query to run, start from 1")
   parser.add_argument("--end-row", type=int, default=None, help="optional, The end row of the query to run, not included")
@@ -200,7 +195,6 @@ def main():
     username=args.username,
     password=args.password,
     max_workers=args.max_workers,
-    check_interval=args.check_interval,
     timeout=args.timeout,
     output_file=args.output_file,
     start_row=args.start_row,
