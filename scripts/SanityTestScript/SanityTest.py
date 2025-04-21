@@ -95,7 +95,11 @@ class PPLTester:
         "expected_status": expected_status,
         "status": "FAILED",
         "check_status": "FAILED" == expected_status if expected_status else None,
-        "error": submit_result["error"] if "error" in submit_result else submit_result["response"]["error"],
+        "error": {
+          "error_message": submit_result.get("error"),
+          "response_error": submit_result.get("response", {}).get("error")
+        },
+        # "error": submit_result["error"] if "error" in submit_result else submit_result["response"]["error"],
         "duration": 0,
         "start_time": start_time,
         "end_time": datetime.now()
