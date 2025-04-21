@@ -1,3 +1,4 @@
 ,query,expected_status,,,,
-,"source=opensearch_dashboards_sample_data_flights | patterns FlightDelayType","SUCCESS",,,
+,"source = http_logs | dedup 1 status | fields @timestamp, clientip, status, size | head 10","SUCCESS",,,
+,"source = http_logs | dedup status, size | head 10	",,,,
 ,"source=opensearch_dashboards_sample_data_flights_2 | patterns FlightDelayType","FAILED",,,
