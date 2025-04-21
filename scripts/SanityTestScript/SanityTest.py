@@ -93,8 +93,8 @@ class PPLTester:
         "query_name": seq_id,
         "query": query,
         "expected_status": expected_status,
-        "status": "SUBMIT_FAILED",
-        "check_status": "SUBMIT_FAILED" == expected_status if expected_status else None,
+        "status": "FAILED",
+        "check_status": "FAILED" == expected_status if expected_status else None,
         "error": submit_result["error"] if "error" in submit_result else submit_result["response"]["error"],
         "duration": 0,
         "start_time": start_time,
@@ -141,12 +141,14 @@ class PPLTester:
     successful_queries = sum(1 for r in self.test_results if r['status'] == 'SUCCESS')
     failed_queries = sum(1 for r in self.test_results if r['status'] == 'FAILED')
     submit_failed_queries = sum(1 for r in self.test_results if r['status'] == 'SUBMIT_FAILED')
+    check_failed_queries = sum(1 for r in self.test_results if r['check_status'] == False)
     timeout_queries = sum(1 for r in self.test_results if r['status'] == 'TIMEOUT')
 
     # Create report
     report = {
       "summary": {
         "total_queries": total_queries,
+        "check_failed": check_failed_queries,
         "successful_queries": successful_queries,
         "failed_queries": failed_queries,
         "submit_failed_queries": submit_failed_queries,
