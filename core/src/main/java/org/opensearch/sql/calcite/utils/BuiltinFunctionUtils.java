@@ -34,15 +34,8 @@ import org.opensearch.sql.calcite.udf.conditionUDF.IfFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.IfNullFunction;
 import org.opensearch.sql.calcite.udf.conditionUDF.NullIfFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.SecondToTimeFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.SysdateFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimeDiffFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeToSecondFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampAddFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.ToDaysFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ToSecondsFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UnixTimeStampFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.UtcDateFunction;
@@ -71,8 +64,6 @@ public interface BuiltinFunctionUtils {
         // Built-in Date Functions
       case "DATE":
         return TransferUserDefinedFunction(DateFunction.class, "DATE", dateInference);
-      case "DATETIME":
-        return TransferUserDefinedFunction(DatetimeFunction.class, "DATETIME", timestampInference);
       case "WEEK", "WEEK_OF_YEAR":
         // WEEK in PPL support an additional mode argument, therefore we need to use a custom
         // implementation.
@@ -91,12 +82,6 @@ public interface BuiltinFunctionUtils {
       case "UNIX_TIMESTAMP":
         return TransferUserDefinedFunction(
             UnixTimeStampFunction.class, "unix_timestamp", ReturnTypes.DOUBLE);
-      case "SYSDATE":
-        return TransferUserDefinedFunction(SysdateFunction.class, "SYSDATE", timestampInference);
-      case "TIME":
-        return TransferUserDefinedFunction(TimeFunction.class, "TIME", timeInference);
-      case "TIMEDIFF":
-        return TransferUserDefinedFunction(TimeDiffFunction.class, "TIMEDIFF", timeInference);
       case "TIME_TO_SEC":
         return TransferUserDefinedFunction(
             TimeToSecondFunction.class, "TIME_TO_SEC", ReturnTypes.BIGINT);
@@ -104,18 +89,9 @@ public interface BuiltinFunctionUtils {
         // return SqlLibraryOperators.TIMESTAMP;
         return TransferUserDefinedFunction(
             TimestampFunction.class, "timestamp", timestampInference);
-      case "TIMESTAMPADD":
-        // return SqlLibraryOperators.TIMESTAMP;
-        return TransferUserDefinedFunction(
-            TimestampAddFunction.class, "TIMESTAMPADD", timestampInference);
       case "TO_SECONDS":
         return TransferUserDefinedFunction(
             ToSecondsFunction.class, "TO_SECONDS", ReturnTypes.BIGINT);
-      case "TO_DAYS":
-        return TransferUserDefinedFunction(ToDaysFunction.class, "TO_DAYS", ReturnTypes.BIGINT);
-      case "SEC_TO_TIME":
-        return TransferUserDefinedFunction(
-            SecondToTimeFunction.class, "SEC_TO_TIME", timeInference);
       case "YEAR":
         return TransferUserDefinedFunction(YearFunction.class, capitalOP, INTEGER_FORCE_NULLABLE);
       case "YEARWEEK":
@@ -164,7 +140,7 @@ public interface BuiltinFunctionUtils {
             argList.get(0),
             context.rexBuilder.makeFlag(transferDateRelatedTimeName(argList.get(0))),
             context.rexBuilder.makeLiteral(currentTimestampStr));
-      case "TIMESTAMP", "TIMEDIFF", "TIME_TO_SEC", "TIME_FORMAT", "TO_SECONDS", "TO_DAYS":
+      case "TIMESTAMP", "TIME_TO_SEC", "TIME_FORMAT", "TO_SECONDS":
         List<RexNode> timestampArgs = new ArrayList<>(argList);
         timestampArgs.addAll(
             argList.stream()
@@ -180,12 +156,6 @@ public interface BuiltinFunctionUtils {
                 .collect(Collectors.toList()));
         weekdayArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
         return weekdayArgs;
-      case "TIMESTAMPADD":
-        List<RexNode> timestampAddArgs = new ArrayList<>(argList);
-        timestampAddArgs.add(
-            context.rexBuilder.makeFlag(argList.get(2).getType().getSqlTypeName()));
-        timestampAddArgs.add(context.rexBuilder.makeLiteral(currentTimestampStr));
-        return timestampAddArgs;
       case "TIME":
         return ImmutableList.of(
             argList.getFirst(),

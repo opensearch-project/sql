@@ -21,16 +21,18 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
-public interface DateTimeApplyUtils {
-  static Instant applyInterval(Instant base, Duration interval, boolean isAdd) {
+public final class DateTimeApplyUtils {
+  private DateTimeApplyUtils() {}
+
+  public static Instant applyInterval(Instant base, Duration interval, boolean isAdd) {
     return isAdd ? base.plus(interval) : base.minus(interval);
   }
 
-  static ExprValue transferInputToExprValue(Object candidate, SqlTypeName sqlTypeName) {
+  public static ExprValue transferInputToExprValue(Object candidate, SqlTypeName sqlTypeName) {
     return fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
   }
 
-  static ExprValue transferInputToExprTimestampValue(
+  public static ExprValue transferInputToExprTimestampValue(
       Object candidate, SqlTypeName sqlTypeName, FunctionProperties properties) {
     switch (sqlTypeName) {
       case TIME:
@@ -59,7 +61,7 @@ public interface DateTimeApplyUtils {
    * @param unit The unit of the temporal amount
    * @return A temporal amount value, can be either a Period or a Duration
    */
-  static TemporalAmount convertToTemporalAmount(long number, TimeUnit unit) {
+  public static TemporalAmount convertToTemporalAmount(long number, TimeUnit unit) {
     return switch (unit) {
       case YEAR -> Period.ofYears((int) number);
       case QUARTER -> Period.ofMonths((int) number * 3);
@@ -78,7 +80,7 @@ public interface DateTimeApplyUtils {
     };
   }
 
-  static ExprValue transferTimeToTimestamp(
+  public static ExprValue transferTimeToTimestamp(
       ExprValue candidate, FunctionProperties functionProperties) {
     return new ExprTimestampValue(((ExprTimeValue) candidate).timestampValue(functionProperties));
   }

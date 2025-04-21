@@ -278,6 +278,7 @@ public class PPLFuncImpTable {
       registerOperator(MONTHNAME, PPLBuiltinOperators.MONTHNAME);
       registerOperator(CONVERT_TZ, PPLBuiltinOperators.CONVERT_TZ);
       registerOperator(DATEDIFF, PPLBuiltinOperators.DATEDIFF);
+      registerOperator(DATETIME, PPLBuiltinOperators.DATETIME);
       registerOperator(TIMESTAMPDIFF, PPLBuiltinOperators.TIMESTAMPDIFF);
       registerOperator(LAST_DAY, PPLBuiltinOperators.LAST_DAY);
       registerOperator(FROM_DAYS, PPLBuiltinOperators.FROM_DAYS);
@@ -287,7 +288,12 @@ public class PPLFuncImpTable {
       registerOperator(MAKETIME, PPLBuiltinOperators.MAKETIME);
       registerOperator(PERIOD_ADD, PPLBuiltinOperators.PERIOD_ADD);
       registerOperator(PERIOD_DIFF, PPLBuiltinOperators.PERIOD_DIFF);
+      registerOperator(SEC_TO_TIME, PPLBuiltinOperators.SEC_TO_TIME);
       registerOperator(STR_TO_DATE, PPLBuiltinOperators.STR_TO_DATE);
+      registerOperator(SYSDATE, PPLBuiltinOperators.SYSDATE);
+      registerOperator(TIME_TO_SEC, PPLBuiltinOperators.TIME_TO_SEC);
+      registerOperator(TIMEDIFF, PPLBuiltinOperators.TIMEDIFF);
+      registerOperator(TIMESTAMPADD, PPLBuiltinOperators.TIMESTAMPADD);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.

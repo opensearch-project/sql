@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
@@ -341,11 +342,14 @@ public class UserDefinedFunctionUtils {
    * @param operands the operands to convert
    * @return the converted operands
    */
-  public static List<Expression> convertToExprTypes(List<Expression> operands) {
-    return operands.stream()
-        .map(operand -> Expressions.convert_(operand, Object.class)) // Eliminate primitive types
-        .map(operand -> Expressions.call(ExprValueUtils.class, "fromObjectValue", operand))
-        .collect(Collectors.toUnmodifiableList());
+  public static List<Expression> convertToExprValues(List<Expression> operands, List<RelDataType> types) {
+    List<SqlTypeName> sqlTypeNames = types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToSqlTypeName).toList();
+    List<Expression> exprValues = new ArrayList<>();
+    for (int i = 0; i < operands.size(); i++) {
+        Expression operand = Expressions.convert_(operands.get(i), Object.class);
+        exprValues.add(i, Expressions.call(DateTimeApplyUtils.class, "transferInputToExprValue", operand, Expressions.constant(sqlTypeNames.get(i))));
+    }
+    return exprValues;
   }
 
   /**
@@ -366,8 +370,41 @@ public class UserDefinedFunctionUtils {
       NullPolicy nullPolicy) {
     NotNullImplementor implementor =
         (translator, call, translatedOperands) -> {
-          List<Expression> operands = convertToExprTypes(translatedOperands);
+          List<Expression> operands = convertToExprValues(translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
           Expression exprResult = Expressions.call(type, methodName, operands);
+          return Expressions.call(exprResult, "valueForCalcite");
+        };
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+    };
+  }
+
+  private static List<Expression> prependTimestampAsProperty(
+      List<Expression> operands, RexToLixTranslator translator) {
+    List<Expression> operandsWithProperties = new ArrayList<>(operands);
+    Expression properties =
+        Expressions.call(
+            UserDefinedFunctionUtils.class,
+            "restoreFunctionProperties",
+            Expressions.convert_(translator.getRoot(), Object.class));
+    operandsWithProperties.addFirst(properties);
+    return Collections.unmodifiableList(operandsWithProperties);
+  }
+
+  public static ImplementorUDF adaptExprMethodWithPropertiesToUDF(
+      java.lang.reflect.Type type,
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy) {
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          List<Expression> operands = convertToExprValues(translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
+          List<Expression> operandsWithProperties =
+              prependTimestampAsProperty(operands, translator);
+          Expression exprResult = Expressions.call(type, methodName, operandsWithProperties);
           return Expressions.call(exprResult, "valueForCalcite");
         };
     return new ImplementorUDF(implementor, nullPolicy) {
