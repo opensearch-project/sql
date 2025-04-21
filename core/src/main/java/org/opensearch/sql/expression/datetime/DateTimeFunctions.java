@@ -1004,7 +1004,7 @@ public class DateTimeFunctions {
   private DefaultFunctionResolver utc_timestamp() {
     return define(
         BuiltinFunctionName.UTC_TIMESTAMP.getName(),
-        implWithProperties(functionProperties -> exprUtcTimeStamp(functionProperties), TIMESTAMP));
+        implWithProperties(functionProperties -> exprUtcTimestamp(functionProperties), TIMESTAMP));
   }
 
   /** WEEK(DATE[,mode]). return the week number for date. */
@@ -1971,7 +1971,7 @@ public class DateTimeFunctions {
    * @return ExprValue.
    */
   public static ExprValue exprUtcDate(FunctionProperties functionProperties) {
-    return new ExprDateValue(exprUtcTimeStamp(functionProperties).dateValue());
+    return new ExprDateValue(exprUtcTimestamp(functionProperties).dateValue());
   }
 
   /**
@@ -1981,7 +1981,7 @@ public class DateTimeFunctions {
    * @return ExprValue.
    */
   public static ExprValue exprUtcTime(FunctionProperties functionProperties) {
-    return new ExprTimeValue(exprUtcTimeStamp(functionProperties).timeValue());
+    return new ExprTimeValue(exprUtcTimestamp(functionProperties).timeValue());
   }
 
   /**
@@ -1990,7 +1990,7 @@ public class DateTimeFunctions {
    * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
-  public static ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
+  public static ExprValue exprUtcTimestamp(FunctionProperties functionProperties) {
     var zdt =
         ZonedDateTime.now(functionProperties.getQueryStartClock())
             .withZoneSameInstant(ZoneOffset.UTC);

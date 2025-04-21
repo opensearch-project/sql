@@ -762,6 +762,18 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
+  public void testUtc() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval utc = UTC_TIMESTAMP(), utc1 = UTC_DATE(), utc2 ="
+                    + " UTC_TIME() | fields utc, utc1, utc2",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(
+        actual, schema("utc", "timestamp"), schema("utc1", "date"), schema("utc2", "time"));
+  }
+
+  @Test
   public void testSysdate() {
     JSONObject actual =
         executeQuery(

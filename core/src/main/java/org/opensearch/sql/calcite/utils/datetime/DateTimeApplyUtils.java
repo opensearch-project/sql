@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
+import java.util.Objects;
 import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.data.model.ExprTimeValue;
@@ -34,29 +35,26 @@ public final class DateTimeApplyUtils {
 
   public static ExprValue transferInputToExprTimestampValue(
       Object candidate, SqlTypeName sqlTypeName, FunctionProperties properties) {
-    switch (sqlTypeName) {
-      case TIME:
-        ExprTimeValue timeValue =
-            (ExprTimeValue) fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
-        return new ExprTimestampValue(timeValue.timestampValue(properties));
-      default:
-        try {
-          return new ExprTimestampValue(
-              fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName))
-                  .timestampValue());
-        } catch (SemanticCheckException e) {
-          // If the candidate is a String and does not contain a colon, it means
-          // it ought to be a date but in a malformed format. We rethrow the exception
-          // in this case
-          if (candidate instanceof String candidateStr) {
-            if (!candidateStr.contains(":")) {
-              throw e;
-            }
-          }
-          ExprTimeValue hardTransferredTimeValue =
-              (ExprTimeValue) fromObjectValue(candidate, ExprCoreType.TIME);
-          return new ExprTimestampValue(hardTransferredTimeValue.timestampValue(properties));
+    if (Objects.requireNonNull(sqlTypeName) == SqlTypeName.TIME) {
+      ExprTimeValue timeValue =
+          (ExprTimeValue) fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
+      return new ExprTimestampValue(timeValue.timestampValue(properties));
+    }
+    try {
+      return new ExprTimestampValue(
+          fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName)).timestampValue());
+    } catch (SemanticCheckException e) {
+      // If the candidate is a String and does not contain a colon, it means
+      // it ought to be a date but in a malformed format. We rethrow the exception
+      // in this case
+      if (candidate instanceof String candidateStr) {
+        if (!candidateStr.contains(":")) {
+          throw e;
         }
+      }
+      ExprTimeValue hardTransferredTimeValue =
+          (ExprTimeValue) fromObjectValue(candidate, ExprCoreType.TIME);
+      return new ExprTimestampValue(hardTransferredTimeValue.timestampValue(properties));
     }
   }
 

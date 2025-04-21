@@ -28,7 +28,6 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.CurrentFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DatePartFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.DiffFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.FormatFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.FromUnixTimeFunctionImpl;
@@ -38,6 +37,7 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.SecToTimeFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.SysdateFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunctionImpl;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampAddFunctionImpl;
+import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampDiffFunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.CRC32FunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.ConvFunctionImpl;
 import org.opensearch.sql.calcite.udf.mathUDF.DivideFunctionImpl;
@@ -161,9 +161,15 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               op -> UserDefinedFunctionUtils.nullableTimestampUDT,
               NullPolicy.ANY)
           .toUDF("CONVERT_TZ");
-  public static final SqlOperator DATEDIFF = DiffFunctionImpl.datediff().toUDF("DATEDIFF");
+  public static final SqlOperator DATEDIFF =
+      UserDefinedFunctionUtils.adaptExprMethodWithPropertiesToUDF(
+              DateTimeFunctions.class,
+              "exprDateDiff",
+              ReturnTypes.BIGINT_FORCE_NULLABLE,
+              NullPolicy.ANY)
+          .toUDF("DATEDIFF");
   public static final SqlOperator TIMESTAMPDIFF =
-      DiffFunctionImpl.timestampdiff().toUDF("TIMESTAMPDIFF");
+      new TimestampDiffFunctionImpl().toUDF("TIMESTAMPDIFF");
   public static final SqlOperator LAST_DAY = new LastDayFunctionImpl().toUDF("LAST_DAY");
   public static final SqlOperator FROM_DAYS =
       UserDefinedFunctionUtils.adaptExprMethodToUDF(

@@ -13,7 +13,6 @@ import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
-import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
@@ -27,19 +26,10 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
-/** Implementation for DATEDIFF and TIMESTAMPDIFF functions. */
-public class DiffFunctionImpl extends ImplementorUDF {
-  protected DiffFunctionImpl(NotNullImplementor implementor, NullPolicy nullPolicy) {
-    super(implementor, nullPolicy);
-  }
-
-  public static DiffFunctionImpl datediff() {
-    return new DiffFunctionImpl(new DiffImplementor(TimeUnit.DAY), NullPolicy.ANY);
-  }
-
-  public static DiffFunctionImpl timestampdiff() {
-    // diff unit should be passed from the TIMESTAMPDIFF function call
-    return new DiffFunctionImpl(new DiffImplementor(null), NullPolicy.ANY);
+/** Implementation for TIMESTAMPDIFF functions. */
+public class TimestampDiffFunctionImpl extends ImplementorUDF {
+  public TimestampDiffFunctionImpl() {
+    super(new DiffImplementor(), NullPolicy.ANY);
   }
 
   @Override
@@ -48,35 +38,22 @@ public class DiffFunctionImpl extends ImplementorUDF {
   }
 
   public static class DiffImplementor implements NotNullImplementor {
-    private final TimeUnit diffUnit;
-
-    public DiffImplementor(TimeUnit diffUnit) {
-      super();
-      this.diffUnit = diffUnit;
-    }
-
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       int startIndex, endIndex;
       Expression unit;
-      if (diffUnit == null) {
-        // timestampdiff(interval, start, end)
-        unit = translatedOperands.getFirst();
-        startIndex = 1;
-        endIndex = 2;
-      } else {
-        // datediff(end, start)
-        startIndex = 1;
-        endIndex = 0;
-        unit = Expressions.constant(diffUnit.name());
-      }
-      var endType =
-          OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
-              call.getOperands().get(endIndex).getType());
+      // timestampdiff(interval, start, end)
+      unit = translatedOperands.getFirst();
+      startIndex = 1;
+      endIndex = 2;
       var startType =
           OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
               call.getOperands().get(startIndex).getType());
+      var endType =
+          OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
+              call.getOperands().get(endIndex).getType());
+
       return Expressions.call(
           DiffImplementor.class,
           "diff",

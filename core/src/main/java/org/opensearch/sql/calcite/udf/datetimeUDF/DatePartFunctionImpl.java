@@ -61,20 +61,21 @@ public class DatePartFunctionImpl extends ImplementorUDF {
 
       return Expressions.call(
           DatePartImplementor.class,
-          "date_part",
+          "datePart",
           Expressions.convert_(unit, String.class),
           Expressions.convert_(datetime, Object.class),
           Expressions.constant(datetimeType),
           Expressions.convert_(translator.getRoot(), Object.class));
     }
 
-    public static int date_part(
+    public static int datePart(
         String part, Object datetime, SqlTypeName datetimeType, Object propertyContext) {
       FunctionProperties properties =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
 
       // This throws errors when date_part expects a date but gets a time, or vice versa.
-      if (SqlTypeFamily.STRING.equals(datetimeType.getFamily()) || SqlTypeFamily.CHARACTER.equals(datetimeType.getFamily())) {
+      if (SqlTypeFamily.STRING.equals(datetimeType.getFamily())
+          || SqlTypeFamily.CHARACTER.equals(datetimeType.getFamily())) {
         ensureDatetimeParsable(part, datetime.toString());
       }
 
@@ -91,10 +92,9 @@ public class DatePartFunctionImpl extends ImplementorUDF {
     }
 
     private static void ensureDatetimeParsable(String part, String datetime) {
-      final Set<String> TIME_EXCLUSIVE_OPS =
-          Set.of("SECOND", "SECOND_OF_MINUTE", "MINUTE", "MINUTE_OF_HOUR", "HOUR", "HOUR_OF_DAY");
+      final Set<String> TIME_UNITS = Set.of("MICROSECOND", "SECOND", "MINUTE", "HOUR");
       part = part.toUpperCase(Locale.ROOT);
-      if (TIME_EXCLUSIVE_OPS.contains(part)) {
+      if (TIME_UNITS.contains(part)) {
         // Ensure the input is parsable as a time value
         fromObjectValue(datetime, ExprCoreType.TIME);
       } else {
