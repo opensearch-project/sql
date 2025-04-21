@@ -214,6 +214,9 @@ public class PPLFuncImpTable {
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
 
+      // Register Array Function
+      registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
+
       // Register Json function
       registerOperator(JSON, PPLBuiltinOperators.JSON);
       registerOperator(JSON_OBJECT, PPLBuiltinOperators.JSON_OBJECT);
@@ -223,6 +226,9 @@ public class PPLFuncImpTable {
       registerOperator(JSON_EXTRACT, PPLBuiltinOperators.JSON_EXTRACT);
       registerOperator(JSON_KEYS, PPLBuiltinOperators.JSON_KEYS);
       registerOperator(JSON_VALID, PPLBuiltinOperators.JSON_VALID);
+      registerOperator(JSON_SET, PPLBuiltinOperators.JSON_SET);
+      registerOperator(JSON_DELETE, PPLBuiltinOperators.JSON_DELETE);
+      registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.

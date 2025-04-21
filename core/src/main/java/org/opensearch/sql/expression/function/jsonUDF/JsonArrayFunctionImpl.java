@@ -26,6 +26,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -84,9 +85,12 @@ public class JsonArrayFunctionImpl  extends ImplementorUDF {
                         .mapToObj(i -> ((Number) args[i]).doubleValue()).collect(Collectors.toList());
 
                 return unboxed;
-
+            case FLOAT:
+                List<Object> unboxedFloat = IntStream.range(0, args.length - 1)
+                        .mapToObj(i -> ((Number) args[i]).floatValue()).collect(Collectors.toList());
+                return unboxedFloat;
             default:
-                return List.of(args);
+                return Arrays.asList(args).subList(0, args.length - 1);
         }
     }
 }

@@ -530,6 +530,7 @@ evalFunctionName
    | positionFunctionName
    | jsonFunctionName
    | geoipFunctionName
+   | collectionFunctionName
    ;
 
 functionArgs
@@ -648,6 +649,10 @@ trigonometricFunctionName
    | TAN
    ;
 
+collectionFunctionName
+    : ARRAY
+    ;
+
 jsonFunctionName
    : JSON
    | JSON_OBJECT
@@ -656,6 +661,10 @@ jsonFunctionName
    | JSON_ARRAY_LENGTH
    | JSON_EXTRACT
    | JSON_KEYS
+   | JSON_SET
+   | JSON_DELETE
+   | JSON_APPEND
+   | JSON_EXTEND
    ;
 
 dateTimeFunctionName
@@ -983,6 +992,7 @@ keywordsCanBeId
    | SPAN
    | evalFunctionName
    | jsonFunctionName
+   | collectionFunctionName
    | relevanceArgName
    | intervalUnit
    | trendlineType

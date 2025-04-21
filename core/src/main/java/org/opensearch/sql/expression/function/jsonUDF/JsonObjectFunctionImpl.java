@@ -31,8 +31,8 @@ public class JsonObjectFunctionImpl extends ImplementorUDF {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
       return typeFactory.createMapType(
-          typeFactory.createSqlType(SqlTypeName.VARCHAR), // key type
-          typeFactory.createSqlType(SqlTypeName.ANY) // value type
+          typeFactory.createSqlType(SqlTypeName.VARCHAR),
+          typeFactory.createSqlType(SqlTypeName.ANY)
           );
     };
   }

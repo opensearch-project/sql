@@ -5,18 +5,7 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.NullNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
-import com.jayway.jsonpath.PathNotFoundException;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
-import com.jayway.jsonpath.spi.json.JsonProvider;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
@@ -33,13 +22,12 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 import java.util.List;
 import java.util.Map;
 
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.updateNestedJson;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
-public class JsonSetFunctionImpl  extends ImplementorUDF {
-    public JsonSetFunctionImpl() {
-        super(new JsonSetImplementor(), NullPolicy.ANY);
+public class JsonAppendFunctionImpl extends ImplementorUDF {
+    public JsonAppendFunctionImpl() {
+        super(new JsonAppendImplementor(), NullPolicy.ANY);
     }
 
     @Override
@@ -53,22 +41,22 @@ public class JsonSetFunctionImpl  extends ImplementorUDF {
         };
     }
 
-    public static class JsonSetImplementor implements NotNullImplementor {
+    public static class JsonAppendImplementor implements NotNullImplementor {
         @Override
         public Expression implement(
                 RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
             ScalarFunctionImpl function =
                     (ScalarFunctionImpl)
                             ScalarFunctionImpl.create(
-                                    Types.lookupMethod(JsonSetFunctionImpl.class, "eval", Object[].class));
+                                    Types.lookupMethod(JsonDeleteFunctionImpl.class, "eval", Object[].class));
             return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
         }
     }
 
-    public static Object eval(Object... args) {
+    public static Object eval(Object... args) throws JsonProcessingException {
         String jsonStr = (String) args[0];
         List<String> elements = (List<String>) args[1];
-        String demo = updateNestedJson(jsonStr, elements, (obj, key, value) -> obj.put(key, value));
+        String demo = updateNestedJson(jsonStr, elements, JsonUtils::appendObjectValue);
         Map<?, ?> result = gson.fromJson(demo, Map.class);
         return result;
     }

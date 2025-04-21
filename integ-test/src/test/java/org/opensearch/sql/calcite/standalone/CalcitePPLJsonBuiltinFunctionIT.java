@@ -5,12 +5,14 @@
 
 package org.opensearch.sql.calcite.standalone;
 
+import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONObject;
 import org.junit.Ignore;
@@ -156,6 +158,32 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
             schema("b", "boolean"));
 
     verifyDataRows(actual, rows(true, false));
+  }
+
+  @Test
+  public void testArray() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s | eval a =array(1, 2, 0, -1, 1.1, -0.11) | fields a | head 1",
+                            TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "array"));
+
+    verifyDataRows(actual, rows(List.of(1.0, 2.0, 0, -1.0, 1.1, -0.11)));
+  }
+
+  @Test
+  public void testJsonSet() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s | eval a =json_set('{\"a\":[{\"b\":1},{\"b\":2}]}', array('$.a[*].b', '3', '$.a', '{\"c\":4}'))| fields a | head 1",
+                            TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "struct"));
+
+    verifyDataRows(actual, rows(gson.fromJson("{\"a\":[{\"b\":3},{\"b\":3},{\"c\":4}]}", Map.class)));
   }
 
 }

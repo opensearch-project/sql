@@ -104,7 +104,7 @@ public class UserDefinedFunctionUtils {
         udfFunction);
   }
 
-  static SqlReturnTypeInference getReturnTypeInferenceForArray() {
+  public static SqlReturnTypeInference getReturnTypeInferenceForArray() {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
 

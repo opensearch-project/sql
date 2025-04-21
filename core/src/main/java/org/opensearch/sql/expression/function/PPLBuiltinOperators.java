@@ -16,12 +16,15 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonObjectFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonValidFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.ToJsonStringFunctionImpl;
 
@@ -37,6 +40,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator JSON_EXTRACT = new JsonExtractFunctionImpl().toUDF("JSON_EXTRACT");
   public static final SqlOperator JSON_KEYS = new JsonKeysFunctionImpl().toUDF("JSON_KEYS");
   public static final SqlOperator JSON_VALID = new JsonValidFunctionImpl().toUDF("JSON_VALID");
+  public static final SqlOperator ARRAY = new JsonArrayFunctionImpl().toUDF("ARRAY");
+  public static final SqlOperator JSON_SET = new JsonSetFunctionImpl().toUDF("JSON_SET");
+  public static final SqlOperator JSON_DELETE = new JsonDeleteFunctionImpl().toUDF("JSON_DELETE");
+  public static final SqlOperator JSON_APPEND = new JsonAppendFunctionImpl().toUDF("JSON_APPEND");
+  public static final SqlOperator JSON_EXTEND = new JsonExtractFunctionImpl().toUDF("JSON_EXTEND");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

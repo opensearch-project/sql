@@ -205,6 +205,9 @@ public enum BuiltinFunctionName {
   TRIM(FunctionName.of("trim")),
   UPPER(FunctionName.of("upper")),
 
+  /** Array Functions. */
+  ARRAY(FunctionName.of("array")),
+
   /** Json Functions. */
   JSON_VALID(FunctionName.of("json_valid")),
   JSON(FunctionName.of("json")),
@@ -214,6 +217,9 @@ public enum BuiltinFunctionName {
   JSON_ARRAY_LENGTH(FunctionName.of("json_array_length")),
   JSON_EXTRACT(FunctionName.of("json_extract")),
   JSON_KEYS(FunctionName.of("json_keys")),
+  JSON_SET(FunctionName.of("json_set")),
+  JSON_DELETE(FunctionName.of("json_delete")),
+  JSON_APPEND(FunctionName.of("json_append")),
 
   /** GEOSPATIAL Functions. */
   GEOIP(FunctionName.of("geoip")),
