@@ -272,10 +272,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                         sourceField,
                         context.rexBuilder.makeLiteral(
                             pattern,
-                            context
-                                .rexBuilder
-                                .getTypeFactory()
-                                .createSqlType(SqlTypeName.VARCHAR), true)))
+                            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                            true)))
             .toList();
     projectPlusOverriding(newFields, groupCandidates, context);
     return context.relBuilder.peek();
