@@ -696,7 +696,6 @@ public class CalcitePPLBuiltinFunctionsNullIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows(null, null));
   }
 
-  @Ignore
   @Test
   public void testMicrosecondNull() {
     JSONObject actual =

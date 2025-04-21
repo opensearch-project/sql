@@ -5,7 +5,11 @@
 
 package org.opensearch.sql.calcite.udf.datetimeUDF;
 
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
+
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -15,6 +19,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -22,6 +27,7 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -67,6 +73,11 @@ public class DatePartFunctionImpl extends ImplementorUDF {
       FunctionProperties properties =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
 
+      // This throws errors when date_part expects a date but gets a time, or vice versa.
+      if (SqlTypeFamily.STRING.equals(datetimeType.getFamily()) || SqlTypeFamily.CHARACTER.equals(datetimeType.getFamily())) {
+        ensureDatetimeParsable(part, datetime.toString());
+      }
+
       ExprValue candidate =
           DateTimeApplyUtils.transferInputToExprTimestampValue(datetime, datetimeType, properties);
 
@@ -77,6 +88,19 @@ public class DatePartFunctionImpl extends ImplementorUDF {
       }
       return DateTimeFunctions.formatExtractFunction(new ExprStringValue(part), candidate)
           .integerValue();
+    }
+
+    private static void ensureDatetimeParsable(String part, String datetime) {
+      final Set<String> TIME_EXCLUSIVE_OPS =
+          Set.of("SECOND", "SECOND_OF_MINUTE", "MINUTE", "MINUTE_OF_HOUR", "HOUR", "HOUR_OF_DAY");
+      part = part.toUpperCase(Locale.ROOT);
+      if (TIME_EXCLUSIVE_OPS.contains(part)) {
+        // Ensure the input is parsable as a time value
+        fromObjectValue(datetime, ExprCoreType.TIME);
+      } else {
+        // Ensure the input is parsable as a date value
+        fromObjectValue(datetime, ExprCoreType.DATE);
+      }
     }
   }
 }

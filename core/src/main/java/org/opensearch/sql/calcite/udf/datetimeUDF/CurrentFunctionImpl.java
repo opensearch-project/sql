@@ -25,6 +25,12 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * Implementation of the now-like functions: CURRENT_TIMESTAMP, NOW, LOCALTIMESTAMP, LOCALTIME,
+ * CURTIME, CURRENT_TIME, CURRENT_DATE, CUR_DATE
+ *
+ * <p>It returns the current date, time, or timestamp based on the specified return type.
+ */
 public class CurrentFunctionImpl extends ImplementorUDF {
   private final SqlTypeName returnType;
 

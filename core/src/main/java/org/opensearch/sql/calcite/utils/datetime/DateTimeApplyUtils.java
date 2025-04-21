@@ -45,6 +45,14 @@ public final class DateTimeApplyUtils {
               fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName))
                   .timestampValue());
         } catch (SemanticCheckException e) {
+          // If the candidate is a String and does not contain a colon, it means
+          // it ought to be a date but in a malformed format. We rethrow the exception
+          // in this case
+          if (candidate instanceof String candidateStr) {
+            if (!candidateStr.contains(":")) {
+              throw e;
+            }
+          }
           ExprTimeValue hardTransferredTimeValue =
               (ExprTimeValue) fromObjectValue(candidate, ExprCoreType.TIME);
           return new ExprTimestampValue(hardTransferredTimeValue.timestampValue(properties));
