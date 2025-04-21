@@ -220,6 +220,7 @@ public enum BuiltinFunctionName {
   JSON_SET(FunctionName.of("json_set")),
   JSON_DELETE(FunctionName.of("json_delete")),
   JSON_APPEND(FunctionName.of("json_append")),
+  JSON_EXTEND(FunctionName.of("json_extend")),
 
   /** GEOSPATIAL Functions. */
   GEOIP(FunctionName.of("geoip")),

@@ -5,18 +5,11 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.NullNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
-import com.jayway.jsonpath.PathNotFoundException;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
-import com.jayway.jsonpath.spi.json.JsonProvider;
+import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.updateNestedJson;
+
+import java.util.List;
+import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
@@ -30,46 +23,42 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
-import java.util.List;
-import java.util.Map;
+public class JsonSetFunctionImpl extends ImplementorUDF {
+  public JsonSetFunctionImpl() {
+    super(new JsonSetImplementor(), NullPolicy.ANY);
+  }
 
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.updateNestedJson;
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+    return opBinding -> {
+      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
+      return typeFactory.createMapType(
+          typeFactory.createSqlType(SqlTypeName.VARCHAR),
+          typeFactory.createSqlType(SqlTypeName.ANY));
+    };
+  }
 
-public class JsonSetFunctionImpl  extends ImplementorUDF {
-    public JsonSetFunctionImpl() {
-        super(new JsonSetImplementor(), NullPolicy.ANY);
-    }
-
+  public static class JsonSetImplementor implements NotNullImplementor {
     @Override
-    public SqlReturnTypeInference getReturnTypeInference() {
-        return opBinding -> {
-            RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-            return typeFactory.createMapType(
-                    typeFactory.createSqlType(SqlTypeName.VARCHAR),
-                    typeFactory.createSqlType(SqlTypeName.ANY)
-            );
-        };
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
+      ScalarFunctionImpl function =
+          (ScalarFunctionImpl)
+              ScalarFunctionImpl.create(
+                  Types.lookupMethod(JsonSetFunctionImpl.class, "eval", Object[].class));
+      return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
     }
+  }
 
-    public static class JsonSetImplementor implements NotNullImplementor {
-        @Override
-        public Expression implement(
-                RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-            ScalarFunctionImpl function =
-                    (ScalarFunctionImpl)
-                            ScalarFunctionImpl.create(
-                                    Types.lookupMethod(JsonSetFunctionImpl.class, "eval", Object[].class));
-            return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
-        }
+  public static Object eval(Object... args) {
+    String jsonStr = (String) args[0];
+    List<String> keys = (List<String>) args[1];
+    if (keys.size() % 2 != 0) {
+      throw new RuntimeException(
+          "Json append function needs corresponding path and values, but current get: " + keys);
     }
-
-    public static Object eval(Object... args) {
-        String jsonStr = (String) args[0];
-        List<String> elements = (List<String>) args[1];
-        String demo = updateNestedJson(jsonStr, elements, (obj, key, value) -> obj.put(key, value));
-        Map<?, ?> result = gson.fromJson(demo, Map.class);
-        return result;
-    }
+    String resultStr = updateNestedJson(jsonStr, keys, (obj, key, value) -> obj.put(key, value));
+    Map<?, ?> result = gson.fromJson(resultStr, Map.class);
+    return result;
+  }
 }

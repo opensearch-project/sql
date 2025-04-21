@@ -229,6 +229,7 @@ public class PPLFuncImpTable {
       registerOperator(JSON_SET, PPLBuiltinOperators.JSON_SET);
       registerOperator(JSON_DELETE, PPLBuiltinOperators.JSON_DELETE);
       registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
+      registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.

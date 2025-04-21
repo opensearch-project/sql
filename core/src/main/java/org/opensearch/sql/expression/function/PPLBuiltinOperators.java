@@ -20,6 +20,7 @@ import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.JsonExtendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
@@ -35,16 +36,19 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator JSON = new JsonFunctionImpl().toUDF("JSON");
   public static final SqlOperator JSON_OBJECT = new JsonObjectFunctionImpl().toUDF("JSON_OBJECT");
   public static final SqlOperator JSON_ARRAY = new JsonArrayFunctionImpl().toUDF("JSON_ARRAY");
-  public static final SqlOperator TO_JSON_STRING = new ToJsonStringFunctionImpl().toUDF("TO_JSON_STRING");
-  public static final SqlOperator JSON_ARRAY_LENGTH = new JsonArrayLengthFunctionImpl().toUDF("JSON_ARRAY_LENGTH");
-  public static final SqlOperator JSON_EXTRACT = new JsonExtractFunctionImpl().toUDF("JSON_EXTRACT");
+  public static final SqlOperator TO_JSON_STRING =
+      new ToJsonStringFunctionImpl().toUDF("TO_JSON_STRING");
+  public static final SqlOperator JSON_ARRAY_LENGTH =
+      new JsonArrayLengthFunctionImpl().toUDF("JSON_ARRAY_LENGTH");
+  public static final SqlOperator JSON_EXTRACT =
+      new JsonExtractFunctionImpl().toUDF("JSON_EXTRACT");
   public static final SqlOperator JSON_KEYS = new JsonKeysFunctionImpl().toUDF("JSON_KEYS");
   public static final SqlOperator JSON_VALID = new JsonValidFunctionImpl().toUDF("JSON_VALID");
   public static final SqlOperator ARRAY = new JsonArrayFunctionImpl().toUDF("ARRAY");
   public static final SqlOperator JSON_SET = new JsonSetFunctionImpl().toUDF("JSON_SET");
   public static final SqlOperator JSON_DELETE = new JsonDeleteFunctionImpl().toUDF("JSON_DELETE");
   public static final SqlOperator JSON_APPEND = new JsonAppendFunctionImpl().toUDF("JSON_APPEND");
-  public static final SqlOperator JSON_EXTEND = new JsonExtractFunctionImpl().toUDF("JSON_EXTEND");
+  public static final SqlOperator JSON_EXTEND = new JsonExtendFunctionImpl().toUDF("JSON_EXTEND");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
