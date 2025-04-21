@@ -497,7 +497,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     WindowExpressionAnalyzer windowAnalyzer =
         new WindowExpressionAnalyzer(expressionAnalyzer, child);
-    child = windowAnalyzer.analyze(node.getWindowFunction(), context);
+    child = windowAnalyzer.analyze(node.getWindowFunctionList().get(0), context);
 
     TypeEnvironment curEnv = context.peek();
     LogicalWindow window = (LogicalWindow) child;

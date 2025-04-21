@@ -8,6 +8,8 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
@@ -43,6 +45,7 @@ public class CalcitePlanContext {
   @Getter @Setter private boolean isProjectVisited = false;
 
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
+  private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
   private CalcitePlanContext(FrameworkConfig config, QueryType queryType) {
     this.config = config;
@@ -79,6 +82,26 @@ public class CalcitePlanContext {
       return Optional.of(correlVar.peek());
     } else {
       return Optional.empty();
+    }
+  }
+
+  public void pushWindowPartitions(List<RexNode> partition) {
+    windowPartitions.push(partition);
+  }
+
+  public List<RexNode> peekWindowPartitions() {
+    if (!windowPartitions.empty()) {
+      return windowPartitions.peek();
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
+  public List<RexNode> popWindowPartitions() {
+    if (!windowPartitions.empty()) {
+      return windowPartitions.pop();
+    } else {
+      return Collections.emptyList();
     }
   }
 

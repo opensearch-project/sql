@@ -14,7 +14,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.calcite.utils.AggregateUtils;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 
 public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalcitePlanContext> {
   private final CalciteRexNodeVisitor rexNodeVisitor;
@@ -41,6 +41,6 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
     for (UnresolvedExpression arg : node.getArgList()) {
       argList.add(rexNodeVisitor.analyze(arg, context));
     }
-    return AggregateUtils.translate(node, field, context, argList);
+    return PlanUtils.makeAggCall(context, node, field, argList);
   }
 }

@@ -8,6 +8,7 @@ package org.opensearch.sql.ast.dsl;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -514,13 +515,16 @@ public class AstDSL {
     funArgs.add(sourceField);
     funArgs.addAll(arguments);
     return new Window(
-        new Alias(
-            alias,
-            new WindowFunction(
-                new Function(patternMethod.name().toLowerCase(Locale.ROOT), funArgs),
-                List.of(),
-                List.of()),
-            alias),
+        List.of(
+            new Alias(
+                alias,
+                new WindowFunction(
+                    new Function(patternMethod.name().toLowerCase(Locale.ROOT), funArgs),
+                    List.of(),
+                    List.of()),
+                alias)),
+        Collections.emptyList(),
+        Collections.emptyList(),
         input);
   }
 

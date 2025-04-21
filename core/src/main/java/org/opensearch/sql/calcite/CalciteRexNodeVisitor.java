@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite;
 
+import static java.util.Objects.requireNonNull;
+import static org.apache.calcite.sql.SqlKind.AS;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
@@ -12,13 +14,17 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.Transfer
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
@@ -29,6 +35,7 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Between;
@@ -49,6 +56,7 @@ import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
@@ -369,6 +377,51 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   @Override
+  public RexNode visitWindowFunction(WindowFunction node, CalcitePlanContext context) {
+    Function windowFunction = (Function) node.getFunction();
+    List<RexNode> arguments =
+        windowFunction.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
+    List<RexNode> partitions =
+        node.getPartitionByList().stream()
+            .map(arg -> analyze(arg, context))
+            .map(this::extractRexNodeFromAlias)
+            .toList();
+    Optional<BuiltinFunctionName> agg =
+        BuiltinFunctionName.ofAggregation(windowFunction.getFuncName());
+    if (agg.isPresent()) {
+      RexNode field = arguments.isEmpty() ? null : arguments.getFirst();
+      List<RexNode> args =
+          (arguments.isEmpty() || arguments.size() == 1)
+              ? Collections.emptyList()
+              : arguments.subList(1, arguments.size());
+      return PlanUtils.makeOver(context, agg.get().name(), field, args, partitions);
+    } else {
+      throw new IllegalArgumentException("Not Supported value " + windowFunction.getFuncName());
+    }
+  }
+
+  /** extract the RexLiteral of Alias from a node */
+  private Optional<RexLiteral> extractAliasLiteral(RexNode node) {
+    if (node == null) {
+      return Optional.empty();
+    } else if (node.getKind() == AS) {
+      return Optional.of((RexLiteral) ((RexCall) node).getOperands().get(1));
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  /** extract the expression of Alias from a node */
+  private RexNode extractRexNodeFromAlias(RexNode node) {
+    requireNonNull(node);
+    if (node.getKind() == AS) {
+      return ((RexCall) node).getOperands().get(0);
+    } else {
+      return node;
+    }
+  }
+
+  @Override
   public RexNode visitInSubquery(InSubquery node, CalcitePlanContext context) {
     List<RexNode> nodes = node.getChild().stream().map(child -> analyze(child, context)).toList();
     UnresolvedPlan subquery = node.getQuery();
@@ -455,6 +508,19 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         node.getElseClause().map(e -> analyze(e, context)).orElse(context.relBuilder.literal(null));
     caseOperands.add(elseExpr);
     return context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, caseOperands);
+  }
+
+  @Override
+  public RexNode visitAggregateFunction(AggregateFunction node, CalcitePlanContext context) {
+    RexNode field = analyze(node.getField(), context);
+    List<RexNode> argList = new ArrayList<>();
+    for (UnresolvedExpression arg : node.getArgList()) {
+      argList.add(analyze(arg, context));
+    }
+    return PlanUtils.makeAggCall(context, node, field, argList)
+        .over()
+        .partitionBy(context.peekWindowPartitions())
+        .toRex();
   }
 
   /*

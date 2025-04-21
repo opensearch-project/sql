@@ -327,6 +327,43 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return aggregation;
   }
 
+  public UnresolvedPlan visitEventstatsCommand(OpenSearchPPLParser.EventstatsCommandContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
+        new ImmutableList.Builder<>();
+    for (OpenSearchPPLParser.EventstatsAggTermContext aggCtx : ctx.eventstatsAggTerm()) {
+      UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
+      String name =
+          aggCtx.alias == null
+              ? getTextInQuery(aggCtx)
+              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
+      Alias alias = new Alias(name, windowFunction);
+      windownFunctionListBuilder.add(alias);
+    }
+
+    ImmutableList.Builder<UnresolvedExpression> partExprListBuilder = new ImmutableList.Builder<>();
+    Optional.ofNullable(ctx.statsByClause())
+        .map(OpenSearchPPLParser.StatsByClauseContext::bySpanClause)
+        .map(this::internalVisitExpression)
+        .ifPresent(partExprListBuilder::add);
+
+    Optional.ofNullable(ctx.statsByClause())
+        .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
+        .map(
+            expr ->
+                expr.fieldExpression().stream()
+                    .map(
+                        groupCtx ->
+                            (UnresolvedExpression)
+                                new Alias(
+                                    StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
+                                    internalVisitExpression(groupCtx)))
+                    .collect(Collectors.toList()))
+        .ifPresent(partExprListBuilder::addAll);
+
+    // Order over window function is supported in PPL yet.
+    return new Window(windownFunctionListBuilder.build(), partExprListBuilder.build(), List.of());
+  }
+
   /** Dedup command. */
   @Override
   public UnresolvedPlan visitDedupCommand(DedupCommandContext ctx) {
@@ -428,21 +465,25 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
               unresolvedArguments.add(new Argument(argName, value));
             });
     return new Window(
-        new Alias(
-            alias.get(),
-            new WindowFunction(
-                new Function(
-                    ctx.pattern_method != null
-                        ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText())
-                            .toLowerCase(Locale.ROOT)
-                        : settings
-                            .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
-                            .toString()
-                            .toLowerCase(Locale.ROOT),
-                    unresolvedArguments),
-                List.of(), // ignore partition by list for now as we haven't seen such requirement
-                List.of()), // ignore sort by list for now as we haven't seen such requirement
-            alias.get()));
+        List.of(
+            new Alias(
+                alias.get(),
+                new WindowFunction(
+                    new Function(
+                        ctx.pattern_method != null
+                            ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText())
+                                .toLowerCase(Locale.ROOT)
+                            : settings
+                                .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
+                                .toString()
+                                .toLowerCase(Locale.ROOT),
+                        unresolvedArguments),
+                    List.of(), // ignore partition by list for now as we haven't seen such
+                    // requirement
+                    List.of()), // ignore sort by list for now as we haven't seen such requirement
+                alias.get())),
+        List.of(),
+        List.of());
   }
 
   /** Lookup command */

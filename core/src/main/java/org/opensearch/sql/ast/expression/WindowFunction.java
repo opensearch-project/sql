@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -25,8 +26,8 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 public class WindowFunction extends UnresolvedExpression {
 
   private final UnresolvedExpression function;
-  private List<UnresolvedExpression> partitionByList;
-  private List<Pair<SortOption, UnresolvedExpression>> sortList;
+  @Setter private List<UnresolvedExpression> partitionByList;
+  @Setter private List<Pair<SortOption, UnresolvedExpression>> sortList;
 
   @Override
   public List<? extends Node> getChild() {
