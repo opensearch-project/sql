@@ -50,9 +50,6 @@ public class DateImpl extends ImplementorUDF {
     }
 
     public static Object eval(Object... args) {
-        if (UserDefinedFunctionUtils.containsNull(args)) {
-            return null;
-        }
         FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
         ExprValue candidate = transferInputToExprValue(args[0], (SqlTypeName) args[1]);
         if ((SqlTypeName) args[1] == SqlTypeName.TIME) {

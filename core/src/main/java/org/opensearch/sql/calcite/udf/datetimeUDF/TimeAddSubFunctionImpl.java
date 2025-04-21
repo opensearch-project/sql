@@ -68,7 +68,8 @@ public class TimeAddSubFunctionImpl extends ImplementorUDF {
           Expressions.constant(temporalType),
           Expressions.convert_(temporalDelta, Object.class),
           Expressions.constant(temporalDeltaType),
-          Expressions.constant(isAdd));
+          Expressions.constant(isAdd),
+          Expressions.convert_(translator.getRoot(), Object.class));
     }
 
     public static Object timeManipulation(
@@ -76,11 +77,12 @@ public class TimeAddSubFunctionImpl extends ImplementorUDF {
         SqlTypeName temporalType,
         Object temporalDelta,
         SqlTypeName temporalDeltaType,
-        boolean isAdd) {
+        boolean isAdd,
+        Object propertyContext) {
       ExprValue baseValue = transferInputToExprValue(temporal, temporalType);
       ExprValue intervalValue = transferInputToExprValue(temporalDelta, temporalDeltaType);
-      // TODO: Restore function properties
-      FunctionProperties restored = new FunctionProperties();
+      FunctionProperties restored =
+          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
       ExprValue result;
       if (isAdd) {
         result = exprAddTime(restored, baseValue, intervalValue);

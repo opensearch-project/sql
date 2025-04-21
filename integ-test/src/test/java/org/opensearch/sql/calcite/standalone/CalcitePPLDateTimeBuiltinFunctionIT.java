@@ -1232,7 +1232,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             "2021-05-13 04:34:50",
             "2021-05-13 11:34:50",
             "2021-05-12 09:15:00",
-            null));
+            "1984-04-12 05:07:42.000123456"));
   }
 
   @Test

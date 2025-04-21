@@ -49,7 +49,8 @@ public class LastDayFunctionImpl extends ImplementorUDF {
               LastDayImplementor.class,
               "toInternalDate",
               Expressions.convert_(translatedOperands.getFirst(), String.class),
-              Expressions.constant(dateType));
+              Expressions.constant(dateType),
+              Expressions.convert_(translator.getRoot(), Object.class));
       Expression lastDay = Expressions.call(BuiltInMethod.LAST_DAY.method, internalDate);
 
       // Convert the internal expression to output date
@@ -57,9 +58,9 @@ public class LastDayFunctionImpl extends ImplementorUDF {
           LastDayImplementor.class, "fromInternalDate", Expressions.convert_(lastDay, int.class));
     }
 
-    public static int toInternalDate(String date, SqlTypeName dateType) {
-      // TODO: restore function properties
-      FunctionProperties properties = new FunctionProperties();
+    public static int toInternalDate(String date, SqlTypeName dateType, Object propertyContext) {
+      FunctionProperties properties =
+          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
       ExprValue value =
           DateTimeApplyUtils.transferInputToExprTimestampValue(date, dateType, properties);
       return SqlFunctions.toInt(java.sql.Date.valueOf(value.dateValue()));

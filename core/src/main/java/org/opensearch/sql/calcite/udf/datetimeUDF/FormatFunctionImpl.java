@@ -22,6 +22,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -55,18 +56,18 @@ public class FormatFunctionImpl extends ImplementorUDF {
       SqlTypeName type =
           OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
               call.getOperands().getFirst().getType());
-      String methodName = functionType == SqlTypeName.TIME ? "time_format" : "date_format";
+      String methodName = functionType == SqlTypeName.TIME ? "timeFormat" : "dateFormat";
       return Expressions.call(
           DataFormatImplementor.class,
           methodName,
           translatedOperands.get(0),
           Expressions.constant(type),
-          translatedOperands.get(1));
+          translatedOperands.get(1),
+          Expressions.convert_(translator.getRoot(), Object.class));
     }
 
-    public static String date_format(Object date, SqlTypeName type, String format) {
-      // TODO: Restore function properties
-      FunctionProperties restored = new FunctionProperties();
+    public static String dateFormat(Object date, SqlTypeName type, String format, Object propertyContext) {
+      FunctionProperties restored = UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
       ExprValue candidateValue = transferInputToExprValue(date, type);
       if (type == SqlTypeName.TIME) {
         return getFormattedDateOfToday(
@@ -76,7 +77,7 @@ public class FormatFunctionImpl extends ImplementorUDF {
       return getFormattedDate(candidateValue, new ExprStringValue(format)).stringValue();
     }
 
-    public static String time_format(Object time, SqlTypeName sqlTypeName, String format) {
+    public static String timeFormat(Object time, SqlTypeName sqlTypeName, String format, Object propertyContext) {
       return getFormattedTime(
               transferInputToExprValue(time, sqlTypeName), new ExprStringValue(format))
           .stringValue();

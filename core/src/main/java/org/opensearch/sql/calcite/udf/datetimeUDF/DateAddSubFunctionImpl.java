@@ -24,6 +24,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
@@ -96,7 +97,8 @@ public class DateAddSubFunctionImpl extends ImplementorUDF {
             Expressions.convert_(temporalDelta, long.class),
             Expressions.constant(TimeUnit.DAY),
             Expressions.constant(returnType),
-            Expressions.constant(isAdd));
+            Expressions.constant(isAdd),
+            Expressions.convert_(translator.getRoot(), Object.class));
       } else if (SqlTypeFamily.DATETIME_INTERVAL.contains(temporalDeltaType)) {
         return Expressions.call(
             DateAddSubImplementor.class,
@@ -108,7 +110,8 @@ public class DateAddSubFunctionImpl extends ImplementorUDF {
             Expressions.constant(
                 Objects.requireNonNull(temporalDeltaType.getIntervalQualifier()).getUnit()),
             Expressions.constant(returnType),
-            Expressions.constant(isAdd));
+            Expressions.constant(isAdd),
+            Expressions.convert_(translator.getRoot(), Object.class));
       } else {
         throw new IllegalArgumentException(
             String.format(
@@ -123,10 +126,11 @@ public class DateAddSubFunctionImpl extends ImplementorUDF {
         long temporalDelta,
         TimeUnit unit,
         SqlTypeName returnSqlType,
-        boolean isAdd) {
+        boolean isAdd,
+        Object propertyContext) {
       ExprValue base = transferInputToExprValue(temporal, temporalTypeName);
-      // TODO: restore function properties
-      FunctionProperties restored = new FunctionProperties();
+      FunctionProperties restored =
+          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
       ExprValue resultDatetime =
           DateTimeFunctions.exprDateApplyInterval(
               restored, base, convertToTemporalAmount(temporalDelta, unit), isAdd);

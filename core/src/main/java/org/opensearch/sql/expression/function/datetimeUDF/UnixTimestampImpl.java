@@ -48,9 +48,6 @@ public class UnixTimestampImpl extends ImplementorUDF {
     }
 
     public static Object eval(Object... args) {
-        if (UserDefinedFunctionUtils.containsNull(args)) {
-            return null;
-        }
         if (args.length == 1) {
             FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
             return unixTimeStamp(restored.getQueryStartClock()).longValue();

@@ -11,7 +11,6 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.Transfer
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -206,7 +205,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           TransferUserDefinedFunction(
               PostprocessDateToStringFunction.class,
               "PostprocessDateToString",
-                  ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE));
+              ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE));
       RexNode transferredStringNode =
           context.rexBuilder.makeCall(
               postToStringNode,
@@ -333,7 +332,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<RexNode> arguments =
-        node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
+        node.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolveSafe(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));
@@ -341,8 +340,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return resolvedNode;
     }
     throw new IllegalArgumentException("Unsupported operator: " + node.getFuncName());
-    // TODO: Remove below code after migrating all functions to PPLFuncImpTable,
-    //  https://github.com/opensearch-project/sql/issues/3524
   }
 
   @Override

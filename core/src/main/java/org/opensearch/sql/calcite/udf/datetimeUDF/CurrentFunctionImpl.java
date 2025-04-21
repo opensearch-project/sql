@@ -17,6 +17,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -58,12 +59,15 @@ public class CurrentFunctionImpl extends ImplementorUDF {
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
 
       return Expressions.call(
-          CurrentFunctionImplementor.class, "current", Expressions.constant(returnType));
+          CurrentFunctionImplementor.class,
+          "current",
+          Expressions.constant(returnType),
+          Expressions.convert_(translator.getRoot(), Object.class));
     }
 
-    public static Object current(SqlTypeName returnType) {
-      // TODO: restore function properties
-      FunctionProperties functionProperties = new FunctionProperties();
+    public static Object current(SqlTypeName returnType, Object propertyContext) {
+      FunctionProperties functionProperties =
+          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
 
       LocalDateTime now = DateTimeFunctions.formatNow(functionProperties.getQueryStartClock());
       return switch (returnType) {

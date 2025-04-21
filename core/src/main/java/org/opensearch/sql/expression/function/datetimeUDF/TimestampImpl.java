@@ -55,9 +55,6 @@ public class TimestampImpl extends ImplementorUDF {
         if (UserDefinedFunctionUtils.containsNull(args)) {
             return null;
         }
-        if (Objects.isNull(args[0])) {
-            return null;
-        }
         if (args.length == 3) {
             SqlTypeName sqlTypeName = (SqlTypeName) args[1];
             FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);

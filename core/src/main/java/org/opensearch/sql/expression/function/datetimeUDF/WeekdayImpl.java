@@ -45,9 +45,6 @@ public class WeekdayImpl extends ImplementorUDF {
     }
 
     public static Object eval(Object... args) {
-        if (UserDefinedFunctionUtils.containsNull(args)) {
-            return null;
-        }
         FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
         SqlTypeName sqlTypeName = (SqlTypeName) args[1];
         if (sqlTypeName == SqlTypeName.TIME) {

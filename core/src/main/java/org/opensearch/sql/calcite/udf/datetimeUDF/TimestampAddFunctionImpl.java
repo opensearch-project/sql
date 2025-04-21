@@ -56,7 +56,7 @@ public class TimestampAddFunctionImpl extends ImplementorUDF {
             translatedOperands.get(0),
             translatedOperands.get(1),
             timestampBase,
-            translator.getRoot());
+            Expressions.convert_(translator.getRoot(), Object.class));
       } else {
         return Expressions.call(
             TimestampAddImplementor.class,
@@ -68,7 +68,7 @@ public class TimestampAddFunctionImpl extends ImplementorUDF {
     }
 
     public static Object timestampAddForTimeType(
-        String addUnit, long amount, ExprValue timestampBase, String propertyContext) {
+        String addUnit, long amount, ExprValue timestampBase, Object propertyContext) {
       FunctionProperties restored =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
 

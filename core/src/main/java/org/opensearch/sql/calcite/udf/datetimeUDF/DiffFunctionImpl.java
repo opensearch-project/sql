@@ -21,6 +21,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -83,13 +84,19 @@ public class DiffFunctionImpl extends ImplementorUDF {
           translatedOperands.get(startIndex),
           Expressions.constant(startType),
           translatedOperands.get(endIndex),
-          Expressions.constant(endType));
+          Expressions.constant(endType),
+          Expressions.convert_(translator.getRoot(), Object.class));
     }
 
     public static Long diff(
-        String unit, String start, SqlTypeName startType, String end, SqlTypeName endType) {
-      // TODO: Restore function properties
-      FunctionProperties restored = new FunctionProperties();
+        String unit,
+        String start,
+        SqlTypeName startType,
+        String end,
+        SqlTypeName endType,
+        Object propertyContext) {
+      FunctionProperties restored =
+          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
       ExprValue startTimestamp = transferInputToExprValue(start, startType);
       ExprValue endTimestamp = transferInputToExprValue(end, endType);
 

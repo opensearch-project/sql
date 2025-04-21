@@ -18,6 +18,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -57,12 +58,14 @@ public class DatePartFunctionImpl extends ImplementorUDF {
           "date_part",
           Expressions.convert_(unit, String.class),
           Expressions.convert_(datetime, Object.class),
-          Expressions.constant(datetimeType));
+          Expressions.constant(datetimeType),
+          Expressions.convert_(translator.getRoot(), Object.class));
     }
 
-    public static int date_part(String part, Object datetime, SqlTypeName datetimeType) {
-      // TODO: restore function properties
-      FunctionProperties properties = new FunctionProperties();
+    public static int date_part(
+        String part, Object datetime, SqlTypeName datetimeType, Object propertyContext) {
+      FunctionProperties properties =
+          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
 
       ExprValue candidate =
           DateTimeApplyUtils.transferInputToExprTimestampValue(datetime, datetimeType, properties);
