@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.TimeZone;
-import java.util.stream.Collectors;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -342,12 +341,20 @@ public class UserDefinedFunctionUtils {
    * @param operands the operands to convert
    * @return the converted operands
    */
-  public static List<Expression> convertToExprValues(List<Expression> operands, List<RelDataType> types) {
-    List<SqlTypeName> sqlTypeNames = types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToSqlTypeName).toList();
+  public static List<Expression> convertToExprValues(
+      List<Expression> operands, List<RelDataType> types) {
+    List<SqlTypeName> sqlTypeNames =
+        types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToSqlTypeName).toList();
     List<Expression> exprValues = new ArrayList<>();
     for (int i = 0; i < operands.size(); i++) {
-        Expression operand = Expressions.convert_(operands.get(i), Object.class);
-        exprValues.add(i, Expressions.call(DateTimeApplyUtils.class, "transferInputToExprValue", operand, Expressions.constant(sqlTypeNames.get(i))));
+      Expression operand = Expressions.convert_(operands.get(i), Object.class);
+      exprValues.add(
+          i,
+          Expressions.call(
+              DateTimeApplyUtils.class,
+              "transferInputToExprValue",
+              operand,
+              Expressions.constant(sqlTypeNames.get(i))));
     }
     return exprValues;
   }
@@ -370,7 +377,9 @@ public class UserDefinedFunctionUtils {
       NullPolicy nullPolicy) {
     NotNullImplementor implementor =
         (translator, call, translatedOperands) -> {
-          List<Expression> operands = convertToExprValues(translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
+          List<Expression> operands =
+              convertToExprValues(
+                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
           Expression exprResult = Expressions.call(type, methodName, operands);
           return Expressions.call(exprResult, "valueForCalcite");
         };
@@ -401,7 +410,9 @@ public class UserDefinedFunctionUtils {
       NullPolicy nullPolicy) {
     NotNullImplementor implementor =
         (translator, call, translatedOperands) -> {
-          List<Expression> operands = convertToExprValues(translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
+          List<Expression> operands =
+              convertToExprValues(
+                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
           List<Expression> operandsWithProperties =
               prependTimestampAsProperty(operands, translator);
           Expression exprResult = Expressions.call(type, methodName, operandsWithProperties);

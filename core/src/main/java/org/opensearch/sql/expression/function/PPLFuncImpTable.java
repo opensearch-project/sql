@@ -212,7 +212,7 @@ public class PPLFuncImpTable {
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
-      registerOperator(E, PPLBuiltinOperators.E);
+      //      registerOperator(E, PPLBuiltinOperators.E);
       // SqlStdOperatorTable.SQRT is declared but not implemented, therefore we use a custom
       // implementation.
       registerOperator(SQRT, PPLBuiltinOperators.SQRT);
@@ -347,6 +347,7 @@ public class PPLFuncImpTable {
                       SqlLibraryOperators.LOG,
                       arg,
                       builder.makeApproxLiteral(BigDecimal.valueOf(Math.E)))));
+      register(E, (builder, args) -> builder.makeApproxLiteral(BigDecimal.valueOf(Math.E)));
       register(
           TYPEOF,
           (FunctionImp1)

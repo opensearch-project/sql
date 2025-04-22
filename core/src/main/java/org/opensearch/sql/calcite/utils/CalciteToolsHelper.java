@@ -36,7 +36,6 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Properties;
 import java.util.function.Consumer;
-
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;

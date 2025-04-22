@@ -21,103 +21,96 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
-import org.opensearch.sql.calcite.udf.conditionUDF.IfImpl;
-import org.opensearch.sql.calcite.udf.conditionUDF.IfNullImpl;
-import org.opensearch.sql.calcite.udf.conditionUDF.NullIfImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.CurrentFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.DateAddSubFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.DatePartFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.DatetimeFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.ExtractFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.FormatFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.FromUnixTimeFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.LastDayFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.PeriodNameFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.SecToTimeFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.SysdateFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampAddFunctionImpl;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimestampDiffFunctionImpl;
-import org.opensearch.sql.calcite.udf.mathUDF.CRC32FunctionImpl;
-import org.opensearch.sql.calcite.udf.mathUDF.ConvFunctionImpl;
-import org.opensearch.sql.calcite.udf.mathUDF.DivideFunctionImpl;
-import org.opensearch.sql.calcite.udf.mathUDF.EulerFunctionImpl;
-import org.opensearch.sql.calcite.udf.mathUDF.ModFunctionImpl;
-import org.opensearch.sql.calcite.udf.mathUDF.SqrtFunctionImpl;
-import org.opensearch.sql.calcite.udf.textUDF.LocateFunctionImpl;
-import org.opensearch.sql.calcite.udf.textUDF.ReplaceFunctionImpl;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
-import org.opensearch.sql.expression.function.datetimeUDF.DateImpl;
-import org.opensearch.sql.expression.function.datetimeUDF.TimestampImpl;
-import org.opensearch.sql.expression.function.datetimeUDF.ToSecondsImpl;
-import org.opensearch.sql.expression.function.datetimeUDF.UnixTimestampImpl;
-import org.opensearch.sql.expression.function.datetimeUDF.WeekImpl;
-import org.opensearch.sql.expression.function.datetimeUDF.WeekdayImpl;
-import org.opensearch.sql.expression.function.datetimeUDF.YearweekImpl;
+import org.opensearch.sql.expression.function.udf.condition.IfFunction;
+import org.opensearch.sql.expression.function.udf.condition.IfNullFunction;
+import org.opensearch.sql.expression.function.udf.condition.NullIfFunction;
+import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
+import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
+import org.opensearch.sql.expression.function.udf.datetime.DateFunction;
+import org.opensearch.sql.expression.function.udf.datetime.DatePartFunction;
+import org.opensearch.sql.expression.function.udf.datetime.DatetimeFunction;
+import org.opensearch.sql.expression.function.udf.datetime.ExtractFunction;
+import org.opensearch.sql.expression.function.udf.datetime.FormatFunction;
+import org.opensearch.sql.expression.function.udf.datetime.FromUnixTimeFunction;
+import org.opensearch.sql.expression.function.udf.datetime.LastDayFunction;
+import org.opensearch.sql.expression.function.udf.datetime.PeriodNameFunction;
+import org.opensearch.sql.expression.function.udf.datetime.SecToTimeFunction;
+import org.opensearch.sql.expression.function.udf.datetime.SysdateFunction;
+import org.opensearch.sql.expression.function.udf.datetime.TimeAddSubFunction;
+import org.opensearch.sql.expression.function.udf.datetime.TimestampAddFunction;
+import org.opensearch.sql.expression.function.udf.datetime.TimestampDiffFunction;
+import org.opensearch.sql.expression.function.udf.datetime.TimestampFunction;
+import org.opensearch.sql.expression.function.udf.datetime.ToSecondsFunction;
+import org.opensearch.sql.expression.function.udf.datetime.UnixTimestampFunction;
+import org.opensearch.sql.expression.function.udf.datetime.WeekFunction;
+import org.opensearch.sql.expression.function.udf.datetime.WeekdayFunction;
+import org.opensearch.sql.expression.function.udf.datetime.YearweekFunction;
+import org.opensearch.sql.expression.function.udf.math.CRC32Function;
+import org.opensearch.sql.expression.function.udf.math.ConvFunction;
+import org.opensearch.sql.expression.function.udf.math.DivideFunction;
+import org.opensearch.sql.expression.function.udf.math.EulerFunction;
+import org.opensearch.sql.expression.function.udf.math.ModFunction;
+import org.opensearch.sql.expression.function.udf.math.SqrtFunction;
+import org.opensearch.sql.expression.function.udf.text.LocateFunction;
+import org.opensearch.sql.expression.function.udf.text.ReplaceFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   // Math functions
   public static final SqlOperator SPAN = new SpanFunctionImpl().toUDF("SPAN");
-  public static final SqlOperator E = new EulerFunctionImpl().toUDF("E");
-  public static final SqlOperator SQRT = new SqrtFunctionImpl().toUDF("SQRT");
-  public static final SqlOperator CONV = new ConvFunctionImpl().toUDF("CONVERT");
-  public static final SqlOperator MOD = new ModFunctionImpl().toUDF("MOD");
-  public static final SqlOperator CRC32 = new CRC32FunctionImpl().toUDF("CRC32");
-  public static final SqlOperator DIVIDE = new DivideFunctionImpl().toUDF("DIVIDE");
+  public static final SqlOperator E = new EulerFunction().toUDF("E");
+  public static final SqlOperator SQRT = new SqrtFunction().toUDF("SQRT");
+  public static final SqlOperator CONV = new ConvFunction().toUDF("CONVERT");
+  public static final SqlOperator MOD = new ModFunction().toUDF("MOD");
+  public static final SqlOperator CRC32 = new CRC32Function().toUDF("CRC32");
+  public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
 
   // Text function
-  public static final SqlOperator LOCATE = new LocateFunctionImpl().toUDF("LOCATE");
-  public static final SqlOperator REPLACE = new ReplaceFunctionImpl().toUDF("REPLACE");
+  public static final SqlOperator LOCATE = new LocateFunction().toUDF("LOCATE");
+  public static final SqlOperator REPLACE = new ReplaceFunction().toUDF("REPLACE");
 
   // Datetime function
-  public static final SqlOperator TIMESTAMP = new TimestampImpl().toUDF("TIMESTAMP");
-  public static final SqlOperator DATE = new DateImpl().toUDF("DATE");
-  public static final SqlOperator YEARWEEK = new YearweekImpl().toUDF("YEARWEEK");
-  public static final SqlOperator WEEKDAY = new WeekdayImpl().toUDF("WEEKDAY");
-  public static final SqlOperator UNIX_TIMESTAMP = new UnixTimestampImpl().toUDF("UNIX_TIMESTAMP");
-  public static final SqlOperator TO_SECONDS = new ToSecondsImpl().toUDF("TO_SECONDS");
+  public static final SqlOperator TIMESTAMP = new TimestampFunction().toUDF("TIMESTAMP");
+  public static final SqlOperator DATE = new DateFunction().toUDF("DATE");
+  public static final SqlOperator YEARWEEK = new YearweekFunction().toUDF("YEARWEEK");
+  public static final SqlOperator WEEKDAY = new WeekdayFunction().toUDF("WEEKDAY");
+  public static final SqlOperator UNIX_TIMESTAMP =
+      new UnixTimestampFunction().toUDF("UNIX_TIMESTAMP");
+  public static final SqlOperator TO_SECONDS = new ToSecondsFunction().toUDF("TO_SECONDS");
   //  public static final SqlOperator TO_DAYS = new TodaysImpl().toUDF("TO_DAYS");
 
-  public static final SqlOperator ADDTIME = new TimeAddSubFunctionImpl(true).toUDF("ADDTIME");
-  public static final SqlOperator SUBTIME = new TimeAddSubFunctionImpl(false).toUDF("SUBTIME");
-  public static final SqlOperator ADDDATE =
-      new DateAddSubFunctionImpl(true, false).toUDF("ADDDATE");
-  public static final SqlOperator SUBDATE =
-      new DateAddSubFunctionImpl(false, false).toUDF("SUBDATE");
-  public static final SqlOperator DATE_ADD =
-      new DateAddSubFunctionImpl(true, true).toUDF("DATE_ADD");
-  public static final SqlOperator DATE_SUB =
-      new DateAddSubFunctionImpl(false, true).toUDF("DATE_SUB");
-  public static final SqlOperator EXTRACT = new ExtractFunctionImpl().toUDF("EXTRACT");
-  public static final SqlOperator YEAR = new DatePartFunctionImpl(TimeUnit.YEAR).toUDF("YEAR");
-  public static final SqlOperator QUARTER =
-      new DatePartFunctionImpl(TimeUnit.QUARTER).toUDF("QUARTER");
-  public static final SqlOperator MONTH = new DatePartFunctionImpl(TimeUnit.MONTH).toUDF("MONTH");
+  public static final SqlOperator ADDTIME = new TimeAddSubFunction(true).toUDF("ADDTIME");
+  public static final SqlOperator SUBTIME = new TimeAddSubFunction(false).toUDF("SUBTIME");
+  public static final SqlOperator ADDDATE = new DateAddSubFunction(true, false).toUDF("ADDDATE");
+  public static final SqlOperator SUBDATE = new DateAddSubFunction(false, false).toUDF("SUBDATE");
+  public static final SqlOperator DATE_ADD = new DateAddSubFunction(true, true).toUDF("DATE_ADD");
+  public static final SqlOperator DATE_SUB = new DateAddSubFunction(false, true).toUDF("DATE_SUB");
+  public static final SqlOperator EXTRACT = new ExtractFunction().toUDF("EXTRACT");
+  public static final SqlOperator YEAR = new DatePartFunction(TimeUnit.YEAR).toUDF("YEAR");
+  public static final SqlOperator QUARTER = new DatePartFunction(TimeUnit.QUARTER).toUDF("QUARTER");
+  public static final SqlOperator MONTH = new DatePartFunction(TimeUnit.MONTH).toUDF("MONTH");
   public static final SqlOperator MONTH_OF_YEAR =
-      new DatePartFunctionImpl(TimeUnit.MONTH).toUDF("MONTH_OF_YEAR");
-  public static final SqlOperator DAY = new DatePartFunctionImpl(TimeUnit.DAY).toUDF("DAY");
+      new DatePartFunction(TimeUnit.MONTH).toUDF("MONTH_OF_YEAR");
+  public static final SqlOperator DAY = new DatePartFunction(TimeUnit.DAY).toUDF("DAY");
   public static final SqlOperator DAYOFMONTH =
-      new DatePartFunctionImpl(TimeUnit.DAY).toUDF("DAYOFMONTH");
+      new DatePartFunction(TimeUnit.DAY).toUDF("DAYOFMONTH");
   public static final SqlOperator DAY_OF_MONTH =
-      new DatePartFunctionImpl(TimeUnit.DAY).toUDF("DAY_OF_MONTH");
-  public static final SqlOperator DAYOFWEEK =
-      new DatePartFunctionImpl(TimeUnit.DOW).toUDF("DAYOFWEEK");
+      new DatePartFunction(TimeUnit.DAY).toUDF("DAY_OF_MONTH");
+  public static final SqlOperator DAYOFWEEK = new DatePartFunction(TimeUnit.DOW).toUDF("DAYOFWEEK");
   public static final SqlOperator DAY_OF_WEEK =
-      new DatePartFunctionImpl(TimeUnit.DOW).toUDF("DAY_OF_WEEK");
-  public static final SqlOperator DAYOFYEAR =
-      new DatePartFunctionImpl(TimeUnit.DOY).toUDF("DAYOFYEAR");
+      new DatePartFunction(TimeUnit.DOW).toUDF("DAY_OF_WEEK");
+  public static final SqlOperator DAYOFYEAR = new DatePartFunction(TimeUnit.DOY).toUDF("DAYOFYEAR");
   public static final SqlOperator DAY_OF_YEAR =
-      new DatePartFunctionImpl(TimeUnit.DOY).toUDF("DAY_OF_YEAR");
-  public static final SqlOperator HOUR = new DatePartFunctionImpl(TimeUnit.HOUR).toUDF("HOUR");
+      new DatePartFunction(TimeUnit.DOY).toUDF("DAY_OF_YEAR");
+  public static final SqlOperator HOUR = new DatePartFunction(TimeUnit.HOUR).toUDF("HOUR");
   public static final SqlOperator HOUR_OF_DAY =
-      new DatePartFunctionImpl(TimeUnit.HOUR).toUDF("HOUR_OF_DAY");
-  public static final SqlOperator MINUTE =
-      new DatePartFunctionImpl(TimeUnit.MINUTE).toUDF("MINUTE");
+      new DatePartFunction(TimeUnit.HOUR).toUDF("HOUR_OF_DAY");
+  public static final SqlOperator MINUTE = new DatePartFunction(TimeUnit.MINUTE).toUDF("MINUTE");
   public static final SqlOperator MINUTE_OF_HOUR =
-      new DatePartFunctionImpl(TimeUnit.MINUTE).toUDF("MINUTE_OF_HOUR");
+      new DatePartFunction(TimeUnit.MINUTE).toUDF("MINUTE_OF_HOUR");
   public static final SqlOperator MINUTE_OF_DAY =
       UserDefinedFunctionUtils.adaptExprMethodToUDF(
               DateTimeFunctions.class,
@@ -125,35 +118,31 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE),
               NullPolicy.ARG0)
           .toUDF("MINUTE_OF_DAY");
-  public static final SqlOperator SECOND =
-      new DatePartFunctionImpl(TimeUnit.SECOND).toUDF("SECOND");
+  public static final SqlOperator SECOND = new DatePartFunction(TimeUnit.SECOND).toUDF("SECOND");
   public static final SqlOperator SECOND_OF_MINUTE =
-      new DatePartFunctionImpl(TimeUnit.SECOND).toUDF("SECOND_OF_MINUTE");
+      new DatePartFunction(TimeUnit.SECOND).toUDF("SECOND_OF_MINUTE");
   public static final SqlOperator MICROSECOND =
-      new DatePartFunctionImpl(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
+      new DatePartFunction(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
   public static final SqlOperator CURRENT_TIMESTAMP =
-      new CurrentFunctionImpl(SqlTypeName.TIMESTAMP).toUDF("CURRENT_TIMESTAMP");
-  public static final SqlOperator NOW = new CurrentFunctionImpl(SqlTypeName.TIMESTAMP).toUDF("NOW");
+      new CurrentFunction(SqlTypeName.TIMESTAMP).toUDF("CURRENT_TIMESTAMP");
+  public static final SqlOperator NOW = new CurrentFunction(SqlTypeName.TIMESTAMP).toUDF("NOW");
   public static final SqlOperator LOCALTIMESTAMP =
-      new CurrentFunctionImpl(SqlTypeName.TIMESTAMP).toUDF("LOCALTIMESTAMP");
+      new CurrentFunction(SqlTypeName.TIMESTAMP).toUDF("LOCALTIMESTAMP");
   public static final SqlOperator LOCALTIME =
-      new CurrentFunctionImpl(SqlTypeName.TIMESTAMP).toUDF("LOCALTIME");
-  public static final SqlOperator CURTIME =
-      new CurrentFunctionImpl(SqlTypeName.TIME).toUDF("CURTIME");
+      new CurrentFunction(SqlTypeName.TIMESTAMP).toUDF("LOCALTIME");
+  public static final SqlOperator CURTIME = new CurrentFunction(SqlTypeName.TIME).toUDF("CURTIME");
   public static final SqlOperator CURRENT_TIME =
-      new CurrentFunctionImpl(SqlTypeName.TIME).toUDF("CURRENT_TIME");
+      new CurrentFunction(SqlTypeName.TIME).toUDF("CURRENT_TIME");
   public static final SqlOperator CURRENT_DATE =
-      new CurrentFunctionImpl(SqlTypeName.DATE).toUDF("CURRENT_DATE");
-  public static final SqlOperator CURDATE =
-      new CurrentFunctionImpl(SqlTypeName.DATE).toUDF("CURDATE");
+      new CurrentFunction(SqlTypeName.DATE).toUDF("CURRENT_DATE");
+  public static final SqlOperator CURDATE = new CurrentFunction(SqlTypeName.DATE).toUDF("CURDATE");
   public static final SqlOperator DATE_FORMAT =
-      new FormatFunctionImpl(SqlTypeName.DATE).toUDF("DATE_FORMAT");
+      new FormatFunction(SqlTypeName.DATE).toUDF("DATE_FORMAT");
   public static final SqlOperator TIME_FORMAT =
-      new FormatFunctionImpl(SqlTypeName.TIME).toUDF("TIME_FORMAT");
-  public static final SqlOperator DAYNAME =
-      new PeriodNameFunctionImpl(TimeUnit.DAY).toUDF("DAYNAME");
+      new FormatFunction(SqlTypeName.TIME).toUDF("TIME_FORMAT");
+  public static final SqlOperator DAYNAME = new PeriodNameFunction(TimeUnit.DAY).toUDF("DAYNAME");
   public static final SqlOperator MONTHNAME =
-      new PeriodNameFunctionImpl(TimeUnit.MONTH).toUDF("MONTHNAME");
+      new PeriodNameFunction(TimeUnit.MONTH).toUDF("MONTHNAME");
   public static final SqlOperator CONVERT_TZ =
       UserDefinedFunctionUtils.adaptExprMethodToUDF(
               DateTimeFunctions.class,
@@ -169,8 +158,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               NullPolicy.ANY)
           .toUDF("DATEDIFF");
   public static final SqlOperator TIMESTAMPDIFF =
-      new TimestampDiffFunctionImpl().toUDF("TIMESTAMPDIFF");
-  public static final SqlOperator LAST_DAY = new LastDayFunctionImpl().toUDF("LAST_DAY");
+      new TimestampDiffFunction().toUDF("TIMESTAMPDIFF");
+  public static final SqlOperator LAST_DAY = new LastDayFunction().toUDF("LAST_DAY");
   public static final SqlOperator FROM_DAYS =
       UserDefinedFunctionUtils.adaptExprMethodToUDF(
               DateTimeFunctions.class,
@@ -178,8 +167,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               op -> UserDefinedFunctionUtils.nullableDateUDT,
               NullPolicy.ANY)
           .toUDF("FROM_DAYS");
-  public static final SqlOperator FROM_UNIXTIME =
-      new FromUnixTimeFunctionImpl().toUDF("FROM_UNIXTIME");
+  public static final SqlOperator FROM_UNIXTIME = new FromUnixTimeFunction().toUDF("FROM_UNIXTIME");
   public static final SqlOperator GET_FORMAT =
       UserDefinedFunctionUtils.adaptExprMethodToUDF(
               DateTimeFunctions.class,
@@ -222,8 +210,8 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               op -> UserDefinedFunctionUtils.nullableTimestampUDT,
               NullPolicy.ANY)
           .toUDF("STR_TO_DATE");
-  public static final SqlOperator SYSDATE = new SysdateFunctionImpl().toUDF("SYSDATE");
-  public static final SqlOperator SEC_TO_TIME = new SecToTimeFunctionImpl().toUDF("SEC_TO_TIME");
+  public static final SqlOperator SYSDATE = new SysdateFunction().toUDF("SYSDATE");
+  public static final SqlOperator SEC_TO_TIME = new SecToTimeFunction().toUDF("SEC_TO_TIME");
   public static final SqlOperator TIME =
       UserDefinedFunctionUtils.adaptExprMethodToUDF(
               DateTimeFunctions.class,
@@ -245,8 +233,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               opBinding -> UserDefinedFunctionUtils.nullableTimeUDT,
               NullPolicy.ANY)
           .toUDF("TIME_DIFF");
-  public static final SqlOperator TIMESTAMPADD =
-      new TimestampAddFunctionImpl().toUDF("TIMESTAMPADD");
+  public static final SqlOperator TIMESTAMPADD = new TimestampAddFunction().toUDF("TIMESTAMPADD");
   public static final SqlOperator TO_DAYS =
       UserDefinedFunctionUtils.adaptExprMethodToUDF(
               DateTimeFunctions.class,
@@ -254,7 +241,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               ReturnTypes.BIGINT_FORCE_NULLABLE,
               NullPolicy.ARG0)
           .toUDF("TO_DAYS");
-  public static final SqlOperator DATETIME = new DatetimeFunctionImpl().toUDF("DATETIME");
+  public static final SqlOperator DATETIME = new DatetimeFunction().toUDF("DATETIME");
   public static final SqlOperator UTC_DATE =
       UserDefinedFunctionUtils.adaptExprMethodWithPropertiesToUDF(
               DateTimeFunctions.class,
@@ -276,13 +263,13 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               op -> UserDefinedFunctionUtils.nullableTimestampUDT,
               NullPolicy.NONE)
           .toUDF("UTC_TIMESTAMP");
-  public static final SqlOperator WEEK = new WeekImpl().toUDF("WEEK");
-  public static final SqlOperator WEEK_OF_YEAR = new WeekImpl().toUDF("WEEK_OF_YEAR");
-  public static final SqlOperator WEEKOFYEAR = new WeekImpl().toUDF("WEEKOFYEAR");
+  public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
+  public static final SqlOperator WEEK_OF_YEAR = new WeekFunction().toUDF("WEEK_OF_YEAR");
+  public static final SqlOperator WEEKOFYEAR = new WeekFunction().toUDF("WEEKOFYEAR");
 
-  public static final SqlOperator IF = new IfImpl().toUDF("IF");
-  public static final SqlOperator IFNULL = new IfNullImpl().toUDF("IFNULL");
-  public static final SqlOperator NULLIF = new NullIfImpl().toUDF("NULLIF");
+  public static final SqlOperator IF = new IfFunction().toUDF("IF");
+  public static final SqlOperator IFNULL = new IfNullFunction().toUDF("IFNULL");
+  public static final SqlOperator NULLIF = new NullIfFunction().toUDF("NULLIF");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

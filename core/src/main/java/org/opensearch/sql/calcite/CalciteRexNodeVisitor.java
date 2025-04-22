@@ -53,7 +53,6 @@ import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessDateToStringFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -62,6 +61,7 @@ import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.expression.function.udf.datetime.PostprocessDateToStringFunction;
 
 @RequiredArgsConstructor
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {

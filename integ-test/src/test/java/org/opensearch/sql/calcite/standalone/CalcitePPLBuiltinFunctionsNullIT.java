@@ -14,7 +14,6 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import java.io.IOException;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.SemanticCheckException;
 
