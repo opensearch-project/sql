@@ -147,39 +147,27 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     LOG.info("{} disabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
   }
 
-  protected static boolean isFallbackEnabled() {
-    try {
-      return Boolean.parseBoolean(
-          getClusterSetting(Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "persistent"));
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+  protected static boolean isFallbackEnabled() throws IOException {
+    return Boolean.parseBoolean(
+        getClusterSetting(Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "persistent"));
   }
 
-  public static void withFallbackEnabled(Runnable f, String msg) {
+  public static void withFallbackEnabled(Runnable f, String msg) throws IOException {
     LOG.info("Need fallback to v2 due to {}", msg);
     boolean isFallbackEnabled = isFallbackEnabled();
     if (isFallbackEnabled) f.run();
     else {
       try {
-        try {
-          updateClusterSettings(
-              new SQLIntegTestCase.ClusterSetting(
-                  "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "true"));
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "true"));
         LOG.info(
             "Set {} to enabled and run the test", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
         f.run();
       } finally {
-        try {
-          updateClusterSettings(
-              new SQLIntegTestCase.ClusterSetting(
-                  "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
         LOG.info("Reset {} back to disabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
       }
     }

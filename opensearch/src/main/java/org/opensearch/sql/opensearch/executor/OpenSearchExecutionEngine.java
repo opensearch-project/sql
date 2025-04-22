@@ -177,7 +177,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                         ResultSet result = statement.executeQuery();
                         buildResultSet(result, rel.getRowType(), listener);
                       } catch (SQLException e) {
-                        listener.onFailure(e);
+                        throw new RuntimeException(e);
                       }
                       return null;
                     }));

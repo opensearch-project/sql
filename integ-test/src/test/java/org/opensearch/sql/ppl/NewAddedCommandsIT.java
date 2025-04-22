@@ -26,111 +26,94 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testJoin() {
+  public void testJoin() throws IOException {
+    JSONObject result;
     try {
-      JSONObject result;
-      try {
-        result =
-            executeQuery(
-                String.format(
-                    "search source=%s | join on firstname=holdersName %s",
-                    TEST_INDEX_BANK, TEST_INDEX_DOG));
-      } catch (ResponseException e) {
-        result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
-        verifyQuery(result);
-      }
-    } catch (IOException e) {
-      fail(e.getMessage());
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | join on firstname=holdersName %s",
+                  TEST_INDEX_BANK, TEST_INDEX_DOG));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+      verifyQuery(result);
     }
   }
 
   @Test
-  public void testLookup() {
+  public void testLookup() throws IOException {
+    JSONObject result;
     try {
-      JSONObject result;
-      try {
-        result =
-            executeQuery(
-                String.format(
-                    "search source=%s | lookup %s holdersName as firstname",
-                    TEST_INDEX_BANK, TEST_INDEX_DOG));
-      } catch (ResponseException e) {
-        result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
-      }
-      verifyQuery(result);
-    } catch (IOException e) {
-      fail(e.getMessage());
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | lookup %s holdersName as firstname",
+                  TEST_INDEX_BANK, TEST_INDEX_DOG));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
+    verifyQuery(result);
   }
 
   @Test
-  public void testSubsearch() {
+  public void testSubsearch() throws IOException {
+    JSONObject result;
     try {
-      JSONObject result;
-      try {
-        result =
-            executeQuery(
-                String.format(
-                    "search source=[source=%s | where age>35] as t | where age>35",
-                    TEST_INDEX_BANK));
-      } catch (ResponseException e) {
-        result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
-      }
-      verifyQuery(result);
-
-      try {
-        result =
-            executeQuery(
-                String.format(
-                    "search source=%s | where exists [ source=%s | where firstname=holdersName]",
-                    TEST_INDEX_BANK, TEST_INDEX_DOG));
-      } catch (ResponseException e) {
-        result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
-      }
-      verifyQuery(result);
-
-      try {
-        result =
-            executeQuery(
-                String.format(
-                    "search source=%s | where firstname in [ source=%s | fields holdersName]",
-                    TEST_INDEX_BANK, TEST_INDEX_DOG));
-      } catch (ResponseException e) {
-        result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
-      }
-      verifyQuery(result);
-
-      try {
-        result =
-            executeQuery(
-                String.format(
-                    "search source=%s | where firstname = [ source=%s | where holdersName='Hattie'"
-                        + " | fields holdersName | head 1]",
-                    TEST_INDEX_BANK, TEST_INDEX_DOG));
-      } catch (ResponseException e) {
-        result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
-      }
-      verifyQuery(result);
-    } catch (IOException e) {
-      fail(e.getMessage());
+      result =
+          executeQuery(
+              String.format(
+                  "search source=[source=%s | where age>35] as t | where age>35", TEST_INDEX_BANK));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
+    verifyQuery(result);
+
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | where exists [ source=%s | where firstname=holdersName]",
+                  TEST_INDEX_BANK, TEST_INDEX_DOG));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | where firstname in [ source=%s | fields holdersName]",
+                  TEST_INDEX_BANK, TEST_INDEX_DOG));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
+
+    try {
+      result =
+          executeQuery(
+              String.format(
+                  "search source=%s | where firstname = [ source=%s | where holdersName='Hattie'"
+                      + " | fields holdersName | head 1]",
+                  TEST_INDEX_BANK, TEST_INDEX_DOG));
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    verifyQuery(result);
   }
 
-  private void verifyQuery(JSONObject result) {
-    try {
-      if (isCalciteEnabled()) {
-        assertFalse(result.getJSONArray("datarows").isEmpty());
-      } else {
-        assertThat(result.getInt("status"), equalTo(500));
-        JSONObject error = result.getJSONObject("error");
-        assertThat(
-            error.getString("details"),
-            containsString(
-                "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
-        assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
-      }
-    } catch (IOException e) {
-      fail(e.getMessage());
+  private void verifyQuery(JSONObject result) throws IOException {
+    if (isCalciteEnabled()) {
+      assertFalse(result.getJSONArray("datarows").isEmpty());
+    } else {
+      assertThat(result.getInt("status"), equalTo(500));
+      JSONObject error = result.getJSONObject("error");
+      assertThat(
+          error.getString("details"),
+          containsString(
+              "is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true"));
+      assertThat(error.getString("type"), equalTo("UnsupportedOperationException"));
     }
   }
 }
