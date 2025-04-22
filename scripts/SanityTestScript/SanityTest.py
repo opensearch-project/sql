@@ -49,7 +49,7 @@ class PPLTester:
     logger = logging.getLogger('PPLTester')
     logger.setLevel(self.log_level)
 
-    fh = logging.FileHandler('flint_test.log')
+    fh = logging.FileHandler('PPL_test.log')
     fh.setLevel(self.log_level)
 
     ch = logging.StreamHandler()

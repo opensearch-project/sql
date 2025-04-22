@@ -17,7 +17,7 @@ Apart from the basic feature, it also has some advanced functionality includes:
 ### Usage
 To use this script, you need to have Python **3.6** or higher installed. It also requires the following Python libraries:
 ```shell
-pip install requests pandas openpyxl pyspark setuptools pyarrow grpcio grpcio-status protobuf
+pip install requests pandas openpyxl
 ```
 
 After getting the requisite libraries, you can run the script with the following command line parameters in your shell:
@@ -35,7 +35,7 @@ For more details of the command line parameters, you can see the help manual via
 ```shell
 python SanityTest.py --help   
 
-usage: SanityTest.py [-h] --spark-url BASE_URL --username USERNAME --password PASSWORD --input-csv INPUT_CSV --output-file OUTPUT_FILE
+usage: SanityTest.py [-h] --base-url BASE_URL --username USERNAME --password PASSWORD --input-csv INPUT_CSV --output-file OUTPUT_FILE
                                       [--max-workers MAX_WORKERS] [--timeout TIMEOUT]
                                       [--start-row START_ROW] [--end-row END_ROW]
                                       [--log-level LOG_LEVEL]
