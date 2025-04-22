@@ -7,7 +7,6 @@ package org.opensearch.sql.calcite;
 
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -18,11 +17,8 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.util.DateString;
 import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
@@ -60,8 +56,8 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
-import org.opensearch.sql.expression.function.udf.datetime.PostprocessDateToStringFunction;
 
 @RequiredArgsConstructor
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {
@@ -201,18 +197,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   private RexNode transferCompareForDateRelated(
       RexNode candidate, CalcitePlanContext context, boolean whetherCompareByTime) {
     if (whetherCompareByTime) {
-      SqlOperator postToStringNode =
-          TransferUserDefinedFunction(
-              PostprocessDateToStringFunction.class,
-              "PostprocessDateToString",
-              ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE));
       RexNode transferredStringNode =
-          context.rexBuilder.makeCall(
-              postToStringNode,
-              List.of(
-                  candidate,
-                  context.rexBuilder.makeLiteral(
-                      context.functionProperties.getQueryStartClock().instant().toString())));
+          context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
       return transferredStringNode;
     } else {
       return candidate;
