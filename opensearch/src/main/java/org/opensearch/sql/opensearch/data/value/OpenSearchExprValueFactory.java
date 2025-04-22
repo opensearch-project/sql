@@ -44,6 +44,7 @@ import org.opensearch.OpenSearchParseException;
 import org.opensearch.common.time.DateFormatter;
 import org.opensearch.common.time.DateFormatters;
 import org.opensearch.common.time.FormatNames;
+import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprCollectionValue;
@@ -253,10 +254,20 @@ public class OpenSearchExprValueFactory {
           return new ExprDateValue(
               DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
         default:
-          return new ExprTimestampValue(
-              DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
+          try {
+            return new ExprTimestampValue(
+                    DateFormatters.from(DateFieldMapper.getDefaultDateTimeFormatter().parse(value))
+                            .toInstant());
+          } catch (DateTimeParseException | IllegalArgumentException ignored) {
+            try {
+              return new ExprTimestampValue(
+                      DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
+            } catch (DateTimeParseException | IllegalArgumentException e) {
+              throw e;
+            }
+          }
       }
-    } catch (DateTimeParseException ignored) {
+    } catch (DateTimeParseException | IllegalArgumentException ignored) {
       // ignored
     }
 

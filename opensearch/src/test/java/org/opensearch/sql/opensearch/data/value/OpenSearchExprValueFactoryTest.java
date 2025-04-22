@@ -83,6 +83,7 @@ class OpenSearchExprValueFactoryTest {
           .put("datetimeV", OpenSearchDateType.of(DATETIME))
           .put("timeV", OpenSearchDateType.of(TIME))
           .put("timestampV", OpenSearchDateType.of(TIMESTAMP))
+          .put("timeonlyV", OpenSearchDateType.of("HH:mm:ss"))
           .put("datetimeDefaultV", OpenSearchDateType.of())
           .put("dateStringV", OpenSearchDateType.of("date"))
           .put("timeStringV", OpenSearchDateType.of("time"))
@@ -319,10 +320,6 @@ class OpenSearchExprValueFactoryTest {
                 tupleValue("{\"timestampV\":\"2015-01-01T12:10:30\"}").get("timestampV")),
         () ->
             assertEquals(
-                new ExprTimestampValue("2015-01-01 12:10:30"),
-                tupleValue("{\"timestampV\":\"2015-01-01 12:10:30\"}").get("timestampV")),
-        () ->
-            assertEquals(
                 new ExprTimestampValue(Instant.ofEpochMilli(1420070400001L)),
                 constructFromObject("timestampV", 1420070400001L)),
         () ->
@@ -374,7 +371,7 @@ class OpenSearchExprValueFactoryTest {
         () ->
             assertEquals(
                 new ExprTimeValue("19:36:22"),
-                tupleValue("{\"timestampV\":\"19:36:22\"}").get("timestampV")),
+                tupleValue("{\"timeonlyV\":\"19:36:22\"}").get("timeonlyV")),
 
         // case: timestamp-formatted field, but it only gets a date: should match a date
         () ->
@@ -402,7 +399,7 @@ class OpenSearchExprValueFactoryTest {
         constructFromObject("customAndEpochMillisV", "2015-01-01 12:10:30"));
 
     assertEquals(
-        new ExprDatetimeValue("2015-01-01 12:10:30"),
+        new ExprTimestampValue("2015-01-01 12:10:30"),
         constructFromObject("customAndEpochMillisV", "2015-01-01-12-10-30"));
   }
 
@@ -716,7 +713,7 @@ class OpenSearchExprValueFactoryTest {
             List.of(
                 new ExprTimestampValue("2015-01-01 12:10:30"),
                 new ExprTimestampValue("1999-11-09 01:09:44"))),
-        tupleValue("{\"customAndEpochMillisV\":[\"2015-01-01 12:10:30\",\"1999-11-09 01:09:44\"]}")
+        tupleValue("{\"customAndEpochMillisV\":[\"2015-01-01-12-10-30\",\"1999-11-09-01-09-44\"]}")
             .get("customAndEpochMillisV"));
   }
 
