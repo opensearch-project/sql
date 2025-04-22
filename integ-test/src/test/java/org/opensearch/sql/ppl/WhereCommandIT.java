@@ -114,6 +114,26 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testWhereWithMetadataFields2() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | where _id='1'", TEST_INDEX_ACCOUNT));
+    verifyDataRows(
+        result,
+        rows(
+            1,
+            "Amber",
+            "880 Holmes Lane",
+            39225,
+            "M",
+            "Brogan",
+            "Pyrami",
+            "IL",
+            32,
+            "amberduke@pyrami.com",
+            "Duke"));
+  }
+
+  @Test
   public void testWhereWithIn() throws IOException {
     JSONObject result =
         executeQuery(

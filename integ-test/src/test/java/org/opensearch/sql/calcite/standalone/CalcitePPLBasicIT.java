@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.standalone;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -90,7 +91,10 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   public void testFieldsShouldBeCaseSensitive() {
     IllegalStateException e =
         assertThrows(IllegalStateException.class, () -> execute("source=test | fields NAME"));
-    verifyErrorMessageContains(e, "field [NAME] not found; input fields are: [name, age]");
+    verifyErrorMessageContains(
+        e,
+        "field [NAME] not found; input fields are: [name, age, _id, _index, _score, _maxscore,"
+            + " _sort, _routing]");
   }
 
   @Test
@@ -525,5 +529,16 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_ALIAS));
     verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
     verifyDataRows(result, rows(2, 2), rows(3, 3));
+  }
+
+  @Test
+  public void testMetaFieldAlias() {
+    Exception e =
+        assertThrows(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format("source=%s | stats count() as _score", TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(e, "Cannot use metadata field [_score] as the alias.");
   }
 }

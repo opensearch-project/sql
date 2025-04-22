@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.remote;
 
 import java.io.IOException;
-import lombok.SneakyThrows;
 import org.opensearch.sql.ppl.WhereCommandIT;
 
 public class CalciteWhereCommandIT extends WhereCommandIT {
@@ -28,20 +27,6 @@ public class CalciteWhereCommandIT extends WhereCommandIT {
           }
         },
         "https://github.com/opensearch-project/sql/issues/3428");
-  }
-
-  @SneakyThrows
-  @Override
-  public void testWhereWithMetadataFields() {
-    withFallbackEnabled(
-        () -> {
-          try {
-            super.testWhereWithMetadataFields();
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        },
-        "https://github.com/opensearch-poject/sql/issues/3333");
   }
 
   @Override
