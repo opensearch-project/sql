@@ -124,7 +124,7 @@ An example of JSON report:
       "start_time": "2025-04-22 16:30:22.461505",
       "end_time": "2025-04-22 16:30:22.863651",
       "error": {
-        "error": "404 Client Error: Not Found for url: http://k8s-calcitep-opensear-8312a971dd-1309739395.us-west-1.elb.amazonaws.com/_plugins/_ppl",
+        "error": "404 Client Error: Not Found for url: http:localhost:9200/_plugins/_ppl",
         "response": {
           "error": {
             "reason": "Error occurred in OpenSearch engine: no such index [opensearch_dashboards_sample_data_flights_2]",
