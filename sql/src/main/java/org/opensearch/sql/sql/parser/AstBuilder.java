@@ -214,10 +214,10 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
     UnresolvedExpression expr = visitAstExpression(ctx.expression());
 
     if (ctx.alias() == null) {
-      return new Alias(name, expr);
+      return Alias.newAliasAllowMetaMetaField(name, expr, null);
     } else {
       String alias = StringUtils.unquoteIdentifier(ctx.alias().getText());
-      return new Alias(name, expr, alias);
+      return Alias.newAliasAllowMetaMetaField(name, expr, alias);
     }
   }
 }

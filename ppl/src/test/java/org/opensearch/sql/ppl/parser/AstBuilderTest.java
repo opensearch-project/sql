@@ -889,11 +889,7 @@ public class AstBuilderTest {
   }
 
   private Node plan(String query) {
-<<<<<<< HEAD
     AstBuilder astBuilder = new AstBuilder(query);
-=======
-    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), settings, query);
->>>>>>> 0d749958b (Improved patterns command with new algorithm (#3263) (#3335))
     return astBuilder.visit(parser.parse(query));
   }
 
