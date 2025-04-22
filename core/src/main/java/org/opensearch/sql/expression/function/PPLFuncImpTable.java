@@ -41,6 +41,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOG2;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LOWER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOTEQUAL;
@@ -56,6 +57,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.REVERSE
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RIGHT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ROUND;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RTRIM;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA1;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.SHA2;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIGN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SIN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SPAN;
@@ -271,6 +274,9 @@ public class PPLFuncImpTable {
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
+      registerOperator(MD5, PPLBuiltinOperators.MD5);
+      registerOperator(SHA1, PPLBuiltinOperators.SHA1);
+      registerOperator(SHA2, PPLBuiltinOperators.SHA2);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
