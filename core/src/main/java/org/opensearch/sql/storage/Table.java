@@ -43,11 +43,6 @@ public interface Table {
     return Map.of();
   }
 
-  /** Whether include reserved fields in the schema of table */
-  default boolean includeReservedFieldTypes() {
-    return true;
-  }
-
   /**
    * Implement a {@link LogicalPlan} by {@link PhysicalPlan} in storage engine.
    *
