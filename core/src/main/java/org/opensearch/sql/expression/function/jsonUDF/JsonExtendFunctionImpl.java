@@ -56,7 +56,7 @@ public class JsonExtendFunctionImpl extends ImplementorUDF {
     List<String> keys = (List<String>) args[1];
     if (keys.size() % 2 != 0) {
       throw new RuntimeException(
-          "Json append function needs corresponding path and values, but current get: " + keys);
+          "Json extend function needs corresponding path and values, but current get: " + keys);
     }
     String resultStr = updateNestedJson(jsonStr, keys, JsonUtils::extendObjectValue);
     Map<?, ?> result = gson.fromJson(resultStr, Map.class);
