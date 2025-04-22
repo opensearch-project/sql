@@ -199,7 +199,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
                     + " frequency_threshold_percentage=0.2 content BRAIN | stats count() as count"
                     + " by patterns_field",
                 TEST_INDEX_HDFS_LOGS));
-    verifySchema(result, schema("count()", "long"), schema("log_pattern", "string"));
+    verifySchema(result, schema("count", "long"), schema("patterns_field", "string"));
     verifyDataRows(
         result,
         rows(2, "Verification succeeded <*> blk_<*>"),
