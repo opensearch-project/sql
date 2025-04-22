@@ -55,10 +55,6 @@ public class JsonDeleteFunctionImpl extends ImplementorUDF {
     String jsonStr = (String) args[0];
     Map<String, Object> jsonMap = objectMapper.readValue(jsonStr, Map.class);
     List<String> keys = (List<String>) args[1];
-    if (keys.size() % 2 != 0) {
-      throw new RuntimeException(
-          "Json append function needs corresponding path and values, but current get: " + keys);
-    }
     for (String key : keys) {
       String[] keyParts = key.split("\\.");
       removeNestedKey(jsonMap, keyParts, 0);

@@ -55,7 +55,11 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
     verifySchema(actual, schema("a", "struct"), schema("b", "struct"));
 
-    verifyDataRows(actual, rows("[1,2,3,{\"f1\":1,\"f2\":[5,6]},4]", null));
+    verifyDataRows(
+        actual,
+        rows(
+            gson.fromJson("{\"key\":123.45}", Map.class),
+            gson.fromJson("{\"outer\":{\"inner\":123.45}}", Map.class)));
   }
 
   @Test
@@ -68,7 +72,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
     verifySchema(actual, schema("a", "array"));
 
-    verifyDataRows(actual, rows("[1.0, 2.0, 0, -1.0, 1.1, -0.11]"));
+    verifyDataRows(actual, rows(List.of(1.0, 2.0, 0, -1.0, 1.1, -0.11)));
   }
 
   @Ignore(
@@ -101,7 +105,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
     verifySchema(actual, schema("a", "string"));
 
-    verifyDataRows(actual, rows("[1.0, 2.0, 0.0, -1.0, 1.1, -0.11]"));
+    verifyDataRows(actual, rows("[1.0,2.0,0.0,-1.0,1.1,-0.11]"));
   }
 
   @Test
