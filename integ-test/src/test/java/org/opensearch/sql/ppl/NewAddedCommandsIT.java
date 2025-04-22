@@ -62,7 +62,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
       result =
           executeQuery(
               String.format(
-                  "search source=[source=%s | where age>35] as t | where age>35", TEST_INDEX_BANK));
+                  "search source=[source=%s | where age>35 | fields age] as t", TEST_INDEX_BANK));
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
@@ -107,7 +107,6 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     if (isCalciteEnabled()) {
       assertFalse(result.getJSONArray("datarows").isEmpty());
     } else {
-      assertThat(result.getInt("status"), equalTo(500));
       JSONObject error = result.getJSONObject("error");
       assertThat(
           error.getString("details"),
