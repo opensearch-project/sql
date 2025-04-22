@@ -25,6 +25,8 @@ import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
 
+import static java.util.Objects.requireNonNull;
+
 /** QueryExecution Factory. */
 @RequiredArgsConstructor
 public class QueryPlanFactory
@@ -106,6 +108,7 @@ public class QueryPlanFactory
               ResponseListener<ExecutionEngine.QueryResponse>,
               ResponseListener<ExecutionEngine.ExplainResponse>>
           context) {
+    requireNonNull(context.getLeft(), "[BUG] query listener must be not null");
     if (node.getFetchSize() > 0) {
       if (canConvertToCursor(node.getPlan())) {
         return new QueryPlan(
@@ -132,6 +135,7 @@ public class QueryPlanFactory
               ResponseListener<ExecutionEngine.QueryResponse>,
               ResponseListener<ExecutionEngine.ExplainResponse>>
           context) {
+    requireNonNull(context.getRight(), "[BUG] explain listener must be not null");
     return new ExplainPlan(
         QueryId.queryId(),
         node.getQueryType(),
