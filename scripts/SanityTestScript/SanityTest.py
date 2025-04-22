@@ -83,59 +83,49 @@ class PPLTester:
       return {"error": str(e), "response": response_json}
 
   # Run the test and return the result
-  def run_test(self, query, seq_id, expected_status):
+  def run_test(self, query, seq_id, query_name, expected_status):
     self.logger.info(f"Starting test: {seq_id}, {query}")
     start_time = datetime.now()
     submit_result = self.submit_query(query)
-    if "error" in submit_result:
-      self.logger.warning(f"Submit error: {submit_result}")
-      return {
-        "query_name": seq_id,
-        "query": query,
-        "expected_status": expected_status,
-        "status": "FAILED",
-        "check_status": "FAILED" == expected_status if expected_status else None,
-        "error": {
-          "error_message": submit_result.get("error"),
-          "response_error": submit_result.get("response", {}).get("error")
-        },
-        # "error": submit_result["error"] if "error" in submit_result else submit_result["response"]["error"],
-        "duration": 0,
-        "start_time": start_time,
-        "end_time": datetime.now()
-      }
-
-    self.logger.debug(f"Submit return: {submit_result}")
-
-    # TODO: need to check results
     end_time = datetime.now()
     duration = (end_time - start_time).total_seconds()
 
-    return {
-      "query_name": seq_id,
+    status = "SUCCESS"
+
+    result = {
+      "seq_id": seq_id,
+      "query_name": query_name,
       "query": query,
       "expected_status": expected_status,
-      "status": "SUCCESS",
-      "check_status": expected_status == "SUCCESS" if expected_status else True,
-      # "check_status": expected_status == "SUCCESS",
-      "error": None,
-      "result": submit_result,
+      "status": status,
       "duration": duration,
       "start_time": start_time,
       "end_time": end_time
     }
 
+    if "error" in submit_result:
+      self.logger.warning(f"Submit query with error: {submit_result}")
+      status = "TIMEOUT" if "read timed out" in submit_result.get("error", "").lower() else "FAILED"
+      result["status"] = status
+      result["error"] = submit_result
+    else:
+      self.logger.debug(f"Submit return: {submit_result}")
+      result["result"] = submit_result
+
+    check_status = status.lower() == expected_status.lower() if expected_status else False
+    result["check_status"] = check_status
+    return result
 
   def run_tests_from_csv(self, csv_file):
     with open(csv_file, 'r') as f:
       reader = csv.DictReader(f)
-      queries = [(row['query'], i, row.get('expected_status', None)) for i, row in enumerate(reader, start=1) if row['query'].strip()]
+      queries = [(row['query'], i, row.get('query_name', f'Q{i}'), row.get('expected_status', None)) for i, row in enumerate(reader, start=1) if row['query'].strip()]
 
     # Filtering queries based on start and end
     queries = queries[self.start:self.end]
 
     # Parallel execution
-    futures = [self.executor.submit(self.run_test, query, seq_id, expected_status) for query, seq_id, expected_status in queries]
+    futures = [self.executor.submit(self.run_test, query, seq_id, query_name, expected_status) for query, seq_id, query_name, expected_status in queries]
     for future in as_completed(futures):
       result = future.result()
       self.test_results.append(result)
@@ -143,10 +133,9 @@ class PPLTester:
   def generate_report(self):
     self.logger.info("Generating report...")
     total_queries = len(self.test_results)
+    check_failed_queries = sum(1 for r in self.test_results if r['check_status'] == False)
     successful_queries = sum(1 for r in self.test_results if r['status'] == 'SUCCESS')
     failed_queries = sum(1 for r in self.test_results if r['status'] == 'FAILED')
-    submit_failed_queries = sum(1 for r in self.test_results if r['status'] == 'SUBMIT_FAILED')
-    check_failed_queries = sum(1 for r in self.test_results if r['check_status'] == False)
     timeout_queries = sum(1 for r in self.test_results if r['status'] == 'TIMEOUT')
 
     # Create report
@@ -156,11 +145,10 @@ class PPLTester:
         "check_failed": check_failed_queries,
         "successful_queries": successful_queries,
         "failed_queries": failed_queries,
-        "submit_failed_queries": submit_failed_queries,
         "timeout_queries": timeout_queries,
         "execution_time": sum(r['duration'] for r in self.test_results)
       },
-      "detailed_results": self.test_results
+      "detailed_results": sorted(self.test_results, key=lambda r: r['seq_id'])
     }
 
     # Save report to JSON file
