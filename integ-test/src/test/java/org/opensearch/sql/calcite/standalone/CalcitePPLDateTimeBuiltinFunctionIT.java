@@ -864,8 +864,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + " 10:07:42'),ld1 = LAST_DAY(date), ld2 = LAST_DAY('1984-04-12'), ld3 ="
                     + " LAST_DAY('1984-04-12 10:07:42'),md1 = MAKEDATE(2020, 1), md2 ="
                     + " MAKEDATE(2020, 366), md3 = MAKEDATE(2020, 367) | eval m3 = MONTHNAME(md2),"
-                    + " ld4 = LAST_DAY(md3)| fields d1, d2, d3, m1, m2, m3, ld1, ld2, ld3, ld4,"
-                    + " md1, md2, md3",
+                    + " ld4 = LAST_DAY(md3), ld5 = LAST_DAY(time) | fields d1, d2, d3, m1, m2, m3,"
+                    + " ld1, ld2, ld3, ld4, ld5, md1, md2, md3",
                 TEST_INDEX_DATE_FORMATS));
 
     verifySchema(
@@ -880,6 +880,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("ld2", "date"),
         schema("ld3", "date"),
         schema("ld4", "date"),
+        schema("ld5", "date"),
         schema("md1", "date"),
         schema("md2", "date"),
         schema("md3", "date"));
@@ -887,6 +888,12 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     final String thu = DayOfWeek.THURSDAY.getDisplayName(TextStyle.FULL, Locale.getDefault());
     final String apr = Month.APRIL.getDisplayName(TextStyle.FULL, Locale.getDefault());
     final String dec = Month.DECEMBER.getDisplayName(TextStyle.FULL, Locale.getDefault());
+    LocalDate today = LocalDate.now(ZoneId.systemDefault());
+    LocalDate lastDayOfToday =
+        LocalDate.of(
+            today.getYear(), today.getMonth(), today.getMonth().length(today.isLeapYear()));
+    String formattedLastDayOfToday =
+        lastDayOfToday.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
     verifyDataRows(
         actual,
         rows(
@@ -900,6 +907,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             "1984-04-30",
             "1984-04-30",
             "2021-01-31",
+            formattedLastDayOfToday,
             "2020-01-01",
             "2020-12-31",
             "2021-01-01"));
