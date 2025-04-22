@@ -14,28 +14,4 @@ public class CalciteNewAddedCommandsIT extends NewAddedCommandsIT {
     enableCalcite();
     disallowCalciteFallback();
   }
-
-  @Override
-  public void testJoin() {
-    // fallback disabled, should pass
-    super.testJoin();
-    // fallback enabled, should pass too
-    withFallbackEnabled(super::testJoin, "");
-  }
-
-  @Override
-  public void testLookup() {
-    // fallback disabled, should pass
-    super.testLookup();
-    // fallback enabled, should pass too
-    withFallbackEnabled(super::testLookup, "");
-  }
-
-  @Override
-  public void testSubsearch() {
-    // fallback disabled, should pass
-    super.testSubsearch();
-    // fallback enabled, should pass too
-    withFallbackEnabled(super::testSubsearch, "");
-  }
 }
