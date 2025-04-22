@@ -16,16 +16,15 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
-import org.opensearch.sql.expression.function.udf.crypto.CryptographicFunction;
-import org.opensearch.sql.expression.function.udf.crypto.Sha2Function;
+import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   public static final SqlOperator SPAN = new SpanFunctionImpl().toUDF("SPAN");
   public static final SqlOperator MD5 = CryptographicFunction.md5().toUDF("MD5");
-  public static final SqlOperator SHA1 = CryptographicFunction.sha1().toUDF("SHA-1");
-  public static final SqlOperator SHA2 = new Sha2Function().toUDF("SHA-256");
+  public static final SqlOperator SHA1 = CryptographicFunction.sha1().toUDF("SHA1");
+  public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
