@@ -116,7 +116,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     }
   }
 
-  protected boolean isCalciteEnabled() throws IOException {
+  protected static boolean isCalciteEnabled() throws IOException {
     return Boolean.parseBoolean(
         getClusterSetting(Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "persistent"));
   }
@@ -169,6 +169,25 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             new SQLIntegTestCase.ClusterSetting(
                 "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
         LOG.info("Reset {} back to disabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
+      }
+    }
+  }
+
+  public static void withCalciteDisabled(Runnable f) throws IOException {
+    boolean isCalciteEnabled = isCalciteEnabled();
+    if (!isCalciteEnabled) f.run();
+    else {
+      try {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
+        LOG.info("Set {} to disabled and run the test", Settings.Key.CALCITE_ENGINE_ENABLED.name());
+        f.run();
+      } finally {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "true"));
+        LOG.info("Reset {} back to enabled", Settings.Key.CALCITE_ENGINE_ENABLED.name());
       }
     }
   }

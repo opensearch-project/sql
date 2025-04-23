@@ -80,7 +80,7 @@ public class QueryService {
     if (shouldUseCalcite(queryType)) {
       explainWithCalcite(plan, queryType, listener, format);
     } else {
-      explainWithLegacy(plan, queryType, listener);
+      explainWithLegacy(plan, queryType, listener, format);
     }
   }
 
@@ -135,7 +135,7 @@ public class QueryService {
     } catch (Throwable t) {
       if (isCalciteFallbackAllowed()) {
         log.warn("Fallback to V2 query engine since got exception", t);
-        explainWithLegacy(plan, queryType, listener);
+        explainWithLegacy(plan, queryType, listener, format);
       } else {
         if (t instanceof Error) {
           // Calcite may throw AssertError during query execution.
@@ -168,7 +168,12 @@ public class QueryService {
   public void explainWithLegacy(
       UnresolvedPlan plan,
       QueryType queryType,
-      ResponseListener<ExecutionEngine.ExplainResponse> listener) {
+      ResponseListener<ExecutionEngine.ExplainResponse> listener,
+      Explain.ExplainFormat format) {
+    if (format != null && format != Explain.ExplainFormat.STANDARD) {
+      throw new UnsupportedOperationException(
+          "Explain mode " + format.name() + " is not supported in v2 engine");
+    }
     try {
       executionEngine.explain(plan(analyze(plan, queryType)), listener);
     } catch (Exception e) {
