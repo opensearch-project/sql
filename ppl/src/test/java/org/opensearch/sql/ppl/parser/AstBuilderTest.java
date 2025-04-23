@@ -856,9 +856,8 @@ public class AstBuilderTest {
             field("raw"),
             "patterns_field",
             Arrays.asList(
-                new Argument("variable_count_threshold", new Literal(2, DataType.INTEGER)),
-                new Argument(
-                    "frequency_threshold_percentage", new Literal(0.1, DataType.DOUBLE)))));
+                new Argument("frequency_threshold_percentage", new Literal(0.1, DataType.DOUBLE)),
+                new Argument("variable_count_threshold", new Literal(2, DataType.INTEGER)))));
   }
 
   @Test

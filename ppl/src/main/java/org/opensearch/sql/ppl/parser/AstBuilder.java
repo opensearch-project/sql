@@ -430,11 +430,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
     String patternMethod =
         ctx.pattern_method != null
-            ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText()).toUpperCase(Locale.ROOT)
+            ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText()).toLowerCase(Locale.ROOT)
             : settings
                 .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
                 .toString()
-                .toUpperCase(Locale.ROOT);
+                .toLowerCase(Locale.ROOT);
     if (patternMethod.equalsIgnoreCase(PatternMethod.SIMPLE_PATTERN.getName())) {
       /*
        * Legacy patterns command is a subclass of Parse plan, which enables Expression pushdown as part of DSL AggregationScript.
@@ -458,7 +458,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                   List.of()), // ignore sort by list for now as we haven't seen such requirement
               newFieldStr),
           sourceField,
-          PatternMethod.valueOf(patternMethod));
+          PatternMethod.valueOf(patternMethod.toUpperCase(Locale.ROOT)));
     }
   }
 
