@@ -9,6 +9,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.*;
 import static org.opensearch.sql.utils.ExpressionUtils.PATH_SEP;
 
 import inet.ipaddr.IPAddress;
+
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -123,7 +125,7 @@ public class ExprValueUtils {
       return byteValue((Byte) o);
     } else if (o instanceof Short) {
       return shortValue((Short) o);
-    } else if (o instanceof Integer) {
+    } else if (o instanceof Integer || o instanceof BigDecimal) {
       return integerValue((Integer) o);
     } else if (o instanceof Long) {
       return longValue(((Long) o));

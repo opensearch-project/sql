@@ -645,6 +645,10 @@ collectionFunctionName
 
 lambdaFunctionName
   : FORALL
+  | EXISTS
+  | FILTER
+  | TRANSFORM
+  | REDUCE
   ;
 
 trigonometricFunctionName

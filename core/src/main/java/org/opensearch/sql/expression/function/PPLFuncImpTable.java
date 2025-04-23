@@ -216,6 +216,9 @@ public class PPLFuncImpTable {
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
+      registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
+      registerOperator(FILTER, PPLBuiltinOperators.FILTER);
+      registerOperator(TRANSFORM, PPLBuiltinOperators.TRANSFORM);
 
 
       // Register implementation.

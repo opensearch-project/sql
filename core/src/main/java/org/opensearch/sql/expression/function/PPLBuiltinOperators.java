@@ -17,15 +17,21 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.TransformFunctionImpl;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   public static final SqlOperator SPAN = new SpanFunctionImpl().toUDF("SPAN");
 
-  public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF("FORALL");
-  public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("ARRAY");
+  public static final SqlOperator FORALL = new ForallFunctionImpl(true).toUDF("FORALL");
+  public static final SqlOperator EXISTS = new ForallFunctionImpl(false).toUDF("exists");
+  public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("array");
+  public static final SqlOperator FILTER = new FilterFunctionImpl().toUDF("filter");
+  public static final SqlOperator TRANSFORM = new TransformFunctionImpl().toUDF("transform");
+
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

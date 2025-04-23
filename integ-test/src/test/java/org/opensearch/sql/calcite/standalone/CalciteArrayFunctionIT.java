@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 import java.io.IOException;
+import java.util.List;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.*;
@@ -37,17 +38,62 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
     }
 
     @Test
-    public void testForAll() {
+    public void testExists() {
         JSONObject actual =
                 executeQuery(
                         String.format(
-                                "source=%s | eval array = array(1, -1, 2), result = forall(array, x -> x > 0) | fields result | head 1",
+                                "source=%s | eval array = array(1, -1, 2), result = exists(array, x -> x > 0) | fields result | head 1",
                                 TEST_INDEX_BANK));
 
         verifySchema(actual, schema("result", "boolean"));
 
         verifyDataRows(
                 actual,
-                rows(false));
+                rows(true));
+    }
+
+    @Test
+    public void testFilter() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s | eval array = array(1, -1, 2), result = filter(array, x -> x > 0) | fields result | head 1",
+                                TEST_INDEX_BANK));
+
+        verifySchema(actual, schema("result", "array"));
+
+        verifyDataRows(
+                actual,
+                rows(List.of(1, 2)));
+    }
+
+    @Test
+    public void testTransform() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s | eval array = array(1, 2, 3), result = transform(array, x -> x + 1) | fields result | head 1",
+                                TEST_INDEX_BANK));
+
+        verifySchema(actual, schema("result", "array"));
+
+        verifyDataRows(
+                actual,
+                rows(List.of(2, 3, 4)));
+    }
+
+    @Test
+    public void testTransformForTwoInput() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s | eval array = array(1, 2, 3), result = transform(array, x -> x + 1) | fields result | head 1",
+                                TEST_INDEX_BANK));
+
+        verifySchema(actual, schema("result", "array"));
+
+        verifyDataRows(
+                actual,
+                rows(List.of(2, 3, 4)));
     }
 }

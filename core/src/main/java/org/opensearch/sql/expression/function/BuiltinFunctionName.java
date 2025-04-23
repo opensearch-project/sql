@@ -59,6 +59,9 @@ public enum BuiltinFunctionName {
   /** Collection functions  */
   ARRAY(FunctionName.of("array")),
   FORALL(FunctionName.of("forall")),
+  EXISTS(FunctionName.of("exists")),
+  FILTER(FunctionName.of("filter")),
+  TRANSFORM(FunctionName.of("transform")),
 
   /** Date and Time Functions. */
   ADDDATE(FunctionName.of("adddate")),

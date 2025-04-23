@@ -11,34 +11,35 @@ import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class ForallFunctionImpl extends ImplementorUDF {
-    public static Boolean isForAll;
-    public ForallFunctionImpl(Boolean isForAll) {
-        super(new ForallImplementor(), NullPolicy.ANY);
-        this.isForAll = isForAll;
+public class FilterFunctionImpl extends ImplementorUDF {
+    public FilterFunctionImpl() {
+        super(new FilterImplementor(), NullPolicy.ANY);
     }
 
     @Override
     public SqlReturnTypeInference getReturnTypeInference() {
-        return ReturnTypes.BOOLEAN;
+        return ReturnTypes.ARG0;
     }
 
-    public static class ForallImplementor implements NotNullImplementor {
+    public static class FilterImplementor implements NotNullImplementor {
         @Override
         public Expression implement(
                 RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
             ScalarFunctionImpl function =
                     (ScalarFunctionImpl)
                             ScalarFunctionImpl.create(
-                                    Types.lookupMethod(ForallFunctionImpl.class, "eval", Object[].class));
+                                    Types.lookupMethod(FilterFunctionImpl.class, "eval", Object[].class));
             return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
         }
     }
@@ -46,15 +47,16 @@ public class ForallFunctionImpl extends ImplementorUDF {
     public static Object eval(Object... args) {
         org.apache.calcite.linq4j.function.Predicate1 lambdaFunction = (org.apache.calcite.linq4j.function.Predicate1) args[1];
         List<Object> target = (List<Object>) args[0];
+        List<Object> results = new ArrayList<>();
         try {
             for (Object candidate: target) {
-                if (!(Boolean) lambdaFunction.apply(candidate)) {
-                    return !isForAll;
+                if ((Boolean) lambdaFunction.apply(candidate)) {
+                    results.add(candidate);
                 }
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return isForAll;
+        return results;
     }
 }
