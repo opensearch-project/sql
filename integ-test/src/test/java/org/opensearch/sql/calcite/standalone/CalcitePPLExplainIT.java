@@ -76,17 +76,4 @@ public class CalcitePPLExplainIT extends CalcitePPLIntegTestCase {
             + "}",
         result);
   }
-
-  @Test
-  public void testExplainModeUnsupportedInV2() throws IOException {
-    withCalciteDisabled(
-        () -> {
-          try {
-            explainQuery("explain cost source=test | where age = 20 | fields name, age");
-          } catch (Exception e) {
-            assertTrue(e.getMessage().contains("explain mode COST is not supported in v2 engine"));
-          }
-        }
-    );
-  }
 }

@@ -170,11 +170,11 @@ public class QueryService {
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       Explain.ExplainFormat format) {
-    if (format != null && format != Explain.ExplainFormat.STANDARD) {
-      throw new UnsupportedOperationException(
-          "Explain mode " + format.name() + " is not supported in v2 engine");
-    }
     try {
+      if (format != null && format != Explain.ExplainFormat.STANDARD) {
+        throw new UnsupportedOperationException(
+            "Explain mode " + format.name() + " is not supported in v2 engine");
+      }
       executionEngine.explain(plan(analyze(plan, queryType)), listener);
     } catch (Exception e) {
       listener.onFailure(e);
