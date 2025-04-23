@@ -130,10 +130,9 @@ public class UserDefinedFunctionUtils {
     Instant instant =
         Instant.ofEpochSecond(
             currentTimeInNanos / 1_000_000_000, currentTimeInNanos % 1_000_000_000);
-    TimeZone timeZone = DataContext.Variable.TIME_ZONE.get(dataContext);
+    TimeZone timeZone = TimeZone.getDefault();
     ZoneId zoneId = timeZone.toZoneId();
-    FunctionProperties functionProperties = new FunctionProperties(instant, zoneId, QueryType.PPL);
-    return functionProperties;
+    return new FunctionProperties(instant, zoneId, QueryType.PPL);
   }
 
   public static List<Expression> addTypeAndContext(
