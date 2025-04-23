@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -136,26 +137,15 @@ public class UserDefinedFunctionUtils {
   }
 
   public static List<Expression> addTypeAndContext(
-      List<Expression> candidate, RexCall rexCall, Expression root) {
-    List<Expression> newList = new ArrayList<>(candidate);
+      List<Expression> operands, RexCall rexCall, Expression root) {
+    // Box primitive values so that they can match signatures with boxed types
+    List<Expression> enrichedOperands =
+        operands.stream().map(Expressions::box).collect(Collectors.toList());
     for (RexNode rexNode : rexCall.getOperands()) {
-      newList.add(Expressions.constant(transferDateRelatedTimeName(rexNode)));
+      enrichedOperands.add(Expressions.constant(transferDateRelatedTimeName(rexNode)));
     }
-    newList.add(root);
-    return newList;
-  }
-
-  public static List<Expression> buildArgsWithTypesForExpression(
-      List<Expression> candidate, RexCall rexCall, Expression root, int... indexes) {
-    List<Expression> result = new ArrayList<>();
-    List<RexNode> operands = rexCall.getOperands();
-    for (int index : indexes) {
-      Expression arg = candidate.get(index);
-      result.add(arg);
-      result.add(Expressions.constant(transferDateRelatedTimeName(operands.get(index))));
-    }
-    result.add(root);
-    return result;
+    enrichedOperands.add(root);
+    return enrichedOperands;
   }
 
   /**

@@ -42,12 +42,7 @@ public class ToSecondsFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
       List<Expression> newList = addTypeAndContext(list, rexCall, rexToLixTranslator.getRoot());
-      return Expressions.call(
-          ToSecondsFunction.class,
-          "toSeconds",
-          Expressions.box(newList.get(0)),
-          newList.get(1),
-          newList.get(2));
+      return Expressions.call(ToSecondsFunction.class, "toSeconds", newList);
     }
   }
 

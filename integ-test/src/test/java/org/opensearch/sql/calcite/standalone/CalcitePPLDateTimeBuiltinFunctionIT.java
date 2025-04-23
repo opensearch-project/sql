@@ -373,13 +373,15 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 "source=%s "
                     + "| eval from_unix = from_unixtime(1220249547)"
                     + "| eval to_unix = unix_timestamp(from_unix)"
-                    // + "| where unix_timestamp(from_unixtime(1700000001)) > 1700000000 " // don't
-                    // do
-                    // filter
-                    + "| fields from_unix, to_unix | head 1",
+                    + "| eval unix_double = UNIX_TIMESTAMP(20771122143845)"
+                    + "| fields from_unix, to_unix, unix_double | head 1",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("from_unix", "timestamp"), schema("to_unix", "double"));
-    verifyDataRows(actual, rows("2008-09-01 06:12:27", 1220249547.0));
+    verifySchema(
+        actual,
+        schema("from_unix", "timestamp"),
+        schema("to_unix", "double"),
+        schema("unix_double", "double"));
+    verifyDataRows(actual, rows("2008-09-01 06:12:27", 1220249547.0, 3404817525d));
   }
 
   @Test

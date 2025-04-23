@@ -51,7 +51,7 @@ public class YearweekFunction extends ImplementorUDF {
 
   public static Object yearweek(
       Object date,
-      int mode,
+      Integer mode,
       SqlTypeName dateType,
       SqlTypeName ignored,
       DataContext propertyContext) {

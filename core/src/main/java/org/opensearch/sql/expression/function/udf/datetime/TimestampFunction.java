@@ -39,9 +39,8 @@ public class TimestampFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
-      List<Expression> boxedList = list.stream().map(Expressions::box).toList();
       List<Expression> enrichedList =
-          addTypeAndContext(boxedList, rexCall, rexToLixTranslator.getRoot());
+          addTypeAndContext(list, rexCall, rexToLixTranslator.getRoot());
       return Expressions.call(TimestampFunction.class, "timestamp", enrichedList);
     }
   }
