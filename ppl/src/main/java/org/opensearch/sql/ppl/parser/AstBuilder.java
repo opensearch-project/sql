@@ -40,6 +40,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
@@ -114,13 +115,17 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitQueryStatement(OpenSearchPPLParser.QueryStatementContext ctx) {
     UnresolvedPlan pplCommand = visit(ctx.pplCommands());
-    return ctx.commands().stream().map(this::visit).reduce(pplCommand, (r, e) -> e.attach(r));
+    return ctx.commands().stream()
+        .map(this::visit)
+        .reduce(pplCommand, (r, e) -> e.attach(e instanceof Join ? projectExceptMeta(r) : r));
   }
 
   @Override
   public UnresolvedPlan visitSubSearch(OpenSearchPPLParser.SubSearchContext ctx) {
     UnresolvedPlan searchCommand = visit(ctx.searchCommand());
-    return ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r));
+    // Exclude metadata fields for subquery
+    return projectExceptMeta(
+        ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r)));
   }
 
   /** Search command. */
@@ -205,8 +210,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.joinCriteria() == null
             ? Optional.empty()
             : Optional.of(expressionBuilder.visitJoinCriteria(ctx.joinCriteria()));
-
-    return new Join(right, leftAlias, rightAlias, joinType, joinCondition, joinHint);
+    return new Join(
+        projectExceptMeta(right), leftAlias, rightAlias, joinType, joinCondition, joinHint);
   }
 
   private Join.JoinHint getJoinHint(OpenSearchPPLParser.JoinHintListContext ctx) {
@@ -609,5 +614,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Token start = ctx.getStart();
     Token stop = ctx.getStop();
     return query.substring(start.getStartIndex(), stop.getStopIndex() + 1);
+  }
+
+  /**
+   * Try to wrap the plan with a project node of this AllFields expression. Only wrap it if the plan
+   * is not a project node or if the project is type of excluded.
+   *
+   * @param plan The input plan needs to be wrapped with a project
+   * @return The wrapped plan of the input plan, i.e., project(plan)
+   */
+  private UnresolvedPlan projectExceptMeta(UnresolvedPlan plan) {
+    if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
+      return plan;
+    } else {
+      return new Project(ImmutableList.of(AllFieldsExcludeMeta.of())).attach(plan);
+    }
   }
 }

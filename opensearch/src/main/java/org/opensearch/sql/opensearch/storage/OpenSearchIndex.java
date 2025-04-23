@@ -10,7 +10,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.linq4j.AbstractEnumerable;
@@ -59,13 +61,16 @@ public class OpenSearchIndex extends OpenSearchTable {
   public static final String METADATA_FIELD_ROUTING = "_routing";
 
   public static final java.util.Map<String, ExprType> METADATAFIELD_TYPE_MAP =
-      Map.of(
-          METADATA_FIELD_ID, ExprCoreType.STRING,
-          METADATA_FIELD_INDEX, ExprCoreType.STRING,
-          METADATA_FIELD_SCORE, ExprCoreType.FLOAT,
-          METADATA_FIELD_MAXSCORE, ExprCoreType.FLOAT,
-          METADATA_FIELD_SORT, ExprCoreType.LONG,
-          METADATA_FIELD_ROUTING, ExprCoreType.STRING);
+      new LinkedHashMap<>() {
+        {
+          put(METADATA_FIELD_ID, ExprCoreType.STRING);
+          put(METADATA_FIELD_INDEX, ExprCoreType.STRING);
+          put(METADATA_FIELD_SCORE, ExprCoreType.FLOAT);
+          put(METADATA_FIELD_MAXSCORE, ExprCoreType.FLOAT);
+          put(METADATA_FIELD_SORT, ExprCoreType.LONG);
+          put(METADATA_FIELD_ROUTING, ExprCoreType.STRING);
+        }
+      };
 
   /** OpenSearch client connection. */
   @Getter private final OpenSearchClient client;
@@ -80,6 +85,9 @@ public class OpenSearchIndex extends OpenSearchTable {
 
   /** The cached ExprType of fields. */
   private Map<String, ExprType> cachedFieldTypes = null;
+
+  /** The cached mapping of alias type field to its original path. */
+  private Map<String, String> aliasMapping = null;
 
   /** The cached max result window setting of index. */
   private Integer cachedMaxResultWindow = null;
@@ -146,6 +154,22 @@ public class OpenSearchIndex extends OpenSearchTable {
   @Override
   public Map<String, ExprType> getReservedFieldTypes() {
     return METADATAFIELD_TYPE_MAP;
+  }
+
+  public Map<String, String> getAliasMapping() {
+    if (cachedFieldOpenSearchTypes == null) {
+      cachedFieldOpenSearchTypes =
+          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
+    }
+    if (aliasMapping == null) {
+      aliasMapping =
+          cachedFieldOpenSearchTypes.entrySet().stream()
+              .filter(entry -> entry.getValue().getOriginalPath().isPresent())
+              .collect(
+                  Collectors.toUnmodifiableMap(
+                      Entry::getKey, entry -> entry.getValue().getOriginalPath().get()));
+    }
+    return aliasMapping;
   }
 
   /**
