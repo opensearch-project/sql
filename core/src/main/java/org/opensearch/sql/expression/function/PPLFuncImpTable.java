@@ -231,6 +231,8 @@ public class PPLFuncImpTable {
       registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
       registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);
 
+      registerOperator(ARRAY_FORALL, PPLBuiltinOperators.FORALL);
+
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
       register(

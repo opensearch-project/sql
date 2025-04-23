@@ -11,6 +11,7 @@ import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORC
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
@@ -37,6 +39,7 @@ import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -328,6 +331,26 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitLet(Let node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getExpression(), context);
     return context.relBuilder.alias(expr, node.getVar().getField().toString());
+  }
+
+  @Override
+  public RexNode visitLambdaFunction(LambdaFunction node, CalcitePlanContext context) {
+    /*
+    RelDataType intType = context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
+    RexNode xRef = context.rexBuilder.makeInputRef(intType, 0);
+    RexNode body = context.rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            xRef,
+            context.rexBuilder.makeBigintLiteral(BigDecimal.ONE)
+    );
+
+     */
+    RexNode body = node.getFunction().accept(this, context);
+    List<QualifiedName> names = node.getFuncArgs();
+    List<RexLambdaRef> args = new ArrayList<>();
+    args.add(new RexLambdaRef(0, names.get(0).toString(), context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
+    RexNode lambdaNode = context.rexBuilder.makeLambdaCall(body, args);
+    return lambdaNode;
   }
 
   @Override

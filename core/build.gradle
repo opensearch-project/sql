@@ -64,6 +64,7 @@ dependencies {
     api project(':common')
     implementation "com.github.seancfoley:ipaddress:5.4.2"
     implementation "com.jayway.jsonpath:json-path:2.9.0"
+    implementation "com.googlecode.aviator:aviator:5.4.3"
 
     annotationProcessor('org.immutables:value:2.8.8')
     compileOnly('org.immutables:value-annotations:2.8.8')

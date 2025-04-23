@@ -1,0 +1,58 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.collectionUDF;
+
+import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
+
+import java.util.List;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Types;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+
+public class ForallFunctionImpl extends ImplementorUDF {
+  public ForallFunctionImpl() {
+    super(new ForallImplementor(), NullPolicy.ANY);
+  }
+
+  @Override
+  public SqlReturnTypeInference getReturnTypeInference() {
+    return VARCHAR_FORCE_NULLABLE;
+  }
+
+  public static class ForallImplementor implements NotNullImplementor {
+    @Override
+    public Expression implement(
+        RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
+      ScalarFunctionImpl function =
+          (ScalarFunctionImpl)
+              ScalarFunctionImpl.create(
+                  Types.lookupMethod(ForallFunctionImpl.class, "eval", Object[].class));
+      return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
+    }
+  }
+
+  public static Object eval(Object... args) {
+    org.apache.calcite.linq4j.function.Function1 demo = (org.apache.calcite.linq4j.function.Function1) args[1];
+    demo.apply(5);
+    List<Object> target = (List<Object>) args[0];
+    String lambdaInString = (String) args[1];
+    try {
+      LambdaUtils.SimpleLambda simpleLambda = new LambdaUtils.SimpleLambda(lambdaInString);
+      List<String> parameters = simpleLambda.parameters();
+
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    return null;
+  }
+}

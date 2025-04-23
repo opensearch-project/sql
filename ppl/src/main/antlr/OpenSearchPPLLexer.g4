@@ -185,6 +185,7 @@ RT_SQR_PRTHS:                       ']';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
+ARROW:                              '->';
 
 // Operators. Bit
 
@@ -362,6 +363,13 @@ JSON_SET:                           'JSON_SET';
 JSON_DELETE:                        'JSON_DELETE';
 JSON_APPEND:                        'JSON_APPEND';
 JSON_EXTEND:                        'JSON_EXTEND';
+
+// LAMBDA FUNCTIONS
+//EXISTS:                             'EXISTS';
+FORALL:                             'FORALL';
+FILTER:                             'FILTER';
+TRANSFORM:                          'TRANSFORM';
+REDUCE:                             'REDUCE';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';
