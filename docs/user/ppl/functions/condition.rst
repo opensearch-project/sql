@@ -207,15 +207,15 @@ Return type: any
 
 Example::
 
-    os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname else 'Nobody') | fields result, firstname, lastname
+    os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname else employer) | fields result, firstname, lastname
     fetched rows / total rows = 4/4
     +--------+-----------+----------+
     | result | firstname | lastname |
     |--------+-----------+----------|
-    | Nobody | Amber     | Duke     |
+    | Pyrami | Amber     | Duke     |
     | Hattie | Hattie    | Bond     |
     | Bates  | Nanette   | Bates    |
-    | Nobody | Dale      | Adams    |
+    | null   | Dale      | Adams    |
     +--------+-----------+----------+
 
     os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname) | fields result, firstname, lastname
