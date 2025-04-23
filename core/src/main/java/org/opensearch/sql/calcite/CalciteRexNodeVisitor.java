@@ -11,13 +11,16 @@ import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORC
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
@@ -37,6 +40,7 @@ import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -272,6 +276,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     // 2. resolve QualifiedName in non-join condition
     String qualifiedName = node.toString();
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
+    Map<String, RexLambdaRef> map = context.getTemparolInputmap();
+    if (map.containsKey(qualifiedName)) {
+      return map.get(qualifiedName);
+    }
     if (currentFields.contains(qualifiedName)) {
       // 2.1 resolve QualifiedName from stack top
       return context.relBuilder.field(qualifiedName);
@@ -322,6 +330,19 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   private boolean isTimeBased(SpanUnit unit) {
     return !(unit == NONE || unit == UNKNOWN);
+  }
+
+  @Override
+  public RexNode visitLambdaFunction(LambdaFunction node, CalcitePlanContext context) {
+    List<QualifiedName> names = node.getFuncArgs();
+    List<RexLambdaRef> args = new ArrayList<>();
+    for (int i = 0; i < names.size(); i++) {
+      context.putTemparolInputmap(names.get(i).toString(), new RexLambdaRef(i, names.get(i).toString(), context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
+      args.add(new RexLambdaRef(i, names.get(i).toString(), context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
+    }
+    RexNode body = node.getFunction().accept(this, context);
+    RexNode lambdaNode = context.rexBuilder.makeLambdaCall(body, args);
+    return lambdaNode;
   }
 
   @Override
