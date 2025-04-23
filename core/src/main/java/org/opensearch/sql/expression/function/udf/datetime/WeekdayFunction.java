@@ -11,6 +11,7 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprWeekd
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
 
 import java.util.List;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -45,9 +46,10 @@ public class WeekdayFunction extends ImplementorUDF {
   }
 
   public static Object eval(Object... args) {
-    FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
+    FunctionProperties restored = restoreFunctionProperties((DataContext) args[args.length - 1]);
     SqlTypeName sqlTypeName = (SqlTypeName) args[1];
     if (sqlTypeName == SqlTypeName.TIME) {
+      // PPL Weekday returns 0 ~ 6; java.time.DayOfWeek returns 1 ~ 7.
       return formatNow(restored.getQueryStartClock()).getDayOfWeek().getValue() - 1;
     } else {
       return exprWeekday(transferInputToExprValue(args[0], sqlTypeName)).integerValue();

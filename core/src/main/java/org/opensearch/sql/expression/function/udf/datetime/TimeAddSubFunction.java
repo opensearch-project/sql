@@ -11,6 +11,7 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprAddTi
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprSubTime;
 
 import java.util.List;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -69,7 +70,7 @@ public class TimeAddSubFunction extends ImplementorUDF {
           Expressions.convert_(temporalDelta, Object.class),
           Expressions.constant(temporalDeltaType),
           Expressions.constant(isAdd),
-          Expressions.convert_(translator.getRoot(), Object.class));
+          translator.getRoot());
     }
 
     public static Object timeManipulation(
@@ -78,7 +79,7 @@ public class TimeAddSubFunction extends ImplementorUDF {
         Object temporalDelta,
         SqlTypeName temporalDeltaType,
         boolean isAdd,
-        Object propertyContext) {
+        DataContext propertyContext) {
       ExprValue baseValue = transferInputToExprValue(temporal, temporalType);
       ExprValue intervalValue = transferInputToExprValue(temporalDelta, temporalDeltaType);
       FunctionProperties restored =

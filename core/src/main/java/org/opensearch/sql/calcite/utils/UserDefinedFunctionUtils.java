@@ -124,27 +124,15 @@ public class UserDefinedFunctionUtils {
   }
 
   // TODO: pass the function properties directly to the UDF instead of string
-  public static FunctionProperties restoreFunctionProperties(Object timestampStr) {
-    if (timestampStr instanceof String) {
-      String expression = (String) timestampStr;
-      Instant parsed = Instant.parse(expression);
-      FunctionProperties functionProperties =
-          new FunctionProperties(parsed, ZoneId.systemDefault(), QueryType.PPL);
-      return functionProperties;
-    } else if (timestampStr instanceof DataContext) {
-      DataContext dataContext = (DataContext) timestampStr;
-      long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(dataContext);
-      Instant instant =
-          Instant.ofEpochSecond(
-              currentTimeInNanos / 1_000_000_000, currentTimeInNanos % 1_000_000_000);
-      TimeZone timeZone = DataContext.Variable.TIME_ZONE.get(dataContext);
-      ZoneId zoneId = ZoneId.of(timeZone.getID());
-      FunctionProperties functionProperties =
-          new FunctionProperties(instant, zoneId, QueryType.PPL);
-      return functionProperties;
-    } else {
-      throw new IllegalArgumentException("wrong input type");
-    }
+  public static FunctionProperties restoreFunctionProperties(DataContext dataContext) {
+    long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(dataContext);
+    Instant instant =
+        Instant.ofEpochSecond(
+            currentTimeInNanos / 1_000_000_000, currentTimeInNanos % 1_000_000_000);
+    TimeZone timeZone = DataContext.Variable.TIME_ZONE.get(dataContext);
+    ZoneId zoneId = ZoneId.of(timeZone.getID());
+    FunctionProperties functionProperties = new FunctionProperties(instant, zoneId, QueryType.PPL);
+    return functionProperties;
   }
 
   public static List<Expression> addTypeWithCurrentTimestamp(
@@ -233,9 +221,7 @@ public class UserDefinedFunctionUtils {
     List<Expression> operandsWithProperties = new ArrayList<>(operands);
     Expression properties =
         Expressions.call(
-            UserDefinedFunctionUtils.class,
-            "restoreFunctionProperties",
-            Expressions.convert_(translator.getRoot(), Object.class));
+            UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
     operandsWithProperties.addFirst(properties);
     return Collections.unmodifiableList(operandsWithProperties);
   }

@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.udf.datetime;
 
 import java.util.List;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -47,7 +48,7 @@ public class LastDayFunction extends ImplementorUDF {
           translator.getRoot());
     }
 
-    public static Object lastDay(String date, SqlTypeName dateType, Object propertyContext) {
+    public static Object lastDay(String date, SqlTypeName dateType, DataContext propertyContext) {
       FunctionProperties properties =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
       if (SqlTypeName.TIME.equals(dateType)) {

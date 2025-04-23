@@ -11,6 +11,7 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearw
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.yearweekToday;
 
 import java.util.List;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -58,7 +59,7 @@ public class YearweekFunction extends ImplementorUDF {
       sqlTypeName = (SqlTypeName) args[2];
       mode = (int) args[1];
     }
-    FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
+    FunctionProperties restored = restoreFunctionProperties((DataContext) args[args.length - 1]);
     if (sqlTypeName == SqlTypeName.TIME) {
       return yearweekToday(new ExprIntegerValue(mode), restored.getQueryStartClock())
           .integerValue();

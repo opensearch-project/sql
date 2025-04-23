@@ -10,6 +10,7 @@ import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.trans
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprDate;
 
 import java.util.List;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -47,7 +48,7 @@ public class DateFunction extends ImplementorUDF {
   }
 
   public static Object eval(Object... args) {
-    FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
+    FunctionProperties restored = restoreFunctionProperties((DataContext) args[args.length - 1]);
     ExprValue candidate = transferInputToExprValue(args[0], (SqlTypeName) args[1]);
     if ((SqlTypeName) args[1] == SqlTypeName.TIME) {
       return new ExprDateValue(((ExprTimeValue) candidate).dateValue(restored)).valueForCalcite();

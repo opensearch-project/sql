@@ -12,6 +12,7 @@ import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.trans
 
 import java.util.List;
 import java.util.Objects;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -98,7 +99,7 @@ public class DateAddSubFunction extends ImplementorUDF {
             Expressions.constant(TimeUnit.DAY),
             Expressions.constant(returnType),
             Expressions.constant(isAdd),
-            Expressions.convert_(translator.getRoot(), Object.class));
+            translator.getRoot());
       } else if (SqlTypeFamily.DATETIME_INTERVAL.contains(temporalDeltaType)) {
         return Expressions.call(
             DateAddSubImplementor.class,
@@ -111,7 +112,7 @@ public class DateAddSubFunction extends ImplementorUDF {
                 Objects.requireNonNull(temporalDeltaType.getIntervalQualifier()).getUnit()),
             Expressions.constant(returnType),
             Expressions.constant(isAdd),
-            Expressions.convert_(translator.getRoot(), Object.class));
+            translator.getRoot());
       } else {
         throw new IllegalArgumentException(
             String.format(
@@ -127,7 +128,7 @@ public class DateAddSubFunction extends ImplementorUDF {
         TimeUnit unit,
         SqlTypeName returnSqlType,
         boolean isAdd,
-        Object propertyContext) {
+        DataContext propertyContext) {
       ExprValue base = transferInputToExprValue(temporal, temporalTypeName);
       FunctionProperties restored =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);

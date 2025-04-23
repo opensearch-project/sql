@@ -10,6 +10,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -65,11 +66,11 @@ public class DatePartFunction extends ImplementorUDF {
           Expressions.convert_(unit, String.class),
           Expressions.convert_(datetime, Object.class),
           Expressions.constant(datetimeType),
-          Expressions.convert_(translator.getRoot(), Object.class));
+          translator.getRoot());
     }
 
     public static int datePart(
-        String part, Object datetime, SqlTypeName datetimeType, Object propertyContext) {
+        String part, Object datetime, SqlTypeName datetimeType, DataContext propertyContext) {
       FunctionProperties properties =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
 

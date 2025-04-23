@@ -12,6 +12,7 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
 
 import java.util.List;
 import java.util.Objects;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -49,7 +50,7 @@ public class UnixTimestampFunction extends ImplementorUDF {
 
   public static Object eval(Object... args) {
     if (args.length == 1) {
-      FunctionProperties restored = restoreFunctionProperties(args[args.length - 1]);
+      FunctionProperties restored = restoreFunctionProperties((DataContext) args[args.length - 1]);
       return unixTimeStamp(restored.getQueryStartClock()).longValue();
     }
     Object input = args[0];

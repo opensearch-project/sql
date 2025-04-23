@@ -80,8 +80,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator UNIX_TIMESTAMP =
       new UnixTimestampFunction().toUDF("UNIX_TIMESTAMP");
   public static final SqlOperator TO_SECONDS = new ToSecondsFunction().toUDF("TO_SECONDS");
-  //  public static final SqlOperator TO_DAYS = new TodaysImpl().toUDF("TO_DAYS");
-
   public static final SqlOperator ADDTIME = new TimeAddSubFunction(true).toUDF("ADDTIME");
   public static final SqlOperator SUBTIME = new TimeAddSubFunction(false).toUDF("SUBTIME");
   public static final SqlOperator ADDDATE = new DateAddSubFunction(true, false).toUDF("ADDDATE");

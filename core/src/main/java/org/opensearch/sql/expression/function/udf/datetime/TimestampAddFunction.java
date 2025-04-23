@@ -9,6 +9,7 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimes
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimestampAddForTimeType;
 
 import java.util.List;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -56,7 +57,7 @@ public class TimestampAddFunction extends ImplementorUDF {
             translatedOperands.get(0),
             translatedOperands.get(1),
             timestampBase,
-            Expressions.convert_(translator.getRoot(), Object.class));
+            translator.getRoot());
       } else {
         return Expressions.call(
             TimestampAddImplementor.class,
@@ -68,7 +69,7 @@ public class TimestampAddFunction extends ImplementorUDF {
     }
 
     public static Object timestampAddForTimeType(
-        String addUnit, long amount, ExprValue timestampBase, Object propertyContext) {
+        String addUnit, long amount, ExprValue timestampBase, DataContext propertyContext) {
       FunctionProperties restored =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
 

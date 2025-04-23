@@ -10,6 +10,7 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimes
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimestampDiffForTimeType;
 
 import java.util.List;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -62,7 +63,7 @@ public class TimestampDiffFunction extends ImplementorUDF {
           Expressions.constant(startType),
           translatedOperands.get(endIndex),
           Expressions.constant(endType),
-          Expressions.convert_(translator.getRoot(), Object.class));
+          translator.getRoot());
     }
 
     public static Long diff(
@@ -71,7 +72,7 @@ public class TimestampDiffFunction extends ImplementorUDF {
         SqlTypeName startType,
         String end,
         SqlTypeName endType,
-        Object propertyContext) {
+        DataContext propertyContext) {
       FunctionProperties restored =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
       ExprValue startTimestamp = transferInputToExprValue(start, startType);

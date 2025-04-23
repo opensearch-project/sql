@@ -11,6 +11,7 @@ import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFo
 import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFormattedTime;
 
 import java.util.List;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -63,11 +64,11 @@ public class FormatFunction extends ImplementorUDF {
           translatedOperands.get(0),
           Expressions.constant(type),
           translatedOperands.get(1),
-          Expressions.convert_(translator.getRoot(), Object.class));
+          translator.getRoot());
     }
 
     public static String dateFormat(
-        Object date, SqlTypeName type, String format, Object propertyContext) {
+        Object date, SqlTypeName type, String format, DataContext propertyContext) {
       FunctionProperties restored =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
       ExprValue candidateValue = transferInputToExprValue(date, type);

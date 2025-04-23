@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.udf.datetime;
 
 import java.util.List;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -53,11 +54,11 @@ public class ExtractFunction extends ImplementorUDF {
           Expressions.convert_(unit, String.class),
           Expressions.convert_(datetime, Object.class),
           Expressions.constant(datetimeType),
-          Expressions.convert_(translator.getRoot(), Object.class));
+          translator.getRoot());
     }
 
     public static long extract(
-        String part, Object datetime, SqlTypeName datetimeType, Object propertyContext) {
+        String part, Object datetime, SqlTypeName datetimeType, DataContext propertyContext) {
       FunctionProperties properties =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
 

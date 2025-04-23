@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function.udf.datetime;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -68,10 +69,10 @@ public class CurrentFunction extends ImplementorUDF {
           CurrentFunctionImplementor.class,
           "current",
           Expressions.constant(returnType),
-          Expressions.convert_(translator.getRoot(), Object.class));
+          translator.getRoot());
     }
 
-    public static Object current(SqlTypeName returnType, Object propertyContext) {
+    public static Object current(SqlTypeName returnType, DataContext propertyContext) {
       FunctionProperties functionProperties =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
 
