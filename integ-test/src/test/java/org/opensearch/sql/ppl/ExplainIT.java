@@ -148,4 +148,27 @@ public class ExplainIT extends PPLIntegTestCase {
     URI uri = Resources.getResource(filename).toURI();
     return new String(Files.readAllBytes(Paths.get(uri)));
   }
+
+  @Test
+  public void testPatternsWithoutAggExplain() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_patterns.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| patterns email"));
+  }
+
+  @Test
+  public void testPatternsWithAggPushDownExplain() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_patterns_agg_push.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| patterns email "
+                + "| stats count() by patterns_field"));
+  }
 }
