@@ -135,7 +135,7 @@ public class UserDefinedFunctionUtils {
     return functionProperties;
   }
 
-  public static List<Expression> addTypeWithCurrentTimestamp(
+  public static List<Expression> addTypeAndContext(
       List<Expression> candidate, RexCall rexCall, Expression root) {
     List<Expression> newList = new ArrayList<>(candidate);
     for (RexNode rexNode : rexCall.getOperands()) {

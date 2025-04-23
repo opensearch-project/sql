@@ -17,7 +17,6 @@ import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -42,29 +41,27 @@ public class YearweekFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
       List<Expression> newList =
-          addTypeWithCurrentTimestamp(list, rexCall, rexToLixTranslator.getRoot());
-      return Expressions.call(
-          Types.lookupMethod(YearweekFunction.class, "eval", Object[].class), newList);
+          addTypeAndContext(list, rexCall, rexToLixTranslator.getRoot());
+      return Expressions.call(YearweekFunction.class, "yearweek", newList);
     }
   }
 
-  public static Object eval(Object... args) {
-    int mode;
-    SqlTypeName sqlTypeName;
-    ExprValue exprValue;
-    if (args.length == 3) {
-      sqlTypeName = (SqlTypeName) args[1];
-      mode = 0;
-    } else {
-      sqlTypeName = (SqlTypeName) args[2];
-      mode = (int) args[1];
-    }
-    FunctionProperties restored = restoreFunctionProperties((DataContext) args[args.length - 1]);
-    if (sqlTypeName == SqlTypeName.TIME) {
+  public static Object yearweek(Object date, SqlTypeName dateType, DataContext propertyContext) {
+    return yearweek(date, 0, dateType, SqlTypeName.INTEGER, propertyContext);
+  }
+
+  public static Object yearweek(
+      Object date,
+      int mode,
+      SqlTypeName dateType,
+      SqlTypeName ignored,
+      DataContext propertyContext) {
+    FunctionProperties restored = restoreFunctionProperties(propertyContext);
+    if (dateType == SqlTypeName.TIME) {
       return yearweekToday(new ExprIntegerValue(mode), restored.getQueryStartClock())
           .integerValue();
     }
-    exprValue = transferInputToExprValue(args[0], sqlTypeName);
+    ExprValue exprValue = transferInputToExprValue(date, dateType);
     ExprValue yearWeekValue = exprYearweek(exprValue, new ExprIntegerValue(mode));
     return yearWeekValue.integerValue();
   }

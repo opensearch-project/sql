@@ -11,14 +11,12 @@ import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
 
 import java.util.List;
-import java.util.Objects;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -42,23 +40,19 @@ public class UnixTimestampFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
       List<Expression> newList =
-          addTypeWithCurrentTimestamp(list, rexCall, rexToLixTranslator.getRoot());
-      return Expressions.call(
-          Types.lookupMethod(UnixTimestampFunction.class, "eval", Object[].class), newList);
+          addTypeAndContext(list, rexCall, rexToLixTranslator.getRoot());
+      return Expressions.call(UnixTimestampFunction.class, "unixTimestamp", newList);
     }
   }
 
-  public static Object eval(Object... args) {
-    if (args.length == 1) {
-      FunctionProperties restored = restoreFunctionProperties((DataContext) args[args.length - 1]);
-      return unixTimeStamp(restored.getQueryStartClock()).longValue();
-    }
-    Object input = args[0];
-    if (Objects.isNull(input)) {
-      return null;
-    }
-    ExprValue candidate =
-        fromObjectValue(args[0], convertSqlTypeNameToExprType((SqlTypeName) args[1]));
-    return (double) unixTimeStampOf(candidate).longValue();
+  public static Object unixTimestamp(DataContext propertyContext) {
+    FunctionProperties restored = restoreFunctionProperties(propertyContext);
+    return unixTimeStamp(restored.getQueryStartClock()).doubleValue();
+  }
+
+  public static Object unixTimestamp(
+      Object timestamp, SqlTypeName timestampType, DataContext propertyContext) {
+    ExprValue candidate = fromObjectValue(timestamp, convertSqlTypeNameToExprType(timestampType));
+    return unixTimeStampOf(candidate).doubleValue();
   }
 }

@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.expression.function.udf.datetime;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.addTypeWithCurrentTimestamp;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.addTypeAndContext;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprTimestampValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
@@ -18,7 +18,6 @@ import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -30,7 +29,7 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class ToSecondsFunction extends ImplementorUDF {
   public ToSecondsFunction() {
-    super(new TosecondsImplementor(), NullPolicy.ANY);
+    super(new ToSecondsImplementor(), NullPolicy.ANY);
   }
 
   @Override
@@ -38,26 +37,31 @@ public class ToSecondsFunction extends ImplementorUDF {
     return ReturnTypes.BIGINT_FORCE_NULLABLE;
   }
 
-  public static class TosecondsImplementor implements NotNullImplementor {
+  public static class ToSecondsImplementor implements NotNullImplementor {
     @Override
     public Expression implement(
         RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
       List<Expression> newList =
-          addTypeWithCurrentTimestamp(list, rexCall, rexToLixTranslator.getRoot());
+          addTypeAndContext(list, rexCall, rexToLixTranslator.getRoot());
       return Expressions.call(
-          Types.lookupMethod(ToSecondsFunction.class, "eval", Object[].class), newList);
+          ToSecondsFunction.class,
+          "toSeconds",
+          Expressions.box(newList.get(0)),
+          newList.get(1),
+          newList.get(2));
     }
   }
 
-  public static Object eval(Object... args) {
-    FunctionProperties restored = restoreFunctionProperties((DataContext) args[args.length - 1]);
-    SqlTypeName sqlTypeName = (SqlTypeName) args[1];
-    switch (sqlTypeName) {
-      case DATE, TIME, TIMESTAMP, CHAR, VARCHAR: // need to transfer to timestamp firstly
-        ExprValue dateTimeValue = transferInputToExprTimestampValue(args[0], sqlTypeName, restored);
-        return exprToSeconds(dateTimeValue).longValue();
-      default:
-        return exprToSecondsForIntType(new ExprLongValue((Number) args[0])).longValue();
-    }
+  public static Object toSeconds(
+      Object datetime, SqlTypeName datetimeType, DataContext propertyContext) {
+    FunctionProperties restored = restoreFunctionProperties(propertyContext);
+    return switch (datetimeType) {
+      case DATE, TIME, TIMESTAMP, CHAR, VARCHAR -> {
+        ExprValue dateTimeValue =
+            transferInputToExprTimestampValue(datetime, datetimeType, restored);
+        yield exprToSeconds(dateTimeValue).longValue();
+      }
+      default -> exprToSecondsForIntType(new ExprLongValue((Number) datetime)).longValue();
+    };
   }
 }

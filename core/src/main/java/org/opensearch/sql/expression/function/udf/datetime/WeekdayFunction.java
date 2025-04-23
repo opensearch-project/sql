@@ -17,7 +17,6 @@ import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -39,20 +38,18 @@ public class WeekdayFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
       List<Expression> newList =
-          addTypeWithCurrentTimestamp(list, rexCall, rexToLixTranslator.getRoot());
-      return Expressions.call(
-          Types.lookupMethod(WeekdayFunction.class, "eval", Object[].class), newList);
+          addTypeAndContext(list, rexCall, rexToLixTranslator.getRoot());
+      return Expressions.call(WeekdayFunction.class, "weekday", newList);
     }
   }
 
-  public static Object eval(Object... args) {
-    FunctionProperties restored = restoreFunctionProperties((DataContext) args[args.length - 1]);
-    SqlTypeName sqlTypeName = (SqlTypeName) args[1];
-    if (sqlTypeName == SqlTypeName.TIME) {
+  public static Object weekday(Object date, SqlTypeName dateType, DataContext propertyContext) {
+    FunctionProperties restored = restoreFunctionProperties(propertyContext);
+    if (dateType == SqlTypeName.TIME) {
       // PPL Weekday returns 0 ~ 6; java.time.DayOfWeek returns 1 ~ 7.
       return formatNow(restored.getQueryStartClock()).getDayOfWeek().getValue() - 1;
     } else {
-      return exprWeekday(transferInputToExprValue(args[0], sqlTypeName)).integerValue();
+      return exprWeekday(transferInputToExprValue(date, dateType)).integerValue();
     }
   }
 }

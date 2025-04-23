@@ -16,7 +16,6 @@ import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -40,19 +39,17 @@ public class DateFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
-      List<Expression> newList =
-          addTypeWithCurrentTimestamp(list, rexCall, rexToLixTranslator.getRoot());
-      return Expressions.call(
-          Types.lookupMethod(DateFunction.class, "eval", Object[].class), newList);
+      List<Expression> newList = addTypeAndContext(list, rexCall, rexToLixTranslator.getRoot());
+      return Expressions.call(DateFunction.class, "date", newList);
     }
   }
 
-  public static Object eval(Object... args) {
-    FunctionProperties restored = restoreFunctionProperties((DataContext) args[args.length - 1]);
-    ExprValue candidate = transferInputToExprValue(args[0], (SqlTypeName) args[1]);
-    if ((SqlTypeName) args[1] == SqlTypeName.TIME) {
-      return new ExprDateValue(((ExprTimeValue) candidate).dateValue(restored)).valueForCalcite();
+  public static Object date(Object date, SqlTypeName dateType, DataContext propertyContext) {
+    FunctionProperties restored = restoreFunctionProperties(propertyContext);
+    ExprValue dateValue = transferInputToExprValue(date, dateType);
+    if (dateType == SqlTypeName.TIME) {
+      return new ExprDateValue(((ExprTimeValue) dateValue).dateValue(restored)).valueForCalcite();
     }
-    return exprDate(candidate).valueForCalcite();
+    return exprDate(dateValue).valueForCalcite();
   }
 }
