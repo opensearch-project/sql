@@ -309,20 +309,4 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 "{\"school\":{\"teacher\":[\"Alice\",\"Tom\",\"Walt\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}",
                 Map.class)));
   }
-
-  @Test
-  public void testForAll() {
-    JSONObject actual =
-            executeQuery(
-                    String.format(
-                            "source=%s | eval array = array(1, -1, 2), result = forall(array, x -> x + 1) | fields result | head 1",
-                            TEST_INDEX_PEOPLE2));
-
-    verifySchema(actual, schema("a", "struct"));
-
-    verifyDataRows(
-            actual,
-            rows(
-                    gson.fromJson("{\"student\":[{\"name\":\"Bob\"},{\"name\":\"Charlie\"}]}", Map.class)));
-  }
 }

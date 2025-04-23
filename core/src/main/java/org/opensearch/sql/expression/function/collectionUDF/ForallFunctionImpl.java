@@ -16,6 +16,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -26,7 +27,7 @@ public class ForallFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return VARCHAR_FORCE_NULLABLE;
+    return ReturnTypes.BOOLEAN;
   }
 
   public static class ForallImplementor implements NotNullImplementor {
@@ -42,17 +43,17 @@ public class ForallFunctionImpl extends ImplementorUDF {
   }
 
   public static Object eval(Object... args) {
-    org.apache.calcite.linq4j.function.Function1 demo = (org.apache.calcite.linq4j.function.Function1) args[1];
-    demo.apply(5);
+    org.apache.calcite.linq4j.function.Predicate1 lambdaFunction = (org.apache.calcite.linq4j.function.Predicate1) args[1];
     List<Object> target = (List<Object>) args[0];
-    String lambdaInString = (String) args[1];
     try {
-      LambdaUtils.SimpleLambda simpleLambda = new LambdaUtils.SimpleLambda(lambdaInString);
-      List<String> parameters = simpleLambda.parameters();
-
+      for (Object candidate: target) {
+        if (!(Boolean) lambdaFunction.apply(candidate)) {
+          return false;
+        }
+      }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    return null;
+    return true;
   }
 }

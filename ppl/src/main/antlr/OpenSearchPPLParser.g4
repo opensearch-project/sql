@@ -541,7 +541,7 @@ functionArgs
    ;
 
 functionArg
-   : (ident EQUAL)? expression
+   : (ident EQUAL)? valueExpression
    ;
 
 relevanceArg
