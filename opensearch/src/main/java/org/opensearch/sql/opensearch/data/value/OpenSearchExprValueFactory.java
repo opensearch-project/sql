@@ -32,7 +32,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -317,19 +316,63 @@ public class OpenSearchExprValueFactory {
    * @return Value parsed from content.
    */
   private ExprValue parseStruct(Content content, String prefix, boolean supportArrays) {
-    LinkedHashMap<String, ExprValue> result = new LinkedHashMap<>();
+    ExprTupleValue result = ExprTupleValue.empty();
     content
         .map()
         .forEachRemaining(
             entry ->
-                result.put(
-                    entry.getKey(),
+                populateValueRecursive(
+                    result,
+                    new JsonPath(entry.getKey()),
                     parse(
                         entry.getValue(),
                         makeField(prefix, entry.getKey()),
                         type(makeField(prefix, entry.getKey())),
                         supportArrays)));
-    return new ExprTupleValue(result);
+    return result;
+  }
+
+  /**
+   * Populate the current ExprTupleValue recursively.
+   *
+   * <p>If JsonPath is not a root path(i.e. has dot in its raw path), it needs update to its
+   * children recursively until the leaf node.
+   *
+   * <p>If there is existing vale for the JsonPath, we need to merge the new value to the old.
+   */
+  private void populateValueRecursive(ExprTupleValue result, JsonPath path, ExprValue value) {
+    if (path.getPaths().size() == 1) {
+      // Update the current ExprValue by using mergeTo if exists
+      result
+          .tupleValue()
+          .computeIfPresent(path.getRootPath(), (key, oldValue) -> value.mergeTo(oldValue));
+      result.tupleValue().putIfAbsent(path.getRootPath(), value);
+    } else {
+      result.tupleValue().putIfAbsent(path.getRootPath(), ExprTupleValue.empty());
+      populateValueRecursive(
+          (ExprTupleValue) result.tupleValue().get(path.getRootPath()), path.getChildPath(), value);
+    }
+  }
+
+  @Getter
+  private static class JsonPath {
+    private final List<String> paths;
+
+    public JsonPath(String rawPath) {
+      this.paths = List.of(rawPath.split("\\."));
+    }
+
+    public JsonPath(List<String> paths) {
+      this.paths = paths;
+    }
+
+    public String getRootPath() {
+      return paths.getFirst();
+    }
+
+    public JsonPath getChildPath() {
+      return new JsonPath(paths.subList(1, paths.size()));
+    }
   }
 
   /**
