@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalProject(count()=[$1], patterns_field=[$0])\n  LogicalAggregate(group=[{0}], count()=[COUNT()])\n    LogicalProject(patterns_field=[REGEXP_REPLACE($9, '[a-zA-Z0-9]':VARCHAR)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], patterns_field=[$t0])\n  EnumerableAggregate(group=[{0}], count()=[COUNT()])\n    EnumerableCalc(expr#0..10=[{inputs}], expr#11=['[a-zA-Z0-9]':VARCHAR], expr#12=[REGEXP_REPLACE($t9, $t11)], patterns_field=[$t12])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  }
+}

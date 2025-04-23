@@ -1,1 +1,17 @@
-{"root":{"name":"ProjectOperator","description":{"fields":"[account_number, firstname, address, balance, gender, city, employer, state, age, email, lastname, patterns_field]"},"children":[{"name":"OpenSearchIndexScan","description":{"request":"OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"city\",\"email\",\"account_number\",\"balance\",\"age\",\"patterns_field\",\"state\",\"employer\",\"firstname\",\"gender\",\"address\",\"lastname\"],\"excludes\":[]}}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"},"children":[]}]}}
+{
+  "root": {
+    "name": "ProjectOperator",
+    "description": {
+      "fields": "[account_number, firstname, address, balance, gender, city, employer, state, age, email, lastname, patterns_field]"
+    },
+    "children": [
+      {
+        "name": "OpenSearchIndexScan",
+        "description": {
+          "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"account_number\",\"firstname\",\"address\",\"balance\",\"gender\",\"city\",\"employer\",\"state\",\"age\",\"email\",\"lastname\",\"patterns_field\"],\"excludes\":[]}}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+        },
+        "children": []
+      }
+    ]
+  }
+}
