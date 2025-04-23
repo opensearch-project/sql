@@ -335,17 +335,18 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitLambdaFunction(LambdaFunction node, CalcitePlanContext context) {
-    /*
+
     RelDataType intType = context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
     RexNode xRef = context.rexBuilder.makeInputRef(intType, 0);
+    RexNode simpleRef2 = context.relBuilder.field(0);
     RexNode body = context.rexBuilder.makeCall(
             SqlStdOperatorTable.PLUS,
-            xRef,
+            simpleRef2,
             context.rexBuilder.makeBigintLiteral(BigDecimal.ONE)
     );
 
-     */
-    RexNode body = node.getFunction().accept(this, context);
+
+    //RexNode body = node.getFunction().accept(this, context);
     List<QualifiedName> names = node.getFuncArgs();
     List<RexLambdaRef> args = new ArrayList<>();
     args.add(new RexLambdaRef(0, names.get(0).toString(), context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
