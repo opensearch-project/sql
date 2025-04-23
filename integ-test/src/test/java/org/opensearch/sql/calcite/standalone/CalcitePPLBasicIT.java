@@ -552,11 +552,12 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     assertEquals(
         "{\n"
             + "  \"calcite\": {\n"
-            + "    \"logical\": \"LogicalFilter(condition=[=($1, 20)])\\n"
-            + "  CalciteLogicalIndexScan(table=[[OpenSearch, test]])\\n"
+            + "    \"logical\": \"LogicalProject(name=[$0], age=[$1])\\n"
+            + "  LogicalFilter(condition=[=($1, 20)])\\n"
+            + "    CalciteLogicalIndexScan(table=[[OpenSearch, test]])\\n"
             + "\",\n"
-            + "    \"physical\": \"EnumerableCalc(expr#0..1=[{inputs}], expr#2=[20], expr#3=[=($t1,"
-            + " $t2)], proj#0..1=[{exprs}], $condition=[$t3])\\n"
+            + "    \"physical\": \"EnumerableCalc(expr#0..7=[{inputs}], expr#8=[20], expr#9=[=($t1,"
+            + " $t8)], proj#0..1=[{exprs}], $condition=[$t9])\\n"
             + "  CalciteEnumerableIndexScan(table=[[OpenSearch, test]])\\n"
             + "\"\n"
             + "  }\n"
@@ -589,7 +590,8 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     assertEquals(
         "{\n"
             + "  \"calcite\": {\n"
-            + "    \"logical\": \"LogicalFilter\\n  CalciteLogicalIndexScan\\n\"\n"
+            + "    \"logical\": \"LogicalProject\\n  LogicalFilter\\n    CalciteLogicalIndexScan\\n"
+            + "\"\n"
             + "  }\n"
             + "}",
         result);

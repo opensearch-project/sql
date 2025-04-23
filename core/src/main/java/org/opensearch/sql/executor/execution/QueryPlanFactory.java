@@ -8,6 +8,8 @@
 
 package org.opensearch.sql.executor.execution;
 
+import static java.util.Objects.requireNonNull;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -24,8 +26,6 @@ import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
-
-import static java.util.Objects.requireNonNull;
 
 /** QueryExecution Factory. */
 @RequiredArgsConstructor
