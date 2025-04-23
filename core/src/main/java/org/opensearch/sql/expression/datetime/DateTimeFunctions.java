@@ -2125,7 +2125,8 @@ public class DateTimeFunctions {
   }
 
   public static Double transferUnixTimeStampFromDoubleInput(Double value) {
-    var format = new DecimalFormat("0.#");
+    var format = (DecimalFormat) DecimalFormat.getNumberInstance(Locale.ROOT);
+    format.applyPattern("0.#");
     format.setMinimumFractionDigits(0);
     format.setMaximumFractionDigits(6);
     String input = format.format(value);
