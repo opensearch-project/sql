@@ -18,6 +18,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class CryptographicFunction extends ImplementorUDF {
@@ -56,14 +57,10 @@ public class CryptographicFunction extends ImplementorUDF {
   }
 
   public static class Md5Implementor implements NotNullImplementor {
-    private static final MessageDigest MD5_DIGEST;
+    private static final ThreadLocal<MessageDigest> MD5_DIGEST;
 
     static {
-      try {
-        MD5_DIGEST = MessageDigest.getInstance("MD5");
-      } catch (NoSuchAlgorithmException e) {
-        throw new RuntimeException("MD5 algorithm not found", e);
-      }
+      MD5_DIGEST = ThreadLocal.withInitial(DigestUtils::getMd5Digest);
     }
 
     @Override
@@ -73,19 +70,15 @@ public class CryptographicFunction extends ImplementorUDF {
     }
 
     public static String getDigest(String input) {
-      return CryptographicFunction.getDigest(MD5_DIGEST, input);
+      return CryptographicFunction.getDigest(MD5_DIGEST.get(), input);
     }
   }
 
   public static class Sha1Implementor implements NotNullImplementor {
-    private static final MessageDigest SHA1_DIGEST;
+    private static final ThreadLocal<MessageDigest> SHA1_DIGEST;
 
     static {
-      try {
-        SHA1_DIGEST = MessageDigest.getInstance("SHA-1");
-      } catch (NoSuchAlgorithmException e) {
-        throw new RuntimeException("SHA-1 algorithm not found", e);
-      }
+      SHA1_DIGEST = ThreadLocal.withInitial(DigestUtils::getSha1Digest);
     }
 
     @Override
@@ -95,28 +88,31 @@ public class CryptographicFunction extends ImplementorUDF {
     }
 
     public static String getDigest(String input) {
-      return CryptographicFunction.getDigest(SHA1_DIGEST, input);
+      return CryptographicFunction.getDigest(SHA1_DIGEST.get(), input);
     }
   }
 
   public static class Sha2Implementor implements NotNullImplementor {
-    private static final Map<Integer, MessageDigest> digests;
+    private static final ThreadLocal<Map<Integer, MessageDigest>> digests;
 
     static {
-      try {
-        digests =
-            Map.of(
-                224,
-                MessageDigest.getInstance("SHA-224"),
-                256,
-                MessageDigest.getInstance("SHA-256"),
-                384,
-                MessageDigest.getInstance("SHA-384"),
-                512,
-                MessageDigest.getInstance("SHA-512"));
-      } catch (NoSuchAlgorithmException e) {
-        throw new RuntimeException(e);
-      }
+      digests =
+          ThreadLocal.withInitial(
+              () -> {
+                try {
+                  return Map.of(
+                      224,
+                      MessageDigest.getInstance("SHA-224"),
+                      256,
+                      DigestUtils.getSha256Digest(),
+                      384,
+                      DigestUtils.getSha384Digest(),
+                      512,
+                      DigestUtils.getSha512Digest());
+                } catch (NoSuchAlgorithmException e) {
+                  throw new RuntimeException(e);
+                }
+              });
     }
 
     @Override
@@ -126,10 +122,10 @@ public class CryptographicFunction extends ImplementorUDF {
     }
 
     public static String getDigest(String input, int algorithm) {
-      if (!digests.containsKey(algorithm)) {
+      if (!digests.get().containsKey(algorithm)) {
         throw new IllegalArgumentException("Unsupported SHA2 algorithm: " + algorithm);
       }
-      return CryptographicFunction.getDigest(digests.get(algorithm), input);
+      return CryptographicFunction.getDigest(digests.get().get(algorithm), input);
     }
   }
 }
