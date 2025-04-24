@@ -87,13 +87,28 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
         JSONObject actual =
                 executeQuery(
                         String.format(
-                                "source=%s | eval array = array(1, 2, 3), result = transform(array, x -> x + 1) | fields result | head 1",
+                                "source=%s | eval array = array(1, 2, 3), result = transform(array, (x, i) -> x + i) | fields result | head 1",
                                 TEST_INDEX_BANK));
 
         verifySchema(actual, schema("result", "array"));
 
         verifyDataRows(
                 actual,
-                rows(List.of(2, 3, 4)));
+                rows(List.of(1, 3, 5)));
+    }
+
+    @Test
+    public void testReduce() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s | eval array = array(1, 2, 3), result = reduce(array, 0, (acc, x) -> acc + x), result2 = reduce(array, 10, (acc, x) -> acc + x), result3 = reduce(array, 0, (acc, x) -> acc + x, acc -> acc * 10) | fields result,result2,result3 | head 1",
+                                TEST_INDEX_BANK));
+
+        verifySchema(actual, schema("result", "integer"), schema("result2", "integer"), schema("result3", "integer"));
+
+        verifyDataRows(
+                actual,
+                rows(6, 16, 60));
     }
 }

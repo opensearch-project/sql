@@ -19,6 +19,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ReduceFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.TransformFunctionImpl;
 
 /** Defines functions and operators that are implemented only by PPL */
@@ -31,7 +32,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("array");
   public static final SqlOperator FILTER = new FilterFunctionImpl().toUDF("filter");
   public static final SqlOperator TRANSFORM = new TransformFunctionImpl().toUDF("transform");
-
+  public static final SqlOperator REDUCE = new ReduceFunctionImpl().toUDF("reduce");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

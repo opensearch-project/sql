@@ -125,7 +125,7 @@ public class ExprValueUtils {
       return byteValue((Byte) o);
     } else if (o instanceof Short) {
       return shortValue((Short) o);
-    } else if (o instanceof Integer || o instanceof BigDecimal) {
+    } else if (o instanceof Integer) {
       return integerValue((Integer) o);
     } else if (o instanceof Long) {
       return longValue(((Long) o));

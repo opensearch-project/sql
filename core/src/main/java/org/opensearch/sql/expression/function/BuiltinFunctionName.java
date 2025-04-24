@@ -62,6 +62,7 @@ public enum BuiltinFunctionName {
   EXISTS(FunctionName.of("exists")),
   FILTER(FunctionName.of("filter")),
   TRANSFORM(FunctionName.of("transform")),
+  REDUCE(FunctionName.of("reduce")),
 
   /** Date and Time Functions. */
   ADDDATE(FunctionName.of("adddate")),
