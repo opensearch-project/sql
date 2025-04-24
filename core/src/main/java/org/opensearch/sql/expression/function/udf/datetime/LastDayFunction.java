@@ -30,7 +30,7 @@ public class LastDayFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return op -> UserDefinedFunctionUtils.nullableDateUDT;
+    return UserDefinedFunctionUtils.DATE_INFERENCE;
   }
 
   public static class LastDayImplementor implements NotNullImplementor {

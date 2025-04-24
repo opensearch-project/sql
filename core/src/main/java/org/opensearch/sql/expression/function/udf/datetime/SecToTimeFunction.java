@@ -28,7 +28,7 @@ public class SecToTimeFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return opBinding -> UserDefinedFunctionUtils.nullableTimeUDT;
+    return UserDefinedFunctionUtils.TIME_INFERENCE;
   }
 
   public static class SecToTimeImplementor implements NotNullImplementor {

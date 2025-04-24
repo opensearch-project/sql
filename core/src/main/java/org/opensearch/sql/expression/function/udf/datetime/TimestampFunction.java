@@ -31,7 +31,7 @@ public class TimestampFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return timestampInference;
+    return TIMESTAMP_INFERENCE;
   }
 
   public static class TimestampImplementor implements NotNullImplementor {

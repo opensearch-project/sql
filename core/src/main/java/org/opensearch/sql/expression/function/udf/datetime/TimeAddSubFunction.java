@@ -48,9 +48,9 @@ public class TimeAddSubFunction extends ImplementorUDF {
 
     public static RelDataType deriveReturnType(RelDataType temporalType) {
       if (OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(temporalType) == SqlTypeName.TIME) {
-        return UserDefinedFunctionUtils.nullableTimeUDT;
+        return UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
       }
-      return UserDefinedFunctionUtils.nullableTimestampUDT;
+      return UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
     }
 
     @Override

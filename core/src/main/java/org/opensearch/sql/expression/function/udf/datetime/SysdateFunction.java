@@ -27,7 +27,7 @@ public class SysdateFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return op -> UserDefinedFunctionUtils.nullableTimestampUDT;
+    return UserDefinedFunctionUtils.TIMESTAMP_INFERENCE;
   }
 
   public static class SysdateImplementor implements NotNullImplementor {

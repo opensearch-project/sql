@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.expression.function.udf.datetime;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.nullableDateUDT;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.nullableTimestampUDT;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_DATE_UDT;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.convertToTemporalAmount;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 
@@ -63,9 +63,9 @@ public class DateAddSubFunction extends ImplementorUDF {
       if (!alwaysReturnTimestamp
           && OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(temporalType) == SqlTypeName.DATE
           && SqlTypeFamily.NUMERIC.contains(temporalDeltaType)) {
-        return nullableDateUDT;
+        return NULLABLE_DATE_UDT;
       } else {
-        return nullableTimestampUDT;
+        return NULLABLE_TIMESTAMP_UDT;
       }
     }
 

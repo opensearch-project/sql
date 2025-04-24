@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.expression.function.udf.datetime;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.nullableTimestampUDT;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTimeFormat;
 
@@ -32,7 +32,7 @@ public class FromUnixTimeFunction extends ImplementorUDF {
   public SqlReturnTypeInference getReturnTypeInference() {
     return opBinding -> {
       if (opBinding.collectOperandTypes().size() == 1) {
-        return nullableTimestampUDT;
+        return NULLABLE_TIMESTAMP_UDT;
       }
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
       return typeFactory.createTypeWithNullability(

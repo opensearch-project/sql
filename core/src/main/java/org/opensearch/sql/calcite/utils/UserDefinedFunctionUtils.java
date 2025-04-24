@@ -51,17 +51,17 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
 public class UserDefinedFunctionUtils {
   public static SqlReturnTypeInference INTEGER_FORCE_NULLABLE =
       ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE);
-  public static RelDataType nullableTimeUDT = TYPE_FACTORY.createUDT(EXPR_TIME, true);
-  public static RelDataType nullableDateUDT = TYPE_FACTORY.createUDT(EXPR_DATE, true);
-  public static RelDataType nullableTimestampUDT =
+  public static final RelDataType NULLABLE_DATE_UDT = TYPE_FACTORY.createUDT(EXPR_DATE, true);
+  public static final RelDataType NULLABLE_TIME_UDT = TYPE_FACTORY.createUDT(EXPR_TIME, true);
+  public static final RelDataType NULLABLE_TIMESTAMP_UDT =
       TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
 
-  public static SqlReturnTypeInference timestampInference =
-      ReturnTypes.explicit(nullableTimestampUDT);
-
-  public static SqlReturnTypeInference timeInference = ReturnTypes.explicit(nullableTimeUDT);
-
-  public static SqlReturnTypeInference dateInference = ReturnTypes.explicit(nullableDateUDT);
+  public static final SqlReturnTypeInference DATE_INFERENCE =
+      ReturnTypes.explicit(NULLABLE_DATE_UDT);
+  public static final SqlReturnTypeInference TIME_INFERENCE =
+      ReturnTypes.explicit(NULLABLE_TIME_UDT);
+  public static final SqlReturnTypeInference TIMESTAMP_INFERENCE =
+      ReturnTypes.explicit(NULLABLE_TIMESTAMP_UDT);
 
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,

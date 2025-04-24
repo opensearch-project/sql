@@ -32,7 +32,7 @@ public class DateFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return dateInference;
+    return DATE_INFERENCE;
   }
 
   public static class DateImplementor implements NotNullImplementor {

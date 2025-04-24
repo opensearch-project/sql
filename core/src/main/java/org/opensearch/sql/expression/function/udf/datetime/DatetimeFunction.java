@@ -26,7 +26,7 @@ public class DatetimeFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return opBinding -> UserDefinedFunctionUtils.nullableTimestampUDT;
+    return UserDefinedFunctionUtils.TIMESTAMP_INFERENCE;
   }
 
   public static class DatetimeImplementor implements NotNullImplementor {
