@@ -8,9 +8,8 @@
 
 package org.opensearch.sql.executor.execution;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import java.util.Optional;
+import static java.util.Objects.requireNonNull;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -34,8 +33,8 @@ public class QueryPlanFactory
     extends AbstractNodeVisitor<
         AbstractPlan,
         Pair<
-            Optional<ResponseListener<ExecutionEngine.QueryResponse>>,
-            Optional<ResponseListener<ExecutionEngine.ExplainResponse>>>> {
+            ResponseListener<ExecutionEngine.QueryResponse>,
+            ResponseListener<ExecutionEngine.ExplainResponse>>> {
 
   /** Query Service. */
   private final QueryService queryService;
@@ -44,8 +43,7 @@ public class QueryPlanFactory
    * NO_CONSUMER_RESPONSE_LISTENER should never be called. It is only used as constructor parameter
    * of {@link QueryPlan}.
    */
-  @VisibleForTesting
-  protected static final ResponseListener<ExecutionEngine.QueryResponse>
+  public static final ResponseListener<ExecutionEngine.QueryResponse>
       NO_CONSUMER_RESPONSE_LISTENER =
           new ResponseListener<>() {
             @Override
@@ -64,8 +62,8 @@ public class QueryPlanFactory
   /** Create QueryExecution from Statement. */
   public AbstractPlan create(
       Statement statement,
-      Optional<ResponseListener<ExecutionEngine.QueryResponse>> queryListener,
-      Optional<ResponseListener<ExecutionEngine.ExplainResponse>> explainListener) {
+      ResponseListener<ExecutionEngine.QueryResponse> queryListener,
+      ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     return statement.accept(this, Pair.of(queryListener, explainListener));
   }
 
@@ -107,12 +105,10 @@ public class QueryPlanFactory
   public AbstractPlan visitQuery(
       Query node,
       Pair<
-              Optional<ResponseListener<ExecutionEngine.QueryResponse>>,
-              Optional<ResponseListener<ExecutionEngine.ExplainResponse>>>
+              ResponseListener<ExecutionEngine.QueryResponse>,
+              ResponseListener<ExecutionEngine.ExplainResponse>>
           context) {
-    Preconditions.checkArgument(
-        context.getLeft().isPresent(), "[BUG] query listener must be not null");
-
+    requireNonNull(context.getLeft(), "[BUG] query listener must be not null");
     if (node.getFetchSize() > 0) {
       if (canConvertToCursor(node.getPlan())) {
         return new QueryPlan(
@@ -121,18 +117,14 @@ public class QueryPlanFactory
             node.getPlan(),
             node.getFetchSize(),
             queryService,
-            context.getLeft().get());
+            context.getLeft());
       } else {
         // This should be picked up by the legacy engine.
         throw new UnsupportedCursorRequestException();
       }
     } else {
       return new QueryPlan(
-          QueryId.queryId(),
-          node.getQueryType(),
-          node.getPlan(),
-          queryService,
-          context.getLeft().get());
+          QueryId.queryId(), node.getQueryType(), node.getPlan(), queryService, context.getLeft());
     }
   }
 
@@ -140,17 +132,15 @@ public class QueryPlanFactory
   public AbstractPlan visitExplain(
       Explain node,
       Pair<
-              Optional<ResponseListener<ExecutionEngine.QueryResponse>>,
-              Optional<ResponseListener<ExecutionEngine.ExplainResponse>>>
+              ResponseListener<ExecutionEngine.QueryResponse>,
+              ResponseListener<ExecutionEngine.ExplainResponse>>
           context) {
-    Preconditions.checkArgument(
-        context.getRight().isPresent(), "[BUG] explain listener must be not null");
-
+    requireNonNull(context.getRight(), "[BUG] explain listener must be not null");
     return new ExplainPlan(
         QueryId.queryId(),
         node.getQueryType(),
-        create(node.getStatement(), Optional.of(NO_CONSUMER_RESPONSE_LISTENER), Optional.empty()),
+        create(node.getStatement(), NO_CONSUMER_RESPONSE_LISTENER, context.getRight()),
         node.getFormat(),
-        context.getRight().get());
+        context.getRight());
   }
 }

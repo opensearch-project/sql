@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import java.io.IOException;
+import org.junit.Ignore;
 import org.opensearch.sql.ppl.ExplainIT;
 
 public class CalciteExplainIT extends ExplainIT {
@@ -53,4 +55,8 @@ public class CalciteExplainIT extends ExplainIT {
         },
         "https://github.com/opensearch-project/sql/issues/3466");
   }
+
+  @Override
+  @Ignore("test only in v2")
+  public void testExplainModeUnsupportedInV2() throws IOException {}
 }

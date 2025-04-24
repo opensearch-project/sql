@@ -19,11 +19,23 @@ pplStatement
 
 dmlStatement
    : queryStatement
+   | explainStatement
    ;
 
 queryStatement
    : pplCommands (PIPE commands)*
    ;
+
+explainStatement
+    : EXPLAIN (explainMode)? queryStatement
+    ;
+
+explainMode
+    : SIMPLE
+    | STANDARD
+    | COST
+    | EXTENDED
+    ;
 
 subSearch
    : searchCommand (PIPE commands)*
@@ -84,12 +96,16 @@ commandName
    | ML
    | FILLNULL
    | TRENDLINE
+<<<<<<< HEAD
 =======
    | kmeansCommand
    | adCommand
    | mlCommand
    | patternsCommand
 >>>>>>> 0d749958b (Improved patterns command with new algorithm (#3263) (#3335))
+=======
+   | EXPLAIN
+>>>>>>> 03378ddd0 (Support `explain` PPL command (#3560))
    ;
 
 searchCommand
@@ -1020,6 +1036,7 @@ keywordsCanBeId
    | AD
    | ML
    | TRENDLINE
+   | explainMode
    // commands assist keywords
    | IN
    | BETWEEN

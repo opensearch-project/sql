@@ -146,7 +146,7 @@ public class SQLQueryRequest {
   }
 
   private boolean isSupportedExplainFormat() {
-    return Stream.of("simple", "standard", "extended").anyMatch(format::equalsIgnoreCase);
+    return Stream.of("simple", "standard", "extended", "cost").anyMatch(format::equalsIgnoreCase);
   }
 
   private String getFormat(Map<String, String> params) {

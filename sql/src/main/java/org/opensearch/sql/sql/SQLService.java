@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.sql;
 
-import java.util.Optional;
+import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
+
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.statement.Statement;
@@ -37,13 +38,17 @@ public class SQLService {
    * Given {@link SQLQueryRequest}, execute it. Using listener to listen result.
    *
    * @param request {@link SQLQueryRequest}
-   * @param listener callback listener
+   * @param queryListener callback listener
+   * @param explainListener callback listener for explain query
    */
-  public void execute(SQLQueryRequest request, ResponseListener<QueryResponse> listener) {
+  public void execute(
+      SQLQueryRequest request,
+      ResponseListener<QueryResponse> queryListener,
+      ResponseListener<ExplainResponse> explainListener) {
     try {
-      queryManager.submit(plan(request, Optional.of(listener), Optional.empty()));
+      queryManager.submit(plan(request, queryListener, explainListener));
     } catch (Exception e) {
-      listener.onFailure(e);
+      queryListener.onFailure(e);
     }
   }
 
@@ -55,7 +60,7 @@ public class SQLService {
    */
   public void explain(SQLQueryRequest request, ResponseListener<ExplainResponse> listener) {
     try {
-      queryManager.submit(plan(request, Optional.empty(), Optional.of(listener)));
+      queryManager.submit(plan(request, NO_CONSUMER_RESPONSE_LISTENER, listener));
     } catch (Exception e) {
       listener.onFailure(e);
     }
@@ -63,8 +68,8 @@ public class SQLService {
 
   private AbstractPlan plan(
       SQLQueryRequest request,
-      Optional<ResponseListener<QueryResponse>> queryListener,
-      Optional<ResponseListener<ExplainResponse>> explainListener) {
+      ResponseListener<QueryResponse> queryListener,
+      ResponseListener<ExplainResponse> explainListener) {
     boolean isExplainRequest = request.isExplainRequest();
     if (request.getCursor().isPresent()) {
       // Handle v2 cursor here -- legacy cursor was handled earlier.
@@ -75,15 +80,15 @@ public class SQLService {
       }
       if (request.isCursorCloseRequest()) {
         return queryExecutionFactory.createCloseCursor(
-            request.getCursor().get(), SQL_QUERY, queryListener.orElse(null));
+            request.getCursor().get(), SQL_QUERY, queryListener);
       }
       return queryExecutionFactory.create(
           request.getCursor().get(),
           isExplainRequest,
           SQL_QUERY,
           request.getFormat(),
-          queryListener.orElse(null),
-          explainListener.orElse(null));
+          queryListener,
+          explainListener);
     } else {
       // 1.Parse query and convert parse tree (CST) to abstract syntax tree (AST)
       ParseTree cst = parser.parse(request.getQuery());

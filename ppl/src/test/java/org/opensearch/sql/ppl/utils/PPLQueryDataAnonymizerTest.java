@@ -184,7 +184,18 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testExplain() {
-    assertEquals("source=t | fields + a", anonymizeStatement("source=t | fields a", true));
+    assertEquals(
+        "explain standard source=t | fields + a", anonymizeStatement("source=t | fields a", true));
+  }
+
+  @Test
+  public void testExplainCommand() {
+    assertEquals(
+        "explain standard source=t | fields + a",
+        anonymizeStatement("explain source=t | fields a", false));
+    assertEquals(
+        "explain extended source=t | fields + a",
+        anonymizeStatement("explain extended source=t | fields a", false));
   }
 
   @Test

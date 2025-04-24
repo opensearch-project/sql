@@ -58,7 +58,7 @@ class QueryServiceTest {
 
   @Mock private Split split;
 
-  @Mock private Explain.ExplainFormat format;
+  private final Explain.ExplainFormat format = Explain.ExplainFormat.STANDARD;
 
   @Test
   public void executeWithoutContext() {
