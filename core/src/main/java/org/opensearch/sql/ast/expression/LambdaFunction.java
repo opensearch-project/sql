@@ -21,27 +21,27 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class LambdaFunction extends UnresolvedExpression {
-    private final UnresolvedExpression function;
-    private final List<QualifiedName> funcArgs;
+  private final UnresolvedExpression function;
+  private final List<QualifiedName> funcArgs;
 
-    @Override
-    public List<UnresolvedExpression> getChild() {
-        List<UnresolvedExpression> children = new ArrayList<>();
-        children.add(function);
-        children.addAll(funcArgs);
-        return children;
-    }
+  @Override
+  public List<UnresolvedExpression> getChild() {
+    List<UnresolvedExpression> children = new ArrayList<>();
+    children.add(function);
+    children.addAll(funcArgs);
+    return children;
+  }
 
-    @Override
-    public <R, C> R accept(AbstractNodeVisitor<R, C> nodeVisitor, C context) {
-        return nodeVisitor.visitLambdaFunction(this, context);
-    }
+  @Override
+  public <R, C> R accept(AbstractNodeVisitor<R, C> nodeVisitor, C context) {
+    return nodeVisitor.visitLambdaFunction(this, context);
+  }
 
-    @Override
-    public String toString() {
-        return String.format(
-                "(%s) -> %s",
-                funcArgs.stream().map(Object::toString).collect(Collectors.joining(", ")),
-                function.toString());
-    }
+  @Override
+  public String toString() {
+    return String.format(
+        "(%s) -> %s",
+        funcArgs.stream().map(Object::toString).collect(Collectors.joining(", ")),
+        function.toString());
+  }
 }

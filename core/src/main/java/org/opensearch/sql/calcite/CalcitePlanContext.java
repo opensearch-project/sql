@@ -47,8 +47,7 @@ public class CalcitePlanContext {
 
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
 
-  @Getter
-  public Map<String, RexLambdaRef> temparolInputmap;
+  @Getter public Map<String, RexLambdaRef> temparolInputmap;
 
   private CalcitePlanContext(FrameworkConfig config, QueryType queryType) {
     this.config = config;

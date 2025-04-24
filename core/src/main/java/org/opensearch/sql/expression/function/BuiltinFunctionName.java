@@ -56,7 +56,7 @@ public enum BuiltinFunctionName {
   TAN(FunctionName.of("tan")),
   SPAN(FunctionName.of("span")),
 
-  /** Collection functions  */
+  /** Collection functions */
   ARRAY(FunctionName.of("array")),
   FORALL(FunctionName.of("forall")),
   EXISTS(FunctionName.of("exists")),

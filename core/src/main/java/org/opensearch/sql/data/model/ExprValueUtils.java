@@ -9,8 +9,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.*;
 import static org.opensearch.sql.utils.ExpressionUtils.PATH_SEP;
 
 import inet.ipaddr.IPAddress;
-
-import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;

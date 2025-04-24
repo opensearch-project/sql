@@ -454,7 +454,7 @@ integTest {
 
     // enable calcite codegen in IT
     systemProperty 'calcite.debug', 'true'
-    systemProperty 'org.codehaus.janino.source_debugging.enable', 'true'
+    systemProperty 'org.codehaus.janino.source_debugging.enable', 'false'
     systemProperty 'org.codehaus.janino.source_debugging.dir', calciteCodegen
 
     systemProperty 'tests.security.manager', 'false'

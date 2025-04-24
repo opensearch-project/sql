@@ -221,7 +221,6 @@ public class PPLFuncImpTable {
       registerOperator(TRANSFORM, PPLBuiltinOperators.TRANSFORM);
       registerOperator(REDUCE, PPLBuiltinOperators.REDUCE);
 
-
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
       register(

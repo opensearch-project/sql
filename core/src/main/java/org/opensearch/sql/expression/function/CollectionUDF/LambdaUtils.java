@@ -1,0 +1,62 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.expression.function.CollectionUDF;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
+import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
+
+public class LambdaUtils {
+  public static Object transferLambdaOutputToTargetType(Object candidate, SqlTypeName targetType) {
+    if (candidate instanceof BigDecimal) {
+      BigDecimal bd = (BigDecimal) candidate;
+      switch (targetType) {
+        case INTEGER:
+          return bd.intValue();
+        case DOUBLE:
+          return bd.doubleValue();
+        case FLOAT:
+          return bd.floatValue();
+        default:
+          return bd;
+      }
+    } else {
+      return candidate;
+    }
+  }
+
+  public static RelDataType inferReturnTypeFromLambda(
+      RexLambda rexLambda, List<RelDataType> filledTypes, RelDataTypeFactory typeFactory) {
+    RexCall rexCall = (RexCall) rexLambda.getExpression();
+    SqlReturnTypeInference returnInfer = rexCall.getOperator().getReturnTypeInference();
+    List<RexNode> lambdaOperands = rexCall.getOperands();
+    List<RexNode> filledOperands = new ArrayList<>();
+    int target_index = 0;
+    for (RexNode rexNode : lambdaOperands) {
+      if (rexNode instanceof RexLambdaRef rexLambdaRef) {
+        filledOperands.add(
+            new RexLambdaRef(
+                rexLambdaRef.getIndex(), rexLambdaRef.getName(), filledTypes.get(target_index)));
+        if (target_index + 1 < filledTypes.size()) {
+          target_index++;
+        }
+      } else {
+        filledOperands.add(rexNode);
+      }
+    }
+    return returnInfer.inferReturnType(
+        new RexCallBinding(typeFactory, rexCall.getOperator(), filledOperands, List.of()));
+  }
+}

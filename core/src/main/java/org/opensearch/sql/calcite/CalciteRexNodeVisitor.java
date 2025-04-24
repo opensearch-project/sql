@@ -332,13 +332,23 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return !(unit == NONE || unit == UNKNOWN);
   }
 
+  /** Currently we use any as the input type for lambda now. */
   @Override
   public RexNode visitLambdaFunction(LambdaFunction node, CalcitePlanContext context) {
     List<QualifiedName> names = node.getFuncArgs();
     List<RexLambdaRef> args = new ArrayList<>();
     for (int i = 0; i < names.size(); i++) {
-      context.putTemparolInputmap(names.get(i).toString(), new RexLambdaRef(i, names.get(i).toString(), context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
-      args.add(new RexLambdaRef(i, names.get(i).toString(), context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
+      context.putTemparolInputmap(
+          names.get(i).toString(),
+          new RexLambdaRef(
+              i,
+              names.get(i).toString(),
+              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
+      args.add(
+          new RexLambdaRef(
+              i,
+              names.get(i).toString(),
+              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
     }
     RexNode body = node.getFunction().accept(this, context);
     RexNode lambdaNode = context.rexBuilder.makeLambdaCall(body, args);

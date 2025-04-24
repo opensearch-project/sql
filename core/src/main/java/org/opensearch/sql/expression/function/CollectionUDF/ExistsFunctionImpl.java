@@ -18,9 +18,9 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
-public class ForallFunctionImpl extends ImplementorUDF {
-  public ForallFunctionImpl() {
-    super(new ForallImplementor(), NullPolicy.ALL);
+public class ExistsFunctionImpl extends ImplementorUDF {
+  public ExistsFunctionImpl() {
+    super(new ExistsImplementor(), NullPolicy.ALL);
   }
 
   @Override
@@ -28,14 +28,14 @@ public class ForallFunctionImpl extends ImplementorUDF {
     return ReturnTypes.BOOLEAN;
   }
 
-  public static class ForallImplementor implements NotNullImplementor {
+  public static class ExistsImplementor implements NotNullImplementor {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       ScalarFunctionImpl function =
           (ScalarFunctionImpl)
               ScalarFunctionImpl.create(
-                  Types.lookupMethod(ForallFunctionImpl.class, "eval", Object[].class));
+                  Types.lookupMethod(ExistsFunctionImpl.class, "eval", Object[].class));
       return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
     }
   }
@@ -46,13 +46,13 @@ public class ForallFunctionImpl extends ImplementorUDF {
     List<Object> target = (List<Object>) args[0];
     try {
       for (Object candidate : target) {
-        if (!(Boolean) lambdaFunction.apply(candidate)) {
-          return false;
+        if ((Boolean) lambdaFunction.apply(candidate)) {
+          return true;
         }
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    return true;
+    return false;
   }
 }
