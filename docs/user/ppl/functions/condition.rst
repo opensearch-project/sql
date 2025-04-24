@@ -207,34 +207,34 @@ Return type: any
 
 Example::
 
-    os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname else employer) | fields result, firstname, lastname
+    os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname else employer) | fields result, firstname, lastname, age, employer
     fetched rows / total rows = 4/4
-    +--------+-----------+----------+
-    | result | firstname | lastname |
-    |--------+-----------+----------|
-    | Pyrami | Amber     | Duke     |
-    | Hattie | Hattie    | Bond     |
-    | Bates  | Nanette   | Bates    |
-    | null   | Dale      | Adams    |
-    +--------+-----------+----------+
+    +--------+-----------+----------+-----+----------+
+    | result | firstname | lastname | age | employer |
+    |--------+-----------+----------+-----+----------|
+    | Pyrami | Amber     | Duke     | 32  | Pyrami   |
+    | Hattie | Hattie    | Bond     | 36  | Netagy   |
+    | Bates  | Nanette   | Bates    | 28  | Quility  |
+    | null   | Dale      | Adams    | 33  | null     |
+    +--------+-----------+----------+-----+----------+
 
-    os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname) | fields result, firstname, lastname
+    os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname) | fields result, firstname, lastname, age
     fetched rows / total rows = 4/4
-    +--------+-----------+----------+
-    | result | firstname | lastname |
-    |--------+-----------+----------|
-    | null   | Amber     | Duke     |
-    | Hattie | Hattie    | Bond     |
-    | Bates  | Nanette   | Bates    |
-    | null   | Dale      | Adams    |
-    +--------+-----------+----------+
+    +--------+-----------+----------+-----+
+    | result | firstname | lastname | age |
+    |--------+-----------+----------+-----|
+    | null   | Amber     | Duke     | 32  |
+    | Hattie | Hattie    | Bond     | 36  |
+    | Bates  | Nanette   | Bates    | 28  |
+    | null   | Dale      | Adams    | 33  |
+    +--------+-----------+----------+-----+
 
-    os> source=accounts | where true = case(age > 35, false, age < 30, false else true) | fields firstname, lastname
+    os> source=accounts | where true = case(age > 35, false, age < 30, false else true) | fields firstname, lastname, age
     fetched rows / total rows = 2/2
-    +-----------+----------+
-    | firstname | lastname |
-    |-----------+----------|
-    | Amber     | Duke     |
-    | Dale      | Adams    |
-    +-----------+----------+
+    +-----------+----------+-----+
+    | firstname | lastname | age |
+    |-----------+----------+-----|
+    | Amber     | Duke     | 32  |
+    | Dale      | Adams    | 33  |
+    +-----------+----------+-----+
 
