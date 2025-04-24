@@ -521,6 +521,25 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testKeepThrowCalciteException() throws IOException {
+    withFallbackEnabled(
+        () -> {
+          IllegalArgumentException e =
+              assertThrows(
+                  IllegalArgumentException.class,
+                  () ->
+                      executeQuery(
+                          String.format("source=%s | fields firstname1, age", TEST_INDEX_BANK)));
+          verifyErrorMessageContains(
+              e,
+              "field [firstname1] not found; input fields are: [account_number, firstname, address,"
+                  + " birthdate, gender, city, lastname, balance, employer, state, age, email,"
+                  + " male, _id, _index, _score, _maxscore, _sort, _routing]");
+        },
+        "");
+  }
+
+  @Test
   public void testAliasDataType() {
     JSONObject result =
         executeQuery(
