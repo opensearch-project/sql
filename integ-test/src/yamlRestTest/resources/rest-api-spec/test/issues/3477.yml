@@ -40,7 +40,17 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'source=test | fields log.json.status, log.json.time'
+          query: 'source=test'
   - match: {"total": 5}
-  - match: {"schema": [{"name": "log.json.status", "type": "string"}, {"name": "log.json.time", "type": "bigint"}]}
-  - match: {"datarows": [["SUCCESS", 100], ["SUCCESS", 100], ["SUCCESS", 100], ["SUCCESS", 100], ["SUCCESS", 100]]}
+  - match: {"schema": [{"name": "log", "type": "struct"}]}
+  - match: {"datarows": [[{ "json" : { "status": "SUCCESS", "time": 100} }], [{ "json" : { "status": "SUCCESS", "time": 100} }], [{ "json" : { "status": "SUCCESS", "time": 100} }], [{ "json" : { "status": "SUCCESS", "time": 100} }], [{ "json" : { "status": "SUCCESS", "time": 100} }]]}
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | fields log, log.json, log.json.status, log.json.time'
+  - match: {"total": 5}
+  - match: {"schema": [{"name": "log", "type": "struct"}, {"name": "log.json", "type": "struct"}, {"name": "log.json.status", "type": "string"}, {"name": "log.json.time", "type": "bigint"}]}
+  - match: {"datarows": [[{ "json" : { "status": "SUCCESS", "time": 100} }, { "status": "SUCCESS", "time": 100}, "SUCCESS", 100], [{ "json" : { "status": "SUCCESS", "time": 100} }, { "status": "SUCCESS", "time": 100}, "SUCCESS", 100], [{ "json" : { "status": "SUCCESS", "time": 100} }, { "status": "SUCCESS", "time": 100}, "SUCCESS", 100], [{ "json" : { "status": "SUCCESS", "time": 100} }, { "status": "SUCCESS", "time": 100}, "SUCCESS", 100], [{ "json" : { "status": "SUCCESS", "time": 100} }, { "status": "SUCCESS", "time": 100}, "SUCCESS", 100]]}
