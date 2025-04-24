@@ -52,7 +52,7 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
-            + "LogicalFilter(condition=[AND(>($1, 0), =($0, '1000'))])\n"
+            + "LogicalFilter(condition=[AND(>($1, 0), =($0, '1000':VARCHAR))])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(root, expectedLogical);
 
@@ -146,8 +146,8 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=scott.products_temporal | where ID in ('1000', '2000')";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalFilter(condition=[SEARCH($0, Sarg['1000':VARCHAR(32),"
-            + " '2000':VARCHAR(32)]:VARCHAR(32))])\n"
+        "LogicalFilter(condition=[SEARCH($0, Sarg['1000':VARCHAR,"
+            + " '2000':VARCHAR]:VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, products_temporal]])\n";
     verifyLogical(root, expectedLogical);
 

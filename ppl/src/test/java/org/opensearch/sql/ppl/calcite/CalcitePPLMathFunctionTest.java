@@ -120,7 +120,8 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testCrc32() {
     RelNode root = getRelNode("source=EMP | eval CRC32TEST = crc32('test') | fields CRC32TEST");
     String expectedLogical =
-        "LogicalProject(CRC32TEST=[CRC32('test')])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(CRC32TEST=[CRC32('test':VARCHAR)])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedSparkSql = "SELECT `CRC32`('test') `CRC32TEST`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
