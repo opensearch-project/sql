@@ -11,6 +11,7 @@ package org.opensearch.sql.executor;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.List;
+import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -67,7 +68,7 @@ public class QueryService {
     if (shouldUseCalcite(queryType)) {
       executeWithCalcite(plan, queryType, listener);
     } else {
-      executeWithLegacy(plan, queryType, listener);
+      executeWithLegacy(plan, queryType, listener, Optional.empty());
     }
   }
 
@@ -80,7 +81,7 @@ public class QueryService {
     if (shouldUseCalcite(queryType)) {
       explainWithCalcite(plan, queryType, listener, format);
     } else {
-      explainWithLegacy(plan, queryType, listener, format);
+      explainWithLegacy(plan, queryType, listener, format, Optional.empty());
     }
   }
 
@@ -103,7 +104,7 @@ public class QueryService {
     } catch (Throwable t) {
       if (isCalciteFallbackAllowed()) {
         log.warn("Fallback to V2 query engine since got exception", t);
-        executeWithLegacy(plan, queryType, listener);
+        executeWithLegacy(plan, queryType, listener, Optional.of(t));
       } else {
         if (t instanceof Error) {
           // Calcite may throw AssertError during query execution.
@@ -135,7 +136,7 @@ public class QueryService {
     } catch (Throwable t) {
       if (isCalciteFallbackAllowed()) {
         log.warn("Fallback to V2 query engine since got exception", t);
-        explainWithLegacy(plan, queryType, listener, format);
+        explainWithLegacy(plan, queryType, listener, format, Optional.of(t));
       } else {
         if (t instanceof Error) {
           // Calcite may throw AssertError during query execution.
@@ -150,11 +151,19 @@ public class QueryService {
   public void executeWithLegacy(
       UnresolvedPlan plan,
       QueryType queryType,
-      ResponseListener<ExecutionEngine.QueryResponse> listener) {
+      ResponseListener<ExecutionEngine.QueryResponse> listener,
+      Optional<Throwable> calciteFailure) {
     try {
       executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
     } catch (Exception e) {
-      listener.onFailure(e);
+      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed()) {
+        // if there is a failure thrown from Calcite and execution after fallback V2
+        // keeps failure, we should throw the failure from Calcite.
+        calciteFailure.ifPresentOrElse(
+            t -> listener.onFailure(new RuntimeException(t)), () -> listener.onFailure(e));
+      } else {
+        listener.onFailure(e);
+      }
     }
   }
 
@@ -163,13 +172,16 @@ public class QueryService {
    * explain response.
    *
    * @param plan {@link UnresolvedPlan}
+   * @param queryType {@link QueryType}
    * @param listener {@link ResponseListener} for explain response
+   * @param calciteFailure Optional failure thrown from calcite
    */
   public void explainWithLegacy(
       UnresolvedPlan plan,
       QueryType queryType,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
-      Explain.ExplainFormat format) {
+      Explain.ExplainFormat format,
+      Optional<Throwable> calciteFailure) {
     try {
       if (format != null && format != Explain.ExplainFormat.STANDARD) {
         throw new UnsupportedOperationException(
@@ -177,7 +189,14 @@ public class QueryService {
       }
       executionEngine.explain(plan(analyze(plan, queryType)), listener);
     } catch (Exception e) {
-      listener.onFailure(e);
+      if (shouldUseCalcite(queryType) && isCalciteFallbackAllowed()) {
+        // if there is a failure thrown from Calcite and execution after fallback V2
+        // keeps failure, we should throw the failure from Calcite.
+        calciteFailure.ifPresentOrElse(
+            t -> listener.onFailure(new RuntimeException(t)), () -> listener.onFailure(e));
+      } else {
+        listener.onFailure(e);
+      }
     }
   }
 
