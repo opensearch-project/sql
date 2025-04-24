@@ -57,10 +57,12 @@ import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory.JsonPath;
 
 class OpenSearchExprValueFactoryTest {
 
@@ -990,6 +992,26 @@ class OpenSearchExprValueFactoryTest {
         () -> assertTrue(mapping.containsKey("agg")),
         () -> assertEquals(OpenSearchDataType.of(INTEGER), mapping.get("value")),
         () -> assertEquals(OpenSearchDataType.of(DATE), mapping.get("agg")));
+  }
+
+  @Test
+  public void testPopulateValueRecursive() {
+    ExprTupleValue tupleValue = ExprTupleValue.empty();
+
+    OpenSearchExprValueFactory.populateValueRecursive(
+        tupleValue, new JsonPath("log.json.time"), ExprValueUtils.integerValue(100));
+    ExprValue expectedValue =
+        ExprValueUtils.tupleValue(Map.of("log", Map.of("json", Map.of("time", 100))));
+    assertEquals(expectedValue, tupleValue);
+
+    OpenSearchExprValueFactory.populateValueRecursive(
+        tupleValue,
+        new JsonPath("log.json"),
+        ExprValueUtils.tupleValue(Map.of("status", "SUCCESS")));
+    expectedValue =
+        ExprValueUtils.tupleValue(
+            Map.of("log", Map.of("json", Map.of("status", "SUCCESS", "time", 100))));
+    assertEquals(expectedValue, tupleValue);
   }
 
   public Map<String, ExprValue> tupleValue(String jsonString) {

@@ -340,7 +340,7 @@ public class OpenSearchExprValueFactory {
    *
    * <p>If there is existing vale for the JsonPath, we need to merge the new value to the old.
    */
-  private void populateValueRecursive(ExprTupleValue result, JsonPath path, ExprValue value) {
+  static void populateValueRecursive(ExprTupleValue result, JsonPath path, ExprValue value) {
     if (path.getPaths().size() == 1) {
       // Update the current ExprValue by using mergeTo if exists
       result
@@ -355,7 +355,7 @@ public class OpenSearchExprValueFactory {
   }
 
   @Getter
-  private static class JsonPath {
+  static class JsonPath {
     private final List<String> paths;
 
     public JsonPath(String rawPath) {
