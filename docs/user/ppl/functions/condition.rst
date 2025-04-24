@@ -192,3 +192,49 @@ Example::
     | False  | Nanette   | Bates    |
     | False  | Dale      | Adams    |
     +--------+-----------+----------+
+
+CASE
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: case(condition1, expr1, condition2, expr2, ... conditionN, exprN else default) return expr1 if condition1 is true, or return expr2 if condition2 is true, ... if no condition is true, then return the value of ELSE clause. If the ELSE clause is not defined, it returns NULL.
+
+Argument type: all the supported data type, (NOTE : there is no comma before "else")
+
+Return type: any
+
+Example::
+
+    os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname else employer) | fields result, firstname, lastname, age, employer
+    fetched rows / total rows = 4/4
+    +--------+-----------+----------+-----+----------+
+    | result | firstname | lastname | age | employer |
+    |--------+-----------+----------+-----+----------|
+    | Pyrami | Amber     | Duke     | 32  | Pyrami   |
+    | Hattie | Hattie    | Bond     | 36  | Netagy   |
+    | Bates  | Nanette   | Bates    | 28  | Quility  |
+    | null   | Dale      | Adams    | 33  | null     |
+    +--------+-----------+----------+-----+----------+
+
+    os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname) | fields result, firstname, lastname, age
+    fetched rows / total rows = 4/4
+    +--------+-----------+----------+-----+
+    | result | firstname | lastname | age |
+    |--------+-----------+----------+-----|
+    | null   | Amber     | Duke     | 32  |
+    | Hattie | Hattie    | Bond     | 36  |
+    | Bates  | Nanette   | Bates    | 28  |
+    | null   | Dale      | Adams    | 33  |
+    +--------+-----------+----------+-----+
+
+    os> source=accounts | where true = case(age > 35, false, age < 30, false else true) | fields firstname, lastname, age
+    fetched rows / total rows = 2/2
+    +-----------+----------+-----+
+    | firstname | lastname | age |
+    |-----------+----------+-----|
+    | Amber     | Duke     | 32  |
+    | Dale      | Adams    | 33  |
+    +-----------+----------+-----+
+

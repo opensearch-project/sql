@@ -53,7 +53,7 @@ public class CalcitePPLStringFunctionTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalAggregate(group=[{}], cnt=[COUNT()])\n"
-            + "  LogicalFilter(condition=[ILIKE($2, 'SALE%')])\n"
+            + "  LogicalFilter(condition=[ILIKE($2, 'SALE%':VARCHAR)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "cnt=4\n";

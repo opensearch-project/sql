@@ -303,6 +303,22 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testCaseWhen() {
+    assertEquals(
+        "source=t | eval level=cast(score >= ***,***,score >= *** and score < ***,*** else ***) |"
+            + " fields + level",
+        anonymize(
+            "source=t | eval level=CASE(score >= 90, 'A', score >= 80 AND score < 90, 'B' else 'C')"
+                + " | fields level"));
+    assertEquals(
+        "source=t | eval level=cast(score >= ***,***,score >= *** and score < ***,***) | fields +"
+            + " level",
+        anonymize(
+            "source=t | eval level=CASE(score >= 90, 'A', score >= 80 AND score < 90, 'B')"
+                + " | fields level"));
+  }
+
+  @Test
   public void testCast() {
     assertEquals(
         "source=t | eval id=cast(a as INTEGER) | fields + id",
