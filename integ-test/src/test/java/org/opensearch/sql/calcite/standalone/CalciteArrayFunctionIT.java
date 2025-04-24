@@ -68,6 +68,21 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
     }
 
     @Test
+    public void testTransform2() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s | eval array = array(1), result = transform(array, x -> x  * 10.0) | fields result | head 1",
+                                TEST_INDEX_BANK));
+
+        verifySchema(actual, schema("result", "array"));
+
+        verifyDataRows(
+                actual,
+                rows(List.of(2, 3, 4)));
+    }
+
+    @Test
     public void testTransform() {
         JSONObject actual =
                 executeQuery(
@@ -102,10 +117,25 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
         JSONObject actual =
                 executeQuery(
                         String.format(
-                                "source=%s | eval array = array(1, 2, 3), result = reduce(array, 0, (acc, x) -> acc + x), result2 = reduce(array, 10, (acc, x) -> acc + x), result3 = reduce(array, 0, (acc, x) -> acc + x, acc -> acc * 10) | fields result,result2,result3 | head 1",
+                                "source=%s | eval array = array(1, 2, 3), result = reduce(array, 0, (acc, x) -> acc + x), result2 = reduce(array, 10, (acc, x) -> acc + x) | fields result,result2 | head 1",
                                 TEST_INDEX_BANK));
 
-        verifySchema(actual, schema("result", "integer"), schema("result2", "integer"), schema("result3", "integer"));
+        verifySchema(actual, schema("result", "integer"), schema("result2", "integer"));
+
+        verifyDataRows(
+                actual,
+                rows(6, 16, 60));
+    }
+
+    @Test
+    public void testReduce2() {
+        JSONObject actual =
+                executeQuery(
+                        String.format(
+                                "source=%s | eval array = array(1, 2, 3), result3 = reduce(array, 0, (acc, x) -> acc + x, acc -> acc * 10.0) | fields result3 | head 1",
+                                TEST_INDEX_BANK));
+
+        verifySchema(actual, schema("result3", "integer"));
 
         verifyDataRows(
                 actual,

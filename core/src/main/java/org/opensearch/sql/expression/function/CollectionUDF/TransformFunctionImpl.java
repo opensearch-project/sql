@@ -64,7 +64,7 @@ public class TransformFunctionImpl extends ImplementorUDF {
             List<Object> results = new ArrayList<>();
             try {
                 for (Object candidate: target) {
-                    results.add(lambdaFunction.apply(candidate));
+                    results.add(decodeBigDecimal(lambdaFunction.apply(candidate)));
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -76,7 +76,7 @@ public class TransformFunctionImpl extends ImplementorUDF {
             List<Object> results = new ArrayList<>();
             try {
                 for (int i=0; i<target.size(); i++) {
-                    results.add(lambdaFunction.apply(target.get(i), i));
+                    results.add(decodeBigDecimal(lambdaFunction.apply(target.get(i), i)));
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -86,6 +86,25 @@ public class TransformFunctionImpl extends ImplementorUDF {
             throw new IllegalArgumentException("wrong lambda function input");
         }
 
+    }
+
+    public static Object decodeBigDecimal(Object target) {
+        if (target instanceof BigDecimal) {
+            BigDecimal bd = (BigDecimal) target;
+            bd = bd.stripTrailingZeros();
+
+            if (target.toString().contains(".")) {
+                return bd.doubleValue();
+            }
+
+            try {
+                return bd.intValueExact();
+            } catch (ArithmeticException e) {
+                return bd.longValueExact();
+            }
+        } else {
+            return target;
+        }
     }
 
 

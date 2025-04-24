@@ -14,7 +14,13 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexCallBinding;
+import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -24,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+import static org.opensearch.sql.expression.function.CollectionUDF.TransformFunctionImpl.decodeBigDecimal;
 
 public class ReduceFunctionImpl extends ImplementorUDF {
     public ReduceFunctionImpl() {
@@ -32,7 +39,23 @@ public class ReduceFunctionImpl extends ImplementorUDF {
 
     @Override
     public SqlReturnTypeInference getReturnTypeInference() {
-        return ReturnTypes.ARG1;
+        return sqlOperatorBinding -> {
+            RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
+            RexCallBinding rexCallBinding = (RexCallBinding) sqlOperatorBinding;
+            List<RexNode> rexNodes = rexCallBinding.operands();
+            ArraySqlType listType = (ArraySqlType) rexNodes.get(0).getType();
+            RelDataType elementType = listType.getComponentType();
+            RelDataType baseType = rexNodes.get(1).getType();
+            RelDataType mergedReturnType = inferReturnTypeFromLambda((RexLambda) rexNodes.get(2), List.of(baseType, elementType), typeFactory);
+            RelDataType finalReturnType;
+            if (rexNodes.size() > 3) {
+                finalReturnType = inferReturnTypeFromLambda((RexLambda) rexNodes.get(3), List.of(mergedReturnType), typeFactory);
+            } else {
+                finalReturnType = mergedReturnType;
+            }
+            return finalReturnType;
+        };
+
     }
 
     public static class ReduceImplementor implements NotNullImplementor {
@@ -55,14 +78,14 @@ public class ReduceFunctionImpl extends ImplementorUDF {
 
             try {
                 for (int i=0; i<list.size(); i++) {
-                    base = lambdaFunction.apply(base, list.get(i));
+                    base = decodeBigDecimal(lambdaFunction.apply(base, list.get(i)));
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
             if (args.length == 4) {
                 if (args[3] instanceof org.apache.calcite.linq4j.function.Function1) {
-                    return ((org.apache.calcite.linq4j.function.Function1) args[3]).apply(base);
+                    return decodeBigDecimal(((org.apache.calcite.linq4j.function.Function1) args[3]).apply(base));
                 } else {
                     throw new IllegalArgumentException("wrong lambda function input");
                 }
@@ -72,5 +95,24 @@ public class ReduceFunctionImpl extends ImplementorUDF {
         } else {
             throw new IllegalArgumentException("wrong lambda function input");
         }
+    }
+
+    public static RelDataType inferReturnTypeFromLambda(RexLambda rexLambda, List<RelDataType> filledTypes, RelDataTypeFactory typeFactory) {
+        RexCall rexCall = (RexCall) rexLambda.getExpression();
+        SqlReturnTypeInference returnInfer = rexCall.getOperator().getReturnTypeInference();
+        List<RexNode> lambdaOperands = rexCall.getOperands();
+        List<RexNode> filledOperands = new ArrayList<>();
+        int target_index = 0;
+        for (RexNode rexNode : lambdaOperands) {
+            if (rexNode instanceof RexLambdaRef rexLambdaRef) {
+                filledOperands.add(new RexLambdaRef(rexLambdaRef.getIndex(), rexLambdaRef.getName(), filledTypes.get(target_index)));
+                if (target_index + 1 < filledTypes.size()) {
+                    target_index++;
+                }
+            } else {
+                filledOperands.add(rexNode);
+            }
+        }
+        return returnInfer.inferReturnType(new RexCallBinding(typeFactory, rexCall.getOperator(), filledOperands, List.of()));
     }
 }
