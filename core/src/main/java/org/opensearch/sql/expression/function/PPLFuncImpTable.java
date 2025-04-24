@@ -271,11 +271,11 @@ public class PPLFuncImpTable {
       registerOperator(RIGHT, SqlLibraryOperators.RIGHT);
       registerOperator(LEFT, SqlLibraryOperators.LEFT);
       registerOperator(LOG2, SqlLibraryOperators.LOG2);
+      registerOperator(MD5, SqlLibraryOperators.MD5);
+      registerOperator(SHA1, SqlLibraryOperators.SHA1);
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
-      registerOperator(MD5, PPLBuiltinOperators.MD5);
-      registerOperator(SHA1, PPLBuiltinOperators.SHA1);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
 
       // Register implementation.

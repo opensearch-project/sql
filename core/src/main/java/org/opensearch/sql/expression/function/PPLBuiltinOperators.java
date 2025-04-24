@@ -22,8 +22,6 @@ import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   public static final SqlOperator SPAN = new SpanFunctionImpl().toUDF("SPAN");
-  public static final SqlOperator MD5 = CryptographicFunction.md5().toUDF("MD5");
-  public static final SqlOperator SHA1 = CryptographicFunction.sha1().toUDF("SHA1");
   public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
 
   /**
