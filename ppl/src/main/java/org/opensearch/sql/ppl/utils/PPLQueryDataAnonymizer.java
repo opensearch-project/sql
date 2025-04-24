@@ -105,7 +105,9 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitExplain(Explain node, String context) {
-    return node.getStatement().accept(this, null);
+    return StringUtils.format(
+        "explain %s %s",
+        node.getFormat().name().toLowerCase(Locale.ROOT), node.getStatement().accept(this, null));
   }
 
   @Override

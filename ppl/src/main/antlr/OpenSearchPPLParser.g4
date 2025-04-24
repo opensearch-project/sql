@@ -19,11 +19,23 @@ pplStatement
 
 dmlStatement
    : queryStatement
+   | explainStatement
    ;
 
 queryStatement
    : pplCommands (PIPE commands)*
    ;
+
+explainStatement
+    : EXPLAIN (explainMode)? queryStatement
+    ;
+
+explainMode
+    : SIMPLE
+    | STANDARD
+    | COST
+    | EXTENDED
+    ;
 
 subSearch
    : searchCommand (PIPE commands)*
@@ -83,6 +95,7 @@ commandName
    | ML
    | FILLNULL
    | TRENDLINE
+   | EXPLAIN
    ;
 
 searchCommand
@@ -984,6 +997,7 @@ keywordsCanBeId
    | commandName
    | comparisonOperator
    | patternMethod
+   | explainMode
    // commands assist keywords
    | IN
    | BETWEEN
