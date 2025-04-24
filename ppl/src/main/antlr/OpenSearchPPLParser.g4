@@ -425,6 +425,7 @@ valueExpression
    | left = valueExpression binaryOperator = (PLUS | MINUS) right = valueExpression             # binaryArithmetic
    | primaryExpression                                                                          # valueExpressionDefault
    | positionFunction                                                                           # positionFunctionCall
+   | caseFunction                                                                               # caseExpr
    | extractFunction                                                                            # extractFunctionCall
    | getFormatFunction                                                                          # getFormatFunctionCall
    | timestampFunction                                                                          # timestampFunctionCall
@@ -447,6 +448,10 @@ booleanExpression
    : booleanFunctionCall                                                # booleanFunctionCallExpr
    | valueExpressionList NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS    # inSubqueryExpr
    | EXISTS LT_SQR_PRTHS subSearch RT_SQR_PRTHS                         # existsSubqueryExpr
+   ;
+
+caseFunction
+   : CASE LT_PRTHS logicalExpression COMMA valueExpression (COMMA logicalExpression COMMA valueExpression)* (ELSE valueExpression)? RT_PRTHS
    ;
 
 relevanceExpression
@@ -999,6 +1004,8 @@ keywordsCanBeId
    | patternMethod
    | explainMode
    // commands assist keywords
+   | CASE
+   | ELSE
    | IN
    | BETWEEN
    | EXISTS

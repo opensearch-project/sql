@@ -293,7 +293,7 @@ public class AstDSL {
    */
   public UnresolvedExpression caseWhen(
       UnresolvedExpression caseValueExpr, UnresolvedExpression elseClause, When... whenClauses) {
-    return new Case(caseValueExpr, Arrays.asList(whenClauses), elseClause);
+    return new Case(caseValueExpr, Arrays.asList(whenClauses), Optional.ofNullable(elseClause));
   }
 
   public UnresolvedExpression cast(UnresolvedExpression expr, Literal type) {
