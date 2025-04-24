@@ -40,7 +40,8 @@ public class Explain extends Statement {
   public enum ExplainFormat {
     SIMPLE,
     STANDARD,
-    EXTENDED
+    EXTENDED,
+    COST
   }
 
   public static ExplainFormat format(String format) {
