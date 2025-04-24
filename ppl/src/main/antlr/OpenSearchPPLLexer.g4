@@ -108,6 +108,7 @@ APPEND:                             'APPEND';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
+ELSE:                               'ELSE';
 IN:                                 'IN';
 EXISTS:                             'EXISTS';
 
