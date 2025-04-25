@@ -1022,6 +1022,23 @@ class OpenSearchExprValueFactoryTest {
                       }
                     })));
     assertEquals(expectedValue, tupleValue);
+
+    // update the conflict value with the latest
+    OpenSearchExprValueFactory.populateValueRecursive(
+        tupleValue, new JsonPath("log.json.status"), ExprValueUtils.stringValue("FAILED"));
+    expectedValue =
+        ExprValueUtils.tupleValue(
+            Map.of(
+                "log",
+                Map.of(
+                    "json",
+                    new LinkedHashMap<>() {
+                      {
+                        put("status", "FAILED");
+                        put("time", 100);
+                      }
+                    })));
+    assertEquals(expectedValue, tupleValue);
   }
 
   public Map<String, ExprValue> tupleValue(String jsonString) {
