@@ -287,12 +287,14 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where replace(name, 'J', 'M')='Mane' | fields name, age",
+                "source=%s | where replace(name, 'J', 'M')='Mane' | eval hello = replace('hello',"
+                    + " 'l', 'L') | fields name, age, hello",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+    verifySchema(
+        actual, schema("name", "string"), schema("age", "integer"), schema("hello", "string"));
 
-    verifyDataRows(actual, rows("Jane", 20));
+    verifyDataRows(actual, rows("Jane", 20, "heLLo"));
   }
 
   @Test

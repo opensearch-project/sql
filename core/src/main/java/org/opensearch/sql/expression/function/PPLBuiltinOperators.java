@@ -51,7 +51,6 @@ import org.opensearch.sql.expression.function.udf.math.EulerFunction;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
 import org.opensearch.sql.expression.function.udf.math.SqrtFunction;
 import org.opensearch.sql.expression.function.udf.text.LocateFunction;
-import org.opensearch.sql.expression.function.udf.text.ReplaceFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
 public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
@@ -67,7 +66,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   // Text function
   public static final SqlOperator LOCATE = new LocateFunction().toUDF("LOCATE");
-  public static final SqlOperator REPLACE = new ReplaceFunction().toUDF("REPLACE");
 
   // Datetime function
   public static final SqlOperator TIMESTAMP = new TimestampFunction().toUDF("TIMESTAMP");
