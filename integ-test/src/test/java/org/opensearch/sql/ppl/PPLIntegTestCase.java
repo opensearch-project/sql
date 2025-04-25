@@ -172,10 +172,4 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
       }
     }
   }
-
-  protected void putDocument(String index, int id, String json) throws IOException {
-    Request request = new Request("PUT", String.format("/%s/_doc/%d?refresh=true", index, id));
-    request.setJsonEntity(json);
-    client().performRequest(request);
-  }
 }
