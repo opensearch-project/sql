@@ -1010,7 +1010,9 @@ class OpenSearchExprValueFactoryTest {
         ExprValueUtils.tupleValue(Map.of("status", "SUCCESS")));
     expectedValue =
         ExprValueUtils.tupleValue(
-            Map.of("log", Map.of("json", Map.of("status", "SUCCESS", "time", 100))));
+            Map.of(
+                "log",
+                Map.of("json", new LinkedHashMap<>(Map.of("status", "SUCCESS", "time", 100)))));
     assertEquals(expectedValue, tupleValue);
   }
 
