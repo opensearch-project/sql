@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.FLATTENED_VALUE;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_FLATTENED_VALUE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -20,29 +22,12 @@ public class FlattenDocValueIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
-    putDocument(
-        "test",
-        1,
-        "{\"log\": { \"json\" : { \"status\": \"SUCCESS\", \"time\": 100} } }"); // non-flatten
-    putDocument(
-        "test", 2, "{\"log.json\": { \"status\": \"SUCCESS\", \"time\": 100} }"); // partly-flatten
-    putDocument(
-        "test", 3, "{\"log.json.status\":  \"SUCCESS\", \"log.json.time\": 100 }"); // fully-flatten
-    putDocument(
-        "test",
-        4,
-        "{\"log.json\": { \"status\": \"SUCCESS\" }, \"log.json.time\": 100 }"); // partly-flatten +
-    // fully-flatten
-    putDocument(
-        "test",
-        7,
-        "{\"log\": { \"json\" : {} }, \"log.json\": { \"status\": \"SUCCESS\" }, \"log.json.time\":"
-            + " 100 }"); // all modes in one
+    loadIndex(FLATTENED_VALUE);
   }
 
   @Test
   public void testFlattenDocValue() throws IOException {
-    JSONObject result = executeQuery("source=test");
+    JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_FLATTENED_VALUE));
     verifySchema(result, schema("log", "struct"));
     TypeSafeMatcher<JSONArray> expectedRow =
         rows(new JSONObject("{ \"json\" : { \"status\": \"SUCCESS\", \"time\": 100} }"));
@@ -52,7 +37,10 @@ public class FlattenDocValueIT extends PPLIntegTestCase {
   @Test
   public void testFlattenDocValueWithFields() throws IOException {
     JSONObject result =
-        executeQuery("source=test | fields log, log.json, log.json.status, log.json.time");
+        executeQuery(
+            String.format(
+                "source=%s | fields log, log.json, log.json.status, log.json.time",
+                TEST_INDEX_FLATTENED_VALUE));
     verifySchema(
         result,
         schema("log", "struct"),
