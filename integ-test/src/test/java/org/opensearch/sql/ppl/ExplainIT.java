@@ -5,13 +5,17 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 
 import com.google.common.io.Resources;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.ResponseException;
+import org.opensearch.sql.legacy.TestUtils;
 
 public class ExplainIT extends PPLIntegTestCase {
 
@@ -147,5 +151,17 @@ public class ExplainIT extends PPLIntegTestCase {
   String loadFromFile(String filename) throws Exception {
     URI uri = Resources.getResource(filename).toURI();
     return new String(Files.readAllBytes(Paths.get(uri)));
+  }
+
+  @Test
+  public void testExplainModeUnsupportedInV2() throws IOException {
+    try {
+      executeQueryToString(
+          "explain cost source=opensearch-sql_test_index_account | where age = 20 | fields name,"
+              + " city");
+    } catch (ResponseException e) {
+      final String entity = TestUtils.getResponseBody(e.getResponse());
+      assertThat(entity, containsString("Explain mode COST is not supported in v2 engine"));
+    }
   }
 }

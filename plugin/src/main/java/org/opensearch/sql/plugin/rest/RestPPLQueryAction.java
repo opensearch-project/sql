@@ -100,10 +100,11 @@ public class RestPPLQueryAction extends BaseRestHandler {
               public void onFailure(Exception e) {
                 if (transportPPLQueryRequest.isExplainRequest()) {
                   LOG.error("Error happened during explain", e);
-                  sendResponse(
-                      channel,
-                      INTERNAL_SERVER_ERROR,
-                      "Failed to explain the query due to error: " + e.getMessage());
+                  if (isClientError(e)) {
+                    reportError(channel, e, BAD_REQUEST);
+                  } else {
+                    reportError(channel, e, INTERNAL_SERVER_ERROR);
+                  }
                 } else if (e instanceof OpenSearchException) {
                   Metrics.getInstance()
                       .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS)

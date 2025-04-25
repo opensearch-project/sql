@@ -184,7 +184,18 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testExplain() {
-    assertEquals("source=t | fields + a", anonymizeStatement("source=t | fields a", true));
+    assertEquals(
+        "explain standard source=t | fields + a", anonymizeStatement("source=t | fields a", true));
+  }
+
+  @Test
+  public void testExplainCommand() {
+    assertEquals(
+        "explain standard source=t | fields + a",
+        anonymizeStatement("explain source=t | fields a", false));
+    assertEquals(
+        "explain extended source=t | fields + a",
+        anonymizeStatement("explain extended source=t | fields a", false));
   }
 
   @Test
@@ -289,6 +300,22 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=t | where id > [ source=s | where id = uid | stats max(b) ] | fields + id",
         anonymize("source=t id > [ source=s | where id = uid | stats max(b) ] | fields id"));
+  }
+
+  @Test
+  public void testCaseWhen() {
+    assertEquals(
+        "source=t | eval level=cast(score >= ***,***,score >= *** and score < ***,*** else ***) |"
+            + " fields + level",
+        anonymize(
+            "source=t | eval level=CASE(score >= 90, 'A', score >= 80 AND score < 90, 'B' else 'C')"
+                + " | fields level"));
+    assertEquals(
+        "source=t | eval level=cast(score >= ***,***,score >= *** and score < ***,***) | fields +"
+            + " level",
+        anonymize(
+            "source=t | eval level=CASE(score >= 90, 'A', score >= 80 AND score < 90, 'B')"
+                + " | fields level"));
   }
 
   @Test

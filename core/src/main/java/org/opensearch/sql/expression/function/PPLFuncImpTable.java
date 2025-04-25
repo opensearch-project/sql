@@ -241,7 +241,6 @@ public class PPLFuncImpTable {
       registerOperator(UNIX_TIMESTAMP, PPLBuiltinOperators.UNIX_TIMESTAMP);
       registerOperator(TO_SECONDS, PPLBuiltinOperators.TO_SECONDS);
       registerOperator(TO_DAYS, PPLBuiltinOperators.TO_DAYS);
-
       registerOperator(ADDTIME, PPLBuiltinOperators.ADDTIME);
       registerOperator(SUBTIME, PPLBuiltinOperators.SUBTIME);
       registerOperator(ADDDATE, PPLBuiltinOperators.ADDDATE);

@@ -11,6 +11,7 @@ import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 import org.apache.calcite.rel.RelNode;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -80,6 +81,7 @@ public interface ExecutionEngine {
    * Data class that encapsulates explain result. This can help decouple core engine from concrete
    * explain response format.
    */
+  @Data
   class ExplainResponse {
     private final ExplainResponseNode root;
     // used in Calcite plan explain
@@ -119,6 +121,8 @@ public interface ExecutionEngine {
   }
 
   @RequiredArgsConstructor
+  @Data
+  @ToString
   class ExplainResponseNodeV2 {
     private final String logical;
     private final String physical;
