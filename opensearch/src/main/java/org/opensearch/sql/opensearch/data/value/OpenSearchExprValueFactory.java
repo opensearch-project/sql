@@ -17,7 +17,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_HOUR_MINUTE_SECOND_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_YEAR_MONTH_DAY_FORMATTER;
 
@@ -44,6 +43,7 @@ import org.opensearch.OpenSearchParseException;
 import org.opensearch.common.time.DateFormatter;
 import org.opensearch.common.time.DateFormatters;
 import org.opensearch.common.time.FormatNames;
+import org.opensearch.index.mapper.DateFieldMapper;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprCollectionValue;
@@ -262,9 +262,10 @@ public class OpenSearchExprValueFactory {
               DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
         default:
           return new ExprTimestampValue(
-              DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
+              DateFormatters.from(DateFieldMapper.getDefaultDateTimeFormatter().parse(value))
+                  .toInstant());
       }
-    } catch (DateTimeParseException ignored) {
+    } catch (DateTimeParseException | IllegalArgumentException ignored) {
       // ignored
     }
 
