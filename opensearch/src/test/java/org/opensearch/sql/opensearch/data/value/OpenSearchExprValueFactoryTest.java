@@ -1001,13 +1001,14 @@ class OpenSearchExprValueFactoryTest {
     OpenSearchExprValueFactory.populateValueRecursive(
         tupleValue, new JsonPath("log.json.time"), ExprValueUtils.integerValue(100));
     ExprValue expectedValue =
-        ExprValueUtils.tupleValue(Map.of("log", Map.of("json", Map.of("time", 100))));
+        ExprValueUtils.tupleValue(
+            Map.of("log", Map.of("json", new LinkedHashMap<>(Map.of("time", 100)))));
     assertEquals(expectedValue, tupleValue);
 
     OpenSearchExprValueFactory.populateValueRecursive(
         tupleValue,
         new JsonPath("log.json"),
-        ExprValueUtils.tupleValue(Map.of("status", "SUCCESS")));
+        ExprValueUtils.tupleValue(new LinkedHashMap<>(Map.of("status", "SUCCESS"))));
     expectedValue =
         ExprValueUtils.tupleValue(
             Map.of(
