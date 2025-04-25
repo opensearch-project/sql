@@ -11,8 +11,10 @@ import java.util.stream.IntStream;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 
 public interface PPLTypeChecker {
   boolean checkOperandTypes(List<RelDataType> types);
@@ -23,7 +25,7 @@ public interface PPLTypeChecker {
       return true; // Skip checking if sizes do not match because some arguments may be optional
     }
     for (int i = 0; i < operandTypes.size(); i++) {
-      SqlTypeName paramType = operandTypes.get(i).getSqlTypeName();
+      SqlTypeName paramType = UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName(operandTypes.get(i));
       SqlTypeFamily funcTypeFamily = funcTypeFamilies.get(i);
       if (paramType.getFamily() == SqlTypeFamily.IGNORE || funcTypeFamily == SqlTypeFamily.IGNORE) {
         continue;
@@ -42,6 +44,7 @@ public interface PPLTypeChecker {
       this.families = List.of(families);
     }
 
+    @Override
     public boolean checkOperandTypes(List<RelDataType> types) {
       if (families.size() != types.size()) return false;
       return validateOperands(families, types);
@@ -49,15 +52,16 @@ public interface PPLTypeChecker {
   }
 
   class PPLFamilyTypeCheckerWrapper implements PPLTypeChecker {
-    private final ImplicitCastOperandTypeChecker innerTypeChecker;
+    protected final ImplicitCastOperandTypeChecker innerTypeChecker;
 
     public PPLFamilyTypeCheckerWrapper(ImplicitCastOperandTypeChecker typeChecker) {
       this.innerTypeChecker = typeChecker;
     }
 
+    @Override
     public boolean checkOperandTypes(List<RelDataType> types) {
-      if (innerTypeChecker instanceof FamilyOperandTypeChecker familyOperandTypeChecker
-          && !familyOperandTypeChecker.getOperandCountRange().isValidCount(types.size()))
+      if (innerTypeChecker instanceof SqlOperandTypeChecker sqlOperandTypeChecker
+          && !sqlOperandTypeChecker.getOperandCountRange().isValidCount(types.size()))
         return false;
       List<SqlTypeFamily> families =
           IntStream.range(0, types.size())

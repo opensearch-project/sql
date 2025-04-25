@@ -42,6 +42,12 @@ public class SpanFunctionImpl extends ImplementorUDF {
     return ReturnTypes.ARG0;
   }
 
+  @Override
+  public UDFTypeChecker getOperandTypeChecker() {
+    // TODO: Implement a proper type checker for SPAN function
+    return null;
+  }
+
   public static class SpanImplementor implements NotNullImplementor {
     @Override
     public Expression implement(
