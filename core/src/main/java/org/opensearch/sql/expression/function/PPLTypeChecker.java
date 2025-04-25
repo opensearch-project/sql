@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -25,7 +25,8 @@ public interface PPLTypeChecker {
       return true; // Skip checking if sizes do not match because some arguments may be optional
     }
     for (int i = 0; i < operandTypes.size(); i++) {
-      SqlTypeName paramType = UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName(operandTypes.get(i));
+      SqlTypeName paramType =
+          UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName(operandTypes.get(i));
       SqlTypeFamily funcTypeFamily = funcTypeFamilies.get(i);
       if (paramType.getFamily() == SqlTypeFamily.IGNORE || funcTypeFamily == SqlTypeFamily.IGNORE) {
         continue;
@@ -61,13 +62,45 @@ public interface PPLTypeChecker {
     @Override
     public boolean checkOperandTypes(List<RelDataType> types) {
       if (innerTypeChecker instanceof SqlOperandTypeChecker sqlOperandTypeChecker
-          && !sqlOperandTypeChecker.getOperandCountRange().isValidCount(types.size()))
-        return false;
+          && !sqlOperandTypeChecker.getOperandCountRange().isValidCount(types.size())) return false;
       List<SqlTypeFamily> families =
           IntStream.range(0, types.size())
               .mapToObj(innerTypeChecker::getOperandSqlTypeFamily)
               .collect(Collectors.toList());
       return validateOperands(families, types);
+    }
+  }
+
+  /** Currently only support OR compositions of family type checkers. */
+  class PPLCompositeTypeChecker implements PPLTypeChecker {
+    private final List<? extends SqlOperandTypeChecker> allowedRules;
+
+    public PPLCompositeTypeChecker(CompositeOperandTypeChecker typeChecker) {
+      allowedRules = typeChecker.getRules();
+    }
+
+    private static boolean validateWithFamilyTypeChecker(
+        SqlOperandTypeChecker checker, List<RelDataType> types) {
+      if (checker instanceof ImplicitCastOperandTypeChecker familyTypeChecker) {
+        List<SqlTypeFamily> families =
+            IntStream.range(0, types.size())
+                .mapToObj(familyTypeChecker::getOperandSqlTypeFamily)
+                .toList();
+        return validateOperands(families, types);
+      }
+      throw new IllegalArgumentException(
+          "Currently only compositions of ImplicitCastOperandTypeChecker are supported");
+    }
+
+    @Override
+    public boolean checkOperandTypes(List<RelDataType> types) {
+      boolean operandCountValid =
+          allowedRules.stream()
+              .anyMatch(rule -> rule.getOperandCountRange().isValidCount(types.size()));
+      if (!operandCountValid) {
+        return false;
+      }
+      return allowedRules.stream().anyMatch(rule -> validateWithFamilyTypeChecker(rule, types));
     }
   }
 
@@ -78,5 +111,16 @@ public interface PPLTypeChecker {
 
   static PPLFamilyTypeCheckerWrapper familyWrapper(ImplicitCastOperandTypeChecker typeChecker) {
     return new PPLFamilyTypeCheckerWrapper(typeChecker);
+  }
+
+  static PPLCompositeTypeChecker compositeWrapper(CompositeOperandTypeChecker typeChecker) {
+    for (SqlOperandTypeChecker rule : typeChecker.getRules()) {
+      if (!(rule instanceof ImplicitCastOperandTypeChecker)) {
+        throw new IllegalArgumentException(
+            "Currently only compositions of ImplicitCastOperandTypeChecker are supported, found:"
+                + rule.getClass().getName());
+      }
+    }
+    return new PPLCompositeTypeChecker(typeChecker);
   }
 }

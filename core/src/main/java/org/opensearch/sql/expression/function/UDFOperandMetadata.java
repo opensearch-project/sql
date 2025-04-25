@@ -16,16 +16,24 @@ import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 
 /**
  * This class is created for the compatibility with SqlUserDefinedFunction constructors when
- * creating UDFs.
+ * creating UDFs, so that a type checker can be passed to the constructor of {@link
+ * org.apache.calcite.sql.validate.SqlUserDefinedFunction} as an OperandMetadata.
  */
-public interface UDFTypeChecker extends SqlOperandMetadata, ImplicitCastOperandTypeChecker {
+public interface UDFOperandMetadata extends SqlOperandMetadata, ImplicitCastOperandTypeChecker {
+  SqlOperandTypeChecker getInnerTypeChecker();
 
-  static UDFTypeChecker wrap(FamilyOperandTypeChecker typeChecker) {
-    return new UDFTypeChecker() {
+  static UDFOperandMetadata wrap(FamilyOperandTypeChecker typeChecker) {
+    return new UDFOperandMetadata() {
+      @Override
+      public SqlOperandTypeChecker getInnerTypeChecker() {
+        return typeChecker;
+      }
+
       @Override
       public boolean checkOperandTypesWithoutTypeCoercion(
           SqlCallBinding callBinding, boolean throwOnFailure) {
@@ -52,6 +60,52 @@ public interface UDFTypeChecker extends SqlOperandMetadata, ImplicitCastOperandT
       @Override
       public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
         return typeChecker.checkOperandTypesWithoutTypeCoercion(callBinding, throwOnFailure);
+      }
+
+      @Override
+      public SqlOperandCountRange getOperandCountRange() {
+        return typeChecker.getOperandCountRange();
+      }
+
+      @Override
+      public String getAllowedSignatures(SqlOperator op, String opName) {
+        return typeChecker.getAllowedSignatures(op, opName);
+      }
+    };
+  }
+
+  static UDFOperandMetadata wrap(CompositeOperandTypeChecker typeChecker) {
+    return new UDFOperandMetadata() {
+      @Override
+      public SqlOperandTypeChecker getInnerTypeChecker() {
+        return typeChecker;
+      }
+
+      @Override
+      public boolean checkOperandTypesWithoutTypeCoercion(
+          SqlCallBinding callBinding, boolean throwOnFailure) {
+        return typeChecker.checkOperandTypes(callBinding, throwOnFailure);
+      }
+
+      @Override
+      public SqlTypeFamily getOperandSqlTypeFamily(int iFormalOperand) {
+        throw new IllegalStateException(
+            "getOperandSqlTypeFamily is not supported for CompositeOperandTypeChecker");
+      }
+
+      @Override
+      public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
+        return Collections.emptyList();
+      }
+
+      @Override
+      public List<String> paramNames() {
+        return Collections.emptyList();
+      }
+
+      @Override
+      public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
+        return typeChecker.checkOperandTypes(callBinding, throwOnFailure);
       }
 
       @Override

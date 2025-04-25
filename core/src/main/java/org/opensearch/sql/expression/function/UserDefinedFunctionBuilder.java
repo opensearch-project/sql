@@ -6,20 +6,12 @@
 package org.opensearch.sql.expression.function;
 
 import java.util.Collections;
-import java.util.List;
-
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.ImplementableFunction;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.InferTypes;
-import org.apache.calcite.sql.type.OperandTypes;
-import org.apache.calcite.sql.type.SqlOperandMetadata;
-import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 
 /**
@@ -38,7 +30,7 @@ public interface UserDefinedFunctionBuilder {
 
   SqlReturnTypeInference getReturnTypeInference();
 
-  UDFTypeChecker getOperandTypeChecker();
+  UDFOperandMetadata getOperandMetadata();
 
   default SqlUserDefinedFunction toUDF(String functionName) {
     SqlIdentifier udfLtrimIdentifier =
@@ -48,7 +40,7 @@ public interface UserDefinedFunctionBuilder {
         SqlKind.OTHER_FUNCTION,
         getReturnTypeInference(),
         InferTypes.ANY_NULLABLE,
-        getOperandTypeChecker(),
+        getOperandMetadata(),
         getFunction());
   }
 }

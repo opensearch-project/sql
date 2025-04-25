@@ -63,10 +63,12 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.STRCMP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBSTRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMEDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TRIM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TYPEOF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.UPPER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
+import static org.opensearch.sql.expression.function.PPLTypeChecker.compositeWrapper;
 import static org.opensearch.sql.expression.function.PPLTypeChecker.family;
 import static org.opensearch.sql.expression.function.PPLTypeChecker.familyWrapper;
 
@@ -85,10 +87,12 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.executor.QueryType;
 
@@ -210,26 +214,61 @@ public class PPLFuncImpTable {
     abstract void register(BuiltinFunctionName functionName, FunctionImp functionImp);
 
     void registerOperator(BuiltinFunctionName functionName, SqlOperator operator) {
-      SqlOperandTypeChecker typeChecker = operator.getOperandTypeChecker();
-      if (typeChecker instanceof ImplicitCastOperandTypeChecker innerTypeChecker) {
-        FunctionImp func =
-            new FunctionImp() {
-              @Override
-              public RexNode resolve(RexBuilder builder, RexNode... args) {
-                return builder.makeCall(operator, args);
-              }
+      SqlOperandTypeChecker typeChecker;
+      if (operator instanceof SqlUserDefinedFunction udfOperator) {
+        typeChecker = extractTypeCheckerFromUDF(udfOperator);
+      } else {
+        typeChecker = operator.getOperandTypeChecker();
+      }
 
-              @Override
-              public PPLTypeChecker getTypeChecker() {
-                return familyWrapper(innerTypeChecker);
-              }
-            };
-        register(functionName, func);
+      // Only the composite operand type checker for UDFs are concerned here.
+      if (operator instanceof SqlUserDefinedFunction
+          && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+        register(functionName, createCompositeFunctionImp(operator, compositeTypeChecker));
+      } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
+        register(functionName, createImplicitCastFunctionImp(operator, implicitCastTypeChecker));
       } else {
         register(
             functionName,
             (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
       }
+    }
+
+    private static SqlOperandTypeChecker extractTypeCheckerFromUDF(
+        SqlUserDefinedFunction udfOperator) {
+      UDFOperandMetadata udfOperandMetadata =
+          (UDFOperandMetadata) udfOperator.getOperandTypeChecker();
+      return (udfOperandMetadata == null) ? null : udfOperandMetadata.getInnerTypeChecker();
+    }
+
+    private static FunctionImp createCompositeFunctionImp(
+        SqlOperator operator, CompositeOperandTypeChecker typeChecker) {
+      return new FunctionImp() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode... args) {
+          return builder.makeCall(operator, args);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return compositeWrapper(typeChecker);
+        }
+      };
+    }
+
+    private static FunctionImp createImplicitCastFunctionImp(
+        SqlOperator operator, ImplicitCastOperandTypeChecker typeChecker) {
+      return new FunctionImp() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode... args) {
+          return builder.makeCall(operator, args);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return familyWrapper(typeChecker);
+        }
+      };
     }
 
     void populate() {
@@ -292,6 +331,7 @@ public class PPLFuncImpTable {
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
+      registerOperator(TIMEDIFF, PPLBuiltinOperators.TIMEDIFF);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.

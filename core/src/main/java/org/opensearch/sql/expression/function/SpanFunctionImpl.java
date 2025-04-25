@@ -43,7 +43,7 @@ public class SpanFunctionImpl extends ImplementorUDF {
   }
 
   @Override
-  public UDFTypeChecker getOperandTypeChecker() {
+  public UDFOperandMetadata getOperandMetadata() {
     // TODO: Implement a proper type checker for SPAN function
     return null;
   }

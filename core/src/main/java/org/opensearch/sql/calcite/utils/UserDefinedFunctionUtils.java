@@ -24,7 +24,6 @@ import java.util.Locale;
 import java.util.Objects;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
-import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
@@ -55,8 +54,7 @@ import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
-import org.opensearch.sql.expression.function.PPLTypeChecker;
-import org.opensearch.sql.expression.function.UDFTypeChecker;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 public class UserDefinedFunctionUtils {
   public static SqlReturnTypeInference INTEGER_FORCE_NULLABLE =
@@ -293,30 +291,18 @@ public class UserDefinedFunctionUtils {
     return exprValues;
   }
 
-  private static List<Expression> prependTimestampAsProperty(
-      List<Expression> operands, RexToLixTranslator translator) {
-    List<Expression> operandsWithProperties = new ArrayList<>(operands);
-    Expression properties =
-        Expressions.call(
-            UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
-    operandsWithProperties.addFirst(properties);
-    return Collections.unmodifiableList(operandsWithProperties);
-  }
-
-  public static ImplementorUDF adaptExprMethodWithPropertiesToUDF(
+  public static ImplementorUDF adaptExprMethodToUDF(
       java.lang.reflect.Type type,
       String methodName,
       SqlReturnTypeInference returnTypeInference,
       NullPolicy nullPolicy,
-      UDFTypeChecker typeChecker) {
+      UDFOperandMetadata typeChecker) {
     NotNullImplementor implementor =
         (translator, call, translatedOperands) -> {
           List<Expression> operands =
               convertToExprValues(
                   translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
-          List<Expression> operandsWithProperties =
-              prependTimestampAsProperty(operands, translator);
-          Expression exprResult = Expressions.call(type, methodName, operandsWithProperties);
+          Expression exprResult = Expressions.call(type, methodName, operands);
           return Expressions.call(exprResult, "valueForCalcite");
         };
     return new ImplementorUDF(implementor, nullPolicy) {
@@ -326,44 +312,7 @@ public class UserDefinedFunctionUtils {
       }
 
       @Override
-      public UDFTypeChecker getOperandTypeChecker() {
-        return typeChecker;
-      }
-
-    };
-  }
-
-  public static ImplementorUDF adaptExprMethodWithPropertiesToUDF(
-      java.lang.reflect.Type type,
-      String methodName,
-      SqlReturnTypeInference returnTypeInference,
-      NullPolicy nullPolicy) {
-    return adaptExprMethodWithPropertiesToUDF(
-        type, methodName, returnTypeInference, nullPolicy, null);
-  }
-
-  public static ImplementorUDF adaptExprMethodToUDF(
-          java.lang.reflect.Type type,
-          String methodName,
-          SqlReturnTypeInference returnTypeInference,
-          NullPolicy nullPolicy,
-          UDFTypeChecker typeChecker) {
-    NotNullImplementor implementor =
-            (translator, call, translatedOperands) -> {
-              List<Expression> operands =
-                      convertToExprValues(
-                              translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
-              Expression exprResult = Expressions.call(type, methodName, operands);
-              return Expressions.call(exprResult, "valueForCalcite");
-            };
-    return new ImplementorUDF(implementor, nullPolicy) {
-      @Override
-      public SqlReturnTypeInference getReturnTypeInference() {
-        return returnTypeInference;
-      }
-
-      @Override
-      public UDFTypeChecker getOperandTypeChecker() {
+      public UDFOperandMetadata getOperandMetadata() {
         return typeChecker;
       }
     };

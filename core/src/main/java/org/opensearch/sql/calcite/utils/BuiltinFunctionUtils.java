@@ -65,7 +65,6 @@ import org.opensearch.sql.calcite.udf.datetimeUDF.SecondToTimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.StrToDateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.SysdateFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeAddSubFunction;
-import org.opensearch.sql.calcite.udf.datetimeUDF.TimeDiffFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeFormatFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeFunction;
 import org.opensearch.sql.calcite.udf.datetimeUDF.TimeToSecondFunction;
@@ -231,8 +230,6 @@ public interface BuiltinFunctionUtils {
         return TransferUserDefinedFunction(SysdateFunction.class, "SYSDATE", timestampInference);
       case "TIME":
         return TransferUserDefinedFunction(TimeFunction.class, "TIME", timeInference);
-      case "TIMEDIFF":
-        return TransferUserDefinedFunction(TimeDiffFunction.class, "TIMEDIFF", timeInference);
       case "TIME_TO_SEC":
         return TransferUserDefinedFunction(
             TimeToSecondFunction.class, "TIME_TO_SEC", ReturnTypes.BIGINT);
