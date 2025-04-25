@@ -198,6 +198,8 @@ public class PPLFuncImpTable {
       registerOperator(CBRT, SqlStdOperatorTable.CBRT);
       registerOperator(IS_NOT_NULL, SqlStdOperatorTable.IS_NOT_NULL);
       registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
+      registerOperator(IF, SqlStdOperatorTable.CASE);
+      registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
@@ -299,10 +301,6 @@ public class PPLFuncImpTable {
       registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK_OF_YEAR);
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK_OF_YEAR);
 
-      registerOperator(IF, PPLBuiltinOperators.IF);
-      registerOperator(IFNULL, PPLBuiltinOperators.IFNULL);
-      registerOperator(NULLIF, PPLBuiltinOperators.NULLIF);
-
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
       register(
@@ -354,6 +352,15 @@ public class PPLFuncImpTable {
               (builder, arg) ->
                   builder.makeLiteral(getLegacyTypeName(arg.getType(), QueryType.PPL)));
       register(XOR, new XOR_FUNC());
+      register(
+          NULLIF,
+          (FunctionImp2)
+              (builder, arg1, arg2) ->
+                  builder.makeCall(
+                      SqlStdOperatorTable.CASE,
+                      builder.makeCall(SqlStdOperatorTable.EQUALS, arg1, arg2),
+                      builder.makeLiteral(null, TYPE_FACTORY.createSqlType(SqlTypeName.NULL)),
+                      arg1));
     }
   }
 

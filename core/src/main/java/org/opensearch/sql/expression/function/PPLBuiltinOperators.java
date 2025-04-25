@@ -23,9 +23,6 @@ import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
-import org.opensearch.sql.expression.function.udf.condition.IfFunction;
-import org.opensearch.sql.expression.function.udf.condition.IfNullFunction;
-import org.opensearch.sql.expression.function.udf.condition.NullIfFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateFunction;
@@ -264,10 +261,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
   public static final SqlOperator WEEK_OF_YEAR = new WeekFunction().toUDF("WEEK_OF_YEAR");
   public static final SqlOperator WEEKOFYEAR = new WeekFunction().toUDF("WEEKOFYEAR");
-
-  public static final SqlOperator IF = new IfFunction().toUDF("IF");
-  public static final SqlOperator IFNULL = new IfNullFunction().toUDF("IFNULL");
-  public static final SqlOperator NULLIF = new NullIfFunction().toUDF("NULLIF");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're
