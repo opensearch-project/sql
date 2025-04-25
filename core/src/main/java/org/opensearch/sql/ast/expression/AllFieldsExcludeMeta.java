@@ -12,15 +12,20 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 
-/** Represent the All fields which is been used in SELECT *. */
+/**
+ * Represent the All fields but excluding metadata fields if user never uses them in the previous
+ * fields command
+ */
 @ToString
 @EqualsAndHashCode(callSuper = false)
-public class AllFields extends UnresolvedExpression {
-  public static final AllFields INSTANCE = new AllFields();
+public class AllFieldsExcludeMeta extends AllFields {
+  public static final AllFieldsExcludeMeta INSTANCE = new AllFieldsExcludeMeta();
 
-  public AllFields() {}
+  private AllFieldsExcludeMeta() {
+    super();
+  }
 
-  public static AllFields of() {
+  public static AllFieldsExcludeMeta of() {
     return INSTANCE;
   }
 
@@ -31,6 +36,6 @@ public class AllFields extends UnresolvedExpression {
 
   @Override
   public <R, C> R accept(AbstractNodeVisitor<R, C> nodeVisitor, C context) {
-    return nodeVisitor.visitAllFields(this, context);
+    return nodeVisitor.visitAllFieldsExcludeMeta(this, context);
   }
 }
