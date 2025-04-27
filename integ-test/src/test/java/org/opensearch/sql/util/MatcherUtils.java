@@ -394,4 +394,12 @@ public class MatcherUtils {
   public static void assertJsonEquals(String expected, String actual) {
     assertEquals(JsonParser.parseString(expected), JsonParser.parseString(actual));
   }
+
+  public static void assertJsonEqualsIgnoreRelId(String expected, String actual) {
+    assertJsonEquals(eliminateRelId(expected), eliminateRelId(actual));
+  }
+
+  public static String eliminateRelId(String s) {
+    return s.replaceAll("rel#\\d+", "rel#").replaceAll("RelSubset#\\d+", "RelSubset#");
+  }
 }

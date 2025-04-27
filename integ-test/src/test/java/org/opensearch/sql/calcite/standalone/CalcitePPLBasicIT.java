@@ -35,7 +35,6 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     Request request3 = new Request("PUT", "/test1/_doc/1?refresh=true");
     request3.setJsonEntity("{\"name\": \"HELLO\", \"alias\": \"Hello\"}");
     client().performRequest(request3);
-
     loadIndex(Index.BANK);
     loadIndex(Index.DATA_TYPE_ALIAS);
   }

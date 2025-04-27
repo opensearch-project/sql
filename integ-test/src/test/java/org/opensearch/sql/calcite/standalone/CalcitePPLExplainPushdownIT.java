@@ -25,10 +25,9 @@ public class CalcitePPLExplainPushdownIT extends CalcitePPLExplainIT {
             + "  LogicalFilter(condition=[=($1, 20)])\\n"
             + "    CalciteLogicalIndexScan(table=[[OpenSearch, test]])\\n"
             + "\",\n"
-            + "    \"physical\": \"EnumerableCalc(expr#0..7=[{inputs}], proj#0..1=[{exprs}])\\n"
-            + "  CalciteEnumerableIndexScan(table=[[OpenSearch, test]],"
-            + " PushDownContext=[[FILTER->=($1, 20)],"
-            + " OpenSearchRequestBuilder(sourceBuilder={\\\"from\\\":0,\\\"timeout\\\":\\\"1m\\\",\\\"query\\\":{\\\"term\\\":{\\\"age\\\":{\\\"value\\\":20,\\\"boost\\\":1.0}}},\\\"sort\\\":[{\\\"_doc\\\":{\\\"order\\\":\\\"asc\\\"}}]},"
+            + "    \"physical\": \"CalciteEnumerableIndexScan(table=[[OpenSearch, test]],"
+            + " PushDownContext=[[PROJECT->[name, age], FILTER->=($1, 20)],"
+            + " OpenSearchRequestBuilder(sourceBuilder={\\\"from\\\":0,\\\"timeout\\\":\\\"1m\\\",\\\"query\\\":{\\\"term\\\":{\\\"age\\\":{\\\"value\\\":20,\\\"boost\\\":1.0}}},\\\"_source\\\":{\\\"includes\\\":[\\\"name\\\",\\\"age\\\"],\\\"excludes\\\":[]},\\\"sort\\\":[{\\\"_doc\\\":{\\\"order\\\":\\\"asc\\\"}}]},"
             + " requestedTotalSize=200, pageSize=null, startFrom=0)])\\n"
             + "\"\n"
             + "  }\n"
@@ -40,12 +39,24 @@ public class CalcitePPLExplainPushdownIT extends CalcitePPLExplainIT {
   @Test
   public void testExplainCommandCost() {
     String result = explainQuery("explain cost source=test | where age = 20 | fields name, age");
-    assertTrue(
-        result.contains(
-            "CalciteEnumerableIndexScan(table=[[OpenSearch, test]], PushDownContext=[[FILTER->=($1,"
-                + " 20)],"
-                + " OpenSearchRequestBuilder(sourceBuilder={\\\"from\\\":0,\\\"timeout\\\":\\\"1m\\\",\\\"query\\\":{\\\"term\\\":{\\\"age\\\":{\\\"value\\\":20,\\\"boost\\\":1.0}}},\\\"sort\\\":[{\\\"_doc\\\":{\\\"order\\\":\\\"asc\\\"}}]},"
-                + " requestedTotalSize=200, pageSize=null, startFrom=0)]): rowcount = 100.0,"
-                + " cumulative cost = {100.0 rows, 101.0 cpu, 0.0 io}"));
+    String expected =
+        "{\n"
+            + "  \"calcite\": {\n"
+            + "    \"logical\": \"LogicalProject(name=[$0], age=[$1]): rowcount = 30.0, cumulative"
+            + " cost = {260.0 rows, 461.0 cpu, 0.0 io}, id = *\\n"
+            + "  LogicalFilter(condition=[=($1, 20)]): rowcount = 30.0, cumulative cost = {230.0"
+            + " rows, 401.0 cpu, 0.0 io}, id = *\\n"
+            + "    CalciteLogicalIndexScan(table=[[OpenSearch, test]]): rowcount = 200.0,"
+            + " cumulative cost = {200.0 rows, 201.0 cpu, 0.0 io}, id = *\\n"
+            + "\",\n"
+            + "    \"physical\": \"CalciteEnumerableIndexScan(table=[[OpenSearch, test]],"
+            + " PushDownContext=[[PROJECT->[name, age], FILTER->=($1, 20)],"
+            + " OpenSearchRequestBuilder(sourceBuilder={\\\"from\\\":0,\\\"timeout\\\":\\\"1m\\\",\\\"query\\\":{\\\"term\\\":{\\\"age\\\":{\\\"value\\\":20,\\\"boost\\\":1.0}}},\\\"_source\\\":{\\\"includes\\\":[\\\"name\\\",\\\"age\\\"],\\\"excludes\\\":[]},\\\"sort\\\":[{\\\"_doc\\\":{\\\"order\\\":\\\"asc\\\"}}]},"
+            + " requestedTotalSize=200, pageSize=null, startFrom=0)]): rowcount = 24.3, cumulative"
+            + " cost = {24.3 rows, 25.3 cpu, 0.0 io}, id = *\\n"
+            + "\"\n"
+            + "  }\n"
+            + "}";
+    assertEquals(expected, result.replaceAll("id = \\d+", "id = *"));
   }
 }
