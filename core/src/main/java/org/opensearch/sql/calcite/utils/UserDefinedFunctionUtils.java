@@ -25,6 +25,7 @@ import java.util.Objects;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
@@ -56,10 +57,8 @@ public class UserDefinedFunctionUtils {
   public static RelDataType nullableDateUDT = TYPE_FACTORY.createUDT(EXPR_DATE, true);
   public static RelDataType nullableTimestampUDT =
       TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
-
   public static SqlReturnTypeInference timestampInference =
       ReturnTypes.explicit(nullableTimestampUDT);
-
   public static SqlReturnTypeInference timeInference = ReturnTypes.explicit(nullableTimeUDT);
 
   public static SqlReturnTypeInference dateInference = ReturnTypes.explicit(nullableDateUDT);

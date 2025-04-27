@@ -8,6 +8,8 @@ package org.opensearch.sql.expression.function.CollectionUDF;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
@@ -52,11 +54,30 @@ public class LambdaUtils {
         if (target_index + 1 < filledTypes.size()) {
           target_index++;
         }
-      } else {
+      } else if (rexNode instanceof RexCall) {
         filledOperands.add(rexNode);
       }
     }
     return returnInfer.inferReturnType(
         new RexCallBinding(typeFactory, rexCall.getOperator(), filledOperands, List.of()));
   }
+
+  public static RexCall reinferReturnTypeForRexCallInsteadLambda(RexCall rexCall, Map<String, RelDataType> argTypes) {
+    List<RexNode> filledOperands = new ArrayList<>();
+    List<RexNode> rexCallOperands = rexCall.getOperands();
+    for (RexNode rexNode : rexCallOperands) {
+      if (rexNode instanceof RexLambdaRef rexLambdaRef) {
+        filledOperands.add(
+                new RexLambdaRef(
+                        rexLambdaRef.getIndex(), rexLambdaRef.getName(), argTypes.get(rexLambdaRef.getName())));
+      } else if (rexNode instanceof RexCall) {
+        filledOperands.add(reinferReturnTypeForRexCallInsteadLambda((RexCall) rexNode, argTypes));
+      } else {
+        filledOperands.add(rexNode);
+      }
+    }
+    return null;
+  }
+
+
 }

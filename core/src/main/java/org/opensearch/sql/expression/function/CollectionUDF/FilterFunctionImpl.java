@@ -42,8 +42,8 @@ public class FilterFunctionImpl extends ImplementorUDF {
   }
 
   public static Object eval(Object... args) {
-    org.apache.calcite.linq4j.function.Predicate1 lambdaFunction =
-        (org.apache.calcite.linq4j.function.Predicate1) args[1];
+    org.apache.calcite.linq4j.function.Function1 lambdaFunction =
+        (org.apache.calcite.linq4j.function.Function1) args[1];
     List<Object> target = (List<Object>) args[0];
     List<Object> results = new ArrayList<>();
     try {

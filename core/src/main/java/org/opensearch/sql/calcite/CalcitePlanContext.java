@@ -8,13 +8,16 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
@@ -88,11 +91,15 @@ public class CalcitePlanContext {
     }
   }
 
+  public CalcitePlanContext clone() {
+    return new CalcitePlanContext(config, queryType);
+  }
+
   public static CalcitePlanContext create(FrameworkConfig config, QueryType queryType) {
     return new CalcitePlanContext(config, queryType);
   }
 
-  public void putTemparolInputmap(String name, RexLambdaRef input) {
-    this.temparolInputmap.put(name, input);
+  public void putTemparolInputmapAll(Map<String, RexLambdaRef> candidateMap) {
+    this.temparolInputmap.putAll(candidateMap);
   }
 }

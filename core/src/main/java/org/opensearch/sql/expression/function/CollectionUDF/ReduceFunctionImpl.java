@@ -38,21 +38,14 @@ public class ReduceFunctionImpl extends ImplementorUDF {
       RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
       RexCallBinding rexCallBinding = (RexCallBinding) sqlOperatorBinding;
       List<RexNode> operands = rexCallBinding.operands();
-      ArraySqlType listType = (ArraySqlType) operands.get(0).getType();
-      RelDataType elementType = listType.getComponentType();
-      RelDataType baseType = operands.get(1).getType();
       RelDataType mergedReturnType =
-          inferReturnTypeFromLambda(
-              (RexLambda) operands.get(2), List.of(baseType, elementType), typeFactory);
-      RelDataType finalReturnType;
+              ((RexLambda) operands.get(2)).getExpression().getType();
       if (operands.size() > 3) {
-        finalReturnType =
-            inferReturnTypeFromLambda(
-                (RexLambda) operands.get(3), List.of(mergedReturnType), typeFactory);
-      } else {
-        finalReturnType = mergedReturnType;
+        RelDataType reduceReturnType =
+                ((RexLambda) operands.get(3)).getExpression().getType();
+        return typeFactory.leastRestrictive(List.of(mergedReturnType, reduceReturnType));
       }
-      return finalReturnType;
+      return mergedReturnType;
     };
   }
 

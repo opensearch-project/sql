@@ -91,6 +91,20 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testTransformForWithDouble() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s | eval array = array(1, 2, 3), result = transform(array, (x, i) -> x +"
+                                    + " i * 10.1) | fields result | head 1",
+                            TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+
+    verifyDataRows(actual, rows(List.of(1, 12.1, 23.2)));
+  }
+
+  @Test
   public void testReduce() {
     JSONObject actual =
         executeQuery(
@@ -115,7 +129,7 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval array = array(1, 2, 3), result3 = reduce(array, 0, (acc, x) ->"
+                "source=%s | eval array = array(1.0, 2.0, 3.0), result3 = reduce(array, 0, (acc, x) ->"
                     + " acc + x, acc -> acc * 10.0) | fields result3 | head 1",
                 TEST_INDEX_BANK));
 
