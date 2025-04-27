@@ -559,7 +559,7 @@ functionArgs
    ;
 
 functionArg
-   : (ident EQUAL)? (comparisonExpression | valueExpression)
+   : (ident EQUAL)? (valueExpression | comparisonExpression)
    ;
 
 
