@@ -93,11 +93,27 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testTransformForWithDouble() {
     JSONObject actual =
-            executeQuery(
-                    String.format(
-                            "source=%s | eval array = array(1, 2, 3), result = transform(array, (x, i) -> x +"
-                                    + " i * 10.1) | fields result | head 1",
-                            TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                "source=%s | eval array = array(1, 2, 3), result = transform(array, (x, i) -> x +"
+                    + " i * 10.1) | fields result | head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+
+    verifyDataRows(actual, rows(List.of(1, 12.1, 23.2)));
+  }
+
+  @Test
+  public void testTransformForWithUDF() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval array = array(TIMESTAMP('2000-01-02 00:00:00'),"
+                    + " TIMESTAMP('2000-01-03 00:00:00'), TIMESTAMP('2000-01-04 00:00:00')), result"
+                    + " = transform(array, (x, i) -> DATEDIFF(x, TIMESTAMP('2000-01-01 23:59:59'))"
+                    + " + i * 10.1) | fields result | head 1",
+                TEST_INDEX_BANK));
 
     verifySchema(actual, schema("result", "array"));
 
@@ -129,8 +145,22 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval array = array(1.0, 2.0, 3.0), result3 = reduce(array, 0, (acc, x) ->"
-                    + " acc + x, acc -> acc * 10.0) | fields result3 | head 1",
+                "source=%s | eval array = array(1.0, 2.0, 3.0), result3 = reduce(array, 0, (acc, x)"
+                    + " -> acc * 10.0 + x, acc -> acc * 10.0) | fields result3 | head 1",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result3", "double"));
+
+    verifyDataRows(actual, rows(1230));
+  }
+
+  @Test
+  public void testReduceWithUDF() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval array = array('a', 'ab', 'abc'), result3 = reduce(array, 0, (acc,"
+                    + " x) -> acc + length(x), acc -> acc * 10.0) | fields result3 | head 1",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("result3", "double"));

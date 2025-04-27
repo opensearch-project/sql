@@ -25,7 +25,6 @@ import java.util.Objects;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;

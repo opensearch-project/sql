@@ -9,13 +9,10 @@ import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.INTEGER_FORCE_NULLABLE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.REDUCE;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -23,7 +20,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -345,12 +341,18 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitLambdaFunction(LambdaFunction node, CalcitePlanContext context) {
     List<QualifiedName> names = node.getFuncArgs();
-    //List<RexLambdaRef> args = names.stream().map(name -> context.temparolInputmap.get(name)).collect(Collectors.toList());
-    List<RexLambdaRef> args = IntStream.range(0, names.size())
-            .mapToObj(i -> context.temparolInputmap.getOrDefault(
-                    names.get(i).toString(),
-                    new RexLambdaRef(i, names.get(i).toString(), TYPE_FACTORY.createSqlType(SqlTypeName.ANY))
-            ))
+    // List<RexLambdaRef> args = names.stream().map(name ->
+    // context.temparolInputmap.get(name)).collect(Collectors.toList());
+    List<RexLambdaRef> args =
+        IntStream.range(0, names.size())
+            .mapToObj(
+                i ->
+                    context.temparolInputmap.getOrDefault(
+                        names.get(i).toString(),
+                        new RexLambdaRef(
+                            i,
+                            names.get(i).toString(),
+                            TYPE_FACTORY.createSqlType(SqlTypeName.ANY))))
             .collect(Collectors.toList());
     RexNode body = node.getFunction().accept(this, context);
     RexNode lambdaNode = context.rexBuilder.makeLambdaCall(body, args);
@@ -363,14 +365,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.relBuilder.alias(expr, node.getVar().getField().toString());
   }
 
-  private CalcitePlanContext prepareLambdaContext(CalcitePlanContext context, LambdaFunction node, List<RexNode> previousArgument, String functionName) {
+  private CalcitePlanContext prepareLambdaContext(
+      CalcitePlanContext context,
+      LambdaFunction node,
+      List<RexNode> previousArgument,
+      String functionName) {
     try {
       CalcitePlanContext lambdaContext = context.clone();
       List<RelDataType> candidateType = new ArrayList<>();
-      candidateType.add(((ArraySqlType)previousArgument.get(0).getType()).getComponentType());
-      candidateType.addAll(previousArgument.stream().skip(1)
-              .map(RexNode::getType)
-              .toList());
+      candidateType.add(((ArraySqlType) previousArgument.get(0).getType()).getComponentType());
+      candidateType.addAll(previousArgument.stream().skip(1).map(RexNode::getType).toList());
       candidateType = modifyLambdaTypeByFunction(functionName, candidateType);
       List<QualifiedName> argNames = node.getFuncArgs();
       Map<String, RexLambdaRef> lambdaTypes = new HashMap<>();
@@ -382,12 +386,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           type = candidateType.get(candidateIndex);
           candidateIndex++;
         } else {
-          type = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER); // For reduce function, the i is missing in input.
+          type =
+              TYPE_FACTORY.createSqlType(
+                  SqlTypeName.INTEGER); // For reduce function, the i is missing in input.
         }
-        lambdaTypes.put(argNames.get(i).toString(), new RexLambdaRef(
-                i,
-                argNames.get(i).toString(),
-                type));
+        lambdaTypes.put(
+            argNames.get(i).toString(), new RexLambdaRef(i, argNames.get(i).toString(), type));
       }
       lambdaContext.putTemparolInputmapAll(lambdaTypes);
       return lambdaContext;
@@ -396,14 +400,14 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
   }
 
-
-  private List<RelDataType> modifyLambdaTypeByFunction(String functionName, List<RelDataType> originalType) {
+  private List<RelDataType> modifyLambdaTypeByFunction(
+      String functionName, List<RelDataType> originalType) {
     switch (functionName.toUpperCase(Locale.ROOT)) {
       case "REDUCE": // For reduce case, the first type is acc should be any
         return Stream.concat(
                 Stream.of(TYPE_FACTORY.createSqlType(SqlTypeName.ANY)),
-                originalType.subList(0, originalType.size() - 1).stream()
-        ).collect(Collectors.toList());
+                originalType.subList(0, originalType.size() - 1).stream())
+            .collect(Collectors.toList());
       default:
         return originalType;
     }
@@ -415,15 +419,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> arguments = new ArrayList<>();
     for (UnresolvedExpression arg : args) {
       if (arg instanceof LambdaFunction) {
-        CalcitePlanContext lambdaContext = prepareLambdaContext(context, (LambdaFunction) arg, arguments, node.getFuncName());
+        CalcitePlanContext lambdaContext =
+            prepareLambdaContext(context, (LambdaFunction) arg, arguments, node.getFuncName());
         arguments.add(analyze(arg, lambdaContext));
-      }
-      else {
+      } else {
         arguments.add(analyze(arg, context));
       }
     }
-    //List<RexNode> arguments =
-    //    node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
+    // List<RexNode> arguments =
+    //    node.getFuncArgs().stream().map(arg -> analyze(arg,
+    // context)).collect(Collectors.toList());
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolveSafe(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));

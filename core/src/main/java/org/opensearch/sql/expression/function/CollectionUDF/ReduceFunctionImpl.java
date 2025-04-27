@@ -9,7 +9,9 @@ import static org.opensearch.sql.expression.function.CollectionUDF.LambdaUtils.i
 import static org.opensearch.sql.expression.function.CollectionUDF.LambdaUtils.transferLambdaOutputToTargetType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -37,6 +39,31 @@ public class ReduceFunctionImpl extends ImplementorUDF {
     return sqlOperatorBinding -> {
       RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
       RexCallBinding rexCallBinding = (RexCallBinding) sqlOperatorBinding;
+      List<RexNode> rexNodes = rexCallBinding.operands();
+      ArraySqlType listType = (ArraySqlType) rexNodes.get(0).getType();
+      RelDataType elementType = listType.getComponentType();
+      RelDataType baseType = rexNodes.get(1).getType();
+      Map<String, RelDataType> map = new HashMap<>();
+      RexLambda mergeLambda = (RexLambda) rexNodes.get(2);
+      map.put(mergeLambda.getParameters().get(0).getName(), baseType);
+      map.put(mergeLambda.getParameters().get(1).getName(), elementType);
+      RelDataType mergedReturnType =
+          inferReturnTypeFromLambda((RexLambda) rexNodes.get(2), map, typeFactory);
+      if (mergedReturnType != baseType) { // For different acc, we need to recalculate
+        map.put(mergeLambda.getParameters().get(0).getName(), mergedReturnType);
+        mergedReturnType = inferReturnTypeFromLambda((RexLambda) rexNodes.get(2), map, typeFactory);
+      }
+      RelDataType finalReturnType;
+      if (rexNodes.size() > 3) {
+        finalReturnType = inferReturnTypeFromLambda((RexLambda) rexNodes.get(3), map, typeFactory);
+      } else {
+        finalReturnType = mergedReturnType;
+      }
+      return finalReturnType;
+
+      /*
+      RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
+      RexCallBinding rexCallBinding = (RexCallBinding) sqlOperatorBinding;
       List<RexNode> operands = rexCallBinding.operands();
       RelDataType mergedReturnType =
               ((RexLambda) operands.get(2)).getExpression().getType();
@@ -46,6 +73,8 @@ public class ReduceFunctionImpl extends ImplementorUDF {
         return typeFactory.leastRestrictive(List.of(mergedReturnType, reduceReturnType));
       }
       return mergedReturnType;
+
+       */
     };
   }
 

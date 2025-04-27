@@ -9,7 +9,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
@@ -40,21 +39,26 @@ public class LambdaUtils {
   }
 
   public static RelDataType inferReturnTypeFromLambda(
-      RexLambda rexLambda, List<RelDataType> filledTypes, RelDataTypeFactory typeFactory) {
+      RexLambda rexLambda, Map<String, RelDataType> filledTypes, RelDataTypeFactory typeFactory) {
     RexCall rexCall = (RexCall) rexLambda.getExpression();
     SqlReturnTypeInference returnInfer = rexCall.getOperator().getReturnTypeInference();
     List<RexNode> lambdaOperands = rexCall.getOperands();
     List<RexNode> filledOperands = new ArrayList<>();
-    int target_index = 0;
     for (RexNode rexNode : lambdaOperands) {
       if (rexNode instanceof RexLambdaRef rexLambdaRef) {
-        filledOperands.add(
-            new RexLambdaRef(
-                rexLambdaRef.getIndex(), rexLambdaRef.getName(), filledTypes.get(target_index)));
-        if (target_index + 1 < filledTypes.size()) {
-          target_index++;
+        if (rexLambdaRef.getType().getSqlTypeName() == SqlTypeName.ANY) {
+          filledOperands.add(
+              new RexLambdaRef(
+                  rexLambdaRef.getIndex(),
+                  rexLambdaRef.getName(),
+                  filledTypes.get(rexLambdaRef.getName())));
+        } else {
+          filledOperands.add(rexNode);
         }
       } else if (rexNode instanceof RexCall) {
+        filledOperands.add(
+            reinferReturnTypeForRexCallInsideLambda((RexCall) rexNode, filledTypes, typeFactory));
+      } else {
         filledOperands.add(rexNode);
       }
     }
@@ -62,22 +66,29 @@ public class LambdaUtils {
         new RexCallBinding(typeFactory, rexCall.getOperator(), filledOperands, List.of()));
   }
 
-  public static RexCall reinferReturnTypeForRexCallInsteadLambda(RexCall rexCall, Map<String, RelDataType> argTypes) {
+  public static RexCall reinferReturnTypeForRexCallInsideLambda(
+      RexCall rexCall, Map<String, RelDataType> argTypes, RelDataTypeFactory typeFactory) {
     List<RexNode> filledOperands = new ArrayList<>();
     List<RexNode> rexCallOperands = rexCall.getOperands();
     for (RexNode rexNode : rexCallOperands) {
       if (rexNode instanceof RexLambdaRef rexLambdaRef) {
         filledOperands.add(
-                new RexLambdaRef(
-                        rexLambdaRef.getIndex(), rexLambdaRef.getName(), argTypes.get(rexLambdaRef.getName())));
+            new RexLambdaRef(
+                rexLambdaRef.getIndex(),
+                rexLambdaRef.getName(),
+                argTypes.get(rexLambdaRef.getName())));
       } else if (rexNode instanceof RexCall) {
-        filledOperands.add(reinferReturnTypeForRexCallInsteadLambda((RexCall) rexNode, argTypes));
+        filledOperands.add(
+            reinferReturnTypeForRexCallInsideLambda((RexCall) rexNode, argTypes, typeFactory));
       } else {
         filledOperands.add(rexNode);
       }
     }
-    return null;
+    RelDataType returnType =
+        rexCall
+            .getOperator()
+            .inferReturnType(
+                new RexCallBinding(typeFactory, rexCall.getOperator(), filledOperands, List.of()));
+    return rexCall.clone(returnType, filledOperands);
   }
-
-
 }

@@ -6,15 +6,12 @@
 package org.opensearch.sql.expression.function.CollectionUDF;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
-import static org.opensearch.sql.expression.function.CollectionUDF.LambdaUtils.inferReturnTypeFromLambda;
 import static org.opensearch.sql.expression.function.CollectionUDF.LambdaUtils.transferLambdaOutputToTargetType;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
-import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -25,11 +22,9 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCallBinding;
 import org.apache.calcite.rex.RexLambda;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.commons.math3.analysis.function.Exp;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class TransformFunctionImpl extends ImplementorUDF {
@@ -45,9 +40,7 @@ public class TransformFunctionImpl extends ImplementorUDF {
       List<RexNode> operands = rexCallBinding.operands();
       RelDataType lambdaReturnType = ((RexLambda) operands.get(1)).getExpression().getType();
       return createArrayType(
-          typeFactory,
-          typeFactory.createTypeWithNullability(lambdaReturnType, true),
-          true);
+          typeFactory, typeFactory.createTypeWithNullability(lambdaReturnType, true), true);
     };
   }
 
@@ -59,7 +52,8 @@ public class TransformFunctionImpl extends ImplementorUDF {
       List<Expression> withReturnTypeList = new ArrayList<>(translatedOperands);
       withReturnTypeList.add(Expressions.constant(arrayType.getComponentType().getSqlTypeName()));
       return Expressions.call(
-              Types.lookupMethod(TransformFunctionImpl.class, "eval", Object[].class), withReturnTypeList);
+          Types.lookupMethod(TransformFunctionImpl.class, "eval", Object[].class),
+          withReturnTypeList);
     }
   }
 
@@ -73,7 +67,8 @@ public class TransformFunctionImpl extends ImplementorUDF {
 
       try {
         for (Object candidate : target) {
-          results.add(transferLambdaOutputToTargetType(lambdaFunction.apply(candidate), returnType));
+          results.add(
+              transferLambdaOutputToTargetType(lambdaFunction.apply(candidate), returnType));
         }
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -84,7 +79,8 @@ public class TransformFunctionImpl extends ImplementorUDF {
           (org.apache.calcite.linq4j.function.Function2) args[1];
       try {
         for (int i = 0; i < target.size(); i++) {
-          results.add(transferLambdaOutputToTargetType(lambdaFunction.apply(target.get(i), i), returnType));
+          results.add(
+              transferLambdaOutputToTargetType(lambdaFunction.apply(target.get(i), i), returnType));
         }
       } catch (Exception e) {
         throw new RuntimeException(e);
@@ -94,5 +90,4 @@ public class TransformFunctionImpl extends ImplementorUDF {
       throw new IllegalArgumentException("wrong lambda function input");
     }
   }
-
 }
