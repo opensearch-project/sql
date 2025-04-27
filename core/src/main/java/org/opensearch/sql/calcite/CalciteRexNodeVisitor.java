@@ -40,6 +40,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
@@ -99,7 +100,18 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       case NULL:
         return rexBuilder.makeNullLiteral(typeFactory.createSqlType(SqlTypeName.NULL));
       case STRING:
-        return rexBuilder.makeLiteral(value.toString());
+        if (value.toString().length() == 1) {
+          // To align Spark/PostgreSQL, Char(1) is useful, such as cast('1' to boolean) should
+          // return true
+          return rexBuilder.makeLiteral(
+              value.toString(), typeFactory.createSqlType(SqlTypeName.CHAR));
+        } else {
+          // Specific the type to VARCHAR and allowCast to true, or the STRING will be optimized to
+          // CHAR(n)
+          // which leads to incorrect return type in deriveReturnType of some functions/operators
+          return rexBuilder.makeLiteral(
+              value.toString(), typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+        }
       case INTEGER:
         return rexBuilder.makeExactLiteral(new BigDecimal((Integer) value));
       case LONG:
@@ -538,6 +550,19 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
     // call makeCast() instead of cast() because the saft parameter is true could avoid exception.
     return context.rexBuilder.makeCast(nullableType, expr, true, true);
+  }
+
+  @Override
+  public RexNode visitCase(Case node, CalcitePlanContext context) {
+    List<RexNode> caseOperands = new ArrayList<>();
+    for (When when : node.getWhenClauses()) {
+      caseOperands.add(analyze(when.getCondition(), context));
+      caseOperands.add(analyze(when.getResult(), context));
+    }
+    RexNode elseExpr =
+        node.getElseClause().map(e -> analyze(e, context)).orElse(context.relBuilder.literal(null));
+    caseOperands.add(elseExpr);
+    return context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, caseOperands);
   }
 
   /*

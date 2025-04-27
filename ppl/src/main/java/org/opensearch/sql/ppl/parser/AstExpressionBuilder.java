@@ -48,7 +48,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
@@ -247,6 +249,27 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return buildFunction(
         FUNCTION_NAME_MAPPING.getOrDefault(functionName, functionName),
         ctx.functionArgs().functionArg());
+  }
+
+  @Override
+  public UnresolvedExpression visitCaseExpr(OpenSearchPPLParser.CaseExprContext ctx) {
+    List<When> whens =
+        IntStream.range(0, ctx.caseFunction().logicalExpression().size())
+            .mapToObj(
+                index -> {
+                  UnresolvedExpression condition =
+                      visit(ctx.caseFunction().logicalExpression(index));
+                  UnresolvedExpression result = visit(ctx.caseFunction().valueExpression(index));
+                  return new When(condition, result);
+                })
+            .collect(Collectors.toList());
+    UnresolvedExpression elseValue = null;
+    if (ctx.caseFunction().ELSE() != null) {
+      elseValue =
+          visit(
+              ctx.caseFunction().valueExpression(ctx.caseFunction().valueExpression().size() - 1));
+    }
+    return new Case(null, whens, Optional.ofNullable(elseValue));
   }
 
   /** Eval function. */

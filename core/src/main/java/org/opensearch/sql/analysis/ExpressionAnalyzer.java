@@ -7,6 +7,7 @@ package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -49,6 +50,9 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -336,7 +340,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     }
 
     Expression defaultResult =
-        (node.getElseClause() == null) ? null : analyze(node.getElseClause(), context);
+        node.getElseClause().map(elseClause -> analyze(elseClause, context)).orElse(null);
     CaseClause caseClause = new CaseClause(whens, defaultResult);
 
     // To make this simple, require all result type same regardless of implicit convert
@@ -404,6 +408,24 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   @Override
   public Expression visitArgument(Argument node, AnalysisContext context) {
     return new NamedArgumentExpression(node.getArgName(), node.getValue().accept(this, context));
+  }
+
+  @Override
+  public Expression visitScalarSubquery(ScalarSubquery node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
+  public Expression visitExistsSubquery(ExistsSubquery node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
+  public Expression visitInSubquery(InSubquery node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   /**
