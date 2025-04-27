@@ -337,26 +337,27 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return !(unit == NONE || unit == UNKNOWN);
   }
 
-  /** Currently we use any as the input type for lambda now. */
   @Override
   public RexNode visitLambdaFunction(LambdaFunction node, CalcitePlanContext context) {
-    List<QualifiedName> names = node.getFuncArgs();
-    // List<RexLambdaRef> args = names.stream().map(name ->
-    // context.temparolInputmap.get(name)).collect(Collectors.toList());
-    List<RexLambdaRef> args =
-        IntStream.range(0, names.size())
-            .mapToObj(
-                i ->
-                    context.temparolInputmap.getOrDefault(
-                        names.get(i).toString(),
-                        new RexLambdaRef(
-                            i,
-                            names.get(i).toString(),
-                            TYPE_FACTORY.createSqlType(SqlTypeName.ANY))))
-            .collect(Collectors.toList());
-    RexNode body = node.getFunction().accept(this, context);
-    RexNode lambdaNode = context.rexBuilder.makeLambdaCall(body, args);
-    return lambdaNode;
+    try {
+      List<QualifiedName> names = node.getFuncArgs();
+      List<RexLambdaRef> args =
+          IntStream.range(0, names.size())
+              .mapToObj(
+                  i ->
+                      context.temparolInputmap.getOrDefault(
+                          names.get(i).toString(),
+                          new RexLambdaRef(
+                              i,
+                              names.get(i).toString(),
+                              TYPE_FACTORY.createSqlType(SqlTypeName.ANY))))
+              .collect(Collectors.toList());
+      RexNode body = node.getFunction().accept(this, context);
+      RexNode lambdaNode = context.rexBuilder.makeLambdaCall(body, args);
+      return lambdaNode;
+    } catch (Exception e) {
+      throw new RuntimeException("Cannot create lambda function", e);
+    }
   }
 
   @Override
@@ -365,6 +366,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return context.relBuilder.alias(expr, node.getVar().getField().toString());
   }
 
+  /**
+   * The function will clone a context for lambda function. For lambda like (x, y, z) -> ..., we
+   * will map type for each lambda argument by the order of previous argument. Also, the function
+   * will add these variables to the context so they can pass visitQualifiedName
+   */
   private CalcitePlanContext prepareLambdaContext(
       CalcitePlanContext context,
       LambdaFunction node,
@@ -373,7 +379,9 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     try {
       CalcitePlanContext lambdaContext = context.clone();
       List<RelDataType> candidateType = new ArrayList<>();
-      candidateType.add(((ArraySqlType) previousArgument.get(0).getType()).getComponentType());
+      candidateType.add(
+          ((ArraySqlType) previousArgument.get(0).getType())
+              .getComponentType()); // The first argument should be array type
       candidateType.addAll(previousArgument.stream().skip(1).map(RexNode::getType).toList());
       candidateType = modifyLambdaTypeByFunction(functionName, candidateType);
       List<QualifiedName> argNames = node.getFuncArgs();
@@ -388,7 +396,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         } else {
           type =
               TYPE_FACTORY.createSqlType(
-                  SqlTypeName.INTEGER); // For reduce function, the i is missing in input.
+                  SqlTypeName.INTEGER); // For transform function, the i is missing in input.
         }
         lambdaTypes.put(
             argNames.get(i).toString(), new RexLambdaRef(i, argNames.get(i).toString(), type));
@@ -400,6 +408,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     }
   }
 
+  /**
+   * @param functionName function name
+   * @param originalType the argument type by order
+   * @return a modified types. Different functions need to implement its own order. Currently, only
+   *     reduce has special logic.
+   */
   private List<RelDataType> modifyLambdaTypeByFunction(
       String functionName, List<RelDataType> originalType) {
     switch (functionName.toUpperCase(Locale.ROOT)) {
