@@ -23,6 +23,8 @@ import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
+import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
+import org.opensearch.sql.expression.function.udf.datetime.AddSubTimeFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateFunction;
@@ -35,7 +37,6 @@ import org.opensearch.sql.expression.function.udf.datetime.LastDayFunction;
 import org.opensearch.sql.expression.function.udf.datetime.PeriodNameFunction;
 import org.opensearch.sql.expression.function.udf.datetime.SecToTimeFunction;
 import org.opensearch.sql.expression.function.udf.datetime.SysdateFunction;
-import org.opensearch.sql.expression.function.udf.datetime.TimeAddSubFunction;
 import org.opensearch.sql.expression.function.udf.datetime.TimestampAddFunction;
 import org.opensearch.sql.expression.function.udf.datetime.TimestampDiffFunction;
 import org.opensearch.sql.expression.function.udf.datetime.TimestampFunction;
@@ -75,12 +76,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator UNIX_TIMESTAMP =
       new UnixTimestampFunction().toUDF("UNIX_TIMESTAMP");
   public static final SqlOperator TO_SECONDS = new ToSecondsFunction().toUDF("TO_SECONDS");
-  public static final SqlOperator ADDTIME = new TimeAddSubFunction(true).toUDF("ADDTIME");
-  public static final SqlOperator SUBTIME = new TimeAddSubFunction(false).toUDF("SUBTIME");
-  public static final SqlOperator ADDDATE = new DateAddSubFunction(true, false).toUDF("ADDDATE");
-  public static final SqlOperator SUBDATE = new DateAddSubFunction(false, false).toUDF("SUBDATE");
-  public static final SqlOperator DATE_ADD = new DateAddSubFunction(true, true).toUDF("DATE_ADD");
-  public static final SqlOperator DATE_SUB = new DateAddSubFunction(false, true).toUDF("DATE_SUB");
+  public static final SqlOperator ADDTIME = new AddSubTimeFunction(true).toUDF("ADDTIME");
+  public static final SqlOperator SUBTIME = new AddSubTimeFunction(false).toUDF("SUBTIME");
+  public static final SqlOperator ADDDATE = new AddSubDateFunction(true).toUDF("ADDDATE");
+  public static final SqlOperator SUBDATE = new AddSubDateFunction(false).toUDF("SUBDATE");
+  public static final SqlOperator DATE_ADD = new DateAddSubFunction(true).toUDF("DATE_ADD");
+  public static final SqlOperator DATE_SUB = new DateAddSubFunction(false).toUDF("DATE_SUB");
   public static final SqlOperator EXTRACT = new ExtractFunction().toUDF("EXTRACT");
   public static final SqlOperator YEAR = new DatePartFunction(TimeUnit.YEAR).toUDF("YEAR");
   public static final SqlOperator QUARTER = new DatePartFunction(TimeUnit.QUARTER).toUDF("QUARTER");
@@ -116,13 +117,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new DatePartFunction(TimeUnit.SECOND).toUDF("SECOND_OF_MINUTE");
   public static final SqlOperator MICROSECOND =
       new DatePartFunction(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
-  public static final SqlOperator CURRENT_TIMESTAMP =
-      new CurrentFunction(SqlTypeName.TIMESTAMP).toUDF("CURRENT_TIMESTAMP");
   public static final SqlOperator NOW = new CurrentFunction(SqlTypeName.TIMESTAMP).toUDF("NOW");
-  public static final SqlOperator LOCALTIMESTAMP =
-      new CurrentFunction(SqlTypeName.TIMESTAMP).toUDF("LOCALTIMESTAMP");
-  public static final SqlOperator LOCALTIME =
-      new CurrentFunction(SqlTypeName.TIMESTAMP).toUDF("LOCALTIME");
   public static final SqlOperator CURTIME = new CurrentFunction(SqlTypeName.TIME).toUDF("CURTIME");
   public static final SqlOperator CURRENT_TIME =
       new CurrentFunction(SqlTypeName.TIME).toUDF("CURRENT_TIME");

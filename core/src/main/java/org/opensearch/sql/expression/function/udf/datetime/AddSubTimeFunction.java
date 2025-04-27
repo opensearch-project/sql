@@ -28,8 +28,8 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
-public class TimeAddSubFunction extends ImplementorUDF {
-  public TimeAddSubFunction(boolean isAdd) {
+public class AddSubTimeFunction extends ImplementorUDF {
+  public AddSubTimeFunction(boolean isAdd) {
     super(new TimeAddSubImplementor(isAdd), NullPolicy.ANY);
   }
 

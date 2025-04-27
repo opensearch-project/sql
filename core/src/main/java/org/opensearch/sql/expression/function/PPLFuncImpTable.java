@@ -266,10 +266,10 @@ public class PPLFuncImpTable {
       registerOperator(SECOND, PPLBuiltinOperators.SECOND);
       registerOperator(SECOND_OF_MINUTE, PPLBuiltinOperators.SECOND_OF_MINUTE);
       registerOperator(MICROSECOND, PPLBuiltinOperators.MICROSECOND);
-      registerOperator(CURRENT_TIMESTAMP, PPLBuiltinOperators.CURRENT_TIMESTAMP);
+      registerOperator(CURRENT_TIMESTAMP, PPLBuiltinOperators.NOW);
       registerOperator(NOW, PPLBuiltinOperators.NOW);
-      registerOperator(LOCALTIMESTAMP, PPLBuiltinOperators.LOCALTIMESTAMP);
-      registerOperator(LOCALTIME, PPLBuiltinOperators.LOCALTIME);
+      registerOperator(LOCALTIMESTAMP, PPLBuiltinOperators.NOW);
+      registerOperator(LOCALTIME, PPLBuiltinOperators.NOW);
       registerOperator(CURTIME, PPLBuiltinOperators.CURTIME);
       registerOperator(CURRENT_TIME, PPLBuiltinOperators.CURRENT_TIME);
       registerOperator(CURRENT_DATE, PPLBuiltinOperators.CURRENT_DATE);

@@ -27,8 +27,13 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 /**
- * Implementation of the now-like functions: CURRENT_TIMESTAMP, NOW, LOCALTIMESTAMP, LOCALTIME,
- * CURTIME, CURRENT_TIME, CURRENT_DATE, CUR_DATE
+ * Implementation of the now-like functions:
+ *
+ * <ul>
+ *   <li>Date synonyms: CURRENT_DATE, CUR_DATE
+ *   <li>Time synonyms: CURTIME, CURRENT_TIME
+ *   <li>Timestamp synonyms: CURRENT_TIMESTAMP, NOW, LOCALTIMESTAMP, LOCALTIME
+ * </ul>
  *
  * <p>It returns the current date, time, or timestamp based on the specified return type.
  */
@@ -36,7 +41,7 @@ public class CurrentFunction extends ImplementorUDF {
   private final SqlTypeName returnType;
 
   public CurrentFunction(SqlTypeName returnType) {
-    super(new CurrentFunctionImplementor(returnType), NullPolicy.ANY);
+    super(new CurrentFunctionImplementor(returnType), NullPolicy.NONE);
     this.returnType = returnType;
   }
 
@@ -65,24 +70,37 @@ public class CurrentFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
 
-      return Expressions.call(
-          CurrentFunctionImplementor.class,
-          "current",
-          Expressions.constant(returnType),
-          translator.getRoot());
+      String functionName =
+          switch (returnType) {
+            case DATE -> "currentDate";
+            case TIME -> "currentTime";
+            case TIMESTAMP -> "currentTimestamp";
+            default -> throw new IllegalArgumentException("Unsupported return type: " + returnType);
+          };
+
+      Expression now =
+          Expressions.call(
+              CurrentFunctionImplementor.class, "getNowFromProperties", translator.getRoot());
+
+      return Expressions.call(CurrentFunctionImplementor.class, functionName, now);
     }
 
-    public static Object current(SqlTypeName returnType, DataContext propertyContext) {
+    public static LocalDateTime getNowFromProperties(DataContext propertyContext) {
       FunctionProperties functionProperties =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
+      return DateTimeFunctions.formatNow(functionProperties.getQueryStartClock());
+    }
 
-      LocalDateTime now = DateTimeFunctions.formatNow(functionProperties.getQueryStartClock());
-      return switch (returnType) {
-        case DATE -> new ExprDateValue(now.toLocalDate()).valueForCalcite();
-        case TIME -> new ExprTimeValue(now.toLocalTime()).valueForCalcite();
-        case TIMESTAMP -> new ExprTimestampValue(now).valueForCalcite();
-        default -> throw new IllegalArgumentException("Unsupported return type: " + returnType);
-      };
+    public static Object currentDate(LocalDateTime now) {
+      return new ExprDateValue(now.toLocalDate()).valueForCalcite();
+    }
+
+    public static Object currentTime(LocalDateTime now) {
+      return new ExprTimeValue(now.toLocalTime()).valueForCalcite();
+    }
+
+    public static Object currentTimestamp(LocalDateTime now) {
+      return new ExprTimestampValue(now).valueForCalcite();
     }
   }
 }

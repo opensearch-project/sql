@@ -1211,7 +1211,7 @@ public class DateTimeFunctions {
    * @param isAdd A flag: true to add, false to subtract.
    * @return Timestamp calculated.
    */
-  private ExprValue exprDateApplyDays(
+  public static ExprValue exprDateApplyDays(
       FunctionProperties functionProperties, ExprValue datetime, Long days, Boolean isAdd) {
     if (datetime.type() == DATE) {
       return new ExprDateValue(
