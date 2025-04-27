@@ -14,7 +14,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -40,7 +40,7 @@ public class SysdateFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return UserDefinedFunctionUtils.TIMESTAMP_INFERENCE;
+    return PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE;
   }
 
   public static class SysdateImplementor implements NotNullImplementor {

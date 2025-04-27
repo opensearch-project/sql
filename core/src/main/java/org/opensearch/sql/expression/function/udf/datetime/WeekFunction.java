@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.expression.function.udf.datetime;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.INTEGER_FORCE_NULLABLE;
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.INTEGER_FORCE_NULLABLE;
 
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;

@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -42,7 +43,7 @@ public class TimestampFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return TIMESTAMP_INFERENCE;
+    return PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE;
   }
 
   public static class TimestampImplementor implements NotNullImplementor {

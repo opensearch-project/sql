@@ -7,17 +7,16 @@ package org.opensearch.sql.expression.function.udf.datetime;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
@@ -47,24 +46,18 @@ public class CurrentFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return opBinding -> {
-      RelDataType type =
-          switch (returnType) {
-            case DATE, TIME, TIMESTAMP -> OpenSearchTypeFactory.convertSqlTypeToRelDataType(
-                returnType);
-            default -> throw new IllegalArgumentException("Unsupported return type: " + returnType);
-          };
-      return opBinding.getTypeFactory().createTypeWithNullability(type, true);
-    };
+    return opBinding ->
+        switch (returnType) {
+          case DATE -> UserDefinedFunctionUtils.NULLABLE_DATE_UDT;
+          case TIME -> UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
+          case TIMESTAMP -> UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
+          default -> throw new IllegalArgumentException("Unsupported return type: " + returnType);
+        };
   }
 
+  @RequiredArgsConstructor
   public static class CurrentFunctionImplementor implements NotNullImplementor {
     private final SqlTypeName returnType;
-
-    public CurrentFunctionImplementor(SqlTypeName returnType) {
-      super();
-      this.returnType = returnType;
-    }
 
     @Override
     public Expression implement(

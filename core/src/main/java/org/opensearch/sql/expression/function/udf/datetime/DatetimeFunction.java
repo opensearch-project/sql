@@ -13,7 +13,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
@@ -37,7 +37,7 @@ public class DatetimeFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return UserDefinedFunctionUtils.TIMESTAMP_INFERENCE;
+    return PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE;
   }
 
   public static class DatetimeImplementor implements NotNullImplementor {

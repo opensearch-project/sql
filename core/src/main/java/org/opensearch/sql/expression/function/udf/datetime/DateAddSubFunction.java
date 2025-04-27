@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.expression.function.udf.datetime;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
-
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +17,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -27,7 +26,11 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
  * Add or sub a specified interval to a date or time. If the first argument is TIME, today's date is
  * used; if it is DATE, the time is set to midnight.
  *
- * <p><b>Return Type:</b> Always returns a TIMESTAMP.
+ * <p>Signature:
+ *
+ * <ul>
+ *   <li>(DATE/TIMESTAMP/TIME, INTERVAL) -> TIMESTAMP
+ * </ul>
  */
 public class DateAddSubFunction extends ImplementorUDF {
 
@@ -37,7 +40,7 @@ public class DateAddSubFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return opBinding -> NULLABLE_TIMESTAMP_UDT;
+    return PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE;
   }
 
   @RequiredArgsConstructor

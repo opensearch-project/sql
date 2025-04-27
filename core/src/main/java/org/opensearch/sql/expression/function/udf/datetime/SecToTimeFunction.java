@@ -16,7 +16,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -38,7 +38,7 @@ public class SecToTimeFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return UserDefinedFunctionUtils.TIME_INFERENCE;
+    return PPLReturnTypes.TIME_FORCE_NULLABLE;
   }
 
   public static class SecToTimeImplementor implements NotNullImplementor {

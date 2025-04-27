@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -40,7 +41,7 @@ public class WeekdayFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return INTEGER_FORCE_NULLABLE;
+    return PPLReturnTypes.INTEGER_FORCE_NULLABLE;
   }
 
   public static class WeekdayImplementor implements NotNullImplementor {

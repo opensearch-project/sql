@@ -35,10 +35,8 @@ import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
@@ -49,19 +47,13 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class UserDefinedFunctionUtils {
-  public static SqlReturnTypeInference INTEGER_FORCE_NULLABLE =
-      ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+
   public static final RelDataType NULLABLE_DATE_UDT = TYPE_FACTORY.createUDT(EXPR_DATE, true);
   public static final RelDataType NULLABLE_TIME_UDT = TYPE_FACTORY.createUDT(EXPR_TIME, true);
   public static final RelDataType NULLABLE_TIMESTAMP_UDT =
       TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
-
-  public static final SqlReturnTypeInference DATE_INFERENCE =
-      ReturnTypes.explicit(NULLABLE_DATE_UDT);
-  public static final SqlReturnTypeInference TIME_INFERENCE =
-      ReturnTypes.explicit(NULLABLE_TIME_UDT);
-  public static final SqlReturnTypeInference TIMESTAMP_INFERENCE =
-      ReturnTypes.explicit(NULLABLE_TIMESTAMP_UDT);
+  public static final RelDataType NULLABLE_STRING =
+      TYPE_FACTORY.createTypeWithNullability(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), true);
 
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,

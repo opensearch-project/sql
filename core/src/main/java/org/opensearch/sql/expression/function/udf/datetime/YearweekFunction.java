@@ -20,6 +20,7 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -44,7 +45,7 @@ public class YearweekFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return INTEGER_FORCE_NULLABLE;
+    return PPLReturnTypes.INTEGER_FORCE_NULLABLE;
   }
 
   public static class YearweekImplementor implements NotNullImplementor {

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function.udf.datetime;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_STRING;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTime;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprFromUnixTimeFormat;
@@ -15,10 +16,8 @@ import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -46,9 +45,7 @@ public class FromUnixTimeFunction extends ImplementorUDF {
       if (opBinding.collectOperandTypes().size() == 1) {
         return NULLABLE_TIMESTAMP_UDT;
       }
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-      return typeFactory.createTypeWithNullability(
-          typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+      return NULLABLE_STRING;
     };
   }
 

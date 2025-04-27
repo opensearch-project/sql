@@ -11,6 +11,7 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprAddTi
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprSubTime;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -56,23 +57,18 @@ public class AddSubTimeFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return opBinding -> TimeAddSubImplementor.deriveReturnType(opBinding.getOperandType(0));
-  }
-
-  public static class TimeAddSubImplementor implements NotNullImplementor {
-    final boolean isAdd;
-
-    public TimeAddSubImplementor(boolean isAdd) {
-      super();
-      this.isAdd = isAdd;
-    }
-
-    public static RelDataType deriveReturnType(RelDataType temporalType) {
+    return opBinding -> {
+      RelDataType temporalType = opBinding.getOperandType(0);
       if (OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(temporalType) == SqlTypeName.TIME) {
         return UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
       }
       return UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
-    }
+    };
+  }
+
+  @RequiredArgsConstructor
+  public static class TimeAddSubImplementor implements NotNullImplementor {
+    final boolean isAdd;
 
     @Override
     public Expression implement(

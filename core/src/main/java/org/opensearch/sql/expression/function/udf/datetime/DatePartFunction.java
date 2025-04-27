@@ -10,6 +10,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -18,12 +19,11 @@ import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -68,15 +68,12 @@ public class DatePartFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+    return PPLReturnTypes.INTEGER_FORCE_NULLABLE;
   }
 
+  @RequiredArgsConstructor
   public static class DatePartImplementor implements NotNullImplementor {
     private final TimeUnit timeUnit;
-
-    public DatePartImplementor(TimeUnit timeUnit) {
-      this.timeUnit = timeUnit;
-    }
 
     @Override
     public Expression implement(
