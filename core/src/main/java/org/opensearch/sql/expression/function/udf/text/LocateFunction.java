@@ -31,18 +31,14 @@ public class LocateFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      if (call.getOperands().size() == 3) {
-        return Expressions.call(LocateImplementor.class, "locate3", translatedOperands);
-      } else {
-        return Expressions.call(LocateImplementor.class, "locate2", translatedOperands);
-      }
+      return Expressions.call(LocateImplementor.class, "locate", translatedOperands);
     }
 
-    public static int locate2(String substr, String str) {
+    public static int locate(String substr, String str) {
       return str.indexOf(substr) + 1;
     }
 
-    public static int locate3(String substr, String str, int start) {
+    public static int locate(String substr, String str, int start) {
       return str.indexOf(substr, start - 1) + 1;
     }
   }
