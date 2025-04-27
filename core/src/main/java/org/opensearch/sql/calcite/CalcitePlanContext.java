@@ -47,7 +47,7 @@ public class CalcitePlanContext {
 
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
 
-  @Getter public Map<String, RexLambdaRef> temparolInputmap;
+  @Getter public Map<String, RexLambdaRef> temparolInputMap;
 
   private CalcitePlanContext(FrameworkConfig config, QueryType queryType) {
     this.config = config;
@@ -56,7 +56,7 @@ public class CalcitePlanContext {
     this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
     this.functionProperties = new FunctionProperties(QueryType.PPL);
-    this.temparolInputmap = new HashMap<>();
+    this.temparolInputMap = new HashMap<>();
   }
 
   public RexNode resolveJoinCondition(
@@ -97,6 +97,6 @@ public class CalcitePlanContext {
   }
 
   public void putTemparolInputmapAll(Map<String, RexLambdaRef> candidateMap) {
-    this.temparolInputmap.putAll(candidateMap);
+    this.temparolInputMap.putAll(candidateMap);
   }
 }

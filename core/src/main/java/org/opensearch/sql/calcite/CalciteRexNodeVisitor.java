@@ -293,8 +293,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     // TODO: Need to support nested fields https://github.com/opensearch-project/sql/issues/3459
     // 2. resolve QualifiedName in non-join condition
     String qualifiedName = node.toString();
-    if (context.getTemparolInputmap().containsKey(qualifiedName)) {
-      return context.getTemparolInputmap().get(qualifiedName);
+    if (context.getTemparolInputMap().containsKey(qualifiedName)) {
+      return context.getTemparolInputMap().get(qualifiedName);
     }
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     if (currentFields.contains(qualifiedName)) {
@@ -357,7 +357,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           IntStream.range(0, names.size())
               .mapToObj(
                   i ->
-                      context.temparolInputmap.getOrDefault(
+                      context.temparolInputMap.getOrDefault(
                           names.get(i).toString(),
                           new RexLambdaRef(
                               i,
