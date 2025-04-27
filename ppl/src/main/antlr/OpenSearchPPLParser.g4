@@ -431,8 +431,7 @@ valueExpression
    | timestampFunction                                                                          # timestampFunctionCall
    | LT_PRTHS valueExpression RT_PRTHS                                                          # parentheticValueExpr
    | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                        # scalarSubqueryExpr
-   | ident ARROW expression                                                                     # lambda
-   | LT_PRTHS ident (COMMA ident)+ RT_PRTHS ARROW expression                                    # lambda
+   | lambda                                                                                     # lambdaExpr
    ;
 
 primaryExpression
@@ -559,9 +558,19 @@ functionArgs
    ;
 
 functionArg
-   : (ident EQUAL)? (valueExpression | comparisonExpression)
+   : (ident EQUAL)? functionArgExpression
    ;
 
+
+functionArgExpression
+   : lambda
+   | expression
+   ;
+
+lambda
+   : ident ARROW expression
+   | LT_PRTHS ident (COMMA ident)+ RT_PRTHS ARROW expression
+   ;
 
 relevanceArg
    : relevanceArgName EQUAL relevanceArgValue
