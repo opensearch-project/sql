@@ -23,7 +23,12 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
-/** DATE_ADD & DATE_SUB are similar to ADDDATE & SUBDATE except that it always return TIMESTAMP */
+/**
+ * Add or sub a specified interval to a date or time. If the first argument is TIME, today's date is
+ * used; if it is DATE, the time is set to midnight.
+ *
+ * <p><b>Return Type:</b> Always returns a TIMESTAMP.
+ */
 public class DateAddSubFunction extends ImplementorUDF {
 
   public DateAddSubFunction(boolean isAdd) {

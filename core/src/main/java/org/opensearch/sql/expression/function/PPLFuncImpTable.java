@@ -358,7 +358,7 @@ public class PPLFuncImpTable {
                   builder.makeCall(
                       SqlStdOperatorTable.CASE,
                       builder.makeCall(SqlStdOperatorTable.EQUALS, arg1, arg2),
-                      builder.makeLiteral(null, TYPE_FACTORY.createSqlType(SqlTypeName.NULL)),
+                      builder.makeNullLiteral(arg1.getType()),
                       arg1));
     }
   }

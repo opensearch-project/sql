@@ -16,6 +16,15 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>EULER()</code> returns the base of the natural logarithm, e (approximately 2.71828).
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>() -> DOUBLE
+ * </ul>
+ */
 public class EulerFunction extends ImplementorUDF {
   public EulerFunction() {
     // NullPolicy.NONE: The function does not depend on the nullability of its arguments

@@ -23,6 +23,15 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * Returns the last day of the month of the given datetime.
+ *
+ * <p>Signature:
+ *
+ * <ul>
+ *   <li>(DATE/TIME/TIMESTAMP/STRING) -> DATE
+ * </ul>
+ */
 public class LastDayFunction extends ImplementorUDF {
   public LastDayFunction() {
     super(new LastDayImplementor(), NullPolicy.ARG0);

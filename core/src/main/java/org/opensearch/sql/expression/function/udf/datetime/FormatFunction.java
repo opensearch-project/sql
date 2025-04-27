@@ -11,6 +11,7 @@ import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFo
 import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFormattedTime;
 
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -29,6 +30,16 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * Implementation for date_format and time_format functions.
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>date_format(DATE/TIME/TIMESTAMP/STRING, STRING) -> STRING
+ *   <li>time_format(TIME/TIMESTAMP/STRING, STRING) -> STRING
+ * </ul>
+ */
 public class FormatFunction extends ImplementorUDF {
   public FormatFunction(SqlTypeName functionType) {
     super(new DataFormatImplementor(functionType), NullPolicy.ANY);
@@ -43,13 +54,9 @@ public class FormatFunction extends ImplementorUDF {
     return ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);
   }
 
+  @RequiredArgsConstructor
   public static class DataFormatImplementor implements NotNullImplementor {
     private final SqlTypeName functionType;
-
-    public DataFormatImplementor(SqlTypeName functionType) {
-      super();
-      this.functionType = functionType;
-    }
 
     @Override
     public Expression implement(

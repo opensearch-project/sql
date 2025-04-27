@@ -25,6 +25,16 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>extract(part FROM date)</code> returns a LONG with digits in order according to the given
+ * 'part' arguments.
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>(STRING, DATE/TIME/TIMESTAMP/STRING) -> LONG
+ * </ul>
+ */
 public class ExtractFunction extends ImplementorUDF {
   public ExtractFunction() {
     super(new ExtractImplementor(), NullPolicy.ANY);

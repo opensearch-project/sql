@@ -24,6 +24,17 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * It constructs a timestamp based on the input datetime value. If a second argument is provided, it
+ * adds the time of the second argument to the first datetime.
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>(STRING/DATE/TIME/TIMESTAMP) -> TIMESTAMP
+ *   <li>(STRING/DATE/TIME/TIMESTAMP, STRING/DATE/TIME/TIMESTAMP) -> TIMESTAMP
+ * </ul>
+ */
 public class TimestampFunction extends ImplementorUDF {
   public TimestampFunction() {
     super(new TimestampImplementor(), NullPolicy.ALL);

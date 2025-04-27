@@ -17,6 +17,15 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>CRC32(value)</code> returns a 32-bit cyclic redundancy check (CRC) checksum
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>(STRING) -> BIGINT
+ * </ul>
+ */
 public class CRC32Function extends ImplementorUDF {
   public CRC32Function() {
     super(new Crc32Implementor(), NullPolicy.ARG0);

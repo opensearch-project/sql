@@ -27,6 +27,17 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>to_seconds(date)</code> returns the number of seconds since the year 0 of the given
+ * datetime. If the date is provided as a number, it must be formatted as YMMDD, YYMMDD, YYYMMDD or
+ * YYYYMMDD.
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>(STRING/LONG/DATE/TIME/TIMESTAMP) -> BIGINT
+ * </ul>
+ */
 public class ToSecondsFunction extends ImplementorUDF {
   public ToSecondsFunction() {
     super(new ToSecondsImplementor(), NullPolicy.ANY);

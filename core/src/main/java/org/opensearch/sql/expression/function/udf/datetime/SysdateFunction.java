@@ -19,6 +19,19 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * Returns the timestamp at which it <b>executes</b>. It differs from the behavior for NOW(), which
+ * returns a constant time that indicates the time at which the statement began to execute. If an
+ * argument is given, it specifies a fractional seconds precision from 0 to 6, the return value
+ * includes a fractional seconds part of that many digits.
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>() -> TIMESTAMP
+ *   <li>(INTEGER) -> TIMESTAMP
+ * </ul>
+ */
 public class SysdateFunction extends ImplementorUDF {
 
   public SysdateFunction() {

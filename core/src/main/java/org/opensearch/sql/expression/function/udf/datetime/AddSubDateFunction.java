@@ -30,8 +30,23 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * Adds or sub an interval or a number of days to a date or time.
+ *
+ * <ul>
+ *   <li><code>adddate(date, INTERVAL expr unit)</code>: Adds the specified interval to the date.
+ *   <li><code>adddate(date, days)</code>: Adds the specified number of days to the date.
+ * </ul>
+ *
+ * <p>Return types:
+ *
+ * <ul>
+ *   <li><code>(DATE/TIMESTAMP/TIME, INTERVAL) -> TIMESTAMP</code>
+ *   <li><code>(DATE, LONG) -> DATE</code>
+ *   <li><code>(TIMESTAMP/TIME, LONG) -> TIMESTAMP</code>
+ * </ul>
+ */
 public class AddSubDateFunction extends ImplementorUDF {
-  // while ADDDATE and SUBDATE return DATE if the first argument is DATE
   public AddSubDateFunction(boolean isAdd) {
     super(new AddSubDateImplementor(isAdd), NullPolicy.ANY);
   }

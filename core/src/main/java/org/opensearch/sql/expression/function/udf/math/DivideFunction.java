@@ -17,8 +17,12 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.MathUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
-// SqlLibraryOperators.SAFE_DIVIDE and SqlStdOperators.DIVIDE does not satisfy 0 handling rule of
-// PPL. Therefore, we implement our versions
+/**
+ * Implementation for division function.
+ *
+ * <p>SqlLibraryOperators.SAFE_DIVIDE and SqlStdOperators.DIVIDE does not satisfy 0 handling rule of
+ * PPL. Therefore, we implement our versions
+ */
 public class DivideFunction extends ImplementorUDF {
 
   public DivideFunction() {

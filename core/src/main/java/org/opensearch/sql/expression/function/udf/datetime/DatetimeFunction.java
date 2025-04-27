@@ -19,6 +19,17 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>DATETIME(timestamp)/ DATETIME(date, to_timezone) </code>Converts the datetime to a new
+ * timezone
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>(TIMESTAMP/STRING) -> TIMESTAMP
+ *   <li>(TIMESTAMP/STRING, STRING) -> TIMESTAMP
+ * </ul>
+ */
 public class DatetimeFunction extends ImplementorUDF {
   public DatetimeFunction() {
     super(new DatetimeImplementor(), NullPolicy.ANY);

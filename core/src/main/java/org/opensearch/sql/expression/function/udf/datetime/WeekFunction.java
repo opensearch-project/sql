@@ -21,6 +21,21 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>week(date[, mode])</code> returns the week number for date. Mode means the start of the
+ * day. 0 means a week starts at Sunday. If the mode argument is omitted, the default mode 0 is
+ * used.
+ *
+ * <p>It differs from <code>SqlStdOperatorTable.WEEK</code> in that it supports an optional mode
+ * argument.
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>(DATE/TIME/TIMESTAMP/STRING) -> INTEGER
+ *   <li>(DATE/TIME/TIMESTAMP/STRING, INTEGER) -> INTEGER
+ * </ul>
+ */
 public class WeekFunction extends ImplementorUDF {
   public WeekFunction() {
     super(new WeekImplementor(), NullPolicy.ANY);

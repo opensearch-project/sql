@@ -27,6 +27,19 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>timestampadd(unit, number, datetime)</code> adds the specified number of time units to the
+ * given datetime.
+ *
+ * <p>If the datetime is a STRING, it must be formatted as a valid TIMESTAMP. If only a TIME is
+ * provided, a TIMESTAMP is still returned with the DATE portion filled in using the current date.
+ *
+ * <p>Signature:
+ *
+ * <ul>
+ *   <li>(STRING, INTEGER, DATE/TIME/TIMESTAMP/STRING) -> TIMESTAMP
+ * </ul>
+ */
 public class TimestampAddFunction extends ImplementorUDF {
   public TimestampAddFunction() {
     super(new TimestampAddImplementor(), NullPolicy.ANY);

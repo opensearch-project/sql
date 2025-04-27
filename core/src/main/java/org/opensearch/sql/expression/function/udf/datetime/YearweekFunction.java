@@ -25,6 +25,18 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>yearweek(date[, mode])</code> returns the year and week for the given date as an integer
+ * (e.g. 202034). The optional mode argument specifies the start of the week, where 0 means a week
+ * starts on Sunday.
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>(DATE/TIME/TIMESTAMP/STRING) -> INTEGER
+ *   <li>(STRING/DATE/TIME/TIMESTAMP, INTEGER) -> INTEGER
+ * </ul>
+ */
 public class YearweekFunction extends ImplementorUDF {
   public YearweekFunction() {
     super(new YearweekImplementor(), NullPolicy.ANY);

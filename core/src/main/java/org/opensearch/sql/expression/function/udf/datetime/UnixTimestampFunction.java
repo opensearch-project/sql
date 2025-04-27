@@ -25,6 +25,20 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * Converts given argument to Unix time. If no argument given, it returns the current Unix time.
+ *
+ * <p>The date argument may be a DATE, or TIMESTAMP string, or a number in YYMMDD, YYMMDDhhmmss,
+ * YYYYMMDD, or YYYYMMDDhhmmss format. If the argument includes a time part, it may optionally
+ * include a fractional seconds part.
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>() -> DOUBLE
+ *   <li>(DOUBLE/LONG/DATE/TIMESTAMP) -> DOUBLE
+ * </ul>
+ */
 public class UnixTimestampFunction extends ImplementorUDF {
   public UnixTimestampFunction() {
     super(new UnixTimestampImplementor(), NullPolicy.ANY);

@@ -23,6 +23,16 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>weekday(date)</code> returns the weekday index for date (0 = Monday, 1 = Tuesday, ..., 6 =
+ * Sunday).
+ *
+ * <p>Signature:
+ *
+ * <ul>
+ *   <li>(STRING/DATE/TIME/TIMESTAMP) -> INTEGER
+ * </ul>
+ */
 public class WeekdayFunction extends ImplementorUDF {
   public WeekdayFunction() {
     super(new WeekdayImplementor(), NullPolicy.ANY);

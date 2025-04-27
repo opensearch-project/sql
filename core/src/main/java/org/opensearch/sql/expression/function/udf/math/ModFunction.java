@@ -21,6 +21,9 @@ import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.opensearch.sql.calcite.utils.MathUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>MOD(dividend, divisor)</code> returns the remainder of the division of dividend by divisor.
+ */
 public class ModFunction extends ImplementorUDF {
   public ModFunction() {
     super(new ModImplementor(), NullPolicy.ANY);

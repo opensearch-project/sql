@@ -23,6 +23,18 @@ import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * Returns the timestamp representation of the given unix time. If second argument is provided, it
+ * is used to format the result in the same way as the format string used for the DATE_FORMAT
+ * function
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>DOUBLE -> TIMESTAMP
+ *   <li>DOUBLE, STRING -> STRING
+ * </ul>
+ */
 public class FromUnixTimeFunction extends ImplementorUDF {
   public FromUnixTimeFunction() {
     super(new FromUnixTimeImplementor(), NullPolicy.ANY);

@@ -24,6 +24,16 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * Implementation of DAYNAME and MONTHNAME functions. It returns the names as strings of day (e.g.
+ * Monday) or month (e.g. January) in local language.
+ *
+ * <p>Signature:
+ *
+ * <ul>
+ *   <li>DATE/TIMESTAMP/STRING -> STRING
+ * </ul>
+ */
 public class PeriodNameFunction extends ImplementorUDF {
   public PeriodNameFunction(TimeUnit periodUnit) {
     super(new PeriodNameFunctionImplementor(periodUnit), NullPolicy.ANY);

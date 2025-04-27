@@ -33,6 +33,34 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * Implementations of date-part-related functions:
+ *
+ * <ul>
+ *   <li>YEAR
+ *   <li>QUARTER
+ *   <li>MONTH
+ *   <li>WEEK
+ *   <li>DAY
+ *   <li>DAYOFYEAR
+ *   <li>DAYOFMONTH
+ *   <li>DAYOFWEEK
+ *   <li>HOUR
+ *   <li>HOUROFDAY
+ *   <li>MINUTE
+ *   <li>MINUTEOFDAY
+ *   <li>MIBUTEOFHOUR
+ *   <li>SECOND
+ *   <li>MICROSECOND
+ * </ul>
+ *
+ * Signatures:
+ *
+ * <ul>
+ *   <li>Day-level extractions: DATE/TIMESTAMP/STRING -> INTEGER
+ *   <li>Time-level extractions: TIME/TIMESTAMP/STRING -> INTEGER
+ * </ul>
+ */
 public class DatePartFunction extends ImplementorUDF {
   public DatePartFunction(TimeUnit timeUnit) {
     super(new DatePartImplementor(timeUnit), NullPolicy.ANY);

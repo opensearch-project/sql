@@ -21,6 +21,16 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>sec_to_time(number)</code> converts the number of seconds to time in HH:mm:ssss[.nnnnnn]
+ * format.
+ *
+ * <p>Signature:
+ *
+ * <ul>
+ *   <li>(INTEGER/LONG/DOUBLE/FLOAT) -> TIME
+ * </ul>
+ */
 public class SecToTimeFunction extends ImplementorUDF {
   public SecToTimeFunction() {
     super(new SecToTimeImplementor(), NullPolicy.ARG0);

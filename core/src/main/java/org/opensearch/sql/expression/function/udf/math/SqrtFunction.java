@@ -16,6 +16,7 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/** <code>SQRT(value)</code> returns the square root of a number. */
 public class SqrtFunction extends ImplementorUDF {
   public SqrtFunction() {
     super(new SqrtImplementor(), NullPolicy.ARG0);

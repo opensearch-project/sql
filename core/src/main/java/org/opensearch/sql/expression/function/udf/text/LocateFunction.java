@@ -17,6 +17,17 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>LOCATE(substr, str[, start])</code> returns the position of the first occurrence of
+ * `substr` in `str`, optionally starting the search at a specified position.
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>(STRING, STRING) -> INTEGER
+ *   <li>(STRING, STRING, INTEGER) -> INTEGER
+ * </ul>
+ */
 public class LocateFunction extends ImplementorUDF {
   public LocateFunction() {
     super(new LocateImplementor(), NullPolicy.ANY);

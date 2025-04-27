@@ -28,6 +28,27 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * Adds or subtracts the second datetime to/from the first datetime.
+ *
+ * <ul>
+ *   <li>If the argument is TIME, today's date is used.
+ *   <li>If the argument is DATE, the time is set to midnight.
+ * </ul>
+ *
+ * <p>Argument types:
+ *
+ * <ul>
+ *   <li><code>DATE/TIMESTAMP/TIME, DATE/TIMESTAMP/TIME</code>
+ * </ul>
+ *
+ * <p>Return types:
+ *
+ * <ul>
+ *   <li><code>(DATE/TIMESTAMP, DATE/TIMESTAMP/TIME) -> TIMESTAMP</code>
+ *   <li><code>(TIME, DATE/TIMESTAMP/TIME) -> TIME</code>
+ * </ul>
+ */
 public class AddSubTimeFunction extends ImplementorUDF {
   public AddSubTimeFunction(boolean isAdd) {
     super(new TimeAddSubImplementor(isAdd), NullPolicy.ANY);

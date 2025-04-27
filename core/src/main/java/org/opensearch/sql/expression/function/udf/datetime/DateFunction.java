@@ -25,6 +25,16 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
+/**
+ * <code>date(expr)</code> constructs a date type with the input string expr as a date. If the
+ * argument is of date/timestamp, it extracts the date value part from the expression.
+ *
+ * <p>Signature:
+ *
+ * <ul>
+ *   <li>STRING/DATE/TIMESTAMP -> DATE
+ * </ul>
+ */
 public class DateFunction extends ImplementorUDF {
   public DateFunction() {
     super(new DateImplementor(), NullPolicy.ANY);

@@ -27,7 +27,19 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
-/** Implementation for TIMESTAMPDIFF functions. */
+/**
+ * Implementation for TIMESTAMPDIFF functions.
+ *
+ * <p>TIMESTAMPDIFF(interval, start, end) returns the difference between the start and end
+ * date/times in interval units. If a TIME is provided as an argument, it will be converted to a
+ * TIMESTAMP with the DATE portion filled in using the current date.
+ *
+ * <p>Signature:
+ *
+ * <ul>
+ *   <li>(STRING, DATE/TIME/TIMESTAMP/STRING, DATE/TIME/TIMESTAMP/STRING) -> LONG
+ * </ul>
+ */
 public class TimestampDiffFunction extends ImplementorUDF {
   public TimestampDiffFunction() {
     super(new DiffImplementor(), NullPolicy.ANY);
