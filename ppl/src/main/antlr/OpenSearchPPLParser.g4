@@ -559,8 +559,9 @@ functionArgs
    ;
 
 functionArg
-   : (ident EQUAL)? valueExpression
+   : (ident EQUAL)? (comparisonExpression | valueExpression)
    ;
+
 
 relevanceArg
    : relevanceArgName EQUAL relevanceArgValue
