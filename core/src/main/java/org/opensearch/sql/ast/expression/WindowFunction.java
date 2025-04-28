@@ -10,7 +10,6 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
@@ -21,7 +20,6 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @Getter
-@RequiredArgsConstructor
 @ToString
 public class WindowFunction extends UnresolvedExpression {
 

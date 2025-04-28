@@ -301,6 +301,15 @@ public enum BuiltinFunctionName {
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
           .build();
 
+  private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
+      new ImmutableMap.Builder<String, BuiltinFunctionName>()
+          .put("max", BuiltinFunctionName.MAX)
+          .put("min", BuiltinFunctionName.MIN)
+          .put("avg", BuiltinFunctionName.AVG)
+          .put("count", BuiltinFunctionName.COUNT)
+          .put("sum", BuiltinFunctionName.SUM)
+          .build();
+
   public static Optional<BuiltinFunctionName> of(String str) {
     return Optional.ofNullable(ALL_NATIVE_FUNCTIONS.getOrDefault(FunctionName.of(str), null));
   }
@@ -308,5 +317,10 @@ public enum BuiltinFunctionName {
   public static Optional<BuiltinFunctionName> ofAggregation(String functionName) {
     return Optional.ofNullable(
         AGGREGATION_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
+  }
+
+  public static Optional<BuiltinFunctionName> ofWindowFunction(String functionName) {
+    return Optional.ofNullable(
+        WINDOW_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
   }
 }

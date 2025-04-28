@@ -19,7 +19,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
-import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.IntervalUnit;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -51,18 +50,14 @@ public interface PlanUtils {
       RexNode field,
       List<RexNode> argList,
       List<RexNode> partitions) {
-    if (BuiltinFunctionName.ofAggregation(name).isEmpty())
-      throw new IllegalArgumentException("Unexpected value: " + name);
+    if (BuiltinFunctionName.ofWindowFunction(name).isEmpty())
+      throw new UnsupportedOperationException("Unexpected window function: " + name);
+    BuiltinFunctionName functionName = BuiltinFunctionName.ofWindowFunction(name).get();
 
-    BuiltinFunctionName functionName = BuiltinFunctionName.ofAggregation(name).get();
     switch (functionName) {
-      case MAX:
-        return context.relBuilder.max(field).over().partitionBy(partitions).toRex();
-      case MIN:
-        return context.relBuilder.min(field).over().partitionBy(partitions).toRex();
-      case AVG:
         // There is no "avg" AggImplementor in Calcite, we have to change avg window
-        // function to `sum over(...) / count over(...)`
+        // function to `sum over(...).toRex / count over(...).toRex`
+      case AVG:
         return context.relBuilder.call(
             SqlStdOperatorTable.DIVIDE,
             context.relBuilder.cast(
@@ -74,38 +69,36 @@ public interface PlanUtils {
                 .over()
                 .partitionBy(partitions)
                 .toRex());
-      case COUNT:
-        return context
-            .relBuilder
-            .count(field == null ? ImmutableList.of() : ImmutableList.of(field))
+      default:
+        return makeAggCall(context, name, false, field, argList)
             .over()
             .partitionBy(partitions)
             .toRex();
-      case SUM:
-        return context.relBuilder.sum(field).over().partitionBy(partitions).toRex();
     }
-    throw new IllegalArgumentException("Not Supported window function: " + name);
   }
 
   static RelBuilder.AggCall makeAggCall(
-      CalcitePlanContext context, AggregateFunction agg, RexNode field, List<RexNode> argList) {
-    if (BuiltinFunctionName.ofAggregation(agg.getFuncName()).isEmpty())
-      throw new IllegalArgumentException("Unexpected value: " + agg.getFuncName());
+      CalcitePlanContext context,
+      String name,
+      boolean distinct,
+      RexNode field,
+      List<RexNode> argList) {
+    if (BuiltinFunctionName.ofAggregation(name).isEmpty())
+      throw new UnsupportedOperationException("Unexpected aggregation: " + name);
+    BuiltinFunctionName functionName = BuiltinFunctionName.ofAggregation(name).get();
 
-    // Additional aggregation function operators will be added here
-    BuiltinFunctionName functionName = BuiltinFunctionName.ofAggregation(agg.getFuncName()).get();
     switch (functionName) {
       case MAX:
         return context.relBuilder.max(field);
       case MIN:
         return context.relBuilder.min(field);
       case AVG:
-        return context.relBuilder.avg(agg.getDistinct(), null, field);
+        return context.relBuilder.avg(distinct, null, field);
       case COUNT:
         return context.relBuilder.count(
-            agg.getDistinct(), null, field == null ? ImmutableList.of() : ImmutableList.of(field));
+            distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field));
       case SUM:
-        return context.relBuilder.sum(agg.getDistinct(), null, field);
+        return context.relBuilder.sum(distinct, null, field);
         //            case MEAN:
         //                throw new UnsupportedOperationException("MEAN is not supported in PPL");
         //            case STDDEV:
@@ -140,7 +133,8 @@ public interface PlanUtils {
             List.of(field),
             newArgList,
             context.relBuilder);
+      default:
+        throw new UnsupportedOperationException("Unexpected aggregation: " + name);
     }
-    throw new IllegalStateException("Not Supported value: " + agg.getFuncName());
   }
 }

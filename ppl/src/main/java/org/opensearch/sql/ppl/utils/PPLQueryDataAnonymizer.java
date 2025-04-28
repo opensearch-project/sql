@@ -64,6 +64,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -220,6 +221,17 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format(
         "%s | stats %s",
         child, String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
+  }
+
+  @Override
+  public String visitWindow(Window node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    final String partition = visitExpressionList(node.getPartExprList());
+    return StringUtils.format(
+        "%s | eventstats %s",
+        child,
+        String.join(" ", visitExpressionList(node.getWindowFunctionList()), groupBy(partition))
+            .trim());
   }
 
   /** Build {@link LogicalRareTopN}. */

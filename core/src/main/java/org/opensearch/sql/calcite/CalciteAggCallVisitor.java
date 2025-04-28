@@ -41,6 +41,6 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
     for (UnresolvedExpression arg : node.getArgList()) {
       argList.add(rexNodeVisitor.analyze(arg, context));
     }
-    return PlanUtils.makeAggCall(context, node, field, argList);
+    return PlanUtils.makeAggCall(context, node.getFuncName(), node.getDistinct(), field, argList);
   }
 }

@@ -35,7 +35,6 @@ import org.apache.calcite.util.TimeString;
 import org.apache.calcite.util.TimestampString;
 import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
-import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Between;
@@ -394,6 +393,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           (arguments.isEmpty() || arguments.size() == 1)
               ? Collections.emptyList()
               : arguments.subList(1, arguments.size());
+      if (BuiltinFunctionName.AVG == agg.get()) {
+
+      } else {
+      }
       return PlanUtils.makeOver(context, agg.get().name(), field, args, partitions);
     } else {
       throw new IllegalArgumentException("Not Supported value " + windowFunction.getFuncName());
@@ -508,19 +511,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         node.getElseClause().map(e -> analyze(e, context)).orElse(context.relBuilder.literal(null));
     caseOperands.add(elseExpr);
     return context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, caseOperands);
-  }
-
-  @Override
-  public RexNode visitAggregateFunction(AggregateFunction node, CalcitePlanContext context) {
-    RexNode field = analyze(node.getField(), context);
-    List<RexNode> argList = new ArrayList<>();
-    for (UnresolvedExpression arg : node.getArgList()) {
-      argList.add(analyze(arg, context));
-    }
-    return PlanUtils.makeAggCall(context, node, field, argList)
-        .over()
-        .partitionBy(context.peekWindowPartitions())
-        .toRex();
   }
 
   /*

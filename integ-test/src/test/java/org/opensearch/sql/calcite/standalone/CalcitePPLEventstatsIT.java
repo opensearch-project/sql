@@ -83,11 +83,12 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
 
     verifyDataRows(
         actual,
-        rows(null, "Canada", null, 4, 2023, 10, 5, 31.0, 10, 70),
-        rows("John", "Canada", "Ontario", 4, 2023, 25, 5, 31.0, 10, 70),
-        rows("Jake", "USA", "California", 4, 2023, 70, 5, 31.0, 10, 70),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 5, 31.0, 10, 70),
-        rows("Hello", "USA", "New York", 4, 2023, 30, 5, 31.0, 10, 70));
+        rows(null, "Canada", null, 4, 2023, 10, 6, 31.0, 10, 70),
+        rows("Kevin", null, null, 4, 2023, null, 6, 31, 10, 70),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 6, 31.0, 10, 70),
+        rows("Jake", "USA", "California", 4, 2023, 70, 6, 31.0, 10, 70),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 6, 31.0, 10, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 6, 31.0, 10, 70));
   }
 
   @Test
@@ -144,11 +145,27 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
 
     verifyDataRows(
         actual,
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null),
         rows(null, "Canada", null, 4, 2023, 10, 3, 18.333333333333332, 10, 25),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 3, 18.333333333333332, 10, 25),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 3, 18.333333333333332, 10, 25),
         rows("Jake", "USA", "California", 4, 2023, 70, 2, 50, 30, 70),
         rows("Hello", "USA", "New York", 4, 2023, 30, 2, 50, 30, 70));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
+                    + " as max by state",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+    verifyDataRows(
+        actual,
+        rows(null, "Canada", null, 4, 2023, 10, 2, 10, 10, 10),
+        rows("Kevin", null, null, 4, 2023, null, 2, 10, 10, 10),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20),
+        rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 1, 30, 30, 30));
   }
 
   @Test
@@ -180,6 +197,7 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
     verifyDataRows(
         actual,
         rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 2, 22.5, 20, 25),
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
@@ -232,6 +250,7 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
     verifyDataRows(
         actual,
         rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 2, 22.5, 20, 25),
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2, 22.5, 20, 25),
@@ -250,6 +269,7 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
     verifyDataRows(
         actual,
         rows(null, "Canada", null, 4, 2023, 10, 1, 10, 10, 10),
+        rows("Kevin", null, null, 4, 2023, null, 1, null, null, null),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 1, 25, 25, 25),
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 1, 20, 20, 20),
@@ -260,14 +280,14 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
   public void testUnsupportedWindowFunctions() {
     List<String> unsupported = List.of("STDDEV_SAMP", "STDDEV_POP");
     for (String u : unsupported) {
-      IllegalArgumentException e =
+      UnsupportedOperationException e =
           assertThrows(
-              IllegalArgumentException.class,
+              UnsupportedOperationException.class,
               () ->
                   executeQuery(
                       String.format(
                           "source=%s | eventstats %s(age)", TEST_INDEX_STATE_COUNTRY, u)));
-      verifyErrorMessageContains(e, "Not Supported window function: " + u);
+      verifyErrorMessageContains(e, "Unexpected window function: " + u);
     }
   }
 
@@ -321,6 +341,7 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
 
     verifyDataRows(
         actual,
+        rows("Kevin", null, null, 4, 2023, null, null, null),
         rows(null, "Canada", null, 4, 2023, 10, 10, 18.333333333333332),
         rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20.0, 18.333333333333332),
         rows("John", "Canada", "Ontario", 4, 2023, 25, 25.0, 18.333333333333332),
