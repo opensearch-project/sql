@@ -173,4 +173,17 @@ public interface ExprValue extends Serializable, Comparable<ExprValue> {
   default ExprValue keyValue(String key) {
     return ExprMissingValue.of();
   }
+
+  /**
+   * Merge the value to the base value. By default, it overrides the base value with the current
+   *
+   * <p>This method will be called when key conflict happens in the process of populating
+   * ExprTupleValue See {@link OpenSearchExprValueFactory::populateValueRecursive}.
+   *
+   * @param base the target value to merge
+   * @return The merged value
+   */
+  default ExprValue mergeTo(ExprValue base) {
+    return this;
+  }
 }
