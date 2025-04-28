@@ -125,7 +125,7 @@ public class JdbcOpenSearchDataTypeConvertor {
           return ExprValueUtils.fromObjectValue(array);
 
         default:
-          LOG.warn(
+          LOG.debug(
               "Unchecked sql type: {}, return Object type {}",
               sqlType,
               value.getClass().getTypeName());
