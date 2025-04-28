@@ -87,25 +87,13 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator YEAR = new DatePartFunction(TimeUnit.YEAR).toUDF("YEAR");
   public static final SqlOperator QUARTER = new DatePartFunction(TimeUnit.QUARTER).toUDF("QUARTER");
   public static final SqlOperator MONTH = new DatePartFunction(TimeUnit.MONTH).toUDF("MONTH");
-  public static final SqlOperator MONTH_OF_YEAR =
-      new DatePartFunction(TimeUnit.MONTH).toUDF("MONTH_OF_YEAR");
   public static final SqlOperator DAY = new DatePartFunction(TimeUnit.DAY).toUDF("DAY");
-  public static final SqlOperator DAYOFMONTH =
-      new DatePartFunction(TimeUnit.DAY).toUDF("DAYOFMONTH");
-  public static final SqlOperator DAY_OF_MONTH =
-      new DatePartFunction(TimeUnit.DAY).toUDF("DAY_OF_MONTH");
-  public static final SqlOperator DAYOFWEEK = new DatePartFunction(TimeUnit.DOW).toUDF("DAYOFWEEK");
   public static final SqlOperator DAY_OF_WEEK =
       new DatePartFunction(TimeUnit.DOW).toUDF("DAY_OF_WEEK");
-  public static final SqlOperator DAYOFYEAR = new DatePartFunction(TimeUnit.DOY).toUDF("DAYOFYEAR");
   public static final SqlOperator DAY_OF_YEAR =
       new DatePartFunction(TimeUnit.DOY).toUDF("DAY_OF_YEAR");
   public static final SqlOperator HOUR = new DatePartFunction(TimeUnit.HOUR).toUDF("HOUR");
-  public static final SqlOperator HOUR_OF_DAY =
-      new DatePartFunction(TimeUnit.HOUR).toUDF("HOUR_OF_DAY");
   public static final SqlOperator MINUTE = new DatePartFunction(TimeUnit.MINUTE).toUDF("MINUTE");
-  public static final SqlOperator MINUTE_OF_HOUR =
-      new DatePartFunction(TimeUnit.MINUTE).toUDF("MINUTE_OF_HOUR");
   public static final SqlOperator MINUTE_OF_DAY =
       UserDefinedFunctionUtils.adaptExprMethodToUDF(
               DateTimeFunctions.class,
@@ -114,17 +102,13 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               NullPolicy.ARG0)
           .toUDF("MINUTE_OF_DAY");
   public static final SqlOperator SECOND = new DatePartFunction(TimeUnit.SECOND).toUDF("SECOND");
-  public static final SqlOperator SECOND_OF_MINUTE =
-      new DatePartFunction(TimeUnit.SECOND).toUDF("SECOND_OF_MINUTE");
   public static final SqlOperator MICROSECOND =
       new DatePartFunction(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
   public static final SqlOperator NOW = new CurrentFunction(SqlTypeName.TIMESTAMP).toUDF("NOW");
-  public static final SqlOperator CURTIME = new CurrentFunction(SqlTypeName.TIME).toUDF("CURTIME");
   public static final SqlOperator CURRENT_TIME =
       new CurrentFunction(SqlTypeName.TIME).toUDF("CURRENT_TIME");
   public static final SqlOperator CURRENT_DATE =
       new CurrentFunction(SqlTypeName.DATE).toUDF("CURRENT_DATE");
-  public static final SqlOperator CURDATE = new CurrentFunction(SqlTypeName.DATE).toUDF("CURDATE");
   public static final SqlOperator DATE_FORMAT =
       new FormatFunction(SqlTypeName.DATE).toUDF("DATE_FORMAT");
   public static final SqlOperator TIME_FORMAT =
@@ -253,8 +237,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               NullPolicy.NONE)
           .toUDF("UTC_TIMESTAMP");
   public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
-  public static final SqlOperator WEEK_OF_YEAR = new WeekFunction().toUDF("WEEK_OF_YEAR");
-  public static final SqlOperator WEEKOFYEAR = new WeekFunction().toUDF("WEEKOFYEAR");
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

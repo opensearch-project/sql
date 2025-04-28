@@ -250,30 +250,30 @@ public class PPLFuncImpTable {
       registerOperator(EXTRACT, PPLBuiltinOperators.EXTRACT);
       registerOperator(QUARTER, PPLBuiltinOperators.QUARTER);
       registerOperator(MONTH, PPLBuiltinOperators.MONTH);
-      registerOperator(MONTH_OF_YEAR, PPLBuiltinOperators.MONTH_OF_YEAR);
+      registerOperator(MONTH_OF_YEAR, PPLBuiltinOperators.MONTH);
       registerOperator(DAY, PPLBuiltinOperators.DAY);
-      registerOperator(DAYOFMONTH, PPLBuiltinOperators.DAYOFMONTH);
-      registerOperator(DAY_OF_MONTH, PPLBuiltinOperators.DAY_OF_MONTH);
-      registerOperator(DAYOFWEEK, PPLBuiltinOperators.DAYOFWEEK);
+      registerOperator(DAYOFMONTH, PPLBuiltinOperators.DAY);
+      registerOperator(DAY_OF_MONTH, PPLBuiltinOperators.DAY);
+      registerOperator(DAYOFWEEK, PPLBuiltinOperators.DAY_OF_WEEK);
       registerOperator(DAY_OF_WEEK, PPLBuiltinOperators.DAY_OF_WEEK);
-      registerOperator(DAYOFYEAR, PPLBuiltinOperators.DAYOFYEAR);
+      registerOperator(DAYOFYEAR, PPLBuiltinOperators.DAY_OF_YEAR);
       registerOperator(DAY_OF_YEAR, PPLBuiltinOperators.DAY_OF_YEAR);
       registerOperator(HOUR, PPLBuiltinOperators.HOUR);
-      registerOperator(HOUR_OF_DAY, PPLBuiltinOperators.HOUR_OF_DAY);
+      registerOperator(HOUR_OF_DAY, PPLBuiltinOperators.HOUR);
       registerOperator(MINUTE, PPLBuiltinOperators.MINUTE);
-      registerOperator(MINUTE_OF_HOUR, PPLBuiltinOperators.MINUTE_OF_HOUR);
+      registerOperator(MINUTE_OF_HOUR, PPLBuiltinOperators.MINUTE);
       registerOperator(MINUTE_OF_DAY, PPLBuiltinOperators.MINUTE_OF_DAY);
       registerOperator(SECOND, PPLBuiltinOperators.SECOND);
-      registerOperator(SECOND_OF_MINUTE, PPLBuiltinOperators.SECOND_OF_MINUTE);
+      registerOperator(SECOND_OF_MINUTE, PPLBuiltinOperators.SECOND);
       registerOperator(MICROSECOND, PPLBuiltinOperators.MICROSECOND);
       registerOperator(CURRENT_TIMESTAMP, PPLBuiltinOperators.NOW);
       registerOperator(NOW, PPLBuiltinOperators.NOW);
       registerOperator(LOCALTIMESTAMP, PPLBuiltinOperators.NOW);
       registerOperator(LOCALTIME, PPLBuiltinOperators.NOW);
-      registerOperator(CURTIME, PPLBuiltinOperators.CURTIME);
+      registerOperator(CURTIME, PPLBuiltinOperators.CURRENT_TIME);
       registerOperator(CURRENT_TIME, PPLBuiltinOperators.CURRENT_TIME);
       registerOperator(CURRENT_DATE, PPLBuiltinOperators.CURRENT_DATE);
-      registerOperator(CURDATE, PPLBuiltinOperators.CURDATE);
+      registerOperator(CURDATE, PPLBuiltinOperators.CURRENT_DATE);
       registerOperator(DATE_FORMAT, PPLBuiltinOperators.DATE_FORMAT);
       registerOperator(TIME_FORMAT, PPLBuiltinOperators.TIME_FORMAT);
       registerOperator(DAYNAME, PPLBuiltinOperators.DAYNAME);
@@ -297,8 +297,8 @@ public class PPLFuncImpTable {
       registerOperator(TIMEDIFF, PPLBuiltinOperators.TIMEDIFF);
       registerOperator(TIMESTAMPADD, PPLBuiltinOperators.TIMESTAMPADD);
       registerOperator(WEEK, PPLBuiltinOperators.WEEK);
-      registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK_OF_YEAR);
-      registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK_OF_YEAR);
+      registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
+      registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
