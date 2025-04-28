@@ -41,6 +41,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -74,6 +75,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -152,8 +154,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitProject(Project node, CalcitePlanContext context) {
     visitChildren(node, context);
     List<RexNode> projectList;
-    if (node.getProjectList().stream().anyMatch(e -> e instanceof AllFields)) {
+    if (node.getProjectList().size() == 1
+        && node.getProjectList().getFirst() instanceof AllFields allFields) {
       tryToRemoveNestedFields(context);
+      tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
       return context.relBuilder.peek();
     } else {
       projectList =
@@ -164,6 +168,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     if (node.isExcluded()) {
       context.relBuilder.projectExcept(projectList);
     } else {
+      // Only set when not resolving subquery and it's not projectExcept.
+      if (!context.isResolvingSubquery()) {
+        context.setProjectVisited(true);
+      }
       context.relBuilder.project(projectList);
     }
     return context.relBuilder.peek();
@@ -183,6 +191,31 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .toList();
     if (!duplicatedNestedFields.isEmpty()) {
       context.relBuilder.projectExcept(duplicatedNestedFields);
+    }
+  }
+
+  /**
+   * Try to remove metadata fields in two cases:
+   *
+   * <p>1. It's explicitly specified excluding by force, usually for join or subquery.
+   *
+   * <p>2. There is no other project ever visited in the main query
+   *
+   * @param context CalcitePlanContext
+   * @param excludeByForce whether exclude metadata fields by force
+   */
+  private static void tryToRemoveMetaFields(CalcitePlanContext context, boolean excludeByForce) {
+    if (excludeByForce || !context.isProjectVisited()) {
+      List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
+      List<RexNode> metaFieldsRef =
+          originalFields.stream()
+              .filter(OpenSearchConstants.METADATAFIELD_TYPE_MAP::containsKey)
+              .map(metaField -> (RexNode) context.relBuilder.field(metaField))
+              .toList();
+      // Remove metadata fields if there is and ensure there are other fields.
+      if (!metaFieldsRef.isEmpty() && metaFieldsRef.size() != originalFields.size()) {
+        context.relBuilder.projectExcept(metaFieldsRef);
+      }
     }
   }
 

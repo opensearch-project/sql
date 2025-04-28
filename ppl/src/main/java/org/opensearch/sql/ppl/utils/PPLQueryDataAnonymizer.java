@@ -16,11 +16,15 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.Field;
@@ -34,6 +38,7 @@ import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
@@ -102,7 +107,9 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitExplain(Explain node, String context) {
-    return node.getStatement().accept(this, null);
+    return StringUtils.format(
+        "explain %s %s",
+        node.getFormat().name().toLowerCase(Locale.ROOT), node.getStatement().accept(this, null));
   }
 
   @Override
@@ -153,13 +160,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitSubqueryAlias(SubqueryAlias node, String context) {
-    String child = node.getChild().get(0).accept(this, context);
-    if (node.getChild().get(0).getChild().isEmpty()) {
-      return StringUtils.format("%s as %s", child, node.getAlias());
-    } else {
-      // add "[]" only if its child is not a root
-      return StringUtils.format("[ %s ] as %s", child, node.getAlias());
+    Node childNode = node.getChild().get(0);
+    String child = childNode.accept(this, context);
+    if (childNode instanceof Project project
+        && project.getProjectList().get(0) instanceof AllFields) {
+      childNode = childNode.getChild().get(0);
     }
+    // add "[]" only if its child is not a root
+    String format = childNode.getChild().isEmpty() ? "%s as %s" : "[ %s ] as %s";
+    return StringUtils.format(format, child, node.getAlias());
   }
 
   @Override
@@ -235,6 +244,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     String arg = "+";
     String fields = visitExpressionList(node.getProjectList());
+
+    if (Strings.isNullOrEmpty(fields)) {
+      return child;
+    }
 
     if (node.hasArgument()) {
       Argument argument = node.getArgExprList().get(0);
@@ -459,6 +472,16 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
 
     @Override
+    public String visitAllFields(AllFields node, String context) {
+      return "";
+    }
+
+    @Override
+    public String visitAllFieldsExcludeMeta(AllFieldsExcludeMeta node, String context) {
+      return "";
+    }
+
+    @Override
     public String visitAlias(Alias node, String context) {
       String expr = node.getDelegated().accept(this, context);
       return StringUtils.format("%s", expr);
@@ -491,6 +514,27 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     public String visitExistsSubquery(ExistsSubquery node, String context) {
       String subquery = queryAnonymizer.anonymizeData(node.getQuery());
       return StringUtils.format("exists [ %s ]", subquery);
+    }
+
+    @Override
+    public String visitCase(Case node, String context) {
+      StringBuilder builder = new StringBuilder();
+      builder.append("cast(");
+      for (When when : node.getWhenClauses()) {
+        builder.append(analyze(when.getCondition(), context));
+        builder.append(",");
+        builder.append(analyze(when.getResult(), context));
+        builder.append(",");
+      }
+      builder.deleteCharAt(builder.lastIndexOf(","));
+      node.getElseClause()
+          .ifPresent(
+              elseClause -> {
+                builder.append(" else ");
+                builder.append(analyze(elseClause, context));
+              });
+      builder.append(")");
+      return builder.toString();
     }
 
     @Override
