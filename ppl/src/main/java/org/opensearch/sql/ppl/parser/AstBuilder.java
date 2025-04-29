@@ -328,18 +328,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   public UnresolvedPlan visitEventstatsCommand(OpenSearchPPLParser.EventstatsCommandContext ctx) {
-    ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
-        new ImmutableList.Builder<>();
-    for (OpenSearchPPLParser.EventstatsAggTermContext aggCtx : ctx.eventstatsAggTerm()) {
-      UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
-      String name =
-          aggCtx.alias == null
-              ? getTextInQuery(aggCtx)
-              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
-      Alias alias = new Alias(name, windowFunction);
-      windownFunctionListBuilder.add(alias);
-    }
-
     ImmutableList.Builder<UnresolvedExpression> partExprListBuilder = new ImmutableList.Builder<>();
     Optional.ofNullable(ctx.statsByClause())
         .map(OpenSearchPPLParser.StatsByClauseContext::bySpanClause)
@@ -360,8 +348,23 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                     .collect(Collectors.toList()))
         .ifPresent(partExprListBuilder::addAll);
 
-    // Order over window function is supported in PPL yet.
-    return new Window(windownFunctionListBuilder.build(), partExprListBuilder.build(), List.of());
+    ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
+        new ImmutableList.Builder<>();
+    for (OpenSearchPPLParser.EventstatsAggTermContext aggCtx : ctx.eventstatsAggTerm()) {
+      UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
+      // set partition by list for window function
+      if (windowFunction instanceof WindowFunction) {
+        ((WindowFunction) windowFunction).setPartitionByList(partExprListBuilder.build());
+      }
+      String name =
+          aggCtx.alias == null
+              ? getTextInQuery(aggCtx)
+              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
+      Alias alias = new Alias(name, windowFunction);
+      windownFunctionListBuilder.add(alias);
+    }
+
+    return new Window(windownFunctionListBuilder.build());
   }
 
   /** Dedup command. */
@@ -481,9 +484,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                     List.of(), // ignore partition by list for now as we haven't seen such
                     // requirement
                     List.of()), // ignore sort by list for now as we haven't seen such requirement
-                alias.get())),
-        List.of(),
-        List.of());
+                alias.get())));
   }
 
   /** Lookup command */

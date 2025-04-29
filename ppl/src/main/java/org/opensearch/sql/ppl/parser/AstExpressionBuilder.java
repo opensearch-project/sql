@@ -479,7 +479,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     Function f =
         buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
     // In PPL eventstats command, all window functions have the same partition and order spec.
-    return new WindowFunction(f, List.of(), List.of());
+    return new WindowFunction(f);
   }
 
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {

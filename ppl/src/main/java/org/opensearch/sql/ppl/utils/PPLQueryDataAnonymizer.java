@@ -39,6 +39,7 @@ import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
@@ -226,12 +227,9 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitWindow(Window node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    final String partition = visitExpressionList(node.getPartExprList());
     return StringUtils.format(
         "%s | eventstats %s",
-        child,
-        String.join(" ", visitExpressionList(node.getWindowFunctionList()), groupBy(partition))
-            .trim());
+        child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
   }
 
   /** Build {@link LogicalRareTopN}. */
@@ -455,6 +453,20 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
               .map(unresolvedExpression -> analyze(unresolvedExpression, context))
               .collect(Collectors.joining(","));
       return StringUtils.format("%s(%s)", node.getFuncName(), arguments);
+    }
+
+    @Override
+    public String visitWindowFunction(WindowFunction node, String context) {
+      String function = analyze(node.getFunction(), context);
+      String partitions =
+          node.getPartitionByList().stream()
+              .map(p -> analyze(p, context))
+              .collect(Collectors.joining(","));
+      if (partitions.isEmpty()) {
+        return StringUtils.format("%s", function);
+      } else {
+        return StringUtils.format("%s by %s", function, partitions);
+      }
     }
 
     @Override

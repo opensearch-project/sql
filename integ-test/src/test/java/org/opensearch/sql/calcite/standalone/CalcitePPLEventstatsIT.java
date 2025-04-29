@@ -11,7 +11,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
-import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
 import java.util.List;
@@ -38,14 +38,14 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
                     + " as max",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(
+    verifySchemaInOrder(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
-        schema("state", "string"),
         schema("country", "string"),
+        schema("state", "string"),
         schema("month", "integer"),
         schema("year", "integer"),
+        schema("age", "integer"),
         schema("cnt", "long"),
         schema("avg", "double"),
         schema("min", "integer"),
@@ -68,14 +68,14 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
                     + " as max",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(
+    verifySchemaInOrder(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
-        schema("state", "string"),
         schema("country", "string"),
+        schema("state", "string"),
         schema("month", "integer"),
         schema("year", "integer"),
+        schema("age", "integer"),
         schema("cnt", "long"),
         schema("avg", "double"),
         schema("min", "integer"),
@@ -100,14 +100,14 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
                     + " as max by country",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(
+    verifySchemaInOrder(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
-        schema("state", "string"),
         schema("country", "string"),
+        schema("state", "string"),
         schema("month", "integer"),
         schema("year", "integer"),
+        schema("age", "integer"),
         schema("cnt", "long"),
         schema("avg", "double"),
         schema("min", "integer"),
@@ -130,14 +130,14 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
                     + " as max by country",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(
+    verifySchemaInOrder(
         actual,
         schema("name", "string"),
-        schema("age", "integer"),
-        schema("state", "string"),
         schema("country", "string"),
+        schema("state", "string"),
         schema("month", "integer"),
         schema("year", "integer"),
+        schema("age", "integer"),
         schema("cnt", "long"),
         schema("avg", "double"),
         schema("min", "integer"),

@@ -25,8 +25,6 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public class Window extends UnresolvedPlan {
 
   private final List<UnresolvedExpression> windowFunctionList;
-  private final List<UnresolvedExpression> partExprList;
-  private final List<UnresolvedExpression> sortExprList;
   private UnresolvedPlan child;
 
   @Override

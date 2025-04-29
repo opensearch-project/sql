@@ -8,7 +8,6 @@ package org.opensearch.sql.ast.dsl;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -523,8 +522,6 @@ public class AstDSL {
                     List.of(),
                     List.of()),
                 alias)),
-        Collections.emptyList(),
-        Collections.emptyList(),
         input);
   }
 

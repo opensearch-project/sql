@@ -39,7 +39,6 @@ import org.apache.calcite.util.Holder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
-import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
@@ -48,7 +47,6 @@ import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -626,14 +624,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitWindow(Window node, CalcitePlanContext context) {
     visitChildren(node, context);
-
-    for (UnresolvedExpression window : node.getWindowFunctionList()) {
-      ((WindowFunction) ((Alias) window).getDelegated()).setPartitionByList(node.getPartExprList());
-    }
     List<RexNode> overExpressions =
         node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
     context.relBuilder.projectPlus(overExpressions);
-
     return context.relBuilder.peek();
   }
 

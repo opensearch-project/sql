@@ -24,7 +24,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
@@ -393,24 +392,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           (arguments.isEmpty() || arguments.size() == 1)
               ? Collections.emptyList()
               : arguments.subList(1, arguments.size());
-      if (BuiltinFunctionName.AVG == agg.get()) {
-
-      } else {
-      }
-      return PlanUtils.makeOver(context, agg.get().name(), field, args, partitions);
+      return PlanUtils.makeOver(
+          context, agg.get().name(), field, args, partitions, node.getWindowFrame());
     } else {
-      throw new IllegalArgumentException("Not Supported value " + windowFunction.getFuncName());
-    }
-  }
-
-  /** extract the RexLiteral of Alias from a node */
-  private Optional<RexLiteral> extractAliasLiteral(RexNode node) {
-    if (node == null) {
-      return Optional.empty();
-    } else if (node.getKind() == AS) {
-      return Optional.of((RexLiteral) ((RexCall) node).getOperands().get(1));
-    } else {
-      return Optional.empty();
+      throw new UnsupportedOperationException(
+          "Unexpected window function: " + windowFunction.getFuncName());
     }
   }
 
