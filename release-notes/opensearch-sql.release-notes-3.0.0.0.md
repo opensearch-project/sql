@@ -46,6 +46,8 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 3.0.0.0
 * Add condition UDFs ([#3412](https://github.com/opensearch-project/sql/pull/3412))
 * Register OpenSearchTypeSystem to OpenSearchTypeFactory ([#3349](https://github.com/opensearch-project/sql/pull/3349))
 * Enable update calcite setting through _plugins/_query/settings API ([#3531](https://github.com/opensearch-project/sql/pull/3531))
+* Support alias type field ([#3538](https://github.com/opensearch-project/sql/pull/3538))
+* Support UDT for BINARY ([#3549](https://github.com/opensearch-project/sql/pull/3549))
 * Support metadata field ([#3445](https://github.com/opensearch-project/sql/pull/3445))
 * Support CASE function ([#3558](https://github.com/opensearch-project/sql/pull/3558))
 
@@ -55,6 +57,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 3.0.0.0
 * Clean up syntax error reporting ([#3278](https://github.com/opensearch-project/sql/pull/3278))
 * Support line comment and block comment in PPL ([#2806](https://github.com/opensearch-project/sql/pull/2806))
 * Function framework refactoring ([#3522](https://github.com/opensearch-project/sql/pull/3522))
+* Add SQLQuery Utils support for Vaccum queries ([#3269](https://github.com/opensearch-project/sql/pull/3269))
 
 ### Bug Fixes
 * Fix execution errors caused by plan gap ([#3350](https://github.com/opensearch-project/sql/pull/3350))
@@ -72,6 +75,8 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 3.0.0.0
 * Revert result ordering of `stats-by` ([#3427](https://github.com/opensearch-project/sql/pull/3427))
 * Correct the precedence for logical operators ([#3435](https://github.com/opensearch-project/sql/pull/3435))
 * Use correct timezone name ([#3517](https://github.com/opensearch-project/sql/pull/3517))
+* Fix GET_FORMAT UDF ([#3543](https://github.com/opensearch-project/sql/pull/3543))
+* Fix timestamp bug ([#3542](https://github.com/opensearch-project/sql/pull/3542))
 * Fix issue 2489 ([#3442](https://github.com/opensearch-project/sql/pull/3442))
 * New added commands should throw exception when calcite disabled ([#3571](https://github.com/opensearch-project/sql/pull/3571))
 * Support parsing documents with flattened value ([#3577](https://github.com/opensearch-project/sql/pull/3577))
@@ -81,6 +86,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 3.0.0.0
 * Set bouncycastle version inline ([#3469](https://github.com/opensearch-project/sql/pull/3469))
 * Use entire shadow jar to fix IT ([#3447](https://github.com/opensearch-project/sql/pull/3447))
 * Separate with/without pushdown ITs ([#3413](https://github.com/opensearch-project/sql/pull/3413))
+* Only enable fallback for tests that need to fall back ([#3544](https://github.com/opensearch-project/sql/pull/3544))
 * Remove beta1 qualifier ([#3589](https://github.com/opensearch-project/sql/pull/3589))
 
 ### Documentation
@@ -94,3 +100,5 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 3.0.0.0
 * Bump SQL main to version 3.0.0.0-beta1 ([#3489](https://github.com/opensearch-project/sql/pull/3489))
 * Merge feature/calcite-engine to main ([#3448](https://github.com/opensearch-project/sql/pull/3448))
 * Merge main for OpenSearch 3.0 release ([#3434](https://github.com/opensearch-project/sql/pull/3434))
+* Fix build due to phasing off SecurityManager usage in favor of Java Agent ([#3539](https://github.com/opensearch-project/sql/pull/3539))
+* Using java-agent gradle plugin to phase off Security Manager in favor of Java-agent ([#3551](https://github.com/opensearch-project/sql/pull/3551))
