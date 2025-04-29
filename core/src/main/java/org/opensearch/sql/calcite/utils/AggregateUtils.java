@@ -20,9 +20,11 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.type.ReturnTypes;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.tools.RelBuilder;
-import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.udaf.BrainLogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -30,24 +32,28 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 public interface AggregateUtils {
 
   static RelBuilder.AggCall translate(
-      AggregateFunction agg, RexNode field, CalcitePlanContext context, List<RexNode> argList) {
-    if (BuiltinFunctionName.ofAggregation(agg.getFuncName()).isEmpty())
-      throw new IllegalStateException("Unexpected value: " + agg.getFuncName());
+      String funcName,
+      boolean distinct,
+      RexNode field,
+      CalcitePlanContext context,
+      List<RexNode> argList) {
+    if (BuiltinFunctionName.ofAggregation(funcName).isEmpty())
+      throw new IllegalStateException("Unexpected value: " + funcName);
 
     // Additional aggregation function operators will be added here
-    BuiltinFunctionName functionName = BuiltinFunctionName.ofAggregation(agg.getFuncName()).get();
+    BuiltinFunctionName functionName = BuiltinFunctionName.ofAggregation(funcName).get();
     switch (functionName) {
       case MAX:
         return context.relBuilder.max(field);
       case MIN:
         return context.relBuilder.min(field);
       case AVG:
-        return context.relBuilder.avg(agg.getDistinct(), null, field);
+        return context.relBuilder.avg(distinct, null, field);
       case COUNT:
         return context.relBuilder.count(
-            agg.getDistinct(), null, field == null ? ImmutableList.of() : ImmutableList.of(field));
+            distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field));
       case SUM:
-        return context.relBuilder.sum(agg.getDistinct(), null, field);
+        return context.relBuilder.sum(distinct, null, field);
         //            case MEAN:
         //                throw new UnsupportedOperationException("MEAN is not supported in PPL");
         //            case STDDEV:
@@ -82,8 +88,16 @@ public interface AggregateUtils {
             List.of(field),
             newArgList,
             context.relBuilder);
+      case BRAIN:
+        return TransferUserDefinedAggFunction(
+            BrainLogPatternAggFunction.class,
+            "brain",
+            ReturnTypes.explicit(SqlTypeName.ANY).andThen(SqlTypeTransforms.TO_NULLABLE),
+            List.of(field),
+            argList,
+            context.relBuilder);
     }
-    throw new IllegalStateException("Not Supported value: " + agg.getFuncName());
+    throw new IllegalStateException("Not Supported value: " + funcName);
   }
 
   static AggregateCall aggCreate(SqlAggFunction agg, boolean isDistinct, RexNode field) {
