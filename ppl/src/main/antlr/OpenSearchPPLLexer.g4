@@ -352,9 +352,22 @@ ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
 BETWEEN:                            'BETWEEN';
 
+// COLLECTION FUNCTIONS
+ARRAY:                              'ARRAY';
+
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
 JSON:                               'JSON';
+JSON_OBJECT:                        'JSON_OBJECT';
+JSON_ARRAY:                         'JSON_ARRAY';
+TO_JSON_STRING:                     'TO_JSON_STRING';
+JSON_ARRAY_LENGTH:                  'JSON_ARRAY_LENGTH';
+JSON_EXTRACT:                       'JSON_EXTRACT';
+JSON_KEYS:                          'JSON_KEYS';
+JSON_SET:                           'JSON_SET';
+JSON_DELETE:                        'JSON_DELETE';
+JSON_APPEND:                        'JSON_APPEND';
+JSON_EXTEND:                        'JSON_EXTEND';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';

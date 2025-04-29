@@ -548,6 +548,7 @@ evalFunctionName
    | positionFunctionName
    | jsonFunctionName
    | geoipFunctionName
+   | collectionFunctionName
    ;
 
 functionArgs
@@ -664,6 +665,24 @@ trigonometricFunctionName
    | RADIANS
    | SIN
    | TAN
+   ;
+
+collectionFunctionName
+    : ARRAY
+    ;
+
+jsonFunctionName
+   : JSON
+   | JSON_OBJECT
+   | JSON_ARRAY
+   | TO_JSON_STRING
+   | JSON_ARRAY_LENGTH
+   | JSON_EXTRACT
+   | JSON_KEYS
+   | JSON_SET
+   | JSON_DELETE
+   | JSON_APPEND
+   | JSON_EXTEND
    ;
 
 dateTimeFunctionName
@@ -833,10 +852,6 @@ positionFunctionName
    : POSITION
    ;
 
-jsonFunctionName
-   : JSON
-   ;
-
 // operators
  comparisonOperator
    : EQUAL
@@ -994,6 +1009,8 @@ keywordsCanBeId
    | timespanUnit
    | SPAN
    | evalFunctionName
+   | jsonFunctionName
+   | collectionFunctionName
    | relevanceArgName
    | intervalUnit
    | trendlineType
