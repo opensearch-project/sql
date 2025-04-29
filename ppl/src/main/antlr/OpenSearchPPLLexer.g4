@@ -191,6 +191,7 @@ RT_SQR_PRTHS:                       ']';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
+ARROW:                              '->';
 
 // Operators. Bit
 
@@ -351,6 +352,13 @@ ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
 BETWEEN:                            'BETWEEN';
+
+// COLLECTION FUNCTIONS
+ARRAY:                              'ARRAY';
+FORALL:                             'FORALL';
+FILTER:                             'FILTER';
+TRANSFORM:                          'TRANSFORM';
+REDUCE:                             'REDUCE';
 
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';

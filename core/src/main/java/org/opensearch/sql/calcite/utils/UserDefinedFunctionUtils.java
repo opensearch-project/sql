@@ -56,10 +56,8 @@ public class UserDefinedFunctionUtils {
   public static RelDataType nullableDateUDT = TYPE_FACTORY.createUDT(EXPR_DATE, true);
   public static RelDataType nullableTimestampUDT =
       TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
-
   public static SqlReturnTypeInference timestampInference =
       ReturnTypes.explicit(nullableTimestampUDT);
-
   public static SqlReturnTypeInference timeInference = ReturnTypes.explicit(nullableTimeUDT);
 
   public static SqlReturnTypeInference dateInference = ReturnTypes.explicit(nullableDateUDT);
