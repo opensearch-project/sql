@@ -61,6 +61,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -73,7 +74,6 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -494,7 +494,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
-  public LogicalPlan visitWindow(Window node, AnalysisContext context) {
+  public LogicalPlan visitPatterns(Patterns node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     WindowExpressionAnalyzer windowAnalyzer =
         new WindowExpressionAnalyzer(expressionAnalyzer, child);
