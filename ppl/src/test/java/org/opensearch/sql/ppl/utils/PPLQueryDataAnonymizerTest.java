@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl.utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
@@ -18,6 +19,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
@@ -354,6 +356,15 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=t | parse email '.+@(?<host>.+)' | fields + email,host",
         anonymize("source=t | parse email '.+@(?<host>.+)' | fields email, host"));
+  }
+
+  @Test
+  public void testPatterns() {
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    assertEquals("source=t | patterns email", anonymize("source=t | patterns email"));
+    assertEquals(
+        "source=t | patterns email | fields + email,patterns_field",
+        anonymize("source=t | patterns email | fields email, patterns_field"));
   }
 
   private String anonymize(String query) {

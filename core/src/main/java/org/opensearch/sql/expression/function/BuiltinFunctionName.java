@@ -9,11 +9,13 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /** Builtin Function Name. */
 @Getter
+@AllArgsConstructor
 @RequiredArgsConstructor
 public enum BuiltinFunctionName {
   /** Mathematical Functions. */
@@ -224,7 +226,6 @@ public enum BuiltinFunctionName {
   RANK(FunctionName.of("rank")),
   DENSE_RANK(FunctionName.of("dense_rank")),
 
-  SIMPLE_PATTERN(FunctionName.of("simple_pattern")),
   BRAIN(FunctionName.of("brain")),
 
   INTERVAL(FunctionName.of("interval")),
@@ -268,9 +269,14 @@ public enum BuiltinFunctionName {
   MULTIMATCH(FunctionName.of("multimatch")),
   MULTIMATCHQUERY(FunctionName.of("multimatchquery")),
   WILDCARDQUERY(FunctionName.of("wildcardquery")),
-  WILDCARD_QUERY(FunctionName.of("wildcard_query"));
+  WILDCARD_QUERY(FunctionName.of("wildcard_query")),
+
+  /** Internal functions that are not exposed to customers. */
+  INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
+  INTERNAL_REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2"), true);
 
   private final FunctionName name;
+  private boolean isInternal;
 
   private static final Map<FunctionName, BuiltinFunctionName> ALL_NATIVE_FUNCTIONS;
 
