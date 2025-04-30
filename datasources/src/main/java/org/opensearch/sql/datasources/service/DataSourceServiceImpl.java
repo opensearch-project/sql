@@ -10,6 +10,8 @@ import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
+
+import lombok.Getter;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.RequestContext;
 import org.opensearch.sql.datasource.model.DataSource;
@@ -18,7 +20,9 @@ import org.opensearch.sql.datasource.model.DataSourceStatus;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.datasources.exceptions.DatasourceDisabledException;
+import org.opensearch.sql.legacy.esdomain.OpenSearchClient;
 import org.opensearch.sql.storage.DataSourceFactory;
+import org.opensearch.transport.client.node.NodeClient;
 
 /**
  * Default implementation of {@link DataSourceService}. It is per-jvm single instance.
@@ -39,14 +43,31 @@ public class DataSourceServiceImpl implements DataSourceService {
 
   private final DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper;
 
+  /** Certain functions (e.g., GEOIP) depend on NodeClient for performing RPC calls. **/
+  @Getter
+  private final NodeClient nodeClient;
+
   /** Construct from the set of {@link DataSourceFactory} at bootstrap time. */
+  public DataSourceServiceImpl(
+          Set<DataSourceFactory> dataSourceFactories,
+          DataSourceMetadataStorage dataSourceMetadataStorage,
+          DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper) {
+    this(
+        dataSourceFactories,
+        dataSourceMetadataStorage,
+        dataSourceUserAuthorizationHelper,
+        null);
+  }
+
   public DataSourceServiceImpl(
       Set<DataSourceFactory> dataSourceFactories,
       DataSourceMetadataStorage dataSourceMetadataStorage,
-      DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper) {
+      DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper,
+      NodeClient nodeClient) {
     this.dataSourceMetadataStorage = dataSourceMetadataStorage;
     this.dataSourceUserAuthorizationHelper = dataSourceUserAuthorizationHelper;
     this.dataSourceLoaderCache = new DataSourceLoaderCacheImpl(dataSourceFactories);
+    this.nodeClient = nodeClient;
   }
 
   @Override

@@ -87,7 +87,9 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
                 .add(new OpenSearchDataSourceFactory(client, getSettings()))
                 .build(),
             getDataSourceMetadataStorage(),
-            getDataSourceUserRoleHelper());
+            getDataSourceUserRoleHelper(),
+            // Node client is not accessible and used in standalone tests, so we pass null
+            null);
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
 
     ModulesBuilder modules = new ModulesBuilder();

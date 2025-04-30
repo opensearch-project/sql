@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** DataSource Service manage {@link DataSource}. */
 public interface DataSourceService {
@@ -87,4 +88,13 @@ public interface DataSourceService {
    */
   DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(
       String dataSourceName, RequestContext context);
+
+  /**
+   * Returns a NodeClient instance for executing requests against the OpenSearch cluster.
+   *
+   * @return NodeClient instance or throw an exception if not implemented.
+   */
+  default NodeClient getNodeClient() {
+    throw new UnsupportedOperationException("Not implemented");
+  }
 }

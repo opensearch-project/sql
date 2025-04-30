@@ -94,7 +94,8 @@ public class QueryService {
           (PrivilegedAction<Void>)
               () -> {
                 CalcitePlanContext context =
-                    CalcitePlanContext.create(buildFrameworkConfig(), queryType);
+                    CalcitePlanContext.create(
+                        buildFrameworkConfig(), queryType, dataSourceService.getNodeClient());
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
@@ -126,7 +127,8 @@ public class QueryService {
           (PrivilegedAction<Void>)
               () -> {
                 CalcitePlanContext context =
-                    CalcitePlanContext.create(buildFrameworkConfig(), queryType);
+                    CalcitePlanContext.create(
+                        buildFrameworkConfig(), queryType, dataSourceService.getNodeClient());
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);

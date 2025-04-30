@@ -326,7 +326,8 @@ public class SQLPlugin extends Plugin
             .add(new SecurityLakeDataSourceFactory(pluginSettings))
             .build(),
         dataSourceMetadataStorage,
-        dataSourceUserAuthorizationHelper);
+        dataSourceUserAuthorizationHelper,
+        client);
   }
 
   @Override

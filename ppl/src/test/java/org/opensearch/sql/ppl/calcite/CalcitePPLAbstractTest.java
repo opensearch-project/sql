@@ -73,7 +73,8 @@ public class CalcitePPLAbstractTest {
   /** Creates a CalcitePlanContext with transformed config. */
   private CalcitePlanContext createBuilderContext(UnaryOperator<RelBuilder.Config> transform) {
     config.context(Contexts.of(transform.apply(RelBuilder.Config.DEFAULT)));
-    return CalcitePlanContext.create(config.build(), PPL);
+    // NodeClient is not used in this test, so we pass null
+    return CalcitePlanContext.create(config.build(), PPL, null);
   }
 
   /** Get the root RelNode of the given PPL query */
