@@ -164,4 +164,33 @@ public class ExplainIT extends PPLIntegTestCase {
       assertThat(entity, containsString("Explain mode COST is not supported in v2 engine"));
     }
   }
+
+  @Test
+  public void testPatternsWithoutAggExplain() throws Exception {
+    // TODO: Correct calcite expected result once pushdown is supported
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_patterns.json")
+            : loadFromFile("expectedOutput/ppl/explain_patterns.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | patterns email"));
+  }
+
+  @Test
+  public void testPatternsWithAggPushDownExplain() throws Exception {
+    // TODO: Correct calcite expected result once pushdown is supported
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_patterns_agg_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_patterns_agg_push.json");
+
+    assertJsonEquals(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| patterns email "
+                + "| stats count() by patterns_field"));
+  }
 }

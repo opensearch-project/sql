@@ -21,7 +21,6 @@ import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.window.patterns.BufferPatternWindowFunction;
-import org.opensearch.sql.expression.window.patterns.StreamPatternWindowFunction;
 import org.opensearch.sql.expression.window.ranking.DenseRankFunction;
 import org.opensearch.sql.expression.window.ranking.RankFunction;
 import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
@@ -41,7 +40,6 @@ public class WindowFunctions {
     repository.register(rank());
     repository.register(denseRank());
     repository.register(brain());
-    repository.register(simplePattern());
   }
 
   private DefaultFunctionResolver rowNumber() {
@@ -74,19 +72,6 @@ public class WindowFunctions {
             new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER, DOUBLE)),
                 functionBuilder,
             new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, INTEGER, DOUBLE)),
-                functionBuilder));
-  }
-
-  private DefaultFunctionResolver simplePattern() {
-    FunctionName functionName = BuiltinFunctionName.SIMPLE_PATTERN.getName();
-    FunctionBuilder functionBuilder =
-        (functionProperties, arguments) -> new StreamPatternWindowFunction(arguments);
-    return new DefaultFunctionResolver(
-        functionName,
-        ImmutableMap.of(
-            new FunctionSignature(functionName, ImmutableList.of(STRING)), functionBuilder,
-            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING)), functionBuilder,
-            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, STRING)),
                 functionBuilder));
   }
 
