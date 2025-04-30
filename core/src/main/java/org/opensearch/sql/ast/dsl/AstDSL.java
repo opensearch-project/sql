@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -73,7 +74,6 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.ast.tree.Window;
 
 /** Class of static methods to create specific node instances. */
 @UtilityClass
@@ -506,6 +506,7 @@ public class AstDSL {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
   }
 
+<<<<<<< HEAD
   public static FillNull fillNull(UnresolvedExpression replaceNullWithMe, Field... fields) {
     return new FillNull(
         FillNull.ContainNullableFieldFill.ofSameValue(
@@ -525,6 +526,9 @@ public class AstDSL {
   }
 
   public static Window window(
+=======
+  public static Patterns patterns(
+>>>>>>> 788da98bb (Revert stream pattern method in V2 and implement SIMPLE_PATTERN in Calcite (#3553))
       UnresolvedPlan input,
       PatternMethod patternMethod,
       UnresolvedExpression sourceField,
@@ -533,7 +537,7 @@ public class AstDSL {
     List<UnresolvedExpression> funArgs = new ArrayList<>();
     funArgs.add(sourceField);
     funArgs.addAll(arguments);
-    return new Window(
+    return new Patterns(
         new Alias(
             alias,
             new WindowFunction(

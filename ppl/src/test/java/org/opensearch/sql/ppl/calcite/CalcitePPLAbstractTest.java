@@ -44,7 +44,7 @@ public class CalcitePPLAbstractTest {
   @Getter private final Frameworks.ConfigBuilder config;
   private final CalciteRelNodeVisitor planTransformer;
   private final RelToSqlConverter converter;
-  private final Settings settings;
+  protected final Settings settings;
 
   public CalcitePPLAbstractTest(CalciteAssert.SchemaSpec... schemaSpecs) {
     this.config = config(schemaSpecs);

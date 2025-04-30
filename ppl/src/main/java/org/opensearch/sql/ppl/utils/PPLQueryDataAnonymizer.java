@@ -36,6 +36,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
+import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
@@ -311,8 +312,22 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitParse(Parse node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     String source = visitExpression(node.getSourceField());
-    String regrex = node.getPattern().toString();
-    return StringUtils.format("%s | parse %s '%s'", child, source, regrex);
+    String regex = node.getPattern().toString();
+    String commandName;
+    switch (node.getParseMethod()) {
+      case ParseMethod.PATTERNS:
+        commandName = "patterns";
+        break;
+      case ParseMethod.GROK:
+        commandName = "grok";
+        break;
+      default:
+        commandName = "parse";
+        break;
+    }
+    return ParseMethod.PATTERNS.equals(node.getParseMethod()) && regex.isEmpty()
+        ? StringUtils.format("%s | %s %s", child, commandName, source)
+        : StringUtils.format("%s | %s %s '%s'", child, commandName, source, regex);
   }
 
   @Override
