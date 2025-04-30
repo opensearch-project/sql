@@ -58,6 +58,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -71,7 +72,6 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.ast.tree.Window;
 
 /** Class of static methods to create specific node instances. */
 @UtilityClass
@@ -504,7 +504,7 @@ public class AstDSL {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
   }
 
-  public static Window window(
+  public static Patterns patterns(
       UnresolvedPlan input,
       PatternMethod patternMethod,
       UnresolvedExpression sourceField,
@@ -513,7 +513,7 @@ public class AstDSL {
     List<UnresolvedExpression> funArgs = new ArrayList<>();
     funArgs.add(sourceField);
     funArgs.addAll(arguments);
-    return new Window(
+    return new Patterns(
         new Alias(
             alias,
             new WindowFunction(

@@ -12,6 +12,7 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -31,8 +32,8 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexWindowBounds;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
@@ -78,6 +79,7 @@ import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.utils.ParseUtils;
 
 public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalcitePlanContext> {
@@ -283,21 +285,28 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitParse(Parse node, CalcitePlanContext context) {
     visitChildren(node, context);
-    List<String> originalFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
     RexNode sourceField = rexVisitor.analyze(node.getSourceField(), context);
     ParseMethod parseMethod = node.getParseMethod();
     java.util.Map<String, Literal> arguments = node.getArguments();
-    String pattern = (String) node.getPattern().getValue();
+    String patternValue = (String) node.getPattern().getValue();
+    String pattern =
+        ParseMethod.PATTERNS.equals(parseMethod) && Strings.isNullOrEmpty(patternValue)
+            ? "[a-zA-Z0-9]"
+            : patternValue;
     List<String> groupCandidates =
         ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments);
     List<RexNode> newFields =
         groupCandidates.stream()
             .map(
                 group ->
-                    context.rexBuilder.makeCall(
-                        SqlLibraryOperators.REGEXP_EXTRACT,
+                    PPLFuncImpTable.INSTANCE.resolve(
+                        context.rexBuilder,
+                        ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod),
                         sourceField,
-                        context.rexBuilder.makeLiteral(pattern)))
+                        context.rexBuilder.makeLiteral(
+                            pattern,
+                            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                            true)))
             .toList();
     projectPlusOverriding(newFields, groupCandidates, context);
     return context.relBuilder.peek();
