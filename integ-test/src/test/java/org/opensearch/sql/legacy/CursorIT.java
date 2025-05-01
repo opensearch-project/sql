@@ -263,7 +263,9 @@ public class CursorIT extends SQLIntegTestCase {
         Arrays.asList(
             "2015-01-01 00:00:00.000",
             "2015-01-01 12:10:30.000",
-            "1585882955", // by existing design, this is not formatted in MySQL standard format
+            // Conversion will be applied when dateTime is stored on unix timestamp,
+            // https://github.com/opensearch-project/sql/pull/3160
+            "2020-04-03 03:02:35.000",
             "2020-04-08 06:10:30.000");
 
     assertThat(actualDateList, equalTo(expectedDateList));
