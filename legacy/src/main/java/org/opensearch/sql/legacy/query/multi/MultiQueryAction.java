@@ -11,6 +11,7 @@ import java.util.Set;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.Select;
+import org.opensearch.sql.legacy.domain.Union;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
@@ -22,7 +23,7 @@ public class MultiQueryAction extends QueryAction {
   private final MultiQuerySelect multiQuerySelect;
 
   public MultiQueryAction(Client client, MultiQuerySelect multiSelect) {
-    super(client, null);
+    super(client, new Union(multiSelect.getFirstSelect(), multiSelect.getSecondSelect()));
     this.multiQuerySelect = multiSelect;
   }
 
