@@ -26,6 +26,18 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.transport.client.node.NodeClient;
 
+/**
+ * {@code GEOIP(dataSourceName, ipAddress[, options])} looks up location information from given IP
+ * addresses via OpenSearch GeoSpatial plugin API. The options is a comma-separated list of fields
+ * to be returned. If not specified, all fields are returned.
+ *
+ * <p>Signatures:
+ *
+ * <ul>
+ *   <li>(STRING, STRING) -> MAP
+ *   <li>(STRING, STRING, STRING) -> MAP
+ * </ul>
+ */
 public class GeoIpFunction extends ImplementorUDF {
   public GeoIpFunction(NodeClient nodeClient) {
     super(new GeoIPImplementor(nodeClient), NullPolicy.ANY);
