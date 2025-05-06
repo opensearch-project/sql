@@ -20,6 +20,15 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.ip.IPFunctions;
 
+/**
+ * {@code cidrmatch(ip, cidr)} checks if ip is within the specified cidr range.
+ *
+ * <p>Signature:
+ *
+ * <ul>
+ *   <li>(STRING, STRING) -> BOOLEAN
+ * </ul>
+ */
 public class CidrMatchFunction extends ImplementorUDF {
   public CidrMatchFunction() {
     super(new CidrMatchImplementor(), NullPolicy.ANY);
@@ -37,12 +46,12 @@ public class CidrMatchFunction extends ImplementorUDF {
       return Expressions.call(CidrMatchImplementor.class, "cidrMatch", translatedOperands);
     }
 
-    public static Object cidrMatch(ExprIpValue ip, String cidr) {
+    public static boolean cidrMatch(ExprIpValue ip, String cidr) {
       ExprValue cidrValue = ExprValueUtils.stringValue(cidr);
-      return IPFunctions.exprCidrMatch(ip, cidrValue).valueForCalcite();
+      return (boolean) IPFunctions.exprCidrMatch(ip, cidrValue).valueForCalcite();
     }
 
-    public static Object cidrMatch(String ip, String cidr) {
+    public static boolean cidrMatch(String ip, String cidr) {
       ExprIpValue ipValue = (ExprIpValue) ExprValueUtils.ipValue(ip);
       return cidrMatch(ipValue, cidr);
     }
