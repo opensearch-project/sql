@@ -11,7 +11,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ParseMethod {
   REGEX("regex"),
-  GROK("grok");
+  GROK("grok"),
+  PATTERNS("patterns");
 
   @Getter private final String name;
 }

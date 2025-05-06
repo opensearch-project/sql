@@ -13,6 +13,7 @@ options { caseInsensitive = true; }
 SEARCH:                             'SEARCH';
 DESCRIBE:                           'DESCRIBE';
 SHOW:                               'SHOW';
+EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
@@ -63,6 +64,10 @@ DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
 USING:                              'USING';
 WITH:                               'WITH';
+SIMPLE:                             'SIMPLE';
+STANDARD:                           'STANDARD';
+COST:                               'COST';
+EXTENDED:                           'EXTENDED';
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
@@ -98,6 +103,7 @@ APPEND:                             'APPEND';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
+ELSE:                               'ELSE';
 IN:                                 'IN';
 EXISTS:                             'EXISTS';
 

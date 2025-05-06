@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], patterns_field=[REGEXP_REPLACE($9, '[a-zA-Z0-9]':VARCHAR)])\n  CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0..16=[{inputs}], expr#17=['[a-zA-Z0-9]':VARCHAR], expr#18=[REGEXP_REPLACE($t9, $t17)], proj#0..10=[{exprs}], patterns_field=[$t18])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  }
+}
