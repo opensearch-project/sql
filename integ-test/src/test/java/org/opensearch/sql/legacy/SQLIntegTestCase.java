@@ -6,45 +6,7 @@
 package org.opensearch.sql.legacy;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
-import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getAliasIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getBankWithNullValuesIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDataTypeNonnumericIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDataTypeNumericIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDateIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDateTimeIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDeepNestedIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDogIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDogs2IndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getDuplicationNullableIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getGeoIpIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getHobbiesIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getJsonTestIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
-import static org.opensearch.sql.legacy.TestUtils.getNestedSimpleIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getNestedTypeIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getOccupationIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getOdbcIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getOrderIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getPeople2IndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getPhraseIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
-import static org.opensearch.sql.legacy.TestUtils.getStateCountryIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getStringIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getUnexpandedObjectIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getWeblogsIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getWorkInformationIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.getWorkerIndexMapping;
-import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
-import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
+import static org.opensearch.sql.legacy.TestUtils.*;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.CURSOR_CLOSE_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
@@ -716,6 +678,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "_doc",
         getDateTimeIndexMapping(),
         "src/test/resources/datetime.json"),
+    DATETIME_NESTED(
+            TestsConstants.TEST_INDEX_DATE_TIME_NESTED,
+            "_doc",
+            getDateTimeNestedIndexMapping(),
+            "src/test/resources/datetime_nested.json"),
     NESTED_SIMPLE(
         TestsConstants.TEST_INDEX_NESTED_SIMPLE,
         "_doc",

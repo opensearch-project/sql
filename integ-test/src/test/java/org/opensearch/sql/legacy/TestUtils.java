@@ -230,6 +230,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getDateTimeNestedIndexMapping() {
+    String mappingFile = "date_time_nested_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getNestedSimpleIndexMapping() {
     String mappingFile = "nested_simple_index_mapping.json";
     return getMappingFile(mappingFile);
