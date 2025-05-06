@@ -189,6 +189,94 @@ Example::
     +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+----------+
 
 
+VAR_SAMP
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: VAR_SAMP(expr). Returns the sample variance of expr.
+
+Example::
+
+    PPL> source=accounts | eventstats var_samp(age);
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
+    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | var_samp(age)      |
+    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------|
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 10.916666666666666 |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 10.916666666666666 |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 10.916666666666666 |
+    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 10.916666666666666 |
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
+
+
+VAR_POP
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: VAR_POP(expr). Returns the population standard variance of expr.
+
+Example::
+
+    PPL> source=accounts | eventstats var_pop(age);
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------+
+    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | var_pop(age) |
+    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------|
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 8.1875       |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 8.1875       |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 8.1875       |
+    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 8.1875       |
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------+
+
+
+STDDEV_SAMP
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV_SAMP(expr). Return the sample standard deviation of expr.
+
+Example::
+
+    PPL> source=accounts | eventstats stddev_samp(age);
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-------------------+
+    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | stddev_samp(age)  |
+    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-------------------|
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 3.304037933599835 |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 3.304037933599835 |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 3.304037933599835 |
+    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 3.304037933599835 |
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+-------------------+
+
+
+STDDEV_POP
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: STDDEV_POP(expr). Return the population standard deviation of expr.
+
+Example::
+
+    PPL> source=accounts | eventstats stddev_pop(age);
+    fetched rows / total rows = 4/4
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
+    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | stddev_pop(age)    |
+    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------|
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 2.8613807855648994 |
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 2.8613807855648994 |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 2.8613807855648994 |
+    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 2.8613807855648994 |
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+
+
+
 Configuration
 =============
 This command requires Calcite enabled.
