@@ -55,14 +55,11 @@ public interface PlanUtils {
 
   static RexNode makeOver(
       CalcitePlanContext context,
-      String name,
+      BuiltinFunctionName functionName,
       RexNode field,
       List<RexNode> argList,
       List<RexNode> partitions,
       @Nullable WindowFrame windowFrame) {
-    if (BuiltinFunctionName.ofWindowFunction(name).isEmpty())
-      throw new UnsupportedOperationException("Unexpected window function: " + name);
-    BuiltinFunctionName functionName = BuiltinFunctionName.ofWindowFunction(name).get();
     if (windowFrame == null) {
       windowFrame = WindowFrame.defaultFrame();
     }
@@ -95,7 +92,7 @@ public interface PlanUtils {
                 .partitionBy(partitions)
                 .toRex());
       default:
-        return makeAggCall(context, name, false, field, argList)
+        return makeAggCall(context, functionName, false, field, argList)
             .over()
             .partitionBy(partitions)
             .let(
@@ -129,14 +126,10 @@ public interface PlanUtils {
 
   static RelBuilder.AggCall makeAggCall(
       CalcitePlanContext context,
-      String name,
+      BuiltinFunctionName functionName,
       boolean distinct,
       RexNode field,
       List<RexNode> argList) {
-    if (BuiltinFunctionName.ofAggregation(name).isEmpty())
-      throw new UnsupportedOperationException("Unexpected aggregation: " + name);
-    BuiltinFunctionName functionName = BuiltinFunctionName.ofAggregation(name).get();
-
     switch (functionName) {
       case MAX:
         return context.relBuilder.max(field);
@@ -184,7 +177,8 @@ public interface PlanUtils {
             newArgList,
             context.relBuilder);
       default:
-        throw new UnsupportedOperationException("Unexpected aggregation: " + name);
+        throw new UnsupportedOperationException(
+            "Unexpected aggregation: " + functionName.getName().getFunctionName());
     }
   }
 }

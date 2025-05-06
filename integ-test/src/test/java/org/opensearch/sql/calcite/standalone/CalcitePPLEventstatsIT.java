@@ -11,6 +11,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
@@ -365,5 +366,24 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
         rows("John", "Canada", "Ontario", 4, 2023, 25, 25, 5, 5, 1),
         rows("Jake", "USA", "California", 4, 2023, 70, 70, 50, 50, 2),
         rows("Hello", "USA", "New York", 4, 2023, 30, 30, 10, 10, 2));
+  }
+
+  @Test
+  public void testEventstatEmptyRows() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where name = 'non-existed' | eventstats count() as cnt, avg(age) as"
+                    + " avg, min(age) as min, max(age) as max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+    verifyNumOfRows(actual, 0);
+
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "source=%s | where name = 'non-existed' | eventstats count() as cnt, avg(age) as"
+                    + " avg, min(age) as min, max(age) as max by country",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+    verifyNumOfRows(actual2, 0);
   }
 }

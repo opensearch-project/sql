@@ -16,7 +16,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
@@ -384,20 +383,21 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
             .map(arg -> analyze(arg, context))
             .map(this::extractRexNodeFromAlias)
             .toList();
-    Optional<BuiltinFunctionName> agg =
-        BuiltinFunctionName.ofAggregation(windowFunction.getFuncName());
-    if (agg.isPresent()) {
-      RexNode field = arguments.isEmpty() ? null : arguments.getFirst();
-      List<RexNode> args =
-          (arguments.isEmpty() || arguments.size() == 1)
-              ? Collections.emptyList()
-              : arguments.subList(1, arguments.size());
-      return PlanUtils.makeOver(
-          context, agg.get().name(), field, args, partitions, node.getWindowFrame());
-    } else {
-      throw new UnsupportedOperationException(
-          "Unexpected window function: " + windowFunction.getFuncName());
-    }
+    return BuiltinFunctionName.ofWindowFunction(windowFunction.getFuncName())
+        .map(
+            functionName -> {
+              RexNode field = arguments.isEmpty() ? null : arguments.getFirst();
+              List<RexNode> args =
+                  (arguments.isEmpty() || arguments.size() == 1)
+                      ? Collections.emptyList()
+                      : arguments.subList(1, arguments.size());
+              return PlanUtils.makeOver(
+                  context, functionName, field, args, partitions, node.getWindowFrame());
+            })
+        .orElseThrow(
+            () ->
+                new UnsupportedOperationException(
+                    "Unexpected window function: " + windowFunction.getFuncName()));
   }
 
   /** extract the expression of Alias from a node */
