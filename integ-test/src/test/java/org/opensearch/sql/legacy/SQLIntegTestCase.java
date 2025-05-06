@@ -838,6 +838,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "alias",
         getAliasIndexMapping(),
         "src/test/resources/alias.json"),
+    FLATTENED_VALUE(
+        TestsConstants.TEST_INDEX_FLATTENED_VALUE,
+        "flattened_value",
+        null,
+        "src/test/resources/flattened_value.json"),
     DUPLICATION_NULLABLE(
         TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE,
         "duplication_nullable",

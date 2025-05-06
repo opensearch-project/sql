@@ -34,11 +34,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
@@ -49,6 +49,7 @@ import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -66,6 +67,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -76,7 +78,6 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -414,35 +415,48 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitPatternsCommand(OpenSearchPPLParser.PatternsCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
     List<UnresolvedExpression> unresolvedArguments = new ArrayList<>();
     unresolvedArguments.add(sourceField);
-    AtomicReference<String> alias = new AtomicReference<>("patterns_field");
     ctx.patternsParameter()
         .forEach(
             x -> {
               String argName = x.children.get(0).toString();
               Literal value = (Literal) internalVisitExpression(x.children.get(2));
-              if ("new_field".equalsIgnoreCase(argName)) {
-                alias.set((String) value.getValue());
-              }
+              builder.put(argName, value);
               unresolvedArguments.add(new Argument(argName, value));
             });
-    return new Window(
-        new Alias(
-            alias.get(),
-            new WindowFunction(
-                new Function(
-                    ctx.pattern_method != null
-                        ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText())
-                            .toLowerCase(Locale.ROOT)
-                        : settings
-                            .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
-                            .toString()
-                            .toLowerCase(Locale.ROOT),
-                    unresolvedArguments),
-                List.of(), // ignore partition by list for now as we haven't seen such requirement
-                List.of()), // ignore sort by list for now as we haven't seen such requirement
-            alias.get()));
+    java.util.Map<String, Literal> arguments = builder.build();
+    Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
+    String newField =
+        arguments
+            .getOrDefault("new_field", AstDSL.stringLiteral("patterns_field"))
+            .getValue()
+            .toString();
+    String patternMethod =
+        ctx.pattern_method != null
+            ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText()).toLowerCase(Locale.ROOT)
+            : settings
+                .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
+                .toString()
+                .toLowerCase(Locale.ROOT);
+    if (patternMethod.equalsIgnoreCase(PatternMethod.SIMPLE_PATTERN.getName())) {
+      /*
+       * Legacy patterns command is a subclass of Parse plan, which enables Expression pushdown as part of DSL AggregationScript.
+       * Keep this logic here until we implement pushdown with new script engine for calcite expressions.
+       * Also, there is opportunity of refactoring Parse plan as Project logical plan.
+       **/
+      return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
+    } else {
+      return new Patterns(
+          new Alias(
+              newField,
+              new WindowFunction(
+                  new Function(patternMethod, unresolvedArguments),
+                  List.of(), // ignore partition by list for now as we haven't seen such requirement
+                  List.of()), // ignore sort by list for now as we haven't seen such requirement
+              newField));
+    }
   }
 
   /** Lookup command */

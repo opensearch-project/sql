@@ -28,6 +28,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.EXP;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.GREATER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.GTE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_2;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LEFT;
@@ -268,6 +270,8 @@ public class PPLFuncImpTable {
       registerOperator(RIGHT, SqlLibraryOperators.RIGHT);
       registerOperator(LEFT, SqlLibraryOperators.LEFT);
       registerOperator(LOG2, SqlLibraryOperators.LOG2);
+      registerOperator(INTERNAL_REGEXP_EXTRACT, SqlLibraryOperators.REGEXP_EXTRACT);
+      registerOperator(INTERNAL_REGEXP_REPLACE_2, SqlLibraryOperators.REGEXP_REPLACE_2);
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
