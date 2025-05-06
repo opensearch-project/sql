@@ -74,7 +74,7 @@ public class ComplexTimestampQueryIT extends SQLIntegTestCase {
                 Locale.ROOT,
                 "SELECT one.login_time, two.login_time " +
                         "FROM %s AS one JOIN %s AS two " +
-                        "ON one._id = two._id" +
+                        "ON one._id = two._id " +
                         "WHERE one.login_time > timestamp('2018-05-07 00:00:00')",
                 TEST_INDEX_DATE_TIME, TEST_INDEX_DATE_TIME
         );
