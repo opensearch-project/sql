@@ -61,7 +61,7 @@ public class CalcitePPLExplainIT extends CalcitePPLIntegTestCase {
     assertTrue(
         result.contains(
             "CalciteEnumerableIndexScan(table=[[OpenSearch, test]]): rowcount = 200.0, cumulative"
-                + " cost = {201.0 rows, 101.0 cpu, 0.0 io}"));
+                + " cost = {200.0 rows, 201.0 cpu, 0.0 io}"));
   }
 
   @Test
