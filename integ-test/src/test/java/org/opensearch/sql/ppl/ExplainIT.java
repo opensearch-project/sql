@@ -63,7 +63,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterAndAggPushDownExplain() throws Exception {
-    // TODO check why the agg pushdown doesn't work in calcite
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_agg_push.json")
@@ -173,7 +172,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_patterns.json")
             : loadFromFile("expectedOutput/ppl/explain_patterns.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreRelId(
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | patterns email"));
   }
@@ -186,7 +185,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_patterns_agg_push.json")
             : loadFromFile("expectedOutput/ppl/explain_patterns_agg_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreRelId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
