@@ -8,7 +8,7 @@ package org.opensearch.sql.legacy.util;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -24,17 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.mockito.stubbing.Answer;
+import lombok.SneakyThrows;
+import org.mockito.Mockito;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
 import org.opensearch.action.search.SearchRequestBuilder;
-import org.opensearch.client.AdminClient;
-import org.opensearch.client.Client;
-import org.opensearch.client.IndicesAdminClient;
-import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexMetadata;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.xcontent.XContentType;
@@ -54,6 +49,9 @@ import org.opensearch.sql.legacy.query.OpenSearchActionFactory;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
+import org.opensearch.transport.client.AdminClient;
+import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.IndicesAdminClient;
 
 public class CheckScriptContents {
 
@@ -214,45 +212,28 @@ public class CheckScriptContents {
             NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappings);
   }
 
+  @SneakyThrows
   public static void mockLocalClusterState(String mappings) {
-    LocalClusterState.state().setClusterService(mockClusterService(mappings));
-    LocalClusterState.state().setResolver(mockIndexNameExpressionResolver());
+
+    Client client = Mockito.mock(Client.class, Mockito.RETURNS_DEEP_STUBS);
+
+    when(client
+            .admin()
+            .indices()
+            .prepareGetMappings(any(String[].class))
+            .setLocal(anyBoolean())
+            .setIndicesOptions(any())
+            .execute()
+            .actionGet(anyLong(), any())
+            .mappings())
+        .thenReturn(
+            Map.of(
+                TestsConstants.TEST_INDEX_BANK,
+                IndexMetadata.fromXContent(createParser(mappings)).mapping()));
+
+    LocalClusterState.state().setClusterService(mock(ClusterService.class));
     LocalClusterState.state().setPluginSettings(mockPluginSettings());
-  }
-
-  public static ClusterService mockClusterService(String mappings) {
-    ClusterService mockService = mock(ClusterService.class);
-    ClusterState mockState = mock(ClusterState.class);
-    Metadata mockMetaData = mock(Metadata.class);
-
-    when(mockService.state()).thenReturn(mockState);
-    when(mockState.metadata()).thenReturn(mockMetaData);
-    try {
-      when(mockMetaData.findMappings(any(), any()))
-          .thenReturn(
-              Map.of(
-                  TestsConstants.TEST_INDEX_BANK,
-                  IndexMetadata.fromXContent(createParser(mappings)).mapping()));
-    } catch (IOException e) {
-      throw new IllegalStateException(e);
-    }
-    return mockService;
-  }
-
-  public static IndexNameExpressionResolver mockIndexNameExpressionResolver() {
-    IndexNameExpressionResolver mockResolver = mock(IndexNameExpressionResolver.class);
-    when(mockResolver.concreteIndexNames(any(), any(), anyBoolean(), anyString()))
-        .thenAnswer(
-            (Answer<String[]>)
-                invocation -> {
-                  // Return index expression directly without resolving
-                  Object indexExprs = invocation.getArguments()[3];
-                  if (indexExprs instanceof String) {
-                    return new String[] {(String) indexExprs};
-                  }
-                  return (String[]) indexExprs;
-                });
-    return mockResolver;
+    LocalClusterState.state().setClient(client);
   }
 
   public static OpenSearchSettings mockPluginSettings() {

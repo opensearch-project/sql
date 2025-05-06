@@ -6,23 +6,24 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
 
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.QueryManager;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.execution.AbstractPlan;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.ppl.parser.AstBuilder;
-import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 import org.opensearch.sql.ppl.utils.PPLQueryDataAnonymizer;
 
@@ -35,6 +36,10 @@ public class PPLService {
 
   private final QueryPlanFactory queryExecutionFactory;
 
+  private final Settings settings;
+
+  private final QueryType PPL_QUERY = QueryType.PPL;
+
   private final PPLQueryDataAnonymizer anonymizer = new PPLQueryDataAnonymizer();
 
   private static final Logger LOG = LogManager.getLogger();
@@ -43,13 +48,17 @@ public class PPLService {
    * Execute the {@link PPLQueryRequest}, using {@link ResponseListener} to get response.
    *
    * @param request {@link PPLQueryRequest}
-   * @param listener {@link ResponseListener}
+   * @param queryListener {@link ResponseListener}
+   * @param explainListener {@link ResponseListener} for explain command
    */
-  public void execute(PPLQueryRequest request, ResponseListener<QueryResponse> listener) {
+  public void execute(
+      PPLQueryRequest request,
+      ResponseListener<QueryResponse> queryListener,
+      ResponseListener<ExplainResponse> explainListener) {
     try {
-      queryManager.submit(plan(request, Optional.of(listener), Optional.empty()));
+      queryManager.submit(plan(request, queryListener, explainListener));
     } catch (Exception e) {
-      listener.onFailure(e);
+      queryListener.onFailure(e);
     }
   }
 
@@ -62,7 +71,7 @@ public class PPLService {
    */
   public void explain(PPLQueryRequest request, ResponseListener<ExplainResponse> listener) {
     try {
-      queryManager.submit(plan(request, Optional.empty(), Optional.of(listener)));
+      queryManager.submit(plan(request, NO_CONSUMER_RESPONSE_LISTENER, listener));
     } catch (Exception e) {
       listener.onFailure(e);
     }
@@ -70,16 +79,17 @@ public class PPLService {
 
   private AbstractPlan plan(
       PPLQueryRequest request,
-      Optional<ResponseListener<QueryResponse>> queryListener,
-      Optional<ResponseListener<ExplainResponse>> explainListener) {
+      ResponseListener<QueryResponse> queryListener,
+      ResponseListener<ExplainResponse> explainListener) {
     // 1.Parse query and convert parse tree (CST) to abstract syntax tree (AST)
     ParseTree cst = parser.parse(request.getRequest());
     Statement statement =
         cst.accept(
             new AstStatementBuilder(
-                new AstBuilder(new AstExpressionBuilder(), request.getRequest()),
+                new AstBuilder(request.getRequest(), settings),
                 AstStatementBuilder.StatementBuilderContext.builder()
                     .isExplain(request.isExplainRequest())
+                    .format(request.getFormat())
                     .build()));
 
     LOG.info(

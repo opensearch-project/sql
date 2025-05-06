@@ -9,11 +9,13 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /** Builtin Function Name. */
 @Getter
+@AllArgsConstructor
 @RequiredArgsConstructor
 public enum BuiltinFunctionName {
   /** Mathematical Functions. */
@@ -54,6 +56,7 @@ public enum BuiltinFunctionName {
   RADIANS(FunctionName.of("radians")),
   SIN(FunctionName.of("sin")),
   TAN(FunctionName.of("tan")),
+  SPAN(FunctionName.of("span")),
 
   /** Date and Time Functions. */
   ADDDATE(FunctionName.of("adddate")),
@@ -132,6 +135,9 @@ public enum BuiltinFunctionName {
   /** Text Functions. */
   TOSTRING(FunctionName.of("tostring")),
 
+  /** IP Functions. */
+  CIDRMATCH(FunctionName.of("cidrmatch")),
+
   /** Arithmetic Operators. */
   ADD(FunctionName.of("+")),
   ADDFUNCTION(FunctionName.of("add")),
@@ -175,6 +181,8 @@ public enum BuiltinFunctionName {
   STDDEV_POP(FunctionName.of("stddev_pop")),
   // take top documents from aggregation bucket.
   TAKE(FunctionName.of("take")),
+  // t-digest percentile which is used in OpenSearch core by default.
+  PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
 
@@ -199,6 +207,13 @@ public enum BuiltinFunctionName {
   TRIM(FunctionName.of("trim")),
   UPPER(FunctionName.of("upper")),
 
+  /** Json Functions. */
+  JSON_VALID(FunctionName.of("json_valid")),
+  JSON(FunctionName.of("json")),
+
+  /** GEOSPATIAL Functions. */
+  GEOIP(FunctionName.of("geoip")),
+
   /** NULL Test. */
   IS_NULL(FunctionName.of("is null")),
   IS_NOT_NULL(FunctionName.of("is not null")),
@@ -210,6 +225,8 @@ public enum BuiltinFunctionName {
   ROW_NUMBER(FunctionName.of("row_number")),
   RANK(FunctionName.of("rank")),
   DENSE_RANK(FunctionName.of("dense_rank")),
+
+  BRAIN(FunctionName.of("brain")),
 
   INTERVAL(FunctionName.of("interval")),
 
@@ -226,6 +243,8 @@ public enum BuiltinFunctionName {
   CAST_TO_TIME(FunctionName.of("cast_to_time")),
   CAST_TO_TIMESTAMP(FunctionName.of("cast_to_timestamp")),
   CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
+  CAST_TO_IP(FunctionName.of("cast_to_ip")),
+  CAST_TO_JSON(FunctionName.of("cast_to_json")),
   TYPEOF(FunctionName.of("typeof")),
 
   /** Relevance Function. */
@@ -250,9 +269,14 @@ public enum BuiltinFunctionName {
   MULTIMATCH(FunctionName.of("multimatch")),
   MULTIMATCHQUERY(FunctionName.of("multimatchquery")),
   WILDCARDQUERY(FunctionName.of("wildcardquery")),
-  WILDCARD_QUERY(FunctionName.of("wildcard_query"));
+  WILDCARD_QUERY(FunctionName.of("wildcard_query")),
+
+  /** Internal functions that are not exposed to customers. */
+  INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
+  INTERNAL_REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2"), true);
 
   private final FunctionName name;
+  private boolean isInternal;
 
   private static final Map<FunctionName, BuiltinFunctionName> ALL_NATIVE_FUNCTIONS;
 
@@ -279,6 +303,8 @@ public enum BuiltinFunctionName {
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
           .put("take", BuiltinFunctionName.TAKE)
+          .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
+          .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

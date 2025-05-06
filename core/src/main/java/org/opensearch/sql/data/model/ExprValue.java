@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.data.model;
 
+import inet.ipaddr.IPAddress;
 import java.io.Serializable;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -21,6 +22,9 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 public interface ExprValue extends Serializable, Comparable<ExprValue> {
   /** Get the Object value of the Expression Value. */
   Object value();
+
+  /** Get the Object for Calcite engine compatibility */
+  Object valueForCalcite();
 
   /** Get the {@link ExprCoreType} of the Expression Value. */
   ExprType type();
@@ -102,6 +106,11 @@ public interface ExprValue extends Serializable, Comparable<ExprValue> {
         "invalid to get doubleValue from value of type " + type());
   }
 
+  /** Get IP address value. */
+  default IPAddress ipValue() {
+    throw new ExpressionEvaluationException("invalid to get ipValue from value of type " + type());
+  }
+
   /** Get string value. */
   default String stringValue() {
     throw new ExpressionEvaluationException(
@@ -156,5 +165,18 @@ public interface ExprValue extends Serializable, Comparable<ExprValue> {
    */
   default ExprValue keyValue(String key) {
     return ExprMissingValue.of();
+  }
+
+  /**
+   * Merge the value to the base value. By default, it overrides the base value with the current
+   *
+   * <p>This method will be called when key conflict happens in the process of populating
+   * ExprTupleValue See {@link OpenSearchExprValueFactory::populateValueRecursive}.
+   *
+   * @param base the target value to merge
+   * @return The merged value
+   */
+  default ExprValue mergeTo(ExprValue base) {
+    return this;
   }
 }

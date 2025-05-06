@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.analysis.Analyzer;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.pagination.Cursor;
@@ -45,6 +46,8 @@ class QueryServiceTest {
 
   @Mock private UnresolvedPlan ast;
 
+  @Mock private QueryType queryType;
+
   @Mock private LogicalPlan logicalPlan;
 
   @Mock private PhysicalPlan plan;
@@ -54,6 +57,8 @@ class QueryServiceTest {
   @Mock private PlanContext planContext;
 
   @Mock private Split split;
+
+  private final Explain.ExplainFormat format = Explain.ExplainFormat.STANDARD;
 
   @Test
   public void executeWithoutContext() {
@@ -118,7 +123,7 @@ class QueryServiceTest {
                 return null;
               })
           .when(executionEngine)
-          .execute(any(), any(), any());
+          .execute(any(PhysicalPlan.class), any(), any());
       lenient().when(planContext.getSplit()).thenReturn(this.split);
 
       return this;
@@ -133,7 +138,7 @@ class QueryServiceTest {
     Helper executeFail() {
       doThrow(new IllegalStateException("illegal state exception"))
           .when(executionEngine)
-          .execute(any(), any(), any());
+          .execute(any(PhysicalPlan.class), any(), any());
 
       return this;
     }
@@ -177,7 +182,7 @@ class QueryServiceTest {
           };
       split.ifPresentOrElse(
           split -> queryService.executePlan(logicalPlan, planContext, responseListener),
-          () -> queryService.execute(ast, responseListener));
+          () -> queryService.execute(ast, queryType, responseListener));
     }
 
     void handledByOnFailure() {
@@ -195,12 +200,13 @@ class QueryServiceTest {
           };
       split.ifPresentOrElse(
           split -> queryService.executePlan(logicalPlan, planContext, responseListener),
-          () -> queryService.execute(ast, responseListener));
+          () -> queryService.execute(ast, queryType, responseListener));
     }
 
     void handledByExplainOnResponse() {
       queryService.explain(
           ast,
+          queryType,
           new ResponseListener<>() {
             @Override
             public void onResponse(ExecutionEngine.ExplainResponse pplQueryResponse) {
@@ -211,12 +217,14 @@ class QueryServiceTest {
             public void onFailure(Exception e) {
               fail();
             }
-          });
+          },
+          format);
     }
 
     void handledByExplainOnFailure() {
       queryService.explain(
           ast,
+          queryType,
           new ResponseListener<>() {
             @Override
             public void onResponse(ExecutionEngine.ExplainResponse pplQueryResponse) {
@@ -227,7 +235,8 @@ class QueryServiceTest {
             public void onFailure(Exception e) {
               assertTrue(e instanceof IllegalStateException);
             }
-          });
+          },
+          format);
     }
   }
 }

@@ -98,6 +98,51 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testLogicalAndOr() {
+    assertEqual(
+        "source=t a=1 and b=2 and c=3 or d=4",
+        filter(
+            relation("t"),
+            or(
+                and(
+                    and(
+                        compare("=", field("a"), intLiteral(1)),
+                        compare("=", field("b"), intLiteral(2))),
+                    compare("=", field("c"), intLiteral(3))),
+                compare("=", field("d"), intLiteral(4)))));
+  }
+
+  @Test
+  public void testLogicalParenthetic() {
+    assertEqual(
+        "source=t (a=1 or b=2) and (c=3 or d=4)",
+        filter(
+            relation("t"),
+            and(
+                or(
+                    compare("=", field("a"), intLiteral(1)),
+                    compare("=", field("b"), intLiteral(2))),
+                or(
+                    compare("=", field("c"), intLiteral(3)),
+                    compare("=", field("d"), intLiteral(4))))));
+  }
+
+  @Test
+  public void testLogicalNotAndXorOr() {
+    assertEqual(
+        "source=t a=1 xor b=2 and not c=3 or d=4",
+        filter(
+            relation("t"),
+            or(
+                xor(
+                    compare("=", field("a"), intLiteral(1)),
+                    and(
+                        compare("=", field("b"), intLiteral(2)),
+                        not(compare("=", field("c"), intLiteral(3))))),
+                compare("=", field("d"), intLiteral(4)))));
+  }
+
+  @Test
   public void testLogicalLikeExpr() {
     assertEqual(
         "source=t like(a, '_a%b%c_d_')",
@@ -107,12 +152,15 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testBooleanIsNullFunction() {
     assertEqual("source=t isnull(a)", filter(relation("t"), function("is null", field("a"))));
+    assertEqual("source=t ISNULL(a)", filter(relation("t"), function("is null", field("a"))));
   }
 
   @Test
   public void testBooleanIsNotNullFunction() {
     assertEqual(
         "source=t isnotnull(a)", filter(relation("t"), function("is not null", field("a"))));
+    assertEqual(
+        "source=t ISNOTNULL(a)", filter(relation("t"), function("is not null", field("a"))));
   }
 
   /** Todo. search operator should not include functionCall, need to change antlr. */
@@ -133,6 +181,120 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testEvalFunctionExprNoArgs() {
     assertEqual("source=t | eval f=PI()", eval(relation("t"), let(field("f"), function("PI"))));
+  }
+
+  @Test
+  public void testEvalIfFunctionExpr() {
+    assertEqual(
+        "source=t | eval f=if(true, 1, 0)",
+        eval(
+            relation("t"),
+            let(field("f"), function("if", booleanLiteral(true), intLiteral(1), intLiteral(0)))));
+    assertEqual(
+        "source=t | eval f=if(1>2, 1, 0)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "if",
+                    compare(">", intLiteral(1), intLiteral(2)),
+                    intLiteral(1),
+                    intLiteral(0)))));
+    assertEqual(
+        "source=t | eval f=if(1<=2, 1, 0)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "if",
+                    compare("<=", intLiteral(1), intLiteral(2)),
+                    intLiteral(1),
+                    intLiteral(0)))));
+    assertEqual(
+        "source=t | eval f=if(1=2, 1, 0)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "if",
+                    compare("=", intLiteral(1), intLiteral(2)),
+                    intLiteral(1),
+                    intLiteral(0)))));
+    assertEqual(
+        "source=t | eval f=if(1!=2, 1, 0)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "if",
+                    compare("!=", intLiteral(1), intLiteral(2)),
+                    intLiteral(1),
+                    intLiteral(0)))));
+    assertEqual(
+        "source=t | eval f=if(isnull(a), 1, 0)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("if", function("is null", field("a")), intLiteral(1), intLiteral(0)))));
+    assertEqual(
+        "source=t | eval f=if(isnotnull(a), 1, 0)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "if", function("is not null", field("a")), intLiteral(1), intLiteral(0)))));
+    assertEqual(
+        "source=t | eval f=if(not 1>2, 1, 0)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "if",
+                    not(compare(">", intLiteral(1), intLiteral(2))),
+                    intLiteral(1),
+                    intLiteral(0)))));
+    assertEqual(
+        "source=t | eval f=if(not a in (0, 1), 1, 0)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "if",
+                    not(in(field("a"), intLiteral(0), intLiteral(1))),
+                    intLiteral(1),
+                    intLiteral(0)))));
+    assertEqual(
+        "source=t | eval f=if(not a in (0, 1) OR isnull(a), 1, 0)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "if",
+                    or(
+                        not(in(field("a"), intLiteral(0), intLiteral(1))),
+                        function("is null", field("a"))),
+                    intLiteral(1),
+                    intLiteral(0)))));
+    assertEqual(
+        "source=t | eval f=if(like(a, '_a%b%c_d_'), 1, 0)",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function(
+                    "if",
+                    function("like", field("a"), stringLiteral("_a%b%c_d_")),
+                    intLiteral(1),
+                    intLiteral(0)))));
   }
 
   @Test
@@ -333,13 +495,40 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testPercentileAggFuncExpr() {
     assertEqual(
-        "source=t | stats percentile<1>(a)",
+        "source=t | stats percentile(a, 1)",
         agg(
             relation("t"),
             exprList(
                 alias(
-                    "percentile<1>(a)",
-                    aggregate("percentile", field("a"), argument("rank", intLiteral(1))))),
+                    "percentile(a, 1)",
+                    aggregate("percentile", field("a"), unresolvedArg("percent", intLiteral(1))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+    assertEqual(
+        "source=t | stats percentile(a, 1.0)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "percentile(a, 1.0)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(1D))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+    assertEqual(
+        "source=t | stats percentile(a, 1.0, 100)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "percentile(a, 1.0, 100)",
+                    aggregate(
+                        "percentile",
+                        field("a"),
+                        unresolvedArg("percent", doubleLiteral(1D)),
+                        unresolvedArg("compression", intLiteral(100))))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
@@ -506,6 +695,32 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void canBuildMetaDataFieldAsQualifiedName() {
+    assertEqual(
+        "source=test | fields _id, _index, _sort, _maxscore",
+        projectWithArg(
+            relation("test"),
+            defaultFieldsArgs(),
+            field("_id"),
+            field("_index"),
+            field("_sort"),
+            field("_maxscore")));
+  }
+
+  @Test
+  public void canBuildNonMetaDataFieldAsQualifiedName() {
+    assertEqual(
+        "source=test | fields id, __id, _routing, ___field",
+        projectWithArg(
+            relation("test"),
+            defaultFieldsArgs(),
+            field("id"),
+            field("__id"),
+            field("_routing"),
+            field("___field")));
+  }
+
+  @Test
   public void canBuildMatchRelevanceFunctionWithArguments() {
     assertEqual(
         "source=test | where match('message', 'test query', analyzer='keyword')",
@@ -569,7 +784,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void functionNameCanBeUsedAsIdentifier() {
     assertFunctionNameCouldBeId(
-        "AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP");
+        "AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP |"
+            + " PERCENTILE");
     assertFunctionNameCouldBeId(
         "CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | "
             + "UTC_TIMESTAMP | UTC_DATE | UTC_TIME | CURDATE | CURTIME | NOW");

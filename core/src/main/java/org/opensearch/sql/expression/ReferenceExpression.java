@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.expression;
 
-import static org.opensearch.sql.utils.ExpressionUtils.PATH_SEP;
-
 import java.util.Arrays;
 import java.util.List;
 import lombok.EqualsAndHashCode;
@@ -14,7 +12,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
 
@@ -22,6 +20,8 @@ import org.opensearch.sql.expression.env.Environment;
 @RequiredArgsConstructor
 public class ReferenceExpression implements Expression {
   @Getter private final String attr;
+
+  @Getter private final String rawPath;
 
   @Getter private final List<String> paths;
 
@@ -36,8 +36,11 @@ public class ReferenceExpression implements Expression {
   public ReferenceExpression(String ref, ExprType type) {
     this.attr = ref;
     // Todo. the define of paths need to be redefined after adding multiple index/variable support.
-    this.paths = Arrays.asList(ref.split("\\."));
-    this.type = type;
+    // For AliasType, the actual path is set in the property of `path` and the type is derived
+    // from the type of field on that path; Otherwise, use ref itself as the path
+    this.rawPath = type.getOriginalPath().orElse(ref);
+    this.paths = Arrays.asList(rawPath.split("\\."));
+    this.type = type.getOriginalExprType();
   }
 
   @Override
@@ -97,20 +100,6 @@ public class ReferenceExpression implements Expression {
    * </pre>
    */
   public ExprValue resolve(ExprTupleValue value) {
-    return resolve(value, paths);
-  }
-
-  private ExprValue resolve(ExprValue value, List<String> paths) {
-    ExprValue wholePathValue = value.keyValue(String.join(PATH_SEP, paths));
-    // For array types only first index currently supported.
-    if (value.type().equals(ExprCoreType.ARRAY)) {
-      wholePathValue = value.collectionValue().get(0).keyValue(paths.get(0));
-    }
-
-    if (!wholePathValue.isMissing() || paths.size() == 1) {
-      return wholePathValue;
-    } else {
-      return resolve(value.keyValue(paths.get(0)), paths.subList(1, paths.size()));
-    }
+    return ExprValueUtils.resolveRefPaths(value, paths);
   }
 }

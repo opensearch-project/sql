@@ -13,7 +13,6 @@ import java.util.Map;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.index.mapper.MapperService;
 import org.opensearch.search.SearchHit;
@@ -21,13 +20,13 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
 import org.opensearch.sql.legacy.utils.Util;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 21/8/2016. */
-public class UnionExecutor implements ElasticHitsExecutor {
+public class UnionExecutor extends ElasticHitsExecutor {
 
-  private MultiQueryRequestBuilder multiQueryBuilder;
+  private final MultiQueryRequestBuilder multiQueryBuilder;
   private SearchHits results;
-  private Client client;
   private int currentId;
 
   public UnionExecutor(Client client, MultiQueryRequestBuilder builder) {

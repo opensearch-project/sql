@@ -156,7 +156,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
             () -> date_add(LocalDateTime.of(1961, 4, 12, 9, 7), 100500));
     assertEquals(
         "date_add function expected {[DATE,INTERVAL],[TIMESTAMP,INTERVAL],"
-            + "[TIME,INTERVAL]}, but get [TIMESTAMP,INTEGER]",
+            + "[TIME,INTERVAL]}, but got [TIMESTAMP,INTEGER]",
         exception.getMessage());
   }
 

@@ -107,6 +107,7 @@ public class DSL {
     return new NamedExpression(name, expression);
   }
 
+  @Deprecated
   public static NamedExpression named(String name, Expression expression, String alias) {
     return new NamedExpression(name, expression, alias);
   }
@@ -563,6 +564,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.REGEXP, expressions);
   }
 
+  public static FunctionExpression cidrmatch(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.CIDRMATCH, expressions);
+  }
+
   public static FunctionExpression concat(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.CONCAT, expressions);
   }
@@ -679,6 +684,14 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.NOT_LIKE, expressions);
   }
 
+  public static FunctionExpression jsonValid(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.JSON_VALID, expressions);
+  }
+
+  public static FunctionExpression stringToJson(Expression value) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.JSON, value);
+  }
+
   public static Aggregator avg(Expression... expressions) {
     return aggregate(BuiltinFunctionName.AVG, expressions);
   }
@@ -733,6 +746,18 @@ public class DSL {
 
   public static Aggregator max(Expression... expressions) {
     return aggregate(BuiltinFunctionName.MAX, expressions);
+  }
+
+  /**
+   * OpenSearch uses T-Digest to approximate percentile, so PERCENTILE and PERCENTILE_APPROX are the
+   * same function.
+   */
+  public static Aggregator percentile(Expression... expressions) {
+    return percentileApprox(expressions);
+  }
+
+  public static Aggregator percentileApprox(Expression... expressions) {
+    return aggregate(BuiltinFunctionName.PERCENTILE_APPROX, expressions);
   }
 
   private static Aggregator aggregate(BuiltinFunctionName functionName, Expression... expressions) {
@@ -817,6 +842,14 @@ public class DSL {
 
   public static FunctionExpression castTimestamp(Expression value) {
     return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_TIMESTAMP, value);
+  }
+
+  public static FunctionExpression castIp(Expression value) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_IP, value);
+  }
+
+  public static FunctionExpression castJson(Expression value) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_JSON, value);
   }
 
   public static FunctionExpression typeof(Expression value) {
@@ -947,6 +980,14 @@ public class DSL {
   public static FunctionExpression utc_timestamp(
       FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.UTC_TIMESTAMP, args);
+  }
+
+  public static FunctionExpression geoip(Expression... args) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.GEOIP, args);
+  }
+
+  public static FunctionExpression brain(Expression... args) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.BRAIN, args);
   }
 
   @SuppressWarnings("unchecked")

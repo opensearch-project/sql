@@ -23,6 +23,7 @@ import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 /** Bucket Aggregation Builder. */
@@ -53,19 +54,22 @@ public class BucketAggregationBuilder {
     if (expr.getDelegated() instanceof SpanExpression) {
       SpanExpression spanExpr = (SpanExpression) expr.getDelegated();
       return buildHistogram(
-          expr.getNameOrAlias(),
+          expr.getName(),
           spanExpr.getField().toString(),
           spanExpr.getValue().valueOf().doubleValue(),
           spanExpr.getUnit(),
           missingOrder);
     } else {
       CompositeValuesSourceBuilder<?> sourceBuilder =
-          new TermsValuesSourceBuilder(expr.getNameOrAlias())
+          new TermsValuesSourceBuilder(expr.getName())
               .missingBucket(true)
               .missingOrder(missingOrder)
               .order(sortOrder);
       // Time types values are converted to LONG in ExpressionAggregationScript::execute
-      if (List.of(TIMESTAMP, TIME, DATE).contains(expr.getDelegated().type())) {
+      if ((expr.getDelegated().type() instanceof OpenSearchDateType
+              && List.of(TIMESTAMP, TIME, DATE)
+                  .contains(((OpenSearchDateType) expr.getDelegated().type()).getExprCoreType()))
+          || List.of(TIMESTAMP, TIME, DATE).contains(expr.getDelegated().type())) {
         sourceBuilder.userValuetypeHint(ValueType.LONG);
       }
       return helper.build(expr.getDelegated(), sourceBuilder::field, sourceBuilder::script);

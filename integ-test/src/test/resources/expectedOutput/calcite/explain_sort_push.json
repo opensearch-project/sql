@@ -1,0 +1,6 @@
+{
+  "calcite":{
+    "logical":"LogicalSort(sort0=[$0], dir0=[ASC])\n  LogicalProject(age=[$8])\n    LogicalFilter(condition=[>($8, 30)])\n      LogicalSort(sort0=[$8], dir0=[ASC])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical":"EnumerableCalc(expr#0..16=[{inputs}], expr#17=[30], expr#18=[>($t8, $t17)], age=[$t8], $condition=[$t18])\n  EnumerableSort(sort0=[$8], dir0=[ASC])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  }
+}

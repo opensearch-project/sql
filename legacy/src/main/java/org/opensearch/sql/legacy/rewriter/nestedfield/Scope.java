@@ -26,13 +26,13 @@ class Scope {
    * Mapping from nested field path alias to path full name in FROM. eg. e in {e => employees} in
    * "FROM t.employees e"
    */
-  private Map<String, String> aliasFullPaths = new HashMap<>();
+  private final Map<String, String> aliasFullPaths = new HashMap<>();
 
   /**
    * Mapping from binary operation condition (in WHERE) to nested field tag (full path for nested,
    * EMPTY for non-nested field)
    */
-  private Map<SQLBinaryOpExpr, String> conditionTags = new IdentityHashMap<>();
+  private final Map<SQLBinaryOpExpr, String> conditionTags = new IdentityHashMap<>();
 
   String getParentAlias() {
     return parentAlias;

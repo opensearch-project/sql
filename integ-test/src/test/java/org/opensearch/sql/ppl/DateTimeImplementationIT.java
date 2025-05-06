@@ -6,8 +6,10 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
@@ -18,8 +20,10 @@ import org.junit.Test;
 public class DateTimeImplementationIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.DATE);
+    loadIndex(Index.DATE_FORMATS);
   }
 
   @Test
@@ -175,5 +179,48 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
+  }
+
+  @Test
+  public void testSpanDatetimeWithCustomFormat() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = 1 | stats count() as cnt by span(yyyy-MM-dd, 1d) as span",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(
+        result,
+        isCalciteEnabled() ? schema("cnt", null, "bigint") : schema("cnt", null, "int"),
+        schema("span", null, "date"));
+    verifyDataRows(result, rows(2, "1984-04-12"));
+  }
+
+  @Test
+  public void testSpanDatetimeWithEpochMillisFormat() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = 1 | stats count() as cnt by span(epoch_millis, 1d) as span",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(
+        result,
+        isCalciteEnabled() ? schema("cnt", null, "bigint") : schema("cnt", null, "int"),
+        schema("span", null, "timestamp"));
+    verifyDataRows(result, rows(2, "1984-04-12 00:00:00"));
+  }
+
+  @Test
+  public void testSpanDatetimeWithDisjunctiveDifferentFormats() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = 1 | stats count() as cnt by span(yyyy-MM-dd_OR_epoch_millis,"
+                    + " 1d) as span",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(
+        result,
+        isCalciteEnabled() ? schema("cnt", null, "bigint") : schema("cnt", null, "int"),
+        schema("span", null, "timestamp"));
+    verifyDataRows(result, rows(2, "1984-04-12 00:00:00"));
   }
 }

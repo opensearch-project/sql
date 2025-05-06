@@ -6,6 +6,7 @@
 package org.opensearch.sql.legacy.executor.join;
 
 import static org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
@@ -15,7 +16,6 @@ import java.util.Optional;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -28,6 +28,7 @@ import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 2/9/2016. */
 public class ElasticUtils {
@@ -39,6 +40,7 @@ public class ElasticUtils {
     boolean ordered = originalSelect.isOrderdSelect();
     if (!ordered) {
       scrollRequest.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+      scrollRequest.addSort(METADATA_FIELD_ID, SortOrder.ASC);
     }
     SearchResponse responseWithHits = scrollRequest.get();
     // on ordered select - not using SCAN , elastic returns hits on first scroll
@@ -60,7 +62,10 @@ public class ElasticUtils {
     Object[] searchHits;
     searchHits =
         new Object
-            [Optional.ofNullable(results.getTotalHits()).map(th -> th.value).orElse(0L).intValue()];
+            [Optional.ofNullable(results.getTotalHits())
+                .map(th -> th.value())
+                .orElse(0L)
+                .intValue()];
     int i = 0;
     for (SearchHit hit : results) {
       HashMap<String, Object> value = new HashMap<>();
@@ -74,10 +79,10 @@ public class ElasticUtils {
     hits.put(
         "total",
         ImmutableMap.of(
-            "value", Optional.ofNullable(results.getTotalHits()).map(th -> th.value).orElse(0L),
+            "value", Optional.ofNullable(results.getTotalHits()).map(th -> th.value()).orElse(0L),
             "relation",
                 Optional.ofNullable(results.getTotalHits())
-                    .map(th -> th.relation)
+                    .map(th -> th.relation())
                     .orElse(Relation.EQUAL_TO)));
     hits.put("max_score", results.getMaxScore());
     hits.put("hits", searchHits);

@@ -8,6 +8,8 @@
 
 package org.opensearch.sql.ppl.parser;
 
+import static org.opensearch.sql.executor.QueryType.PPL;
+
 import com.google.common.collect.ImmutableList;
 import lombok.Builder;
 import lombok.Data;
@@ -31,8 +33,16 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
 
   @Override
   public Statement visitDmlStatement(OpenSearchPPLParser.DmlStatementContext ctx) {
-    Query query = new Query(addSelectAll(astBuilder.visit(ctx)), context.getFetchSize());
-    return context.isExplain ? new Explain(query) : query;
+    Query query = new Query(addSelectAll(astBuilder.visit(ctx)), context.getFetchSize(), PPL);
+    if (ctx.explainStatement() != null) {
+      if (ctx.explainStatement().explainMode() == null) {
+        return new Explain(query, PPL);
+      } else {
+        return new Explain(query, PPL, ctx.explainStatement().explainMode().getText());
+      }
+    } else {
+      return context.isExplain ? new Explain(query, PPL, context.format) : query;
+    }
   }
 
   @Override
@@ -45,6 +55,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   public static class StatementBuilderContext {
     private final boolean isExplain;
     private final int fetchSize;
+    private final String format;
   }
 
   private UnresolvedPlan addSelectAll(UnresolvedPlan plan) {

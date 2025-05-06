@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -79,6 +80,7 @@ class OpenSearchIndexTest {
   @BeforeEach
   void setUp() {
     this.index = new OpenSearchIndex(client, settings, "test");
+    lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
   }
 
   @Test
@@ -148,7 +150,7 @@ class OpenSearchIndexTest {
               hasEntry("gender", ExprCoreType.BOOLEAN),
               hasEntry("family", ExprCoreType.ARRAY),
               hasEntry("employer", ExprCoreType.STRUCT),
-              hasEntry("birthday", ExprCoreType.TIMESTAMP),
+              hasEntry("birthday", (ExprType) OpenSearchDataType.of(MappingType.Date)),
               hasEntry("id1", ExprCoreType.BYTE),
               hasEntry("id2", ExprCoreType.SHORT),
               hasEntry("blob", (ExprType) OpenSearchDataType.of(MappingType.Binary))));
@@ -198,10 +200,11 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
+    final var requestBuilder =
+        new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
+            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
         index.implement(index.optimize(plan)));
   }
 
@@ -211,10 +214,11 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
+    final var requestBuilder =
+        new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
+            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
         index.implement(plan));
   }
 
@@ -243,7 +247,8 @@ class OpenSearchIndexTest {
             include);
 
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
+    final var requestBuilder =
+        new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.dedupe(
@@ -255,7 +260,7 @@ class OpenSearchIndexTest {
                                     client,
                                     QUERY_SIZE_LIMIT,
                                     requestBuilder.build(
-                                        INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
+                                        INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
                                 mappings),
                             exclude),
                         newEvalField),
@@ -263,5 +268,14 @@ class OpenSearchIndexTest {
                 dedupeField),
             include),
         index.implement(plan));
+  }
+
+  @Test
+  void isFieldTypeTolerance() {
+    when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE))
+        .thenReturn(true)
+        .thenReturn(false);
+    assertTrue(index.isFieldTypeTolerance());
+    assertFalse(index.isFieldTypeTolerance());
   }
 }

@@ -36,7 +36,7 @@ public class DataSourceMetadataTest {
             .setProperties(properties)
             .setResultIndex("query_execution_result_test123")
             .setDataSourceStatus(ACTIVE)
-            .build();
+            .validateAndBuild();
 
     assertEquals("test", metadata.getName());
     assertEquals("test description", metadata.getDescription());
@@ -59,7 +59,10 @@ public class DataSourceMetadataTest {
   @Test
   public void testNameValidation() {
     try {
-      new DataSourceMetadata.Builder().setName("Invalid$$$Name").setConnector(PROMETHEUS).build();
+      new DataSourceMetadata.Builder()
+          .setName("Invalid$$$Name")
+          .setConnector(PROMETHEUS)
+          .validateAndBuild();
       fail("Should have thrown an IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       assertEquals(
@@ -76,7 +79,7 @@ public class DataSourceMetadataTest {
           .setName("test")
           .setConnector(PROMETHEUS)
           .setResultIndex("invalid_result_index")
-          .build();
+          .validateAndBuild();
       fail("Should have thrown an IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       assertEquals(DataSourceMetadata.INVALID_RESULT_INDEX_PREFIX, e.getMessage());
@@ -86,7 +89,7 @@ public class DataSourceMetadataTest {
   @Test
   public void testMissingAttributes() {
     try {
-      new DataSourceMetadata.Builder().build();
+      new DataSourceMetadata.Builder().validateAndBuild();
       fail("Should have thrown an IllegalArgumentException due to missing attributes");
     } catch (IllegalArgumentException e) {
       assertTrue(e.getMessage().contains("name"));
@@ -97,7 +100,10 @@ public class DataSourceMetadataTest {
   @Test
   public void testFillAttributes() {
     DataSourceMetadata metadata =
-        new DataSourceMetadata.Builder().setName("test").setConnector(PROMETHEUS).build();
+        new DataSourceMetadata.Builder()
+            .setName("test")
+            .setConnector(PROMETHEUS)
+            .validateAndBuild();
 
     assertEquals("test", metadata.getName());
     assertEquals(PROMETHEUS, metadata.getConnector());
@@ -115,7 +121,7 @@ public class DataSourceMetadataTest {
           .setName("test")
           .setConnector(PROMETHEUS)
           .setResultIndex("query_execution_result_" + RandomStringUtils.randomAlphanumeric(300))
-          .build();
+          .validateAndBuild();
       fail("Should have thrown an IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       assertEquals(
@@ -131,7 +137,7 @@ public class DataSourceMetadataTest {
         new DataSourceMetadata.Builder()
             .setName(RandomStringUtils.randomAlphabetic(250))
             .setConnector(PROMETHEUS)
-            .build();
+            .validateAndBuild();
     assertEquals(255, dataSourceMetadata.getResultIndex().length());
   }
 
@@ -150,8 +156,8 @@ public class DataSourceMetadataTest {
             .setProperties(properties)
             .setResultIndex("query_execution_result_test123")
             .setDataSourceStatus(ACTIVE)
-            .build();
-    DataSourceMetadata copiedMetadata = new DataSourceMetadata.Builder(metadata).build();
+            .validateAndBuild();
+    DataSourceMetadata copiedMetadata = new DataSourceMetadata.Builder(metadata).validateAndBuild();
     assertEquals(metadata.getResultIndex(), copiedMetadata.getResultIndex());
     assertEquals(metadata.getProperties(), copiedMetadata.getProperties());
   }

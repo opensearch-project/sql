@@ -12,15 +12,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.stream.Stream;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
-import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.mapper.MapperService;
@@ -28,29 +24,31 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
-import org.opensearch.search.sort.FieldSortBuilder;
-import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
 import org.opensearch.sql.legacy.query.join.NestedLoopsElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 15/9/2015. */
-public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
-  private static final Logger LOG = LogManager.getLogger();
+public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
 
   protected List<SearchHit> results; // Keep list to avoid copy to new array in SearchHits
-  protected MetaSearchResult metaResults;
+  protected final MetaSearchResult metaResults;
   protected final int MAX_RESULTS_ON_ONE_FETCH = 10000;
-  private Set<String> aliasesOnReturn;
-  private boolean allFieldsReturn;
+  private final Set<String> aliasesOnReturn;
+  private final boolean allFieldsReturn;
+  protected final String[] indices;
 
-  protected ElasticJoinExecutor(JoinRequestBuilder requestBuilder) {
+  protected ElasticJoinExecutor(Client client, JoinRequestBuilder requestBuilder) {
     metaResults = new MetaSearchResult();
     aliasesOnReturn = new HashSet<>();
     List<Field> firstTableReturnedField = requestBuilder.getFirstTable().getReturnedFields();
@@ -58,6 +56,8 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     allFieldsReturn =
         (firstTableReturnedField == null || firstTableReturnedField.size() == 0)
             && (secondTableReturnedField == null || secondTableReturnedField.size() == 0);
+    indices = getIndices(requestBuilder);
+    this.client = client;
   }
 
   public void sendResponse(RestChannel channel) throws IOException {
@@ -85,10 +85,24 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
   }
 
   public void run() throws IOException, SqlParseException {
-    long timeBefore = System.currentTimeMillis();
-    results = innerRun();
-    long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
-    this.metaResults.setTookImMilli(joinTimeInMilli);
+    try {
+      long timeBefore = System.currentTimeMillis();
+      pit = new PointInTimeHandlerImpl(client, indices);
+      pit.create();
+      results = innerRun();
+      long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
+      this.metaResults.setTookImMilli(joinTimeInMilli);
+    } catch (Exception e) {
+      LOG.error("Failed during join query run.", e);
+      throw new IllegalStateException("Error occurred during join query run", e);
+    } finally {
+      try {
+        pit.delete();
+      } catch (RuntimeException e) {
+        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+        LOG.info("Error deleting point in time {} ", pit);
+      }
+    }
   }
 
   protected abstract List<SearchHit> innerRun() throws IOException, SqlParseException;
@@ -103,7 +117,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
   public static ElasticJoinExecutor createJoinExecutor(
       Client client, SqlElasticRequestBuilder requestBuilder) {
     if (requestBuilder instanceof HashJoinQueryPlanRequestBuilder) {
-      return new QueryPlanElasticExecutor((HashJoinQueryPlanRequestBuilder) requestBuilder);
+      return new QueryPlanElasticExecutor(client, (HashJoinQueryPlanRequestBuilder) requestBuilder);
     } else if (requestBuilder instanceof HashJoinElasticRequestBuilder) {
       HashJoinElasticRequestBuilder hashJoin = (HashJoinElasticRequestBuilder) requestBuilder;
       return new HashJoinElasticExecutor(client, hashJoin);
@@ -256,23 +270,22 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     this.metaResults.updateTimeOut(searchResponse.isTimedOut());
   }
 
-  protected SearchResponse scrollOneTimeWithMax(
-      Client client, TableInJoinRequestBuilder tableRequest) {
-    SearchRequestBuilder scrollRequest =
-        tableRequest
-            .getRequestBuilder()
-            .setScroll(new TimeValue(60000))
-            .setSize(MAX_RESULTS_ON_ONE_FETCH);
-    boolean ordered = tableRequest.getOriginalSelect().isOrderdSelect();
-    if (!ordered) {
-      scrollRequest.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
-    }
-    SearchResponse responseWithHits = scrollRequest.get();
-    // on ordered select - not using SCAN , elastic returns hits on first scroll
-    // es5.0 elastic always return docs on scan
-    //  if(!ordered)
-    //  responseWithHits = client.prepareSearchScroll(responseWithHits.getScrollId())
-    //  .setScroll(new TimeValue(600000)).get();
-    return responseWithHits;
+  public SearchResponse getResponseWithHits(
+      TableInJoinRequestBuilder tableRequest, int size, SearchResponse previousResponse) {
+
+    return getResponseWithHits(
+        tableRequest.getRequestBuilder(),
+        tableRequest.getOriginalSelect(),
+        size,
+        previousResponse,
+        pit);
+  }
+
+  public String[] getIndices(JoinRequestBuilder joinRequestBuilder) {
+    return Stream.concat(
+            Stream.of(joinRequestBuilder.getFirstTable().getOriginalSelect().getIndexArr()),
+            Stream.of(joinRequestBuilder.getSecondTable().getOriginalSelect().getIndexArr()))
+        .distinct()
+        .toArray(String[]::new);
   }
 }

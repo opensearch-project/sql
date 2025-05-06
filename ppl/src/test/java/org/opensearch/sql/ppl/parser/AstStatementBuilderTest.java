@@ -15,22 +15,27 @@ import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
+import static org.opensearch.sql.executor.QueryType.PPL;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mock;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstStatementBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
-  private PPLSyntaxParser parser = new PPLSyntaxParser();
+  @Mock private Settings settings;
+
+  private final PPLSyntaxParser parser = new PPLSyntaxParser();
 
   @Test
   public void buildQueryStatement() {
@@ -38,7 +43,8 @@ public class AstStatementBuilderTest {
         "search source=t a=1",
         new Query(
             project(filter(relation("t"), compare("=", field("a"), intLiteral(1))), AllFields.of()),
-            0));
+            0,
+            PPL));
   }
 
   @Test
@@ -49,7 +55,9 @@ public class AstStatementBuilderTest {
             new Query(
                 project(
                     filter(relation("t"), compare("=", field("a"), intLiteral(1))), AllFields.of()),
-                0)));
+                0,
+                PPL),
+            PPL));
   }
 
   private void assertEqual(String query, Statement expectedStatement) {
@@ -65,7 +73,7 @@ public class AstStatementBuilderTest {
   private Node plan(String query, boolean isExplain) {
     final AstStatementBuilder builder =
         new AstStatementBuilder(
-            new AstBuilder(new AstExpressionBuilder(), query),
+            new AstBuilder(query, settings),
             AstStatementBuilder.StatementBuilderContext.builder().isExplain(isExplain).build());
     return builder.visit(parser.parse(query));
   }

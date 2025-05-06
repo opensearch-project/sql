@@ -5,8 +5,18 @@
 
 package org.opensearch.sql.legacy.cursor;
 
+import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +28,15 @@ import lombok.NonNull;
 import lombok.Setter;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.search.SearchModule;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.legacy.executor.format.Schema;
 
 /**
@@ -40,6 +59,10 @@ public class DefaultCursor implements Cursor {
   private static final String SCROLL_ID = "s";
   private static final String SCHEMA_COLUMNS = "c";
   private static final String FIELD_ALIAS_MAP = "a";
+  private static final String PIT_ID = "p";
+  private static final String SEARCH_REQUEST = "r";
+  private static final String SORT_FIELDS = "h";
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   /**
    * To get mappings for index to check if type is date needed for
@@ -70,10 +93,27 @@ public class DefaultCursor implements Cursor {
   /** To get next batch of result */
   private String scrollId;
 
+  /** To get Point In Time */
+  private String pitId;
+
+  /** To get next batch of result with search after api */
+  private SearchSourceBuilder searchSourceBuilder;
+
+  /** To get last sort values * */
+  private Object[] sortFields;
+
   /** To reduce the number of rows left by fetchSize */
   @NonNull private Integer fetchSize;
 
   private Integer limit;
+
+  /**
+   * {@link NamedXContentRegistry} from {@link SearchModule} used for construct {@link QueryBuilder}
+   * from DSL query string.
+   */
+  private static final NamedXContentRegistry xContentRegistry =
+      new NamedXContentRegistry(
+          new SearchModule(Settings.EMPTY, Collections.emptyList()).getNamedXContents());
 
   @Override
   public CursorType getType() {
@@ -82,17 +122,48 @@ public class DefaultCursor implements Cursor {
 
   @Override
   public String generateCursorId() {
-    if (rowsLeft <= 0 || Strings.isNullOrEmpty(scrollId)) {
+    if (rowsLeft <= 0 || isCursorIdNullOrEmpty()) {
       return null;
     }
     JSONObject json = new JSONObject();
     json.put(FETCH_SIZE, fetchSize);
     json.put(ROWS_LEFT, rowsLeft);
     json.put(INDEX_PATTERN, indexPattern);
-    json.put(SCROLL_ID, scrollId);
     json.put(SCHEMA_COLUMNS, getSchemaAsJson());
     json.put(FIELD_ALIAS_MAP, fieldAliasMap);
+    json.put(PIT_ID, pitId);
+    String sortFieldValue =
+        AccessController.doPrivileged(
+            (PrivilegedAction<String>)
+                () -> {
+                  try {
+                    return objectMapper.writeValueAsString(sortFields);
+                  } catch (JsonProcessingException e) {
+                    throw new RuntimeException("Failed to parse sort fields from JSON string.", e);
+                  }
+                });
+    json.put(SORT_FIELDS, sortFieldValue);
+    setSearchRequestString(json, searchSourceBuilder);
+
     return String.format("%s:%s", type.getId(), encodeCursor(json));
+  }
+
+  private void setSearchRequestString(JSONObject cursorJson, SearchSourceBuilder sourceBuilder) {
+    try {
+      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+      XContentBuilder builder = XContentFactory.jsonBuilder(outputStream);
+      sourceBuilder.toXContent(builder, null);
+      builder.close();
+
+      String searchRequestBase64 = Base64.getEncoder().encodeToString(outputStream.toByteArray());
+      cursorJson.put("searchSourceBuilder", searchRequestBase64);
+    } catch (IOException ex) {
+      throw new RuntimeException("Failed to set search request string on cursor json.", ex);
+    }
+  }
+
+  private boolean isCursorIdNullOrEmpty() {
+    return Strings.isNullOrEmpty(pitId);
   }
 
   public static DefaultCursor from(String cursorId) {
@@ -105,11 +176,44 @@ public class DefaultCursor implements Cursor {
     cursor.setFetchSize(json.getInt(FETCH_SIZE));
     cursor.setRowsLeft(json.getLong(ROWS_LEFT));
     cursor.setIndexPattern(json.getString(INDEX_PATTERN));
-    cursor.setScrollId(json.getString(SCROLL_ID));
+    populateCursorForPit(json, cursor);
     cursor.setColumns(getColumnsFromSchema(json.getJSONArray(SCHEMA_COLUMNS)));
     cursor.setFieldAliasMap(fieldAliasMap(json.getJSONObject(FIELD_ALIAS_MAP)));
 
     return cursor;
+  }
+
+  private static void populateCursorForPit(JSONObject json, DefaultCursor cursor) {
+    cursor.setPitId(json.getString(PIT_ID));
+
+    cursor.setSortFields(getSortFieldsFromJson(json));
+
+    // Retrieve and set the SearchSourceBuilder from the JSON field
+    String searchSourceBuilderBase64 = json.getString("searchSourceBuilder");
+    byte[] bytes = Base64.getDecoder().decode(searchSourceBuilderBase64);
+    ByteArrayInputStream streamInput = new ByteArrayInputStream(bytes);
+    try {
+      XContentParser parser =
+          XContentType.JSON
+              .xContent()
+              .createParser(xContentRegistry, IGNORE_DEPRECATIONS, streamInput);
+      SearchSourceBuilder sourceBuilder = SearchSourceBuilder.fromXContent(parser);
+      cursor.setSearchSourceBuilder(sourceBuilder);
+    } catch (IOException ex) {
+      throw new RuntimeException("Failed to get searchSourceBuilder from cursor Id", ex);
+    }
+  }
+
+  private static Object[] getSortFieldsFromJson(JSONObject json) {
+    return AccessController.doPrivileged(
+        (PrivilegedAction<Object[]>)
+            () -> {
+              try {
+                return objectMapper.readValue(json.getString(SORT_FIELDS), Object[].class);
+              } catch (JsonProcessingException e) {
+                throw new RuntimeException("Failed to parse sort fields from JSON string.", e);
+              }
+            });
   }
 
   private JSONArray getSchemaAsJson() {

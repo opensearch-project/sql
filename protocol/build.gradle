@@ -30,7 +30,7 @@ plugins {
 }
 
 dependencies {
-    implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
+    implementation group: 'com.google.guava', name: 'guava', version: "${guava_version}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
@@ -39,9 +39,9 @@ dependencies {
     implementation project(':opensearch')
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
-    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.7.0'
+    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${mockito_version}"
 }
 
 configurations.all {

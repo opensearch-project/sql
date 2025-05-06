@@ -8,7 +8,7 @@ package org.opensearch.sql.legacy.query.planner.resource.blocksize;
 /** Adaptive block size calculator based on resource usage dynamically. */
 public class AdaptiveBlockSize implements BlockSize {
 
-  private int upperLimit;
+  private final int upperLimit;
 
   public AdaptiveBlockSize(int upperLimit) {
     this.upperLimit = upperLimit;

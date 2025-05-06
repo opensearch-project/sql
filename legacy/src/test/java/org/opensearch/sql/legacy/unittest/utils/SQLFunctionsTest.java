@@ -34,7 +34,7 @@ import org.opensearch.sql.legacy.utils.SQLFunctions;
 
 public class SQLFunctionsTest {
 
-  private SQLFunctions sqlFunctions = new SQLFunctions();
+  private final SQLFunctions sqlFunctions = new SQLFunctions();
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 

@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
@@ -32,9 +33,9 @@ import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 @RunWith(MockitoJUnitRunner.class)
 public class PPLServiceTest {
 
-  private static String QUERY = "/_plugins/_ppl";
+  private static final String QUERY = "/_plugins/_ppl";
 
-  private static String EXPLAIN = "/_plugins/_ppl/_explain";
+  private static final String EXPLAIN = "/_plugins/_ppl/_explain";
 
   private PPLService pplService;
 
@@ -44,18 +45,57 @@ public class PPLServiceTest {
 
   @Mock private ExecutionEngine.Schema schema;
 
+  @Mock private Settings settings;
+
   /** Setup the test context. */
   @Before
   public void setUp() {
     queryManager = DefaultQueryManager.defaultQueryManager();
 
     pplService =
-        new PPLService(new PPLSyntaxParser(), queryManager, new QueryPlanFactory(queryService));
+        new PPLService(
+            new PPLSyntaxParser(), queryManager, new QueryPlanFactory(queryService), settings);
   }
 
   @After
   public void cleanup() throws InterruptedException {
     queryManager.awaitTermination(1, TimeUnit.SECONDS);
+  }
+
+  private ResponseListener<QueryResponse> getQueryListener(boolean fail) {
+    return new ResponseListener<QueryResponse>() {
+      @Override
+      public void onResponse(QueryResponse response) {
+        if (fail) {
+          Assert.fail();
+        }
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        if (!fail) {
+          Assert.fail();
+        }
+      }
+    };
+  }
+
+  private ResponseListener<ExplainResponse> getExplainListener(boolean fail) {
+    return new ResponseListener<ExplainResponse>() {
+      @Override
+      public void onResponse(ExplainResponse response) {
+        if (fail) {
+          Assert.fail();
+        }
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        if (!fail) {
+          Assert.fail();
+        }
+      }
+    };
   }
 
   @Test
@@ -67,19 +107,12 @@ public class PPLServiceTest {
               return null;
             })
         .when(queryService)
-        .execute(any(), any());
+        .execute(any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY),
-        new ResponseListener<QueryResponse>() {
-          @Override
-          public void onResponse(QueryResponse pplQueryResponse) {}
-
-          @Override
-          public void onFailure(Exception e) {
-            Assert.fail();
-          }
-        });
+        getQueryListener(false),
+        getExplainListener(false));
   }
 
   @Test
@@ -91,19 +124,12 @@ public class PPLServiceTest {
               return null;
             })
         .when(queryService)
-        .execute(any(), any());
+        .execute(any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY, "csv"),
-        new ResponseListener<QueryResponse>() {
-          @Override
-          public void onResponse(QueryResponse pplQueryResponse) {}
-
-          @Override
-          public void onFailure(Exception e) {
-            Assert.fail();
-          }
-        });
+        getQueryListener(false),
+        getExplainListener(false));
   }
 
   @Test
@@ -115,7 +141,7 @@ public class PPLServiceTest {
               return null;
             })
         .when(queryService)
-        .explain(any(), any());
+        .explain(any(), any(), any(), any());
 
     pplService.explain(
         new PPLQueryRequest("search source=t a=1", null, EXPLAIN),
@@ -134,30 +160,13 @@ public class PPLServiceTest {
   public void testExecuteWithIllegalQueryShouldBeCaughtByHandler() {
     pplService.execute(
         new PPLQueryRequest("search", null, QUERY),
-        new ResponseListener<QueryResponse>() {
-          @Override
-          public void onResponse(QueryResponse pplQueryResponse) {
-            Assert.fail();
-          }
-
-          @Override
-          public void onFailure(Exception e) {}
-        });
+        getQueryListener(true),
+        getExplainListener(false));
   }
 
   @Test
   public void testExplainWithIllegalQueryShouldBeCaughtByHandler() {
-    pplService.explain(
-        new PPLQueryRequest("search", null, QUERY),
-        new ResponseListener<>() {
-          @Override
-          public void onResponse(ExplainResponse pplQueryResponse) {
-            Assert.fail();
-          }
-
-          @Override
-          public void onFailure(Exception e) {}
-        });
+    pplService.explain(new PPLQueryRequest("search", null, QUERY), getExplainListener(true));
   }
 
   @Test
@@ -169,33 +178,19 @@ public class PPLServiceTest {
               return null;
             })
         .when(queryService)
-        .execute(any(), any());
+        .execute(any(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("source = prometheus.http_requests_total", null, QUERY),
-        new ResponseListener<>() {
-          @Override
-          public void onResponse(QueryResponse pplQueryResponse) {}
-
-          @Override
-          public void onFailure(Exception e) {
-            Assert.fail();
-          }
-        });
+        getQueryListener(false),
+        getExplainListener(false));
   }
 
   @Test
   public void testInvalidPPLQuery() {
     pplService.execute(
         new PPLQueryRequest("search", null, QUERY),
-        new ResponseListener<QueryResponse>() {
-          @Override
-          public void onResponse(QueryResponse pplQueryResponse) {
-            Assert.fail();
-          }
-
-          @Override
-          public void onFailure(Exception e) {}
-        });
+        getQueryListener(true),
+        getExplainListener(false));
   }
 }

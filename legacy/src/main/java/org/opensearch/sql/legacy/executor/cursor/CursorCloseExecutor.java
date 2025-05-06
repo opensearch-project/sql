@@ -12,15 +12,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.opensearch.OpenSearchException;
-import org.opensearch.action.search.ClearScrollResponse;
-import org.opensearch.client.Client;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.legacy.cursor.CursorType;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.legacy.pit.PointInTimeHandler;
+import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
+import org.opensearch.transport.client.Client;
 
 public class CursorCloseExecutor implements CursorRestExecutor {
 
@@ -29,7 +30,7 @@ public class CursorCloseExecutor implements CursorRestExecutor {
   private static final String SUCCEEDED_TRUE = "{\"succeeded\":true}";
   private static final String SUCCEEDED_FALSE = "{\"succeeded\":false}";
 
-  private String cursorId;
+  private final String cursorId;
 
   public CursorCloseExecutor(String cursorId) {
     this.cursorId = cursorId;
@@ -79,12 +80,12 @@ public class CursorCloseExecutor implements CursorRestExecutor {
   }
 
   private String handleDefaultCursorCloseRequest(Client client, DefaultCursor cursor) {
-    String scrollId = cursor.getScrollId();
-    ClearScrollResponse clearScrollResponse =
-        client.prepareClearScroll().addScrollId(scrollId).get();
-    if (clearScrollResponse.isSucceeded()) {
+    String pitId = cursor.getPitId();
+    PointInTimeHandler pit = new PointInTimeHandlerImpl(client, pitId);
+    try {
+      pit.delete();
       return SUCCEEDED_TRUE;
-    } else {
+    } catch (RuntimeException e) {
       Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
       return SUCCEEDED_FALSE;
     }

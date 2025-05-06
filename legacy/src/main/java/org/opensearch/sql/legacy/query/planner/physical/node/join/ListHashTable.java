@@ -15,7 +15,7 @@ import org.opensearch.sql.legacy.query.planner.physical.Row;
 /** List implementation to avoid normal hash table degrading into linked list. */
 public class ListHashTable<T> implements HashTable<T> {
 
-  private List<Row<T>> rows = new ArrayList<>();
+  private final List<Row<T>> rows = new ArrayList<>();
 
   @Override
   public void add(Row<T> row) {

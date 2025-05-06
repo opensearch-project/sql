@@ -6,6 +6,7 @@
 package org.opensearch.sql.legacy.executor.cursor;
 
 import static org.opensearch.core.rest.RestStatus.OK;
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -14,14 +15,16 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.search.ClearScrollResponse;
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
-import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.search.builder.PointInTimeBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.legacy.cursor.CursorType;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
@@ -29,12 +32,16 @@ import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.executor.format.Protocol;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.legacy.pit.PointInTimeHandler;
+import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
+import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
+import org.opensearch.transport.client.Client;
 
 public class CursorResultExecutor implements CursorRestExecutor {
 
-  private String cursorId;
-  private Format format;
+  private final String cursorId;
+  private final Format format;
 
   private static final Logger LOG = LogManager.getLogger(CursorResultExecutor.class);
 
@@ -52,7 +59,15 @@ public class CursorResultExecutor implements CursorRestExecutor {
     } catch (IllegalArgumentException | JSONException e) {
       Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
       LOG.error("Error parsing the cursor", e);
-      channel.sendResponse(new BytesRestResponse(channel, e));
+      channel.sendResponse(
+          new BytesRestResponse(
+              RestStatus.BAD_REQUEST,
+              "application/json; charset=UTF-8",
+              ErrorMessageFactory.createErrorMessage(
+                      new IllegalArgumentException(
+                          "Malformed cursor: unable to extract cursor information"),
+                      RestStatus.BAD_REQUEST.getStatus())
+                  .toString()));
     } catch (OpenSearchException e) {
       int status = (e.status().getStatus());
       if (status > 399 && status < 500) {
@@ -91,14 +106,23 @@ public class CursorResultExecutor implements CursorRestExecutor {
   }
 
   private String handleDefaultCursorRequest(Client client, DefaultCursor cursor) {
-    String previousScrollId = cursor.getScrollId();
     LocalClusterState clusterState = LocalClusterState.state();
-    TimeValue scrollTimeout = clusterState.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    SearchResponse scrollResponse =
-        client.prepareSearchScroll(previousScrollId).setScroll(scrollTimeout).get();
+    TimeValue paginationTimeout = clusterState.getSettingValue(SQL_CURSOR_KEEP_ALIVE);
+
+    SearchResponse scrollResponse = null;
+
+    String pitId = cursor.getPitId();
+    SearchSourceBuilder source = cursor.getSearchSourceBuilder();
+    source.searchAfter(cursor.getSortFields());
+    source.pointInTimeBuilder(new PointInTimeBuilder(pitId));
+    SearchRequest searchRequest = new SearchRequest();
+    searchRequest.source(source);
+    scrollResponse = client.search(searchRequest).actionGet();
+
     SearchHits searchHits = scrollResponse.getHits();
     SearchHit[] searchHitArray = searchHits.getHits();
     String newScrollId = scrollResponse.getScrollId();
+    String newPitId = scrollResponse.pointInTimeId();
 
     int rowsLeft = (int) cursor.getRowsLeft();
     int fetch = cursor.getFetchSize();
@@ -124,16 +148,33 @@ public class CursorResultExecutor implements CursorRestExecutor {
 
     if (rowsLeft <= 0) {
       /** Clear the scroll context on last page */
-      ClearScrollResponse clearScrollResponse =
-          client.prepareClearScroll().addScrollId(newScrollId).get();
-      if (!clearScrollResponse.isSucceeded()) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.info("Error closing the cursor context {} ", newScrollId);
+      if (newScrollId != null) {
+        ClearScrollResponse clearScrollResponse =
+            client.prepareClearScroll().addScrollId(newScrollId).get();
+        if (!clearScrollResponse.isSucceeded()) {
+          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+          LOG.info("Error closing the cursor context {} ", newScrollId);
+        }
+      }
+      if (newPitId != null) {
+        PointInTimeHandler pit = new PointInTimeHandlerImpl(client, newPitId);
+        try {
+          pit.delete();
+        } catch (RuntimeException e) {
+          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+          LOG.info("Error deleting point in time {} ", newPitId);
+        }
       }
     }
 
     cursor.setRowsLeft(rowsLeft);
-    cursor.setScrollId(newScrollId);
+    cursor.setPitId(newPitId);
+    cursor.setSearchSourceBuilder(cursor.getSearchSourceBuilder());
+    cursor.setSortFields(
+        scrollResponse
+            .getHits()
+            .getAt(scrollResponse.getHits().getHits().length - 1)
+            .getSortValues());
     Protocol protocol = new Protocol(client, searchHits, format.name().toLowerCase(), cursor);
     return protocol.cursorFormat();
   }

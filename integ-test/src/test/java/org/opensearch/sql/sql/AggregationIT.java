@@ -5,20 +5,21 @@
 
 package org.opensearch.sql.sql;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
+import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verify;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySome;
 import static org.opensearch.sql.util.TestUtils.getResponseBody;
+import static org.opensearch.sql.util.TestUtils.roundOfResponse;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -398,8 +399,9 @@ public class AggregationIT extends SQLIntegTestCase {
   @Test
   public void testAvgDoublePushedDown() throws IOException {
     var response = executeQuery(String.format("SELECT avg(num3)" + " from %s", TEST_INDEX_CALCS));
+    JSONArray responseJSON = roundOfResponse(response.getJSONArray("datarows"));
     verifySchema(response, schema("avg(num3)", null, "double"));
-    verifyDataRows(response, rows(-6.12D));
+    verify(responseJSON, rows(-6.12D));
   }
 
   @Test
@@ -458,8 +460,9 @@ public class AggregationIT extends SQLIntegTestCase {
         executeQuery(
             String.format(
                 "SELECT avg(num3)" + " OVER(PARTITION BY datetime1) from %s", TEST_INDEX_CALCS));
+    JSONArray roundOfResponse = roundOfResponse(response.getJSONArray("datarows"));
     verifySchema(response, schema("avg(num3) OVER(PARTITION BY datetime1)", null, "double"));
-    verifySome(response.getJSONArray("datarows"), rows(-6.12D));
+    verifySome(roundOfResponse, rows(-6.12D));
   }
 
   @Test
@@ -711,6 +714,42 @@ public class AggregationIT extends SQLIntegTestCase {
         schema(
             "avg(CAST(datetime0 AS timestamp)) OVER(PARTITION BY datetime1)", null, "timestamp"));
     verifySome(response.getJSONArray("datarows"), rows("2004-07-20 10:38:09.705"));
+  }
+
+  @Test
+  public void testPercentilePushedDown() throws IOException {
+    var response =
+        executeQuery(String.format("SELECT percentile(balance, 50)" + " FROM %s", TEST_INDEX_BANK));
+    verifySchema(response, schema("percentile(balance, 50)", null, "long"));
+    verifyDataRows(response, rows(32838));
+  }
+
+  @Test
+  public void testFilteredPercentilePushDown() throws IOException {
+    JSONObject response =
+        executeQuery(
+            "SELECT percentile(balance, 50) FILTER(WHERE balance > 40000) FROM " + TEST_INDEX_BANK);
+    verifySchema(
+        response, schema("percentile(balance, 50) FILTER(WHERE balance > 40000)", null, "long"));
+    verifyDataRows(response, rows(48086));
+  }
+
+  @Test
+  public void testPercentileGroupByPushDown() throws IOException {
+    var response =
+        executeQuery(
+            String.format(
+                "SELECT percentile(balance, 50), age" + " FROM %s GROUP BY age", TEST_INDEX_BANK));
+    verifySchema(
+        response, schema("percentile(balance, 50)", null, "long"), schema("age", null, "integer"));
+    verifyDataRows(
+        response,
+        rows(32838, 28),
+        rows(39225, 32),
+        rows(4180, 33),
+        rows(48086, 34),
+        rows(16418, 36),
+        rows(40540, 39));
   }
 
   protected JSONObject executeQuery(String query) throws IOException {

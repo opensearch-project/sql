@@ -26,8 +26,10 @@ import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.config.TestConfig;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.RequestContext;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -147,15 +149,15 @@ public class AnalyzerTestBase {
     };
   }
 
-  protected AnalysisContext analysisContext = analysisContext(typeEnvironment(symbolTable()));
+  protected final AnalysisContext analysisContext = analysisContext(typeEnvironment(symbolTable()));
 
-  protected ExpressionAnalyzer expressionAnalyzer = expressionAnalyzer();
+  protected final ExpressionAnalyzer expressionAnalyzer = expressionAnalyzer();
 
-  protected Table table = table();
+  protected final Table table = table();
 
-  protected DataSourceService dataSourceService = dataSourceService();
+  protected final DataSourceService dataSourceService = dataSourceService();
 
-  protected Analyzer analyzer = analyzer(expressionAnalyzer(), dataSourceService);
+  protected final Analyzer analyzer = analyzer(expressionAnalyzer(), dataSourceService);
 
   protected Analyzer analyzer(
       ExpressionAnalyzer expressionAnalyzer, DataSourceService dataSourceService) {
@@ -176,7 +178,8 @@ public class AnalyzerTestBase {
   }
 
   protected void assertAnalyzeEqual(LogicalPlan expected, UnresolvedPlan unresolvedPlan) {
-    assertEquals(expected, analyze(unresolvedPlan));
+    LogicalPlan actual = analyze(unresolvedPlan);
+    assertEquals(expected, actual);
   }
 
   protected LogicalPlan analyze(UnresolvedPlan unresolvedPlan) {
@@ -236,18 +239,19 @@ public class AnalyzerTestBase {
     }
 
     @Override
-    public DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(String dataSourceName) {
+    public DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(
+        String dataSourceName, RequestContext requestContext) {
       return null;
     }
   }
 
   private class TestTableFunctionImplementation implements TableFunctionImplementation {
 
-    private FunctionName functionName;
+    private final FunctionName functionName;
 
-    private List<Expression> arguments;
+    private final List<Expression> arguments;
 
-    private Table table;
+    private final Table table;
 
     public TestTableFunctionImplementation(
         FunctionName functionName, List<Expression> arguments, Table table) {
@@ -270,5 +274,15 @@ public class AnalyzerTestBase {
     public Table applyArguments() {
       return table;
     }
+  }
+
+  public static String getIncompatibleTypeErrMsg(ExprType lType, ExprType rType) {
+    return String.format(
+        "= function expected %s, but got [%s,%s]",
+        ExprCoreType.coreTypes().stream()
+            .map(type -> String.format("[%s,%s]", type.typeName(), type.typeName()))
+            .collect(Collectors.joining(",", "{", "}")),
+        lType,
+        rType);
   }
 }

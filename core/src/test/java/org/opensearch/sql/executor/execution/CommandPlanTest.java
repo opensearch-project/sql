@@ -22,10 +22,12 @@ import static org.mockito.Mockito.withSettings;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -35,11 +37,13 @@ public class CommandPlanTest {
   public void execute_without_error() {
     QueryService qs = mock(QueryService.class);
     ResponseListener listener = mock(ResponseListener.class);
-    doNothing().when(qs).execute(any(), any());
+    doNothing().when(qs).execute(any(), any(), any());
 
-    new CommandPlan(QueryId.queryId(), mock(UnresolvedPlan.class), qs, listener).execute();
+    new CommandPlan(
+            QueryId.queryId(), mock(QueryType.class), mock(UnresolvedPlan.class), qs, listener)
+        .execute();
 
-    verify(qs).execute(any(), any());
+    verify(qs).execute(any(), any(), any());
     verify(listener, never()).onFailure(any());
   }
 
@@ -49,7 +53,9 @@ public class CommandPlanTest {
     ResponseListener listener = mock(ResponseListener.class);
     doThrow(new RuntimeException()).when(qs).executePlan(any(LogicalPlan.class), any(), any());
 
-    new CommandPlan(QueryId.queryId(), mock(UnresolvedPlan.class), qs, listener).execute();
+    new CommandPlan(
+            QueryId.queryId(), mock(QueryType.class), mock(UnresolvedPlan.class), qs, listener)
+        .execute();
 
     verify(listener).onFailure(any());
   }
@@ -60,13 +66,19 @@ public class CommandPlanTest {
     QueryService qs = mock(QueryService.class);
     ResponseListener listener = mock(ResponseListener.class);
     ResponseListener explainListener = mock(ResponseListener.class);
+    Explain.ExplainFormat format = mock(Explain.ExplainFormat.class);
 
     var exception =
         assertThrows(
             Throwable.class,
             () ->
-                new CommandPlan(QueryId.queryId(), mock(UnresolvedPlan.class), qs, listener)
-                    .explain(explainListener));
+                new CommandPlan(
+                        QueryId.queryId(),
+                        mock(QueryType.class),
+                        mock(UnresolvedPlan.class),
+                        qs,
+                        listener)
+                    .explain(explainListener, format));
     assertEquals("CommandPlan does not support explain", exception.getMessage());
 
     verify(listener, never()).onResponse(any());

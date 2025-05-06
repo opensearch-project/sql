@@ -26,6 +26,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
+import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.InnerHitBuilder;
@@ -39,9 +40,11 @@ import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -67,10 +70,13 @@ public class OpenSearchRequestBuilder {
 
   private int startFrom = 0;
 
+  @ToString.Exclude private final Settings settings;
+
   /** Constructor. */
   public OpenSearchRequestBuilder(
-      int requestedTotalSize, OpenSearchExprValueFactory exprValueFactory) {
+      int requestedTotalSize, OpenSearchExprValueFactory exprValueFactory, Settings settings) {
     this.requestedTotalSize = requestedTotalSize;
+    this.settings = settings;
     this.sourceBuilder =
         new SearchSourceBuilder()
             .from(startFrom)
@@ -82,21 +88,36 @@ public class OpenSearchRequestBuilder {
   /**
    * Build DSL request.
    *
-   * @return query request or scroll request
+   * @return query request with PIT or scroll request
    */
   public OpenSearchRequest build(
-      OpenSearchRequest.IndexName indexName, int maxResultWindow, TimeValue scrollTimeout) {
+      OpenSearchRequest.IndexName indexName,
+      int maxResultWindow,
+      TimeValue cursorKeepAlive,
+      OpenSearchClient client) {
+    return buildRequestWithPit(indexName, maxResultWindow, cursorKeepAlive, client);
+  }
+
+  private OpenSearchRequest buildRequestWithPit(
+      OpenSearchRequest.IndexName indexName,
+      int maxResultWindow,
+      TimeValue cursorKeepAlive,
+      OpenSearchClient client) {
     int size = requestedTotalSize;
     FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
     List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
+
     if (pageSize == null) {
       if (startFrom + size > maxResultWindow) {
         sourceBuilder.size(maxResultWindow - startFrom);
-        return new OpenSearchScrollRequest(
-            indexName, scrollTimeout, sourceBuilder, exprValueFactory, includes);
+        // Search with PIT request
+        String pitId = createPit(indexName, cursorKeepAlive, client);
+        return new OpenSearchQueryRequest(
+            indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(requestedTotalSize);
+        // Search with non-Pit request
         return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
       }
     } else {
@@ -104,9 +125,19 @@ public class OpenSearchRequestBuilder {
         throw new UnsupportedOperationException("Non-zero offset is not supported with pagination");
       }
       sourceBuilder.size(pageSize);
-      return new OpenSearchScrollRequest(
-          indexName, scrollTimeout, sourceBuilder, exprValueFactory, includes);
+      // Search with PIT request
+      String pitId = createPit(indexName, cursorKeepAlive, client);
+      return new OpenSearchQueryRequest(
+          indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
     }
+  }
+
+  private String createPit(
+      OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
+    // Create PIT ID for request
+    CreatePitRequest createPitRequest =
+        new CreatePitRequest(cursorKeepAlive, false, indexName.getIndexNames());
+    return client.createPit(createPitRequest);
   }
 
   boolean isBoolFilterQuery(QueryBuilder current) {
@@ -219,9 +250,11 @@ public class OpenSearchRequestBuilder {
 
   /** Push down project list to DSL requests. */
   public void pushDownProjects(Set<ReferenceExpression> projects) {
-    sourceBuilder.fetchSource(
-        projects.stream().map(ReferenceExpression::getAttr).distinct().toArray(String[]::new),
-        new String[0]);
+    pushDownProjectStream(projects.stream().map(ReferenceExpression::getRawPath));
+  }
+
+  public void pushDownProjectStream(Stream<String> projects) {
+    sourceBuilder.fetchSource(projects.distinct().toArray(String[]::new), new String[0]);
   }
 
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {

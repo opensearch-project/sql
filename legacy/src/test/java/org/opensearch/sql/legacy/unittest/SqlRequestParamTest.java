@@ -19,7 +19,7 @@ import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.request.SqlRequestParam;
 
 public class SqlRequestParamTest {
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void shouldReturnTrueIfPrettyParamsIsTrue() {
@@ -39,12 +39,6 @@ public class SqlRequestParamTest {
   @Test
   public void shouldReturnFalseIfPrettyParamsIsUnknownValue() {
     assertFalse(SqlRequestParam.isPrettyFormat(ImmutableMap.of(QUERY_PARAMS_PRETTY, "unknown")));
-  }
-
-  @Test
-  public void shouldReturnJSONIfFormatParamsIsJSON() {
-    assertEquals(
-        Format.JSON, SqlRequestParam.getFormat(ImmutableMap.of(QUERY_PARAMS_FORMAT, "json")));
   }
 
   @Test

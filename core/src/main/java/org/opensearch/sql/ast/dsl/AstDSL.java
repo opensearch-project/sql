@@ -5,10 +5,15 @@
 
 package org.opensearch.sql.ast.dsl;
 
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -33,6 +38,7 @@ import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.Span;
@@ -45,11 +51,14 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -58,7 +67,9 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 
@@ -84,7 +95,15 @@ public class AstDSL {
   }
 
   public UnresolvedPlan relation(String tableName, String alias) {
-    return new Relation(qualifiedName(tableName), alias);
+    return new SubqueryAlias(alias, new Relation(qualifiedName(tableName)));
+  }
+
+  public UnresolvedPlan describe(String tableName) {
+    return new DescribeRelation(qualifiedName(tableName));
+  }
+
+  public UnresolvedPlan subqueryAlias(UnresolvedPlan child, String alias) {
+    return new SubqueryAlias(child, alias);
   }
 
   public UnresolvedPlan tableFunction(List<String> functionName, UnresolvedExpression... args) {
@@ -274,7 +293,7 @@ public class AstDSL {
    */
   public UnresolvedExpression caseWhen(
       UnresolvedExpression caseValueExpr, UnresolvedExpression elseClause, When... whenClauses) {
-    return new Case(caseValueExpr, Arrays.asList(whenClauses), elseClause);
+    return new Case(caseValueExpr, Arrays.asList(whenClauses), Optional.ofNullable(elseClause));
   }
 
   public UnresolvedExpression cast(UnresolvedExpression expr, Literal type) {
@@ -380,6 +399,7 @@ public class AstDSL {
     return new Alias(name, expr);
   }
 
+  @Deprecated
   public Alias alias(String name, UnresolvedExpression expr, String alias) {
     return new Alias(name, expr, alias);
   }
@@ -463,6 +483,18 @@ public class AstDSL {
     return new Limit(limit, offset).attach(input);
   }
 
+  public static Trendline trendline(
+      UnresolvedPlan input,
+      Optional<Field> sortField,
+      Trendline.TrendlineComputation... computations) {
+    return new Trendline(sortField, Arrays.asList(computations)).attach(input);
+  }
+
+  public static Trendline.TrendlineComputation computation(
+      Integer numDataPoints, Field dataField, String alias, Trendline.TrendlineType type) {
+    return new Trendline.TrendlineComputation(numDataPoints, dataField, alias, type);
+  }
+
   public static Parse parse(
       UnresolvedPlan input,
       ParseMethod parseMethod,
@@ -470,5 +502,43 @@ public class AstDSL {
       Literal pattern,
       java.util.Map<String, Literal> arguments) {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
+  }
+
+  public static Patterns patterns(
+      UnresolvedPlan input,
+      PatternMethod patternMethod,
+      UnresolvedExpression sourceField,
+      String alias,
+      List<Argument> arguments) {
+    List<UnresolvedExpression> funArgs = new ArrayList<>();
+    funArgs.add(sourceField);
+    funArgs.addAll(arguments);
+    return new Patterns(
+        new Alias(
+            alias,
+            new WindowFunction(
+                new Function(patternMethod.name().toLowerCase(Locale.ROOT), funArgs),
+                List.of(),
+                List.of()),
+            alias),
+        input);
+  }
+
+  public static FillNull fillNull(UnresolvedExpression replaceNullWithMe, Field... fields) {
+    return new FillNull(
+        FillNull.ContainNullableFieldFill.ofSameValue(
+            replaceNullWithMe, ImmutableList.copyOf(fields)));
+  }
+
+  public static FillNull fillNull(
+      List<ImmutablePair<Field, UnresolvedExpression>> fieldAndReplacements) {
+    ImmutableList.Builder<FillNull.NullableFieldFill> replacementsBuilder = ImmutableList.builder();
+    for (ImmutablePair<Field, UnresolvedExpression> fieldAndReplacement : fieldAndReplacements) {
+      replacementsBuilder.add(
+          new FillNull.NullableFieldFill(
+              fieldAndReplacement.getLeft(), fieldAndReplacement.getRight()));
+    }
+    return new FillNull(
+        FillNull.ContainNullableFieldFill.ofVariousValue(replacementsBuilder.build()));
   }
 }

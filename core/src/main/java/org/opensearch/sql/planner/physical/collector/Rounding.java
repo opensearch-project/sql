@@ -46,13 +46,13 @@ public abstract class Rounding<T> {
     if (DOUBLE.isCompatible(type)) {
       return new DoubleRounding(interval);
     }
-    if (type.equals(TIMESTAMP)) {
+    if (type.equals(TIMESTAMP) || type.typeName().equalsIgnoreCase(TIMESTAMP.typeName())) {
       return new TimestampRounding(interval, span.getUnit().getName());
     }
-    if (type.equals(DATE)) {
+    if (type.equals(DATE) || type.typeName().equalsIgnoreCase(DATE.typeName())) {
       return new DateRounding(interval, span.getUnit().getName());
     }
-    if (type.equals(TIME)) {
+    if (type.equals(TIME) || type.typeName().equalsIgnoreCase(TIME.typeName())) {
       return new TimeRounding(interval, span.getUnit().getName());
     }
     return new UnknownRounding();
@@ -60,7 +60,7 @@ public abstract class Rounding<T> {
 
   public abstract ExprValue round(ExprValue value);
 
-  static class TimestampRounding extends Rounding<Instant> {
+  public static class TimestampRounding extends Rounding<Instant> {
     private final ExprValue interval;
     private final DateTimeUnit dateTimeUnit;
 
@@ -78,7 +78,7 @@ public abstract class Rounding<T> {
     }
   }
 
-  static class DateRounding extends Rounding<LocalDate> {
+  public static class DateRounding extends Rounding<LocalDate> {
     private final ExprValue interval;
     private final DateTimeUnit dateTimeUnit;
 
@@ -98,7 +98,7 @@ public abstract class Rounding<T> {
     }
   }
 
-  static class TimeRounding extends Rounding<LocalTime> {
+  public static class TimeRounding extends Rounding<LocalTime> {
     private final ExprValue interval;
     private final DateTimeUnit dateTimeUnit;
 
@@ -163,63 +163,63 @@ public abstract class Rounding<T> {
   public enum DateTimeUnit {
     MILLISECOND(1, "ms", true, ChronoField.MILLI_OF_SECOND.getBaseUnit().getDuration().toMillis()) {
       @Override
-      long round(long utcMillis, int interval) {
+      public long round(long utcMillis, int interval) {
         return DateTimeUtils.roundFloor(utcMillis, ratio * interval);
       }
     },
 
     SECOND(2, "s", true, ChronoField.SECOND_OF_MINUTE.getBaseUnit().getDuration().toMillis()) {
       @Override
-      long round(long utcMillis, int interval) {
+      public long round(long utcMillis, int interval) {
         return DateTimeUtils.roundFloor(utcMillis, ratio * interval);
       }
     },
 
     MINUTE(3, "m", true, ChronoField.MINUTE_OF_HOUR.getBaseUnit().getDuration().toMillis()) {
       @Override
-      long round(long utcMillis, int interval) {
+      public long round(long utcMillis, int interval) {
         return DateTimeUtils.roundFloor(utcMillis, ratio * interval);
       }
     },
 
     HOUR(4, "h", true, ChronoField.HOUR_OF_DAY.getBaseUnit().getDuration().toMillis()) {
       @Override
-      long round(long utcMillis, int interval) {
+      public long round(long utcMillis, int interval) {
         return DateTimeUtils.roundFloor(utcMillis, ratio * interval);
       }
     },
 
     DAY(5, "d", true, ChronoField.DAY_OF_MONTH.getBaseUnit().getDuration().toMillis()) {
       @Override
-      long round(long utcMillis, int interval) {
+      public long round(long utcMillis, int interval) {
         return DateTimeUtils.roundFloor(utcMillis, ratio * interval);
       }
     },
 
     WEEK(6, "w", true, TimeUnit.DAYS.toMillis(7L)) {
       @Override
-      long round(long utcMillis, int interval) {
+      public long round(long utcMillis, int interval) {
         return DateTimeUtils.roundWeek(utcMillis, interval);
       }
     },
 
     MONTH(7, "M", false, 1) {
       @Override
-      long round(long utcMillis, int interval) {
+      public long round(long utcMillis, int interval) {
         return DateTimeUtils.roundMonth(utcMillis, interval);
       }
     },
 
     QUARTER(8, "q", false, 3) {
       @Override
-      long round(long utcMillis, int interval) {
+      public long round(long utcMillis, int interval) {
         return DateTimeUtils.roundQuarter(utcMillis, interval);
       }
     },
 
     YEAR(9, "y", false, 12) {
       @Override
-      long round(long utcMillis, int interval) {
+      public long round(long utcMillis, int interval) {
         return DateTimeUtils.roundYear(utcMillis, interval);
       }
     };
@@ -229,7 +229,7 @@ public abstract class Rounding<T> {
     protected final boolean isMillisBased;
     protected final long ratio;
 
-    abstract long round(long utcMillis, int interval);
+    public abstract long round(long utcMillis, int interval);
 
     /** Resolve the date time unit. */
     public static Rounding.DateTimeUnit resolve(String name) {

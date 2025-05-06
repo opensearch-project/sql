@@ -72,13 +72,13 @@ PPL query::
 
     os> source=accounts | parse address '(?<streetNumber>\d+) (?<street>.+)' | where cast(streetNumber as int) > 500 | sort num(streetNumber) | fields streetNumber, street ;
     fetched rows / total rows = 3/3
-    +----------------+----------------+
-    | streetNumber   | street         |
-    |----------------+----------------|
-    | 671            | Bristol Street |
-    | 789            | Madison Street |
-    | 880            | Holmes Lane    |
-    +----------------+----------------+
+    +--------------+----------------+
+    | streetNumber | street         |
+    |--------------+----------------|
+    | 671          | Bristol Street |
+    | 789          | Madison Street |
+    | 880          | Holmes Lane    |
+    +--------------+----------------+
 
 Limitations
 ===========
@@ -108,3 +108,9 @@ There are a few limitations with parse command:
   ``where`` in the following command will not work::
 
     source=accounts | parse email '.+@(?<host>.+)' | stats avg(age) by host | where host=pyrami.com ;
+
+- Fields defined by parse will not appear in the final result unless the original source field is included in the ``fields`` command.
+
+  For example, the following query will not display the parsed fields ``host`` unless the source field ``email`` is also explicitly included::
+
+    source=accounts | parse email '.+@(?<host>.+)' | fields email, host ;

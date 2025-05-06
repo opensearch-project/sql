@@ -115,7 +115,7 @@ A data type can be converted to another, implicitly or explicitly or impossibly,
 
 The general rules and design tenets for data type conversion include:
 
-1. Implicit conversion is defined by type precedence which is represented by the type hierarchy tree. See `Data Type Conversion in SQL/PPL </docs/dev/TypeConversion.md>`_ for more details.
+1. Implicit conversion is defined by type precedence which is represented by the type hierarchy tree. See `Data Type Conversion in SQL/PPL </docs/dev/query-type-conversion.md>`_ for more details.
 2. Explicit conversion defines the complete set of conversion allowed. If no explicit conversion defined, implicit conversion should be impossible too.
 3. On the other hand, if implicit conversion can occur between 2 types, then explicit conversion should be allowed too.
 4. Conversion within a data type family is considered as conversion between different data representation and should be supported as much as possible.
@@ -188,11 +188,11 @@ Here are a few examples for implicit type conversion::
     ...  'True' = true,
     ...  DATE('2021-06-10') < '2021-06-11';
     fetched rows / total rows = 1/1
-    +-----------+-----------------+-------------------------------------+
-    | 1 = 1.0   | 'True' = true   | DATE('2021-06-10') < '2021-06-11'   |
-    |-----------+-----------------+-------------------------------------|
-    | True      | True            | True                                |
-    +-----------+-----------------+-------------------------------------+
+    +---------+---------------+-----------------------------------+
+    | 1 = 1.0 | 'True' = true | DATE('2021-06-10') < '2021-06-11' |
+    |---------+---------------+-----------------------------------|
+    | True    | True          | True                              |
+    +---------+---------------+-----------------------------------+
 
 Here are a few examples for explicit type conversion::
 
@@ -201,11 +201,11 @@ Here are a few examples for explicit type conversion::
     ...  CAST(1.2 AS STRING),
     ...  CAST('2021-06-10 00:00:00' AS TIMESTAMP);
     fetched rows / total rows = 1/1
-    +---------------------+-----------------------+--------------------------------------------+
-    | CAST(true AS INT)   | CAST(1.2 AS STRING)   | CAST('2021-06-10 00:00:00' AS TIMESTAMP)   |
-    |---------------------+-----------------------+--------------------------------------------|
-    | 1                   | 1.2                   | 2021-06-10 00:00:00                        |
-    +---------------------+-----------------------+--------------------------------------------+
+    +-------------------+---------------------+------------------------------------------+
+    | CAST(true AS INT) | CAST(1.2 AS STRING) | CAST('2021-06-10 00:00:00' AS TIMESTAMP) |
+    |-------------------+---------------------+------------------------------------------|
+    | 1                 | 1.2                 | 2021-06-10 00:00:00                      |
+    +-------------------+---------------------+------------------------------------------+
 
 Undefined Data Type
 ===================
@@ -216,11 +216,11 @@ Here are examples for NULL literal and expressions with NULL literal involved::
 
     os> SELECT NULL, NULL = NULL, 1 + NULL, LENGTH(NULL);
     fetched rows / total rows = 1/1
-    +--------+---------------+------------+----------------+
-    | NULL   | NULL = NULL   | 1 + NULL   | LENGTH(NULL)   |
-    |--------+---------------+------------+----------------|
-    | null   | null          | null       | null           |
-    +--------+---------------+------------+----------------+
+    +------+-------------+----------+--------------+
+    | NULL | NULL = NULL | 1 + NULL | LENGTH(NULL) |
+    |------+-------------+----------+--------------|
+    | null | null        | null     | null         |
+    +------+-------------+----------+--------------+
 
 
 Numeric Data Types
@@ -318,11 +318,11 @@ A string can also represent and be converted to date and time types (except to i
     ...  '2021-06-18' < DATE('2021-06-17'),
     ...  '10:20:00' <= TIME('11:00:00');
     fetched rows / total rows = 1/1
-    +------------------------------------------------------------+-------------------------------------+----------------------------------+
-    | TIMESTAMP('2021-06-17 00:00:00') = '2021-06-17 00:00:00'   | '2021-06-18' < DATE('2021-06-17')   | '10:20:00' <= TIME('11:00:00')   |
-    |------------------------------------------------------------+-------------------------------------+----------------------------------|
-    | True                                                       | False                               | True                             |
-    +------------------------------------------------------------+-------------------------------------+----------------------------------+
+    +----------------------------------------------------------+-----------------------------------+--------------------------------+
+    | TIMESTAMP('2021-06-17 00:00:00') = '2021-06-17 00:00:00' | '2021-06-18' < DATE('2021-06-17') | '10:20:00' <= TIME('11:00:00') |
+    |----------------------------------------------------------+-----------------------------------+--------------------------------|
+    | True                                                     | False                             | True                           |
+    +----------------------------------------------------------+-----------------------------------+--------------------------------+
 
 Please, see `more examples here <../dql/expressions.rst#toc-entry-15>`_.
 
@@ -400,6 +400,48 @@ Querying such index will provide a response with ``schema`` block as shown below
         "status": 200
     }
 
+If the sql query contains an `IndexDateField` and a literal value with an operator (such as a term query or a range query), then the literal value can be in the `IndexDateField` format.
+
+.. code-block:: json
+
+    {
+        "mappings" : {
+            "properties" : {
+                "release_date" : {
+                    "type" : "date",
+                    "format": "dd-MMM-yy"
+                }
+            }
+        }
+    }
+
+Querying such an `IndexDateField` (``release_date``) will provide a response with ``schema`` and ``datarows`` blocks as shown below.
+
+.. code-block:: json
+
+    {
+        "query" : "SELECT release_date FROM test_index WHERE release_date = \"03-Jan-21\""
+    }
+
+.. code-block:: json
+
+    {
+      "schema": [
+        {
+          "name": "release_date",
+          "type": "date"
+        }
+      ],
+      "datarows": [
+        [
+          "2021-01-03"
+        ]
+      ],
+      "total": 1,
+      "size": 1,
+      "status": 200
+    }
+
 String Data Types
 =================
 
@@ -407,11 +449,11 @@ A string is a sequence of characters enclosed in either single or double quotes.
 
     os> SELECT 'hello', "world", '"hello"', "'world'", '''hello''', """world""", 'I\'m', 'I''m', "I\"m"
     fetched rows / total rows = 1/1
-    +-----------+-----------+-------------+-------------+---------------+---------------+----------+----------+----------+
-    | 'hello'   | "world"   | '"hello"'   | "'world'"   | '''hello'''   | """world"""   | 'I\'m'   | 'I''m'   | "I\"m"   |
-    |-----------+-----------+-------------+-------------+---------------+---------------+----------+----------+----------|
-    | hello     | world     | "hello"     | 'world'     | 'hello'       | "world"       | I'm      | I'm      | I"m      |
-    +-----------+-----------+-------------+-------------+---------------+---------------+----------+----------+----------+
+    +---------+---------+-----------+-----------+-------------+-------------+--------+--------+--------+
+    | 'hello' | "world" | '"hello"' | "'world'" | '''hello''' | """world""" | 'I\'m' | 'I''m' | "I\"m" |
+    |---------+---------+-----------+-----------+-------------+-------------+--------+--------+--------|
+    | hello   | world   | "hello"   | 'world'   | 'hello'     | "world"     | I'm    | I'm    | I"m    |
+    +---------+---------+-----------+-----------+-------------+-------------+--------+--------+--------+
 
 Boolean Data Types
 ==================
@@ -422,8 +464,8 @@ A boolean can be represented by constant value ``TRUE`` or ``FALSE``. Besides, c
     ...  true, FALSE,
     ...  CAST('TRUE' AS boolean), CAST('false' AS boolean);
     fetched rows / total rows = 1/1
-    +--------+---------+---------------------------+----------------------------+
-    | true   | FALSE   | CAST('TRUE' AS boolean)   | CAST('false' AS boolean)   |
-    |--------+---------+---------------------------+----------------------------|
-    | True   | False   | True                      | False                      |
-    +--------+---------+---------------------------+----------------------------+
+    +------+-------+-------------------------+--------------------------+
+    | true | FALSE | CAST('TRUE' AS boolean) | CAST('false' AS boolean) |
+    |------+-------+-------------------------+--------------------------|
+    | True | False | True                    | False                    |
+    +------+-------+-------------------------+--------------------------+

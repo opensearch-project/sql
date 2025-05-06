@@ -15,8 +15,8 @@ import org.opensearch.sql.legacy.domain.Field;
 
 /** Created by Eliran on 2/11/2015. */
 public class HashJoinComparisonStructure {
-  private HashMap<String, List<Map.Entry<Field, Field>>> comparisonIDtoComparisonFields;
-  private HashMap<String, HashMap<String, SearchHitsResult>> comparisonIDtoComparisonHash;
+  private final HashMap<String, List<Map.Entry<Field, Field>>> comparisonIDtoComparisonFields;
+  private final HashMap<String, HashMap<String, SearchHitsResult>> comparisonIDtoComparisonHash;
 
   public HashJoinComparisonStructure(List<List<Map.Entry<Field, Field>>> t1ToT2FieldsComparisons) {
     comparisonIDtoComparisonFields = new HashMap<>();

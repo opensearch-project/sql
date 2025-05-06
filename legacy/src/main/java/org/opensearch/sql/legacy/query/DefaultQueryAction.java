@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.query;
 
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
+
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
@@ -21,7 +23,6 @@ import java.util.Optional;
 import org.opensearch.action.search.SearchAction;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchType;
-import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.script.Script;
@@ -48,6 +49,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.query.maker.QueryMaker;
 import org.opensearch.sql.legacy.rewriter.nestedfield.NestedFieldProjection;
 import org.opensearch.sql.legacy.utils.SQLFunctions;
+import org.opensearch.transport.client.Client;
 
 /** Transform SQL query to standard OpenSearch search query */
 public class DefaultQueryAction extends QueryAction {
@@ -100,7 +102,15 @@ public class DefaultQueryAction extends QueryAction {
           .getNumericalMetric(MetricName.DEFAULT_CURSOR_REQUEST_COUNT_TOTAL)
           .increment();
       Metrics.getInstance().getNumericalMetric(MetricName.DEFAULT_CURSOR_REQUEST_TOTAL).increment();
-      request.setSize(fetchSize).setScroll(timeValue);
+      request.setSize(fetchSize);
+      // search after requires results to be in specific order
+      // set sort field for search_after
+      boolean ordered = select.isOrderdSelect();
+      if (!ordered) {
+        request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+        request.addSort(METADATA_FIELD_ID, SortOrder.ASC);
+      }
+      // Request also requires PointInTime, but we should create pit while execution.
     } else {
       request.setSearchType(SearchType.DFS_QUERY_THEN_FETCH);
       setLimit(select.getOffset(), rowCount != null ? rowCount : Select.DEFAULT_LIMIT);

@@ -30,7 +30,7 @@ public class Paramer {
   public String value;
   public Integer slop;
 
-  public Map<String, Float> fieldsBoosts = new HashMap<>();
+  public final Map<String, Float> fieldsBoosts = new HashMap<>();
   public String type;
   public Float tieBreaker;
   public Operator operator;

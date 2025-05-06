@@ -5,6 +5,8 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -29,6 +31,9 @@ public class GlueDataSourceFactory implements DataSourceFactory {
       "glue.indexstore.opensearch.auth.password";
   public static final String GLUE_INDEX_STORE_OPENSEARCH_REGION =
       "glue.indexstore.opensearch.region";
+  public static final String GLUE_ICEBERG_ENABLED = "glue.iceberg.enabled";
+  public static final String GLUE_LAKEFORMATION_ENABLED = "glue.lakeformation.enabled";
+  public static final String GLUE_LAKEFORMATION_SESSION_TAG = "glue.lakeformation.session_tag";
 
   @Override
   public DataSourceType getDataSourceType() {
@@ -75,5 +80,18 @@ public class GlueDataSourceFactory implements DataSourceFactory {
     DatasourceValidationUtils.validateHost(
         dataSourceMetadataConfig.get(GLUE_INDEX_STORE_OPENSEARCH_URI),
         pluginSettings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST));
+
+    // validate Lake Formation config
+    if (BooleanUtils.toBoolean(dataSourceMetadataConfig.get(GLUE_LAKEFORMATION_ENABLED))) {
+      if (!BooleanUtils.toBoolean(dataSourceMetadataConfig.get(GLUE_ICEBERG_ENABLED))) {
+        throw new IllegalArgumentException(
+            "Lake Formation can only be enabled when Iceberg is enabled.");
+      }
+
+      if (StringUtils.isBlank(dataSourceMetadataConfig.get(GLUE_LAKEFORMATION_SESSION_TAG))) {
+        throw new IllegalArgumentException(
+            "Lake Formation session tag must be specified when enabling Lake Formation");
+      }
+    }
   }
 }

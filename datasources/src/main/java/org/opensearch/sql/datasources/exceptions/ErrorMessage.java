@@ -6,15 +6,15 @@
 package org.opensearch.sql.datasources.exceptions;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.sql.utils.SerializeUtils;
 
 /** Error Message. */
 public class ErrorMessage {
 
-  protected Throwable exception;
+  protected final Throwable exception;
 
   private final int status;
 
@@ -61,7 +61,7 @@ public class ErrorMessage {
     JsonObject jsonObject = new JsonObject();
     jsonObject.addProperty("status", status);
     jsonObject.add("error", getErrorAsJson());
-    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    Gson gson = SerializeUtils.getGsonBuilder().setPrettyPrinting().create();
     return gson.toJson(jsonObject);
   }
 

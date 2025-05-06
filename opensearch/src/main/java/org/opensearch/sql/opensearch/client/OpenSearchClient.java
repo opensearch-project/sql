@@ -7,10 +7,12 @@ package org.opensearch.sql.opensearch.client;
 
 import java.util.List;
 import java.util.Map;
-import org.opensearch.client.node.NodeClient;
+import org.opensearch.action.search.CreatePitRequest;
+import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.transport.client.node.NodeClient;
 
 /**
  * OpenSearch client abstraction to wrap different OpenSearch client implementation. For example,
@@ -89,4 +91,19 @@ public interface OpenSearchClient {
   void schedule(Runnable task);
 
   NodeClient getNodeClient();
+
+  /**
+   * Create PIT for given indices
+   *
+   * @param createPitRequest Create Point In Time request
+   * @return PitId
+   */
+  String createPit(CreatePitRequest createPitRequest);
+
+  /**
+   * Delete PIT
+   *
+   * @param deletePitRequest Delete Point In Time request
+   */
+  void deletePit(DeletePitRequest deletePitRequest);
 }

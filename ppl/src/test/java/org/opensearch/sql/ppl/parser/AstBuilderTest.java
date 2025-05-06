@@ -7,17 +7,21 @@ package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.computation;
 import static org.opensearch.sql.ast.dsl.AstDSL.dedupe;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultDedupArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
+import static org.opensearch.sql.ast.dsl.AstDSL.describe;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
@@ -29,6 +33,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.parse;
+import static org.opensearch.sql.ast.dsl.AstDSL.patterns;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
@@ -38,32 +43,47 @@ import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
+import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
+import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
-import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Optional;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.utils.SystemIndexUtils;
 
 public class AstBuilderTest {
 
   @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
-  private PPLSyntaxParser parser = new PPLSyntaxParser();
+  private final PPLSyntaxParser parser = new PPLSyntaxParser();
+
+  private final Settings settings = Mockito.mock(Settings.class);
 
   @Test
   public void testSearchCommand() {
@@ -319,11 +339,26 @@ public class AstBuilderTest {
             exprList(alias("f1", field("f1")), alias("f2", field("f2"))),
             alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
             defaultStatsArgs()));
-  }
 
-  @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
-  public void throwExceptionIfSpanInGroupByList() {
-    plan("source=t | stats avg(price) by f1, f2, span(timestamp, 1h)");
+    assertEqual(
+        "source=t | stats avg(price) by b, span(timestamp, 1h)",
+        agg(
+            relation("t"),
+            exprList(alias("avg(price)", aggregate("avg", field("price")))),
+            emptyList(),
+            exprList(alias("b", field("b"))),
+            alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
+            defaultStatsArgs()));
+
+    assertEqual(
+        "source=t | stats avg(price) by f1, f2, span(timestamp, 1h)",
+        agg(
+            relation("t"),
+            exprList(alias("avg(price)", aggregate("avg", field("price")))),
+            emptyList(),
+            exprList(alias("f1", field("f1")), alias("f2", field("f2"))),
+            alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
+            defaultStatsArgs()));
   }
 
   @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
@@ -340,10 +375,7 @@ public class AstBuilderTest {
             exprList(alias("avg(price)", aggregate("avg", field("price")))),
             emptyList(),
             emptyList(),
-            alias(
-                "span(timestamp,1h)",
-                span(field("timestamp"), intLiteral(1), SpanUnit.H),
-                "time_span"),
+            alias("time_span", span(field("timestamp"), intLiteral(1), SpanUnit.H), null),
             defaultStatsArgs()));
 
     assertEqual(
@@ -353,8 +385,7 @@ public class AstBuilderTest {
             exprList(alias("count(a)", aggregate("count", field("a")))),
             emptyList(),
             emptyList(),
-            alias(
-                "span(age,10)", span(field("age"), intLiteral(10), SpanUnit.NONE), "numeric_span"),
+            alias("numeric_span", span(field("age"), intLiteral(10), SpanUnit.NONE), null),
             defaultStatsArgs()));
   }
 
@@ -427,34 +458,34 @@ public class AstBuilderTest {
     assertEqual(
         "source=`log.2020.04.20.` a=1",
         filter(relation("log.2020.04.20."), compare("=", field("a"), intLiteral(1))));
-    assertEqual("describe `log.2020.04.20.`", relation(mappingTable("log.2020.04.20.")));
+    assertEqual("describe `log.2020.04.20.`", describe(mappingTable("log.2020.04.20.")));
   }
 
   @Test
   public void testIdentifierAsIndexNameStartWithDot() {
     assertEqual("source=.opensearch_dashboards", relation(".opensearch_dashboards"));
     assertEqual(
-        "describe .opensearch_dashboards", relation(mappingTable(".opensearch_dashboards")));
+        "describe .opensearch_dashboards", describe(mappingTable(".opensearch_dashboards")));
   }
 
   @Test
   public void testIdentifierAsIndexNameWithDotInTheMiddle() {
     assertEqual("source=log.2020.10.10", relation("log.2020.10.10"));
     assertEqual("source=log-7.10-2020.10.10", relation("log-7.10-2020.10.10"));
-    assertEqual("describe log.2020.10.10", relation(mappingTable("log.2020.10.10")));
-    assertEqual("describe log-7.10-2020.10.10", relation(mappingTable("log-7.10-2020.10.10")));
+    assertEqual("describe log.2020.10.10", describe(mappingTable("log.2020.10.10")));
+    assertEqual("describe log-7.10-2020.10.10", describe(mappingTable("log-7.10-2020.10.10")));
   }
 
   @Test
   public void testIdentifierAsIndexNameWithSlashInTheMiddle() {
     assertEqual("source=log-2020", relation("log-2020"));
-    assertEqual("describe log-2020", relation(mappingTable("log-2020")));
+    assertEqual("describe log-2020", describe(mappingTable("log-2020")));
   }
 
   @Test
   public void testIdentifierAsIndexNameContainStar() {
     assertEqual("source=log-2020-10-*", relation("log-2020-10-*"));
-    assertEqual("describe log-2020-10-*", relation(mappingTable("log-2020-10-*")));
+    assertEqual("describe log-2020-10-*", describe(mappingTable("log-2020-10-*")));
   }
 
   @Test
@@ -462,9 +493,9 @@ public class AstBuilderTest {
     assertEqual("source=log-2020.10.*", relation("log-2020.10.*"));
     assertEqual("source=log-2020.*.01", relation("log-2020.*.01"));
     assertEqual("source=log-2020.*.*", relation("log-2020.*.*"));
-    assertEqual("describe log-2020.10.*", relation(mappingTable("log-2020.10.*")));
-    assertEqual("describe log-2020.*.01", relation(mappingTable("log-2020.*.01")));
-    assertEqual("describe log-2020.*.*", relation(mappingTable("log-2020.*.*")));
+    assertEqual("describe log-2020.10.*", describe(mappingTable("log-2020.10.*")));
+    assertEqual("describe log-2020.*.01", describe(mappingTable("log-2020.*.01")));
+    assertEqual("describe log-2020.*.*", describe(mappingTable("log-2020.*.*")));
   }
 
   @Test
@@ -585,33 +616,6 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void testPatternsCommand() {
-    assertEqual(
-        "source=t | patterns new_field=\"custom_field\" " + "pattern=\"custom_pattern\" raw",
-        parse(
-            relation("t"),
-            ParseMethod.PATTERNS,
-            field("raw"),
-            stringLiteral("custom_pattern"),
-            ImmutableMap.<String, Literal>builder()
-                .put("new_field", stringLiteral("custom_field"))
-                .put("pattern", stringLiteral("custom_pattern"))
-                .build()));
-  }
-
-  @Test
-  public void testPatternsCommandWithoutArguments() {
-    assertEqual(
-        "source=t | patterns raw",
-        parse(
-            relation("t"),
-            ParseMethod.PATTERNS,
-            field("raw"),
-            stringLiteral(""),
-            ImmutableMap.of()));
-  }
-
-  @Test
   public void testKmeansCommand() {
     assertEqual(
         "source=t | kmeans centroids=3 iterations=2 distance_type='l1'",
@@ -646,28 +650,125 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testFillNullCommandSameValue() {
+    assertEqual(
+        "source=t | fillnull with 0 in a, b, c",
+        new FillNull(
+            relation("t"),
+            FillNull.ContainNullableFieldFill.ofSameValue(
+                intLiteral(0),
+                ImmutableList.<Field>builder()
+                    .add(field("a"))
+                    .add(field("b"))
+                    .add(field("c"))
+                    .build())));
+  }
+
+  @Test
+  public void testFillNullCommandVariousValues() {
+    assertEqual(
+        "source=t | fillnull using a = 1, b = 2, c = 3",
+        new FillNull(
+            relation("t"),
+            FillNull.ContainNullableFieldFill.ofVariousValue(
+                ImmutableList.<FillNull.NullableFieldFill>builder()
+                    .add(new FillNull.NullableFieldFill(field("a"), intLiteral(1)))
+                    .add(new FillNull.NullableFieldFill(field("b"), intLiteral(2)))
+                    .add(new FillNull.NullableFieldFill(field("c"), intLiteral(3)))
+                    .build())));
+  }
+
+  public void testTrendline() {
+    assertEqual(
+        "source=t | trendline sma(5, test_field) as test_field_alias sma(1, test_field_2) as"
+            + " test_field_alias_2",
+        trendline(
+            relation("t"),
+            Optional.empty(),
+            computation(5, field("test_field"), "test_field_alias", SMA),
+            computation(1, field("test_field_2"), "test_field_alias_2", SMA)));
+  }
+
+  @Test
+  public void testTrendlineSort() {
+    assertEqual(
+        "source=t | trendline sort test_field sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(true)),
+                    argument("type", nullLiteral()))),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineSortDesc() {
+    assertEqual(
+        "source=t | trendline sort - test_field sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(false)),
+                    argument("type", nullLiteral()))),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineSortAsc() {
+    assertEqual(
+        "source=t | trendline sort + test_field sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.of(
+                field(
+                    "test_field",
+                    argument("asc", booleanLiteral(true)),
+                    argument("type", nullLiteral()))),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineNoAlias() {
+    assertEqual(
+        "source=t | trendline sma(5, test_field)",
+        trendline(
+            relation("t"),
+            Optional.empty(),
+            computation(5, field("test_field"), "test_field_trendline", SMA)));
+  }
+
+  @Test
+  public void testTrendlineTooFewSamples() {
+    assertThrows(SyntaxCheckException.class, () -> plan("source=t | trendline sma(0, test_field)"));
+  }
+
+  @Test
   public void testDescribeCommand() {
-    assertEqual("describe t", relation(mappingTable("t")));
+    assertEqual("describe t", describe(mappingTable("t")));
   }
 
   @Test
   public void testDescribeMatchAllCrossClusterSearchCommand() {
-    assertEqual("describe *:t", relation(mappingTable("*:t")));
+    assertEqual("describe *:t", describe(mappingTable("*:t")));
   }
 
   @Test
   public void testDescribeCommandWithMultipleIndices() {
-    assertEqual("describe t,u", relation(mappingTable("t,u")));
+    assertEqual("describe t,u", describe(mappingTable("t,u")));
   }
 
   @Test
   public void testDescribeCommandWithFullyQualifiedTableName() {
     assertEqual(
         "describe prometheus.http_metric",
-        relation(qualifiedName("prometheus", mappingTable("http_metric"))));
+        describe(qualifiedName("prometheus", mappingTable("http_metric")).toString()));
     assertEqual(
         "describe prometheus.schema.http_metric",
-        relation(qualifiedName("prometheus", "schema", mappingTable("http_metric"))));
+        describe(qualifiedName("prometheus", "schema", mappingTable("http_metric")).toString()));
   }
 
   @Test
@@ -724,7 +825,53 @@ public class AstBuilderTest {
 
   @Test
   public void testShowDataSourcesCommand() {
-    assertEqual("show datasources", relation(DATASOURCES_TABLE_NAME));
+    assertEqual("show datasources", describe(DATASOURCES_TABLE_NAME));
+  }
+
+  @Test
+  public void testPatternsCommand() {
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    assertEqual(
+        "source=t | patterns new_field=\"custom_field\" " + "pattern=\"custom_pattern\" raw",
+        parse(
+            relation("t"),
+            ParseMethod.PATTERNS,
+            field("raw"),
+            stringLiteral("custom_pattern"),
+            ImmutableMap.<String, Literal>builder()
+                .put("new_field", stringLiteral("custom_field"))
+                .put("pattern", stringLiteral("custom_pattern"))
+                .build()));
+  }
+
+  @Test
+  public void testPatternsCommandWithBrainMethod() {
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    assertEqual(
+        "source=t | patterns variable_count_threshold=2 frequency_threshold_percentage=0.1 raw"
+            + " BRAIN",
+        patterns(
+            relation("t"),
+            PatternMethod.BRAIN,
+            field("raw"),
+            "patterns_field",
+            Arrays.asList(
+                new Argument("variable_count_threshold", new Literal(2, DataType.INTEGER)),
+                new Argument(
+                    "frequency_threshold_percentage", new Literal(0.1, DataType.DOUBLE)))));
+  }
+
+  @Test
+  public void testPatternsWithoutArguments() {
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    assertEqual(
+        "source=t | patterns raw",
+        parse(
+            relation("t"),
+            ParseMethod.PATTERNS,
+            field("raw"),
+            stringLiteral(""),
+            ImmutableMap.of()));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {
@@ -738,7 +885,11 @@ public class AstBuilderTest {
   }
 
   private Node plan(String query) {
-    AstBuilder astBuilder = new AstBuilder(new AstExpressionBuilder(), query);
+    AstBuilder astBuilder = new AstBuilder(query, settings);
     return astBuilder.visit(parser.parse(query));
+  }
+
+  private String mappingTable(String indexName) {
+    return SystemIndexUtils.mappingTable(indexName, PPL_SPEC);
   }
 }

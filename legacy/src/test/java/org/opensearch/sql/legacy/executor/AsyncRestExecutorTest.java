@@ -23,7 +23,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.rest.RestChannel;
@@ -32,6 +31,7 @@ import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 /** Test AsyncRestExecutor behavior. */
 @RunWith(MockitoJUnitRunner.Silent.class)
@@ -43,7 +43,7 @@ public class AsyncRestExecutorTest {
 
   @Mock private Client client;
 
-  private Map<String, String> params = emptyMap();
+  private final Map<String, String> params = emptyMap();
 
   @Mock private QueryAction action;
 

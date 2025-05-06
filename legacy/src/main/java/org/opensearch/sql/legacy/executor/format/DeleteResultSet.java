@@ -8,13 +8,13 @@ package org.opensearch.sql.legacy.executor.format;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import org.opensearch.client.Client;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.sql.legacy.domain.Delete;
+import org.opensearch.transport.client.Client;
 
 public class DeleteResultSet extends ResultSet {
-  private Delete query;
-  private Object queryResult;
+  private final Delete query;
+  private final Object queryResult;
 
   public static final String DELETED = "deleted_rows";
 

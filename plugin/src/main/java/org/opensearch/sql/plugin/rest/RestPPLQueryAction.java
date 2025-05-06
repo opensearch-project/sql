@@ -17,7 +17,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
@@ -37,12 +36,11 @@ import org.opensearch.sql.plugin.request.PPLQueryRequestFactory;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryRequest;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
+import org.opensearch.transport.client.node.NodeClient;
 
 public class RestPPLQueryAction extends BaseRestHandler {
   public static final String QUERY_API_ENDPOINT = "/_plugins/_ppl";
   public static final String EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain";
-  public static final String LEGACY_QUERY_API_ENDPOINT = "/_opendistro/_ppl";
-  public static final String LEGACY_EXPLAIN_API_ENDPOINT = "/_opendistro/_ppl/_explain";
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -66,18 +64,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   @Override
   public List<Route> routes() {
-    return ImmutableList.of();
-  }
-
-  @Override
-  public List<ReplacedRoute> replacedRoutes() {
-    return Arrays.asList(
-        new ReplacedRoute(
-            RestRequest.Method.POST, QUERY_API_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
-        new ReplacedRoute(
-            RestRequest.Method.POST, EXPLAIN_API_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT));
+    return ImmutableList.of(
+        new Route(RestRequest.Method.POST, QUERY_API_ENDPOINT),
+        new Route(RestRequest.Method.POST, EXPLAIN_API_ENDPOINT));
   }
 
   @Override
@@ -111,10 +100,11 @@ public class RestPPLQueryAction extends BaseRestHandler {
               public void onFailure(Exception e) {
                 if (transportPPLQueryRequest.isExplainRequest()) {
                   LOG.error("Error happened during explain", e);
-                  sendResponse(
-                      channel,
-                      INTERNAL_SERVER_ERROR,
-                      "Failed to explain the query due to error: " + e.getMessage());
+                  if (isClientError(e)) {
+                    reportError(channel, e, BAD_REQUEST);
+                  } else {
+                    reportError(channel, e, INTERNAL_SERVER_ERROR);
+                  }
                 } else if (e instanceof OpenSearchException) {
                   Metrics.getInstance()
                       .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS)

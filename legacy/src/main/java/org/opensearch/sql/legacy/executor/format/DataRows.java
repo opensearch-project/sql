@@ -11,9 +11,9 @@ import java.util.Map;
 
 public class DataRows implements Iterable<DataRows.Row> {
 
-  private long size;
-  private long totalHits;
-  private List<Row> rows;
+  private final long size;
+  private final long totalHits;
+  private final List<Row> rows;
 
   public DataRows(long size, long totalHits, List<Row> rows) {
     this.size = size;
@@ -61,7 +61,7 @@ public class DataRows implements Iterable<DataRows.Row> {
   // Inner class for Row object
   public static class Row {
 
-    private Map<String, Object> data;
+    private final Map<String, Object> data;
 
     public Row(Map<String, Object> data) {
       this.data = data;

@@ -13,7 +13,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.protocol.response.format.FlatResponseFormatter.CONTENT_TYPE;
+import static org.opensearch.sql.protocol.response.format.CsvResponseFormatter.CONTENT_TYPE;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -108,8 +108,13 @@ public class CsvResponseFormatterTest {
     QueryResult response =
         new QueryResult(
             schema,
-            Arrays.asList(tupleValue(ImmutableMap.of("na,me", "John,Smith", ",,age", "30,,,"))));
-    String expected = "\"na,me\",\",,age\"%n\"John,Smith\",\"30,,,\"";
+            Arrays.asList(
+                tupleValue(ImmutableMap.of("na,me", "John,Smith", ",,age", "30,,,")),
+                tupleValue(ImmutableMap.of("na,me", "Line\nBreak", ",,age", "28,,,")),
+                tupleValue(ImmutableMap.of("na,me", "\"Janice Jones", ",,age", "26\""))));
+    String expected =
+        "\"na,me\",\",,age\"%n\"John,Smith\",\"30,,,\"%n\"Line\nBreak\",\"28,,,\"%n"
+            + "\"\"\"Janice Jones\",\"26\"\"\"";
     assertEquals(format(expected), formatter.format(response));
   }
 

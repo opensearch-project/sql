@@ -13,10 +13,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.data.type.ExprCoreType.LONG;
-import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.*;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.eval;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
@@ -45,6 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
@@ -181,6 +181,22 @@ class LogicalPlanOptimizerTest {
   }
 
   @Test
+  void table_scan_builder_support_percentile_aggregation_push_down_can_apply_its_rule() {
+    when(tableScanBuilder.pushDownAggregation(any())).thenReturn(true);
+
+    assertEquals(
+        tableScanBuilder,
+        optimize(
+            aggregation(
+                relation("schema", table),
+                ImmutableList.of(
+                    DSL.named(
+                        "PERCENTILE(intV, 1)",
+                        DSL.percentile(DSL.ref("intV", INTEGER), DSL.ref("percentile", DOUBLE)))),
+                ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG))))));
+  }
+
+  @Test
   void table_scan_builder_support_sort_push_down_can_apply_its_rule() {
     when(tableScanBuilder.pushDownSort(any())).thenReturn(true);
 
@@ -220,7 +236,7 @@ class LogicalPlanOptimizerTest {
                 List.of(Map.of("field", new ReferenceExpression("message.info", STRING))),
                 List.of(
                     new NamedExpression(
-                        "message.info", DSL.nested(DSL.ref("message.info", STRING)), null)))));
+                        "message.info", DSL.nested(DSL.ref("message.info", STRING)))))));
   }
 
   @Test
@@ -329,6 +345,27 @@ class LogicalPlanOptimizerTest {
     // `optimized` structure: LogicalProject -> TableScanBuilder
     // LogicalRelation replaced by a TableScanBuilder instance
     assertEquals(project(tableScanBuilder), optimized);
+  }
+
+  /** Limit - Eval --> Eval - Limit. */
+  @Test
+  void push_limit_under_eval() {
+    Pair<ReferenceExpression, Expression> evalExpr =
+        Pair.of(DSL.ref("name1", STRING), DSL.ref("name", STRING));
+    assertEquals(
+        eval(limit(tableScanBuilder, 10, 5), evalExpr),
+        optimize(limit(eval(relation("schema", table), evalExpr), 10, 5)));
+  }
+
+  /** Limit - Eval - Scan --> Eval - Scan. */
+  @Test
+  void push_limit_through_eval_into_scan() {
+    when(tableScanBuilder.pushDownLimit(any())).thenReturn(true);
+    Pair<ReferenceExpression, Expression> evalExpr =
+        Pair.of(DSL.ref("name1", STRING), DSL.ref("name", STRING));
+    assertEquals(
+        eval(tableScanBuilder, evalExpr),
+        optimize(limit(eval(relation("schema", table), evalExpr), 10, 5)));
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {

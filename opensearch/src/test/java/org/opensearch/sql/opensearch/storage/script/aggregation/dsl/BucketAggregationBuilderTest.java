@@ -40,6 +40,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
@@ -132,6 +133,39 @@ class BucketAggregationBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(Arrays.asList(asc(named("name", parseExpression)))));
+  }
+
+  @Test
+  void terms_bucket_for_opensearchdate_type_uses_long() {
+    OpenSearchDateType dataType = OpenSearchDateType.of(ExprCoreType.TIMESTAMP);
+
+    assertEquals(
+        "{\n"
+            + "  \"terms\" : {\n"
+            + "    \"field\" : \"date\",\n"
+            + "    \"missing_bucket\" : true,\n"
+            + "    \"value_type\" : \"long\",\n"
+            + "    \"missing_order\" : \"first\",\n"
+            + "    \"order\" : \"asc\"\n"
+            + "  }\n"
+            + "}",
+        buildQuery(Arrays.asList(asc(named("date", ref("date", dataType))))));
+  }
+
+  @Test
+  void terms_bucket_for_opensearchdate_type_uses_long_false() {
+    OpenSearchDateType dataType = OpenSearchDateType.of(STRING);
+
+    assertEquals(
+        "{\n"
+            + "  \"terms\" : {\n"
+            + "    \"field\" : \"date\",\n"
+            + "    \"missing_bucket\" : true,\n"
+            + "    \"missing_order\" : \"first\",\n"
+            + "    \"order\" : \"asc\"\n"
+            + "  }\n"
+            + "}",
+        buildQuery(Arrays.asList(asc(named("date", ref("date", dataType))))));
   }
 
   @ParameterizedTest(name = "{0}")

@@ -7,7 +7,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -42,7 +42,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 @EqualsAndHashCode
 class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
 
-  OpenSearchRequestBuilder requestBuilder;
+  final OpenSearchRequestBuilder requestBuilder;
 
   public OpenSearchIndexScanQueryBuilder(OpenSearchRequestBuilder requestBuilder) {
     this.requestBuilder = requestBuilder;
@@ -133,7 +133,8 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
    */
   public static Set<ReferenceExpression> findReferenceExpressions(
       List<NamedExpression> expressions) {
-    Set<ReferenceExpression> projectList = new HashSet<>();
+    // Use LinkedHashSet to make sure explained OpenSearchRequest included fields in order
+    Set<ReferenceExpression> projectList = new LinkedHashSet<>();
     for (NamedExpression namedExpression : expressions) {
       projectList.addAll(findReferenceExpression(namedExpression));
     }

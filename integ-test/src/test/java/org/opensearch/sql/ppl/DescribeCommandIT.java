@@ -5,8 +5,10 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.legacy.TestsConstants.SYNTAX_EX_MSG_FRAGMENT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -19,7 +21,8 @@ import org.opensearch.client.ResponseException;
 public class DescribeCommandIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.DOG);
   }
 
@@ -62,6 +65,11 @@ public class DescribeCommandIT extends PPLIntegTestCase {
                 "describe %s | fields TABLE_NAME, COLUMN_NAME, TYPE_NAME", TEST_INDEX_DOG));
     verifyColumn(
         result, columnName("TABLE_NAME"), columnName("COLUMN_NAME"), columnName("TYPE_NAME"));
+    verifyDataRows(
+        result,
+        rows("opensearch-sql_test_index_dog", "dog_name", "string"),
+        rows("opensearch-sql_test_index_dog", "age", "bigint"),
+        rows("opensearch-sql_test_index_dog", "holdersName", "string"));
   }
 
   @Test
@@ -80,7 +88,7 @@ public class DescribeCommandIT extends PPLIntegTestCase {
       fail();
     } catch (ResponseException e) {
       assertTrue(e.getMessage().contains("RuntimeException"));
-      assertTrue(e.getMessage().contains("Failed to parse query due to offending symbol"));
+      assertTrue(e.getMessage().contains(SYNTAX_EX_MSG_FRAGMENT));
     }
   }
 }

@@ -56,6 +56,7 @@ public class OpenSearchIndexScanPaginationTest {
     lenient()
         .when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
+    lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
   }
 
   @Mock private OpenSearchClient client;
@@ -64,17 +65,18 @@ public class OpenSearchIndexScanPaginationTest {
       new OpenSearchExprValueFactory(
           Map.of(
               "name", OpenSearchDataType.of(STRING),
-              "department", OpenSearchDataType.of(STRING)));
+              "department", OpenSearchDataType.of(STRING)),
+          true);
 
   @Test
   void query_empty_result() {
     mockResponse(client);
-    var builder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
+    var builder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory, settings);
     try (var indexScan =
         new OpenSearchIndexScan(
             client,
             MAX_RESULT_WINDOW,
-            builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT))) {
+            builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
@@ -96,13 +98,13 @@ public class OpenSearchIndexScanPaginationTest {
     OpenSearchRequestBuilder builder = mock();
     OpenSearchRequest request = mock();
     OpenSearchResponse response = mock();
-    when(builder.build(any(), anyInt(), any())).thenReturn(request);
+    when(builder.build(any(), anyInt(), any(), any())).thenReturn(request);
     when(client.search(any())).thenReturn(response);
     try (var indexScan =
         new OpenSearchIndexScan(
             client,
             MAX_RESULT_WINDOW,
-            builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT))) {
+            builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
       indexScan.open();
 
       when(request.hasAnotherBatch()).thenReturn(false);

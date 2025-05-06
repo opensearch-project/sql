@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.sql;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,9 +35,9 @@ import org.opensearch.sql.sql.domain.SQLQueryRequest;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SQLServiceTest {
 
-  private static String QUERY = "/_plugins/_sql";
+  private static final String QUERY = "/_plugins/_sql";
 
-  private static String EXPLAIN = "/_plugins/_sql/_explain";
+  private static final String EXPLAIN = "/_plugins/_sql/_explain";
 
   private SQLService sqlService;
 
@@ -58,38 +57,62 @@ class SQLServiceTest {
     queryManager.awaitTermination(1, TimeUnit.SECONDS);
   }
 
+  private ResponseListener<QueryResponse> getQueryListener(boolean fail) {
+    return new ResponseListener<QueryResponse>() {
+      @Override
+      public void onResponse(QueryResponse response) {
+        if (fail) {
+          fail();
+        } else {
+          assertNotNull(response);
+        }
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        if (!fail) {
+          fail(e);
+        } else {
+          assertNotNull(e);
+        }
+      }
+    };
+  }
+
+  private ResponseListener<ExplainResponse> getExplainListener(boolean fail) {
+    return new ResponseListener<ExplainResponse>() {
+      @Override
+      public void onResponse(ExplainResponse response) {
+        if (fail) {
+          fail();
+        } else {
+          assertNotNull(response);
+        }
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        if (!fail) {
+          fail(e);
+        }
+      }
+    };
+  }
+
   @Test
   public void can_execute_sql_query() {
     sqlService.execute(
         new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "jdbc"),
-        new ResponseListener<>() {
-          @Override
-          public void onResponse(QueryResponse response) {
-            assertNotNull(response);
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            fail(e);
-          }
-        });
+        getQueryListener(false),
+        getExplainListener(false));
   }
 
   @Test
   public void can_execute_cursor_query() {
     sqlService.execute(
         new SQLQueryRequest(new JSONObject(), null, QUERY, Map.of("format", "jdbc"), "n:cursor"),
-        new ResponseListener<>() {
-          @Override
-          public void onResponse(QueryResponse response) {
-            assertNotNull(response);
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            fail(e);
-          }
-        });
+        getQueryListener(false),
+        getExplainListener(false));
   }
 
   @Test
@@ -97,34 +120,37 @@ class SQLServiceTest {
     sqlService.execute(
         new SQLQueryRequest(
             new JSONObject(), null, QUERY + "/close", Map.of("format", "jdbc"), "n:cursor"),
-        new ResponseListener<>() {
-          @Override
-          public void onResponse(QueryResponse response) {
-            assertNotNull(response);
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            fail(e);
-          }
-        });
+        getQueryListener(false),
+        getExplainListener(false));
   }
 
   @Test
   public void can_execute_csv_format_request() {
     sqlService.execute(
         new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "csv"),
-        new ResponseListener<QueryResponse>() {
-          @Override
-          public void onResponse(QueryResponse response) {
-            assertNotNull(response);
-          }
+        getQueryListener(false),
+        getExplainListener(false));
+  }
 
-          @Override
-          public void onFailure(Exception e) {
-            fail(e);
-          }
-        });
+  @Test
+  public void can_execute_raw_format_request() {
+    sqlService.execute(
+        new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "raw"),
+        getQueryListener(false),
+        getExplainListener(false));
+  }
+
+  @Test
+  public void can_execute_pretty_raw_format_request() {
+    sqlService.execute(
+        new SQLQueryRequest(
+            new JSONObject(),
+            "SELECT 123",
+            QUERY,
+            Map.of("format", "jdbc", "pretty", "true"),
+            "n:cursor"),
+        getQueryListener(false),
+        getExplainListener(false));
   }
 
   @Test
@@ -136,74 +162,31 @@ class SQLServiceTest {
               return null;
             })
         .when(queryService)
-        .explain(any(), any());
+        .explain(any(), any(), any(), any());
 
     sqlService.explain(
         new SQLQueryRequest(new JSONObject(), "SELECT 123", EXPLAIN, "csv"),
-        new ResponseListener<ExplainResponse>() {
-          @Override
-          public void onResponse(ExplainResponse response) {
-            assertNotNull(response);
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            fail(e);
-          }
-        });
+        getExplainListener(false));
   }
 
   @Test
   public void cannot_explain_cursor_query() {
     sqlService.explain(
         new SQLQueryRequest(new JSONObject(), null, EXPLAIN, Map.of("format", "jdbc"), "n:cursor"),
-        new ResponseListener<ExplainResponse>() {
-          @Override
-          public void onResponse(ExplainResponse response) {
-            fail(response.toString());
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            assertEquals(
-                "Explain of a paged query continuation is not supported."
-                    + " Use `explain` for the initial query request.",
-                e.getMessage());
-          }
-        });
+        getExplainListener(true));
   }
 
   @Test
   public void can_capture_error_during_execution() {
     sqlService.execute(
         new SQLQueryRequest(new JSONObject(), "SELECT", QUERY, ""),
-        new ResponseListener<QueryResponse>() {
-          @Override
-          public void onResponse(QueryResponse response) {
-            fail();
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            assertNotNull(e);
-          }
-        });
+        getQueryListener(true),
+        getExplainListener(false));
   }
 
   @Test
   public void can_capture_error_during_explain() {
     sqlService.explain(
-        new SQLQueryRequest(new JSONObject(), "SELECT", EXPLAIN, ""),
-        new ResponseListener<ExplainResponse>() {
-          @Override
-          public void onResponse(ExplainResponse response) {
-            fail("Should fail as expected");
-          }
-
-          @Override
-          public void onFailure(Exception e) {
-            assertNotNull(e);
-          }
-        });
+        new SQLQueryRequest(new JSONObject(), "SELECT", EXPLAIN, ""), getExplainListener(true));
   }
 }

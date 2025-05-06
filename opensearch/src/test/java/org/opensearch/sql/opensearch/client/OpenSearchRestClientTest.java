@@ -43,6 +43,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.admin.cluster.settings.ClusterGetSettingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsRequest;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.opensearch.action.search.CreatePitRequest;
+import org.opensearch.action.search.CreatePitResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestHighLevelClient;
@@ -56,6 +58,7 @@ import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
@@ -65,10 +68,12 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.opensearch.data.type.OpenSearchAliasType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -158,9 +163,9 @@ class OpenSearchRestClientTest {
     var parsedTypes = OpenSearchDataType.traverseAndFlatten(mapping);
     assertAll(
         () -> assertEquals(1, indexMappings.size()),
-        // 10 types extended to 17 after flattening
-        () -> assertEquals(10, mapping.size()),
-        () -> assertEquals(17, parsedTypes.size()),
+        // 11 types extended to 18 after flattening
+        () -> assertEquals(11, mapping.size()),
+        () -> assertEquals(18, parsedTypes.size()),
         () -> assertEquals("TEXT", mapping.get("address").legacyTypeName()),
         () -> assertEquals(OpenSearchTextType.of(MappingType.Text), parsedTypes.get("address")),
         () -> assertEquals("INTEGER", mapping.get("age").legacyTypeName()),
@@ -169,7 +174,7 @@ class OpenSearchRestClientTest {
         () -> assertEquals(OpenSearchTextType.of(MappingType.Double), parsedTypes.get("balance")),
         () -> assertEquals("KEYWORD", mapping.get("city").legacyTypeName()),
         () -> assertEquals(OpenSearchTextType.of(MappingType.Keyword), parsedTypes.get("city")),
-        () -> assertEquals("DATE", mapping.get("birthday").legacyTypeName()),
+        () -> assertEquals("TIMESTAMP", mapping.get("birthday").legacyTypeName()),
         () -> assertEquals(OpenSearchTextType.of(MappingType.Date), parsedTypes.get("birthday")),
         () -> assertEquals("GEO_POINT", mapping.get("location").legacyTypeName()),
         () ->
@@ -185,6 +190,11 @@ class OpenSearchRestClientTest {
         () -> assertEquals(OpenSearchTextType.of(MappingType.Text), parsedTypes.get("employer")),
         // `employer` is a `text` with `fields`
         () -> assertTrue(((OpenSearchTextType) parsedTypes.get("employer")).getFields().size() > 0),
+        () -> assertEquals("TEXT", mapping.get("employer_alias").legacyTypeName()),
+        () ->
+            assertEquals(
+                new OpenSearchAliasType("employer", OpenSearchTextType.of(MappingType.Text)),
+                parsedTypes.get("employer_alias")),
         () -> assertEquals("NESTED", mapping.get("projects").legacyTypeName()),
         () -> assertEquals(OpenSearchTextType.of(MappingType.Nested), parsedTypes.get("projects")),
         () ->
@@ -282,7 +292,6 @@ class OpenSearchRestClientTest {
             new SearchHits(
                 new SearchHit[] {searchHit}, new TotalHits(1L, TotalHits.Relation.EQUAL_TO), 1.0F));
     when(searchHit.getSourceAsString()).thenReturn("{\"id\", 1}");
-    when(searchHit.getInnerHits()).thenReturn(null);
     when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleValue);
 
     // Mock second scroll request followed
@@ -409,6 +418,64 @@ class OpenSearchRestClientTest {
     FieldUtils.writeField(request, "needClean", true, true);
     request.setScrollId("scroll123");
     assertThrows(IllegalStateException.class, () -> client.cleanup(request));
+  }
+
+  @Test
+  @SneakyThrows
+  void cleanup_pit_request() {
+    OpenSearchQueryRequest request =
+        new OpenSearchQueryRequest(
+            new OpenSearchRequest.IndexName("test"),
+            new SearchSourceBuilder(),
+            factory,
+            List.of(),
+            TimeValue.timeValueMinutes(1L),
+            "samplePitId");
+    // Enforce cleaning by setting a private field.
+    FieldUtils.writeField(request, "needClean", true, true);
+    client.cleanup(request);
+    verify(restClient).deletePit(any(), any());
+  }
+
+  @Test
+  @SneakyThrows
+  void cleanup_pit_request_throw_exception() {
+    when(restClient.deletePit(any(), any())).thenThrow(new IOException());
+    OpenSearchQueryRequest request =
+        new OpenSearchQueryRequest(
+            new OpenSearchRequest.IndexName("test"),
+            new SearchSourceBuilder(),
+            factory,
+            List.of(),
+            TimeValue.timeValueMinutes(1L),
+            "samplePitId");
+    // Enforce cleaning by setting a private field.
+    FieldUtils.writeField(request, "needClean", true, true);
+    assertThrows(RuntimeException.class, () -> client.cleanup(request));
+  }
+
+  @Test
+  @SneakyThrows
+  void create_pit() {
+    CreatePitRequest createPitRequest =
+        new CreatePitRequest(TimeValue.timeValueMinutes(5), false, Strings.EMPTY_ARRAY);
+    CreatePitResponse createPitResponse = mock(CreatePitResponse.class);
+    when(createPitResponse.getId()).thenReturn("samplePitId");
+    when(restClient.createPit(any(CreatePitRequest.class), any())).thenReturn(createPitResponse);
+
+    String pitId = client.createPit(createPitRequest);
+    assertEquals("samplePitId", pitId);
+
+    verify(restClient).createPit(createPitRequest, RequestOptions.DEFAULT);
+  }
+
+  @Test
+  @SneakyThrows
+  void create_pit_request_throw_exception() {
+    CreatePitRequest createPitRequest =
+        new CreatePitRequest(TimeValue.timeValueMinutes(5), false, Strings.EMPTY_ARRAY);
+    when(restClient.createPit(any(), any())).thenThrow(new IOException());
+    assertThrows(RuntimeException.class, () -> client.createPit(createPitRequest));
   }
 
   @Test

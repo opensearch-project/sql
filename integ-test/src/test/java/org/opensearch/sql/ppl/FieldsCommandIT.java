@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -23,7 +24,8 @@ import org.junit.jupiter.api.Test;
 public class FieldsCommandIT extends PPLIntegTestCase {
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
   }
@@ -67,5 +69,40 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         rows("2018-06-27 00:00:00"),
         rows("2018-08-19 00:00:00"),
         rows("2018-08-11 00:00:00"));
+  }
+
+  @Test
+  public void testMetadataFields() throws IOException {
+    JSONObject result =
+        executeQuery(String.format("source=%s | fields firstname, _index", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("_index"));
+  }
+
+  @Test
+  public void testDelimitedMetadataFields() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | fields firstname, `_id`, `_index`", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("_id"), columnName("_index"));
+  }
+
+  @Test
+  public void testMetadataFieldsWithEval() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | eval a = 1 | fields firstname, _index", TEST_INDEX_ACCOUNT));
+    verifyColumn(result, columnName("firstname"), columnName("_index"));
+  }
+
+  @Test
+  public void testMetadataFieldsWithEvalMetaField() {
+    Exception e =
+        assertThrows(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval _id = 1 | fields firstname, _id", TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(e, "Cannot use metadata field [_id] as the eval field.");
   }
 }

@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.LongAdder;
 
 public class BasicCounter implements Counter<Long> {
 
-  private LongAdder count = new LongAdder();
+  private final LongAdder count = new LongAdder();
 
   @Override
   public void increment() {

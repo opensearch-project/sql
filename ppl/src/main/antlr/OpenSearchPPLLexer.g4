@@ -7,12 +7,13 @@
 lexer grammar OpenSearchPPLLexer;
 
 channels { WHITESPACE, ERRORCHANNEL }
-
+options { caseInsensitive = true; }
 
 // COMMAND KEYWORDS
 SEARCH:                             'SEARCH';
 DESCRIBE:                           'DESCRIBE';
 SHOW:                               'SHOW';
+EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
@@ -25,7 +26,6 @@ HEAD:                               'HEAD';
 TOP:                                'TOP';
 RARE:                               'RARE';
 PARSE:                              'PARSE';
-METHOD:                             'METHOD';
 REGEX:                              'REGEX';
 PUNCT:                              'PUNCT';
 GROK:                               'GROK';
@@ -35,6 +35,24 @@ NEW_FIELD:                          'NEW_FIELD';
 KMEANS:                             'KMEANS';
 AD:                                 'AD';
 ML:                                 'ML';
+FILLNULL:                           'FILLNULL';
+TRENDLINE:                          'TRENDLINE';
+SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
+BRAIN:                              'BRAIN';
+VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
+FREQUENCY_THRESHOLD_PERCENTAGE:     'FREQUENCY_THRESHOLD_PERCENTAGE';
+
+//Native JOIN KEYWORDS
+JOIN:                               'JOIN';
+ON:                                 'ON';
+INNER:                              'INNER';
+OUTER:                              'OUTER';
+FULL:                               'FULL';
+SEMI:                               'SEMI';
+ANTI:                               'ANTI';
+CROSS:                              'CROSS';
+LEFT_HINT:                          'HINT.LEFT';
+RIGHT_HINT:                         'HINT.RIGHT';
 
 // COMMAND ASSIST KEYWORDS
 AS:                                 'AS';
@@ -44,15 +62,21 @@ INDEX:                              'INDEX';
 D:                                  'D';
 DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
+USING:                              'USING';
+WITH:                               'WITH';
+SIMPLE:                             'SIMPLE';
+STANDARD:                           'STANDARD';
+COST:                               'COST';
+EXTENDED:                           'EXTENDED';
 
-// CLAUSE KEYWORDS
-SORTBY:                             'SORTBY';
-
-// FIELD KEYWORDS
+// SORT FIELD KEYWORDS
+// TODO #3180: Fix broken sort functionality
 AUTO:                               'AUTO';
 STR:                                'STR';
-IP:                                 'IP';
 NUM:                                'NUM';
+
+// TRENDLINE KEYWORDS
+SMA:                                'SMA';
 
 // ARGUMENT KEYWORDS
 KEEPEMPTY:                          'KEEPEMPTY';
@@ -75,10 +99,16 @@ TIME_FIELD:                         'TIME_FIELD';
 TIME_ZONE:                          'TIME_ZONE';
 TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
 ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
+APPEND:                             'APPEND';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
+ELSE:                               'ELSE';
 IN:                                 'IN';
+EXISTS:                             'EXISTS';
+
+// Geo IP eval function
+GEOIP:                              'GEOIP';
 
 // LOGICAL KEYWORDS
 NOT:                                'NOT';
@@ -135,6 +165,7 @@ LONG:                               'LONG';
 FLOAT:                              'FLOAT';
 STRING:                             'STRING';
 BOOLEAN:                            'BOOLEAN';
+IP:                                 'IP';
 
 // SPECIAL CHARACTERS AND OPERATORS
 PIPE:                               '|';
@@ -188,15 +219,12 @@ VAR_POP:                            'VAR_POP';
 STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
 PERCENTILE:                         'PERCENTILE';
+PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
 TAKE:                               'TAKE';
 FIRST:                              'FIRST';
 LAST:                               'LAST';
 LIST:                               'LIST';
 VALUES:                             'VALUES';
-EARLIEST:                           'EARLIEST';
-EARLIEST_TIME:                      'EARLIEST_TIME';
-LATEST:                             'LATEST';
-LATEST_TIME:                        'LATEST_TIME';
 PER_DAY:                            'PER_DAY';
 PER_HOUR:                           'PER_HOUR';
 PER_MINUTE:                         'PER_MINUTE';
@@ -321,6 +349,12 @@ CAST:                               'CAST';
 LIKE:                               'LIKE';
 ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
+CIDRMATCH:                          'CIDRMATCH';
+BETWEEN:                            'BETWEEN';
+
+// JSON FUNCTIONS
+JSON_VALID:                         'JSON_VALID';
+JSON:                               'JSON';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';
@@ -388,7 +422,6 @@ INTEGER_LITERAL:                    DEC_DIGIT+;
 DECIMAL_LITERAL:                    (DEC_DIGIT+)? '.' DEC_DIGIT+;
 
 fragment DATE_SUFFIX:               ([\-.][*0-9]+)+;
-fragment ID_LITERAL:                [@*A-Z]+?[*A-Z_\-0-9]*;
 fragment CLUSTER_PREFIX_LITERAL:    [*A-Z]+?[*A-Z_\-0-9]* COLON;
 ID_DATE_SUFFIX:                     CLUSTER_PREFIX_LITERAL? ID_LITERAL DATE_SUFFIX;
 DQUOTA_STRING:                      '"' ( '\\'. | '""' | ~('"'| '\\') )* '"';
@@ -396,5 +429,11 @@ SQUOTA_STRING:                      '\'' ('\\'. | '\'\'' | ~('\'' | '\\'))* '\''
 BQUOTA_STRING:                      '`' ( '\\'. | '``' | ~('`'|'\\'))* '`';
 fragment DEC_DIGIT:                 [0-9];
 
+// Identifiers cannot start with a single '_' since this an OpenSearch reserved
+// metadata field.  Two underscores (or more) is acceptable, such as '__field'.
+fragment ID_LITERAL:                ([@*A-Z_])+?[*A-Z_\-0-9]*;
+
+LINE_COMMENT:                       '//' ('\\\n' | ~[\r\n])* '\r'? '\n'? -> channel(HIDDEN);
+BLOCK_COMMENT:                      '/*' .*? '*/' -> channel(HIDDEN);
 
 ERROR_RECOGNITION:                  .    -> channel(ERRORCHANNEL);

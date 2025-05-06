@@ -11,16 +11,20 @@ import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOI
 
 import java.io.IOException;
 import java.util.Locale;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
+  private static final Logger LOG = LogManager.getLogger();
 
   protected JSONObject executeQuery(String query) throws IOException {
     return jsonify(executeQueryToString(query));
@@ -35,7 +39,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   protected String explainQueryToString(String query) throws IOException {
     Response response = client().performRequest(buildRequest(query, EXPLAIN_API_ENDPOINT));
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    return getResponseBody(response, true);
+    String responseBody = getResponseBody(response, true);
+    return responseBody.replace("\\r\\n", "\\n");
   }
 
   protected String executeCsvQuery(String query, boolean sanitize) throws IOException {
@@ -50,6 +55,14 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected String executeCsvQuery(String query) throws IOException {
     return executeCsvQuery(query, true);
+  }
+
+  protected void failWithMessage(String query, String message) {
+    try {
+      client().performRequest(buildRequest(query, QUERY_API_ENDPOINT));
+    } catch (IOException e) {
+      Assert.assertTrue(e.getMessage().contains(message));
+    }
   }
 
   protected Request buildRequest(String query, String endpoint) {
@@ -95,11 +108,68 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     }
   }
 
-  private JSONObject jsonify(String text) {
+  protected JSONObject jsonify(String text) {
     try {
       return new JSONObject(text);
     } catch (JSONException e) {
       throw new IllegalStateException(String.format("Failed to transform %s to JSON format", text));
+    }
+  }
+
+  protected static boolean isCalciteEnabled() throws IOException {
+    return Boolean.parseBoolean(
+        getClusterSetting(Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "persistent"));
+  }
+
+  public static void enableCalcite() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "true"));
+  }
+
+  public static void disableCalcite() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "false"));
+  }
+
+  public static void allowCalciteFallback() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "true"));
+    LOG.info("{} enabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
+  }
+
+  public static void disallowCalciteFallback() throws IOException {
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
+    LOG.info("{} disabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
+  }
+
+  protected static boolean isFallbackEnabled() throws IOException {
+    return Boolean.parseBoolean(
+        getClusterSetting(Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "persistent"));
+  }
+
+  public static void withFallbackEnabled(Runnable f, String msg) throws IOException {
+    LOG.info("Need fallback to v2 due to {}", msg);
+    boolean isFallbackEnabled = isFallbackEnabled();
+    if (isFallbackEnabled) f.run();
+    else {
+      try {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "true"));
+        LOG.info(
+            "Set {} to enabled and run the test", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
+        f.run();
+      } finally {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
+        LOG.info("Reset {} back to disabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
+      }
     }
   }
 }

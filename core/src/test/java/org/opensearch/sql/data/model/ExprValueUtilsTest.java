@@ -14,6 +14,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
+import static org.opensearch.sql.data.type.ExprCoreType.IP;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
@@ -47,22 +48,24 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
+import org.opensearch.sql.utils.IPUtils;
 
 @DisplayName("Test Expression Value Utils")
 public class ExprValueUtilsTest {
-  private static LinkedHashMap<String, ExprValue> testTuple = new LinkedHashMap<>();
+  private static final LinkedHashMap<String, ExprValue> testTuple = new LinkedHashMap<>();
 
   static {
     testTuple.put("1", new ExprIntegerValue(1));
   }
 
-  private static List<ExprValue> numberValues =
+  private static final List<ExprValue> numberValues =
       Stream.of((byte) 1, (short) 1, 1, 1L, 1f, 1D)
           .map(ExprValueUtils::fromObjectValue)
           .collect(Collectors.toList());
 
-  private static List<ExprValue> nonNumberValues =
+  private static final List<ExprValue> nonNumberValues =
       Arrays.asList(
+          new ExprIpValue("1.2.3.4"),
           new ExprStringValue("1"),
           ExprBooleanValue.of(true),
           new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1))),
@@ -72,10 +75,10 @@ public class ExprValueUtilsTest {
           new ExprTimestampValue("2012-08-07 18:00:00"),
           new ExprIntervalValue(Duration.ofSeconds(100)));
 
-  private static List<ExprValue> allValues =
+  private static final List<ExprValue> allValues =
       Lists.newArrayList(Iterables.concat(numberValues, nonNumberValues));
 
-  private static List<Function<ExprValue, Object>> numberValueExtractor =
+  private static final List<Function<ExprValue, Object>> numberValueExtractor =
       Arrays.asList(
           ExprValueUtils::getByteValue,
           ExprValueUtils::getShortValue,
@@ -83,24 +86,25 @@ public class ExprValueUtilsTest {
           ExprValueUtils::getLongValue,
           ExprValueUtils::getFloatValue,
           ExprValueUtils::getDoubleValue);
-  private static List<Function<ExprValue, Object>> nonNumberValueExtractor =
+  private static final List<Function<ExprValue, Object>> nonNumberValueExtractor =
       Arrays.asList(
+          ExprValueUtils::getIpValue,
           ExprValueUtils::getStringValue,
           ExprValueUtils::getBooleanValue,
           ExprValueUtils::getCollectionValue,
           ExprValueUtils::getTupleValue);
-  private static List<Function<ExprValue, Object>> dateAndTimeValueExtractor =
+  private static final List<Function<ExprValue, Object>> dateAndTimeValueExtractor =
       Arrays.asList(
           ExprValue::dateValue,
           ExprValue::timeValue,
           ExprValue::timestampValue,
           ExprValue::intervalValue);
-  private static List<Function<ExprValue, Object>> allValueExtractor =
+  private static final List<Function<ExprValue, Object>> allValueExtractor =
       Lists.newArrayList(
           Iterables.concat(
               numberValueExtractor, nonNumberValueExtractor, dateAndTimeValueExtractor));
 
-  private static List<ExprCoreType> numberTypes =
+  private static final List<ExprCoreType> numberTypes =
       Arrays.asList(
           ExprCoreType.BYTE,
           ExprCoreType.SHORT,
@@ -108,10 +112,11 @@ public class ExprValueUtilsTest {
           ExprCoreType.LONG,
           ExprCoreType.FLOAT,
           ExprCoreType.DOUBLE);
-  private static List<ExprCoreType> nonNumberTypes = Arrays.asList(STRING, BOOLEAN, ARRAY, STRUCT);
-  private static List<ExprCoreType> dateAndTimeTypes =
+  private static final List<ExprCoreType> nonNumberTypes =
+      Arrays.asList(IP, STRING, BOOLEAN, ARRAY, STRUCT);
+  private static final List<ExprCoreType> dateAndTimeTypes =
       Arrays.asList(DATE, TIME, TIMESTAMP, INTERVAL);
-  private static List<ExprCoreType> allTypes =
+  private static final List<ExprCoreType> allTypes =
       Lists.newArrayList(Iterables.concat(numberTypes, nonNumberTypes, dateAndTimeTypes));
 
   private static Stream<Arguments> getValueTestArgumentStream() {
@@ -123,6 +128,7 @@ public class ExprValueUtilsTest {
             1L,
             1f,
             1D,
+            IPUtils.toAddress("1.2.3.4"),
             "1",
             true,
             Arrays.asList(integerValue(1)),

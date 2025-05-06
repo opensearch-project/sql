@@ -152,10 +152,10 @@ public class SubqueryAliasRewriter extends MySqlASTVisitorAdapter {
     }
 
     /** Table Name. */
-    private String name;
+    private final String name;
 
     /** Table Alias. */
-    private String alias;
+    private final String alias;
 
     Table(String name, String alias) {
       this.name = name;

@@ -6,27 +6,19 @@
 package org.opensearch.sql.legacy.unittest.query;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.*;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.opensearch.action.search.SearchRequestBuilder;
-import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.script.Script;
+import org.opensearch.search.sort.FieldSortBuilder;
+import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.KVValue;
@@ -38,6 +30,7 @@ import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.request.SqlRequest;
+import org.opensearch.transport.client.Client;
 
 public class DefaultQueryActionTest {
 
@@ -137,19 +130,20 @@ public class DefaultQueryActionTest {
     doReturn(settingFetchSize).when(mockSqlRequest).fetchSize();
     queryAction.setSqlRequest(mockSqlRequest);
 
-    Format[] formats = new Format[] {Format.CSV, Format.RAW, Format.JSON, Format.TABLE};
+    Format[] formats = new Format[] {Format.CSV, Format.RAW, Format.TABLE};
     for (Format format : formats) {
       queryAction.setFormat(format);
       queryAction.checkAndSetScroll();
     }
 
-    Mockito.verify(mockRequestBuilder, times(4)).setSize(limit);
+    Mockito.verify(mockRequestBuilder, times(3)).setSize(limit);
     Mockito.verify(mockRequestBuilder, never()).setScroll(any(TimeValue.class));
 
     queryAction.setFormat(Format.JDBC);
     queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setSize(settingFetchSize);
-    Mockito.verify(mockRequestBuilder).setScroll(timeValue);
+    Mockito.verify(mockRequestBuilder).addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+    Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
   }
 
   @Test
@@ -168,7 +162,8 @@ public class DefaultQueryActionTest {
     mockLocalClusterStateAndInitializeMetrics(timeValue);
     queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setSize(settingFetchSize);
-    Mockito.verify(mockRequestBuilder).setScroll(timeValue);
+    Mockito.verify(mockRequestBuilder).addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+    Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
   }
 
   @Test
@@ -195,36 +190,7 @@ public class DefaultQueryActionTest {
     doReturn(mockRequestBuilder).when(mockRequestBuilder).setSize(userFetchSize);
     queryAction.checkAndSetScroll();
     Mockito.verify(mockRequestBuilder).setSize(20);
-    Mockito.verify(mockRequestBuilder).setScroll(timeValue);
-  }
-
-  @Test
-  public void testIfScrollShouldBeOpenWithDifferentValidFetchSizeAndLimit() {
-    TimeValue timeValue = new TimeValue(120000);
-    mockLocalClusterStateAndInitializeMetrics(timeValue);
-
-    int limit = 2300;
-    doReturn(limit).when(mockSelect).getRowCount();
-    SqlRequest mockSqlRequest = mock(SqlRequest.class);
-
-    /** fetchSize <= LIMIT - open scroll */
-    int userFetchSize = 1500;
-    doReturn(userFetchSize).when(mockSqlRequest).fetchSize();
-    doReturn(mockRequestBuilder).when(mockRequestBuilder).setSize(userFetchSize);
-    queryAction.setSqlRequest(mockSqlRequest);
-    queryAction.setFormat(Format.JDBC);
-
-    queryAction.checkAndSetScroll();
-    Mockito.verify(mockRequestBuilder).setSize(userFetchSize);
-    Mockito.verify(mockRequestBuilder).setScroll(timeValue);
-
-    /** fetchSize > LIMIT - no scroll */
-    userFetchSize = 5000;
-    doReturn(userFetchSize).when(mockSqlRequest).fetchSize();
-    mockRequestBuilder = mock(SearchRequestBuilder.class);
-    queryAction.initialize(mockRequestBuilder);
-    queryAction.checkAndSetScroll();
-    Mockito.verify(mockRequestBuilder).setSize(limit);
+    Mockito.verify(mockRequestBuilder).addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
     Mockito.verify(mockRequestBuilder, never()).setScroll(timeValue);
   }
 

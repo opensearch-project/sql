@@ -26,10 +26,10 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
+import org.opensearch.action.admin.indices.alias.get.GetAliasesResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
-import org.opensearch.action.search.ClearScrollResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.core.common.Strings;
 import org.opensearch.search.SearchHit;
@@ -54,7 +54,10 @@ import org.opensearch.sql.legacy.exception.SqlFeatureNotImplementedException;
 import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.legacy.pit.PointInTimeHandler;
+import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.utils.SQLFunctions;
+import org.opensearch.transport.client.Client;
 
 public class SelectResultSet extends ResultSet {
 
@@ -64,7 +67,7 @@ public class SelectResultSet extends ResultSet {
   private final String formatType;
 
   private Query query;
-  private Object queryResult;
+  private final Object queryResult;
 
   private boolean selectAll;
   private String indexName;
@@ -76,11 +79,11 @@ public class SelectResultSet extends ResultSet {
   private long totalHits;
   private long internalTotalHits;
   private List<DataRows.Row> rows;
-  private Cursor cursor;
+  private final Cursor cursor;
 
   private DateFieldFormatter dateFieldFormatter;
   // alias -> base field name
-  private Map<String, String> fieldAliasMap = new HashMap<>();
+  private final Map<String, String> fieldAliasMap = new HashMap<>();
 
   public SelectResultSet(
       Client client,
@@ -160,7 +163,11 @@ public class SelectResultSet extends ResultSet {
   private void loadFromEsState(Query query) {
     String indexName = fetchIndexName(query);
     String[] fieldNames = fetchFieldsAsArray(query);
-
+    GetAliasesResponse getAliasesResponse =
+        client.admin().indices().getAliases(new GetAliasesRequest(indexName)).actionGet();
+    if (getAliasesResponse != null && !getAliasesResponse.getAliases().isEmpty()) {
+      indexName = getAliasesResponse.getAliases().keySet().iterator().next();
+    }
     // Reset boolean in the case of JOIN query where multiple calls to loadFromEsState() are made
     selectAll = isSimpleQuerySelectAll(query) || isJoinQuerySelectAll(query, fieldNames);
 
@@ -531,7 +538,7 @@ public class SelectResultSet extends ResultSet {
       this.rows = populateRows(searchHits);
       this.size = rows.size();
       this.internalTotalHits =
-          Optional.ofNullable(searchHits.getTotalHits()).map(th -> th.value).orElse(0L);
+          Optional.ofNullable(searchHits.getTotalHits()).map(th -> th.value()).orElse(0L);
       // size may be greater than totalHits after nested rows be flatten
       this.totalHits = Math.max(size, internalTotalHits);
     } else if (queryResult instanceof Aggregations) {
@@ -563,13 +570,14 @@ public class SelectResultSet extends ResultSet {
     Integer limit = cursor.getLimit();
     long rowsLeft = rowsLeft(cursor.getFetchSize(), cursor.getLimit());
     if (rowsLeft <= 0) {
-      // close the cursor
-      String scrollId = cursor.getScrollId();
-      ClearScrollResponse clearScrollResponse =
-          client.prepareClearScroll().addScrollId(scrollId).get();
-      if (!clearScrollResponse.isSucceeded()) {
+      // Delete Point In Time ID
+      String pitId = cursor.getPitId();
+      PointInTimeHandler pit = new PointInTimeHandlerImpl(client, pitId);
+      try {
+        pit.delete();
+      } catch (RuntimeException e) {
         Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.error("Error closing the cursor context {} ", scrollId);
+        LOG.info("Error deleting point in time {} ", pitId);
       }
       return;
     }

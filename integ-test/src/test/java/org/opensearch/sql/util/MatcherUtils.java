@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hamcrest.Description;
@@ -145,8 +146,23 @@ public class MatcherUtils {
   }
 
   @SafeVarargs
+  public static void verifySchemaInOrder(JSONObject response, Matcher<JSONObject>... matchers) {
+    try {
+      verifyInOrder(response.getJSONArray("schema"), matchers);
+    } catch (Exception e) {
+      LOG.error(String.format("verify schema failed, response: %s", response.toString()), e);
+      throw e;
+    }
+  }
+
+  @SafeVarargs
   public static void verifyDataRows(JSONObject response, Matcher<JSONArray>... matchers) {
     verify(response.getJSONArray("datarows"), matchers);
+  }
+
+  @SafeVarargs
+  public static void verifyDataAddressRows(JSONObject response, Matcher<JSONArray>... matchers) {
+    verifyAddressRow(response.getJSONArray("datarows"), matchers);
   }
 
   @SafeVarargs
@@ -165,10 +181,40 @@ public class MatcherUtils {
     verifyInOrder(response.getJSONArray("datarows"), matchers);
   }
 
+  public static void verifyNumOfRows(JSONObject response, int numOfRow) {
+    assertEquals(numOfRow, response.getJSONArray("datarows").length());
+  }
+
   @SuppressWarnings("unchecked")
   public static <T> void verify(JSONArray array, Matcher<T>... matchers) {
     List<T> objects = new ArrayList<>();
     array.iterator().forEachRemaining(o -> objects.add((T) o));
+    assertEquals(matchers.length, objects.size());
+    assertThat(objects, containsInAnyOrder(matchers));
+  }
+
+  // TODO: this is temporary fix for fixing serverless tests to pass as it creates multiple shards
+  // leading to score differences.
+  public static <T> void verifyAddressRow(JSONArray array, Matcher<T>... matchers) {
+    // List to store the processed elements from the JSONArray
+    List<T> objects = new ArrayList<>();
+
+    // Iterate through each element in the JSONArray
+    array
+        .iterator()
+        .forEachRemaining(
+            o -> {
+              // Check if o is a JSONArray with exactly 2 elements
+              if (o instanceof JSONArray && ((JSONArray) o).length() == 2) {
+                // Check if the second element is a BigDecimal/_score value
+                if (((JSONArray) o).get(1) instanceof BigDecimal) {
+                  // Remove the _score element from response data rows to skip the assertion as it
+                  // will be different when compared against multiple shards
+                  ((JSONArray) o).remove(1);
+                }
+              }
+              objects.add((T) o);
+            });
     assertEquals(matchers.length, objects.size());
     assertThat(objects, containsInAnyOrder(matchers));
   }
@@ -199,6 +245,11 @@ public class MatcherUtils {
     array.iterator().forEachRemaining(o -> objects.add((T) o));
     assertEquals(matchers.length, objects.size());
     assertThat(objects, containsInRelativeOrder(matchers));
+  }
+
+  public static void verifyErrorMessageContains(Throwable t, String msg) {
+    String stack = ExceptionUtils.getStackTrace(t);
+    assertThat(String.format("Actual stack trace was:\n%s", stack), stack.contains(msg));
   }
 
   public static TypeSafeMatcher<JSONObject> schema(String expectedName, String expectedType) {

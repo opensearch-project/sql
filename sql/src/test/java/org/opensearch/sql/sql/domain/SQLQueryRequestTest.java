@@ -92,6 +92,32 @@ public class SQLQueryRequestTest {
   }
 
   @Test
+  public void should_support_explain_format() {
+    SQLQueryRequest explainRequest =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .path("_plugins/_sql/_explain")
+            .params(Map.of("format", "simple"))
+            .build();
+
+    assertAll(
+        () -> assertTrue(explainRequest.isExplainRequest()),
+        () -> assertTrue(explainRequest.isSupported()));
+  }
+
+  @Test
+  public void should_not_support_explain_with_unsupported_explain_format() {
+    SQLQueryRequest explainRequest =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .path("_plugins/_sql/_explain")
+            .params(Map.of("format", "jdbc"))
+            .build();
+
+    assertAll(
+        () -> assertTrue(explainRequest.isExplainRequest()),
+        () -> assertFalse(explainRequest.isSupported()));
+  }
+
+  @Test
   public void should_support_cursor_request() {
     SQLQueryRequest fetchSizeRequest =
         SQLQueryRequestBuilder.request("SELECT 1")
@@ -104,6 +130,42 @@ public class SQLQueryRequestTest {
     assertAll(
         () -> assertTrue(fetchSizeRequest.isSupported()),
         () -> assertTrue(cursorRequest.isSupported()));
+  }
+
+  @Test
+  public void should_support_cursor_request_with_supported_parameters() {
+    SQLQueryRequest fetchSizeRequest =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .jsonContent("{\"query\": \"SELECT 1\", \"fetch_size\": 5}")
+            .build();
+
+    SQLQueryRequest cursorRequest =
+        SQLQueryRequestBuilder.request(null)
+            .cursor("abcdefgh...")
+            .params(Map.of("format", "csv", "pretty", "true"))
+            .build();
+
+    assertAll(
+        () -> assertTrue(fetchSizeRequest.isSupported()),
+        () -> assertTrue(cursorRequest.isSupported()));
+  }
+
+  @Test
+  public void should_not_support_cursor_request_with_unsupported_parameters() {
+    SQLQueryRequest fetchSizeRequest =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .jsonContent("{\"query\": \"SELECT 1\", \"fetch_size\": 5}")
+            .build();
+
+    SQLQueryRequest cursorRequest =
+        SQLQueryRequestBuilder.request(null)
+            .cursor("abcdefgh...")
+            .params(Map.of("one", "two"))
+            .build();
+
+    assertAll(
+        () -> assertTrue(fetchSizeRequest.isSupported()),
+        () -> assertFalse(cursorRequest.isSupported()));
   }
 
   @Test

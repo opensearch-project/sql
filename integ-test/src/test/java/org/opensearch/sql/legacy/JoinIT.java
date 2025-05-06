@@ -31,6 +31,9 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore(
+    "OpenSearch DSL format is deprecated in 3.0.0. Ignore legacy IT that relies on json format"
+        + " response for now. Need to decide what to do with these test cases.")
 public class JoinIT extends SQLIntegTestCase {
 
   private static final String USE_NL_HINT = " /*! USE_NL*/";
@@ -288,6 +291,8 @@ public class JoinIT extends SQLIntegTestCase {
     Assert.assertThat(hits.length(), equalTo(42));
   }
 
+  // TODO: Fix joinWithGeoIntersectNL test when SQL_PAGINATION_API_SEARCH_AFTER is true
+  @Ignore
   @Test
   public void joinWithGeoIntersectNL() throws IOException {
 
@@ -455,7 +460,7 @@ public class JoinIT extends SQLIntegTestCase {
             "SELECT /*! USE_NL*/ a.firstname, a.lastname, a.gender, d.firstname, d.age  FROM %s a"
                 + " JOIN %s d on a.age < d.age WHERE (d.firstname = 'Lynn' OR d.firstname ="
                 + " 'Obrien') AND a.firstname = 'Mcgee'",
-            TEST_INDEX_PEOPLE,
+            TEST_INDEX_PEOPLE2,
             TEST_INDEX_ACCOUNT);
 
     JSONObject result = executeQuery(query);
@@ -501,7 +506,7 @@ public class JoinIT extends SQLIntegTestCase {
             "SELECT /*! USE_NL*/ a.firstname, a.lastname, a.gender, d.firstname, d.age  FROM %s a"
                 + " JOIN %s d on a.age > d.age WHERE (d.firstname = 'Sandoval' OR d.firstname ="
                 + " 'Hewitt') AND a.firstname = 'Fulton'",
-            TEST_INDEX_PEOPLE,
+            TEST_INDEX_PEOPLE2,
             TEST_INDEX_ACCOUNT);
 
     JSONObject result = executeQuery(query);

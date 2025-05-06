@@ -7,9 +7,9 @@ package org.opensearch.sql.legacy.spatial;
 
 /** Created by Eliran on 15/8/2015. */
 public class CellFilterParams {
-  private Point geohashPoint;
-  private int precision;
-  private boolean neighbors;
+  private final Point geohashPoint;
+  private final int precision;
+  private final boolean neighbors;
 
   public CellFilterParams(Point geohashPoint, int precision, boolean neighbors) {
     this.geohashPoint = geohashPoint;

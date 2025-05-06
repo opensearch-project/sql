@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.esdomain.mapping.FieldMappings;
 import org.opensearch.sql.legacy.esdomain.mapping.IndexMappings;
@@ -39,8 +40,8 @@ import org.opensearch.sql.legacy.esdomain.mapping.IndexMappings;
  */
 public class TermFieldRewriter extends MySqlASTVisitorAdapter {
 
-  private Deque<TermFieldScope> environment = new ArrayDeque<>();
-  private TermRewriterFilter filterType;
+  private final Deque<TermFieldScope> environment = new ArrayDeque<>();
+  private final TermRewriterFilter filterType;
 
   public TermFieldRewriter() {
     this.filterType = TermRewriterFilter.COMMA;
@@ -122,7 +123,23 @@ public class TermFieldRewriter extends MySqlASTVisitorAdapter {
         String fullFieldName = arr[1];
 
         String index = curScope().getAliases().get(alias);
+        if (index == null) {
+          throw new IndexNotFoundException(
+              String.format(
+                  "The requested table '%s' does not correspond to any known index. Only indices or"
+                      + " table aliases are allowed.",
+                  alias.replaceFirst("_\\d+$", "")));
+        }
+
         FieldMappings fieldMappings = curScope().getMapper().mapping(index);
+        if (fieldMappings == null) {
+          throw new IndexNotFoundException(
+              String.format(
+                  "The index '%s' could not be found. Note that wildcard indices are not permitted"
+                      + " in SQL.",
+                  index));
+        }
+
         if (fieldMappings.has(fullFieldName)) {
           source = fieldMappings.mapping(fullFieldName);
         } else {

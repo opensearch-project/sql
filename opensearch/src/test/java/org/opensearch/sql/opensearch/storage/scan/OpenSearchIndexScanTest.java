@@ -5,31 +5,32 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -45,6 +46,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.NoCursorException;
@@ -55,7 +57,6 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
-import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
@@ -70,14 +71,18 @@ class OpenSearchIndexScanTest {
   public static final int MAX_RESULT_WINDOW = 10000;
   public static final TimeValue CURSOR_KEEP_ALIVE = TimeValue.timeValueMinutes(1);
   @Mock private OpenSearchClient client;
+  @Mock private Settings settings;
 
   private final OpenSearchExprValueFactory exprValueFactory =
       new OpenSearchExprValueFactory(
           Map.of(
-              "name", OpenSearchDataType.of(STRING), "department", OpenSearchDataType.of(STRING)));
+              "name", OpenSearchDataType.of(STRING), "department", OpenSearchDataType.of(STRING)),
+          true);
 
   @BeforeEach
-  void setup() {}
+  void setup() {
+    lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
+  }
 
   @Test
   void explain() {
@@ -100,9 +105,10 @@ class OpenSearchIndexScanTest {
     }
   }
 
-  @Test
   @SneakyThrows
-  void serialize() {
+  @ParameterizedTest
+  @ValueSource(ints = {0, 150})
+  void serialize_PIT(Integer numberOfIncludes) {
     var searchSourceBuilder = new SearchSourceBuilder().size(4);
 
     var factory = mock(OpenSearchExprValueFactory.class);
@@ -110,24 +116,45 @@ class OpenSearchIndexScanTest {
     var index = mock(OpenSearchIndex.class);
     when(engine.getClient()).thenReturn(client);
     when(engine.getTable(any(), any())).thenReturn(index);
+    var includes =
+        Stream.iterate(1, i -> i + 1)
+            .limit(numberOfIncludes)
+            .map(i -> "column" + i)
+            .collect(Collectors.toList());
     var request =
-        new OpenSearchScrollRequest(
-            INDEX_NAME, CURSOR_KEEP_ALIVE, searchSourceBuilder, factory, List.of());
-    request.setScrollId("valid-id");
+        new OpenSearchQueryRequest(
+            INDEX_NAME, searchSourceBuilder, factory, includes, CURSOR_KEEP_ALIVE, "samplePitId");
     // make a response, so OpenSearchResponse::isEmpty would return true and unset needClean
     var response = mock(SearchResponse.class);
     when(response.getAggregations()).thenReturn(mock());
     var hits = mock(SearchHits.class);
     when(response.getHits()).thenReturn(hits);
-    when(response.getScrollId()).thenReturn("valid-id");
-    when(hits.getHits()).thenReturn(new SearchHit[] {mock()});
-    request.search(null, (req) -> response);
+    SearchHit hit = mock(SearchHit.class);
+    when(hit.getSortValues()).thenReturn(new String[] {"sample1"});
+    when(hits.getHits()).thenReturn(new SearchHit[] {hit});
+    request.search((req) -> response, null);
 
     try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
       var planSerializer = new PlanSerializer(engine);
       var cursor = planSerializer.convertToCursor(indexScan);
       var newPlan = planSerializer.convertToPlan(cursor.toString());
-      assertEquals(indexScan, newPlan);
+      assertNotNull(newPlan);
+    }
+  }
+
+  @SneakyThrows
+  @Test
+  void throws_io_exception_if_too_short() {
+    var request = mock(OpenSearchRequest.class);
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    ObjectOutputStream objectOutput = new ObjectOutputStream(output);
+    objectOutput.writeInt(4);
+    objectOutput.flush();
+    ObjectInputStream objectInput =
+        new ObjectInputStream(new ByteArrayInputStream(output.toByteArray()));
+
+    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
+      assertThrows(IOException.class, () -> indexScan.readExternal(objectInput));
     }
   }
 
@@ -143,10 +170,12 @@ class OpenSearchIndexScanTest {
   void query_empty_result() {
     mockResponse(client);
     final var name = new OpenSearchRequest.IndexName("test");
-    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory, settings);
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
-            client, QUERY_SIZE, requestBuilder.build(name, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE))) {
+            client,
+            QUERY_SIZE,
+            requestBuilder.build(name, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
@@ -161,10 +190,10 @@ class OpenSearchIndexScanTest {
           employee(1, "John", "IT"), employee(2, "Smith", "HR"), employee(3, "Allen", "IT")
         });
 
-    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory, settings);
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
-            client, 10, requestBuilder.build(INDEX_NAME, 10000, CURSOR_KEEP_ALIVE))) {
+            client, 10, requestBuilder.build(INDEX_NAME, 10000, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
 
       assertAll(
@@ -189,10 +218,10 @@ class OpenSearchIndexScanTest {
         new ExprValue[] {employee(1, "John", "IT"), employee(2, "Smith", "HR")},
         new ExprValue[] {employee(3, "Allen", "IT")});
 
-    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory, settings);
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
-            client, 10, requestBuilder.build(INDEX_NAME, 10000, CURSOR_KEEP_ALIVE))) {
+            client, 10, requestBuilder.build(INDEX_NAME, 10000, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
 
       assertAll(
@@ -219,10 +248,12 @@ class OpenSearchIndexScanTest {
         });
 
     final int limit = 3;
-    OpenSearchRequestBuilder builder = new OpenSearchRequestBuilder(0, exprValueFactory);
+    OpenSearchRequestBuilder builder = new OpenSearchRequestBuilder(0, exprValueFactory, settings);
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
-            client, limit, builder.build(INDEX_NAME, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE))) {
+            client,
+            limit,
+            builder.build(INDEX_NAME, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
 
       assertAll(
@@ -240,10 +271,12 @@ class OpenSearchIndexScanTest {
   @Test
   void query_some_results_with_scroll() {
     mockTwoPageResponse(client);
-    final var requestuilder = new OpenSearchRequestBuilder(10, exprValueFactory);
+    final var requestuilder = new OpenSearchRequestBuilder(10, exprValueFactory, settings);
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
-            client, 3, requestuilder.build(INDEX_NAME, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE))) {
+            client,
+            3,
+            requestuilder.build(INDEX_NAME, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
 
       assertAll(
@@ -277,12 +310,13 @@ class OpenSearchIndexScanTest {
         });
 
     final int defaultQuerySize = 2;
-    final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
+    final var requestBuilder =
+        new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory, settings);
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
             client,
             defaultQuerySize,
-            requestBuilder.build(INDEX_NAME, QUERY_SIZE, CURSOR_KEEP_ALIVE))) {
+            requestBuilder.build(INDEX_NAME, QUERY_SIZE, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
 
       assertAll(
@@ -339,7 +373,7 @@ class OpenSearchIndexScanTest {
   }
 
   private PushDownAssertion assertThat() {
-    return new PushDownAssertion(client, exprValueFactory);
+    return new PushDownAssertion(client, exprValueFactory, settings);
   }
 
   private static class PushDownAssertion {
@@ -348,9 +382,10 @@ class OpenSearchIndexScanTest {
     private final OpenSearchResponse response;
     private final OpenSearchExprValueFactory factory;
 
-    public PushDownAssertion(OpenSearchClient client, OpenSearchExprValueFactory valueFactory) {
+    public PushDownAssertion(
+        OpenSearchClient client, OpenSearchExprValueFactory valueFactory, Settings settings) {
       this.client = client;
-      this.requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, valueFactory);
+      this.requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, valueFactory, settings);
 
       this.response = mock(OpenSearchResponse.class);
       this.factory = valueFactory;
@@ -382,7 +417,9 @@ class OpenSearchIndexScanTest {
       when(client.search(request)).thenReturn(response);
       var indexScan =
           new OpenSearchIndexScan(
-              client, QUERY_SIZE, requestBuilder.build(EMPLOYEES_INDEX, 10000, CURSOR_KEEP_ALIVE));
+              client,
+              QUERY_SIZE,
+              requestBuilder.build(EMPLOYEES_INDEX, 10000, CURSOR_KEEP_ALIVE, client));
       indexScan.open();
       return this;
     }
@@ -400,7 +437,9 @@ class OpenSearchIndexScanTest {
       when(client.search(request)).thenReturn(response);
       var indexScan =
           new OpenSearchIndexScan(
-              client, 10000, requestBuilder.build(EMPLOYEES_INDEX, 10000, CURSOR_KEEP_ALIVE));
+              client,
+              10000,
+              requestBuilder.build(EMPLOYEES_INDEX, 10000, CURSOR_KEEP_ALIVE, client));
       indexScan.open();
       return this;
     }

@@ -8,9 +8,9 @@ package org.opensearch.sql.bwc;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
-import static org.opensearch.sql.legacy.plugin.RestSqlAction.LEGACY_QUERY_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
-import static org.opensearch.sql.plugin.rest.RestQuerySettingsAction.LEGACY_SQL_SETTINGS_API_ENDPOINT;
+import static org.opensearch.sql.sql.LegacyAPICompatibilityIT.LEGACY_QUERY_API_ENDPOINT;
+import static org.opensearch.sql.sql.LegacyAPICompatibilityIT.LEGACY_SQL_SETTINGS_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -34,6 +34,9 @@ import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
+
+  @Override
+  public void init() {} // override init() to avoid calling disableCalcite().
 
   private static final ClusterType CLUSTER_TYPE =
       ClusterType.parse(System.getProperty("tests.rest.bwcsuite"));
@@ -93,21 +96,33 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
       List<Map<String, Object>> plugins = (List<Map<String, Object>>) response.get("plugins");
       Set<Object> pluginNames =
           plugins.stream().map(map -> map.get("name")).collect(Collectors.toSet());
+      String version = (String) response.get("version");
+
+      boolean isBackwardsIncompatibleVersion = version.startsWith("2.");
+
       switch (CLUSTER_TYPE) {
         case OLD:
           Assert.assertTrue(pluginNames.contains("opensearch-sql"));
-          updateLegacySQLSettings();
+          if (isBackwardsIncompatibleVersion) {
+            updateLegacySQLSettings();
+          }
           loadIndex(Index.ACCOUNT);
-          verifySQLQueries(LEGACY_QUERY_API_ENDPOINT);
+          verifySQLQueries(
+              isBackwardsIncompatibleVersion ? LEGACY_QUERY_API_ENDPOINT : QUERY_API_ENDPOINT);
           break;
         case MIXED:
           Assert.assertTrue(pluginNames.contains("opensearch-sql"));
-          verifySQLSettings();
-          verifySQLQueries(LEGACY_QUERY_API_ENDPOINT);
+          if (isBackwardsIncompatibleVersion) {
+            verifySQLSettings();
+          } else {
+            // For upgraded nodes, we don't need to verify legacy settings
+          }
+          verifySQLQueries(
+              isBackwardsIncompatibleVersion ? LEGACY_QUERY_API_ENDPOINT : QUERY_API_ENDPOINT);
           break;
         case UPGRADED:
           Assert.assertTrue(pluginNames.contains("opensearch-sql"));
-          verifySQLSettings();
+          // For fully upgraded clusters, we don't need to verify legacy settings
           verifySQLQueries(QUERY_API_ENDPOINT);
           break;
       }

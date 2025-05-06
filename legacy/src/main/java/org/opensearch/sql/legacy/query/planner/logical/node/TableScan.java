@@ -10,7 +10,7 @@ import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.PlanNode;
 import org.opensearch.sql.legacy.query.planner.logical.LogicalOperator;
 import org.opensearch.sql.legacy.query.planner.physical.PhysicalOperator;
-import org.opensearch.sql.legacy.query.planner.physical.node.scroll.Scroll;
+import org.opensearch.sql.legacy.query.planner.physical.node.pointInTime.PointInTime;
 
 /** Table scan */
 public class TableScan implements LogicalOperator {
@@ -33,7 +33,7 @@ public class TableScan implements LogicalOperator {
 
   @Override
   public <T> PhysicalOperator[] toPhysical(Map<LogicalOperator, PhysicalOperator<T>> optimalOps) {
-    return new PhysicalOperator[] {new Scroll(request, pageSize)};
+    return new PhysicalOperator[] {new PointInTime(request, pageSize)};
   }
 
   @Override

@@ -43,7 +43,7 @@ import org.opensearch.sql.legacy.utils.Util;
  * @author ansj
  */
 public class FieldMaker {
-  private SQLFunctions sqlFunctions = new SQLFunctions();
+  private final SQLFunctions sqlFunctions = new SQLFunctions();
 
   public Field makeField(SQLExpr expr, String alias, String tableAlias) throws SqlParseException {
     Field field = makeFieldImpl(expr, alias, tableAlias);

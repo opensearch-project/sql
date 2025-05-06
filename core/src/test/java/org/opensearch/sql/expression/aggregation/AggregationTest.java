@@ -17,7 +17,7 @@ import org.opensearch.sql.expression.ExpressionTestBase;
 
 public class AggregationTest extends ExpressionTestBase {
 
-  protected static List<ExprValue> tuples =
+  protected static final List<ExprValue> tuples =
       Arrays.asList(
           ExprValueUtils.tupleValue(
               new ImmutableMap.Builder<String, Object>()
@@ -95,7 +95,7 @@ public class AggregationTest extends ExpressionTestBase {
                   "timestamp_value",
                   "2040-01-01 07:00:00")));
 
-  protected static List<ExprValue> tuples_with_duplicates =
+  protected static final List<ExprValue> tuples_with_duplicates =
       Arrays.asList(
           ExprValueUtils.tupleValue(
               ImmutableMap.of(
@@ -138,7 +138,7 @@ public class AggregationTest extends ExpressionTestBase {
                   "array_value",
                   ImmutableList.of(1, 2))));
 
-  protected static List<ExprValue> tuples_with_null_and_missing =
+  protected static final List<ExprValue> tuples_with_null_and_missing =
       Arrays.asList(
           ExprValueUtils.tupleValue(
               ImmutableMap.of("integer_value", 2, "string_value", "m", "double_value", 3d)),
@@ -146,7 +146,7 @@ public class AggregationTest extends ExpressionTestBase {
               ImmutableMap.of("integer_value", 1, "string_value", "f", "double_value", 4d)),
           ExprValueUtils.tupleValue(Collections.singletonMap("double_value", null)));
 
-  protected static List<ExprValue> tuples_with_all_null_or_missing =
+  protected static final List<ExprValue> tuples_with_all_null_or_missing =
       Arrays.asList(
           ExprValueUtils.tupleValue(Collections.singletonMap("integer_value", null)),
           ExprValueUtils.tupleValue(Collections.singletonMap("double", null)),

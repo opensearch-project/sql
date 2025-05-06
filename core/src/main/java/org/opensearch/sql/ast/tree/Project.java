@@ -22,7 +22,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = false)
 public class Project extends UnresolvedPlan {
   @Setter private List<UnresolvedExpression> projectList;
-  private List<Argument> argExprList;
+  private final List<Argument> argExprList;
   private UnresolvedPlan child;
 
   public Project(List<UnresolvedExpression> projectList) {

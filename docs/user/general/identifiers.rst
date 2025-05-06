@@ -40,14 +40,14 @@ Here are examples for using index pattern directly without quotes::
 
     os> SELECT * FROM *cc*nts;
     fetched rows / total rows = 4/4
-    +------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------+
-    | account_number   | firstname   | address              | balance   | gender   | city   | employer   | state   | age   | email                 | lastname   |
-    |------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------|
-    | 1                | Amber       | 880 Holmes Lane      | 39225     | M        | Brogan | Pyrami     | IL      | 32    | amberduke@pyrami.com  | Duke       |
-    | 6                | Hattie      | 671 Bristol Street   | 5686      | M        | Dante  | Netagy     | TN      | 36    | hattiebond@netagy.com | Bond       |
-    | 13               | Nanette     | 789 Madison Street   | 32838     | F        | Nogal  | Quility    | VA      | 28    | null                  | Bates      |
-    | 18               | Dale        | 467 Hutchinson Court | 4180      | M        | Orick  | null       | MD      | 33    | daleadams@boink.com   | Adams      |
-    +------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------+
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
+    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname |
+    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------|
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    |
+    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    |
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
 
 
 Delimited Identifiers
@@ -76,14 +76,14 @@ Here are examples for quoting an index name by back ticks::
 
     os> SELECT * FROM `accounts`;
     fetched rows / total rows = 4/4
-    +------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------+
-    | account_number   | firstname   | address              | balance   | gender   | city   | employer   | state   | age   | email                 | lastname   |
-    |------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------|
-    | 1                | Amber       | 880 Holmes Lane      | 39225     | M        | Brogan | Pyrami     | IL      | 32    | amberduke@pyrami.com  | Duke       |
-    | 6                | Hattie      | 671 Bristol Street   | 5686      | M        | Dante  | Netagy     | TN      | 36    | hattiebond@netagy.com | Bond       |
-    | 13               | Nanette     | 789 Madison Street   | 32838     | F        | Nogal  | Quility    | VA      | 28    | null                  | Bates      |
-    | 18               | Dale        | 467 Hutchinson Court | 4180      | M        | Orick  | null       | MD      | 33    | daleadams@boink.com   | Adams      |
-    +------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------+
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
+    | account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname |
+    |----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------|
+    | 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     |
+    | 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     |
+    | 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    |
+    | 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    |
+    +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
 
 
 Case Sensitivity
@@ -121,23 +121,23 @@ The first example is to show a column name qualified by full table name original
 
     os> SELECT city, accounts.age, ABS(accounts.balance) FROM accounts WHERE accounts.age < 30;
     fetched rows / total rows = 1/1
-    +--------+-------+-------------------------+
-    | city   | age   | ABS(accounts.balance)   |
-    |--------+-------+-------------------------|
-    | Nogal  | 28    | 32838                   |
-    +--------+-------+-------------------------+
+    +-------+-----+--------------+
+    | city  | age | ABS(balance) |
+    |-------+-----+--------------|
+    | Nogal | 28  | 32838        |
+    +-------+-----+--------------+
 
 The second example is to show a field name qualified by index alias specified. Similarly, the alias qualifier is optional in this case::
 
     os> SELECT city, acc.age, ABS(acc.balance) FROM accounts AS acc WHERE acc.age > 30;
     fetched rows / total rows = 3/3
-    +--------+-------+--------------------+
-    | city   | age   | ABS(acc.balance)   |
-    |--------+-------+--------------------|
-    | Brogan | 32    | 39225              |
-    | Dante  | 36    | 5686               |
-    | Orick  | 33    | 4180               |
-    +--------+-------+--------------------+
+    +--------+-----+------------------+
+    | city   | age | ABS(acc.balance) |
+    |--------+-----+------------------|
+    | Brogan | 32  | 39225            |
+    | Dante  | 36  | 5686             |
+    | Orick  | 33  | 4180             |
+    +--------+-----+------------------+
 
 Note that in both examples above, the qualifier is removed in response. This happens only when identifiers selected is a simple field name. In other cases, expressions rather than an atom field, the column name in response is exactly the same as the text in ``SELECT``clause.
 
@@ -160,22 +160,22 @@ Query wildcard indices::
 
     os> SELECT count(*) as cnt FROM acc*;
     fetched rows / total rows = 1/1
-    +-------+
-    | cnt   |
-    |-------|
-    | 5     |
-    +-------+
+    +-----+
+    | cnt |
+    |-----|
+    | 5   |
+    +-----+
 
 
 Query delimited multiple indices seperated by ``,``::
 
     os> SELECT count(*) as cnt FROM `accounts,account2`;
     fetched rows / total rows = 1/1
-    +-------+
-    | cnt   |
-    |-------|
-    | 5     |
-    +-------+
+    +-----+
+    | cnt |
+    |-----|
+    | 5   |
+    +-----+
 
 
 
@@ -241,7 +241,7 @@ tableName = ``logs.12.13.1``.
 3. ``my_prometheus.http_requests_total``
 
 
-datasourceName = ```my_prometheus`` [Is in the list of datasources configured].
+datasourceName = ``my_prometheus`` [Is in the list of datasources configured].
 
 schemaName = ``default`` [No supported schema found, so default to `default`].
 

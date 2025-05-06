@@ -40,14 +40,19 @@ plugins {
 
 apply plugin: 'opensearch.build'
 apply plugin: 'opensearch.rest-test'
+apply plugin: 'opensearch.yaml-rest-test'
 apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
-String baseVersion = "2.13.0"
+// The next major version is only API compat w/ the last minor of the previous major.
+// baseVersion need to roll-froward accordingly, as new 2.x of OpenSearch being released.
+// See: https://github.com/opensearch-project/OpenSearch/issues/3615
+String baseVersion = "2.20.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
+String calciteCodegen = "$projectDir/src/test/java/codegen/"
 
 repositories {
     mavenCentral()
@@ -80,7 +85,6 @@ ext {
 
     var projectAbsPath = projectDir.getAbsolutePath()
     File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
-
     configureSecurityPlugin = { OpenSearchCluster cluster ->
 
         cluster.getNodes().forEach { node ->
@@ -136,8 +140,12 @@ ext {
             cluster.setting name, value
         }
 
-        cluster.plugin provider((Callable<RegularFile>) (() -> (RegularFile) (() -> downloadedSecurityPlugin)))
+        cluster.plugin provider { (RegularFile) (() -> downloadedSecurityPlugin )}
     }
+
+    bwcOpenSearchJSDownload = 'https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/' + baseVersion + '/latest/linux/x64/tar/builds/' +
+            'opensearch/plugins/opensearch-job-scheduler-' + bwcVersion + '.zip'
+    bwcJobSchedulerPath = bwcFilePath + "job-scheduler/"
 }
 
 tasks.withType(licenseHeaders.class) {
@@ -150,15 +158,18 @@ loggerUsageCheck.enabled = false
 
 configurations.all {
     resolutionStrategy.force 'junit:junit:4.13.2'
-    resolutionStrategy.force "commons-logging:commons-logging:1.2"
+    resolutionStrategy.force "commons-logging:commons-logging:${commons_logging_version}"
     // enforce 1.1.3, https://www.whitesourcesoftware.com/vulnerability-database/WS-2019-0379
-    resolutionStrategy.force 'commons-codec:commons-codec:1.13'
-    resolutionStrategy.force 'com.google.guava:guava:32.0.1-jre'
+    resolutionStrategy.force "commons-codec:commons-codec:${commons_codec_version}"
+    resolutionStrategy.force "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
+    resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
+    resolutionStrategy.force "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"
-    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     resolutionStrategy.force "com.squareup.okhttp3:okhttp:4.12.0"
     resolutionStrategy.force "org.apache.httpcomponents:httpcore:4.4.13"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10"
@@ -166,6 +177,7 @@ configurations.all {
     resolutionStrategy.force "joda-time:joda-time:2.10.12"
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
     resolutionStrategy.force "com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version}"
+    resolutionStrategy.force "com.google.guava:guava:${guava_version}"
 }
 
 configurations {
@@ -177,7 +189,7 @@ dependencies {
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.driver', name: 'opensearch-sql-jdbc', version: System.getProperty("jdbcDriverVersion", '1.2.0.0')
-    testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
+    testImplementation group: 'org.hamcrest', name: 'hamcrest', version: "${hamcrest_version}"
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:"${versions.log4j}"
     testImplementation project(':opensearch-sql-plugin')
     testImplementation project(':legacy')
@@ -191,7 +203,16 @@ dependencies {
     testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
 
     // Needed for BWC tests
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-sql-plugin', version: "${bwcVersion}-SNAPSHOT"
+
+    // For GeoIP PPL functions
+    zipArchive group: 'org.opensearch.plugin', name:'geospatial', version: "${opensearch_build}"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 dependencyLicenses.enabled = false
@@ -214,22 +235,51 @@ testClusters.all {
     }
 }
 
+def getJobSchedulerPlugin() {
+    provider { (RegularFile) (() ->
+            configurations.zipArchive.asFileTree.matching {
+                include '**/opensearch-job-scheduler*'
+            }.singleFile )
+    }
+}
+
+def getGeoSpatialPlugin() {
+    provider { (RegularFile) (() ->
+            configurations.zipArchive.asFileTree.matching {
+                include '**/geospatia*'
+            }.singleFile )
+    }
+}
+
 testClusters {
     integTest {
         testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+    }
+    yamlRestTest {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
     remoteCluster {
         testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
     }
     integTestWithSecurity {
         testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
     }
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
     }
 }
@@ -369,6 +419,10 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     }
 }
 
+yamlRestTest {
+    systemProperty 'tests.security.manager', 'false'
+}
+
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
     useCluster testClusters.remoteCluster
@@ -389,7 +443,7 @@ integTest {
     }
 
     testLogging {
-        events "passed", "skipped", "failed"
+        events "failed"
     }
 
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
@@ -397,6 +451,12 @@ integTest {
         dependsOn startPrometheus
         finalizedBy stopPrometheus
     }
+
+    // enable calcite codegen in IT
+    systemProperty 'calcite.debug', 'false'
+    systemProperty 'org.codehaus.janino.source_debugging.enable', 'false'
+    systemProperty 'org.codehaus.janino.source_debugging.dir', calciteCodegen
+
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
 
@@ -497,19 +557,21 @@ task comparisonTest(type: RestIntegTestTask) {
             testDistribution = "ARCHIVE"
             versions = [baseVersion, opensearch_version]
             numberOfNodes = 3
-            plugin(provider(new Callable<RegularFile>(){
-                @Override
-                RegularFile call() throws Exception {
-                    return new RegularFile() {
-                        @Override
-                        File getAsFile() {
-                            return configurations.zipArchive.asFileTree.matching {
-                                include '**/opensearch-sql-plugin*'
-                            }.singleFile
-                        }
-                    }
+            plugin(provider { (RegularFile) (() -> {
+                if (new File("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion").exists()) {
+                    project.delete(files("$project.rootDir/$bwcFilePath/job-scheduler/$bwcVersion"))
                 }
-            }))
+                project.mkdir bwcJobSchedulerPath + bwcVersion
+                ant.get(src: bwcOpenSearchJSDownload,
+                        dest: bwcJobSchedulerPath + bwcVersion,
+                        httpusecaches: false)
+                return fileTree(bwcJobSchedulerPath + bwcVersion).getSingleFile()
+            })})
+            plugin(provider { (RegularFile) (() -> {
+                return configurations.zipArchive.asFileTree.matching {
+                    include '**/opensearch-sql-plugin*'
+                }.singleFile
+            })})
             setting 'path.repo', "${buildDir}/cluster/shared/repo/${baseName}"
             setting 'http.content_type.required', 'true'
         }
@@ -517,17 +579,10 @@ task comparisonTest(type: RestIntegTestTask) {
 }
 
 List<Provider<RegularFile>> plugins = [
-    provider(new Callable<RegularFile>() {
-        @Override
-        RegularFile call() throws Exception {
-            return new RegularFile() {
-                @Override
-                File getAsFile() {
-                    return fileTree(bwcFilePath + project.version).getSingleFile()
-                }
-            }
+        getJobSchedulerPlugin(),
+        provider { (RegularFile) (() ->
+                fileTree(bwcFilePath + project.version).getSingleFile())
         }
-    })
 ]
 
 // Creates 2 test clusters with 3 nodes of the old version.

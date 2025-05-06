@@ -23,13 +23,13 @@ The PPL support the following data types.
 +===============+
 | boolean       |
 +---------------+
-| byte          |
+| tinyint       |
 +---------------+
-| short         |
+| smallint      |
 +---------------+
-| integer       |
+| int           |
 +---------------+
-| long          |
+| bigint        |
 +---------------+
 | float         |
 +---------------+
@@ -66,13 +66,13 @@ The table below list the mapping between OpenSearch Data Type, PPL Data Type and
 +=================+===============+===========+
 | boolean         | boolean       | BOOLEAN   |
 +-----------------+---------------+-----------+
-| byte            | byte          | TINYINT   |
+| byte            | tinyint       | TINYINT   |
 +-----------------+---------------+-----------+
-| short           | byte          | SMALLINT  |
+| short           | smallint      | SMALLINT  |
 +-----------------+---------------+-----------+
-| integer         | integer       | INTEGER   |
+| integer         | int           | INTEGER   |
 +-----------------+---------------+-----------+
-| long            | long          | BIGINT    |
+| long            | bigint        | BIGINT    |
 +-----------------+---------------+-----------+
 | float           | float         | REAL      |
 +-----------------+---------------+-----------+
@@ -97,14 +97,14 @@ The table below list the mapping between OpenSearch Data Type, PPL Data Type and
 | nested          | array         | STRUCT    |
 +-----------------+---------------+-----------+
 
-Notes: Not all the PPL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explict convert the data type.
+Notes: Not all the PPL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explicit convert the data type.
 
 
 
 Numeric Data Types
 ==================
 
-Numeric values ranged from -2147483648 to +2147483647 are recognized as integer with type name ``INTEGER``. For others outside the range, ``LONG`` integer will be the data type after parsed.
+Numeric values ranged from -2147483648 to +2147483647 are recognized as integer with type name ``int``. For others outside the range, ``bigint`` integer will be the data type after parsed.
 
 
 Date and Time Data Types
@@ -197,7 +197,7 @@ A string is a sequence of characters enclosed in either single or double quotes.
 Query Struct Data Types
 =======================
 
-In PPL, the Struct Data Types corresponding to the `Object field type in OpenSearch <https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html>`_. The "." is used as the path selector when access the inner attribute of the struct data.
+In PPL, the Struct Data Types corresponding to the `Object field type in OpenSearch <https://opensearch.org/docs/latest/field-types/supported-field-types/object/>`_. The "." is used as the path selector when access the inner attribute of the struct data.
 
 Example: People
 ---------------
@@ -354,11 +354,11 @@ PPL query::
 
     os> source=people | fields city, city.name, city.location.latitude;
     fetched rows / total rows = 1/1
-    +-----------------------------------------------------+-------------+--------------------------+
-    | city                                                | city.name   | city.location.latitude   |
-    |-----------------------------------------------------+-------------+--------------------------|
-    | {'name': 'Seattle', 'location': {'latitude': 10.5}} | Seattle     | 10.5                     |
-    +-----------------------------------------------------+-------------+--------------------------+
+    +-----------------------------------------------------+-----------+------------------------+
+    | city                                                | city.name | city.location.latitude |
+    |-----------------------------------------------------+-----------+------------------------|
+    | {'name': 'Seattle', 'location': {'latitude': 10.5}} | Seattle   | 10.5                   |
+    +-----------------------------------------------------+-----------+------------------------+
 
 
 Example 2: Group by struct inner attribute
@@ -370,11 +370,11 @@ PPL query::
 
     os> source=people | stats count() by city.name;
     fetched rows / total rows = 1/1
-    +-----------+-------------+
-    | count()   | city.name   |
-    |-----------+-------------|
-    | 1         | Seattle     |
-    +-----------+-------------+
+    +---------+-----------+
+    | count() | city.name |
+    |---------+-----------|
+    | 1       | Seattle   |
+    +---------+-----------+
 
 Example 3: Selecting Field of Array Value
 -----------------------------------------
@@ -383,8 +383,8 @@ Select deeper level for object fields of array value which returns the first ele
 
     os> source = people | fields accounts, accounts.id;
     fetched rows / total rows = 1/1
-    +------------+---------------+
-    | accounts   | accounts.id   |
-    |------------+---------------|
-    | {'id': 1}  | 1             |
-    +------------+---------------+
+    +-----------------------+-------------+
+    | accounts              | accounts.id |
+    |-----------------------+-------------|
+    | [{'id': 1},{'id': 2}] | 1           |
+    +-----------------------+-------------+

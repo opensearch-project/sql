@@ -21,7 +21,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 public class TypeEnvironmentTest {
 
   /** Use context class for push/pop. */
-  private AnalysisContext context = new AnalysisContext();
+  private final AnalysisContext context = new AnalysisContext();
 
   @Test
   public void defineFieldSymbolInDifferentEnvironmentsShouldBeAbleToResolve() {

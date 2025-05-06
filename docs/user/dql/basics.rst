@@ -191,14 +191,14 @@ This produces results like this for example::
 
     os> SELECT firstname, lastname, _index, _sort FROM accounts;
     fetched rows / total rows = 4/4
-    +-------------+------------+----------+---------+
-    | firstname   | lastname   | _index   | _sort   |
-    |-------------+------------+----------+---------|
-    | Amber       | Duke       | accounts | -2      |
-    | Hattie      | Bond       | accounts | -2      |
-    | Nanette     | Bates      | accounts | -2      |
-    | Dale        | Adams      | accounts | -2      |
-    +-------------+------------+----------+---------+
+    +-----------+----------+----------+-------+
+    | firstname | lastname | _index   | _sort |
+    |-----------+----------+----------+-------|
+    | Amber     | Duke     | accounts | -2    |
+    | Hattie    | Bond     | accounts | -2    |
+    | Nanette   | Bates    | accounts | -2    |
+    | Dale      | Adams    | accounts | -2    |
+    +-----------+----------+----------+-------+
 
 Example 3: Using Field Alias
 ----------------------------
@@ -303,13 +303,13 @@ In fact your can use any expression in a ``DISTINCT`` clause as follows::
 
     os> SELECT DISTINCT SUBSTRING(lastname, 1, 1) FROM accounts;
     fetched rows / total rows = 3/3
-    +-----------------------------+
-    | SUBSTRING(lastname, 1, 1)   |
-    |-----------------------------|
-    | A                           |
-    | B                           |
-    | D                           |
-    +-----------------------------+
+    +---------------------------+
+    | SUBSTRING(lastname, 1, 1) |
+    |---------------------------|
+    | A                         |
+    | B                         |
+    | D                         |
+    +---------------------------+
 
 FROM
 ====
@@ -373,8 +373,6 @@ Description
 ``WHERE`` clause specifies only OpenSearch documents that meet the criteria should be affected. It consists of predicates that uses ``=``, ``<>``, ``>``, ``>=``, ``<``, ``<=``, ``IN``, ``BETWEEN``, ``LIKE``, ``IS NULL`` or ``IS NOT NULL``. These predicates can be combined by logical operator ``NOT``, ``AND`` or ``OR`` to build more complex expression.
 
 For ``LIKE`` and other full text search topics, please refer to Full Text Search documentation.
-
-Besides SQL query, WHERE clause can also be used in SQL statement such as ``DELETE``. Please refer to Data Manipulation Language documentation for details.
 
 Example 1: Comparison Operators
 -------------------------------
@@ -988,14 +986,14 @@ Note that the example above is essentially sorting on a predicate expression. In
 
     os> SELECT employer FROM accounts ORDER BY employer ASC NULLS LAST;
     fetched rows / total rows = 4/4
-    +------------+
-    | employer   |
-    |------------|
-    | Netagy     |
-    | Pyrami     |
-    | Quility    |
-    | null       |
-    +------------+
+    +----------+
+    | employer |
+    |----------|
+    | Netagy   |
+    | Pyrami   |
+    | Quility  |
+    | null     |
+    +----------+
 
 The sorting rule can be summarized as follows:
 
@@ -1010,14 +1008,14 @@ Here is another example for sort in descending order without ``NULLS`` clause::
 
     os> SELECT employer FROM accounts ORDER BY employer DESC;
     fetched rows / total rows = 4/4
-    +------------+
-    | employer   |
-    |------------|
-    | Quility    |
-    | Pyrami     |
-    | Netagy     |
-    | null       |
-    +------------+
+    +----------+
+    | employer |
+    |----------|
+    | Quility  |
+    | Pyrami   |
+    | Netagy   |
+    | null     |
+    +----------+
 
 
 Example 3: Ordering by Aggregate Functions
@@ -1027,23 +1025,23 @@ Aggregate functions are allowed to be used in ``ORDER BY`` clause. You can refer
 
     os> SELECT gender, MAX(age) FROM accounts GROUP BY gender ORDER BY MAX(age) DESC;
     fetched rows / total rows = 2/2
-    +----------+------------+
-    | gender   | MAX(age)   |
-    |----------+------------|
-    | M        | 36         |
-    | F        | 28         |
-    +----------+------------+
+    +--------+----------+
+    | gender | MAX(age) |
+    |--------+----------|
+    | M      | 36       |
+    | F      | 28       |
+    +--------+----------+
 
 Even if it's not present in ``SELECT`` clause, it can be also used as follows::
 
     os> SELECT gender, MIN(age) FROM accounts GROUP BY gender ORDER BY MAX(age) DESC;
     fetched rows / total rows = 2/2
-    +----------+------------+
-    | gender   | MIN(age)   |
-    |----------+------------|
-    | M        | 32         |
-    | F        | 28         |
-    +----------+------------+
+    +--------+----------+
+    | gender | MIN(age) |
+    |--------+----------|
+    | M      | 32       |
+    | F      | 28       |
+    +--------+----------+
 
 LIMIT
 =====
@@ -1147,12 +1145,12 @@ Offset position can be given following the OFFSET keyword as well, here is an ex
 
     >od SELECT age FROM accounts ORDER BY age LIMIT 2 OFFSET 1
     fetched rows / total rows = 2/2
-    +-------+
-    | age   |
-    |-------|
-    | 32    |
-    | 33    |
-    +-------+
+    +-----+
+    | age |
+    |-----|
+    | 32  |
+    | 33  |
+    +-----+
 
 
 Limitation

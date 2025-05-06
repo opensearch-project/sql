@@ -27,7 +27,7 @@ import org.opensearch.sql.legacy.exception.SqlFeatureNotImplementedException;
 /** Test cases for AntlrSqlParseTreeVisitor */
 public class AntlrSqlParseTreeVisitorTest {
 
-  private TypeChecker analyzer =
+  private final TypeChecker analyzer =
       new TypeChecker(new SemanticContext()) {
         @Override
         public Type visitIndexName(String indexName) {
@@ -47,7 +47,7 @@ public class AntlrSqlParseTreeVisitorTest {
         }
       };
 
-  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public final ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void selectNumberShouldReturnNumberAsQueryVisitingResult() {

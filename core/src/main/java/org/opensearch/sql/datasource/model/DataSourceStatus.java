@@ -10,7 +10,7 @@ public enum DataSourceStatus {
   ACTIVE("active"),
   DISABLED("disabled");
 
-  private String text;
+  private final String text;
 
   DataSourceStatus(String text) {
     this.text = text;

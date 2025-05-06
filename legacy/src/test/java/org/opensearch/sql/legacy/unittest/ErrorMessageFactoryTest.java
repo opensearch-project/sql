@@ -15,8 +15,8 @@ import org.opensearch.sql.legacy.executor.format.OpenSearchErrorMessage;
 
 public class ErrorMessageFactoryTest {
 
-  private Throwable nonOpenSearchThrowable = new Throwable();
-  private Throwable openSearchThrowable = new OpenSearchException(nonOpenSearchThrowable);
+  private final Throwable nonOpenSearchThrowable = new Throwable();
+  private final Throwable openSearchThrowable = new OpenSearchException(nonOpenSearchThrowable);
 
   @Test
   public void openSearchExceptionShouldCreateEsErrorMessage() {

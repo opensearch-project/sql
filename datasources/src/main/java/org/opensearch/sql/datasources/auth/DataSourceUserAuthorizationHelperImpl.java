@@ -9,10 +9,12 @@ import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver
 
 import java.util.List;
 import lombok.AllArgsConstructor;
-import org.opensearch.client.Client;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.commons.ConfigConstants;
 import org.opensearch.commons.authuser.User;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.transport.client.Client;
 
 @AllArgsConstructor
 public class DataSourceUserAuthorizationHelperImpl implements DataSourceUserAuthorizationHelper {
@@ -49,11 +51,12 @@ public class DataSourceUserAuthorizationHelperImpl implements DataSourceUserAuth
         }
       }
       if (!isAuthorized) {
-        throw new SecurityException(
+        throw new OpenSearchSecurityException(
             String.format(
                 "User is not authorized to access datasource %s. "
                     + "User should be mapped to any of the roles in %s for access.",
-                dataSourceMetadata.getName(), dataSourceMetadata.getAllowedRoles().toString()));
+                dataSourceMetadata.getName(), dataSourceMetadata.getAllowedRoles().toString()),
+            RestStatus.UNAUTHORIZED);
       }
     }
   }

@@ -29,7 +29,6 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.opensearch.client.Client;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder.ScriptField;
 import org.opensearch.sql.legacy.domain.Condition;
@@ -52,6 +51,7 @@ import org.opensearch.sql.legacy.query.maker.QueryMaker;
 import org.opensearch.sql.legacy.query.multi.MultiQuerySelect;
 import org.opensearch.sql.legacy.util.CheckScriptContents;
 import org.opensearch.sql.legacy.util.TestsConstants;
+import org.opensearch.transport.client.Client;
 
 public class SqlParserTest {
 
@@ -62,7 +62,7 @@ public class SqlParserTest {
     parser = new SqlParser();
   }
 
-  @Rule public ExpectedException thrown = ExpectedException.none();
+  @Rule public final ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void whereConditionLeftFunctionRightPropertyGreatTest() throws Exception {

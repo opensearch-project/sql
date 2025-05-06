@@ -34,12 +34,12 @@ The group by expression could be identifier::
 
     os> SELECT gender, sum(age) FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
-    +----------+------------+
-    | gender   | sum(age)   |
-    |----------+------------|
-    | F        | 28         |
-    | M        | 101        |
-    +----------+------------+
+    +--------+----------+
+    | gender | sum(age) |
+    |--------+----------|
+    | F      | 28       |
+    | M      | 101      |
+    +--------+----------+
 
 
 Ordinal
@@ -49,12 +49,12 @@ The group by expression could be ordinal::
 
     os> SELECT gender, sum(age) FROM accounts GROUP BY 1;
     fetched rows / total rows = 2/2
-    +----------+------------+
-    | gender   | sum(age)   |
-    |----------+------------|
-    | F        | 28         |
-    | M        | 101        |
-    +----------+------------+
+    +--------+----------+
+    | gender | sum(age) |
+    |--------+----------|
+    | F      | 28       |
+    | M      | 101      |
+    +--------+----------+
 
 
 Expression
@@ -64,14 +64,14 @@ The group by expression could be expression::
 
     os> SELECT abs(account_number), sum(age) FROM accounts GROUP BY abs(account_number);
     fetched rows / total rows = 4/4
-    +-----------------------+------------+
-    | abs(account_number)   | sum(age)   |
-    |-----------------------+------------|
-    | 1                     | 32         |
-    | 13                    | 28         |
-    | 18                    | 33         |
-    | 6                     | 36         |
-    +-----------------------+------------+
+    +---------------------+----------+
+    | abs(account_number) | sum(age) |
+    |---------------------+----------|
+    | 1                   | 32       |
+    | 13                  | 28       |
+    | 18                  | 33       |
+    | 6                   | 36       |
+    +---------------------+----------+
 
 
 Aggregation
@@ -91,12 +91,12 @@ The aggregation could be used select::
 
     os> SELECT gender, sum(age) FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
-    +----------+------------+
-    | gender   | sum(age)   |
-    |----------+------------|
-    | F        | 28         |
-    | M        | 101        |
-    +----------+------------+
+    +--------+----------+
+    | gender | sum(age) |
+    |--------+----------|
+    | F      | 28       |
+    | M      | 101      |
+    +--------+----------+
 
 Expression over Aggregation
 ---------------------------
@@ -105,12 +105,12 @@ The aggregation could be used as arguments of expression::
 
     os> SELECT gender, sum(age) * 2 as sum2 FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
-    +----------+--------+
-    | gender   | sum2   |
-    |----------+--------|
-    | F        | 56     |
-    | M        | 202    |
-    +----------+--------+
+    +--------+------+
+    | gender | sum2 |
+    |--------+------|
+    | F      | 56   |
+    | M      | 202  |
+    +--------+------+
 
 Expression as argument of Aggregation
 -------------------------------------
@@ -119,12 +119,12 @@ The aggregation could has expression as arguments::
 
     os> SELECT gender, sum(age * 2) as sum2 FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
-    +----------+--------+
-    | gender   | sum2   |
-    |----------+--------|
-    | F        | 56     |
-    | M        | 202    |
-    +----------+--------+
+    +--------+------+
+    | gender | sum2 |
+    |--------+------|
+    | F      | 56   |
+    | M      | 202  |
+    +--------+------+
 
 COUNT Aggregations
 ------------------
@@ -150,12 +150,12 @@ Example::
 
     os> SELECT gender, count(*) as countV FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
-    +----------+----------+
-    | gender   | countV   |
-    |----------+----------|
-    | F        | 1        |
-    | M        | 3        |
-    +----------+----------+
+    +--------+--------+
+    | gender | countV |
+    |--------+--------|
+    | F      | 1      |
+    | M      | 3      |
+    +--------+--------+
 
 SUM
 ---
@@ -169,12 +169,12 @@ Example::
 
     os> SELECT gender, sum(age) as sumV FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
-    +----------+--------+
-    | gender   | sumV   |
-    |----------+--------|
-    | F        | 28     |
-    | M        | 101    |
-    +----------+--------+
+    +--------+------+
+    | gender | sumV |
+    |--------+------|
+    | F      | 28   |
+    | M      | 101  |
+    +--------+------+
 
 AVG
 ---
@@ -188,12 +188,12 @@ Example::
 
     os> SELECT gender, avg(age) as avgV FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
-    +----------+--------------------+
-    | gender   | avgV               |
-    |----------+--------------------|
-    | F        | 28.0               |
-    | M        | 33.666666666666664 |
-    +----------+--------------------+
+    +--------+--------------------+
+    | gender | avgV               |
+    |--------+--------------------|
+    | F      | 28.0               |
+    | M      | 33.666666666666664 |
+    +--------+--------------------+
 
 MAX
 ---
@@ -207,11 +207,11 @@ Example::
 
     os> SELECT max(age) as maxV FROM accounts;
     fetched rows / total rows = 1/1
-    +--------+
-    | maxV   |
-    |--------|
-    | 36     |
-    +--------+
+    +------+
+    | maxV |
+    |------|
+    | 36   |
+    +------+
 
 MIN
 ---
@@ -225,11 +225,11 @@ Example::
 
     os> SELECT min(age) as minV FROM accounts;
     fetched rows / total rows = 1/1
-    +--------+
-    | minV   |
-    |--------|
-    | 28     |
-    +--------+
+    +------+
+    | minV |
+    |------|
+    | 28   |
+    +------+
 
 VAR_POP
 -------
@@ -364,11 +364,30 @@ To get the count of distinct values of a field, you can add a keyword ``DISTINCT
 
     os> SELECT COUNT(DISTINCT gender), COUNT(gender) FROM accounts;
     fetched rows / total rows = 1/1
-    +--------------------------+-----------------+
-    | COUNT(DISTINCT gender)   | COUNT(gender)   |
-    |--------------------------+-----------------|
-    | 2                        | 4               |
-    +--------------------------+-----------------+
+    +------------------------+---------------+
+    | COUNT(DISTINCT gender) | COUNT(gender) |
+    |------------------------+---------------|
+    | 2                      | 4             |
+    +------------------------+---------------+
+
+PERCENTILE or PERCENTILE_APPROX
+-------------------------------
+
+Description
+>>>>>>>>>>>
+
+Usage: PERCENTILE(expr, percent) or PERCENTILE_APPROX(expr, percent). Returns the approximate percentile value of `expr` at the specified percentage. `percent` must be a constant between 0 and 100.
+
+Example::
+
+    os> SELECT gender, percentile(age, 90) as p90 FROM accounts GROUP BY gender;
+    fetched rows / total rows = 2/2
+    +--------+-----+
+    | gender | p90 |
+    |--------+-----|
+    | F      | 28  |
+    | M      | 36  |
+    +--------+-----+
 
 HAVING Clause
 =============
@@ -394,11 +413,11 @@ Here is an example for typical use of ``HAVING`` clause::
     ... GROUP BY gender
     ... HAVING sum(age) > 100;
     fetched rows / total rows = 1/1
-    +----------+------------+
-    | gender   | sum(age)   |
-    |----------+------------|
-    | M        | 101        |
-    +----------+------------+
+    +--------+----------+
+    | gender | sum(age) |
+    |--------+----------|
+    | M      | 101      |
+    +--------+----------+
 
 Here is another example for using alias in ``HAVING`` condition. Note that if an identifier is ambiguous, for example present both as a select alias and an index field, preference is alias. This means the identifier will be replaced by expression aliased in ``SELECT`` clause::
 
@@ -408,11 +427,11 @@ Here is another example for using alias in ``HAVING`` condition. Note that if an
     ... GROUP BY gender
     ... HAVING s > 100;
     fetched rows / total rows = 1/1
-    +----------+-----+
-    | gender   | s   |
-    |----------+-----|
-    | M        | 101 |
-    +----------+-----+
+    +--------+-----+
+    | gender | s   |
+    |--------+-----|
+    | M      | 101 |
+    +--------+-----+
 
 HAVING without GROUP BY
 -----------------------
@@ -424,11 +443,11 @@ Additionally, a ``HAVING`` clause can work without ``GROUP BY`` clause. This is 
     ... FROM accounts
     ... HAVING sum(age) > 100;
     fetched rows / total rows = 1/1
-    +------------------------+
-    | 'Total of age > 100'   |
-    |------------------------|
-    | Total of age > 100     |
-    +------------------------+
+    +----------------------+
+    | 'Total of age > 100' |
+    |----------------------|
+    | Total of age > 100   |
+    +----------------------+
 
 
 FILTER Clause
@@ -446,12 +465,12 @@ The group by aggregation with ``FILTER`` clause can set different conditions for
 
     os> SELECT avg(age) FILTER(WHERE balance > 10000) AS filtered, gender FROM accounts GROUP BY gender
     fetched rows / total rows = 2/2
-    +------------+----------+
-    | filtered   | gender   |
-    |------------+----------|
-    | 28.0       | F        |
-    | 32.0       | M        |
-    +------------+----------+
+    +----------+--------+
+    | filtered | gender |
+    |----------+--------|
+    | 28.0     | F      |
+    | 32.0     | M      |
+    +----------+--------+
 
 FILTER without GROUP BY
 -----------------------
@@ -463,11 +482,11 @@ The ``FILTER`` clause can be used in aggregation functions without GROUP BY as w
     ...   count(*) FILTER(WHERE age > 34) AS filtered
     ... FROM accounts
     fetched rows / total rows = 1/1
-    +--------------+------------+
-    | unfiltered   | filtered   |
-    |--------------+------------|
-    | 4            | 1          |
-    +--------------+------------+
+    +------------+----------+
+    | unfiltered | filtered |
+    |------------+----------|
+    | 4          | 1        |
+    +------------+----------+
 
 Distinct count aggregate with FILTER
 ------------------------------------
@@ -476,9 +495,9 @@ The ``FILTER`` clause is also used in distinct count to do the filtering before 
 
     os> SELECT COUNT(DISTINCT firstname) FILTER(WHERE age > 30) AS distinct_count FROM accounts
     fetched rows / total rows = 1/1
-    +------------------+
-    | distinct_count   |
-    |------------------|
-    | 3                |
-    +------------------+
+    +----------------+
+    | distinct_count |
+    |----------------|
+    | 3              |
+    +----------------+
 

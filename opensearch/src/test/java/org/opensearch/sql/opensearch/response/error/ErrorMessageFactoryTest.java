@@ -13,8 +13,8 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.core.rest.RestStatus;
 
 public class ErrorMessageFactoryTest {
-  private Throwable nonOpenSearchThrowable = new Throwable();
-  private Throwable openSearchThrowable = new OpenSearchException(nonOpenSearchThrowable);
+  private final Throwable nonOpenSearchThrowable = new Throwable();
+  private final Throwable openSearchThrowable = new OpenSearchException(nonOpenSearchThrowable);
 
   @Test
   public void openSearchExceptionShouldCreateEsErrorMessage() {

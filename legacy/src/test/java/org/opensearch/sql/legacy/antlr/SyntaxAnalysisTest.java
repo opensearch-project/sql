@@ -22,9 +22,9 @@ import org.opensearch.sql.legacy.antlr.syntax.SyntaxAnalysisException;
 public class SyntaxAnalysisTest {
 
   /** public accessor is required by @Rule annotation */
-  @Rule public ExpectedException exception = ExpectedException.none();
+  @Rule public final ExpectedException exception = ExpectedException.none();
 
-  private OpenSearchLegacySqlAnalyzer analyzer =
+  private final OpenSearchLegacySqlAnalyzer analyzer =
       new OpenSearchLegacySqlAnalyzer(new SqlAnalysisConfig(true, true, 1000));
 
   /** In reality exception occurs before reaching new parser for now */

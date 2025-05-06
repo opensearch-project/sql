@@ -18,9 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.mapper.MapperService;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -32,20 +30,18 @@ import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.maker.QueryMaker;
+import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 22/8/2015. */
 public class HashJoinElasticExecutor extends ElasticJoinExecutor {
-  private HashJoinElasticRequestBuilder requestBuilder;
-
-  private Client client;
+  private final HashJoinElasticRequestBuilder requestBuilder;
   private boolean useQueryTermsFilterOptimization = false;
   private final int MAX_RESULTS_FOR_FIRST_TABLE = 100000;
-  HashJoinComparisonStructure hashJoinComparisonStructure;
-  private Set<String> alreadyMatched;
+  final HashJoinComparisonStructure hashJoinComparisonStructure;
+  private final Set<String> alreadyMatched;
 
   public HashJoinElasticExecutor(Client client, HashJoinElasticRequestBuilder requestBuilder) {
-    super(requestBuilder);
-    this.client = client;
+    super(client, requestBuilder);
     this.requestBuilder = requestBuilder;
     this.useQueryTermsFilterOptimization = requestBuilder.isUseTermFiltersOptimization();
     this.hashJoinComparisonStructure =
@@ -54,7 +50,6 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
   }
 
   public List<SearchHit> innerRun() throws IOException, SqlParseException {
-
     Map<String, Map<String, List<Object>>> optimizationTermsFilterStructure =
         initOptimizationStructure();
 
@@ -124,16 +119,12 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
     Integer hintLimit = secondTableRequest.getHintLimit();
     SearchResponse searchResponse;
     boolean finishedScrolling;
+
     if (hintLimit != null && hintLimit < MAX_RESULTS_ON_ONE_FETCH) {
-      searchResponse = secondTableRequest.getRequestBuilder().setSize(hintLimit).get();
+      searchResponse = getResponseWithHits(secondTableRequest, hintLimit, null);
       finishedScrolling = true;
     } else {
-      searchResponse =
-          secondTableRequest
-              .getRequestBuilder()
-              .setScroll(new TimeValue(60000))
-              .setSize(MAX_RESULTS_ON_ONE_FETCH)
-              .get();
+      searchResponse = getResponseWithHits(secondTableRequest, MAX_RESULTS_ON_ONE_FETCH, null);
       // es5.0 no need to scroll again!
       //            searchResponse = client.prepareSearchScroll(searchResponse.getScrollId())
       //            .setScroll(new TimeValue(600000)).get();
@@ -214,11 +205,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
         if (secondTableHits.length > 0
             && (hintLimit == null || fetchedSoFarFromSecondTable >= hintLimit)) {
           searchResponse =
-              client
-                  .prepareSearchScroll(searchResponse.getScrollId())
-                  .setScroll(new TimeValue(600000))
-                  .execute()
-                  .actionGet();
+              getResponseWithHits(secondTableRequest, MAX_RESULTS_ON_ONE_FETCH, searchResponse);
         } else {
           break;
         }
@@ -292,12 +279,13 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
 
   private List<SearchHit> scrollTillLimit(
       TableInJoinRequestBuilder tableInJoinRequest, Integer hintLimit) {
-    SearchResponse scrollResp = scrollOneTimeWithMax(client, tableInJoinRequest);
+    SearchResponse response =
+        getResponseWithHits(tableInJoinRequest, MAX_RESULTS_ON_ONE_FETCH, null);
 
-    updateMetaSearchResults(scrollResp);
+    updateMetaSearchResults(response);
     List<SearchHit> hitsWithScan = new ArrayList<>();
     int curentNumOfResults = 0;
-    SearchHit[] hits = scrollResp.getHits().getHits();
+    SearchHit[] hits = response.getHits().getHits();
 
     if (hintLimit == null) {
       hintLimit = MAX_RESULTS_FOR_FIRST_TABLE;
@@ -311,13 +299,8 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
         System.out.println("too many results for first table, stoping at:" + curentNumOfResults);
         break;
       }
-      scrollResp =
-          client
-              .prepareSearchScroll(scrollResp.getScrollId())
-              .setScroll(new TimeValue(600000))
-              .execute()
-              .actionGet();
-      hits = scrollResp.getHits().getHits();
+      response = getResponseWithHits(tableInJoinRequest, MAX_RESULTS_FOR_FIRST_TABLE, response);
+      hits = response.getHits().getHits();
     }
     return hitsWithScan;
   }

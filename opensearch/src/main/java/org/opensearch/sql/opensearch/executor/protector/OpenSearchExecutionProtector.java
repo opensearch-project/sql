@@ -10,6 +10,7 @@ import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
+import org.opensearch.sql.opensearch.planner.physical.OpenSearchEvalOperator;
 import org.opensearch.sql.planner.physical.AggregationOperator;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
@@ -23,6 +24,8 @@ import org.opensearch.sql.planner.physical.RareTopNOperator;
 import org.opensearch.sql.planner.physical.RemoveOperator;
 import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
+import org.opensearch.sql.planner.physical.TakeOrderedOperator;
+import org.opensearch.sql.planner.physical.TrendlineOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -94,6 +97,13 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   @Override
   public PhysicalPlan visitEval(EvalOperator node, Object context) {
+    if (node instanceof OpenSearchEvalOperator evalOperator) {
+      return doProtect(
+          new OpenSearchEvalOperator(
+              visitInput(evalOperator.getInput(), context),
+              evalOperator.getExpressionList(),
+              evalOperator.getNodeClient()));
+    }
     return new EvalOperator(visitInput(node.getInput(), context), node.getExpressionList());
   }
 
@@ -128,6 +138,17 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   @Override
   public PhysicalPlan visitSort(SortOperator node, Object context) {
     return doProtect(new SortOperator(visitInput(node.getInput(), context), node.getSortList()));
+  }
+
+  /** Decorate with {@link ResourceMonitorPlan}. */
+  @Override
+  public PhysicalPlan visitTakeOrdered(TakeOrderedOperator node, Object context) {
+    return doProtect(
+        new TakeOrderedOperator(
+            visitInput(node.getInput(), context),
+            node.getLimit(),
+            node.getOffset(),
+            node.getSortList()));
   }
 
   /**
@@ -173,6 +194,12 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
             visitInput(mlOperator.getInput(), context),
             mlOperator.getArguments(),
             mlOperator.getNodeClient()));
+  }
+
+  @Override
+  public PhysicalPlan visitTrendline(TrendlineOperator node, Object context) {
+    return doProtect(
+        new TrendlineOperator(visitInput(node.getInput(), context), node.getComputations()));
   }
 
   PhysicalPlan visitInput(PhysicalPlan node, Object context) {

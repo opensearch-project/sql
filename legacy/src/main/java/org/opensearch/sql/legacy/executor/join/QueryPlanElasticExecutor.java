@@ -9,6 +9,7 @@ import java.util.List;
 import org.opensearch.search.SearchHit;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.QueryPlanner;
+import org.opensearch.transport.client.Client;
 
 /**
  * Executor for generic QueryPlanner execution. This executor is just acting as adaptor to integrate
@@ -19,8 +20,8 @@ class QueryPlanElasticExecutor extends ElasticJoinExecutor {
 
   private final QueryPlanner queryPlanner;
 
-  QueryPlanElasticExecutor(HashJoinQueryPlanRequestBuilder request) {
-    super(request);
+  QueryPlanElasticExecutor(Client client, HashJoinQueryPlanRequestBuilder request) {
+    super(client, request);
     this.queryPlanner = request.plan();
   }
 
