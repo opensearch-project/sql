@@ -395,11 +395,12 @@ public class MatcherUtils {
     assertEquals(JsonParser.parseString(expected), JsonParser.parseString(actual));
   }
 
+  /** Compare two JSON string are equals with ignoring the RelNode id in the Calcite plan. */
   public static void assertJsonEqualsIgnoreRelId(String expected, String actual) {
     assertJsonEquals(eliminateRelId(expected), eliminateRelId(actual));
   }
 
-  public static String eliminateRelId(String s) {
+  private static String eliminateRelId(String s) {
     return s.replaceAll("rel#\\d+", "rel#").replaceAll("RelSubset#\\d+", "RelSubset#");
   }
 }
