@@ -90,8 +90,6 @@ The table below list the mapping between OpenSearch Data Type, PPL Data Type and
 +-----------------+---------------+-----------+
 | ip              | ip            | VARCHAR   |
 +-----------------+---------------+-----------+
-| date            | timestamp     | TIMESTAMP |
-+-----------------+---------------+-----------+
 | binary          | binary        | VARBINARY |
 +-----------------+---------------+-----------+
 | object          | struct        | STRUCT    |
