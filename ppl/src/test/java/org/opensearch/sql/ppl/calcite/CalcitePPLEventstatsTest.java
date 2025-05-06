@@ -56,17 +56,17 @@ public class CalcitePPLEventstatsTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[$7], avg(SAL)=[/(CAST(SUM($5) OVER ()):DOUBLE NOT NULL,"
-            + " COUNT($5) OVER ())])\n"
+            + " COMM=[$6], DEPTNO=[$7], avg(SAL)=[/(SUM($5) OVER (), CAST(COUNT($5) OVER ()):DOUBLE"
+            + " NOT NULL)])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     // Bug of Calcite, should be OVER (ROWS ...)
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " CAST(SUM(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS"
-            + " DOUBLE) / (COUNT(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED"
-            + " FOLLOWING)) `avg(SAL)`\n"
+        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`, (SUM(`SAL`)"
+            + " OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)) /"
+            + " CAST(COUNT(`SAL`) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)"
+            + " AS DOUBLE) `avg(SAL)`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
