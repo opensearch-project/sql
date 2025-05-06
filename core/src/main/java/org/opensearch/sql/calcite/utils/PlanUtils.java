@@ -70,38 +70,116 @@ public interface PlanUtils {
         // There is no "avg" AggImplementor in Calcite, we have to change avg window
         // function to `sum over(...).toRex / count over(...).toRex`
       case AVG:
+        // avg(x) ==>
+        //     sum(x) / count(x)
         return context.relBuilder.call(
             SqlStdOperatorTable.DIVIDE,
+            sumOver(context, field, partitions, rows, lowerBound, upperBound),
             context.relBuilder.cast(
-                context
-                    .relBuilder
-                    .sum(field)
-                    .over()
-                    .partitionBy(partitions)
-                    .let(
-                        c ->
-                            rows
-                                ? c.rowsBetween(lowerBound, upperBound)
-                                : c.rangeBetween(lowerBound, upperBound))
-                    .toRex(),
-                SqlTypeName.DOUBLE),
-            context
-                .relBuilder
-                .count(ImmutableList.of(field))
-                .over()
-                .partitionBy(partitions)
-                .toRex());
+                countOver(context, field, partitions, rows, lowerBound, upperBound),
+                SqlTypeName.DOUBLE));
+        // stddev_pop(x) ==>
+        //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / count(x), 0.5)
+        //
+        // stddev_samp(x) ==>
+        //     power((sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1), 0.5)
+        //
+        // var_pop(x) ==>
+        //     (sum(x * x) - sum(x) * sum(x) / count(x)) / count(x)
+        //
+        // var_samp(x) ==>
+        //     (sum(x * x) - sum(x) * sum(x) / count(x)) / (count(x) - 1)
+      case STDDEV_POP:
+        return variance(context, field, partitions, rows, lowerBound, upperBound, true, true);
+      case STDDEV_SAMP:
+        return variance(context, field, partitions, rows, lowerBound, upperBound, false, true);
+      case VARPOP:
+        return variance(context, field, partitions, rows, lowerBound, upperBound, true, false);
+      case VARSAMP:
+        return variance(context, field, partitions, rows, lowerBound, upperBound, false, false);
       default:
-        return makeAggCall(context, functionName, false, field, argList)
-            .over()
-            .partitionBy(partitions)
-            .let(
-                c ->
-                    rows
-                        ? c.rowsBetween(lowerBound, upperBound)
-                        : c.rangeBetween(lowerBound, upperBound))
-            .toRex();
+        return withOver(
+            makeAggCall(context, functionName, false, field, argList),
+            partitions,
+            rows,
+            lowerBound,
+            upperBound);
     }
+  }
+
+  private static RexNode sumOver(
+      CalcitePlanContext ctx,
+      RexNode operation,
+      List<RexNode> partitions,
+      boolean rows,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound) {
+    return withOver(ctx.relBuilder.sum(operation), partitions, rows, lowerBound, upperBound);
+  }
+
+  private static RexNode countOver(
+      CalcitePlanContext ctx,
+      RexNode operation,
+      List<RexNode> partitions,
+      boolean rows,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound) {
+    return withOver(
+        ctx.relBuilder.count(ImmutableList.of(operation)),
+        partitions,
+        rows,
+        lowerBound,
+        upperBound);
+  }
+
+  private static RexNode withOver(
+      RelBuilder.AggCall aggCall,
+      List<RexNode> partitions,
+      boolean rows,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound) {
+    return aggCall
+        .over()
+        .partitionBy(partitions)
+        .let(
+            c ->
+                rows
+                    ? c.rowsBetween(lowerBound, upperBound)
+                    : c.rangeBetween(lowerBound, upperBound))
+        .toRex();
+  }
+
+  private static RexNode variance(
+      CalcitePlanContext ctx,
+      RexNode operator,
+      List<RexNode> partitions,
+      boolean rows,
+      RexWindowBound lowerBound,
+      RexWindowBound upperBound,
+      boolean biased,
+      boolean sqrt) {
+    RexNode argSquared = ctx.relBuilder.call(SqlStdOperatorTable.MULTIPLY, operator, operator);
+    RexNode sumArgSquared = sumOver(ctx, argSquared, partitions, rows, lowerBound, upperBound);
+    RexNode sum = sumOver(ctx, operator, partitions, rows, lowerBound, upperBound);
+    RexNode sumSquared = ctx.relBuilder.call(SqlStdOperatorTable.MULTIPLY, sum, sum);
+    RexNode count = countOver(ctx, operator, partitions, rows, lowerBound, upperBound);
+    RexNode countCast = ctx.relBuilder.cast(count, SqlTypeName.DOUBLE);
+    RexNode avgSumSquared = ctx.relBuilder.call(SqlStdOperatorTable.DIVIDE, sumSquared, countCast);
+    RexNode diff = ctx.relBuilder.call(SqlStdOperatorTable.MINUS, sumArgSquared, avgSumSquared);
+    RexNode denominator;
+    if (biased) {
+      denominator = countCast;
+    } else {
+      RexNode one = ctx.relBuilder.literal(1);
+      denominator = ctx.relBuilder.call(SqlStdOperatorTable.MINUS, countCast, one);
+    }
+    RexNode div = ctx.relBuilder.call(SqlStdOperatorTable.DIVIDE, diff, denominator);
+    RexNode result = div;
+    if (sqrt) {
+      RexNode half = ctx.relBuilder.literal(0.5);
+      result = ctx.relBuilder.call(SqlStdOperatorTable.POWER, div, half);
+    }
+    return result;
   }
 
   static RexWindowBound convert(CalcitePlanContext context, WindowBound windowBound) {

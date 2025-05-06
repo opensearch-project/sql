@@ -314,6 +314,13 @@ public enum BuiltinFunctionName {
           .put("avg", BuiltinFunctionName.AVG)
           .put("count", BuiltinFunctionName.COUNT)
           .put("sum", BuiltinFunctionName.SUM)
+          .put("var_pop", BuiltinFunctionName.VARPOP)
+          .put("var_samp", BuiltinFunctionName.VARSAMP)
+          .put("variance", BuiltinFunctionName.VARPOP)
+          .put("std", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

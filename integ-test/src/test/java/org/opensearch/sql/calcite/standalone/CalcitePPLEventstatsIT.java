@@ -279,7 +279,7 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testUnsupportedWindowFunctions() {
-    List<String> unsupported = List.of("STDDEV_SAMP", "STDDEV_POP");
+    List<String> unsupported = List.of("PERCENTILE_APPROX", "PERCENTILE");
     for (String u : unsupported) {
       UnsupportedOperationException e =
           assertThrows(
@@ -373,17 +373,231 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where name = 'non-existed' | eventstats count() as cnt, avg(age) as"
-                    + " avg, min(age) as min, max(age) as max",
+                "source=%s | where name = 'non-existed' | eventstats count(), avg(age), min(age),"
+                    + " max(age), stddev_pop(age), stddev_samp(age), var_pop(age), var_samp(age)",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifyNumOfRows(actual, 0);
 
     JSONObject actual2 =
         executeQuery(
             String.format(
-                "source=%s | where name = 'non-existed' | eventstats count() as cnt, avg(age) as"
-                    + " avg, min(age) as min, max(age) as max by country",
+                "source=%s | where name = 'non-existed' | eventstats count(), avg(age), min(age),"
+                    + " max(age), stddev_pop(age), stddev_samp(age), var_pop(age), var_samp(age) by"
+                    + " country",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifyNumOfRows(actual2, 0);
+  }
+
+  @Test
+  public void testEventstatVariance() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
+                    + " var_samp(age)",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchemaInOrder(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "integer"),
+        schema("year", "integer"),
+        schema("age", "integer"),
+        schema("stddev_pop(age)", "double"),
+        schema("stddev_samp(age)", "double"),
+        schema("var_pop(age)", "double"),
+        schema("var_samp(age)", "double"));
+
+    verifyDataRows(
+        actual,
+        rows(
+            "John",
+            "Canada",
+            "Ontario",
+            4,
+            2023,
+            25,
+            19.803724397193573,
+            22.86737122335374,
+            392.1875,
+            522.9166666666666),
+        rows(
+            "Jake",
+            "USA",
+            "California",
+            4,
+            2023,
+            70,
+            19.803724397193573,
+            22.86737122335374,
+            392.1875,
+            522.9166666666666),
+        rows(
+            "Jane",
+            "Canada",
+            "Quebec",
+            4,
+            2023,
+            20,
+            19.803724397193573,
+            22.86737122335374,
+            392.1875,
+            522.9166666666666),
+        rows(
+            "Hello",
+            "USA",
+            "New York",
+            4,
+            2023,
+            30,
+            19.803724397193573,
+            22.86737122335374,
+            392.1875,
+            522.9166666666666));
+  }
+
+  @Test
+  public void testEventstatVarianceWithNull() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
+                    + " var_samp(age)",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchemaInOrder(
+        actual,
+        schema("name", "string"),
+        schema("country", "string"),
+        schema("state", "string"),
+        schema("month", "integer"),
+        schema("year", "integer"),
+        schema("age", "integer"),
+        schema("stddev_pop(age)", "double"),
+        schema("stddev_samp(age)", "double"),
+        schema("var_pop(age)", "double"),
+        schema("var_samp(age)", "double"));
+
+    verifyDataRows(
+        actual,
+        rows(null, "Canada", null, 4, 2023, 10, 20.591260281974, 23.021728866442675, 424, 530),
+        rows("Kevin", null, null, 4, 2023, null, 20.591260281974, 23.021728866442675, 424, 530),
+        rows(
+            "John",
+            "Canada",
+            "Ontario",
+            4,
+            2023,
+            25,
+            20.591260281974,
+            23.021728866442675,
+            424,
+            530),
+        rows(
+            "Jake",
+            "USA",
+            "California",
+            4,
+            2023,
+            70,
+            20.591260281974,
+            23.021728866442675,
+            424,
+            530),
+        rows(
+            "Jane", "Canada", "Quebec", 4, 2023, 20, 20.591260281974, 23.021728866442675, 424, 530),
+        rows(
+            "Hello",
+            "USA",
+            "New York",
+            4,
+            2023,
+            30,
+            20.591260281974,
+            23.021728866442675,
+            424,
+            530));
+  }
+
+  @Test
+  public void testEventstatVarianceBy() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
+                    + " var_samp(age) by country",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifyDataRows(
+        actual,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 2.5, 3.5355339059327378, 6.25, 12.5),
+        rows("Jake", "USA", "California", 4, 2023, 70, 20, 28.284271247461902, 400, 800),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 2.5, 3.5355339059327378, 6.25, 12.5),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 20, 28.284271247461902, 400, 800));
+  }
+
+  @Test
+  public void testEventstatVarianceBySpan() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where country != 'USA' | eventstats stddev_samp(age) by span(age, 10)",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifyDataRows(
+        actual,
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 3.5355339059327378),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 3.5355339059327378));
+  }
+
+  @Test
+  public void testEventstatVarianceWithNullBy() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats stddev_pop(age), stddev_samp(age), var_pop(age),"
+                    + " var_samp(age) by country",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifyDataRows(
+        actual,
+        rows(
+            null,
+            "Canada",
+            null,
+            4,
+            2023,
+            10,
+            6.2360956446232345,
+            7.6376261582597325,
+            38.88888888888888,
+            58.333333333333314),
+        rows("Kevin", null, null, 4, 2023, null, null, null, null, null),
+        rows(
+            "John",
+            "Canada",
+            "Ontario",
+            4,
+            2023,
+            25,
+            6.2360956446232345,
+            7.6376261582597325,
+            38.88888888888888,
+            58.333333333333314),
+        rows("Jake", "USA", "California", 4, 2023, 70, 20, 28.284271247461902, 400, 800),
+        rows(
+            "Jane",
+            "Canada",
+            "Quebec",
+            4,
+            2023,
+            20,
+            6.2360956446232345,
+            7.6376261582597325,
+            38.88888888888888,
+            58.333333333333314),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 20, 28.284271247461902, 400, 800));
   }
 }
