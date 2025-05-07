@@ -30,7 +30,6 @@ import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -94,18 +93,19 @@ public class AddSubDateFunction extends ImplementorUDF {
               UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
 
       if (SqlTypeFamily.NUMERIC.contains(temporalDeltaType)) {
-        String dateApplyFuncName =
-            SqlTypeName.DATE.equals(
-                    OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(temporalType))
-                ? "dateApplyDaysOnDate"
-                : "dateApplyDaysOnTimestamp";
+        String applyDaysFuncName;
+        if (SqlTypeName.DATE.equals(
+            OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(temporalType))) {
+          applyDaysFuncName = isAdd ? "dateAddDaysOnDate" : "dateSubDaysOnDate";
+        } else {
+          applyDaysFuncName = isAdd ? "dateAddDaysOnTimestamp" : "dateSubDaysOnTimestamp";
+        }
         return Expressions.call(
             AddSubDateImplementor.class,
-            dateApplyFuncName,
+            applyDaysFuncName,
             properties,
             base,
-            Expressions.convert_(temporalDelta, long.class),
-            Expressions.constant(isAdd));
+            Expressions.convert_(temporalDelta, long.class));
       } else if (SqlTypeFamily.DATETIME_INTERVAL.contains(temporalDeltaType)) {
         Expression interval =
             Expressions.call(
@@ -115,13 +115,9 @@ public class AddSubDateFunction extends ImplementorUDF {
                 Expressions.constant(
                     Objects.requireNonNull(temporalDeltaType.getIntervalQualifier()).getUnit()));
 
+        String applyIntervalFuncName = isAdd ? "dateAddInterval" : "dateSubInterval";
         return Expressions.call(
-            AddSubDateImplementor.class,
-            "dateApplyInterval",
-            properties,
-            base,
-            interval,
-            Expressions.constant(isAdd));
+            AddSubDateImplementor.class, applyIntervalFuncName, properties, base, interval);
       } else {
         throw new IllegalArgumentException(
             String.format(
@@ -130,28 +126,38 @@ public class AddSubDateFunction extends ImplementorUDF {
       }
     }
 
-    public static String dateApplyDaysOnDate(
-        FunctionProperties ignored, ExprValue datetime, long days, boolean isAdd) {
-      return (String)
-          new ExprDateValue(
-                  isAdd
-                      ? datetime.dateValue().plusDays(days)
-                      : datetime.dateValue().minusDays(days))
-              .valueForCalcite();
+    public static String dateAddDaysOnDate(
+        FunctionProperties ignored, ExprValue datetime, long days) {
+      return (String) new ExprDateValue(datetime.dateValue().plusDays(days)).valueForCalcite();
     }
 
-    public static String dateApplyDaysOnTimestamp(
-        FunctionProperties properties, ExprValue datetime, long days, boolean isAdd) {
+    public static String dateSubDaysOnDate(
+        FunctionProperties ignored, ExprValue datetime, long days) {
+      return (String) new ExprDateValue(datetime.dateValue().minusDays(days)).valueForCalcite();
+    }
+
+    public static String dateAddDaysOnTimestamp(
+        FunctionProperties properties, ExprValue datetime, long days) {
       var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();
-      return (String)
-          new ExprTimestampValue(isAdd ? dt.plusDays(days) : dt.minusDays(days)).valueForCalcite();
+      return (String) new ExprTimestampValue(dt.plusDays(days)).valueForCalcite();
     }
 
-    public static String dateApplyInterval(
-        FunctionProperties properties, ExprValue datetime, TemporalAmount interval, boolean isAdd) {
-      return (String)
-          DateTimeFunctions.exprDateApplyInterval(properties, datetime, interval, isAdd)
-              .valueForCalcite();
+    public static String dateSubDaysOnTimestamp(
+        FunctionProperties properties, ExprValue datetime, long days) {
+      var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();
+      return (String) new ExprTimestampValue(dt.minusDays(days)).valueForCalcite();
+    }
+
+    public static String dateAddInterval(
+        FunctionProperties properties, ExprValue datetime, TemporalAmount interval) {
+      var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();
+      return (String) new ExprTimestampValue(dt.plus(interval)).valueForCalcite();
+    }
+
+    public static String dateSubInterval(
+        FunctionProperties properties, ExprValue datetime, TemporalAmount interval) {
+      var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();
+      return (String) new ExprTimestampValue(dt.minus(interval)).valueForCalcite();
     }
   }
 }

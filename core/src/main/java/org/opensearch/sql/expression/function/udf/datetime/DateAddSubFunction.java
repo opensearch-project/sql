@@ -74,13 +74,10 @@ public class DateAddSubFunction extends ImplementorUDF {
           Expressions.call(
               UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
 
+      String funcName = isAdd ? "dateAddInterval" : "dateSubInterval";
+
       return Expressions.call(
-          AddSubDateFunction.AddSubDateImplementor.class,
-          "dateApplyInterval",
-          properties,
-          base,
-          interval,
-          Expressions.constant(isAdd));
+          AddSubDateFunction.AddSubDateImplementor.class, funcName, properties, base, interval);
     }
   }
 }
