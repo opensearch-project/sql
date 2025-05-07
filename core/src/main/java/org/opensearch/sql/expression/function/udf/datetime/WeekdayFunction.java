@@ -6,12 +6,10 @@
 package org.opensearch.sql.expression.function.udf.datetime;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
-import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprWeekday;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
 
 import java.util.List;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -20,7 +18,11 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -47,19 +49,34 @@ public class WeekdayFunction extends ImplementorUDF {
   public static class WeekdayImplementor implements NotNullImplementor {
     @Override
     public Expression implement(
-        RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
-      List<Expression> newList = addTypeAndContext(list, rexCall, rexToLixTranslator.getRoot());
-      return Expressions.call(WeekdayFunction.class, "weekday", newList);
-    }
-  }
+        RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> operands) {
+      Expression functionProperties =
+          Expressions.call(
+              UserDefinedFunctionUtils.class,
+              "restoreFunctionProperties",
+              rexToLixTranslator.getRoot());
+      SqlTypeName dateType =
+          OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
+              rexCall.getOperands().getFirst().getType());
+      Expression date =
+          Expressions.call(
+              DateTimeApplyUtils.class,
+              "transferInputToExprValue",
+              operands.getFirst(),
+              Expressions.constant(dateType));
 
-  public static Object weekday(Object date, SqlTypeName dateType, DataContext propertyContext) {
-    FunctionProperties restored = restoreFunctionProperties(propertyContext);
-    if (dateType == SqlTypeName.TIME) {
-      // PPL Weekday returns 0 ~ 6; java.time.DayOfWeek returns 1 ~ 7.
-      return formatNow(restored.getQueryStartClock()).getDayOfWeek().getValue() - 1;
-    } else {
-      return exprWeekday(transferInputToExprValue(date, dateType)).integerValue();
+      if (SqlTypeName.TIME.equals(dateType)) {
+        return Expressions.call(WeekdayImplementor.class, "weekdayForTime", functionProperties);
+      }
+      return Expressions.call(WeekdayImplementor.class, "weekday", date);
+    }
+
+    public static int weekday(ExprValue date) {
+      return exprWeekday(date).integerValue();
+    }
+
+    public static int weekdayForTime(FunctionProperties functionProperties) {
+      return formatNow(functionProperties.getQueryStartClock()).getDayOfWeek().getValue() - 1;
     }
   }
 }
