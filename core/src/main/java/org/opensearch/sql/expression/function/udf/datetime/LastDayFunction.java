@@ -6,7 +6,6 @@
 package org.opensearch.sql.expression.function.udf.datetime;
 
 import java.util.List;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -50,24 +49,31 @@ public class LastDayFunction extends ImplementorUDF {
       SqlTypeName dateType =
           OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
               call.getOperands().getFirst().getType());
-      return Expressions.call(
-          LastDayImplementor.class,
-          "lastDay",
-          translatedOperands.getFirst(),
-          Expressions.constant(dateType),
-          translator.getRoot());
+      Expression functionProperties =
+          Expressions.call(
+              UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
+
+      if (SqlTypeName.TIME.equals(dateType)) {
+        return Expressions.call(LastDayImplementor.class, "lastDayToday", functionProperties);
+      }
+
+      Expression timestampValue =
+          Expressions.call(
+              DateTimeApplyUtils.class,
+              "transferInputToExprTimestampValue",
+              translatedOperands.getFirst(),
+              Expressions.constant(dateType),
+              functionProperties);
+      return Expressions.call(LastDayImplementor.class, "lastDay", timestampValue);
     }
 
-    public static Object lastDay(String date, SqlTypeName dateType, DataContext propertyContext) {
-      FunctionProperties properties =
-          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
-      if (SqlTypeName.TIME.equals(dateType)) {
-        return DateTimeFunctions.exprLastDayToday(properties.getQueryStartClock())
-            .valueForCalcite();
-      }
-      ExprValue timestampValue =
-          DateTimeApplyUtils.transferInputToExprTimestampValue(date, dateType, properties);
-      return DateTimeFunctions.exprLastDay(timestampValue).valueForCalcite();
+    public static String lastDayToday(FunctionProperties properties) {
+      return (String)
+          DateTimeFunctions.exprLastDayToday(properties.getQueryStartClock()).valueForCalcite();
+    }
+
+    public static String lastDay(ExprValue timestampValue) {
+      return (String) DateTimeFunctions.exprLastDay(timestampValue).valueForCalcite();
     }
   }
 }
