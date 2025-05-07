@@ -1231,7 +1231,7 @@ public class DateTimeFunctions {
    * @param isAdd A flag: true to add, false to subtract.
    * @return A value calculated.
    */
-  private ExprValue exprApplyTime(
+  public static ExprValue exprApplyTime(
       FunctionProperties functionProperties,
       ExprValue temporal,
       ExprValue temporalDelta,

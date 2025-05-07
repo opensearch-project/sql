@@ -5,8 +5,10 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 
 /**
@@ -26,4 +28,13 @@ public final class PPLReturnTypes {
       ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE);
   public static SqlReturnTypeInference STRING_FORCE_NULLABLE =
       ReturnTypes.VARCHAR.andThen(SqlTypeTransforms.FORCE_NULLABLE);
+  public static SqlReturnTypeInference TIME_APPLY_RETURN_TYPE =
+      opBinding -> {
+        RelDataType temporalType = opBinding.getOperandType(0);
+        if (OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(temporalType)
+            == SqlTypeName.TIME) {
+          return UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
+        }
+        return UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
+      };
 }
