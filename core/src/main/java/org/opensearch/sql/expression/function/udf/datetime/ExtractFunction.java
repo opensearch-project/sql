@@ -6,7 +6,6 @@
 package org.opensearch.sql.expression.function.udf.datetime;
 
 import java.util.List;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -49,38 +48,43 @@ public class ExtractFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      SqlTypeName datetimeType;
-      Expression unit;
-      Expression datetime;
-      unit = translatedOperands.get(0);
-      datetime = translatedOperands.get(1);
-      datetimeType =
+      Expression unit = translatedOperands.get(0);
+      Expression datetime = translatedOperands.get(1);
+      SqlTypeName datetimeType =
           OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
               call.getOperands().get(1).getType());
 
-      return Expressions.call(
-          ExtractImplementor.class,
-          "extract",
-          Expressions.convert_(unit, String.class),
-          Expressions.convert_(datetime, Object.class),
-          Expressions.constant(datetimeType),
-          translator.getRoot());
+      Expression functionProperties =
+          Expressions.call(
+              UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
+
+      Expression exprDatetimeValue =
+          Expressions.call(
+              DateTimeApplyUtils.class,
+              "transferInputToExprValue",
+              datetime,
+              Expressions.constant(datetimeType));
+
+      Expression part = Expressions.new_(ExprStringValue.class, unit);
+
+      if (SqlTypeName.TIME.equals(datetimeType)) {
+        return Expressions.call(
+            ExtractImplementor.class,
+            "extractForTime",
+            functionProperties,
+            part,
+            exprDatetimeValue);
+      }
+      return Expressions.call(ExtractImplementor.class, "extract", part, exprDatetimeValue);
     }
 
-    public static long extract(
-        String part, Object datetime, SqlTypeName datetimeType, DataContext propertyContext) {
-      FunctionProperties properties =
-          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
+    public static long extract(ExprStringValue part, ExprValue datetime) {
+      return DateTimeFunctions.formatExtractFunction(part, datetime).longValue();
+    }
 
-      ExprValue candidate = DateTimeApplyUtils.transferInputToExprValue(datetime, datetimeType);
-
-      if (datetimeType == SqlTypeName.TIME) {
-        return DateTimeFunctions.exprExtractForTime(
-                properties, new ExprStringValue(part), candidate)
-            .longValue();
-      }
-      return DateTimeFunctions.formatExtractFunction(new ExprStringValue(part), candidate)
-          .longValue();
+    public static long extractForTime(
+        FunctionProperties functionProperties, ExprStringValue part, ExprValue datetime) {
+      return DateTimeFunctions.exprExtractForTime(functionProperties, part, datetime).longValue();
     }
   }
 }
