@@ -27,8 +27,6 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
 import com.google.common.collect.ImmutableList;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -73,7 +71,6 @@ import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Util;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
-import org.opensearch.sql.calcite.udf.udaf.NullableSqlSumAggFunction;
 
 /**
  * Calcite Tools Helper. This class is used to create customized: 1. Connection 2. JavaTypeFactory
@@ -157,21 +154,6 @@ public class CalciteToolsHelper {
     }
 
     @Override
-    public AggCall sum(boolean distinct, String alias, RexNode operand) {
-      return aggregateCall(
-          SUM_NULLABLE,
-          distinct,
-          false,
-          false,
-          null,
-          null,
-          ImmutableList.of(),
-          alias,
-          ImmutableList.of(),
-          ImmutableList.of(operand));
-    }
-
-    @Override
     public AggCall avg(boolean distinct, String alias, RexNode operand) {
       return aggregateCall(
           SqlParserPos.ZERO,
@@ -188,8 +170,6 @@ public class CalciteToolsHelper {
     }
   }
 
-  public static final SqlAggFunction SUM_NULLABLE =
-      new NullableSqlSumAggFunction(castNonNull(null));
   public static final SqlAggFunction AVG_NULLABLE = new NullableSqlAvgAggFunction(SqlKind.AVG);
   public static final SqlAggFunction STDDEV_POP_NULLABLE =
       new NullableSqlAvgAggFunction(SqlKind.STDDEV_POP);

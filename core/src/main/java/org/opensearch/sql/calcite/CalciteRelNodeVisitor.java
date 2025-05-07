@@ -75,6 +75,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
@@ -626,6 +627,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // DropColumns('_row_number_)
       context.relBuilder.projectExcept(_row_number_);
     }
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitWindow(Window node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    List<RexNode> overExpressions =
+        node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
+    context.relBuilder.projectPlus(overExpressions);
     return context.relBuilder.peek();
   }
 
