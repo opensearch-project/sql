@@ -5,12 +5,10 @@
 
 package org.opensearch.sql.expression.function.udf.datetime;
 
-import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimestampDiff;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprTimestampDiffForTimeType;
 
 import java.util.List;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -22,6 +20,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -54,12 +53,9 @@ public class TimestampDiffFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      int startIndex, endIndex;
-      Expression unit;
       // timestampdiff(interval, start, end)
-      unit = translatedOperands.getFirst();
-      startIndex = 1;
-      endIndex = 2;
+      int startIndex = 1;
+      int endIndex = 2;
       var startType =
           OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
               call.getOperands().get(startIndex).getType());
@@ -67,38 +63,41 @@ public class TimestampDiffFunction extends ImplementorUDF {
           OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
               call.getOperands().get(endIndex).getType());
 
-      return Expressions.call(
-          DiffImplementor.class,
-          "diff",
-          unit,
-          translatedOperands.get(startIndex),
-          Expressions.constant(startType),
-          translatedOperands.get(endIndex),
-          Expressions.constant(endType),
-          translator.getRoot());
+      Expression functionProperties =
+          Expressions.call(
+              UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
+      Expression unit = Expressions.new_(ExprStringValue.class, translatedOperands.getFirst());
+      Expression start =
+          Expressions.call(
+              DateTimeApplyUtils.class,
+              "transferInputToExprValue",
+              translatedOperands.get(startIndex),
+              Expressions.constant(startType));
+      Expression end =
+          Expressions.call(
+              DateTimeApplyUtils.class,
+              "transferInputToExprValue",
+              translatedOperands.get(endIndex),
+              Expressions.constant(endType));
+
+      if (SqlTypeName.TIME.equals(startType) || SqlTypeName.TIME.equals(endType)) {
+        return Expressions.call(
+            DiffImplementor.class, "diffForTime", functionProperties, unit, start, end);
+      }
+      return Expressions.call(DiffImplementor.class, "diff", unit, start, end);
     }
 
-    public static Long diff(
-        String unit,
-        String start,
-        SqlTypeName startType,
-        String end,
-        SqlTypeName endType,
-        DataContext propertyContext) {
-      FunctionProperties restored =
-          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
-      ExprValue startTimestamp = transferInputToExprValue(start, startType);
-      ExprValue endTimestamp = transferInputToExprValue(end, endType);
-
-      if (startType == SqlTypeName.TIME || endType == SqlTypeName.TIME) {
-        return exprTimestampDiffForTimeType(
-                restored, new ExprStringValue(unit), startTimestamp, endTimestamp)
-            .longValue();
-      }
-
-      ExprValue diffResult =
-          exprTimestampDiff(new ExprStringValue(unit), startTimestamp, endTimestamp);
+    public static long diff(ExprStringValue unit, ExprValue start, ExprValue end) {
+      ExprValue diffResult = exprTimestampDiff(unit, start, end);
       return diffResult.longValue();
+    }
+
+    public static long diffForTime(
+        FunctionProperties functionProperties,
+        ExprStringValue unit,
+        ExprValue start,
+        ExprValue end) {
+      return exprTimestampDiffForTimeType(functionProperties, unit, start, end).longValue();
     }
   }
 }
