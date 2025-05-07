@@ -7,7 +7,9 @@ package org.opensearch.sql.expression.function.udf.datetime;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_DATE_UDT;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
+import static org.opensearch.sql.utils.DateTimeUtils.extractTimestamp;
 
+import java.time.ZoneOffset;
 import java.time.temporal.TemporalAmount;
 import java.util.List;
 import java.util.Objects;
@@ -25,6 +27,8 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
+import org.opensearch.sql.data.model.ExprDateValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -90,9 +94,14 @@ public class AddSubDateFunction extends ImplementorUDF {
               UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
 
       if (SqlTypeFamily.NUMERIC.contains(temporalDeltaType)) {
+        String dateApplyFuncName =
+            SqlTypeName.DATE.equals(
+                    OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(temporalType))
+                ? "dateApplyDaysOnDate"
+                : "dateApplyDaysOnTimestamp";
         return Expressions.call(
             AddSubDateImplementor.class,
-            "dateApplyDays",
+            dateApplyFuncName,
             properties,
             base,
             Expressions.convert_(temporalDelta, long.class),
@@ -121,16 +130,28 @@ public class AddSubDateFunction extends ImplementorUDF {
       }
     }
 
-    public static Object dateApplyDays(
-        FunctionProperties properties, ExprValue datetime, long days, boolean isAdd) {
-      return DateTimeFunctions.exprDateApplyDays(properties, datetime, days, isAdd)
-          .valueForCalcite();
+    public static String dateApplyDaysOnDate(
+        FunctionProperties ignored, ExprValue datetime, long days, boolean isAdd) {
+      return (String)
+          new ExprDateValue(
+                  isAdd
+                      ? datetime.dateValue().plusDays(days)
+                      : datetime.dateValue().minusDays(days))
+              .valueForCalcite();
     }
 
-    public static Object dateApplyInterval(
+    public static String dateApplyDaysOnTimestamp(
+        FunctionProperties properties, ExprValue datetime, long days, boolean isAdd) {
+      var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();
+      return (String)
+          new ExprTimestampValue(isAdd ? dt.plusDays(days) : dt.minusDays(days)).valueForCalcite();
+    }
+
+    public static String dateApplyInterval(
         FunctionProperties properties, ExprValue datetime, TemporalAmount interval, boolean isAdd) {
-      return DateTimeFunctions.exprDateApplyInterval(properties, datetime, interval, isAdd)
-          .valueForCalcite();
+      return (String)
+          DateTimeFunctions.exprDateApplyInterval(properties, datetime, interval, isAdd)
+              .valueForCalcite();
     }
   }
 }
