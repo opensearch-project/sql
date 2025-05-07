@@ -577,6 +577,7 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
+   | cryptographicFunctionName
    | jsonFunctionName
    | geoipFunctionName
    ;
@@ -695,6 +696,12 @@ trigonometricFunctionName
    | RADIANS
    | SIN
    | TAN
+   ;
+
+cryptographicFunctionName
+   : MD5
+   | SHA1
+   | SHA2
    ;
 
 dateTimeFunctionName
