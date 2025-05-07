@@ -217,6 +217,8 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               throw (UnsupportedCursorRequestException) e;
             } else if (e instanceof NoCursorException) {
               throw (NoCursorException) e;
+            } else if (e instanceof UnsupportedOperationException) {
+              throw (UnsupportedOperationException) e;
             } else if (e instanceof IllegalArgumentException) {
               // most exceptions thrown by Calcite when resolve a plan.
               throw (IllegalArgumentException) e;

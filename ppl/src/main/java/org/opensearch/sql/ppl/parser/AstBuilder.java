@@ -79,6 +79,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
@@ -328,6 +329,46 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             span,
             ArgumentFactory.getArgumentList(ctx));
     return aggregation;
+  }
+
+  public UnresolvedPlan visitEventstatsCommand(OpenSearchPPLParser.EventstatsCommandContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> partExprListBuilder = new ImmutableList.Builder<>();
+    Optional.ofNullable(ctx.statsByClause())
+        .map(OpenSearchPPLParser.StatsByClauseContext::bySpanClause)
+        .map(this::internalVisitExpression)
+        .ifPresent(partExprListBuilder::add);
+
+    Optional.ofNullable(ctx.statsByClause())
+        .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
+        .map(
+            expr ->
+                expr.fieldExpression().stream()
+                    .map(
+                        groupCtx ->
+                            (UnresolvedExpression)
+                                new Alias(
+                                    StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
+                                    internalVisitExpression(groupCtx)))
+                    .collect(Collectors.toList()))
+        .ifPresent(partExprListBuilder::addAll);
+
+    ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
+        new ImmutableList.Builder<>();
+    for (OpenSearchPPLParser.EventstatsAggTermContext aggCtx : ctx.eventstatsAggTerm()) {
+      UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
+      // set partition by list for window function
+      if (windowFunction instanceof WindowFunction) {
+        ((WindowFunction) windowFunction).setPartitionByList(partExprListBuilder.build());
+      }
+      String name =
+          aggCtx.alias == null
+              ? getTextInQuery(aggCtx)
+              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
+      Alias alias = new Alias(name, windowFunction);
+      windownFunctionListBuilder.add(alias);
+    }
+
+    return new Window(windownFunctionListBuilder.build());
   }
 
   /** Dedup command. */

@@ -62,6 +62,23 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testExistsSubqueryAndAggregation() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                """
+                   source = %s
+                   | where exists [
+                       source = %s | where id = uid
+                     ]
+                   | stats count() by country
+                   """,
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifySchema(result, schema("country", "string"), schema("count()", "long"));
+    verifyDataRows(result, rows(1, null), rows(2, "Canada"), rows(1, "USA"), rows(1, "England"));
+  }
+
+  @Test
   public void testSimpleExistsSubqueryInFilter() {
     JSONObject result =
         executeQuery(
