@@ -29,7 +29,6 @@ import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
-import org.opensearch.sql.expression.function.udf.datetime.DateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DatePartFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DatetimeFunction;
 import org.opensearch.sql.expression.function.udf.datetime.ExtractFunction;
@@ -72,7 +71,13 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
 
   // Datetime function
   public static final SqlOperator TIMESTAMP = new TimestampFunction().toUDF("TIMESTAMP");
-  public static final SqlOperator DATE = new DateFunction().toUDF("DATE");
+  public static final SqlOperator DATE =
+      adaptExprMethodToUDF(
+              DateTimeFunctions.class,
+              "exprDate",
+              PPLReturnTypes.DATE_FORCE_NULLABLE,
+              NullPolicy.ARG0)
+          .toUDF("DATE");
   public static final SqlOperator YEARWEEK = new YearweekFunction().toUDF("YEARWEEK");
   public static final SqlOperator WEEKDAY = new WeekdayFunction().toUDF("WEEKDAY");
   public static final SqlOperator UNIX_TIMESTAMP =
