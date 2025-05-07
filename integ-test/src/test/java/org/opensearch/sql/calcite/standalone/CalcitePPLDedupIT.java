@@ -89,25 +89,25 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   @Test
   public void testConsecutiveThrowException() {
     assertThrows(
-        IllegalStateException.class,
+        UnsupportedOperationException.class,
         () ->
             executeQuery(
                     "source = " + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 1 name CONSECUTIVE=true | fields name\n"));
 
     assertThrows(
-        IllegalStateException.class,
+        UnsupportedOperationException.class,
         () ->
             executeQuery(
                     "source = " + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 1 name KEEPEMPTY=true CONSECUTIVE=true | fields name\n"));
 
     assertThrows(
-        IllegalStateException.class,
+        UnsupportedOperationException.class,
         () ->
             executeQuery(
                     "source = " + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 2 name CONSECUTIVE=true | fields name\n"));
 
     assertThrows(
-        IllegalStateException.class,
+        UnsupportedOperationException.class,
         () ->
             executeQuery(
                     "source = " + TEST_INDEX_DUPLICATION_NULLABLE + " | dedup 2 name KEEPEMPTY=true CONSECUTIVE=true | fields name\n"));

@@ -474,6 +474,14 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return ctx.NOT() != null ? new Not(betweenExpr) : betweenExpr;
   }
 
+  @Override
+  public UnresolvedExpression visitWindowFunction(OpenSearchPPLParser.WindowFunctionContext ctx) {
+    Function f =
+        buildFunction(ctx.windowFunctionName().getText(), ctx.functionArgs().functionArg());
+    // In PPL eventstats command, all window functions have the same partition and order spec.
+    return new WindowFunction(f);
+  }
+
   private QualifiedName visitIdentifiers(List<? extends ParserRuleContext> ctx) {
     return new QualifiedName(
         ctx.stream()
