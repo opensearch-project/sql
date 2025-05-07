@@ -12,6 +12,11 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.InvalidPathException;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -77,6 +82,57 @@ public class JsonUtils {
     }
 
     return processJsonNode(jsonNode);
+  }
+
+  /**
+   * Extract value of JSON string at given JSON path.
+   *
+   * @param json JSON string (e.g. "{\"hello\": \"world\"}").
+   * @param paths list of JSON path (e.g. "$.hello")
+   * @return ExprValue of value at given path of json string.
+   */
+  public static ExprValue extractJson(ExprValue json, ExprValue... paths) {
+    List<ExprValue> resultList = new ArrayList<>(paths.length);
+
+    for (ExprValue path : paths) {
+      if (json.isNull() || json.isMissing()) {
+        return json;
+      }
+
+      String jsonString = json.stringValue();
+      String jsonPath = path.stringValue();
+
+      resultList.add(extractJsonPath(jsonString, jsonPath));
+    }
+
+    if (resultList.size() == 1) {
+      return resultList.getFirst();
+    } else {
+      return new ExprCollectionValue(resultList);
+    }
+  }
+
+  private static ExprValue extractJsonPath(String json, String path) {
+    if (json.isEmpty() || json.equals("null")) {
+      return LITERAL_NULL;
+    }
+
+    try {
+      Object results = JsonPath.parse(json).read(path);
+      return ExprValueUtils.fromObjectValue(results);
+    } catch (PathNotFoundException ignored) {
+      return LITERAL_NULL;
+    } catch (InvalidPathException invalidPathException) {
+      final String errorFormat = "JSON path '%s' is not valid. Error details: %s";
+      throw new SemanticCheckException(
+          String.format(errorFormat, path, invalidPathException.getMessage()),
+          invalidPathException);
+    } catch (InvalidJsonException invalidJsonException) {
+      final String errorFormat = "JSON string '%s' is not valid. Error details: %s";
+      throw new SemanticCheckException(
+          String.format(errorFormat, json, invalidJsonException.getMessage()),
+          invalidJsonException);
+    }
   }
 
   private static ExprValue processJsonNode(JsonNode jsonNode) {
