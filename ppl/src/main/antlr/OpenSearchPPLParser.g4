@@ -460,6 +460,7 @@ valueExpression
    | extractFunction                                                                            # extractFunctionCall
    | getFormatFunction                                                                          # getFormatFunctionCall
    | timestampFunction                                                                          # timestampFunctionCall
+   | jsonObjectFunction                                                                         # jsonObjectFunctionCall
    | LT_PRTHS valueExpression RT_PRTHS                                                          # parentheticValueExpr
    | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                        # scalarSubqueryExpr
    ;
@@ -473,6 +474,10 @@ primaryExpression
 
 positionFunction
    : positionFunctionName LT_PRTHS functionArg IN functionArg RT_PRTHS
+   ;
+
+jsonObjectFunction
+   : jsonObjectFunctionName LT_PRTHS (functionArg COMMA functionArg (COMMA functionArg COMMA functionArg)*)? RT_PRTHS
    ;
 
 booleanExpression
@@ -577,6 +582,7 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
+   | jsonObjectFunctionName
    | jsonFunctionName
    | geoipFunctionName
    ;
@@ -863,6 +869,10 @@ textFunctionName
 positionFunctionName
    : POSITION
    ;
+
+jsonObjectFunctionName
+  : JSON_OBJECT
+  ;
 
 jsonFunctionName
    : JSON

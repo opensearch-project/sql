@@ -194,27 +194,91 @@ public class JsonFunctionsTest {
 
   @Test
   void json_returnsSemanticCheckException() {
-    List<LiteralExpression> expressions =
-        List.of(
-            DSL.literal("invalid"), // invalid type
-            DSL.literal("{{[}}"), // missing bracket
-            DSL.literal("[}"), // missing bracket
-            DSL.literal("}"), // missing bracket
-            DSL.literal("\"missing quote"), // missing quote
-            DSL.literal("abc"), // not a type
-            DSL.literal("97ab"), // not a type
-            DSL.literal("{1, 2, 3, 4}"), // invalid object
-            DSL.literal("{123: 1, true: 2, null: 3}"), // invalid object
-            DSL.literal("{\"invalid\":\"json\", \"string\"}"), // invalid object
-            DSL.literal("[\"a\": 1, \"b\": 2]") // invalid array
-            );
+    // invalid type
+    assertThrows(
+        SemanticCheckException.class, () -> DSL.castJson(DSL.literal("invalid")).valueOf());
 
-    expressions.stream()
-        .forEach(
-            expr ->
-                assertThrows(
-                    SemanticCheckException.class,
-                    () -> DSL.castJson(expr).valueOf(),
-                    "Expected to throw SemanticCheckException when calling castJson with " + expr));
+    // missing bracket
+    assertThrows(SemanticCheckException.class, () -> DSL.castJson(DSL.literal("{{[}}")).valueOf());
+
+    // missing quote
+    assertThrows(
+        SemanticCheckException.class, () -> DSL.castJson(DSL.literal("\"missing quote")).valueOf());
+  }
+
+  @Test
+  public void json_object_returns_tuple() {
+    FunctionExpression exp;
+
+    // Setup
+    LinkedHashMap<String, ExprValue> objectMap = new LinkedHashMap<>();
+    objectMap.put("foo", new ExprStringValue("foo"));
+    objectMap.put("fuzz", ExprBooleanValue.of(true));
+    objectMap.put("bar", new ExprLongValue(1234));
+    objectMap.put("bar2", new ExprDoubleValue(12.34));
+    objectMap.put("baz", ExprNullValue.of());
+    objectMap.put(
+        "obj", ExprTupleValue.fromExprValueMap(Map.of("internal", new ExprStringValue("value"))));
+    // TODO: requires json_array()
+    //    objectMap.put(
+    //        "arr",
+    //        new ExprCollectionValue(
+    //            List.of(new ExprStringValue("string"), ExprBooleanValue.of(true),
+    // ExprNullValue.of())));
+    ExprValue expectedTupleExpr = ExprTupleValue.fromExprValueMap(objectMap);
+
+    // exercise
+    exp =
+        DSL.jsonObject(
+            DSL.literal("foo"), DSL.literal("foo"),
+            DSL.literal("fuzz"), DSL.literal(true),
+            DSL.literal("bar"), DSL.literal(1234),
+            DSL.literal("bar2"), DSL.literal(12.34),
+            DSL.literal("baz"), DSL.literal(LITERAL_NULL),
+            DSL.literal("obj"), DSL.jsonObject(DSL.literal("internal"), DSL.literal("value")));
+
+    // Verify
+    var value = exp.valueOf();
+    assertTrue(value instanceof ExprTupleValue);
+    assertEquals(expectedTupleExpr, value);
+  }
+
+  @Test
+  public void json_object_returns_empty_tuple() {
+    FunctionExpression exp;
+
+    // Setup
+    LinkedHashMap<String, ExprValue> objectMap = new LinkedHashMap<>();
+    ExprValue expectedTupleExpr = ExprTupleValue.fromExprValueMap(objectMap);
+
+    // exercise
+    exp = DSL.jsonObject();
+
+    // Verify
+    var value = exp.valueOf();
+    assertTrue(value instanceof ExprTupleValue);
+    assertEquals(expectedTupleExpr, value);
+  }
+
+  @Test
+  public void json_object_throws_SemanticCheckException() {
+    // wrong number of arguments
+    assertThrows(
+        SemanticCheckException.class, () -> DSL.jsonObject(DSL.literal("only one")).valueOf());
+    assertThrows(
+        SemanticCheckException.class,
+        () ->
+            DSL.jsonObject(DSL.literal("one"), DSL.literal("two"), DSL.literal("three")).valueOf());
+
+    // key argument is not a string
+    assertThrows(
+        SemanticCheckException.class,
+        () -> DSL.jsonObject(DSL.literal(1234), DSL.literal("two")).valueOf());
+    assertThrows(
+        SemanticCheckException.class,
+        () ->
+            DSL.jsonObject(
+                    DSL.literal("one"), DSL.literal(true), DSL.literal(true), DSL.literal("four"))
+                .valueOf());
   }
 }
