@@ -5,14 +5,12 @@
 
 package org.opensearch.sql.expression.function.udf.datetime;
 
-import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFormattedDate;
 import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFormattedDateOfToday;
 import static org.opensearch.sql.expression.datetime.DateTimeFormatterUtil.getFormattedTime;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -24,6 +22,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -63,34 +62,45 @@ public class FormatFunction extends ImplementorUDF {
       SqlTypeName type =
           OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
               call.getOperands().getFirst().getType());
-      String methodName = functionType == SqlTypeName.TIME ? "timeFormat" : "dateFormat";
-      return Expressions.call(
-          DataFormatImplementor.class,
-          methodName,
-          translatedOperands.get(0),
-          Expressions.constant(type),
-          translatedOperands.get(1),
-          translator.getRoot());
-    }
+      Expression functionProperties =
+          Expressions.call(
+              UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
+      Expression datetime =
+          Expressions.call(
+              DateTimeApplyUtils.class,
+              "transferInputToExprValue",
+              translatedOperands.get(0),
+              Expressions.constant(type));
+      Expression format = Expressions.new_(ExprStringValue.class, translatedOperands.get(1));
 
-    public static String dateFormat(
-        Object date, SqlTypeName type, String format, DataContext propertyContext) {
-      FunctionProperties restored =
-          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
-      ExprValue candidateValue = transferInputToExprValue(date, type);
-      if (type == SqlTypeName.TIME) {
-        return getFormattedDateOfToday(
-                new ExprStringValue(format), candidateValue, restored.getQueryStartClock())
-            .stringValue();
+      if (SqlTypeName.TIME.equals(functionType)) {
+        return Expressions.call(DataFormatImplementor.class, "timeFormat", datetime, format);
+      } else {
+        if (SqlTypeName.TIME.equals(type)) {
+          return Expressions.call(
+              DataFormatImplementor.class,
+              "dateFormatForTime",
+              functionProperties,
+              format,
+              datetime);
+        } else {
+          return Expressions.call(DataFormatImplementor.class, "dateFormat", datetime, format);
+        }
       }
-      return getFormattedDate(candidateValue, new ExprStringValue(format)).stringValue();
     }
 
-    public static String timeFormat(
-        Object time, SqlTypeName sqlTypeName, String format, Object propertyContext) {
-      return getFormattedTime(
-              transferInputToExprValue(time, sqlTypeName), new ExprStringValue(format))
+    public static String dateFormat(ExprValue date, ExprStringValue format) {
+      return getFormattedDate(date, format).stringValue();
+    }
+
+    public static String dateFormatForTime(
+        FunctionProperties functionProperties, ExprStringValue format, ExprValue time) {
+      return getFormattedDateOfToday(format, time, functionProperties.getQueryStartClock())
           .stringValue();
+    }
+
+    public static String timeFormat(ExprValue time, ExprStringValue format) {
+      return getFormattedTime(time, format).stringValue();
     }
   }
 }
