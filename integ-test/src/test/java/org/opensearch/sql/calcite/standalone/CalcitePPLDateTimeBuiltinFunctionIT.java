@@ -39,7 +39,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   public void init() throws IOException {
     super.init();
     loadIndex(Index.STATE_COUNTRY);
-    loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.DATE);

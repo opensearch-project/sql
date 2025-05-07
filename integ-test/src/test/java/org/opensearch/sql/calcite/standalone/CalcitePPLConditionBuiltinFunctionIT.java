@@ -44,7 +44,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
 
     verifySchema(actual, schema("name", "string"));
 
-    verifyDataRows(actual, rows("John"), rows("Jane"), rows("Jake"), rows("Hello"));
+    verifyDataRows(actual, rows("John"), rows("Jane"), rows("Jake"), rows("Hello"), rows("Kevin"));
   }
 
   @Test
@@ -63,6 +63,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
         rows("Jane", null),
         rows(null, 10),
         rows("Jake", 70),
+        rows("Kevin", null),
         rows("Hello", 30));
   }
 
@@ -83,6 +84,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
         rows("Jane", "HJane"),
         rows(null, null),
         rows("Jake", "HJake"),
+        rows("Kevin", "HKevin"),
         rows("Hello", null));
   }
 
@@ -102,6 +104,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
         rows("Jane", 20),
         rows("Unknown", 10),
         rows("Jake", 70),
+        rows("Kevin", null),
         rows("Hello", 30));
   }
 
@@ -110,7 +113,8 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval judge = if(age>50, 'old', 'young') | fields judge, age",
+                "source=%s | where isnotnull(age) | eval judge = if(age>50, 'old', 'young') |"
+                    + " fields judge, age",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(actual, schema("judge", "string"), schema("age", "integer"));

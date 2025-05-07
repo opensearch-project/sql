@@ -95,6 +95,24 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testEventstatsCommandWithByClause() {
+    assertEquals(
+        "source=t | eventstats count(a) by b", anonymize("source=t | eventstats count(a) by b"));
+  }
+
+  @Test
+  public void testEventstatsCommandWithNestedFunctions() {
+    assertEquals("source=t | eventstats sum(+(a,b))", anonymize("source=t | eventstats sum(a+b)"));
+  }
+
+  @Test
+  public void testEventstatsCommandWithSpanFunction() {
+    assertEquals(
+        "source=t | eventstats count(a) by span(b, *** d),c",
+        anonymize("source=t | eventstats count(a) by span(b, 1d), c"));
+  }
+
+  @Test
   public void testDedupCommand() {
     assertEquals(
         "source=t | dedup f1,f2 1 keepempty=false consecutive=false",

@@ -19,6 +19,7 @@ WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
 RENAME:                             'RENAME';
 STATS:                              'STATS';
+EVENTSTATS:                         'EVENTSTATS';
 DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
@@ -223,8 +224,6 @@ STDDEV_POP:                         'STDDEV_POP';
 PERCENTILE:                         'PERCENTILE';
 PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
 TAKE:                               'TAKE';
-FIRST:                              'FIRST';
-LAST:                               'LAST';
 LIST:                               'LIST';
 VALUES:                             'VALUES';
 EARLIEST:                           'EARLIEST';
@@ -239,6 +238,17 @@ RATE:                               'RATE';
 SPARKLINE:                          'SPARKLINE';
 C:                                  'C';
 DC:                                 'DC';
+
+// SCALAR WINDOW FUNCTIONS
+ROW_NUMBER:                         'ROW_NUMBER';
+RANK:                               'RANK';
+DENSE_RANK:                         'DENSE_RANK';
+PERCENT_RANK:                       'PERCENT_RANK';
+CUME_DIST:                          'CUME_DIST';
+FIRST:                              'FIRST';
+LAST:                               'LAST';
+NTH:                                'NTH';
+NTILE:                              'NTILE';
 
 // BASIC FUNCTIONS
 ABS:                                'ABS';
