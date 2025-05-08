@@ -63,6 +63,8 @@ dependencies {
     api 'org.apache.calcite:calcite-linq4j:1.38.0'
     api project(':common')
     implementation "com.github.seancfoley:ipaddress:5.4.2"
+    implementation group: 'org.opensearch', name:'geospatial-client', version: "${opensearch_build}"
+    implementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
 
     annotationProcessor('org.immutables:value:2.8.8')
     compileOnly('org.immutables:value-annotations:2.8.8')
