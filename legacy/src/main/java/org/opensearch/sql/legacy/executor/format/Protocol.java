@@ -214,8 +214,10 @@ public class Protocol {
     JSONArray schemaJson = new JSONArray();
 
     for (Column column : schema) {
-      // Hacky workaround for #3159, #1545: Legacy sometimes falsely converts `timestamp`s to `date`s, which causes
-      // breakage for consumers like JDBC. Until Calcite's done and we can delete legacy, just reset the type.
+      // Hacky workaround for #3159, #1545: Legacy sometimes falsely converts `timestamp`s to
+      // `date`s, which causes
+      // breakage for consumers like JDBC. Until Calcite's done and we can delete legacy, just reset
+      // the type.
       String t = column.getType();
       if (t.equals("date")) {
         schemaJson.put(schemaEntry(column.getName(), column.getAlias(), "timestamp"));
