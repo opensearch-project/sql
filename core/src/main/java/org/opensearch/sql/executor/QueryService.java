@@ -44,6 +44,7 @@ import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.transport.client.node.NodeClient;
 
 /** The low level interface of core engine. */
 @RequiredArgsConstructor
@@ -59,6 +60,7 @@ public class QueryService {
 
   private DataSourceService dataSourceService;
   private Settings settings;
+  private NodeClient nodeClient;
 
   /** Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.<br> */
   public void execute(
@@ -94,8 +96,7 @@ public class QueryService {
           (PrivilegedAction<Void>)
               () -> {
                 CalcitePlanContext context =
-                    CalcitePlanContext.create(
-                        buildFrameworkConfig(), queryType, dataSourceService.getNodeClient());
+                    CalcitePlanContext.create(buildFrameworkConfig(), queryType, nodeClient);
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
@@ -127,8 +128,7 @@ public class QueryService {
           (PrivilegedAction<Void>)
               () -> {
                 CalcitePlanContext context =
-                    CalcitePlanContext.create(
-                        buildFrameworkConfig(), queryType, dataSourceService.getNodeClient());
+                    CalcitePlanContext.create(buildFrameworkConfig(), queryType, nodeClient);
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);

@@ -84,9 +84,7 @@ public class StandaloneIT extends PPLIntegTestCase {
                 .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
                 .build(),
             getDataSourceMetadataStorage(),
-            getDataSourceUserRoleHelper(),
-            // Node client is not accessible and used in standalone tests, so we pass null
-            null);
+            getDataSourceUserRoleHelper());
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
 
     ModulesBuilder modules = new ModulesBuilder();

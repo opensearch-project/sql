@@ -91,4 +91,8 @@ public class CalcitePlanContext {
       FrameworkConfig config, QueryType queryType, NodeClient client) {
     return new CalcitePlanContext(config, queryType, client);
   }
+
+  public static CalcitePlanContext create(FrameworkConfig config, QueryType queryType) {
+    return new CalcitePlanContext(config, queryType, null);
+  }
 }

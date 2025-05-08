@@ -54,7 +54,6 @@ dependencies {
     api project(':common')
     api project(':core')
     api project(':protocol')
-    implementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"

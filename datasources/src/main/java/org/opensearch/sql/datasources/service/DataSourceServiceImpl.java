@@ -43,31 +43,14 @@ public class DataSourceServiceImpl implements DataSourceService {
 
   private final DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper;
 
-  /** Certain functions (e.g., GEOIP) depend on NodeClient for performing RPC calls. **/
-  @Getter
-  private final NodeClient nodeClient;
-
   /** Construct from the set of {@link DataSourceFactory} at bootstrap time. */
-  public DataSourceServiceImpl(
-          Set<DataSourceFactory> dataSourceFactories,
-          DataSourceMetadataStorage dataSourceMetadataStorage,
-          DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper) {
-    this(
-        dataSourceFactories,
-        dataSourceMetadataStorage,
-        dataSourceUserAuthorizationHelper,
-        null);
-  }
-
   public DataSourceServiceImpl(
       Set<DataSourceFactory> dataSourceFactories,
       DataSourceMetadataStorage dataSourceMetadataStorage,
-      DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper,
-      NodeClient nodeClient) {
+      DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper) {
     this.dataSourceMetadataStorage = dataSourceMetadataStorage;
     this.dataSourceUserAuthorizationHelper = dataSourceUserAuthorizationHelper;
     this.dataSourceLoaderCache = new DataSourceLoaderCacheImpl(dataSourceFactories);
-    this.nodeClient = nodeClient;
   }
 
   @Override
