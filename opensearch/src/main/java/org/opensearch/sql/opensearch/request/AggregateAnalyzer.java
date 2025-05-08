@@ -147,6 +147,8 @@ public class AggregateAnalyzer {
       List<AggregateCall> aggCalls,
       FieldExpressionCreator fieldExpressionCreator,
       List<String> outputFields) {
+    assert aggCalls.size() + groupOffset == outputFields.size()
+        : "groups size and agg calls size should match with output fields";
     Builder metricBuilder = new AggregatorFactories.Builder();
     List<MetricParser> metricParserList = new ArrayList<>();
 
