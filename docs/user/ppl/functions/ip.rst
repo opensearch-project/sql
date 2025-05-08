@@ -16,7 +16,7 @@ Description
 
 Usage: `cidrmatch(ip, cidr)` checks if `ip` is within the specified `cidr` range.
 
-Argument type: STRING, STRING
+Argument type: STRING/IP, STRING
 
 Return type: BOOLEAN
 
