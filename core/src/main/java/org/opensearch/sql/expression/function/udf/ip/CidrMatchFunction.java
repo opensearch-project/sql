@@ -27,6 +27,7 @@ import org.opensearch.sql.expression.ip.IPFunctions;
  *
  * <ul>
  *   <li>(STRING, STRING) -> BOOLEAN
+ *   <li>(IP, STRING) -> BOOLEAN
  * </ul>
  */
 public class CidrMatchFunction extends ImplementorUDF {
