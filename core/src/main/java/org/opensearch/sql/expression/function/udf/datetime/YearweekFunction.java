@@ -6,7 +6,6 @@
 package org.opensearch.sql.expression.function.udf.datetime;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
-import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearweek;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.yearweekToday;
 
@@ -19,10 +18,12 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -58,22 +59,18 @@ public class YearweekFunction extends ImplementorUDF {
     }
   }
 
-  public static Object yearweek(Object date, SqlTypeName dateType, DataContext propertyContext) {
-    return yearweek(date, 0, dateType, SqlTypeName.INTEGER, propertyContext);
+  public static Object yearweek(Object date, ExprType dateType, DataContext propertyContext) {
+    return yearweek(date, 0, dateType, ExprCoreType.INTEGER, propertyContext);
   }
 
   public static Object yearweek(
-      Object date,
-      Integer mode,
-      SqlTypeName dateType,
-      SqlTypeName ignored,
-      DataContext propertyContext) {
+      Object date, Integer mode, ExprType dateType, ExprType ignored, DataContext propertyContext) {
     FunctionProperties restored = restoreFunctionProperties(propertyContext);
-    if (dateType == SqlTypeName.TIME) {
+    if (dateType == ExprCoreType.TIME) {
       return yearweekToday(new ExprIntegerValue(mode), restored.getQueryStartClock())
           .integerValue();
     }
-    ExprValue exprValue = transferInputToExprValue(date, dateType);
+    ExprValue exprValue = ExprValueUtils.fromObjectValue(date, dateType);
     ExprValue yearWeekValue = exprYearweek(exprValue, new ExprIntegerValue(mode));
     return yearWeekValue.integerValue();
   }

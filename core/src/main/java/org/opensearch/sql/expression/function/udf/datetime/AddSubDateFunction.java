@@ -23,13 +23,14 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -59,7 +60,7 @@ public class AddSubDateFunction extends ImplementorUDF {
     return opBinding -> {
       RelDataType temporalType = opBinding.getOperandType(0);
       RelDataType temporalDeltaType = opBinding.getOperandType(1);
-      if (OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(temporalType) == SqlTypeName.DATE
+      if (OpenSearchTypeFactory.convertRelDataTypeToExprType(temporalType) == ExprCoreType.DATE
           && SqlTypeFamily.NUMERIC.contains(temporalDeltaType)) {
         return NULLABLE_DATE_UDT;
       } else {
@@ -82,11 +83,11 @@ public class AddSubDateFunction extends ImplementorUDF {
 
       Expression base =
           Expressions.call(
-              DateTimeApplyUtils.class,
-              "transferInputToExprValue",
+              ExprValueUtils.class,
+              "fromObjectValue",
               temporal,
               Expressions.constant(
-                  OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(temporalType)));
+                  OpenSearchTypeFactory.convertRelDataTypeToExprType(temporalType)));
 
       Expression properties =
           Expressions.call(
@@ -94,8 +95,8 @@ public class AddSubDateFunction extends ImplementorUDF {
 
       if (SqlTypeFamily.NUMERIC.contains(temporalDeltaType)) {
         String applyDaysFuncName;
-        if (SqlTypeName.DATE.equals(
-            OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(temporalType))) {
+        if (ExprCoreType.DATE.equals(
+            OpenSearchTypeFactory.convertRelDataTypeToExprType(temporalType))) {
           applyDaysFuncName = isAdd ? "dateAddDaysOnDate" : "dateSubDaysOnDate";
         } else {
           applyDaysFuncName = isAdd ? "dateAddDaysOnTimestamp" : "dateSubDaysOnTimestamp";

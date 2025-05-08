@@ -17,14 +17,15 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -55,16 +56,15 @@ public class TimestampAddFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      SqlTypeName timestampBaseType =
-          OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
-              call.getOperands().get(2).getType());
+      ExprType timestampBaseType =
+          OpenSearchTypeFactory.convertRelDataTypeToExprType(call.getOperands().get(2).getType());
       Expression timestampBase =
           Expressions.call(
-              DateTimeApplyUtils.class,
-              "transferInputToExprValue",
+              ExprValueUtils.class,
+              "fromObjectValue",
               translatedOperands.get(2),
               Expressions.constant(timestampBaseType));
-      if (timestampBaseType.equals(SqlTypeName.TIME)) {
+      if (ExprCoreType.TIME.equals(timestampBaseType)) {
         return Expressions.call(
             TimestampAddImplementor.class,
             "timestampAddForTimeType",

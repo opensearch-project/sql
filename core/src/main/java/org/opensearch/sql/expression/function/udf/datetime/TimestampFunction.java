@@ -19,9 +19,9 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -58,7 +58,7 @@ public class TimestampFunction extends ImplementorUDF {
   }
 
   public static Object timestamp(
-      Object datetime, SqlTypeName datetimeType, DataContext propertyContext) {
+      Object datetime, ExprType datetimeType, DataContext propertyContext) {
     FunctionProperties restored = restoreFunctionProperties(propertyContext);
     return transferInputToExprTimestampValue(datetime, datetimeType, restored).valueForCalcite();
   }
@@ -66,8 +66,8 @@ public class TimestampFunction extends ImplementorUDF {
   public static Object timestamp(
       Object datetime,
       Object addTime,
-      SqlTypeName datetimeType,
-      SqlTypeName addTimeType,
+      ExprType datetimeType,
+      ExprType addTimeType,
       DataContext propertyContext) {
     FunctionProperties restored = restoreFunctionProperties(propertyContext);
     ExprValue dateTimeBase = transferInputToExprTimestampValue(datetime, datetimeType, restored);

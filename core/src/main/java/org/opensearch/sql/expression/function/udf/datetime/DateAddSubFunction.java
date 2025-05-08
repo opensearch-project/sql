@@ -20,6 +20,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 /**
@@ -64,11 +65,11 @@ public class DateAddSubFunction extends ImplementorUDF {
 
       Expression base =
           Expressions.call(
-              DateTimeApplyUtils.class,
-              "transferInputToExprValue",
+              ExprValueUtils.class,
+              "fromObjectValue",
               temporal,
               Expressions.constant(
-                  OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(temporalType)));
+                  OpenSearchTypeFactory.convertRelDataTypeToExprType(temporalType)));
 
       Expression properties =
           Expressions.call(

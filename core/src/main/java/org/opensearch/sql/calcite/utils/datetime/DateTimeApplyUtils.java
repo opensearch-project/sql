@@ -5,44 +5,32 @@
 
 package org.opensearch.sql.calcite.utils.datetime;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertSqlTypeNameToExprType;
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
 import java.util.Objects;
 import org.apache.calcite.avatica.util.TimeUnit;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public final class DateTimeApplyUtils {
   private DateTimeApplyUtils() {}
 
-  public static Instant applyInterval(Instant base, Duration interval, boolean isAdd) {
-    return isAdd ? base.plus(interval) : base.minus(interval);
-  }
-
-  public static ExprValue transferInputToExprValue(Object candidate, SqlTypeName sqlTypeName) {
-    return fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
-  }
-
   public static ExprValue transferInputToExprTimestampValue(
-      Object candidate, SqlTypeName sqlTypeName, FunctionProperties properties) {
-    if (Objects.requireNonNull(sqlTypeName) == SqlTypeName.TIME) {
-      ExprTimeValue timeValue =
-          (ExprTimeValue) fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName));
+      Object candidate, ExprType typeName, FunctionProperties properties) {
+    if (Objects.requireNonNull(typeName) == ExprCoreType.TIME) {
+      ExprTimeValue timeValue = (ExprTimeValue) fromObjectValue(candidate, typeName);
       return new ExprTimestampValue(timeValue.timestampValue(properties));
     }
     try {
-      return new ExprTimestampValue(
-          fromObjectValue(candidate, convertSqlTypeNameToExprType(sqlTypeName)).timestampValue());
+      return new ExprTimestampValue(fromObjectValue(candidate, typeName).timestampValue());
     } catch (SemanticCheckException e) {
       // If the candidate is a String and does not contain a colon, it means
       // it ought to be a date but in a malformed format. We rethrow the exception
@@ -84,10 +72,5 @@ public final class DateTimeApplyUtils {
       default -> throw new UnsupportedOperationException(
           "No mapping defined for Calcite TimeUnit: " + unit);
     };
-  }
-
-  public static ExprValue transferTimeToTimestamp(
-      ExprValue candidate, FunctionProperties functionProperties) {
-    return new ExprTimestampValue(((ExprTimeValue) candidate).timestampValue(functionProperties));
   }
 }

@@ -17,12 +17,12 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -57,10 +57,10 @@ public class TimestampDiffFunction extends ImplementorUDF {
       int startIndex = 1;
       int endIndex = 2;
       var startType =
-          OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
+          OpenSearchTypeFactory.convertRelDataTypeToExprType(
               call.getOperands().get(startIndex).getType());
       var endType =
-          OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
+          OpenSearchTypeFactory.convertRelDataTypeToExprType(
               call.getOperands().get(endIndex).getType());
 
       Expression functionProperties =
@@ -69,18 +69,18 @@ public class TimestampDiffFunction extends ImplementorUDF {
       Expression unit = Expressions.new_(ExprStringValue.class, translatedOperands.getFirst());
       Expression start =
           Expressions.call(
-              DateTimeApplyUtils.class,
-              "transferInputToExprValue",
+              ExprValueUtils.class,
+              "fromObjectValue",
               translatedOperands.get(startIndex),
               Expressions.constant(startType));
       Expression end =
           Expressions.call(
-              DateTimeApplyUtils.class,
-              "transferInputToExprValue",
+              ExprValueUtils.class,
+              "fromObjectValue",
               translatedOperands.get(endIndex),
               Expressions.constant(endType));
 
-      if (SqlTypeName.TIME.equals(startType) || SqlTypeName.TIME.equals(endType)) {
+      if (ExprCoreType.TIME.equals(startType) || ExprCoreType.TIME.equals(endType)) {
         return Expressions.call(
             DiffImplementor.class, "diffForTime", functionProperties, unit, start, end);
       }

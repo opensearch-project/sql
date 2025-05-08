@@ -22,9 +22,11 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -59,16 +61,16 @@ public class FormatFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      SqlTypeName type =
-          OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
+      ExprType type =
+          OpenSearchTypeFactory.convertRelDataTypeToExprType(
               call.getOperands().getFirst().getType());
       Expression functionProperties =
           Expressions.call(
               UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
       Expression datetime =
           Expressions.call(
-              DateTimeApplyUtils.class,
-              "transferInputToExprValue",
+              ExprValueUtils.class,
+              "fromObjectValue",
               translatedOperands.get(0),
               Expressions.constant(type));
       Expression format = Expressions.new_(ExprStringValue.class, translatedOperands.get(1));
@@ -76,7 +78,7 @@ public class FormatFunction extends ImplementorUDF {
       if (SqlTypeName.TIME.equals(functionType)) {
         return Expressions.call(DataFormatImplementor.class, "timeFormat", datetime, format);
       } else {
-        if (SqlTypeName.TIME.equals(type)) {
+        if (ExprCoreType.TIME.equals(type)) {
           return Expressions.call(
               DataFormatImplementor.class,
               "dateFormatForTime",

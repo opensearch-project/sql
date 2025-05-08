@@ -48,7 +48,6 @@ import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprIPType;
-import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;
 import org.opensearch.sql.data.model.ExprValue;
@@ -66,29 +65,6 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   private OpenSearchTypeFactory(RelDataTypeSystem typeSystem) {
     super(typeSystem);
-  }
-
-  /**
-   * Convert a RelDataType to SqlTypeName. It differs from RelDataType.getSqlTypeName() in that it
-   * converts a date/time-related UDT to the corresponding SqlTypeName.
-   *
-   * @param type RelDataType, which can be a UDT
-   * @return SqlTypeName
-   */
-  public static SqlTypeName convertRelDataTypeToSqlTypeName(RelDataType type) {
-    if (type instanceof ExprSqlType exprSqlType) {
-      return switch (exprSqlType.getUdt()) {
-        case EXPR_DATE -> SqlTypeName.DATE;
-        case EXPR_TIME -> SqlTypeName.TIME;
-        case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
-        default -> type.getSqlTypeName();
-      };
-    }
-    return type.getSqlTypeName();
-  }
-
-  public static RelDataType convertSqlTypeToRelDataType(SqlTypeName sqlTypeName) {
-    return convertExprTypeToRelDataType(convertSqlTypeNameToExprType(sqlTypeName));
   }
 
   @Getter

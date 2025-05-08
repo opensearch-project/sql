@@ -41,7 +41,8 @@ import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -111,9 +112,9 @@ public class UserDefinedFunctionUtils {
     return base;
   }
 
-  public static SqlTypeName transferDateRelatedTimeName(RexNode candidate) {
+  public static ExprType transferDateRelatedTimeName(RexNode candidate) {
     RelDataType type = candidate.getType();
-    return OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(type);
+    return OpenSearchTypeFactory.convertRelDataTypeToExprType(type);
   }
 
   // TODO: pass the function properties directly to the UDF instead of string
@@ -149,18 +150,18 @@ public class UserDefinedFunctionUtils {
    */
   public static List<Expression> convertToExprValues(
       List<Expression> operands, List<RelDataType> types) {
-    List<SqlTypeName> sqlTypeNames =
-        types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToSqlTypeName).toList();
+    List<ExprType> exprTypes =
+        types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
     List<Expression> exprValues = new ArrayList<>();
     for (int i = 0; i < operands.size(); i++) {
       Expression operand = Expressions.convert_(operands.get(i), Object.class);
       exprValues.add(
           i,
           Expressions.call(
-              DateTimeApplyUtils.class,
-              "transferInputToExprValue",
+              ExprValueUtils.class,
+              "fromObjectValue",
               operand,
-              Expressions.constant(sqlTypeNames.get(i))));
+              Expressions.constant(exprTypes.get(i))));
     }
     return exprValues;
   }

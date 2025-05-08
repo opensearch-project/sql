@@ -21,9 +21,10 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -58,10 +59,10 @@ public class ToSecondsFunction extends ImplementorUDF {
   }
 
   public static Object toSeconds(
-      Object datetime, SqlTypeName datetimeType, DataContext propertyContext) {
+      Object datetime, ExprType datetimeType, DataContext propertyContext) {
     FunctionProperties restored = restoreFunctionProperties(propertyContext);
     return switch (datetimeType) {
-      case DATE, TIME, TIMESTAMP, CHAR, VARCHAR -> {
+      case ExprCoreType.DATE, ExprCoreType.TIME, ExprCoreType.TIMESTAMP, ExprCoreType.STRING -> {
         ExprValue dateTimeValue =
             transferInputToExprTimestampValue(datetime, datetimeType, restored);
         yield exprToSeconds(dateTimeValue).longValue();

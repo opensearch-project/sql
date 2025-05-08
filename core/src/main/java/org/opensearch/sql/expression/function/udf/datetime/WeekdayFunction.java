@@ -17,12 +17,13 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -55,17 +56,17 @@ public class WeekdayFunction extends ImplementorUDF {
               UserDefinedFunctionUtils.class,
               "restoreFunctionProperties",
               rexToLixTranslator.getRoot());
-      SqlTypeName dateType =
-          OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
+      ExprType dateType =
+          OpenSearchTypeFactory.convertRelDataTypeToExprType(
               rexCall.getOperands().getFirst().getType());
       Expression date =
           Expressions.call(
-              DateTimeApplyUtils.class,
-              "transferInputToExprValue",
+              ExprValueUtils.class,
+              "fromObjectValue",
               operands.getFirst(),
               Expressions.constant(dateType));
 
-      if (SqlTypeName.TIME.equals(dateType)) {
+      if (ExprCoreType.TIME.equals(dateType)) {
         return Expressions.call(WeekdayImplementor.class, "weekdayForTime", functionProperties);
       }
       return Expressions.call(WeekdayImplementor.class, "weekday", date);

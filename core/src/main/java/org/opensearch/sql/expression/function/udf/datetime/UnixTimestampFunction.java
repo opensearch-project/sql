@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression.function.udf.datetime;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.convertSqlTypeNameToExprType;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
@@ -20,8 +19,8 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -64,8 +63,8 @@ public class UnixTimestampFunction extends ImplementorUDF {
   }
 
   public static Object unixTimestamp(
-      Object timestamp, SqlTypeName timestampType, DataContext propertyContext) {
-    ExprValue candidate = fromObjectValue(timestamp, convertSqlTypeNameToExprType(timestampType));
+      Object timestamp, ExprType timestampType, DataContext propertyContext) {
+    ExprValue candidate = fromObjectValue(timestamp, timestampType);
     return unixTimeStampOf(candidate).doubleValue();
   }
 }

@@ -13,12 +13,13 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -46,14 +47,14 @@ public class LastDayFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      SqlTypeName dateType =
-          OpenSearchTypeFactory.convertRelDataTypeToSqlTypeName(
+      ExprType dateType =
+          OpenSearchTypeFactory.convertRelDataTypeToExprType(
               call.getOperands().getFirst().getType());
       Expression functionProperties =
           Expressions.call(
               UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
 
-      if (SqlTypeName.TIME.equals(dateType)) {
+      if (ExprCoreType.TIME.equals(dateType)) {
         return Expressions.call(LastDayImplementor.class, "lastDayToday", functionProperties);
       }
 
