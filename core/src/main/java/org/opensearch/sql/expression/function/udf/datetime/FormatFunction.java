@@ -18,7 +18,6 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -41,9 +40,9 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
  * </ul>
  */
 public class FormatFunction extends ImplementorUDF {
-  public FormatFunction(SqlTypeName functionType) {
+  public FormatFunction(ExprType functionType) {
     super(new DataFormatImplementor(functionType), NullPolicy.ANY);
-    if (!functionType.equals(SqlTypeName.DATE) && !functionType.equals(SqlTypeName.TIME)) {
+    if (!functionType.equals(ExprCoreType.DATE) && !functionType.equals(ExprCoreType.TIME)) {
       throw new IllegalArgumentException(
           "Function type can only be DATE or TIME, but got: " + functionType);
     }
@@ -56,7 +55,7 @@ public class FormatFunction extends ImplementorUDF {
 
   @RequiredArgsConstructor
   public static class DataFormatImplementor implements NotNullImplementor {
-    private final SqlTypeName functionType;
+    private final ExprType functionType;
 
     @Override
     public Expression implement(
@@ -75,7 +74,7 @@ public class FormatFunction extends ImplementorUDF {
               Expressions.constant(type));
       Expression format = Expressions.new_(ExprStringValue.class, translatedOperands.get(1));
 
-      if (SqlTypeName.TIME.equals(functionType)) {
+      if (ExprCoreType.TIME.equals(functionType)) {
         return Expressions.call(DataFormatImplementor.class, "timeFormat", datetime, format);
       } else {
         if (ExprCoreType.TIME.equals(type)) {

@@ -20,11 +20,11 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
@@ -122,15 +122,15 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator SECOND = new DatePartFunction(TimeUnit.SECOND).toUDF("SECOND");
   public static final SqlOperator MICROSECOND =
       new DatePartFunction(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
-  public static final SqlOperator NOW = new CurrentFunction(SqlTypeName.TIMESTAMP).toUDF("NOW");
+  public static final SqlOperator NOW = new CurrentFunction(ExprCoreType.TIMESTAMP).toUDF("NOW");
   public static final SqlOperator CURRENT_TIME =
-      new CurrentFunction(SqlTypeName.TIME).toUDF("CURRENT_TIME");
+      new CurrentFunction(ExprCoreType.TIME).toUDF("CURRENT_TIME");
   public static final SqlOperator CURRENT_DATE =
-      new CurrentFunction(SqlTypeName.DATE).toUDF("CURRENT_DATE");
+      new CurrentFunction(ExprCoreType.DATE).toUDF("CURRENT_DATE");
   public static final SqlOperator DATE_FORMAT =
-      new FormatFunction(SqlTypeName.DATE).toUDF("DATE_FORMAT");
+      new FormatFunction(ExprCoreType.DATE).toUDF("DATE_FORMAT");
   public static final SqlOperator TIME_FORMAT =
-      new FormatFunction(SqlTypeName.TIME).toUDF("TIME_FORMAT");
+      new FormatFunction(ExprCoreType.TIME).toUDF("TIME_FORMAT");
   public static final SqlOperator DAYNAME = new PeriodNameFunction(TimeUnit.DAY).toUDF("DAYNAME");
   public static final SqlOperator MONTHNAME =
       new PeriodNameFunction(TimeUnit.MONTH).toUDF("MONTHNAME");

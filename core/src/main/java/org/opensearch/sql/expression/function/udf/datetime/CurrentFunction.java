@@ -8,7 +8,6 @@ package org.opensearch.sql.expression.function.udf.datetime;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -16,11 +15,12 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -37,9 +37,9 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
  * <p>It returns the current date, time, or timestamp based on the specified return type.
  */
 public class CurrentFunction extends ImplementorUDF {
-  private final SqlTypeName returnType;
+  private final ExprType returnType;
 
-  public CurrentFunction(SqlTypeName returnType) {
+  public CurrentFunction(ExprType returnType) {
     super(new CurrentFunctionImplementor(returnType), NullPolicy.NONE);
     this.returnType = returnType;
   }
@@ -48,16 +48,16 @@ public class CurrentFunction extends ImplementorUDF {
   public SqlReturnTypeInference getReturnTypeInference() {
     return opBinding ->
         switch (returnType) {
-          case DATE -> UserDefinedFunctionUtils.NULLABLE_DATE_UDT;
-          case TIME -> UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
-          case TIMESTAMP -> UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
+          case ExprCoreType.DATE -> UserDefinedFunctionUtils.NULLABLE_DATE_UDT;
+          case ExprCoreType.TIME -> UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
+          case ExprCoreType.TIMESTAMP -> UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
           default -> throw new IllegalArgumentException("Unsupported return type: " + returnType);
         };
   }
 
   @RequiredArgsConstructor
   public static class CurrentFunctionImplementor implements NotNullImplementor {
-    private final SqlTypeName returnType;
+    private final ExprType returnType;
 
     @Override
     public Expression implement(
@@ -65,22 +65,22 @@ public class CurrentFunction extends ImplementorUDF {
 
       String functionName =
           switch (returnType) {
-            case DATE -> "currentDate";
-            case TIME -> "currentTime";
-            case TIMESTAMP -> "currentTimestamp";
+            case ExprCoreType.DATE -> "currentDate";
+            case ExprCoreType.TIME -> "currentTime";
+            case ExprCoreType.TIMESTAMP -> "currentTimestamp";
             default -> throw new IllegalArgumentException("Unsupported return type: " + returnType);
           };
 
-      Expression now =
+      Expression properties =
           Expressions.call(
-              CurrentFunctionImplementor.class, "getNowFromProperties", translator.getRoot());
+              UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
+      Expression now =
+          Expressions.call(CurrentFunctionImplementor.class, "getNowFromProperties", properties);
 
       return Expressions.call(CurrentFunctionImplementor.class, functionName, now);
     }
 
-    public static LocalDateTime getNowFromProperties(DataContext propertyContext) {
-      FunctionProperties functionProperties =
-          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
+    public static LocalDateTime getNowFromProperties(FunctionProperties functionProperties) {
       return DateTimeFunctions.formatNow(functionProperties.getQueryStartClock());
     }
 
