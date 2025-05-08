@@ -50,14 +50,14 @@ public class SysdateFunction extends ImplementorUDF {
       return Expressions.call(SysdateImplementor.class, "sysdate", translatedOperands);
     }
 
-    public static Object sysdate() {
+    public static String sysdate() {
       var localDateTime = DateTimeFunctions.formatNow(Clock.systemDefaultZone(), 0);
-      return new ExprTimestampValue(localDateTime).valueForCalcite();
+      return (String) new ExprTimestampValue(localDateTime).valueForCalcite();
     }
 
-    public static Object sysdate(int precision) {
+    public static String sysdate(int precision) {
       var localDateTime = DateTimeFunctions.formatNow(Clock.systemDefaultZone(), precision);
-      return new ExprTimestampValue(localDateTime).valueForCalcite();
+      return (String) new ExprTimestampValue(localDateTime).valueForCalcite();
     }
   }
 }

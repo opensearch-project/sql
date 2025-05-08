@@ -55,14 +55,14 @@ public class TimestampFunction extends ImplementorUDF {
     }
   }
 
-  public static Object timestamp(FunctionProperties properties, ExprValue datetime) {
-    return convertToTimestampValue(datetime, properties).valueForCalcite();
+  public static String timestamp(FunctionProperties properties, ExprValue datetime) {
+    return (String) convertToTimestampValue(datetime, properties).valueForCalcite();
   }
 
-  public static Object timestamp(
+  public static String timestamp(
       FunctionProperties properties, ExprValue datetime, ExprValue addTime) {
     ExprValue dateTimeBase = convertToTimestampValue(datetime, properties);
     ExprValue addTimeValue = convertToTimestampValue(addTime, properties);
-    return exprAddTime(properties, dateTimeBase, addTimeValue).valueForCalcite();
+    return (String) exprAddTime(properties, dateTimeBase, addTimeValue).valueForCalcite();
   }
 }

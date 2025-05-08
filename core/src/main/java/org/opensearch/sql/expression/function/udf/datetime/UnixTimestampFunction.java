@@ -56,11 +56,11 @@ public class UnixTimestampFunction extends ImplementorUDF {
     }
   }
 
-  public static Object unixTimestamp(FunctionProperties properties) {
+  public static double unixTimestamp(FunctionProperties properties) {
     return unixTimeStamp(properties.getQueryStartClock()).doubleValue();
   }
 
-  public static Object unixTimestamp(FunctionProperties ignored, ExprValue timestamp) {
+  public static double unixTimestamp(FunctionProperties ignored, ExprValue timestamp) {
     return unixTimeStampOf(timestamp).doubleValue();
   }
 }

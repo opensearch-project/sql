@@ -47,18 +47,18 @@ public class DatetimeFunction extends ImplementorUDF {
       return Expressions.call(DatetimeImplementor.class, "datetime", translatedOperands);
     }
 
-    public static Object datetime(String timestamp) {
+    public static String datetime(String timestamp) {
       ExprValue argTimestampExpr = new ExprStringValue(timestamp);
       ExprValue datetimeExpr;
       datetimeExpr = DateTimeFunctions.exprDateTimeNoTimezone(argTimestampExpr);
-      return datetimeExpr.valueForCalcite();
+      return (String) datetimeExpr.valueForCalcite();
     }
 
-    public static Object datetime(String timestamp, String timezone) {
+    public static String datetime(String timestamp, String timezone) {
       ExprValue timestampExpr = new ExprStringValue(timestamp);
       ExprValue datetimeExpr =
           DateTimeFunctions.exprDateTime(timestampExpr, new ExprStringValue(timezone));
-      return datetimeExpr.valueForCalcite();
+      return (String) datetimeExpr.valueForCalcite();
     }
   }
 }

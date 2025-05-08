@@ -82,23 +82,24 @@ public class TimestampAddFunction extends ImplementorUDF {
       }
     }
 
-    public static Object timestampAddForTimeType(
+    public static String timestampAddForTimeType(
         String addUnit, long amount, ExprValue timestampBase, DataContext propertyContext) {
       FunctionProperties restored =
           UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
 
-      return exprTimestampAddForTimeType(
-              restored.getQueryStartClock(),
-              new ExprStringValue(addUnit),
-              new ExprLongValue(amount),
-              timestampBase)
-          .valueForCalcite();
+      return (String)
+          exprTimestampAddForTimeType(
+                  restored.getQueryStartClock(),
+                  new ExprStringValue(addUnit),
+                  new ExprLongValue(amount),
+                  timestampBase)
+              .valueForCalcite();
     }
 
-    public static Object timestampAdd(String addUnit, long amount, ExprValue timestampBase) {
+    public static String timestampAdd(String addUnit, long amount, ExprValue timestampBase) {
       ExprValue returnValue =
           exprTimestampAdd(new ExprStringValue(addUnit), new ExprLongValue(amount), timestampBase);
-      return returnValue.valueForCalcite();
+      return (String) returnValue.valueForCalcite();
     }
   }
 }

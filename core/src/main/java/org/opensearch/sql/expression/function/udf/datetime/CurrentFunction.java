@@ -84,16 +84,16 @@ public class CurrentFunction extends ImplementorUDF {
       return DateTimeFunctions.formatNow(functionProperties.getQueryStartClock());
     }
 
-    public static Object currentDate(LocalDateTime now) {
-      return new ExprDateValue(now.toLocalDate()).valueForCalcite();
+    public static String currentDate(LocalDateTime now) {
+      return (String) new ExprDateValue(now.toLocalDate()).valueForCalcite();
     }
 
-    public static Object currentTime(LocalDateTime now) {
-      return new ExprTimeValue(now.toLocalTime()).valueForCalcite();
+    public static String currentTime(LocalDateTime now) {
+      return (String) new ExprTimeValue(now.toLocalTime()).valueForCalcite();
     }
 
-    public static Object currentTimestamp(LocalDateTime now) {
-      return new ExprTimestampValue(now).valueForCalcite();
+    public static String currentTimestamp(LocalDateTime now) {
+      return (String) new ExprTimestampValue(now).valueForCalcite();
     }
   }
 }

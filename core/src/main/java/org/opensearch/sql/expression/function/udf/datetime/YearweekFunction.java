@@ -58,11 +58,11 @@ public class YearweekFunction extends ImplementorUDF {
     }
   }
 
-  public static Object yearweek(FunctionProperties properties, ExprValue date) {
+  public static int yearweek(FunctionProperties properties, ExprValue date) {
     return yearweek(properties, date, ExprValueUtils.integerValue(0));
   }
 
-  public static Object yearweek(FunctionProperties properties, ExprValue date, ExprValue mode) {
+  public static int yearweek(FunctionProperties properties, ExprValue date, ExprValue mode) {
     if (date.type() == ExprCoreType.TIME) {
       return yearweekToday(mode, properties.getQueryStartClock()).integerValue();
     }

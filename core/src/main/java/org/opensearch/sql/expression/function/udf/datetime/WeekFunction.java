@@ -53,16 +53,16 @@ public class WeekFunction extends ImplementorUDF {
       return Expressions.call(WeekImplementor.class, "week", list);
     }
 
-    public static Object week(String date) {
+    public static int week(String date) {
       ExprValue dateValue = new ExprDateValue(date);
-      return DateTimeFunctions.exprWeekWithoutMode(dateValue).valueForCalcite();
+      return (int) DateTimeFunctions.exprWeekWithoutMode(dateValue).valueForCalcite();
     }
 
-    public static Object week(String date, int mode) {
+    public static int week(String date, int mode) {
       ExprValue dateValue = new ExprDateValue(date);
       ExprValue modeValue = new ExprIntegerValue(mode);
       ExprValue woyExpr = DateTimeFunctions.exprWeek(dateValue, modeValue);
-      return woyExpr.valueForCalcite();
+      return (int) woyExpr.valueForCalcite();
     }
   }
 }

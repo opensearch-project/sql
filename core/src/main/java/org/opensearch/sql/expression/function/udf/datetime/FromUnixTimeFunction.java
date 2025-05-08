@@ -56,13 +56,14 @@ public class FromUnixTimeFunction extends ImplementorUDF {
       return Expressions.call(FromUnixTimeImplementor.class, "fromUnixTime", translatedOperands);
     }
 
-    public static Object fromUnixTime(double unixTime) {
-      return exprFromUnixTime(new ExprDoubleValue(unixTime)).valueForCalcite();
+    public static String fromUnixTime(double unixTime) {
+      return (String) exprFromUnixTime(new ExprDoubleValue(unixTime)).valueForCalcite();
     }
 
-    public static Object fromUnixTime(double unixTime, String format) {
-      return exprFromUnixTimeFormat(new ExprDoubleValue(unixTime), new ExprStringValue(format))
-          .valueForCalcite();
+    public static String fromUnixTime(double unixTime, String format) {
+      return (String)
+          exprFromUnixTimeFormat(new ExprDoubleValue(unixTime), new ExprStringValue(format))
+              .valueForCalcite();
     }
   }
 }

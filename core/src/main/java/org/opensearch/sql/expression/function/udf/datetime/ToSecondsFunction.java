@@ -58,7 +58,7 @@ public class ToSecondsFunction extends ImplementorUDF {
     }
   }
 
-  public static Object toSeconds(FunctionProperties properties, ExprValue datetime) {
+  public static long toSeconds(FunctionProperties properties, ExprValue datetime) {
     return switch (datetime.type()) {
       case ExprCoreType.DATE, ExprCoreType.TIME, ExprCoreType.TIMESTAMP, ExprCoreType.STRING -> {
         ExprValue dateTimeValue = convertToTimestampValue(datetime, properties);
