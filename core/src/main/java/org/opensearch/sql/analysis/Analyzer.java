@@ -10,6 +10,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
@@ -53,11 +54,14 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -70,7 +74,6 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -162,8 +165,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
           STRUCT);
       return child;
     } else {
-      // TODO
-      throw new UnsupportedOperationException("SubqueryAlias is only supported in table alias");
+      throw new UnsupportedOperationException(
+          "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
     }
   }
 
@@ -490,7 +493,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
-  public LogicalPlan visitWindow(Window node, AnalysisContext context) {
+  public LogicalPlan visitPatterns(Patterns node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     WindowExpressionAnalyzer windowAnalyzer =
         new WindowExpressionAnalyzer(expressionAnalyzer, child);
@@ -683,6 +686,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitCloseCursor(CloseCursor closeCursor, AnalysisContext context) {
     return new LogicalCloseCursor(closeCursor.getChild().get(0).accept(this, context));
+  }
+
+  @Override
+  public LogicalPlan visitJoin(Join node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Join is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
+  public LogicalPlan visitLookup(Lookup node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Lookup is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   private LogicalSort buildSort(

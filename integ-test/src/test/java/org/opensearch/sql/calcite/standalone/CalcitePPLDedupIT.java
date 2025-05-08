@@ -105,7 +105,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
   @Test
   public void testConsecutiveThrowException() {
     assertThrows(
-        IllegalStateException.class,
+        UnsupportedOperationException.class,
         () ->
             executeQuery(
                 String.format(
@@ -115,7 +115,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
                     TEST_INDEX_DUPLICATION_NULLABLE)));
 
     assertThrows(
-        IllegalStateException.class,
+        UnsupportedOperationException.class,
         () ->
             executeQuery(
                 String.format(
@@ -125,7 +125,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
                     TEST_INDEX_DUPLICATION_NULLABLE)));
 
     assertThrows(
-        IllegalStateException.class,
+        UnsupportedOperationException.class,
         () ->
             executeQuery(
                 String.format(
@@ -135,7 +135,7 @@ public class CalcitePPLDedupIT extends CalcitePPLIntegTestCase {
                     TEST_INDEX_DUPLICATION_NULLABLE)));
 
     assertThrows(
-        IllegalStateException.class,
+        UnsupportedOperationException.class,
         () ->
             executeQuery(
                 String.format(

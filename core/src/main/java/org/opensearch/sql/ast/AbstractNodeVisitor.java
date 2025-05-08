@@ -8,6 +8,7 @@ package org.opensearch.sql.ast;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.AttributeList;
@@ -58,6 +59,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -254,6 +256,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitAllFieldsExcludeMeta(AllFieldsExcludeMeta node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitNestedAllTupleFields(NestedAllTupleFields node, C context) {
     return visitChildren(node, context);
   }
@@ -336,6 +342,10 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitFillNull(FillNull fillNull, C context) {
     return visitChildren(fillNull, context);
+  }
+
+  public T visitPatterns(Patterns patterns, C context) {
+    return visitChildren(patterns, context);
   }
 
   public T visitWindow(Window window, C context) {

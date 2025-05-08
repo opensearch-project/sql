@@ -34,12 +34,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
@@ -48,6 +49,7 @@ import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
@@ -65,6 +67,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -114,13 +117,17 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitQueryStatement(OpenSearchPPLParser.QueryStatementContext ctx) {
     UnresolvedPlan pplCommand = visit(ctx.pplCommands());
-    return ctx.commands().stream().map(this::visit).reduce(pplCommand, (r, e) -> e.attach(r));
+    return ctx.commands().stream()
+        .map(this::visit)
+        .reduce(pplCommand, (r, e) -> e.attach(e instanceof Join ? projectExceptMeta(r) : r));
   }
 
   @Override
   public UnresolvedPlan visitSubSearch(OpenSearchPPLParser.SubSearchContext ctx) {
     UnresolvedPlan searchCommand = visit(ctx.searchCommand());
-    return ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r));
+    // Exclude metadata fields for subquery
+    return projectExceptMeta(
+        ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r)));
   }
 
   /** Search command. */
@@ -205,8 +212,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.joinCriteria() == null
             ? Optional.empty()
             : Optional.of(expressionBuilder.visitJoinCriteria(ctx.joinCriteria()));
-
-    return new Join(right, leftAlias, rightAlias, joinType, joinCondition, joinHint);
+    return new Join(
+        projectExceptMeta(right), leftAlias, rightAlias, joinType, joinCondition, joinHint);
   }
 
   private Join.JoinHint getJoinHint(OpenSearchPPLParser.JoinHintListContext ctx) {
@@ -322,6 +329,46 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return aggregation;
   }
 
+  public UnresolvedPlan visitEventstatsCommand(OpenSearchPPLParser.EventstatsCommandContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> partExprListBuilder = new ImmutableList.Builder<>();
+    Optional.ofNullable(ctx.statsByClause())
+        .map(OpenSearchPPLParser.StatsByClauseContext::bySpanClause)
+        .map(this::internalVisitExpression)
+        .ifPresent(partExprListBuilder::add);
+
+    Optional.ofNullable(ctx.statsByClause())
+        .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
+        .map(
+            expr ->
+                expr.fieldExpression().stream()
+                    .map(
+                        groupCtx ->
+                            (UnresolvedExpression)
+                                new Alias(
+                                    StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
+                                    internalVisitExpression(groupCtx)))
+                    .collect(Collectors.toList()))
+        .ifPresent(partExprListBuilder::addAll);
+
+    ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
+        new ImmutableList.Builder<>();
+    for (OpenSearchPPLParser.EventstatsAggTermContext aggCtx : ctx.eventstatsAggTerm()) {
+      UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
+      // set partition by list for window function
+      if (windowFunction instanceof WindowFunction) {
+        ((WindowFunction) windowFunction).setPartitionByList(partExprListBuilder.build());
+      }
+      String name =
+          aggCtx.alias == null
+              ? getTextInQuery(aggCtx)
+              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
+      Alias alias = new Alias(name, windowFunction);
+      windownFunctionListBuilder.add(alias);
+    }
+
+    return new Window(windownFunctionListBuilder.build());
+  }
+
   /** Dedup command. */
   @Override
   public UnresolvedPlan visitDedupCommand(DedupCommandContext ctx) {
@@ -409,35 +456,48 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitPatternsCommand(OpenSearchPPLParser.PatternsCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
+    ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
     List<UnresolvedExpression> unresolvedArguments = new ArrayList<>();
     unresolvedArguments.add(sourceField);
-    AtomicReference<String> alias = new AtomicReference<>("patterns_field");
     ctx.patternsParameter()
         .forEach(
             x -> {
               String argName = x.children.get(0).toString();
               Literal value = (Literal) internalVisitExpression(x.children.get(2));
-              if ("new_field".equalsIgnoreCase(argName)) {
-                alias.set((String) value.getValue());
-              }
+              builder.put(argName, value);
               unresolvedArguments.add(new Argument(argName, value));
             });
-    return new Window(
-        new Alias(
-            alias.get(),
-            new WindowFunction(
-                new Function(
-                    ctx.pattern_method != null
-                        ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText())
-                            .toLowerCase(Locale.ROOT)
-                        : settings
-                            .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
-                            .toString()
-                            .toLowerCase(Locale.ROOT),
-                    unresolvedArguments),
-                List.of(), // ignore partition by list for now as we haven't seen such requirement
-                List.of()), // ignore sort by list for now as we haven't seen such requirement
-            alias.get()));
+    java.util.Map<String, Literal> arguments = builder.build();
+    Literal pattern = arguments.getOrDefault("pattern", AstDSL.stringLiteral(""));
+    String newField =
+        arguments
+            .getOrDefault("new_field", AstDSL.stringLiteral("patterns_field"))
+            .getValue()
+            .toString();
+    String patternMethod =
+        ctx.pattern_method != null
+            ? StringUtils.unquoteIdentifier(ctx.pattern_method.getText()).toLowerCase(Locale.ROOT)
+            : settings
+                .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
+                .toString()
+                .toLowerCase(Locale.ROOT);
+    if (patternMethod.equalsIgnoreCase(PatternMethod.SIMPLE_PATTERN.getName())) {
+      /*
+       * Legacy patterns command is a subclass of Parse plan, which enables Expression pushdown as part of DSL AggregationScript.
+       * Keep this logic here until we implement pushdown with new script engine for calcite expressions.
+       * Also, there is opportunity of refactoring Parse plan as Project logical plan.
+       **/
+      return new Parse(ParseMethod.PATTERNS, sourceField, pattern, arguments);
+    } else {
+      return new Patterns(
+          new Alias(
+              newField,
+              new WindowFunction(
+                  new Function(patternMethod, unresolvedArguments),
+                  List.of(), // ignore partition by list for now as we haven't seen such requirement
+                  List.of()), // ignore sort by list for now as we haven't seen such requirement
+              newField));
+    }
   }
 
   /** Lookup command */
@@ -609,5 +669,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Token start = ctx.getStart();
     Token stop = ctx.getStop();
     return query.substring(start.getStartIndex(), stop.getStopIndex() + 1);
+  }
+
+  /**
+   * Try to wrap the plan with a project node of this AllFields expression. Only wrap it if the plan
+   * is not a project node or if the project is type of excluded.
+   *
+   * @param plan The input plan needs to be wrapped with a project
+   * @return The wrapped plan of the input plan, i.e., project(plan)
+   */
+  private UnresolvedPlan projectExceptMeta(UnresolvedPlan plan) {
+    if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
+      return plan;
+    } else {
+      return new Project(ImmutableList.of(AllFieldsExcludeMeta.of())).attach(plan);
+    }
   }
 }

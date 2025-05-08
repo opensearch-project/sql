@@ -110,10 +110,13 @@ public class CalcitePPLCastFunctionIT extends CalcitePPLIntegTestCase {
             + "    ],\n"
             + "    [\n"
             + "      null\n"
+            + "    ],\n"
+            + "    [\n"
+            + "      null\n"
             + "    ]\n"
             + "  ],\n"
-            + "  \"total\": 5,\n"
-            + "  \"size\": 5\n"
+            + "  \"total\": 6,\n"
+            + "  \"size\": 6\n"
             + "}",
         actual);
   }

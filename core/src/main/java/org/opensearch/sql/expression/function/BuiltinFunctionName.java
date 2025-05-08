@@ -9,11 +9,13 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /** Builtin Function Name. */
 @Getter
+@AllArgsConstructor
 @RequiredArgsConstructor
 public enum BuiltinFunctionName {
   /** Mathematical Functions. */
@@ -224,7 +226,6 @@ public enum BuiltinFunctionName {
   RANK(FunctionName.of("rank")),
   DENSE_RANK(FunctionName.of("dense_rank")),
 
-  SIMPLE_PATTERN(FunctionName.of("simple_pattern")),
   BRAIN(FunctionName.of("brain")),
 
   INTERVAL(FunctionName.of("interval")),
@@ -268,9 +269,14 @@ public enum BuiltinFunctionName {
   MULTIMATCH(FunctionName.of("multimatch")),
   MULTIMATCHQUERY(FunctionName.of("multimatchquery")),
   WILDCARDQUERY(FunctionName.of("wildcardquery")),
-  WILDCARD_QUERY(FunctionName.of("wildcard_query"));
+  WILDCARD_QUERY(FunctionName.of("wildcard_query")),
+
+  /** Internal functions that are not exposed to customers. */
+  INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
+  INTERNAL_REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2"), true);
 
   private final FunctionName name;
+  private boolean isInternal;
 
   private static final Map<FunctionName, BuiltinFunctionName> ALL_NATIVE_FUNCTIONS;
 
@@ -301,6 +307,22 @@ public enum BuiltinFunctionName {
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
           .build();
 
+  private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
+      new ImmutableMap.Builder<String, BuiltinFunctionName>()
+          .put("max", BuiltinFunctionName.MAX)
+          .put("min", BuiltinFunctionName.MIN)
+          .put("avg", BuiltinFunctionName.AVG)
+          .put("count", BuiltinFunctionName.COUNT)
+          .put("sum", BuiltinFunctionName.SUM)
+          .put("var_pop", BuiltinFunctionName.VARPOP)
+          .put("var_samp", BuiltinFunctionName.VARSAMP)
+          .put("variance", BuiltinFunctionName.VARPOP)
+          .put("std", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          .build();
+
   public static Optional<BuiltinFunctionName> of(String str) {
     return Optional.ofNullable(ALL_NATIVE_FUNCTIONS.getOrDefault(FunctionName.of(str), null));
   }
@@ -308,5 +330,10 @@ public enum BuiltinFunctionName {
   public static Optional<BuiltinFunctionName> ofAggregation(String functionName) {
     return Optional.ofNullable(
         AGGREGATION_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
+  }
+
+  public static Optional<BuiltinFunctionName> ofWindowFunction(String functionName) {
+    return Optional.ofNullable(
+        WINDOW_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
   }
 }

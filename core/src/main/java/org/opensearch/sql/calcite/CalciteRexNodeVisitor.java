@@ -5,12 +5,16 @@
 
 package org.opensearch.sql.calcite;
 
+import static java.util.Objects.requireNonNull;
+import static org.apache.calcite.sql.SqlKind.AS;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +22,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
@@ -31,6 +36,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Between;
+import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
@@ -47,6 +53,7 @@ import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
@@ -89,7 +96,18 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       case NULL:
         return rexBuilder.makeNullLiteral(typeFactory.createSqlType(SqlTypeName.NULL));
       case STRING:
-        return rexBuilder.makeLiteral(value.toString());
+        if (value.toString().length() == 1) {
+          // To align Spark/PostgreSQL, Char(1) is useful, such as cast('1' to boolean) should
+          // return true
+          return rexBuilder.makeLiteral(
+              value.toString(), typeFactory.createSqlType(SqlTypeName.CHAR));
+        } else {
+          // Specific the type to VARCHAR and allowCast to true, or the STRING will be optimized to
+          // CHAR(n)
+          // which leads to incorrect return type in deriveReturnType of some functions/operators
+          return rexBuilder.makeLiteral(
+              value.toString(), typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+        }
       case INTEGER:
         return rexBuilder.makeExactLiteral(new BigDecimal((Integer) value));
       case LONG:
@@ -356,6 +374,43 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   @Override
+  public RexNode visitWindowFunction(WindowFunction node, CalcitePlanContext context) {
+    Function windowFunction = (Function) node.getFunction();
+    List<RexNode> arguments =
+        windowFunction.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
+    List<RexNode> partitions =
+        node.getPartitionByList().stream()
+            .map(arg -> analyze(arg, context))
+            .map(this::extractRexNodeFromAlias)
+            .toList();
+    return BuiltinFunctionName.ofWindowFunction(windowFunction.getFuncName())
+        .map(
+            functionName -> {
+              RexNode field = arguments.isEmpty() ? null : arguments.getFirst();
+              List<RexNode> args =
+                  (arguments.isEmpty() || arguments.size() == 1)
+                      ? Collections.emptyList()
+                      : arguments.subList(1, arguments.size());
+              return PlanUtils.makeOver(
+                  context, functionName, field, args, partitions, node.getWindowFrame());
+            })
+        .orElseThrow(
+            () ->
+                new UnsupportedOperationException(
+                    "Unexpected window function: " + windowFunction.getFuncName()));
+  }
+
+  /** extract the expression of Alias from a node */
+  private RexNode extractRexNodeFromAlias(RexNode node) {
+    requireNonNull(node);
+    if (node.getKind() == AS) {
+      return ((RexCall) node).getOperands().get(0);
+    } else {
+      return node;
+    }
+  }
+
+  @Override
   public RexNode visitInSubquery(InSubquery node, CalcitePlanContext context) {
     List<RexNode> nodes = node.getChild().stream().map(child -> analyze(child, context)).toList();
     UnresolvedPlan subquery = node.getQuery();
@@ -398,6 +453,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   private RelNode resolveSubqueryPlan(UnresolvedPlan subquery, CalcitePlanContext context) {
+    boolean isNestedSubquery = context.isResolvingSubquery();
+    context.setResolvingSubquery(true);
     // clear and store the outer state
     boolean isResolvingJoinConditionOuter = context.isResolvingJoinCondition();
     if (isResolvingJoinConditionOuter) {
@@ -411,6 +468,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     if (isResolvingJoinConditionOuter) {
       context.setResolvingJoinCondition(true);
     }
+    // Only need to set isResolvingSubquery to false if it's not nested subquery.
+    if (!isNestedSubquery) {
+      context.setResolvingSubquery(false);
+    }
     return subqueryRel;
   }
 
@@ -423,6 +484,19 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
     // call makeCast() instead of cast() because the saft parameter is true could avoid exception.
     return context.rexBuilder.makeCast(nullableType, expr, true, true);
+  }
+
+  @Override
+  public RexNode visitCase(Case node, CalcitePlanContext context) {
+    List<RexNode> caseOperands = new ArrayList<>();
+    for (When when : node.getWhenClauses()) {
+      caseOperands.add(analyze(when.getCondition(), context));
+      caseOperands.add(analyze(when.getResult(), context));
+    }
+    RexNode elseExpr =
+        node.getElseClause().map(e -> analyze(e, context)).orElse(context.relBuilder.literal(null));
+    caseOperands.add(elseExpr);
+    return context.rexBuilder.makeCall(SqlStdOperatorTable.CASE, caseOperands);
   }
 
   /*

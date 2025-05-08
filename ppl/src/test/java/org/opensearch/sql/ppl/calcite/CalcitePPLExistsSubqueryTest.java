@@ -99,7 +99,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
             + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
             + "    LogicalFilter(condition=[EXISTS({\n"
-            + "LogicalFilter(condition=[=($1, 'Accounting')])\n"
+            + "LogicalFilter(condition=[=($1, 'Accounting':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
             + "})], variablesSet=[[$cor0]])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
@@ -201,7 +201,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "LogicalProject(EMPNO=[$0], ENAME=[$1])\n"
             + "  LogicalSort(sort0=[$0], dir0=[DESC])\n"
             + "    LogicalFilter(condition=[NOT(EXISTS({\n"
-            + "LogicalFilter(condition=[=($1, 'Accounting')])\n"
+            + "LogicalFilter(condition=[=($1, 'Accounting':VARCHAR)])\n"
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
             + "}))], variablesSet=[[$cor0]])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
