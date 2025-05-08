@@ -16,7 +16,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeConversionUtils;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -46,26 +46,25 @@ public class LastDayFunction extends ImplementorUDF {
   public static class LastDayImplementor implements NotNullImplementor {
     @Override
     public Expression implement(
-        RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      ExprType dateType =
+        RexToLixTranslator translator, RexCall call, List<Expression> operands) {
+      List<Expression> exprOperands = UserDefinedFunctionUtils.convertToExprValues(operands, call);
+      List<Expression> exprOperandsWithProperties =
+          UserDefinedFunctionUtils.prependFunctionProperties(exprOperands, translator);
+
+      Expression properties = exprOperandsWithProperties.get(0);
+      Expression datetime = exprOperandsWithProperties.get(1);
+
+      ExprType datetimeType =
           OpenSearchTypeFactory.convertRelDataTypeToExprType(
               call.getOperands().getFirst().getType());
-      Expression functionProperties =
-          Expressions.call(
-              UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
-
-      if (ExprCoreType.TIME.equals(dateType)) {
-        return Expressions.call(LastDayImplementor.class, "lastDayToday", functionProperties);
+      if (ExprCoreType.TIME == datetimeType) {
+        return Expressions.call(LastDayImplementor.class, "lastDayToday", properties);
       }
 
-      Expression timestampValue =
+      Expression dateValue =
           Expressions.call(
-              DateTimeApplyUtils.class,
-              "transferInputToExprTimestampValue",
-              translatedOperands.getFirst(),
-              Expressions.constant(dateType),
-              functionProperties);
-      return Expressions.call(LastDayImplementor.class, "lastDay", timestampValue);
+              DateTimeConversionUtils.class, "convertToDateValue", datetime, properties);
+      return Expressions.call(LastDayImplementor.class, "lastDay", dateValue);
     }
 
     public static String lastDayToday(FunctionProperties properties) {
@@ -73,8 +72,8 @@ public class LastDayFunction extends ImplementorUDF {
           DateTimeFunctions.exprLastDayToday(properties.getQueryStartClock()).valueForCalcite();
     }
 
-    public static String lastDay(ExprValue timestampValue) {
-      return (String) DateTimeFunctions.exprLastDay(timestampValue).valueForCalcite();
+    public static String lastDay(ExprValue dateValue) {
+      return (String) DateTimeFunctions.exprLastDay(dateValue).valueForCalcite();
     }
   }
 }

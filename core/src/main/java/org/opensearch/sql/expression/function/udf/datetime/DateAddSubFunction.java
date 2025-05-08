@@ -19,7 +19,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeConversionUtils;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -57,7 +57,7 @@ public class DateAddSubFunction extends ImplementorUDF {
       RelDataType temporalDeltaType = call.getOperands().get(1).getType();
       Expression interval =
           Expressions.call(
-              DateTimeApplyUtils.class,
+              DateTimeConversionUtils.class,
               "convertToTemporalAmount",
               Expressions.convert_(temporalDelta, long.class),
               Expressions.constant(

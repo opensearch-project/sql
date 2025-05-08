@@ -10,7 +10,6 @@ import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearw
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.yearweekToday;
 
 import java.util.List;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -19,11 +18,9 @@ import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
-import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -54,24 +51,22 @@ public class YearweekFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
-      List<Expression> newList = addTypeAndContext(list, rexCall, rexToLixTranslator.getRoot());
-      return Expressions.call(YearweekFunction.class, "yearweek", newList);
+      List<Expression> operands = convertToExprValues(list, rexCall);
+      List<Expression> operandsWithProperties =
+          prependFunctionProperties(operands, rexToLixTranslator);
+      return Expressions.call(YearweekFunction.class, "yearweek", operandsWithProperties);
     }
   }
 
-  public static Object yearweek(Object date, ExprType dateType, DataContext propertyContext) {
-    return yearweek(date, 0, dateType, ExprCoreType.INTEGER, propertyContext);
+  public static Object yearweek(FunctionProperties properties, ExprValue date) {
+    return yearweek(properties, date, ExprValueUtils.integerValue(0));
   }
 
-  public static Object yearweek(
-      Object date, Integer mode, ExprType dateType, ExprType ignored, DataContext propertyContext) {
-    FunctionProperties restored = restoreFunctionProperties(propertyContext);
-    if (dateType == ExprCoreType.TIME) {
-      return yearweekToday(new ExprIntegerValue(mode), restored.getQueryStartClock())
-          .integerValue();
+  public static Object yearweek(FunctionProperties properties, ExprValue date, ExprValue mode) {
+    if (date.type() == ExprCoreType.TIME) {
+      return yearweekToday(mode, properties.getQueryStartClock()).integerValue();
     }
-    ExprValue exprValue = ExprValueUtils.fromObjectValue(date, dateType);
-    ExprValue yearWeekValue = exprYearweek(exprValue, new ExprIntegerValue(mode));
+    ExprValue yearWeekValue = exprYearweek(date, mode);
     return yearWeekValue.integerValue();
   }
 }

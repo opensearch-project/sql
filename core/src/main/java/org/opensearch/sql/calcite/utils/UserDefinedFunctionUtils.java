@@ -10,17 +10,11 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
 import java.util.TimeZone;
-import java.util.stream.Collectors;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -94,29 +88,6 @@ public class UserDefinedFunctionUtils {
     };
   }
 
-  /** Check whether the given array contains null values. */
-  public static boolean containsNull(Object[] objects) {
-    return Arrays.stream(objects).anyMatch(Objects::isNull);
-  }
-
-  public static String formatTimestampWithoutUnnecessaryNanos(LocalDateTime localDateTime) {
-    String base = localDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-    int nano = localDateTime.getNano();
-    if (nano == 0) return base;
-
-    String nanoStr = String.format(Locale.ENGLISH, "%09d", nano);
-    nanoStr = nanoStr.replaceFirst("0+$", "");
-    if (!nanoStr.isEmpty()) {
-      return base + "." + nanoStr;
-    }
-    return base;
-  }
-
-  public static ExprType transferDateRelatedTimeName(RexNode candidate) {
-    RelDataType type = candidate.getType();
-    return OpenSearchTypeFactory.convertRelDataTypeToExprType(type);
-  }
-
   // TODO: pass the function properties directly to the UDF instead of string
   public static FunctionProperties restoreFunctionProperties(DataContext dataContext) {
     long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(dataContext);
@@ -128,16 +99,18 @@ public class UserDefinedFunctionUtils {
     return new FunctionProperties(instant, zoneId, QueryType.PPL);
   }
 
-  public static List<Expression> addTypeAndContext(
-      List<Expression> operands, RexCall rexCall, Expression root) {
-    // Box primitive values so that they can match signatures with boxed types
-    List<Expression> enrichedOperands =
-        operands.stream().map(Expressions::box).collect(Collectors.toList());
-    for (RexNode rexNode : rexCall.getOperands()) {
-      enrichedOperands.add(Expressions.constant(transferDateRelatedTimeName(rexNode)));
-    }
-    enrichedOperands.add(root);
-    return enrichedOperands;
+  /**
+   * Convert java objects to ExprValue, so that the parameters fit the expr function signature. It
+   * invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue. Note that
+   * date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
+   *
+   * @param operands the operands to convert
+   * @param rexCall the RexCall object containing the operands
+   * @return the converted operands
+   */
+  public static List<Expression> convertToExprValues(List<Expression> operands, RexCall rexCall) {
+    List<RelDataType> types = rexCall.getOperands().stream().map(RexNode::getType).toList();
+    return convertToExprValues(operands, types);
   }
 
   /**
@@ -198,7 +171,7 @@ public class UserDefinedFunctionUtils {
     };
   }
 
-  private static List<Expression> prependTimestampAsProperty(
+  public static List<Expression> prependFunctionProperties(
       List<Expression> operands, RexToLixTranslator translator) {
     List<Expression> operandsWithProperties = new ArrayList<>(operands);
     Expression properties =
@@ -218,8 +191,7 @@ public class UserDefinedFunctionUtils {
           List<Expression> operands =
               convertToExprValues(
                   translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
-          List<Expression> operandsWithProperties =
-              prependTimestampAsProperty(operands, translator);
+          List<Expression> operandsWithProperties = prependFunctionProperties(operands, translator);
           Expression exprResult = Expressions.call(type, methodName, operandsWithProperties);
           return Expressions.call(exprResult, "valueForCalcite");
         };

@@ -5,14 +5,13 @@
 
 package org.opensearch.sql.expression.function.udf.datetime;
 
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.addTypeAndContext;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.restoreFunctionProperties;
-import static org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils.transferInputToExprTimestampValue;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.convertToExprValues;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.prependFunctionProperties;
+import static org.opensearch.sql.calcite.utils.datetime.DateTimeConversionUtils.convertToTimestampValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprToSecondsForIntType;
 
 import java.util.List;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -24,7 +23,6 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -53,21 +51,20 @@ public class ToSecondsFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
-      List<Expression> newList = addTypeAndContext(list, rexCall, rexToLixTranslator.getRoot());
-      return Expressions.call(ToSecondsFunction.class, "toSeconds", newList);
+      List<Expression> operands = convertToExprValues(list, rexCall);
+      List<Expression> operandsWithProperties =
+          prependFunctionProperties(operands, rexToLixTranslator);
+      return Expressions.call(ToSecondsFunction.class, "toSeconds", operandsWithProperties);
     }
   }
 
-  public static Object toSeconds(
-      Object datetime, ExprType datetimeType, DataContext propertyContext) {
-    FunctionProperties restored = restoreFunctionProperties(propertyContext);
-    return switch (datetimeType) {
+  public static Object toSeconds(FunctionProperties properties, ExprValue datetime) {
+    return switch (datetime.type()) {
       case ExprCoreType.DATE, ExprCoreType.TIME, ExprCoreType.TIMESTAMP, ExprCoreType.STRING -> {
-        ExprValue dateTimeValue =
-            transferInputToExprTimestampValue(datetime, datetimeType, restored);
+        ExprValue dateTimeValue = convertToTimestampValue(datetime, properties);
         yield exprToSeconds(dateTimeValue).longValue();
       }
-      default -> exprToSecondsForIntType(new ExprLongValue((Number) datetime)).longValue();
+      default -> exprToSecondsForIntType(new ExprLongValue(datetime.longValue())).longValue();
     };
   }
 }

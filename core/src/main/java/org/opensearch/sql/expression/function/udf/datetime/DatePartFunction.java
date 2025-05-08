@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -20,14 +19,13 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeConversionUtils;
 import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -76,37 +74,31 @@ public class DatePartFunction extends ImplementorUDF {
 
     @Override
     public Expression implement(
-        RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
+        RexToLixTranslator translator, RexCall call, List<Expression> operands) {
 
       Expression unit = Expressions.constant(timeUnit.name());
-      Expression datetime = translatedOperands.getFirst();
-      ExprType datetimeType =
-          OpenSearchTypeFactory.convertRelDataTypeToExprType(
-              call.getOperands().getFirst().getType());
-
+      List<Expression> exprOperands = UserDefinedFunctionUtils.convertToExprValues(operands, call);
+      List<Expression> exprOperandsWithProperties =
+          UserDefinedFunctionUtils.prependFunctionProperties(exprOperands, translator);
       return Expressions.call(
           DatePartImplementor.class,
           "datePart",
-          Expressions.convert_(unit, String.class),
-          Expressions.convert_(datetime, Object.class),
-          Expressions.constant(datetimeType),
-          translator.getRoot());
+          exprOperandsWithProperties.get(0),
+          exprOperandsWithProperties.get(1),
+          Expressions.convert_(unit, String.class));
     }
 
-    public static int datePart(
-        String part, Object datetime, ExprType datetimeType, DataContext propertyContext) {
-      FunctionProperties properties =
-          UserDefinedFunctionUtils.restoreFunctionProperties(propertyContext);
+    public static int datePart(FunctionProperties properties, ExprValue datetime, String part) {
 
       // This throws errors when date_part expects a date but gets a time, or vice versa.
-      if (ExprCoreType.STRING.isCompatible(datetimeType)) {
-        ensureDatetimeParsable(part, datetime.toString());
+      if (ExprCoreType.STRING.isCompatible(datetime.type())) {
+        ensureDatetimeParsable(part, datetime.stringValue());
       }
 
-      ExprValue candidate =
-          DateTimeApplyUtils.transferInputToExprTimestampValue(datetime, datetimeType, properties);
+      ExprTimestampValue candidate =
+          DateTimeConversionUtils.forceConvertToTimestampValue(datetime, properties);
 
-      if (datetimeType == ExprCoreType.TIME) {
+      if (datetime.type() == ExprCoreType.TIME) {
         return DateTimeFunctions.exprExtractForTime(
                 properties, new ExprStringValue(part), candidate)
             .integerValue();

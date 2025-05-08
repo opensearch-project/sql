@@ -25,7 +25,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.calcite.utils.datetime.DateTimeApplyUtils;
+import org.opensearch.sql.calcite.utils.datetime.DateTimeConversionUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -110,7 +110,7 @@ public class AddSubDateFunction extends ImplementorUDF {
       } else if (SqlTypeFamily.DATETIME_INTERVAL.contains(temporalDeltaType)) {
         Expression interval =
             Expressions.call(
-                DateTimeApplyUtils.class,
+                DateTimeConversionUtils.class,
                 "convertToTemporalAmount",
                 Expressions.convert_(temporalDelta, long.class),
                 Expressions.constant(

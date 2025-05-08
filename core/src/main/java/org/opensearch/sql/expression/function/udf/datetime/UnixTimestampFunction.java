@@ -6,11 +6,9 @@
 package org.opensearch.sql.expression.function.udf.datetime;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.*;
-import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
 
 import java.util.List;
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
@@ -20,7 +18,6 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -52,19 +49,18 @@ public class UnixTimestampFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator rexToLixTranslator, RexCall rexCall, List<Expression> list) {
-      List<Expression> newList = addTypeAndContext(list, rexCall, rexToLixTranslator.getRoot());
-      return Expressions.call(UnixTimestampFunction.class, "unixTimestamp", newList);
+      List<Expression> operands = convertToExprValues(list, rexCall);
+      List<Expression> operandsWithProperties =
+          prependFunctionProperties(operands, rexToLixTranslator);
+      return Expressions.call(UnixTimestampFunction.class, "unixTimestamp", operandsWithProperties);
     }
   }
 
-  public static Object unixTimestamp(DataContext propertyContext) {
-    FunctionProperties restored = restoreFunctionProperties(propertyContext);
-    return unixTimeStamp(restored.getQueryStartClock()).doubleValue();
+  public static Object unixTimestamp(FunctionProperties properties) {
+    return unixTimeStamp(properties.getQueryStartClock()).doubleValue();
   }
 
-  public static Object unixTimestamp(
-      Object timestamp, ExprType timestampType, DataContext propertyContext) {
-    ExprValue candidate = fromObjectValue(timestamp, timestampType);
-    return unixTimeStampOf(candidate).doubleValue();
+  public static Object unixTimestamp(FunctionProperties ignored, ExprValue timestamp) {
+    return unixTimeStampOf(timestamp).doubleValue();
   }
 }

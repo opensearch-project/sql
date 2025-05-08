@@ -309,7 +309,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| eval timestamp=to_seconds(strict_date_optional_time) "
                     + "| eval date=to_seconds(date)"
-                    + "| eval string_value=to_seconds('2008-10-07')"
+                    + "| eval string_value=to_seconds(date('2008-10-07'))"
                     + "| eval long_value = to_seconds(950228)"
                     + "| where to_seconds(strict_date_optional_time) > 62617795199"
                     + "| fields timestamp, date, string_value, long_value | head 1",
@@ -1195,7 +1195,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         executeQuery(
             String.format(
                 "source=%s "
-                    + "| eval s = SECOND(TIMESTAMP('01:02:03')) "
+                    + "| eval s = SECOND(TIMESTAMP(TIME('01:02:03'))) "
                     + "| eval secondForTime = SECOND(basic_time) "
                     + "| eval secondForDate = SECOND(basic_date) "
                     + "| eval secondForTimestamp = SECOND(strict_date_optional_time_nanos) "
@@ -1216,8 +1216,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval s = second_of_minute(TIMESTAMP('01:02:03')) | eval secondForTime"
-                    + " = second_of_minute(basic_time) | eval secondForDate ="
+                "source=%s | eval s = second_of_minute(TIMESTAMP(TIME('01:02:03'))) | eval"
+                    + " secondForTime = second_of_minute(basic_time) | eval secondForDate ="
                     + " second_of_minute(basic_date) | eval secondForTimestamp ="
                     + " second_of_minute(strict_date_optional_time_nanos) | fields s,"
                     + " secondForTime, secondForDate, secondForTimestamp | head 1",
