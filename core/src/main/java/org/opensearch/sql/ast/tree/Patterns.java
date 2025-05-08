@@ -32,7 +32,6 @@ public class Patterns extends UnresolvedPlan {
   private final UnresolvedExpression windowFunction;
   private final UnresolvedExpression sourceField;
   private final PatternMethod patternMethod;
-
   private UnresolvedPlan child;
 
   @Override

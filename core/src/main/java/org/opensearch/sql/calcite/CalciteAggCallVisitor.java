@@ -16,6 +16,8 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.AggregateUtils;
+import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalcitePlanContext> {
   private final CalciteRexNodeVisitor rexNodeVisitor;
@@ -42,8 +44,15 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
     for (UnresolvedExpression arg : node.getArgList()) {
       argList.add(rexNodeVisitor.analyze(arg, context));
     }
-    return AggregateUtils.translate(
-        node.getFuncName(), node.getDistinct(), field, context, argList);
+    return BuiltinFunctionName.ofAggregation(node.getFuncName())
+        .map(
+            functionName -> {
+              return PlanUtils.makeAggCall(
+                  context, functionName, node.getDistinct(), field, argList);
+            })
+        .orElseThrow(
+            () ->
+                new UnsupportedOperationException("Unexpected aggregation: " + node.getFuncName()));
   }
 
   // Visit special UDAFs that are derived from command. For example, patterns command generates

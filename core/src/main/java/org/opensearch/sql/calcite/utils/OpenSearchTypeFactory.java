@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BINARY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
@@ -41,6 +42,7 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
@@ -67,6 +69,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     EXPR_DATE(DATE),
     EXPR_TIME(TIME),
     EXPR_TIMESTAMP(TIMESTAMP),
+    EXPR_BINARY(BINARY),
     EXPR_IP(IP);
 
     // Associated `ExprCoreType`
@@ -120,6 +123,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
             yield new ExprTimeType(this);
           case EXPR_TIMESTAMP:
             yield new ExprTimeStampType(this);
+          case EXPR_BINARY:
+            yield new ExprBinaryType(this);
           case EXPR_IP:
             yield new ExprIPType(this);
         };
@@ -180,7 +185,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       }
     } else {
       if (fieldType.legacyTypeName().equalsIgnoreCase("binary")) {
-        return TYPE_FACTORY.createSqlType(SqlTypeName.BINARY, nullable);
+        return TYPE_FACTORY.createUDT(ExprUDT.EXPR_BINARY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("timestamp")) {
         return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("date")) {
@@ -243,20 +248,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Get legacy name for a RelDataType. */
   public static String getLegacyTypeName(RelDataType relDataType, QueryType queryType) {
-    if (relDataType instanceof AbstractExprRelDataType<?> udt) {
-      return udt.getExprType().legacyTypeName();
-    }
-    switch (relDataType.getSqlTypeName()) {
-      case BINARY:
-      case VARBINARY:
-        return "BINARY";
-      case GEOMETRY:
-        return "GEO_POINT";
-      default:
-        ExprType type = convertSqlTypeNameToExprType(relDataType.getSqlTypeName());
-        return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
-            .toUpperCase(Locale.ROOT);
-    }
+    ExprType type = convertRelDataTypeToExprType(relDataType);
+    return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
+        .toUpperCase(Locale.ROOT);
   }
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
@@ -311,7 +305,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public static RelDataType convertSchema(Table table) {
     List<String> fieldNameList = new ArrayList<>();
     List<RelDataType> typeList = new ArrayList<>();
-    for (Entry<String, ExprType> entry : table.getFieldTypes().entrySet()) {
+    Map<String, ExprType> fieldTypes = table.getFieldTypes();
+    fieldTypes.putAll(table.getReservedFieldTypes());
+    for (Entry<String, ExprType> entry : fieldTypes.entrySet()) {
       fieldNameList.add(entry.getKey());
       typeList.add(OpenSearchTypeFactory.convertExprTypeToRelDataType(entry.getValue()));
     }

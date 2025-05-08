@@ -25,6 +25,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testPatternsForSimplePattern() {
+    doReturn("simple_pattern").when(settings).getSettingValue(Key.DEFAULT_PATTERN_METHOD);
     String ppl = "source=EMP | patterns ENAME | fields ENAME, patterns_field";
     RelNode root = getRelNode(ppl);
 
@@ -41,6 +42,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testPatternsWithCustomPatternForSimplePattern() {
+    doReturn("simple_pattern").when(settings).getSettingValue(Key.DEFAULT_PATTERN_METHOD);
     String ppl = "source=EMP | patterns pattern='[A-H]' ENAME | fields ENAME, patterns_field";
     RelNode root = getRelNode(ppl);
 
@@ -57,6 +59,7 @@ public class CalcitePPLPatternsTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testPatternsWithCustomNewFieldForSimplePattern() {
+    doReturn("simple_pattern").when(settings).getSettingValue(Key.DEFAULT_PATTERN_METHOD);
     String ppl =
         "source=EMP | patterns new_field='new_range' pattern='[A-H]' ENAME | fields ENAME,"
             + " new_range";

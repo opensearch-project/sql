@@ -39,7 +39,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   public void init() throws IOException {
     super.init();
     loadIndex(Index.STATE_COUNTRY);
-    loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.DATE);
@@ -99,6 +98,21 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             Date.valueOf("2020-08-26"),
             Date.valueOf("2020-08-26"),
             Date.valueOf("1984-04-12")));
+  }
+
+  // TODO: Add Hook to fix the input timestamp. We should actually add HOOK in init.
+  @Test
+  public void testTimestampWithTimeInput() {
+    String utcTomorrow = LocalDate.now().plusDays(1).toString();
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s "
+                    + "| eval timestamp = timestamp(time('12:00:00'), time('12:00:00'))"
+                    + "| fields timestamp | head 1",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(actual, schema("timestamp", "timestamp"));
+    verifyDataRows(actual, rows(utcTomorrow + " 00:00:00"));
   }
 
   @Test

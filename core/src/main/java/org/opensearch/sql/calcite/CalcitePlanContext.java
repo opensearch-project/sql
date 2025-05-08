@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
@@ -32,8 +33,18 @@ public class CalcitePlanContext {
   public final QueryType queryType;
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;
-  @Getter @Setter private boolean isResolvingExistsSubquery = false;
+  @Getter @Setter private boolean isResolvingSubquery = false;
+
+  /**
+   * The flag used to determine whether we do metadata field projection for user 1. If a project is
+   * never visited, we will do metadata field projection for user 2. Else not because user may
+   * intend to show the metadata field themselves. // TODO: use stack here if we want to do similar
+   * projection for subquery.
+   */
+  @Getter @Setter private boolean isProjectVisited = false;
+
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
+  private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
   private CalcitePlanContext(FrameworkConfig config, QueryType queryType) {
     this.config = config;

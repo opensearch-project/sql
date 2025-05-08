@@ -8,6 +8,7 @@ package org.opensearch.sql.ast;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.AttributeList;
@@ -69,6 +70,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Window;
 
 /** AST nodes visitor Defines the traverse path. */
 public abstract class AbstractNodeVisitor<T, C> {
@@ -254,6 +256,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitAllFieldsExcludeMeta(AllFieldsExcludeMeta node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitNestedAllTupleFields(NestedAllTupleFields node, C context) {
     return visitChildren(node, context);
   }
@@ -340,6 +346,10 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitPatterns(Patterns patterns, C context) {
     return visitChildren(patterns, context);
+  }
+
+  public T visitWindow(Window window, C context) {
+    return visitChildren(window, context);
   }
 
   public T visitJoin(Join node, C context) {

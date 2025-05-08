@@ -41,6 +41,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
@@ -78,6 +79,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -116,13 +118,17 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitQueryStatement(OpenSearchPPLParser.QueryStatementContext ctx) {
     UnresolvedPlan pplCommand = visit(ctx.pplCommands());
-    return ctx.commands().stream().map(this::visit).reduce(pplCommand, (r, e) -> e.attach(r));
+    return ctx.commands().stream()
+        .map(this::visit)
+        .reduce(pplCommand, (r, e) -> e.attach(e instanceof Join ? projectExceptMeta(r) : r));
   }
 
   @Override
   public UnresolvedPlan visitSubSearch(OpenSearchPPLParser.SubSearchContext ctx) {
     UnresolvedPlan searchCommand = visit(ctx.searchCommand());
-    return ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r));
+    // Exclude metadata fields for subquery
+    return projectExceptMeta(
+        ctx.commands().stream().map(this::visit).reduce(searchCommand, (r, e) -> e.attach(r)));
   }
 
   /** Search command. */
@@ -207,8 +213,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.joinCriteria() == null
             ? Optional.empty()
             : Optional.of(expressionBuilder.visitJoinCriteria(ctx.joinCriteria()));
-
-    return new Join(right, leftAlias, rightAlias, joinType, joinCondition, joinHint);
+    return new Join(
+        projectExceptMeta(right), leftAlias, rightAlias, joinType, joinCondition, joinHint);
   }
 
   private Join.JoinHint getJoinHint(OpenSearchPPLParser.JoinHintListContext ctx) {
@@ -324,6 +330,46 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return aggregation;
   }
 
+  public UnresolvedPlan visitEventstatsCommand(OpenSearchPPLParser.EventstatsCommandContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> partExprListBuilder = new ImmutableList.Builder<>();
+    Optional.ofNullable(ctx.statsByClause())
+        .map(OpenSearchPPLParser.StatsByClauseContext::bySpanClause)
+        .map(this::internalVisitExpression)
+        .ifPresent(partExprListBuilder::add);
+
+    Optional.ofNullable(ctx.statsByClause())
+        .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
+        .map(
+            expr ->
+                expr.fieldExpression().stream()
+                    .map(
+                        groupCtx ->
+                            (UnresolvedExpression)
+                                new Alias(
+                                    StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
+                                    internalVisitExpression(groupCtx)))
+                    .collect(Collectors.toList()))
+        .ifPresent(partExprListBuilder::addAll);
+
+    ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
+        new ImmutableList.Builder<>();
+    for (OpenSearchPPLParser.EventstatsAggTermContext aggCtx : ctx.eventstatsAggTerm()) {
+      UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
+      // set partition by list for window function
+      if (windowFunction instanceof WindowFunction) {
+        ((WindowFunction) windowFunction).setPartitionByList(partExprListBuilder.build());
+      }
+      String name =
+          aggCtx.alias == null
+              ? getTextInQuery(aggCtx)
+              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
+      Alias alias = new Alias(name, windowFunction);
+      windownFunctionListBuilder.add(alias);
+    }
+
+    return new Window(windownFunctionListBuilder.build());
+  }
+
   /** Dedup command. */
   @Override
   public UnresolvedPlan visitDedupCommand(DedupCommandContext ctx) {
@@ -418,6 +464,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       builder.put("new_field", newField);
     }
     List<UnresolvedExpression> unresolvedArguments = new ArrayList<>();
+    unresolvedArguments.add(sourceField);
     ctx.patternsParameter()
         .forEach(
             x -> {
@@ -631,5 +678,20 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     Token start = ctx.getStart();
     Token stop = ctx.getStop();
     return query.substring(start.getStartIndex(), stop.getStopIndex() + 1);
+  }
+
+  /**
+   * Try to wrap the plan with a project node of this AllFields expression. Only wrap it if the plan
+   * is not a project node or if the project is type of excluded.
+   *
+   * @param plan The input plan needs to be wrapped with a project
+   * @return The wrapped plan of the input plan, i.e., project(plan)
+   */
+  private UnresolvedPlan projectExceptMeta(UnresolvedPlan plan) {
+    if ((plan instanceof Project) && !((Project) plan).isExcluded()) {
+      return plan;
+    } else {
+      return new Project(ImmutableList.of(AllFieldsExcludeMeta.of())).attach(plan);
+    }
   }
 }
