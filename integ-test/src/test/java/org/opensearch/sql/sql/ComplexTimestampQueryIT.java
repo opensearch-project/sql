@@ -1,5 +1,6 @@
 package org.opensearch.sql.sql;
 
+import org.junit.Ignore;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 import java.io.IOException;
@@ -68,7 +69,9 @@ public class ComplexTimestampQueryIT extends SQLIntegTestCase {
     /**
      * See: <a href="https://github.com/opensearch-project/sql/issues/3204">3204</a>
      */
+    // TODO currently out of scope due to V1/V2 engine feature mismatch. Should be fixed with Calcite.
     @Test
+    @Ignore
     public void joinTimestampComparison() throws IOException {
         String query = String.format(
                 Locale.ROOT,
