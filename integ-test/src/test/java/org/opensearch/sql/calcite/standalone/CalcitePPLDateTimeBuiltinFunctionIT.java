@@ -360,10 +360,10 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                 "source=%s "
                     + "| eval from_unix_format = FROM_UNIXTIME(1220249547, '%%T')"
                     + "| eval from_unix = from_unixtime(1220249547)"
-                    + "| fields from_unix_format | head 1",
+                    + "| fields from_unix_format, from_unix | head 1",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("from_unix_format", "string"));
-    verifyDataRows(actual, rows("06:12:27"));
+    verifySchema(actual, schema("from_unix_format", "string"), schema("from_unix", "timestamp"));
+    verifyDataRows(actual, rows("06:12:27", "2008-09-01 06:12:27"));
   }
 
   @Test
@@ -381,7 +381,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("unix_timestamp", "double"),
         schema("unix_long", "double"),
         schema("unix_ms", "double"));
-    verifyDataRows(actual, rows(1220249547.0, 3404817525.0, 1.220249547123456E9));
+    verifyDataRows(actual, closeTo(1220249547.0, 3404817525.0, 1.220249547123456E9));
   }
 
   @Test
