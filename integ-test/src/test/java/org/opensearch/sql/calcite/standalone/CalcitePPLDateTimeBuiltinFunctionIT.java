@@ -353,35 +353,35 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testFromUnixTimeTwoArgument() {
+  public void testFromUnixtime() {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s "
-                    + "| eval from_unix = FROM_UNIXTIME(1220249547, '%%T')"
-                    + "| fields from_unix | head 1",
+                    + "| eval from_unix_format = FROM_UNIXTIME(1220249547, '%%T')"
+                    + "| eval from_unix = from_unixtime(1220249547)"
+                    + "| fields from_unix_format | head 1",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("from_unix", "string"));
+    verifySchema(actual, schema("from_unix_format", "string"));
     verifyDataRows(actual, rows("06:12:27"));
   }
 
   @Test
-  public void testUnixTimeStampAndFromUnixTime() {
+  public void testUnixTimestamp() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s "
-                    + "| eval from_unix = from_unixtime(1220249547)"
-                    + "| eval to_unix = unix_timestamp(from_unix)"
-                    + "| eval unix_double = UNIX_TIMESTAMP(20771122143845)"
-                    + "| fields from_unix, to_unix, unix_double | head 1",
+                "source=%s | eval unix_timestamp = unix_timestamp(timestamp('2008-09-01"
+                    + " 06:12:27'))| eval unix_long = UNIX_TIMESTAMP(20771122143845)| eval"
+                    + " unix_ms = UNIX_TIMESTAMP(TIMESTAMP('2008-09-01 06:12:27.123456')) "
+                    + "| fields unix_timestamp, unix_long, unix_ms | head 1",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
         actual,
-        schema("from_unix", "timestamp"),
-        schema("to_unix", "double"),
-        schema("unix_double", "double"));
-    verifyDataRows(actual, rows("2008-09-01 06:12:27", 1220249547.0, 3404817525d));
+        schema("unix_timestamp", "double"),
+        schema("unix_long", "double"),
+        schema("unix_ms", "double"));
+    verifyDataRows(actual, rows(1220249547.0, 3404817525.0, 1.220249547123456E9));
   }
 
   @Test
