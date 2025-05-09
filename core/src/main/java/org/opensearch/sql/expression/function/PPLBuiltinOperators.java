@@ -46,7 +46,6 @@ import org.opensearch.sql.expression.function.udf.datetime.UnixTimestampFunction
 import org.opensearch.sql.expression.function.udf.datetime.WeekFunction;
 import org.opensearch.sql.expression.function.udf.datetime.WeekdayFunction;
 import org.opensearch.sql.expression.function.udf.datetime.YearweekFunction;
-import org.opensearch.sql.expression.function.udf.math.CRC32Function;
 import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
@@ -60,7 +59,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator E = new EulerFunction().toUDF("E");
   public static final SqlOperator CONV = new ConvFunction().toUDF("CONVERT");
   public static final SqlOperator MOD = new ModFunction().toUDF("MOD");
-  public static final SqlOperator CRC32 = new CRC32Function().toUDF("CRC32");
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
 
   // Datetime function
