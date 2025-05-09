@@ -299,7 +299,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
   public void testSqrt() {
     RelNode root = getRelNode("source=EMP | eval SQRT = sqrt(4) | fields SQRT");
     String expectedLogical =
-        "LogicalProject(SQRT=[SQRT(4)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
+        "LogicalProject(SQRT=[POWER(4, 0.5E0:DOUBLE)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedSparkSql = "SELECT SQRT(4) `SQRT`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
