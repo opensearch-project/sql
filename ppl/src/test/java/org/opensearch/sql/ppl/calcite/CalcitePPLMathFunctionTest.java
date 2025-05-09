@@ -301,7 +301,7 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(SQRT=[POWER(4, 0.5E0:DOUBLE)])\n  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
-    String expectedSparkSql = "SELECT SQRT(4) `SQRT`\nFROM `scott`.`EMP`";
+    String expectedSparkSql = "SELECT POWER(4, 5E-1) `SQRT`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }
