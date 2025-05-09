@@ -8,10 +8,10 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.calcite.adapter.enumerable.EnumerableProject;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelRule;
+import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
@@ -22,7 +22,7 @@ import org.immutables.value.Value;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
-/** Planner rule that push a {@link EnumerableProject} down to {@link CalciteLogicalIndexScan} */
+/** Planner rule that push a {@link LogicalProject} down to {@link CalciteLogicalIndexScan} */
 @Value.Enclosing
 public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectIndexScanRule.Config> {
 
@@ -35,7 +35,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
   public void onMatch(RelOptRuleCall call) {
     if (call.rels.length == 2) {
       // the ordinary variant
-      final EnumerableProject project = call.rel(0);
+      final LogicalProject project = call.rel(0);
       final CalciteLogicalIndexScan scan = call.rel(1);
       apply(call, project, scan);
     } else {
@@ -46,8 +46,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
     }
   }
 
-  protected void apply(
-      RelOptRuleCall call, EnumerableProject project, CalciteLogicalIndexScan scan) {
+  protected void apply(RelOptRuleCall call, LogicalProject project, CalciteLogicalIndexScan scan) {
     final RelOptTable table = scan.getTable();
     requireNonNull(table.unwrap(OpenSearchIndex.class));
 
@@ -88,7 +87,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
             .build()
             .withOperandSupplier(
                 b0 ->
-                    b0.operand(EnumerableProject.class)
+                    b0.operand(LogicalProject.class)
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)

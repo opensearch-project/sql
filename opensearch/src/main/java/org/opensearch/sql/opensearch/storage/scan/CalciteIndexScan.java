@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import static java.util.Objects.requireNonNull;
+import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
 
 import java.util.ArrayDeque;
 import java.util.List;
@@ -13,10 +14,15 @@ import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.hint.RelHint;
+import org.apache.calcite.rel.metadata.RelMdUtil;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.NumberUtil;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
@@ -62,8 +68,34 @@ public abstract class CalciteIndexScan extends TableScan {
         .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
 
+  @Override
+  public double estimateRowCount(RelMetadataQuery mq) {
+    /*
+     The impact factor to estimate the row count after push down an operator.
+
+     <p>It will be multiplied to the original estimated row count of the operator, and it's set to
+     less than 1 by default to make the result always less than the row count of operator without
+     push down. As a result, the optimizer will prefer the plan with push down.
+    */
+    double estimateRowCountFactor =
+        osIndex.getSettings().getSettingValue(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR);
+    return pushDownContext.stream()
+        .reduce(
+            osIndex.getMaxResultWindow().doubleValue(),
+            (rowCount, action) ->
+                switch (action.type) {
+                      case AGGREGATION -> mq.getRowCount((RelNode) action.digest);
+                      case PROJECT -> rowCount;
+                      case FILTER -> NumberUtil.multiply(
+                          rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
+                    }
+                    * estimateRowCountFactor,
+            (a, b) -> null);
+  }
+
   // TODO: should we consider equivalent among PushDownContexts with different push down sequence?
   public static class PushDownContext extends ArrayDeque<PushDownAction> {
+
     private boolean isAggregatePushed = false;
 
     @Override
