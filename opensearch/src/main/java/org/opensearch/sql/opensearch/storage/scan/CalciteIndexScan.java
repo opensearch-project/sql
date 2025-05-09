@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static java.util.Objects.requireNonNull;
 import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR;
-import static org.opensearch.sql.common.setting.Settings.Key.QUERY_SIZE_LIMIT;
 
 import java.util.ArrayDeque;
 import java.util.List;
@@ -82,7 +81,7 @@ public abstract class CalciteIndexScan extends TableScan {
         osIndex.getSettings().getSettingValue(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR);
     return pushDownContext.stream()
         .reduce(
-            ((Integer) osIndex.getSettings().getSettingValue(QUERY_SIZE_LIMIT)).doubleValue(),
+            osIndex.getMaxResultWindow().doubleValue(),
             (rowCount, action) ->
                 switch (action.type) {
                       case AGGREGATION -> mq.getRowCount((RelNode) action.digest);
