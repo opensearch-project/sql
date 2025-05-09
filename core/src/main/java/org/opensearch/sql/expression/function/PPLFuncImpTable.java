@@ -171,6 +171,7 @@ public class PPLFuncImpTable {
       registerOperator(LENGTH, SqlStdOperatorTable.CHAR_LENGTH);
       registerOperator(LOWER, SqlStdOperatorTable.LOWER);
       registerOperator(POSITION, SqlStdOperatorTable.POSITION);
+      registerOperator(LOCATE, SqlStdOperatorTable.POSITION);
       registerOperator(REPLACE, SqlStdOperatorTable.REPLACE);
       registerOperator(SUBSTRING, SqlStdOperatorTable.SUBSTRING);
       registerOperator(SUBSTR, SqlStdOperatorTable.SUBSTRING);
@@ -224,7 +225,6 @@ public class PPLFuncImpTable {
       registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);
       registerOperator(CRC32, PPLBuiltinOperators.CRC32);
       registerOperator(DIVIDE, PPLBuiltinOperators.DIVIDE);
-      registerOperator(LOCATE, PPLBuiltinOperators.LOCATE);
 
       // Register PPL Datetime UDF operator
       registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);
