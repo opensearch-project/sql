@@ -51,7 +51,6 @@ import org.opensearch.sql.expression.function.udf.math.ConvFunction;
 import org.opensearch.sql.expression.function.udf.math.DivideFunction;
 import org.opensearch.sql.expression.function.udf.math.EulerFunction;
 import org.opensearch.sql.expression.function.udf.math.ModFunction;
-import org.opensearch.sql.expression.function.udf.math.SqrtFunction;
 import org.opensearch.sql.expression.function.udf.text.LocateFunction;
 
 /** Defines functions and operators that are implemented only by PPL */
@@ -60,7 +59,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   // Math functions
   public static final SqlOperator SPAN = new SpanFunctionImpl().toUDF("SPAN");
   public static final SqlOperator E = new EulerFunction().toUDF("E");
-  public static final SqlOperator SQRT = new SqrtFunction().toUDF("SQRT");
   public static final SqlOperator CONV = new ConvFunction().toUDF("CONVERT");
   public static final SqlOperator MOD = new ModFunction().toUDF("MOD");
   public static final SqlOperator CRC32 = new CRC32Function().toUDF("CRC32");

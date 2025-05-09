@@ -218,10 +218,6 @@ public class PPLFuncImpTable {
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
       registerOperator(E, PPLBuiltinOperators.E);
-
-      // SqlStdOperatorTable.SQRT is declared but not implemented, therefore we use a custom
-      // implementation.
-      registerOperator(SQRT, PPLBuiltinOperators.SQRT);
       registerOperator(CONV, PPLBuiltinOperators.CONV);
       registerOperator(MOD, PPLBuiltinOperators.MOD);
       registerOperator(MODULUS, PPLBuiltinOperators.MOD);
@@ -347,6 +343,16 @@ public class PPLFuncImpTable {
                       SqlLibraryOperators.LOG,
                       arg,
                       builder.makeApproxLiteral(BigDecimal.valueOf(Math.E)))));
+      // SqlStdOperatorTable.SQRT is declared but not implemented. The call to SQRT in Calcite is
+      // converted to POWER(x, 0.5).
+      register(
+          SQRT,
+          ((FunctionImp1)
+              (builder, arg) ->
+                  builder.makeCall(
+                      SqlStdOperatorTable.POWER,
+                      arg,
+                      builder.makeApproxLiteral(BigDecimal.valueOf(0.5)))));
       register(
           TYPEOF,
           (FunctionImp1)
