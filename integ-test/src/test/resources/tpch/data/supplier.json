@@ -1,40 +1,20 @@
-{"index":{"_id":"1"}}
-{"s_suppkey":89,"s_name":"Supplier#000000001","s_address":"N kD4on9OM Ipw3,gf0JBoQDd7tgrzrddZ","s_nationkey":17,"s_phone":"27-918-335-1736","s_acctbal":5755.94,"s_comment":"requests haggle carefully. deposits wake carefully."}
-{"index":{"_id":"2"}}
-{"s_suppkey":12,"s_name":"Supplier#000000002","s_address":"89eJ5ksX3ImxJQBvxObC","s_nationkey":5,"s_phone":"14-726-137-1231","s_acctbal":4032.68,"s_comment":"carefully busy accounts wake carefully."}
-{"index":{"_id":"3"}}
-{"s_suppkey":56,"s_name":"Supplier#000000003","s_address":"q1,G3Pj6OjIuUYfUoH18BFTKP5aU","s_nationkey":1,"s_phone":"11-719-748-3364","s_acctbal":7850.66,"s_comment":"regular deposits haggle across the carefully bold accounts."}
-{"index":{"_id":"4"}}
-{"s_suppkey":78,"s_name":"Supplier#000000004","s_address":"Bk7ah4CK8SYQTepEmvMkkgMwg","s_nationkey":15,"s_phone":"25-843-787-7479","s_acctbal":4192.40,"s_comment":"final accounts wake carefully."}
-{"index":{"_id":"5"}}
-{"s_suppkey":34,"s_name":"Supplier#000000005","s_address":"Gcdm2rJRzl5qlTVzc","s_nationkey":11,"s_phone":"21-151-690-3663","s_acctbal":1090.88,"s_comment":"carefully silent deposits boost furiously."}
-{"index":{"_id":"6"}}
-{"s_suppkey":23,"s_name":"Supplier#000000006","s_address":"tQxuVm7s7CnK","s_nationkey":14,"s_phone":"24-696-997-4969","s_acctbal":1632.81,"s_comment":"final, regular requests engage carefully."}
-{"index":{"_id":"7"}}
-{"s_suppkey":67,"s_name":"Supplier#000000007","s_address":"s,4TicNGB4uO6PaSqNBUq","s_nationkey":23,"s_phone":"33-990-965-2201","s_acctbal":9889.89,"s_comment":"express packages wake carefully regular ideas."}
-{"index":{"_id":"8"}}
-{"s_suppkey":45,"s_name":"Supplier#000000008","s_address":"9Sq4bBH2FQEmaFOocY","s_nationkey":8,"s_phone":"18-851-856-5633","s_acctbal":4680.90,"s_comment":"special packages among the express deposits cajole carefully."}
-{"index":{"_id":"9"}}
-{"s_suppkey":90,"s_name":"Supplier#000000009","s_address":"1KhUgZegwM3ua7dsYmekYBsK","s_nationkey":20,"s_phone":"30-250-719-1715","s_acctbal":5454.99,"s_comment":"pending requests integrate carefully."}
-{"index":{"_id":"10"}}
-{"s_suppkey":88,"s_name":"Supplier#000000010","s_address":"Saygah3gYWMp0WXDV4","s_nationkey":7,"s_phone":"17-083-509-3622","s_acctbal":6789.75,"s_comment":"quickly regular requests detect carefully final accounts."}
-{"index":{"_id":"11"}}
-{"s_suppkey":42,"s_name":"Supplier#000000011","s_address":"JfwTs,LZrV, M,9C","s_nationkey":18,"s_phone":"28-613-996-1505","s_acctbal":3891.91,"s_comment":"quickly regular requests boost carefully."}
-{"index":{"_id":"12"}}
-{"s_suppkey":15,"s_name":"Supplier#000000012","s_address":"aLIW  q0HYd","s_nationkey":3,"s_phone":"13-500-839-9991","s_acctbal":2455.87,"s_comment":"blithely regular requests cajole carefully."}
-{"index":{"_id":"13"}}
-{"s_suppkey":76,"s_name":"Supplier#000000013","s_address":"HK71HQyWoqRWOX8GI FpgAifW,2PoH","s_nationkey":22,"s_phone":"32-822-502-4215","s_acctbal":2972.26,"s_comment":"carefully regular requests sleep blithely."}
-{"index":{"_id":"14"}}
-{"s_suppkey":25,"s_name":"Supplier#000000014","s_address":"EXsnO5pTNj4iZRm","s_nationkey":16,"s_phone":"26-515-530-4159","s_acctbal":5630.28,"s_comment":"unusual packages wake carefully bold requests."}
-{"index":{"_id":"15"}}
-{"s_suppkey":93,"s_name":"Supplier#000000015","s_address":"olXVbNBfVzRqgf6QE","s_nationkey":9,"s_phone":"19-155-987-3833","s_acctbal":1476.95,"s_comment":"regular, pending packages sleep slyly."}
-{"index":{"_id":"16"}}
-{"s_suppkey":31,"s_name":"Supplier#000000016","s_address":"YkAkZyU9uqrIBn,PqhtZ","s_nationkey":12,"s_phone":"22-665-703-3782","s_acctbal":4147.52,"s_comment":"final deposits boost carefully."}
-{"index":{"_id":"17"}}
-{"s_suppkey":68,"s_name":"Supplier#000000017","s_address":"c2d,ESHRSkK3WYnxpgw","s_nationkey":19,"s_phone":"29-601-884-9219","s_acctbal":1687.81,"s_comment":"unusual deposits wake carefully packages."}
-{"index":{"_id":"18"}}
-{"s_suppkey":82,"s_name":"Supplier#000000018","s_address":"PGGVE5PWAMwKDZw","s_nationkey":24,"s_phone":"34-422-148-8288","s_acctbal":3474.89,"s_comment":"regular deposits haggle carefully."}
-{"index":{"_id":"19"}}
-{"s_suppkey":47,"s_name":"Supplier#000000019","s_address":"edZT3es,nBFD8lBXTGeTl","s_nationkey":10,"s_phone":"20-725-590-1449","s_acctbal":5794.58,"s_comment":"pending deposits boost carefully."}
-{"index":{"_id":"20"}}
-{"s_suppkey":59,"s_name":"Supplier#000000020","s_address":"iybAE,RmTymrZVYaFZva2SH,j","s_nationkey":2,"s_phone":"12-970-682-3487","s_acctbal":6586.94,"s_comment":"unusual packages wake carefully final deposits."}
+{"index": {}}
+{"s_suppkey":1,"s_name":"Supplier#000000001","s_address":" N kD4on9OM Ipw3,gf0JBoQDd7tgrzrddZ","s_nationkey":17,"s_phone":"27-918-335-1736","s_acctbal":5755.94,"s_comment":"each slyly above the careful"}
+{"index": {}}
+{"s_suppkey":2,"s_name":"Supplier#000000002","s_address":"89eJ5ksX3ImxJQBvxObC,","s_nationkey":5,"s_phone":"15-679-861-2259","s_acctbal":4032.68,"s_comment":" slyly bold instructions. idle dependen"}
+{"index": {}}
+{"s_suppkey":3,"s_name":"Supplier#000000003","s_address":"q1,G3Pj6OjIuUYfUoH18BFTKP5aU9bEV3","s_nationkey":1,"s_phone":"11-383-516-1199","s_acctbal":4192.4,"s_comment":"blithely silent requests after the express dependencies are sl"}
+{"index": {}}
+{"s_suppkey":4,"s_name":"Supplier#000000004","s_address":"Bk7ah4CK8SYQTepEmvMkkgMwg","s_nationkey":15,"s_phone":"25-843-787-7479","s_acctbal":4641.08,"s_comment":"riously even requests above the exp"}
+{"index": {}}
+{"s_suppkey":5,"s_name":"Supplier#000000005","s_address":"Gcdm2rJRzl5qlTVzc","s_nationkey":11,"s_phone":"21-151-690-3663","s_acctbal":-283.84,"s_comment":". slyly regular pinto bea"}
+{"index": {}}
+{"s_suppkey":6,"s_name":"Supplier#000000006","s_address":"tQxuVm7s7CnK","s_nationkey":14,"s_phone":"24-696-997-4969","s_acctbal":1365.79,"s_comment":"final accounts. regular dolphins use against the furiously ironic decoys. "}
+{"index": {}}
+{"s_suppkey":7,"s_name":"Supplier#000000007","s_address":"s,4TicNGB4uO6PaSqNBUq","s_nationkey":23,"s_phone":"33-990-965-2201","s_acctbal":6820.35,"s_comment":"s unwind silently furiously regular courts. final requests are deposits. requests wake quietly blit"}
+{"index": {}}
+{"s_suppkey":8,"s_name":"Supplier#000000008","s_address":"9Sq4bBH2FQEmaFOocY45sRTxo6yuoG","s_nationkey":17,"s_phone":"27-498-742-3860","s_acctbal":7627.85,"s_comment":"al pinto beans. asymptotes haggl"}
+{"index": {}}
+{"s_suppkey":9,"s_name":"Supplier#000000009","s_address":"1KhUgZegwM3ua7dsYmekYBsK","s_nationkey":10,"s_phone":"20-403-398-8662","s_acctbal":5302.37,"s_comment":"s. unusual, even requests along the furiously regular pac"}
+{"index": {}}
+{"s_suppkey":10,"s_name":"Supplier#000000010","s_address":"Saygah3gYWMp72i PY","s_nationkey":24,"s_phone":"34-852-489-8585","s_acctbal":3891.91,"s_comment":"ing waters. regular requests ar"}

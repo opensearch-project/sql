@@ -6,6 +6,8 @@
 package org.opensearch.sql.calcite;
 
 import static org.apache.calcite.sql.SqlKind.AS;
+import static org.opensearch.sql.ast.tree.Join.JoinType.ANTI;
+import static org.opensearch.sql.ast.tree.Join.JoinType.SEMI;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
@@ -22,10 +24,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelShuttleImpl;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
@@ -37,6 +42,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
@@ -78,6 +84,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
@@ -371,10 +378,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.rename(expectedRenameFields);
   }
 
-  @Override
-  public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
-    visitChildren(node, context);
-    List<AggCall> aggList =
+  private Pair<List<AggCall>, List<RexNode>> resolveAggCallAndGroupBy(
+      Aggregation node, CalcitePlanContext context) {
+    List<AggCall> aggCallList =
         node.getAggExprList().stream()
             .map(expr -> aggVisitor.analyze(expr, context))
             .collect(Collectors.toList());
@@ -389,7 +395,37 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     groupByList.addAll(
         node.getGroupExprList().stream().map(expr -> rexVisitor.analyze(expr, context)).toList());
+    return Pair.of(aggCallList, groupByList);
+  }
 
+  @Override
+  public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    // Add a trimmed Project before Aggregate.
+    // to avoid bugs in RelDecorrelator.decorrelateRel(Aggregate rel)
+    // For example:
+    // source=t | where a > 1 | stats avg(b+1) by c
+    // Before:
+    // Aggregate
+    //     \- Filter(a>1)
+    //            \- Scan t
+    // After:
+    // Aggregate
+    //     \- Project([c,b])
+    //            \- Filter(a>1)
+    //                   \- Scan t
+    Pair<List<AggCall>, List<RexNode>> resolved = resolveAggCallAndGroupBy(node, context);
+    List<RexInputRef> trimmedRefs = new ArrayList<>();
+    trimmedRefs.addAll(PlanUtils.getInputRefs(resolved.right)); // group-by keys first
+    trimmedRefs.addAll(PlanUtils.getInputRefsFromAggCall(resolved.left));
+    context.relBuilder.project(trimmedRefs);
+
+    // Re-resolve aggCalls and group-by list based on adding trimmed Project.
+    // Using re-resolving rather than Calcite Mapping (ref Calcite ProjectTableScanRule)
+    // because that Mapping only works for RexNode, but we need both AggCall and RexNode list.
+    Pair<List<AggCall>, List<RexNode>> reResolved = resolveAggCallAndGroupBy(node, context);
+    List<AggCall> aggList = reResolved.left;
+    List<RexNode> groupByList = reResolved.right;
     context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggList);
 
     // schema reordering
@@ -437,8 +473,47 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         node.getJoinCondition()
             .map(c -> rexVisitor.analyzeJoinCondition(c, context))
             .orElse(context.relBuilder.literal(true));
-    context.relBuilder.join(
-        JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
+    if (node.getJoinType() == SEMI || node.getJoinType() == ANTI) {
+      // semi and anti join only return left table outputs
+      context.relBuilder.join(
+          JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
+    } else {
+      // Join condition could contain duplicated column name, Calcite will rename the duplicated
+      // column name with numeric suffix, e.g. ON t1.id = t2.id, the output contains `id` and `id0`
+      // when a new project add to stack. To avoid `id0`, we will rename the `id0` to `alias.id`
+      // or `tableIdentifier.id`:
+      List<String> leftColumns = context.relBuilder.peek(1).getRowType().getFieldNames();
+      List<String> rightColumns = context.relBuilder.peek().getRowType().getFieldNames();
+      AtomicReference<List<String>> rightTableName = new AtomicReference<>(new ArrayList<>());
+      context
+          .relBuilder
+          .peek()
+          .accept(
+              new RelShuttleImpl() {
+                @Override
+                public RelNode visit(TableScan scan) {
+                  final RelOptTable table = scan.getTable();
+                  rightTableName.get().addAll(table.getQualifiedName());
+                  return super.visit(scan);
+                }
+              });
+      String rightTableQualifiedName = String.join(".", rightTableName.get());
+      // new columns with alias or table;
+      List<String> rightColumnsWithAliasIfConflict =
+          rightColumns.stream()
+              .map(
+                  col ->
+                      leftColumns.contains(col)
+                          ? node.getRightAlias()
+                              .map(a -> a + "." + col)
+                              .orElse(rightTableQualifiedName + "." + col)
+                          : col)
+              .toList();
+      context.relBuilder.join(
+          JoinAndLookupUtils.translateJoinType(node.getJoinType()), joinCondition);
+      JoinAndLookupUtils.renameToExpectedFields(
+          rightColumnsWithAliasIfConflict, leftColumns.size(), context);
+    }
     return context.relBuilder.peek();
   }
 

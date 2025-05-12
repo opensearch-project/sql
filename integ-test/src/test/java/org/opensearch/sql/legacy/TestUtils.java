@@ -336,7 +336,6 @@ public class TestUtils {
     return getTpchMappingFile(mappingFile);
   }
 
-
   public static void loadBulk(Client client, String jsonPath, String defaultIndex)
       throws Exception {
     System.out.println(String.format("Loading file %s into opensearch cluster", jsonPath));

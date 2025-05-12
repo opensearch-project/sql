@@ -411,17 +411,19 @@ public class CalcitePPLBasicTest extends CalcitePPLAbstractTest {
     String ppl = "source=EMP as e | join on e.DEPTNO = d.DEPTNO [ source=DEPT | head 10 ] as d";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalSort(fetch=[10])\n"
-            + "    LogicalTableScan(table=[[scott, DEPT]])\n";
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], d.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalSort(fetch=[10])\n"
+            + "      LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 14);
 
     String expectedSparkSql =
-        ""
-            + "SELECT *\n"
+        "SELECT `EMP`.`EMPNO`, `EMP`.`ENAME`, `EMP`.`JOB`, `EMP`.`MGR`, `EMP`.`HIREDATE`,"
+            + " `EMP`.`SAL`, `EMP`.`COMM`, `EMP`.`DEPTNO`, `t`.`DEPTNO` `d.DEPTNO`, `t`.`DNAME`,"
+            + " `t`.`LOC`\n"
             + "FROM `scott`.`EMP`\n"
             + "INNER JOIN (SELECT `DEPTNO`, `DNAME`, `LOC`\n"
             + "FROM `scott`.`DEPT`\n"

@@ -1,3 +1,19 @@
+/*
+select
+    100.00 * sum(case
+        when p_type like 'PROMO%'
+            then l_extendedprice * (1 - l_discount)
+        else 0
+    end) / sum(l_extendedprice * (1 - l_discount)) as promo_revenue
+from
+    lineitem,
+    part
+where
+    l_partkey = p_partkey
+    and l_shipdate >= date '1995-09-01'
+    and l_shipdate < date '1995-09-01' + interval '1' month
+*/
+
 source = lineitem
 | join ON l_partkey = p_partkey
     AND l_shipdate >= date('1995-09-01')
@@ -5,5 +21,5 @@ source = lineitem
   part
 | stats sum(case(like(p_type, 'PROMO%'), l_extendedprice * (1 - l_discount) else 0)) as sum1,
         sum(l_extendedprice * (1 - l_discount)) as sum2
-| eval promo_revenue = 100.00 * sum1 / sum2 // Stats and Eval commands can combine when issues/819 resolved
+| eval promo_revenue = 100.00 * sum1 / sum2
 | fields promo_revenue
