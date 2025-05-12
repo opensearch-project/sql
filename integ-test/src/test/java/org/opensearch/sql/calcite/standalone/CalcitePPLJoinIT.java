@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.standalone;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_HOBBIES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
+import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -68,7 +69,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
-        schema("country0", "string"),
+        schema("b.country", "string"),
         schema("salary", "integer"));
     verifyDataRows(
         actual,
@@ -97,7 +98,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
-        schema("country0", "string"),
+        schema("b.country", "string"),
         schema("salary", "integer"));
     verifyDataRows(
         actual,
@@ -124,7 +125,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
-        schema("country0", "string"),
+        schema("b.country", "string"),
         schema("salary", "integer"));
     verifyDataRows(
         actual,
@@ -205,7 +206,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
-        schema("country0", "string"),
+        schema("b.country", "string"),
         schema("salary", "integer"));
     verifyDataRowsInOrder(
         actual,
@@ -232,7 +233,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
-        schema("country0", "string"),
+        schema("b.country", "string"),
         schema("salary", "integer"));
     verifyDataRowsInOrder(
         actual,
@@ -318,7 +319,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
         schema("state", "string"),
         schema("country", "string"),
         schema("occupation", "string"),
-        schema("country0", "string"),
+        schema("b.country", "string"),
         schema("salary", "integer"));
     verifyDataRows(
         actual,
@@ -440,6 +441,10 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testMultipleJoinsWithoutTableAliases() {
+    // source = STATE_COUNTRY
+    // | JOIN ON STATE_COUNTRY.name = OCCUPATION.name OCCUPATION
+    // | JOIN ON OCCUPATION.name = HOBBIES.name HOBBIES
+    // | fields STATE_COUNTRY.name, OCCUPATION.name, HOBBIES.name
     JSONObject actual =
         executeQuery(
             String.format(
@@ -456,7 +461,10 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_HOBBIES));
     verifySchema(
-        actual, schema("name", "string"), schema("name0", "string"), schema("name1", "string"));
+        actual,
+        schema("name", "string"),
+        schema("OpenSearch." + TEST_INDEX_OCCUPATION + ".name", "string"),
+        schema("OpenSearch." + TEST_INDEX_HOBBIES + ".name", "string"));
     verifyDataRows(
         actual,
         rows("David", "David", "David"),
@@ -476,7 +484,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
                     + " ON t1.name = t3.name %s | fields t1.name, t2.name, t3.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION, TEST_INDEX_HOBBIES));
     verifySchema(
-        actual, schema("name", "string"), schema("name0", "string"), schema("name1", "string"));
+        actual, schema("name", "string"), schema("t2.name", "string"), schema("t3.name", "string"));
     verifyDataRows(
         actual,
         rows("David", "David", "David"),
@@ -502,9 +510,9 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("name", "string"),
-        schema("name0", "string"),
-        schema("name1", "string"),
-        schema("name2", "string"));
+        schema("t2.name", "string"),
+        schema("t3.name", "string"),
+        schema("t4.name", "string"));
     verifyDataRows(
         actual,
         rows("David", "David", "David", "David"),
@@ -530,9 +538,9 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("name", "string"),
-        schema("name0", "string"),
-        schema("name1", "string"),
-        schema("name2", "string"));
+        schema("t2.name", "string"),
+        schema("t3.name", "string"),
+        schema("t4.name", "string"));
     verifyDataRows(
         actual,
         rows("David", "David", "David", "David"),
@@ -545,149 +553,161 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testCheckAccessTheReferenceByAliases() {
-    String res1 =
-        execute(
+    JSONObject res1 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 ON t1.name = t2.name %s as t2 | fields t1.name,"
                     + " t2.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res2 =
-        execute(
+    JSONObject res2 =
+        executeQuery(
             String.format(
                 "source = %s as t1 | JOIN ON t1.name = t2.name %s as t2 | fields t1.name, t2.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(res1, res2);
+    assertJsonEquals(
+        res1.getJSONArray("datarows").toString(), res2.getJSONArray("datarows").toString());
 
-    String res3 =
-        execute(
+    JSONObject res3 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name %s as tt | fields"
                     + " tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res4 =
-        execute(
+    JSONObject res4 =
+        executeQuery(
             String.format(
                 "source = %s as tt | JOIN left = t1 right = t2 ON t1.name = t2.name %s | fields"
                     + " tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res5 =
-        execute(
+    JSONObject res5 =
+        executeQuery(
             String.format(
                 "source = %s as tt | JOIN left = t1 ON t1.name = t2.name %s as t2 | fields"
                     + " tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(res3, res4);
-    assertEquals(res4, res5);
+    assertJsonEquals(
+        res3.getJSONArray("datarows").toString(), res4.getJSONArray("datarows").toString());
+    assertJsonEquals(
+        res4.getJSONArray("datarows").toString(), res5.getJSONArray("datarows").toString());
   }
 
   @Test
   public void testCheckAccessTheReferenceBySubqueryAliases() {
-    String res1 =
-        execute(
+    JSONObject res1 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 ON t1.name = t2.name [ source = %s ] as t2 | fields"
                     + " t1.name, t2.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res2 =
-        execute(
+    JSONObject res2 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 ON t1.name = t2.name [ source = %s as t2 ] | fields"
                     + " t1.name, t2.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(res1, res2);
+    assertJsonEquals(
+        res1.getJSONArray("datarows").toString(), res2.getJSONArray("datarows").toString());
 
-    String res3 =
-        execute(
+    JSONObject res3 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as"
                     + " tt ] | fields tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res4 =
-        execute(
+    JSONObject res4 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 ON t1.name = t2.name [ source = %s as tt ] as t2"
                     + " | fields tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res5 =
-        execute(
+    JSONObject res5 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s ]"
                     + " as tt | fields tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(res3, res4);
-    assertEquals(res4, res5);
+    assertJsonEquals(
+        res3.getJSONArray("datarows").toString(), res4.getJSONArray("datarows").toString());
+    assertJsonEquals(
+        res4.getJSONArray("datarows").toString(), res5.getJSONArray("datarows").toString());
   }
 
   @Test
   public void testCheckAccessTheReferenceByOverrideAliases() {
-    String res1 =
-        execute(
+    JSONObject res1 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name %s as tt | fields"
                     + " tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res2 =
-        execute(
+    JSONObject res2 =
+        executeQuery(
             String.format(
                 "source = %s as tt | JOIN left = t1 right = t2 ON t1.name = t2.name %s | fields"
                     + " tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res3 =
-        execute(
+    JSONObject res3 =
+        executeQuery(
             String.format(
                 "source = %s as tt | JOIN left = t1 ON t1.name = t2.name %s as t2 | fields"
                     + " tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(res1, res2);
-    assertEquals(res1, res3);
+    assertJsonEquals(
+        res1.getJSONArray("datarows").toString(), res2.getJSONArray("datarows").toString());
+    assertJsonEquals(
+        res1.getJSONArray("datarows").toString(), res3.getJSONArray("datarows").toString());
   }
 
   @Test
   public void testCheckAccessTheReferenceByOverrideSubqueryAliases() {
-    String res1 =
-        execute(
+    JSONObject res1 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
                     + " | fields tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res2 =
-        execute(
+    JSONObject res2 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
                     + " as t2 | fields tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res3 =
-        execute(
+    JSONObject res3 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s ] as tt"
                     + " | fields tt.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(res1, res2);
-    assertEquals(res1, res3);
+    assertJsonEquals(
+        res1.getJSONArray("datarows").toString(), res2.getJSONArray("datarows").toString());
+    assertJsonEquals(
+        res1.getJSONArray("datarows").toString(), res3.getJSONArray("datarows").toString());
   }
 
   @Test
   public void testCheckAccessTheReferenceByOverrideSubqueryAliases2() {
-    String res1 =
-        execute(
+    JSONObject res1 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
                     + " | fields t2.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res2 =
-        execute(
+    JSONObject res2 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s as tt ]"
                     + " as t2 | fields t2.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    String res3 =
-        execute(
+    JSONObject res3 =
+        executeQuery(
             String.format(
                 "source = %s | JOIN left = t1 right = t2 ON t1.name = t2.name [ source = %s ] as tt"
                     + " | fields t2.name",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    assertEquals(res1, res2);
-    assertEquals(res1, res3);
+    assertJsonEquals(
+        res1.getJSONArray("datarows").toString(), res2.getJSONArray("datarows").toString());
+    assertJsonEquals(
+        res1.getJSONArray("datarows").toString(), res3.getJSONArray("datarows").toString());
   }
 
   @Test

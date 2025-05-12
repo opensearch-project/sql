@@ -281,7 +281,24 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         }
       } else if (parts.size() == 2) {
         // 1.2 Handle the case of `t1.id = t2.id` or `alias1.id = alias2.id`
-        return context.relBuilder.field(2, parts.get(0), parts.get(1));
+        try {
+          return context.relBuilder.field(2, parts.get(0), parts.get(1));
+        } catch (IllegalArgumentException e) {
+          // Similar to the step 2.3.
+          List<String> candidates =
+              context.relBuilder.peek(1).getRowType().getFieldNames().stream()
+                  .filter(col -> substringAfterLast(col, ".").equals(parts.getLast()))
+                  .toList();
+          for (String candidate : candidates) {
+            try {
+              // field("nation2", "n2.n_name"); // pass
+              return context.relBuilder.field(2, parts.get(0), candidate);
+            } catch (IllegalArgumentException e1) {
+              // field("nation2", "n_name"); // do nothing when fail (n_name is field of nation1)
+            }
+          }
+          throw new UnsupportedOperationException("Unsupported qualified name: " + node);
+        }
       } else if (parts.size() == 3) {
         throw new UnsupportedOperationException("Unsupported qualified name: " + node);
       }
@@ -302,7 +319,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       try {
         return context.relBuilder.field(1, parts.get(0), parts.get(1));
       } catch (IllegalArgumentException e) {
-        // For field which renamed with <alias.field>, to resolve the field with table identifier
+        // 2.3 For field which renamed with <alias.field>, to resolve the field with table
+        // identifier
         // `nation2.n_name`,
         // we convert it to resolve <table.alias.field>, e.g. `nation2.n2.n_name`
         // `n2.n_name` was the renamed field name from the duplicated field `(nation2.)n_name0` of
@@ -320,7 +338,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
             // field("nation2", "n_name"); // do nothing when fail (n_name is field of nation1)
           }
         }
-        // 2.3 resolve QualifiedName with outer alias
+        // 2.4 resolve QualifiedName with outer alias
         // check existing of parts.get(0)
         return context
             .peekCorrelVar()
@@ -328,7 +346,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
             .orElseThrow(() -> e); // Re-throw the exception if no correlated variable exists
       }
     } else if (currentFields.stream().noneMatch(f -> f.startsWith(qualifiedName))) {
-      // 2.4 try resolving combination of 2.1 and 2.3 to resolve rest cases
+      // 2.5 try resolving combination of 2.1 and 2.4 to resolve rest cases
       return context
           .peekCorrelVar()
           .map(correlVar -> context.relBuilder.field(correlVar, qualifiedName))
