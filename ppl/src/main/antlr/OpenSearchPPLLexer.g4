@@ -281,6 +281,11 @@ RADIANS:                            'RADIANS';
 SIN:                                'SIN';
 TAN:                                'TAN';
 
+// CRYPTOGRAPHIC FUNCTIONS
+MD5:                                  'MD5';
+SHA1:                                 'SHA1';
+SHA2:                                 'SHA2';
+
 // DATE AND TIME FUNCTIONS
 ADDDATE:                            'ADDDATE';
 ADDTIME:                            'ADDTIME';
