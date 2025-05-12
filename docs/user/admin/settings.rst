@@ -757,3 +757,39 @@ This setting is present from 3.0.0-beta. You can enable Calcite as new query opt
 
 Check `introduce v3 engine <../../../dev/intro-v3-engine.md>`_ for more details.
 Check `join doc <../../ppl/cmd/join.rst>`_ for example.
+
+plugins.calcite.fallback.allowed
+=======================
+
+Description
+-----------
+
+This setting is present from 3.0.0-beta. If Calcite is enabled, you can use this setting to decide whether to allow fallback to v2 engine for some queries which are not supported by v3 engine.
+
+1. The default value is true in 3.0.0-beta.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+plugins.calcite.pushdown.enabled
+=======================
+
+Description
+-----------
+
+This setting is present from 3.0.0-beta. If Calcite is enabled, you can use this setting to decide whether to enable the operator pushdown optimization for v3 engine.
+
+1. The default value is true in 3.0.0-beta.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+plugins.calcite.pushdown.rowcount.estimation.factor
+=======================
+
+Description
+-----------
+
+This setting is present from 3.0.0-beta. If Calcite pushdown optimization is enabled, this setting is used to estimate the row count of the query plan. The value is a factor to multiply the row count of the table scan to get the estimated row count.
+
+1. The default value is 0.9 in 3.0.0-beta.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
