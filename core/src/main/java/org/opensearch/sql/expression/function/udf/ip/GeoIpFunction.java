@@ -73,23 +73,23 @@ public class GeoIpFunction extends ImplementorUDF {
       return Expressions.call(GeoIPImplementor.class, "fetchIpEnrichment", operandsWithClient);
     }
 
-    public static Object fetchIpEnrichment(
+    public static Map<String, ?> fetchIpEnrichment(
         String dataSource, String ipAddress, NodeClient nodeClient) {
-      return fetchIpEnrichment(dataSource, ipAddress, "", nodeClient);
+      return fetchIpEnrichment(dataSource, ipAddress, Collections.emptySet(), nodeClient);
     }
 
-    public static Object fetchIpEnrichment(
+    public static Map<String, ?> fetchIpEnrichment(
         String dataSource, String ipAddress, String commaSeparatedOptions, NodeClient nodeClient) {
+      String unquotedOptions = StringUtils.unquoteText(commaSeparatedOptions);
+      final Set<String> options =
+          Arrays.stream(unquotedOptions.split(",")).map(String::trim).collect(Collectors.toSet());
+      return fetchIpEnrichment(dataSource, ipAddress, options, nodeClient);
+    }
+
+    private static Map<String, ?> fetchIpEnrichment(
+        String dataSource, String ipAddress, Set<String> options, NodeClient nodeClient) {
       IpEnrichmentActionClient ipClient = new IpEnrichmentActionClient(nodeClient);
       dataSource = StringUtils.unquoteText(dataSource);
-      String option = StringUtils.unquoteText(commaSeparatedOptions);
-      // Convert the option into a set.
-      final Set<String> options = new HashSet<>();
-      if (!commaSeparatedOptions.isEmpty()) {
-        options.addAll(
-            Arrays.stream(option.split(",")).map(String::trim).collect(Collectors.toSet()));
-      }
-
       try {
         Map<String, Object> geoLocationData = ipClient.getGeoLocationData(ipAddress, dataSource);
         Map<String, ExprValue> enrichmentResult =
@@ -98,7 +98,10 @@ public class GeoIpFunction extends ImplementorUDF {
                 .collect(
                     Collectors.toMap(
                         Map.Entry::getKey, v -> new ExprStringValue(v.getValue().toString())));
-        return ExprTupleValue.fromExprValueMap(enrichmentResult).valueForCalcite();
+        @SuppressWarnings("unchecked")
+        Map<String, ?> result =
+            (Map<String, ?>) ExprTupleValue.fromExprValueMap(enrichmentResult).valueForCalcite();
+        return result;
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
