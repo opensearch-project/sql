@@ -163,4 +163,23 @@ public class CalciteLogicalIndexScan extends CalciteIndexScan {
     }
     return null;
   }
+
+  public CalciteLogicalIndexScan pushDownLimit(Integer limit, Integer offset) {
+    try {
+      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
+      newScan.pushDownContext.add(
+          PushDownAction.of(
+              PushDownType.LIMIT,
+              limit,
+              requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));
+      return newScan;
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the limit {}", limit, e);
+      } else {
+        LOG.warn("Cannot pushdown the limit {}, ", limit);
+      }
+    }
+    return null;
+  }
 }

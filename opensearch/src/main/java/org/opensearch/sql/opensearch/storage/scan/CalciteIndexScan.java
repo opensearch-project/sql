@@ -93,7 +93,7 @@ public abstract class CalciteIndexScan extends TableScan {
     PROJECT,
     AGGREGATION,
     // SORT,
-    // LIMIT,
+    LIMIT,
     // HIGHLIGHT,
     // NESTED
   }
