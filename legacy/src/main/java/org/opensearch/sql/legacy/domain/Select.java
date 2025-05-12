@@ -47,6 +47,7 @@ public class Select extends Query {
   private List<SubQueryExpression> subQueries;
   private boolean selectAll = false;
   private JoinType nestedJoinType = JoinType.COMMA;
+  private boolean partOfUnion = false;
 
   public boolean isQuery = false;
   public boolean isAggregate = false;
@@ -186,5 +187,14 @@ public class Select extends Query {
 
   public boolean isSelectAll() {
     return selectAll;
+  }
+
+  public void setPartOfUnion(boolean partOfUnion) {
+    this.partOfUnion = partOfUnion;
+  }
+
+  /** Return true is this SELECT is used in UNION */
+  public boolean isPartOfUnion() {
+    return partOfUnion;
   }
 }
