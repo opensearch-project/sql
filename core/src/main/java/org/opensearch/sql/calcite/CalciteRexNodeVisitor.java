@@ -5,17 +5,21 @@
 
 package org.opensearch.sql.calcite;
 
+import static java.util.Objects.requireNonNull;
+import static org.apache.calcite.sql.SqlKind.AS;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -45,6 +49,7 @@ import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
@@ -339,6 +344,43 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       return resolvedNode;
     }
     throw new IllegalArgumentException("Unsupported operator: " + node.getFuncName());
+  }
+
+  @Override
+  public RexNode visitWindowFunction(WindowFunction node, CalcitePlanContext context) {
+    Function windowFunction = (Function) node.getFunction();
+    List<RexNode> arguments =
+        windowFunction.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
+    List<RexNode> partitions =
+        node.getPartitionByList().stream()
+            .map(arg -> analyze(arg, context))
+            .map(this::extractRexNodeFromAlias)
+            .toList();
+    return BuiltinFunctionName.ofWindowFunction(windowFunction.getFuncName())
+        .map(
+            functionName -> {
+              RexNode field = arguments.isEmpty() ? null : arguments.getFirst();
+              List<RexNode> args =
+                  (arguments.isEmpty() || arguments.size() == 1)
+                      ? Collections.emptyList()
+                      : arguments.subList(1, arguments.size());
+              return PlanUtils.makeOver(
+                  context, functionName, field, args, partitions, node.getWindowFrame());
+            })
+        .orElseThrow(
+            () ->
+                new UnsupportedOperationException(
+                    "Unexpected window function: " + windowFunction.getFuncName()));
+  }
+
+  /** extract the expression of Alias from a node */
+  private RexNode extractRexNodeFromAlias(RexNode node) {
+    requireNonNull(node);
+    if (node.getKind() == AS) {
+      return ((RexCall) node).getOperands().get(0);
+    } else {
+      return node;
+    }
   }
 
   @Override

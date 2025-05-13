@@ -26,6 +26,7 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
+import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
@@ -62,6 +63,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator MOD = new ModFunction().toUDF("MOD");
   public static final SqlOperator CRC32 = new CRC32Function().toUDF("CRC32");
   public static final SqlOperator DIVIDE = new DivideFunction().toUDF("DIVIDE");
+  public static final SqlOperator SHA2 = CryptographicFunction.sha2().toUDF("SHA2");
 
   // Datetime function
   public static final SqlOperator TIMESTAMP = new TimestampFunction().toUDF("TIMESTAMP");
