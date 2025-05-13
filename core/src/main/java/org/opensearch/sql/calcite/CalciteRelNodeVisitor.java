@@ -497,7 +497,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                   return super.visit(scan);
                 }
               });
-      String rightTableQualifiedName = String.join(".", rightTableName.get());
+      // Using `table.column` instead of `catalog.database.table.column` as column prefix because the schema
+      // for OpenSearch index is always `OpenSearch`. But if we reuse this logic in other query engines,
+      // the column can only be searched in current schema namespace.
+      // For example, If the plan convert to Spark plan, and there are two table1: database1.table1 and
+      // database2.table1. The query with column `table1.id` can only be resolved in the namespace of "database1".
+      // User should run `using database1` before the query which access `table1.id`.
+      String rightTableQualifiedName = rightTableName.get().getLast();
       // new columns with alias or table;
       List<String> rightColumnsWithAliasIfConflict =
           rightColumns.stream()

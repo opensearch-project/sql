@@ -463,8 +463,8 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     verifySchema(
         actual,
         schema("name", "string"),
-        schema("OpenSearch." + TEST_INDEX_OCCUPATION + ".name", "string"),
-        schema("OpenSearch." + TEST_INDEX_HOBBIES + ".name", "string"));
+        schema(TEST_INDEX_OCCUPATION + ".name", "string"),
+        schema(TEST_INDEX_HOBBIES + ".name", "string"));
     verifyDataRows(
         actual,
         rows("David", "David", "David"),

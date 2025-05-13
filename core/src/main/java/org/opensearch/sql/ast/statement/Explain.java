@@ -13,6 +13,8 @@ import lombok.Getter;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.executor.QueryType;
 
+import java.util.Locale;
+
 /** Explain Statement. */
 @Getter
 @EqualsAndHashCode(callSuper = false)
@@ -46,7 +48,7 @@ public class Explain extends Statement {
 
   public static ExplainFormat format(String format) {
     try {
-      return ExplainFormat.valueOf(format.toUpperCase());
+      return ExplainFormat.valueOf(format.toUpperCase(Locale.ROOT));
     } catch (Exception e) {
       return ExplainFormat.STANDARD;
     }
