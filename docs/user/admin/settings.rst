@@ -788,8 +788,8 @@ plugins.calcite.pushdown.rowcount.estimation.factor
 Description
 -----------
 
-This setting is present from 3.0.0-beta. If Calcite pushdown optimization is enabled, this setting is used to estimate the row count of the query plan. The value is a factor to multiply the row count of the table scan to get the estimated row count.
+This setting is present from 3.1.0. If Calcite pushdown optimization is enabled, this setting is used to estimate the row count of the query plan. The value is a factor to multiply the row count of the table scan to get the estimated row count.
 
-1. The default value is 0.9 in 3.0.0-beta.
+1. The default value is 0.9 in 3.1.0.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
