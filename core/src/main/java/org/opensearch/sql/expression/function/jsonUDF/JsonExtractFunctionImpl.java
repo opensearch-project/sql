@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.jsonUDF;
 
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.convertToJsonPath;
 
 import com.jayway.jsonpath.JsonPath;
 import java.util.List;
@@ -48,6 +49,7 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
     }
     String value = (String) args[0];
     String path = (String) args[1];
+    path = convertToJsonPath(path);
     try {
       Object result = JsonPath.read(value, path);
       result = result != null ? result.toString() : null;

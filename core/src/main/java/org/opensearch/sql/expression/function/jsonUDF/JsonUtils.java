@@ -161,4 +161,45 @@ public class JsonUtils {
       }
     }
   }
+
+  /**
+   *
+   * @param input candidate json path like a.b{}.c{2}
+   * @return the normalized json path like $.a.b[*].c[2]
+   */
+  public static String convertToJsonPath(String input) {
+    if (input == null || input.isEmpty()) return "$";
+
+    StringBuilder sb = new StringBuilder("$");
+    int i = 0;
+    while (i < input.length()) {
+      char c = input.charAt(i);
+
+      if (c == '{') {
+        // 处理 {...} 为数组访问或通配符
+        int end = input.indexOf('}', i);
+        if (end == -1) throw new IllegalArgumentException("Unmatched { in input");
+
+        String index = input.substring(i + 1, end).trim();
+        if (index.isEmpty()) {
+          sb.append("[*]");
+        } else {
+          sb.append("[").append(index).append("]");
+        }
+        i = end + 1;
+      } else if (c == '.') {
+        sb.append(".");
+        i++;
+      } else {
+        // 读取字段名
+        int start = i;
+        while (i < input.length() && input.charAt(i) != '.' && input.charAt(i) != '{') {
+          i++;
+        }
+        sb.append(input, start, i);
+      }
+    }
+
+    return sb.toString();
+  }
 }

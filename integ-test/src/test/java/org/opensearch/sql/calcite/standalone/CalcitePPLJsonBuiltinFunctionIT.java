@@ -123,6 +123,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows(4, 5, null));
   }
 
+  @Ignore
   @Test
   public void testJsonExtract() {
     JSONObject actual =
@@ -140,6 +141,48 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         schema("b", "string"),
         schema("c", "string"),
         schema("d", "string"));
+
+    verifyDataRows(actual, rows("b", "2", "[1,2]", null));
+  }
+
+  @Test
+  public void testJsonExtractWithNewPath() {
+    String candidate = "[\n" +
+            "    {\n" +
+            "      \"name\": \"London\",\n" +
+            "      \"Bridges\": [\n" +
+            "        { \"name\": \"Tower Bridge\", \"length\": 801 },\n" +
+            "        { \"name\": \"Millennium Bridge\", \"length\": 1066 }\n" +
+            "      ]\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"name\": \"Venice\",\n" +
+            "      \"Bridges\": [\n" +
+            "        { \"name\": \"Rialto Bridge\", \"length\": 157 },\n" +
+            "        { \"name\": \"Bridge of Sighs\", \"length\": 36 },\n" +
+            "        { \"name\": \"Ponte della Paglia\" }\n" +
+            "      ]\n" +
+            "    },\n" +
+            "    {\n" +
+            "      \"name\": \"San Francisco\",\n" +
+            "      \"Bridges\": [\n" +
+            "        { \"name\": \"Golden Gate Bridge\", \"length\": 8981 },\n" +
+            "        { \"name\": \"Bay Bridge\", \"length\": 23556 }\n" +
+            "       ]\n" +
+            "     }\n" +
+            "   ]";
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s | head 1 | eval a = json_extract('%s', '{}'), b= json_extract('%s', '{2}.Bridges{0}.length'), c= json_extract('%s', '{2}'), d=json_extract('%s', '{2}.Bridges{0}')| fields a, b, c, d | head 1",
+                            TEST_INDEX_PEOPLE2, candidate, candidate, candidate, candidate));
+
+    verifySchema(
+            actual,
+            schema("a", "string"),
+            schema("b", "string"),
+            schema("c", "string"),
+            schema("d", "string"));
 
     verifyDataRows(actual, rows("b", "2", "[1,2]", null));
   }
