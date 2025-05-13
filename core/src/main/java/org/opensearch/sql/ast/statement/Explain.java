@@ -8,12 +8,11 @@
 
 package org.opensearch.sql.ast.statement;
 
+import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.executor.QueryType;
-
-import java.util.Locale;
 
 /** Explain Statement. */
 @Getter
