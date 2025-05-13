@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,6 +17,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.hint.RelHint;
@@ -27,6 +29,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.sort.ScoreSortBuilder;
+import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
@@ -159,6 +165,47 @@ public class CalciteLogicalIndexScan extends CalciteIndexScan {
         LOG.debug("Cannot pushdown the aggregate {}", aggregate, e);
       } else {
         LOG.warn("Cannot pushdown the aggregate {}, ", aggregate);
+      }
+    }
+    return null;
+  }
+
+  public CalciteLogicalIndexScan pushDownSort(List<RelFieldCollation> collations) {
+    if (getPushDownContext().isSortPushed()) {
+      return null;
+    }
+    try {
+      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(this.getRowType());
+      List<SortBuilder<?>> builders = new ArrayList<>();
+      for (RelFieldCollation collation : collations) {
+        int index = collation.getFieldIndex();
+        String fieldName = this.getRowType().getFieldNames().get(index);
+        RelFieldCollation.Direction direction = collation.getDirection();
+        // Default sort order is ASCENDING
+        SortOrder order =
+            RelFieldCollation.Direction.DESCENDING.equals(direction)
+                ? SortOrder.DESC
+                : SortOrder.ASC;
+        // TODO: support script sort and distance sort
+        SortBuilder<?> sortBuilder;
+        if (ScoreSortBuilder.NAME.equals(fieldName)) {
+          sortBuilder = SortBuilders.scoreSort();
+        } else {
+          sortBuilder = SortBuilders.fieldSort(fieldName);
+        }
+        builders.add(sortBuilder.order(order));
+      }
+      newScan.pushDownContext.add(
+          PushDownAction.of(
+              PushDownType.SORT,
+              builders.toString(),
+              requestBuilder -> requestBuilder.pushDownSort(builders)));
+      return newScan;
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the sort {}", collations, e);
+      } else {
+        LOG.warn("Cannot pushdown the sort {}, ", collations);
       }
     }
     return null;
