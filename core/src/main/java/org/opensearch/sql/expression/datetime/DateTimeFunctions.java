@@ -143,6 +143,8 @@ public class DateTimeFunctions {
           .put("DAY_HOUR", "ddHH")
           .put("YEAR_MONTH", "yyyyMM")
           .put("QUARTER", "Q")
+          .put("DOY", "D")
+          .put("DOW", "e")
           .build();
 
   // Map used to determine format output for the get_format function
@@ -1283,7 +1285,8 @@ public class DateTimeFunctions {
   private DefaultFunctionResolver utc_timestamp() {
     return define(
         BuiltinFunctionName.UTC_TIMESTAMP.getName(),
-        implWithProperties(functionProperties -> exprUtcTimeStamp(functionProperties), DATETIME));
+        implWithProperties(functionProperties -> exprUtcTimestamp(functionProperties), DATETIME),
+        implWithProperties(functionProperties -> exprUtcTimestamp(functionProperties), TIMESTAMP));
   }
 
   /** WEEK(DATE[,mode]). return the week number for date. */
@@ -1519,7 +1522,7 @@ public class DateTimeFunctions {
    * @param isAdd A flag: true to add, false to subtract.
    * @return Datetime calculated.
    */
-  private ExprValue exprDateApplyDays(
+  public static ExprValue exprDateApplyDays(
       FunctionProperties functionProperties, ExprValue datetime, Long days, Boolean isAdd) {
     if (datetime.type() == DATE) {
       return new ExprDateValue(
@@ -1538,7 +1541,7 @@ public class DateTimeFunctions {
    * @param isAdd A flag: true to add, false to subtract.
    * @return A value calculated.
    */
-  private ExprValue exprApplyTime(
+  public static ExprValue exprApplyTime(
       FunctionProperties functionProperties,
       ExprValue temporal,
       ExprValue temporalDelta,
@@ -2273,7 +2276,7 @@ public class DateTimeFunctions {
    * @return ExprValue.
    */
   public static ExprValue exprUtcDate(FunctionProperties functionProperties) {
-    return new ExprDateValue(exprUtcTimeStamp(functionProperties).dateValue());
+    return new ExprDateValue(exprUtcTimestamp(functionProperties).dateValue());
   }
 
   /**
@@ -2283,7 +2286,7 @@ public class DateTimeFunctions {
    * @return ExprValue.
    */
   public static ExprValue exprUtcTime(FunctionProperties functionProperties) {
-    return new ExprTimeValue(exprUtcTimeStamp(functionProperties).timeValue());
+    return new ExprTimeValue(exprUtcTimestamp(functionProperties).timeValue());
   }
 
   /**
@@ -2292,7 +2295,7 @@ public class DateTimeFunctions {
    * @param functionProperties FunctionProperties.
    * @return ExprValue.
    */
-  public static ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
+  public static ExprValue exprUtcTimestamp(FunctionProperties functionProperties) {
     var zdt =
         ZonedDateTime.now(functionProperties.getQueryStartClock()).withZoneSameInstant(UTC_ZONE_ID);
     return new ExprDatetimeValue(zdt.toLocalDateTime());
@@ -2425,7 +2428,8 @@ public class DateTimeFunctions {
   }
 
   public static Double transferUnixTimeStampFromDoubleInput(Double value) {
-    var format = new DecimalFormat("0.#");
+    var format = (DecimalFormat) DecimalFormat.getNumberInstance(Locale.ROOT);
+    format.applyPattern("0.#");
     format.setMinimumFractionDigits(0);
     format.setMaximumFractionDigits(6);
     String input = format.format(value);
@@ -2489,7 +2493,7 @@ public class DateTimeFunctions {
    * @param date ExprValue of Date/Datetime/Timestamp/String type.
    * @return ExprValue.
    */
-  private ExprValue exprWeekWithoutMode(ExprValue date) {
+  public static ExprValue exprWeekWithoutMode(ExprValue date) {
     return exprWeek(date, DEFAULT_WEEK_OF_YEAR_MODE);
   }
 

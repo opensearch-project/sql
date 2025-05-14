@@ -31,7 +31,9 @@ import com.google.common.collect.ImmutableList;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Properties;
+import java.util.function.Consumer;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
@@ -59,6 +61,7 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -68,6 +71,7 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunner;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
@@ -139,6 +143,10 @@ public class CalciteToolsHelper {
     public Connection connect(
         String url, Properties info, CalciteSchema rootSchema, JavaTypeFactory typeFactory)
         throws SQLException {
+      // Add current timestamp in nanos as hook
+      Instant now = Instant.now();
+      long nanosSinceEpoch = now.getEpochSecond() * 1_000_000_000L + now.getNano();
+      Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(nanosSinceEpoch));
       CalciteJdbc41Factory factory = new CalciteJdbc41Factory();
       AvaticaConnection connection =
           factory.newConnection((Driver) this, factory, url, info, rootSchema, typeFactory);

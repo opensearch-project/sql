@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BINARY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
