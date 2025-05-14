@@ -38,6 +38,7 @@ import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.planner.PlanContext;
@@ -94,7 +95,10 @@ public class QueryService {
           (PrivilegedAction<Void>)
               () -> {
                 CalcitePlanContext context =
-                    CalcitePlanContext.create(buildFrameworkConfig(), queryType);
+                    CalcitePlanContext.create(
+                        buildFrameworkConfig(),
+                        settings.getSettingValue(Key.QUERY_SIZE_LIMIT),
+                        queryType);
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
@@ -126,7 +130,10 @@ public class QueryService {
           (PrivilegedAction<Void>)
               () -> {
                 CalcitePlanContext context =
-                    CalcitePlanContext.create(buildFrameworkConfig(), queryType);
+                    CalcitePlanContext.create(
+                        buildFrameworkConfig(),
+                        settings.getSettingValue(Key.QUERY_SIZE_LIMIT),
+                        queryType);
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
@@ -220,7 +227,10 @@ public class QueryService {
               split -> executionEngine.execute(plan(plan), new ExecutionContext(split), listener),
               () ->
                   executionEngine.execute(
-                      plan(plan), ExecutionContext.emptyExecutionContext(), listener));
+                      plan(plan),
+                      ExecutionContext.querySizeLimit(
+                          settings.getSettingValue(Key.QUERY_SIZE_LIMIT)),
+                      listener));
     } catch (Exception e) {
       listener.onFailure(e);
     }
