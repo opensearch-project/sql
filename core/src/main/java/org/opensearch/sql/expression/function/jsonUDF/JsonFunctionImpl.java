@@ -7,6 +7,7 @@ package org.opensearch.sql.expression.function.jsonUDF;
 
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import java.util.List;
@@ -18,12 +19,13 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 /**
- * json(value) Evaluates whether a string can be parsed as JSON format. Returns the string value if
- * valid, null otherwise. Argument type: STRING Return type: STRING/NULL
+ * json(value) Evaluates whether the input can be parsed as JSON format. Returns the value if
+ * valid, null otherwise. Argument type: ANY Return type: ANY/NULL
  */
 public class JsonFunctionImpl extends ImplementorUDF {
   public JsonFunctionImpl() {
@@ -32,7 +34,7 @@ public class JsonFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return VARCHAR_FORCE_NULLABLE;
+    return ReturnTypes.ARG0_FORCE_NULLABLE;
   }
 
   public static class JsonImplementor implements NotNullImplementor {
@@ -49,12 +51,13 @@ public class JsonFunctionImpl extends ImplementorUDF {
 
   public static Object eval(Object... args) {
     assert args.length == 1 : "Json only accept one argument";
-    String value = (String) args[0];
+    ObjectMapper mapper = new ObjectMapper();
+    Object value = args[0];
     try {
-      JsonParser.parseString(value);
-      return value;
-    } catch (JsonSyntaxException e) {
-      return null;
+      mapper.readTree(value.toString()); // try parse as JSON
+      return true;
+    } catch (Exception e) {
+      return false;
     }
   }
 }

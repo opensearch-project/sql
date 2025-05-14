@@ -76,24 +76,20 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows(List.of(1.0, 2.0, 0, -1.0, 1.1, -0.11)));
   }
 
-  @Ignore(
-      "We do throw the exception, but current way will resolve safe, so we will get Unsupported"
-          + " operator: json_array")
   @Test
-  public void testJsonArrayWithWrongType() {
-    IllegalArgumentException e =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-              JSONObject actual =
-                  executeQuery(
-                      String.format(
-                          "source=%s | eval a = json_array(1, 2, 0, true, \"hello\", -0.11)| fields"
-                              + " a | head 1",
-                          TEST_INDEX_PEOPLE2));
-            });
-    verifyErrorMessageContains(e, "unsupported format");
+  public void testJsonArrayWithDifferentType() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s | eval a = json_array(1, '123', json_object(\"name\",  3))| fields a | head 1",
+                            TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "array"));
+
+    verifyDataRows(actual, rows(List.of(1, "123", Map.of("name", 3))));
   }
+
+
 
   @Test
   public void testToJsonString() {

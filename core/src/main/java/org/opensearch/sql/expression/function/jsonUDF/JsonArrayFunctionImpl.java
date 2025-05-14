@@ -43,14 +43,14 @@ public class JsonArrayFunctionImpl extends ImplementorUDF {
   public SqlReturnTypeInference getReturnTypeInference() {
     return sqlOperatorBinding -> {
       RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
-      List<RelDataType> argTypes = sqlOperatorBinding.collectOperandTypes();
-      RelDataType commonType = typeFactory.leastRestrictive(argTypes);
-      if (commonType == null) {
-        throw new IllegalArgumentException(
-            "All arguments in json array cannot be converted into one common types");
-      }
+      //List<RelDataType> argTypes = sqlOperatorBinding.collectOperandTypes();
+      //RelDataType commonType = typeFactory.leastRestrictive(argTypes);
+      //if (commonType == null) {
+      //  throw new IllegalArgumentException(
+      //      "All arguments in json array cannot be converted into one common types");
+      //}
       return createArrayType(
-          typeFactory, typeFactory.createTypeWithNullability(commonType, true), true);
+          typeFactory, typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.ANY), true), true);
     };
   }
 
@@ -58,16 +58,18 @@ public class JsonArrayFunctionImpl extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      RelDataType realType = call.getType().getComponentType();
-      List<Expression> newArgs = new ArrayList<>(translatedOperands);
-      assert realType != null;
-      newArgs.add(Expressions.constant(realType.getSqlTypeName()));
+      //RelDataType realType = call.getType().getComponentType();
+      //List<Expression> newArgs = new ArrayList<>(translatedOperands);
+      //assert realType != null;
+      //newArgs.add(Expressions.constant(realType.getSqlTypeName()));
       return Expressions.call(
-          Types.lookupMethod(JsonArrayFunctionImpl.class, "eval", Object[].class), newArgs);
+          Types.lookupMethod(JsonArrayFunctionImpl.class, "eval", Object[].class), translatedOperands);
     }
   }
 
   public static Object eval(Object... args) {
+    return Arrays.asList(args);
+    /*
     SqlTypeName targetType = (SqlTypeName) args[args.length - 1];
     switch (targetType) {
       case DOUBLE:
@@ -86,5 +88,6 @@ public class JsonArrayFunctionImpl extends ImplementorUDF {
       default:
         return Arrays.asList(args).subList(0, args.length - 1);
     }
+     */
   }
 }
