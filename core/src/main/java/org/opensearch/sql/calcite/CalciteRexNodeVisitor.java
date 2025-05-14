@@ -9,14 +9,11 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.calcite.sql.SqlKind.AS;
 import static org.opensearch.sql.ast.expression.SpanUnit.NONE;
 import static org.opensearch.sql.ast.expression.SpanUnit.UNKNOWN;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedFunction;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -25,7 +22,6 @@ import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.DateString;
@@ -60,8 +56,6 @@ import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.type.ExprSqlType;
-import org.opensearch.sql.calcite.udf.datetimeUDF.PostprocessDateToStringFunction;
-import org.opensearch.sql.calcite.utils.BuiltinFunctionUtils;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -69,6 +63,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 @RequiredArgsConstructor
@@ -220,18 +215,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   private RexNode transferCompareForDateRelated(
       RexNode candidate, CalcitePlanContext context, boolean whetherCompareByTime) {
     if (whetherCompareByTime) {
-      SqlOperator postToStringNode =
-          TransferUserDefinedFunction(
-              PostprocessDateToStringFunction.class,
-              "PostprocessDateToString",
-              VARCHAR_FORCE_NULLABLE);
       RexNode transferredStringNode =
-          context.rexBuilder.makeCall(
-              postToStringNode,
-              List.of(
-                  candidate,
-                  context.rexBuilder.makeLiteral(
-                      context.functionProperties.getQueryStartClock().instant().toString())));
+          context.rexBuilder.makeCall(PPLBuiltinOperators.TIMESTAMP, candidate);
       return transferredStringNode;
     } else {
       return candidate;
@@ -351,26 +336,14 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<RexNode> arguments =
-        node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
+        node.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolveSafe(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));
     if (resolvedNode != null) {
       return resolvedNode;
     }
-    // TODO: Remove below code after migrating all functions to PPLFuncImpTable,
-    //  https://github.com/opensearch-project/sql/issues/3524
-    SqlOperator operator = BuiltinFunctionUtils.translate(node.getFuncName());
-    List<RexNode> translatedArguments =
-        BuiltinFunctionUtils.translateArgument(
-            node.getFuncName(),
-            arguments,
-            context,
-            context.functionProperties.getQueryStartClock().instant().toString());
-    RelDataType returnType =
-        BuiltinFunctionUtils.deriveReturnType(
-            node.getFuncName(), context.rexBuilder, operator, translatedArguments);
-    return context.rexBuilder.makeCall(returnType, operator, translatedArguments);
+    throw new IllegalArgumentException("Unsupported operator: " + node.getFuncName());
   }
 
   @Override
