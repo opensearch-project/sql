@@ -22,6 +22,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.transport.client.node.NodeClient;
 
 public class CalcitePlanContext {
 
@@ -46,13 +47,17 @@ public class CalcitePlanContext {
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
-  private CalcitePlanContext(FrameworkConfig config, QueryType queryType) {
+  /** Certain functions (e.g., GEOIP) depend on NodeClient for performing RPC calls. * */
+  @Getter private final NodeClient client;
+
+  private CalcitePlanContext(FrameworkConfig config, QueryType queryType, NodeClient client) {
     this.config = config;
     this.queryType = queryType;
     this.connection = CalciteToolsHelper.connect(config, TYPE_FACTORY);
     this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
     this.functionProperties = new FunctionProperties(QueryType.PPL);
+    this.client = client;
   }
 
   public RexNode resolveJoinCondition(
@@ -84,7 +89,12 @@ public class CalcitePlanContext {
     }
   }
 
+  public static CalcitePlanContext create(
+      FrameworkConfig config, QueryType queryType, NodeClient client) {
+    return new CalcitePlanContext(config, queryType, client);
+  }
+
   public static CalcitePlanContext create(FrameworkConfig config, QueryType queryType) {
-    return new CalcitePlanContext(config, queryType);
+    return new CalcitePlanContext(config, queryType, null);
   }
 }
