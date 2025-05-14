@@ -28,6 +28,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.DATE);
     loadIndex(Index.PEOPLE2);
     loadIndex(Index.BANK);
+    loadIndex(Index.JSON_TEST);
   }
 
   @Test
@@ -371,5 +372,16 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
             gson.fromJson(
                 "{\"school\":{\"teacher\":[\"Alice\",\"Tom\",\"Walt\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}",
                 Map.class)));
+  }
+
+  @Test
+  public void test_cast_json() throws IOException {
+    JSONObject result =
+            executeQuery(
+                    String.format(
+                            "source=%s | where json_valid(json_string) | eval casted=cast(json_string as json)"
+                                    + " | fields test_name",
+                            TEST_INDEX_JSON_TEST));
+  assertEquals(1, 1);
   }
 }

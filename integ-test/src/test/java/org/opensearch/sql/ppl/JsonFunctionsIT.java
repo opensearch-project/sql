@@ -14,6 +14,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+
+import com.google.gson.Gson;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
@@ -71,7 +73,13 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
                 "source=%s | where json_valid(json_string) | eval casted=cast(json_string as json)"
                     + " | fields test_name, casted",
                 TEST_INDEX_JSON_TEST));
-    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "undefined"));
+    String jsonType;
+    if (isCalciteEnabled()) {
+      jsonType = "string";
+    } else {
+      jsonType = "undefined";
+    }
+    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, jsonType));
     verifyDataRows(
         result,
         rows(
@@ -102,19 +110,33 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
                 "source=%s | where json_valid(json_string) | eval casted=json(json_string) | fields"
                     + " test_name, casted",
                 TEST_INDEX_JSON_TEST));
-    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "undefined"));
+    String jsonType;
+    if (isCalciteEnabled()) {
+      jsonType = "string";
+    } else {
+      jsonType = "undefined";
+    }
+    verifySchema(result, schema("test_name", null, "string"), schema("casted", null, jsonType));
     JSONObject firstRow = new JSONObject(Map.of("c", 2));
+    Object nestedArray = new JSONArray(List.of(1, 2, 3, Map.of("true", true, "number", 123)));
+    if (isCalciteEnabled()) {
+      nestedArray = nestedArray.toString();
+    }
+    Object nestedObject = new JSONObject(
+            Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(Boolean.FALSE, 3)));
+    if (isCalciteEnabled()) {
+      nestedObject = new Gson().toJson(Map.of("d", List.of(Boolean.FALSE, 3), "a", "1", "b", Map.of("c", "3")));
+    }
     verifyDataRows(
         result,
         rows(
-            "json nested object",
-            new JSONObject(
-                Map.of("a", "1", "b", Map.of("c", "3"), "d", List.of(Boolean.FALSE, 3)))),
+            "json nested object", nestedObject
+            ),
         rows("json object", new JSONObject(Map.of("a", "1", "b", "2"))),
         rows("json array", new JSONArray(List.of(1, 2, 3, 4))),
         rows(
             "json nested array",
-            new JSONArray(List.of(1, 2, 3, Map.of("true", true, "number", 123)))),
+            nestedArray),
         rows("json scalar string", "abc"),
         rows("json scalar int", 1234),
         rows("json scalar float", 12.34),
