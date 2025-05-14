@@ -116,7 +116,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     }
   }
 
-  protected boolean isCalciteEnabled() throws IOException {
+  protected static boolean isCalciteEnabled() throws IOException {
     return Boolean.parseBoolean(
         getClusterSetting(Settings.Key.CALCITE_ENGINE_ENABLED.getKeyValue(), "persistent"));
   }

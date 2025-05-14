@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_DATE;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIME;
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.EXPR_TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BINARY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -305,7 +308,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public static RelDataType convertSchema(Table table) {
     List<String> fieldNameList = new ArrayList<>();
     List<RelDataType> typeList = new ArrayList<>();
-    for (Entry<String, ExprType> entry : table.getFieldTypes().entrySet()) {
+    Map<String, ExprType> fieldTypes = table.getFieldTypes();
+    fieldTypes.putAll(table.getReservedFieldTypes());
+    for (Entry<String, ExprType> entry : fieldTypes.entrySet()) {
       fieldNameList.add(entry.getKey());
       typeList.add(OpenSearchTypeFactory.convertExprTypeToRelDataType(entry.getValue()));
     }

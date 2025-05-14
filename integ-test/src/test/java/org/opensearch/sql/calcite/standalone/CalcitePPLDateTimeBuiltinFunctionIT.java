@@ -39,7 +39,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   public void init() throws IOException {
     super.init();
     loadIndex(Index.STATE_COUNTRY);
-    loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.DATE);
@@ -309,7 +308,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + "| where YEAR(strict_date_optional_time) < 2000"
                     + "| eval timestamp=to_seconds(strict_date_optional_time) "
                     + "| eval date=to_seconds(date)"
-                    + "| eval string_value=to_seconds('2008-10-07')"
+                    + "| eval string_value=to_seconds(date('2008-10-07'))"
                     + "| eval long_value = to_seconds(950228)"
                     + "| where to_seconds(strict_date_optional_time) > 62617795199"
                     + "| fields timestamp, date, string_value, long_value | head 1",
@@ -353,48 +352,35 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testUnixTimeStampTwoArgument() {
+  public void testFromUnixtime() {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s "
-                    + "| eval from_unix = FROM_UNIXTIME(1220249547, '%%T')"
-                    + "| fields from_unix | head 1",
-                TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("from_unix", "string"));
-    verifyDataRows(actual, rows("06:12:27"));
-  }
-
-  @Test
-  public void testUnixTimeStampAndFromUnixTime() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s "
+                    + "| eval from_unix_format = FROM_UNIXTIME(1220249547, '%%T')"
                     + "| eval from_unix = from_unixtime(1220249547)"
-                    + "| eval to_unix = unix_timestamp(from_unix)"
-                    // + "| where unix_timestamp(from_unixtime(1700000001)) > 1700000000 " // don't
-                    // do
-                    // filter
-                    + "| fields from_unix, to_unix | head 1",
+                    + "| fields from_unix_format, from_unix | head 1",
                 TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("from_unix", "timestamp"), schema("to_unix", "double"));
-    verifyDataRows(actual, rows("2008-09-01 06:12:27", 1220249547.0));
+    verifySchema(actual, schema("from_unix_format", "string"), schema("from_unix", "timestamp"));
+    verifyDataRows(actual, rows("06:12:27", "2008-09-01 06:12:27"));
   }
 
   @Test
-  public void testUtcTimes() {
+  public void testUnixTimestamp() {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s "
-                    + "| eval timestamp=UTC_TIMESTAMP() "
-                    + "| eval time=UTC_TIME()"
-                    + "| eval date=UTC_DATE()"
-                    + "| fields timestamp, time, date ",
+                "source=%s | eval unix_timestamp = unix_timestamp(timestamp('2008-09-01"
+                    + " 06:12:27'))| eval unix_long = UNIX_TIMESTAMP(20771122143845)| eval"
+                    + " unix_ms = UNIX_TIMESTAMP(TIMESTAMP('2008-09-01 06:12:27.123456')) "
+                    + "| fields unix_timestamp, unix_long, unix_ms | head 1",
                 TEST_INDEX_DATE_FORMATS));
     verifySchema(
-        actual, schema("timestamp", "timestamp"), schema("date", "date"), schema("time", "time"));
+        actual,
+        schema("unix_timestamp", "double"),
+        schema("unix_long", "double"),
+        schema("unix_ms", "double"));
+    verifyDataRows(actual, closeTo(1220249547.0, 3404817525.0, 1.220249547123456E9));
   }
 
   @Test
@@ -792,6 +778,18 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
+  public void testUtc() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval utc = UTC_TIMESTAMP(), utc1 = UTC_DATE(), utc2 ="
+                    + " UTC_TIME() | fields utc, utc1, utc2",
+                TEST_INDEX_DATE_FORMATS));
+    verifySchema(
+        actual, schema("utc", "timestamp"), schema("utc1", "date"), schema("utc2", "time"));
+  }
+
+  @Test
   public void testSysdate() {
     JSONObject actual =
         executeQuery(
@@ -882,8 +880,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + " 10:07:42'),ld1 = LAST_DAY(date), ld2 = LAST_DAY('1984-04-12'), ld3 ="
                     + " LAST_DAY('1984-04-12 10:07:42'),md1 = MAKEDATE(2020, 1), md2 ="
                     + " MAKEDATE(2020, 366), md3 = MAKEDATE(2020, 367) | eval m3 = MONTHNAME(md2),"
-                    + " ld4 = LAST_DAY(md3)| fields d1, d2, d3, m1, m2, m3, ld1, ld2, ld3, ld4,"
-                    + " md1, md2, md3",
+                    + " ld4 = LAST_DAY(md3), ld5 = LAST_DAY(time) | fields d1, d2, d3, m1, m2, m3,"
+                    + " ld1, ld2, ld3, ld4, ld5, md1, md2, md3",
                 TEST_INDEX_DATE_FORMATS));
 
     verifySchema(
@@ -898,6 +896,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         schema("ld2", "date"),
         schema("ld3", "date"),
         schema("ld4", "date"),
+        schema("ld5", "date"),
         schema("md1", "date"),
         schema("md2", "date"),
         schema("md3", "date"));
@@ -905,6 +904,12 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     final String thu = DayOfWeek.THURSDAY.getDisplayName(TextStyle.FULL, Locale.getDefault());
     final String apr = Month.APRIL.getDisplayName(TextStyle.FULL, Locale.getDefault());
     final String dec = Month.DECEMBER.getDisplayName(TextStyle.FULL, Locale.getDefault());
+    LocalDate today = LocalDate.now(ZoneId.systemDefault());
+    LocalDate lastDayOfToday =
+        LocalDate.of(
+            today.getYear(), today.getMonth(), today.getMonth().length(today.isLeapYear()));
+    String formattedLastDayOfToday =
+        lastDayOfToday.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
     verifyDataRows(
         actual,
         rows(
@@ -918,6 +923,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             "1984-04-30",
             "1984-04-30",
             "2021-01-31",
+            formattedLastDayOfToday,
             "2020-01-01",
             "2020-12-31",
             "2021-01-01"));
@@ -1071,7 +1077,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
                     + " DAY), date), d2 = TIMESTAMPDIFF(HOUR, date_time, TIMESTAMPADD(DAY, 1,"
                     + " date_time)), d3 = TIMESTAMPDIFF(MINUTE, date, date_time), d4 ="
                     + " TIMESTAMPDIFF(SECOND, date_time, ADDDATE(date_time, INTERVAL 1 HOUR)), d5 ="
-                    + " TIMESTAMPDIFF(MINUTE, time, '12:30:00'), d6 = TIMESTAMPDIFF(WEEK,"
+                    + " TIMESTAMPDIFF(MINUTE, time, TIME('12:30:00')), d6 = TIMESTAMPDIFF(WEEK,"
                     + " '1999-12-31 00:00:00', TIMESTAMPADD(HOUR, -24, date_time)), d7 ="
                     + " TIMESTAMPDIFF(MONTH, TIMESTAMPADD(YEAR, 5, '1994-12-10 13:49:02'),"
                     + " ADDDATE(date_time, 1)), d8 = TIMESTAMPDIFF(QUARTER, MAKEDATE(2008, 153),"
@@ -1188,7 +1194,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
         executeQuery(
             String.format(
                 "source=%s "
-                    + "| eval s = SECOND(TIMESTAMP('01:02:03')) "
+                    + "| eval s = SECOND(TIMESTAMP(TIME('01:02:03'))) "
                     + "| eval secondForTime = SECOND(basic_time) "
                     + "| eval secondForDate = SECOND(basic_date) "
                     + "| eval secondForTimestamp = SECOND(strict_date_optional_time_nanos) "
@@ -1209,8 +1215,8 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval s = second_of_minute(TIMESTAMP('01:02:03')) | eval secondForTime"
-                    + " = second_of_minute(basic_time) | eval secondForDate ="
+                "source=%s | eval s = second_of_minute(TIMESTAMP(TIME('01:02:03'))) | eval"
+                    + " secondForTime = second_of_minute(basic_time) | eval secondForDate ="
                     + " second_of_minute(basic_date) | eval secondForTimestamp ="
                     + " second_of_minute(strict_date_optional_time_nanos) | fields s,"
                     + " secondForTime, secondForDate, secondForTimestamp | head 1",
@@ -1262,7 +1268,7 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             "2021-05-13 04:34:50",
             "2021-05-13 11:34:50",
             "2021-05-12 09:15:00",
-            null));
+            "1984-04-12 05:07:42.000123456"));
   }
 
   @Test
