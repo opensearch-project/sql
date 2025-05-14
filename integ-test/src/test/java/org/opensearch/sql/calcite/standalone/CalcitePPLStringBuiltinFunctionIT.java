@@ -157,12 +157,14 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where locate('Ja', name)=1 | fields name, age",
+                "source=%s | where locate('Ja', name)=1 | eval locate3 = LOCATE('lll', 'llllll', 2)"
+                    + " | fields name, age, locate3",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+    verifySchema(
+        actual, schema("name", "string"), schema("age", "integer"), schema("locate3", "integer"));
 
-    verifyDataRows(actual, rows("Jake", 70), rows("Jane", 20));
+    verifyDataRows(actual, rows("Jake", 70, 2), rows("Jane", 20, 2));
   }
 
   @Test
@@ -287,12 +289,14 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where replace(name, 'J', 'M')='Mane' | fields name, age",
+                "source=%s | where replace(name, 'J', 'M')='Mane' | eval hello = replace('hello',"
+                    + " 'l', 'L') | fields name, age, hello",
                 TEST_INDEX_STATE_COUNTRY));
 
-    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+    verifySchema(
+        actual, schema("name", "string"), schema("age", "integer"), schema("hello", "string"));
 
-    verifyDataRows(actual, rows("Jane", 20));
+    verifyDataRows(actual, rows("Jane", 20, "heLLo"));
   }
 
   @Test
