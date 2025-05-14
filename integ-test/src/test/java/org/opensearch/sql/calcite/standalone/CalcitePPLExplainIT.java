@@ -60,8 +60,8 @@ public class CalcitePPLExplainIT extends CalcitePPLIntegTestCase {
     String result = explainQuery("explain cost source=test | where age = 20 | fields name, age");
     assertTrue(
         result.contains(
-            "CalciteEnumerableIndexScan(table=[[OpenSearch, test]]): rowcount = 100.0, cumulative"
-                + " cost = {100.0 rows, 101.0 cpu, 0.0 io}"));
+            "CalciteEnumerableIndexScan(table=[[OpenSearch, test]]): rowcount = 10000.0, cumulative"
+                + " cost = {10000.0 rows, 10001.0 cpu, 0.0 io}"));
   }
 
   @Test
