@@ -621,12 +621,12 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     verifySchema(response, schema("a", null, "long"), schema("age", null, "integer"));
     verifyDataRows(
         response,
-        rows(null, null),
+        rows(isPushdownEnabled() ? 0 : null, null),
         rows(32838, 28),
         rows(39225, 32),
         rows(4180, 33),
         rows(48086, 34),
-        rows(null, 36));
+        rows(isPushdownEnabled() ? 0 : null, 36));
   }
 
   @Test

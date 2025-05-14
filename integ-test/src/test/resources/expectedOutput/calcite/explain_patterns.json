@@ -1,6 +1,6 @@
 {
   "calcite": {
     "logical": "LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], patterns_field=[REGEXP_REPLACE($9, '[a-zA-Z0-9]':VARCHAR)])\n  CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "EnumerableCalc(expr#0..16=[{inputs}], expr#17=['[a-zA-Z0-9]':VARCHAR], expr#18=[REGEXP_REPLACE($t9, $t17)], proj#0..10=[{exprs}], patterns_field=[$t18])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+    "physical": "EnumerableCalc(expr#0..10=[{inputs}], expr#11=['[a-zA-Z0-9]':VARCHAR], expr#12=[REGEXP_REPLACE($t9, $t11)], proj#0..10=[{exprs}], $f11=[$t12])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[account_number, firstname, address, balance, gender, city, employer, state, age, email, lastname]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"account_number\",\"firstname\",\"address\",\"balance\",\"gender\",\"city\",\"employer\",\"state\",\"age\",\"email\",\"lastname\"],\"excludes\":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n"
   }
 }
