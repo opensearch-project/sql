@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression.function;
 
-import static java.lang.Math.E;
 import static org.apache.calcite.sql.type.SqlTypeFamily.IGNORE;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;

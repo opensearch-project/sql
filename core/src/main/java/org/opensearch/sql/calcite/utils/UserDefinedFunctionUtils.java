@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.TimeZone;
+import javax.annotation.Nullable;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -238,33 +239,6 @@ public class UserDefinedFunctionUtils {
     return type.getSqlTypeName();
   }
 
-  public static ImplementorUDF adaptExprMethodToUDF(
-      java.lang.reflect.Type type,
-      String methodName,
-      SqlReturnTypeInference returnTypeInference,
-      NullPolicy nullPolicy,
-      UDFOperandMetadata typeChecker) {
-    NotNullImplementor implementor =
-        (translator, call, translatedOperands) -> {
-          List<Expression> operands =
-              convertToExprValues(
-                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
-          Expression exprResult = Expressions.call(type, methodName, operands);
-          return Expressions.call(exprResult, "valueForCalcite");
-        };
-    return new ImplementorUDF(implementor, nullPolicy) {
-      @Override
-      public SqlReturnTypeInference getReturnTypeInference() {
-        return returnTypeInference;
-      }
-
-      @Override
-      public UDFOperandMetadata getOperandMetadata() {
-        return typeChecker;
-      }
-    };
-  }
-
   // TODO: pass the function properties directly to the UDF instead of string
   public static FunctionProperties restoreFunctionProperties(DataContext dataContext) {
     long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(dataContext);
@@ -325,13 +299,15 @@ public class UserDefinedFunctionUtils {
    * @param methodName the name of the method
    * @param returnTypeInference the return type inference of the UDF
    * @param nullPolicy the null policy of the UDF
+   * @param operandMetadata type checker
    * @return an adapted ImplementorUDF with the expr method, which is a UserDefinedFunctionBuilder
    */
   public static ImplementorUDF adaptExprMethodToUDF(
       java.lang.reflect.Type type,
       String methodName,
       SqlReturnTypeInference returnTypeInference,
-      NullPolicy nullPolicy) {
+      NullPolicy nullPolicy,
+      @Nullable UDFOperandMetadata operandMetadata) {
     NotNullImplementor implementor =
         (translator, call, translatedOperands) -> {
           List<Expression> operands =
@@ -344,6 +320,11 @@ public class UserDefinedFunctionUtils {
       @Override
       public SqlReturnTypeInference getReturnTypeInference() {
         return returnTypeInference;
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
       }
     };
   }
@@ -362,7 +343,8 @@ public class UserDefinedFunctionUtils {
       java.lang.reflect.Type type,
       String methodName,
       SqlReturnTypeInference returnTypeInference,
-      NullPolicy nullPolicy) {
+      NullPolicy nullPolicy,
+      UDFOperandMetadata operandMetadata) {
     NotNullImplementor implementor =
         (translator, call, translatedOperands) -> {
           List<Expression> operands =
@@ -376,6 +358,11 @@ public class UserDefinedFunctionUtils {
       @Override
       public SqlReturnTypeInference getReturnTypeInference() {
         return returnTypeInference;
+      }
+
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return operandMetadata;
       }
     };
   }

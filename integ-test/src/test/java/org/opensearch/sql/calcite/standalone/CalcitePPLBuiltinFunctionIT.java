@@ -57,7 +57,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   // TODO: Enable it once parameter validation for UDF is ready
-  @Ignore
   @Test
   public void testSqrtNanArgShouldThrowError() {
     Exception nanException =
@@ -320,7 +319,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   // TODO: Enable it once parameter validation for UDF is ready
-  @Ignore
   @Test
   public void testMod3ArgsShouldThrowIllegalArgError() {
     Exception wrongArgException =

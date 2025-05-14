@@ -19,6 +19,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.datetime.DateTimeConversionUtils;
@@ -29,6 +30,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * Implementations of date-part-related functions:
@@ -59,13 +61,28 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
  * </ul>
  */
 public class DatePartFunction extends ImplementorUDF {
+  static final Set<String> TIME_UNITS = Set.of("MICROSECOND", "SECOND", "MINUTE", "HOUR");
+  private final TimeUnit timeUnit;
+
   public DatePartFunction(TimeUnit timeUnit) {
     super(new DatePartImplementor(timeUnit), NullPolicy.ANY);
+    this.timeUnit = timeUnit;
   }
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return PPLReturnTypes.INTEGER_FORCE_NULLABLE;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    // For microsecond, second, minute, and hour, we allow STRING, TIME, or TIMESTAMP.
+    // For other unit (day, month, quarter, year), we allow STRING, DATE, or TIMESTAMP.
+    if (TIME_UNITS.contains(timeUnit.name())) {
+      return PPLOperandTypes.TIME_OR_TIMESTAMP_OR_STRING;
+    } else {
+      return PPLOperandTypes.DATE_OR_TIMESTAMP_OR_STRING;
+    }
   }
 
   @RequiredArgsConstructor
@@ -108,7 +125,6 @@ public class DatePartFunction extends ImplementorUDF {
     }
 
     private static void ensureDatetimeParsable(String part, String datetime) {
-      final Set<String> TIME_UNITS = Set.of("MICROSECOND", "SECOND", "MINUTE", "HOUR");
       part = part.toUpperCase(Locale.ROOT);
       if (TIME_UNITS.contains(part)) {
         // Ensure the input is parsable as a time value
