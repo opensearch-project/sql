@@ -134,8 +134,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitLambda(OpenSearchPPLParser.LambdaContext ctx) {
 
-    List<QualifiedName> arguments = ctx.ident().stream().map(x -> this.visitIdentifiers(Collections.singletonList(x))).collect(
-            Collectors.toList());
+    List<QualifiedName> arguments =
+        ctx.ident().stream()
+            .map(x -> this.visitIdentifiers(Collections.singletonList(x)))
+            .collect(Collectors.toList());
     UnresolvedExpression function = visitExpression(ctx.expression());
     return new LambdaFunction(function, arguments);
   }

@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.expression.function.collectionUDF;
 
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
-
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -43,10 +41,11 @@ public class ForallFunctionImpl extends ImplementorUDF {
   }
 
   public static Object eval(Object... args) {
-    org.apache.calcite.linq4j.function.Predicate1 lambdaFunction = (org.apache.calcite.linq4j.function.Predicate1) args[1];
+    org.apache.calcite.linq4j.function.Predicate1 lambdaFunction =
+        (org.apache.calcite.linq4j.function.Predicate1) args[1];
     List<Object> target = (List<Object>) args[0];
     try {
-      for (Object candidate: target) {
+      for (Object candidate : target) {
         if (!(Boolean) lambdaFunction.apply(candidate)) {
           return false;
         }

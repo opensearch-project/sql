@@ -5,7 +5,10 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -163,14 +166,13 @@ public class JsonUtils {
   }
 
   /**
-   *
    * @param input candidate json path like a.b{}.c{2}
    * @return the normalized json path like $.a.b[*].c[2]
    */
   public static String convertToJsonPath(String input) {
     if (input == null || input.isEmpty()) return "$";
 
-    StringBuilder sb = new StringBuilder("$");
+    StringBuilder sb = new StringBuilder("$.");
     int i = 0;
     while (i < input.length()) {
       char c = input.charAt(i);
@@ -201,5 +203,95 @@ public class JsonUtils {
     }
 
     return sb.toString();
+  }
+
+  static JsonNode deletePath(JsonNode node, PathTokenizer tokenizer) {
+    if (!tokenizer.hasNext()) return node;
+
+    PathToken token = tokenizer.next();
+
+    if (token.key.equals("$")) {
+      return deletePath(node, tokenizer);
+    }
+    if (node instanceof ArrayNode arr && token.isIndex) {
+      if (token.key.equals("*")) {
+        for (int i = arr.size() - 1; i >= 0; i--) {
+          deletePath(arr.get(i), tokenizer.cloneFromNext());
+        }
+      } else {
+        int idx = Integer.parseInt(token.key);
+        if (!tokenizer.hasNext()) {
+          if (idx >= 0 && idx < arr.size()) arr.remove(idx);
+        } else {
+          if (idx >= 0 && idx < arr.size()) {
+            deletePath(arr.get(idx), tokenizer);
+          }
+        }
+      }
+    } else if (node instanceof ObjectNode obj && !token.isIndex) {
+      if (!tokenizer.hasNext()) {
+        obj.remove(token.key);
+      } else if (obj.has(token.key)) {
+        deletePath(obj.get(token.key), tokenizer);
+      }
+    }
+
+    return node;
+  }
+
+  // Tokenizer for JSONPath like $[0].cities[1]
+  public static class PathTokenizer {
+    private final List<PathToken> tokens;
+    private int index = 0;
+
+    public PathTokenizer(String path) {
+      this.tokens = new ArrayList<>();
+
+      // normalize brackets (a[1] => a.[1])
+      String normalized = path.replaceAll("\\[", ".[");
+
+      for (String raw : normalized.split("\\.")) {
+        if (raw.isEmpty()) continue;
+
+        if (raw.startsWith("[") && raw.endsWith("]")) {
+          tokens.add(new PathToken(raw.substring(1, raw.length() - 1), true));
+        } else {
+          tokens.add(new PathToken(raw, false));
+        }
+      }
+    }
+
+    public boolean hasNext() {
+      return index < tokens.size();
+    }
+
+    public PathToken next() {
+      return tokens.get(index++);
+    }
+
+    public PathTokenizer cloneFromNext() {
+      PathTokenizer clone = new PathTokenizer("");
+      clone.tokens.addAll(this.tokens);
+      clone.index = this.index;
+      return clone;
+    }
+  }
+
+  static class PathToken {
+    public final String key;
+    public final boolean isIndex;
+
+    public PathToken(String key, boolean isIndex) {
+      this.key = key;
+      this.isIndex = isIndex;
+    }
+  }
+
+  public static List<Object> collectKeyValuePair(Object... args) {
+    List<Object> result = new ArrayList<>();
+    for (int i = 1; i < args.length; i++) {
+      result.add(args[i]);
+    }
+    return result;
   }
 }

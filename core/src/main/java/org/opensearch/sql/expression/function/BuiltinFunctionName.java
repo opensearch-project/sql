@@ -163,7 +163,7 @@ public enum BuiltinFunctionName {
   LIKE(FunctionName.of("like")),
   NOT_LIKE(FunctionName.of("not like")),
 
-  /** LAMBDA Functions **/
+  /** LAMBDA Functions * */
   ARRAY_FORALL(FunctionName.of("forall")),
   ARRAY_EXISTS(FunctionName.of("exists")),
   ARRAY_FILTER(FunctionName.of("filter")),

@@ -9,6 +9,11 @@ import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -53,13 +58,21 @@ public class JsonDeleteFunctionImpl extends ImplementorUDF {
 
   public static Object eval(Object... args) throws JsonProcessingException {
     String jsonStr = (String) args[0];
-    Map<String, Object> jsonMap = objectMapper.readValue(jsonStr, Map.class);
-    List<String> keys = (List<String>) args[1];
-    for (String key : keys) {
-      String[] keyParts = key.split("\\.");
-      removeNestedKey(jsonMap, keyParts, 0);
+    List<Object> jsonPaths = collectKeyValuePair(args);
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode root = mapper.readTree(jsonStr);
+    DocumentContext ctx = JsonPath.parse(jsonStr);
+    for (Object originalPath : jsonPaths) {
+      String jsonPath = convertToJsonPath(originalPath.toString());
+      try {
+        Object matches = ctx.read(jsonPath); // verify whether it's a valid path
+      } catch (PathNotFoundException e) {
+        return gson.fromJson(jsonStr, Map.class);
+      }
+      // Resolve path tokens
+      PathTokenizer tokenizer = new PathTokenizer(jsonPath);
+      root = deletePath(root, tokenizer);
     }
-    Map<?, ?> result = gson.fromJson(objectMapper.writeValueAsString(jsonMap), Map.class);
-    return result;
+    return gson.fromJson(mapper.writeValueAsString(root), Map.class);
   }
 }

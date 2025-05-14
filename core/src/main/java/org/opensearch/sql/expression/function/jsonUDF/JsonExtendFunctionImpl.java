@@ -6,7 +6,8 @@
 package org.opensearch.sql.expression.function.jsonUDF;
 
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.updateNestedJson;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl.jsonAppendIfArray;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.collectKeyValuePair;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.List;
@@ -53,12 +54,12 @@ public class JsonExtendFunctionImpl extends ImplementorUDF {
 
   public static Object eval(Object... args) throws JsonProcessingException {
     String jsonStr = (String) args[0];
-    List<String> keys = (List<String>) args[1];
+    List<Object> keys = collectKeyValuePair(args);
     if (keys.size() % 2 != 0) {
       throw new RuntimeException(
           "Json extend function needs corresponding path and values, but current get: " + keys);
     }
-    String resultStr = updateNestedJson(jsonStr, keys, JsonUtils::extendObjectValue);
+    String resultStr = jsonAppendIfArray(jsonStr, keys, true);
     Map<?, ?> result = gson.fromJson(resultStr, Map.class);
     return result;
   }

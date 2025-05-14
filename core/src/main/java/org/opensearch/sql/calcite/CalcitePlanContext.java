@@ -16,7 +16,6 @@ import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.calcite.rex.RexCorrelVariable;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -34,8 +33,7 @@ public class CalcitePlanContext {
   public final ExtendedRexBuilder rexBuilder;
   public final FunctionProperties functionProperties;
   public final QueryType queryType;
-  @Getter
-  public Map<String, RexLambdaRef> temparolInputmap;
+  @Getter public Map<String, RexLambdaRef> temparolInputmap;
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingExistsSubquery = false;
@@ -55,7 +53,7 @@ public class CalcitePlanContext {
     this.temparolInputmap.put(name, input);
   }
 
-    public RexNode resolveJoinCondition(
+  public RexNode resolveJoinCondition(
       UnresolvedExpression expr,
       BiFunction<UnresolvedExpression, CalcitePlanContext, RexNode> transformFunction) {
     isResolvingJoinCondition = true;

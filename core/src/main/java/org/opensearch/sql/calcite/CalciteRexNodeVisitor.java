@@ -20,7 +20,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlIntervalQualifier;
@@ -66,7 +65,6 @@ import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
-import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
@@ -345,8 +343,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<QualifiedName> names = node.getFuncArgs();
     List<RexLambdaRef> args = new ArrayList<>();
     for (int i = 0; i < names.size(); i++) {
-      context.putTemparolInputmap(names.get(i).toString(), new RexLambdaRef(i, names.get(i).toString(), context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
-      args.add(new RexLambdaRef(i, names.get(i).toString(), context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
+      context.putTemparolInputmap(
+          names.get(i).toString(),
+          new RexLambdaRef(
+              i,
+              names.get(i).toString(),
+              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
+      args.add(
+          new RexLambdaRef(
+              i,
+              names.get(i).toString(),
+              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
     }
     RexNode body = node.getFunction().accept(this, context);
     RexNode lambdaNode = context.rexBuilder.makeLambdaCall(body, args);

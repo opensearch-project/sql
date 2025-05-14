@@ -9,6 +9,15 @@ import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
+import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
+import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -53,13 +62,70 @@ public class JsonAppendFunctionImpl extends ImplementorUDF {
 
   public static Object eval(Object... args) throws JsonProcessingException {
     String jsonStr = (String) args[0];
-    List<String> keys = (List<String>) args[1];
+    List<Object> keys = collectKeyValuePair(args);
     if (keys.size() % 2 != 0) {
       throw new RuntimeException(
           "Json append function needs corresponding path and values, but current get: " + keys);
     }
-    String resultStr = updateNestedJson(jsonStr, keys, JsonUtils::appendObjectValue);
+    String resultStr = jsonAppendIfArray(jsonStr, keys, false);
     Map<?, ?> result = gson.fromJson(resultStr, Map.class);
     return result;
+  }
+
+  public static String jsonAppendIfArray(String json, List<Object> pathValueMap, boolean isExtend) {
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      JsonNode tree = mapper.readTree(json);
+
+      Configuration conf =
+          Configuration.builder()
+              .jsonProvider(new JacksonJsonNodeJsonProvider())
+              .mappingProvider(new JacksonMappingProvider())
+              .build();
+
+      DocumentContext context = JsonPath.using(conf).parse(tree);
+
+      for (int index = 0; index < pathValueMap.size(); index += 2) {
+        String jsonPath = pathValueMap.get(index).toString();
+        Object valueToAppend = pathValueMap.get(index + 1);
+        JsonNode targets;
+        try {
+          targets = context.read(jsonPath);
+        } catch (PathNotFoundException e) {
+          continue;
+        }
+        if (JsonPath.isPathDefinite(jsonPath)) {
+          if (targets instanceof ArrayNode arrayNode) {
+            if (isExtend && valueToAppend instanceof List list) {
+              for (Object value : list) {
+                arrayNode.addPOJO(value);
+              }
+            } else {
+              arrayNode.addPOJO(valueToAppend);
+            }
+          }
+        } else {
+          // Some * inside. an arrayNode returned
+          for (int i = 0; i < targets.size(); i++) {
+            JsonNode target = targets.get(i);
+            if (target instanceof ArrayNode arrayNode) {
+              if (isExtend && valueToAppend instanceof List list) {
+                for (Object value : list) {
+                  arrayNode.addPOJO(value);
+                }
+              } else {
+                arrayNode.addPOJO(valueToAppend);
+              }
+            }
+          }
+        }
+      }
+      return mapper.writeValueAsString(tree);
+    } catch (Exception e) {
+      if (e instanceof PathNotFoundException) {
+        return json;
+      }
+      throw new RuntimeException("Failed to process JSON", e);
+    }
   }
 }

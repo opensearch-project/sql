@@ -6,8 +6,17 @@
 package org.opensearch.sql.expression.function.jsonUDF;
 
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.updateNestedJson;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
+import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
+import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -52,13 +61,67 @@ public class JsonSetFunctionImpl extends ImplementorUDF {
 
   public static Object eval(Object... args) {
     String jsonStr = (String) args[0];
-    List<String> keys = (List<String>) args[1];
+    List<Object> keys = collectKeyValuePair(args);
     if (keys.size() % 2 != 0) {
       throw new RuntimeException(
           "Json set function needs corresponding path and values, but current get: " + keys);
     }
-    String resultStr = updateNestedJson(jsonStr, keys, (obj, key, value) -> obj.put(key, value));
+    String resultStr = jsonSetIfParentObject(jsonStr, keys);
     Map<?, ?> result = gson.fromJson(resultStr, Map.class);
     return result;
+  }
+
+  public static String jsonSetIfParentObject(String json, List<Object> fullPathToValue) {
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      JsonNode root = mapper.readTree(json);
+
+      Configuration conf =
+          Configuration.builder()
+              .jsonProvider(new JacksonJsonNodeJsonProvider())
+              .mappingProvider(new JacksonMappingProvider())
+              .build();
+
+      DocumentContext context = JsonPath.using(conf).parse(root);
+
+      for (int index = 0; index < fullPathToValue.size(); index += 2) {
+        String fullPath = convertToJsonPath(fullPathToValue.get(index).toString());
+        Object value = fullPathToValue.get(index + 1);
+
+        // Split: "$.a.b.d" -> parentPath = "$.a.b", field = "d"
+        int lastDot = fullPath.lastIndexOf('.');
+        if (lastDot <= 1 || lastDot == fullPath.length() - 1) {
+          continue; // Invalid path
+        }
+
+        String parentPath = fullPath.substring(0, lastDot);
+        String fieldName = fullPath.substring(lastDot + 1);
+
+        JsonNode targets;
+        try {
+          targets = context.read(parentPath);
+        } catch (PathNotFoundException e) {
+          continue; // parent path not found
+        }
+
+        if (JsonPath.isPathDefinite(parentPath)) {
+          if (targets instanceof ObjectNode objectNode) {
+            objectNode.set(fieldName, mapper.valueToTree(value));
+          }
+        } else {
+          // Some * inside. an arrayNode returned
+          for (int i = 0; i < targets.size(); i++) {
+            JsonNode target = targets.get(i);
+            if (target instanceof ObjectNode objectNode) {
+              objectNode.set(fieldName, mapper.valueToTree(value));
+            }
+          }
+        }
+      }
+
+      return mapper.writeValueAsString(root);
+    } catch (Exception e) {
+      throw new RuntimeException("jsonSetIfParentObject failed", e);
+    }
   }
 }

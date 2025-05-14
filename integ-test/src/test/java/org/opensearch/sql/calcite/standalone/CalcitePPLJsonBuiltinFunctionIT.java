@@ -147,44 +147,47 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
   @Test
   public void testJsonExtractWithNewPath() {
-    String candidate = "[\n" +
-            "    {\n" +
-            "      \"name\": \"London\",\n" +
-            "      \"Bridges\": [\n" +
-            "        { \"name\": \"Tower Bridge\", \"length\": 801 },\n" +
-            "        { \"name\": \"Millennium Bridge\", \"length\": 1066 }\n" +
-            "      ]\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"name\": \"Venice\",\n" +
-            "      \"Bridges\": [\n" +
-            "        { \"name\": \"Rialto Bridge\", \"length\": 157 },\n" +
-            "        { \"name\": \"Bridge of Sighs\", \"length\": 36 },\n" +
-            "        { \"name\": \"Ponte della Paglia\" }\n" +
-            "      ]\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"name\": \"San Francisco\",\n" +
-            "      \"Bridges\": [\n" +
-            "        { \"name\": \"Golden Gate Bridge\", \"length\": 8981 },\n" +
-            "        { \"name\": \"Bay Bridge\", \"length\": 23556 }\n" +
-            "       ]\n" +
-            "     }\n" +
-            "   ]";
+    String candidate =
+        "[\n"
+            + "{\n"
+            + "\"name\":\"London\",\n"
+            + "\"Bridges\":[\n"
+            + "{\"name\":\"Tower Bridge\",\"length\":801.0},\n"
+            + "{\"name\":\"Millennium Bridge\",\"length\":1066.0}\n"
+            + "]\n"
+            + "},\n"
+            + "{\n"
+            + "\"name\":\"Venice\",\n"
+            + "\"Bridges\":[\n"
+            + "{\"name\":\"Rialto Bridge\",\"length\":157.0},\n"
+            + "{\"name\":\"Bridge of Sighs\",\"length\":36.0},\n"
+            + "{\"name\":\"Ponte della Paglia\"}\n"
+            + "]\n"
+            + "},\n"
+            + "{\n"
+            + "\"name\": \"San Francisco\",\n"
+            + "\"Bridges\":[\n"
+            + "{\"name\":\"Golden Gate Bridge\",\"length\":8981.0},\n"
+            + "{\"name\":\"Bay Bridge\", \"length\":23556.0}\n"
+            + "]\n"
+            + "}\n"
+            + "]";
     JSONObject actual =
-            executeQuery(
-                    String.format(
-                            "source=%s | head 1 | eval a = json_extract('%s', '{}'), b= json_extract('%s', '{2}.Bridges{0}.length'), c= json_extract('%s', '{2}'), d=json_extract('%s', '{2}.Bridges{0}')| fields a, b, c, d | head 1",
-                            TEST_INDEX_PEOPLE2, candidate, candidate, candidate, candidate));
+        executeQuery(
+            String.format(
+                "source=%s | head 1 | eval a = json_extract('%s', '{}'), b= json_extract('%s',"
+                    + " '{2}.Bridges{0}.length'), d=json_extract('%s', '{2}.Bridges{0}')| fields a,"
+                    + " b, d | head 1",
+                TEST_INDEX_PEOPLE2, candidate, candidate, candidate, candidate));
 
-    verifySchema(
-            actual,
-            schema("a", "string"),
-            schema("b", "string"),
-            schema("c", "string"),
-            schema("d", "string"));
+    verifySchema(actual, schema("a", "string"), schema("b", "string"), schema("d", "string"));
 
-    verifyDataRows(actual, rows("b", "2", "[1,2]", null));
+    verifyDataRows(
+        actual,
+        rows(
+            gson.toJson(gson.fromJson(candidate, List.class)),
+            "8981.0",
+            "{\"name\":\"Golden Gate Bridge\",\"length\":8981.0}"));
   }
 
   @Test
@@ -234,13 +237,13 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval a =json_set('{\"a\":[{\"b\":1},{\"b\":2}]}', array('a.b', '3'))|"
+                "source=%s | eval a =json_set('{\"a\":[{\"b\":1},{\"b\":2}]}', 'a{}.b', '3')|"
                     + " fields a | head 1",
                 TEST_INDEX_PEOPLE2));
 
     verifySchema(actual, schema("a", "struct"));
 
-    verifyDataRows(actual, rows(gson.fromJson("{\"a\":[{\"b\":3},{\"b\":3}]}", Map.class)));
+    verifyDataRows(actual, rows(gson.fromJson("{\"a\":[{\"b\":\"3\"},{\"b\":\"3\"}]}", Map.class)));
   }
 
   @Test
@@ -250,7 +253,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval a"
                     + " =json_delete('{\"account_number\":1,\"balance\":39225,\"age\":32,\"gender\":\"M\"}',"
-                    + " array('age','gender'))| fields a | head 1",
+                    + " 'age','gender')| fields a | head 1",
                 TEST_INDEX_PEOPLE2));
 
     verifySchema(actual, schema("a", "struct"));
@@ -266,7 +269,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval a"
                     + " =json_delete('{\"f1\":\"abc\",\"f2\":{\"f3\":\"a\",\"f4\":\"b\"}}',"
-                    + " array('f2.f3')) | fields a | head 1",
+                    + " 'f2.f3') | fields a | head 1",
                 TEST_INDEX_PEOPLE2));
 
     verifySchema(actual, schema("a", "struct"));
@@ -276,13 +279,30 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testJsonDeleteWithNestedAndArry() {
+  public void testJsonDeleteWithNestedNothing() {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | eval a"
-                    + " =json_delete('{\"teacher\":\"Alice\",\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}',array('teacher',"
-                    + " 'student.rank')) | fields a | head 1",
+                    + " =json_delete('{\"f1\":\"abc\",\"f2\":{\"f3\":\"a\",\"f4\":\"b\"}}',"
+                    + " 'f2.f100') | fields a | head 1",
+                TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "struct"));
+
+    verifyDataRows(
+        actual,
+        rows(gson.fromJson("{\"f1\":\"abc\",\"f2\":{\"f3\":\"a\",\"f4\":\"b\"}}", Map.class)));
+  }
+
+  @Test
+  public void testJsonDeleteWithNestedAndArray() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a"
+                    + " =json_delete('{\"teacher\":\"Alice\",\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}','teacher',"
+                    + " 'student{}.rank') | fields a | head 1",
                 TEST_INDEX_PEOPLE2));
 
     verifySchema(actual, schema("a", "struct"));
@@ -300,11 +320,11 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval a"
                     + " =json_append('{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}',"
-                    + " array('student', '{\"name\":\"Tomy\",\"rank\":5}')),  b ="
+                    + " 'student', json_object(\"name\", \"Tomy\",\"rank\", 5)),  b ="
                     + " json_append('{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}',"
-                    + " array('teacher', '\"Tom\"', 'teacher', '\"Walt\"')),c ="
+                    + " 'teacher', 'Tom', 'teacher', 'Walt'),c ="
                     + " json_append('{\"school\":{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}',"
-                    + " array('school.teacher', '[\"Tom\", \"Walt\"]'))| fields a, b, c | head 1",
+                    + " 'school.teacher', json_array(\"Tom\", \"Walt\"))| fields a, b, c | head 1",
                 TEST_INDEX_PEOPLE2));
 
     verifySchema(actual, schema("a", "struct"), schema("b", "struct"), schema("c", "struct"));
@@ -330,11 +350,11 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
             String.format(
                 "source=%s | eval a ="
                     + " json_extend('{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}',"
-                    + " array('student', '{\"name\":\"Tommy\",\"rank\":5}')),  b ="
+                    + " 'student', json_object(\"name\", \"Tommy\",\"rank\", 5)),  b ="
                     + " json_extend('{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}',"
-                    + " array('teacher', '\"Tom\"', 'teacher', '\"Walt\"')),c ="
+                    + " 'teacher', 'Tom', 'teacher', 'Walt'),c ="
                     + " json_extend('{\"school\":{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}',"
-                    + " array('school.teacher', '[\"Tom\", \"Walt\"]'))| fields a, b, c | head 1",
+                    + " 'school.teacher', array(\"Tom\", \"Walt\"))| fields a, b, c | head 1",
                 TEST_INDEX_PEOPLE2));
 
     verifySchema(actual, schema("a", "struct"), schema("b", "struct"), schema("c", "struct"));
