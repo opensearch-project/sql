@@ -6,12 +6,10 @@
 package org.opensearch.sql.expression.function.jsonUDF;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.convertToJsonPath;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
 
 import com.jayway.jsonpath.JsonPath;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,13 +36,12 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
   public SqlReturnTypeInference getReturnTypeInference() {
     return sqlOperatorBinding -> {
       RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
-      RelDataType varcharType = typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
+      RelDataType varcharType =
+          typeFactory.createTypeWithNullability(
+              typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
       if (sqlOperatorBinding.collectOperandTypes().size() > 2) {
-        return createArrayType(
-                typeFactory,
-                varcharType,
-                true);
-      } else  {
+        return createArrayType(typeFactory, varcharType, true);
+      } else {
         return varcharType;
       }
     };
@@ -69,7 +66,7 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
     Object value = args[0];
     List<Object> results = new ArrayList<>();
     List<Object> paths = Arrays.asList(args).subList(1, args.length);
-    for (Object path: paths) {
+    for (Object path : paths) {
       String jsonPath = convertToJsonPath(path.toString());
       try {
         Object result;

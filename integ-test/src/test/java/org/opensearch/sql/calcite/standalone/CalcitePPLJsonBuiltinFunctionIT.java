@@ -5,11 +5,11 @@
 
 package org.opensearch.sql.calcite.standalone;
 
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
+import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -59,8 +59,8 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(
         actual,
         rows(
-            gson.fromJson("{\"key\":123.45}", Map.class),
-            gson.fromJson("{\"outer\":{\"inner\":123.45}}", Map.class)));
+            new Gson().fromJson("{\"key\":123.45}", Map.class),
+            new Gson().fromJson("{\"outer\":{\"inner\":123.45}}", Map.class)));
   }
 
   @Test
@@ -181,7 +181,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(
         actual,
         rows(
-            gson.toJson(gson.fromJson(candidate, List.class)),
+            new Gson().toJson(new Gson().fromJson(candidate, List.class)),
             "8981.0",
             "{\"name\":\"Golden Gate Bridge\",\"length\":8981.0}"));
   }
@@ -254,8 +254,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
     verifySchema(actual, schema("a", "string"));
 
-    verifyDataRows(
-        actual, rows("{\"account_number\":1,\"balance\":39225}"));
+    verifyDataRows(actual, rows("{\"account_number\":1,\"balance\":39225}"));
   }
 
   @Test
@@ -270,8 +269,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
     verifySchema(actual, schema("a", "string"));
 
-    verifyDataRows(
-        actual, rows("{\"f1\":\"abc\",\"f2\":{\"f4\":\"b\"}}"));
+    verifyDataRows(actual, rows("{\"f1\":\"abc\",\"f2\":{\"f4\":\"b\"}}"));
   }
 
   @Test
@@ -286,9 +284,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
     verifySchema(actual, schema("a", "string"));
 
-    verifyDataRows(
-        actual,
-        rows("{\"f1\":\"abc\",\"f2\":{\"f3\":\"a\",\"f4\":\"b\"}}"));
+    verifyDataRows(actual, rows("{\"f1\":\"abc\",\"f2\":{\"f3\":\"a\",\"f4\":\"b\"}}"));
   }
 
   @Test
@@ -303,10 +299,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
 
     verifySchema(actual, schema("a", "string"));
 
-    verifyDataRows(
-        actual,
-        rows(
-            "{\"student\":[{\"name\":\"Bob\"},{\"name\":\"Charlie\"}]}"));
+    verifyDataRows(actual, rows("{\"student\":[{\"name\":\"Bob\"},{\"name\":\"Charlie\"}]}"));
   }
 
   @Test
@@ -328,15 +321,9 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(
         actual,
         rows(
-
-                "{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2},{\"name\":\"Tomy\",\"rank\":5}]}"
-                ,
-
-                "{\"teacher\":[\"Alice\",\"Tom\",\"Walt\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}"
-                ,
-
-                "{\"school\":{\"teacher\":[\"Alice\",[\"Tom\",\"Walt\"]],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}"
-                ));
+            "{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2},{\"name\":\"Tomy\",\"rank\":5}]}",
+            "{\"teacher\":[\"Alice\",\"Tom\",\"Walt\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}",
+            "{\"school\":{\"teacher\":[\"Alice\",[\"Tom\",\"Walt\"]],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}"));
   }
 
   @Test
@@ -358,12 +345,9 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(
         actual,
         rows(
-            "{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2},{\"name\":\"Tommy\",\"rank\":5}]}"
-           ,
-                "{\"teacher\":[\"Alice\",\"Tom\",\"Walt\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}"
-               ,
-                "{\"school\":{\"teacher\":[\"Alice\",\"Tom\",\"Walt\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}"
-                ));
+            "{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2},{\"name\":\"Tommy\",\"rank\":5}]}",
+            "{\"teacher\":[\"Alice\",\"Tom\",\"Walt\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}",
+            "{\"school\":{\"teacher\":[\"Alice\",\"Tom\",\"Walt\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}"));
   }
 
   @Test

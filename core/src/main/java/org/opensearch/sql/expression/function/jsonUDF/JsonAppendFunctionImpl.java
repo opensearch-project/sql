@@ -5,13 +5,11 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
@@ -19,21 +17,17 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
-
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class JsonAppendFunctionImpl extends ImplementorUDF {
@@ -43,7 +37,7 @@ public class JsonAppendFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return VARCHAR_FORCE_NULLABLE;
+    return STRING_FORCE_NULLABLE;
   }
 
   public static class JsonAppendImplementor implements NotNullImplementor {

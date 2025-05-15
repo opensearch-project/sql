@@ -6,7 +6,7 @@
 package org.opensearch.sql.expression.function.jsonUDF;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
 
 import com.google.gson.JsonSyntaxException;
 import java.util.Arrays;

@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.INTEGER_FORCE_NULLABLE;
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.INTEGER_FORCE_NULLABLE;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
 
 import com.google.gson.JsonSyntaxException;
 import java.util.List;

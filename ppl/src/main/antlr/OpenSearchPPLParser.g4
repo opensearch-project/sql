@@ -702,7 +702,6 @@ trigonometricFunctionName
    | TAN
    ;
 
-<<<<<<< HEAD
 collectionFunctionName
     : ARRAY
     ;
@@ -729,14 +728,12 @@ lambdaFunctionName
   | REDUCE
   ;
 
-=======
 cryptographicFunctionName
    : MD5
    | SHA1
    | SHA2
    ;
 
->>>>>>> origin/main
 dateTimeFunctionName
    : ADDDATE
    | ADDTIME

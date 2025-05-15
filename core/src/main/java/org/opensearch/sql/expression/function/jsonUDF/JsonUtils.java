@@ -5,168 +5,17 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.Gson;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class JsonUtils {
   static ObjectMapper objectMapper = new ObjectMapper();
-
-  static Object parseValue(String value) {
-    // Try parsing the value as JSON, fallback to primitive if parsing fails
-    try {
-      return objectMapper.readValue(value, Object.class);
-    } catch (Exception e) {
-      // Primitive value, return as is
-      return value;
-    }
-  }
-
-  @FunctionalInterface
-  interface UpdateConsumer {
-    void apply(Map<String, Object> obj, String key, Object value);
-  }
-
-  private static void traverseNestedObject(
-      Object currentObj,
-      String[] pathParts,
-      int depth,
-      Object valueToUpdate,
-      UpdateConsumer updateObjectFunction) {
-    if (currentObj == null || depth >= pathParts.length) {
-      return;
-    }
-
-    if (currentObj instanceof Map) {
-      Map<String, Object> currentMap = (Map<String, Object>) currentObj;
-      String currentKey = pathParts[depth];
-
-      if (depth == pathParts.length - 1) {
-        updateObjectFunction.apply(currentMap, currentKey, valueToUpdate);
-      } else {
-        // Continue traversing
-        currentMap.computeIfAbsent(
-            currentKey, k -> new LinkedHashMap<>()); // Create map if not present
-        traverseNestedObject(
-            currentMap.get(currentKey), pathParts, depth + 1, valueToUpdate, updateObjectFunction);
-      }
-    } else if (currentObj instanceof List) {
-      // If the current object is a list, process each map in the list
-      List<Object> list = (List<Object>) currentObj;
-      for (Object item : list) {
-        if (item instanceof Map) {
-          traverseNestedObject(item, pathParts, depth, valueToUpdate, updateObjectFunction);
-        }
-      }
-    }
-  }
-
-  static String updateNestedJson(
-      String jsonStr, List<String> pathValues, UpdateConsumer updateFieldConsumer) {
-    if (jsonStr == null) {
-      return null;
-    }
-    // don't update if the list is empty, or the list is not key-value pairs
-    if (pathValues.isEmpty()) {
-      return jsonStr;
-    }
-    try {
-      // Parse the JSON string into a Map
-      Map<String, Object> jsonMap = objectMapper.readValue(jsonStr, Map.class);
-
-      // Iterate through the key-value pairs and update the json
-      var iter = pathValues.iterator();
-      while (iter.hasNext()) {
-        String path = iter.next();
-        if (!iter.hasNext()) {
-          // no value provided and cannot update anything
-          break;
-        }
-        String[] pathParts = path.split("\\.");
-        Object parsedValue = parseValue(iter.next());
-
-        traverseNestedObject(jsonMap, pathParts, 0, parsedValue, updateFieldConsumer);
-      }
-
-      // Convert the updated map back to JSON
-      return objectMapper.writeValueAsString(jsonMap);
-    } catch (Exception e) {
-      return null;
-    }
-  }
-
-  static void appendObjectValue(Map<String, Object> obj, String key, Object value) {
-    // If it's the last key, append to the array
-    obj.computeIfAbsent(key, k -> new ArrayList<>()); // Create list if not present
-    Object existingValue = obj.get(key);
-
-    if (existingValue instanceof List) {
-      List<Object> list = (List<Object>) existingValue;
-      list.add(value);
-    }
-  }
-
-  static void extendObjectValue(Map<String, Object> obj, String key, Object value) {
-    // If it's the last key, append to the array
-    obj.computeIfAbsent(key, k -> new ArrayList<>()); // Create list if not present
-    Object existingValue = obj.get(key);
-
-    if (existingValue instanceof List) {
-      List<Object> existingList = (List<Object>) existingValue;
-      if (value instanceof List) {
-        existingList.addAll((List) value);
-      } else {
-        existingList.add(value);
-      }
-    }
-  }
-
-  /**
-   * remove nested json object using its keys parts.
-   *
-   * @param currentObj
-   * @param keyParts
-   * @param depth
-   */
-  static void removeNestedKey(Object currentObj, String[] keyParts, int depth) {
-    if (currentObj == null || depth >= keyParts.length) {
-      return;
-    }
-
-    if (currentObj instanceof Map) {
-      Map<String, Object> currentMap = (Map<String, Object>) currentObj;
-      String currentKey = keyParts[depth];
-
-      if (depth == keyParts.length - 1) {
-        // If it's the last key, remove it from the map
-        currentMap.remove(currentKey);
-      } else {
-        // If not the last key, continue traversing
-        if (currentMap.containsKey(currentKey)) {
-          Object nextObj = currentMap.get(currentKey);
-
-          if (nextObj instanceof List) {
-            // If the value is a list, process each item in the list
-            List<Object> list = (List<Object>) nextObj;
-            for (int i = 0; i < list.size(); i++) {
-              removeNestedKey(list.get(i), keyParts, depth + 1);
-            }
-          } else {
-            // Continue traversing if it's a map
-            removeNestedKey(nextObj, keyParts, depth + 1);
-          }
-        }
-      }
-    }
-  }
+  static Gson gson = new Gson();
 
   /**
    * @param input candidate json path like a.b{}.c{2}
@@ -294,13 +143,13 @@ public class JsonUtils {
     try {
       JsonNode root;
       if (input instanceof String) {
-         root = objectMapper.readTree(input.toString());
+        root = objectMapper.readTree(input.toString());
       } else {
         root = objectMapper.valueToTree(input);
       }
       return root;
     } catch (Exception e) {
-        throw new RuntimeException("fail to parse input", e);
+      throw new RuntimeException("fail to parse input", e);
     }
   }
 }

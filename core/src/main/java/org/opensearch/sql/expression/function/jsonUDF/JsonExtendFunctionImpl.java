@@ -5,26 +5,21 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl.jsonAppendIfArray;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class JsonExtendFunctionImpl extends ImplementorUDF {
@@ -34,7 +29,7 @@ public class JsonExtendFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return VARCHAR_FORCE_NULLABLE;
+    return STRING_FORCE_NULLABLE;
   }
 
   public static class JsonExtendImplementor implements NotNullImplementor {

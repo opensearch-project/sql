@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
 
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -27,7 +27,7 @@ public class ToJsonStringFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return VARCHAR_FORCE_NULLABLE;
+    return STRING_FORCE_NULLABLE;
   }
 
   public static class ToJsonStringImplementor implements NotNullImplementor {
