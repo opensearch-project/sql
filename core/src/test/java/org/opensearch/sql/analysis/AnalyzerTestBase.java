@@ -26,6 +26,7 @@ import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.config.TestConfig;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.RequestContext;
@@ -273,5 +274,15 @@ public class AnalyzerTestBase {
     public Table applyArguments() {
       return table;
     }
+  }
+
+  public static String getIncompatibleTypeErrMsg(ExprType lType, ExprType rType) {
+    return String.format(
+        "= function expected %s, but got [%s,%s]",
+        ExprCoreType.coreTypes().stream()
+            .map(type -> String.format("[%s,%s]", type.typeName(), type.typeName()))
+            .collect(Collectors.joining(",", "{", "}")),
+        lType,
+        rType);
   }
 }

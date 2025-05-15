@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl.utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
@@ -18,6 +19,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
@@ -90,6 +92,24 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=t | stats count(a) by span(b, *** d),c",
         anonymize("source=t | stats count(a) by span(b, 1d), c"));
+  }
+
+  @Test
+  public void testEventstatsCommandWithByClause() {
+    assertEquals(
+        "source=t | eventstats count(a) by b", anonymize("source=t | eventstats count(a) by b"));
+  }
+
+  @Test
+  public void testEventstatsCommandWithNestedFunctions() {
+    assertEquals("source=t | eventstats sum(+(a,b))", anonymize("source=t | eventstats sum(a+b)"));
+  }
+
+  @Test
+  public void testEventstatsCommandWithSpanFunction() {
+    assertEquals(
+        "source=t | eventstats count(a) by span(b, *** d),c",
+        anonymize("source=t | eventstats count(a) by span(b, 1d), c"));
   }
 
   @Test
@@ -184,7 +204,18 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testExplain() {
-    assertEquals("source=t | fields + a", anonymizeStatement("source=t | fields a", true));
+    assertEquals(
+        "explain standard source=t | fields + a", anonymizeStatement("source=t | fields a", true));
+  }
+
+  @Test
+  public void testExplainCommand() {
+    assertEquals(
+        "explain standard source=t | fields + a",
+        anonymizeStatement("explain source=t | fields a", false));
+    assertEquals(
+        "explain extended source=t | fields + a",
+        anonymizeStatement("explain extended source=t | fields a", false));
   }
 
   @Test
@@ -292,6 +323,22 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testCaseWhen() {
+    assertEquals(
+        "source=t | eval level=cast(score >= ***,***,score >= *** and score < ***,*** else ***) |"
+            + " fields + level",
+        anonymize(
+            "source=t | eval level=CASE(score >= 90, 'A', score >= 80 AND score < 90, 'B' else 'C')"
+                + " | fields level"));
+    assertEquals(
+        "source=t | eval level=cast(score >= ***,***,score >= *** and score < ***,***) | fields +"
+            + " level",
+        anonymize(
+            "source=t | eval level=CASE(score >= 90, 'A', score >= 80 AND score < 90, 'B')"
+                + " | fields level"));
+  }
+
+  @Test
   public void testCast() {
     assertEquals(
         "source=t | eval id=cast(a as INTEGER) | fields + id",
@@ -309,6 +356,15 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=t | parse email '.+@(?<host>.+)' | fields + email,host",
         anonymize("source=t | parse email '.+@(?<host>.+)' | fields email, host"));
+  }
+
+  @Test
+  public void testPatterns() {
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    assertEquals("source=t | patterns email", anonymize("source=t | patterns email"));
+    assertEquals(
+        "source=t | patterns email | fields + email,patterns_field",
+        anonymize("source=t | patterns email | fields email, patterns_field"));
   }
 
   private String anonymize(String query) {

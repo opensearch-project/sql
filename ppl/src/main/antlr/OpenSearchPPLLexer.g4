@@ -13,11 +13,13 @@ options { caseInsensitive = true; }
 SEARCH:                             'SEARCH';
 DESCRIBE:                           'DESCRIBE';
 SHOW:                               'SHOW';
+EXPLAIN:                            'EXPLAIN';
 FROM:                               'FROM';
 WHERE:                              'WHERE';
 FIELDS:                             'FIELDS';
 RENAME:                             'RENAME';
 STATS:                              'STATS';
+EVENTSTATS:                         'EVENTSTATS';
 DEDUP:                              'DEDUP';
 SORT:                               'SORT';
 EVAL:                               'EVAL';
@@ -63,6 +65,10 @@ DESC:                               'DESC';
 DATASOURCES:                        'DATASOURCES';
 USING:                              'USING';
 WITH:                               'WITH';
+SIMPLE:                             'SIMPLE';
+STANDARD:                           'STANDARD';
+COST:                               'COST';
+EXTENDED:                           'EXTENDED';
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality
@@ -98,6 +104,7 @@ APPEND:                             'APPEND';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
+ELSE:                               'ELSE';
 IN:                                 'IN';
 EXISTS:                             'EXISTS';
 
@@ -216,8 +223,6 @@ STDDEV_POP:                         'STDDEV_POP';
 PERCENTILE:                         'PERCENTILE';
 PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
 TAKE:                               'TAKE';
-FIRST:                              'FIRST';
-LAST:                               'LAST';
 LIST:                               'LIST';
 VALUES:                             'VALUES';
 PER_DAY:                            'PER_DAY';
@@ -228,6 +233,17 @@ RATE:                               'RATE';
 SPARKLINE:                          'SPARKLINE';
 C:                                  'C';
 DC:                                 'DC';
+
+// SCALAR WINDOW FUNCTIONS
+ROW_NUMBER:                         'ROW_NUMBER';
+RANK:                               'RANK';
+DENSE_RANK:                         'DENSE_RANK';
+PERCENT_RANK:                       'PERCENT_RANK';
+CUME_DIST:                          'CUME_DIST';
+FIRST:                              'FIRST';
+LAST:                               'LAST';
+NTH:                                'NTH';
+NTILE:                              'NTILE';
 
 // BASIC FUNCTIONS
 ABS:                                'ABS';
@@ -265,6 +281,11 @@ DEGREES:                            'DEGREES';
 RADIANS:                            'RADIANS';
 SIN:                                'SIN';
 TAN:                                'TAN';
+
+// CRYPTOGRAPHIC FUNCTIONS
+MD5:                                  'MD5';
+SHA1:                                 'SHA1';
+SHA2:                                 'SHA2';
 
 // DATE AND TIME FUNCTIONS
 ADDDATE:                            'ADDDATE';

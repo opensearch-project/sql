@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.expression.function;
 
-import static java.lang.Math.E;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
@@ -172,6 +171,8 @@ public class PPLFuncImpTable {
       registerOperator(LENGTH, SqlStdOperatorTable.CHAR_LENGTH);
       registerOperator(LOWER, SqlStdOperatorTable.LOWER);
       registerOperator(POSITION, SqlStdOperatorTable.POSITION);
+      registerOperator(LOCATE, SqlStdOperatorTable.POSITION);
+      registerOperator(REPLACE, SqlStdOperatorTable.REPLACE);
       registerOperator(SUBSTRING, SqlStdOperatorTable.SUBSTRING);
       registerOperator(SUBSTR, SqlStdOperatorTable.SUBSTRING);
       registerOperator(UPPER, SqlStdOperatorTable.UPPER);
@@ -199,6 +200,8 @@ public class PPLFuncImpTable {
       registerOperator(CBRT, SqlStdOperatorTable.CBRT);
       registerOperator(IS_NOT_NULL, SqlStdOperatorTable.IS_NOT_NULL);
       registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
+      registerOperator(IF, SqlStdOperatorTable.CASE);
+      registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
@@ -210,9 +213,93 @@ public class PPLFuncImpTable {
       registerOperator(RIGHT, SqlLibraryOperators.RIGHT);
       registerOperator(LEFT, SqlLibraryOperators.LEFT);
       registerOperator(LOG2, SqlLibraryOperators.LOG2);
+      registerOperator(MD5, SqlLibraryOperators.MD5);
+      registerOperator(SHA1, SqlLibraryOperators.SHA1);
+      registerOperator(INTERNAL_REGEXP_EXTRACT, SqlLibraryOperators.REGEXP_EXTRACT);
+      registerOperator(INTERNAL_REGEXP_REPLACE_2, SqlLibraryOperators.REGEXP_REPLACE_2);
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
+      registerOperator(E, PPLBuiltinOperators.E);
+      registerOperator(CONV, PPLBuiltinOperators.CONV);
+      registerOperator(MOD, PPLBuiltinOperators.MOD);
+      registerOperator(MODULUS, PPLBuiltinOperators.MOD);
+      registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);
+      registerOperator(CRC32, PPLBuiltinOperators.CRC32);
+      registerOperator(DIVIDE, PPLBuiltinOperators.DIVIDE);
+      registerOperator(SHA2, PPLBuiltinOperators.SHA2);
+
+      // Register PPL Datetime UDF operator
+      registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);
+      registerOperator(DATE, PPLBuiltinOperators.DATE);
+      registerOperator(TIME, PPLBuiltinOperators.TIME);
+      registerOperator(UTC_TIME, PPLBuiltinOperators.UTC_TIME);
+      registerOperator(UTC_DATE, PPLBuiltinOperators.UTC_DATE);
+      registerOperator(UTC_TIMESTAMP, PPLBuiltinOperators.UTC_TIMESTAMP);
+      registerOperator(YEAR, PPLBuiltinOperators.YEAR);
+      registerOperator(YEARWEEK, PPLBuiltinOperators.YEARWEEK);
+      registerOperator(WEEKDAY, PPLBuiltinOperators.WEEKDAY);
+      registerOperator(UNIX_TIMESTAMP, PPLBuiltinOperators.UNIX_TIMESTAMP);
+      registerOperator(TO_SECONDS, PPLBuiltinOperators.TO_SECONDS);
+      registerOperator(TO_DAYS, PPLBuiltinOperators.TO_DAYS);
+      registerOperator(ADDTIME, PPLBuiltinOperators.ADDTIME);
+      registerOperator(SUBTIME, PPLBuiltinOperators.SUBTIME);
+      registerOperator(ADDDATE, PPLBuiltinOperators.ADDDATE);
+      registerOperator(SUBDATE, PPLBuiltinOperators.SUBDATE);
+      registerOperator(DATE_ADD, PPLBuiltinOperators.DATE_ADD);
+      registerOperator(DATE_SUB, PPLBuiltinOperators.DATE_SUB);
+      registerOperator(EXTRACT, PPLBuiltinOperators.EXTRACT);
+      registerOperator(QUARTER, PPLBuiltinOperators.QUARTER);
+      registerOperator(MONTH, PPLBuiltinOperators.MONTH);
+      registerOperator(MONTH_OF_YEAR, PPLBuiltinOperators.MONTH);
+      registerOperator(DAY, PPLBuiltinOperators.DAY);
+      registerOperator(DAYOFMONTH, PPLBuiltinOperators.DAY);
+      registerOperator(DAY_OF_MONTH, PPLBuiltinOperators.DAY);
+      registerOperator(DAYOFWEEK, PPLBuiltinOperators.DAY_OF_WEEK);
+      registerOperator(DAY_OF_WEEK, PPLBuiltinOperators.DAY_OF_WEEK);
+      registerOperator(DAYOFYEAR, PPLBuiltinOperators.DAY_OF_YEAR);
+      registerOperator(DAY_OF_YEAR, PPLBuiltinOperators.DAY_OF_YEAR);
+      registerOperator(HOUR, PPLBuiltinOperators.HOUR);
+      registerOperator(HOUR_OF_DAY, PPLBuiltinOperators.HOUR);
+      registerOperator(MINUTE, PPLBuiltinOperators.MINUTE);
+      registerOperator(MINUTE_OF_HOUR, PPLBuiltinOperators.MINUTE);
+      registerOperator(MINUTE_OF_DAY, PPLBuiltinOperators.MINUTE_OF_DAY);
+      registerOperator(SECOND, PPLBuiltinOperators.SECOND);
+      registerOperator(SECOND_OF_MINUTE, PPLBuiltinOperators.SECOND);
+      registerOperator(MICROSECOND, PPLBuiltinOperators.MICROSECOND);
+      registerOperator(CURRENT_TIMESTAMP, PPLBuiltinOperators.NOW);
+      registerOperator(NOW, PPLBuiltinOperators.NOW);
+      registerOperator(LOCALTIMESTAMP, PPLBuiltinOperators.NOW);
+      registerOperator(LOCALTIME, PPLBuiltinOperators.NOW);
+      registerOperator(CURTIME, PPLBuiltinOperators.CURRENT_TIME);
+      registerOperator(CURRENT_TIME, PPLBuiltinOperators.CURRENT_TIME);
+      registerOperator(CURRENT_DATE, PPLBuiltinOperators.CURRENT_DATE);
+      registerOperator(CURDATE, PPLBuiltinOperators.CURRENT_DATE);
+      registerOperator(DATE_FORMAT, PPLBuiltinOperators.DATE_FORMAT);
+      registerOperator(TIME_FORMAT, PPLBuiltinOperators.TIME_FORMAT);
+      registerOperator(DAYNAME, PPLBuiltinOperators.DAYNAME);
+      registerOperator(MONTHNAME, PPLBuiltinOperators.MONTHNAME);
+      registerOperator(CONVERT_TZ, PPLBuiltinOperators.CONVERT_TZ);
+      registerOperator(DATEDIFF, PPLBuiltinOperators.DATEDIFF);
+      registerOperator(DATETIME, PPLBuiltinOperators.DATETIME);
+      registerOperator(TIMESTAMPDIFF, PPLBuiltinOperators.TIMESTAMPDIFF);
+      registerOperator(LAST_DAY, PPLBuiltinOperators.LAST_DAY);
+      registerOperator(FROM_DAYS, PPLBuiltinOperators.FROM_DAYS);
+      registerOperator(FROM_UNIXTIME, PPLBuiltinOperators.FROM_UNIXTIME);
+      registerOperator(GET_FORMAT, PPLBuiltinOperators.GET_FORMAT);
+      registerOperator(MAKEDATE, PPLBuiltinOperators.MAKEDATE);
+      registerOperator(MAKETIME, PPLBuiltinOperators.MAKETIME);
+      registerOperator(PERIOD_ADD, PPLBuiltinOperators.PERIOD_ADD);
+      registerOperator(PERIOD_DIFF, PPLBuiltinOperators.PERIOD_DIFF);
+      registerOperator(SEC_TO_TIME, PPLBuiltinOperators.SEC_TO_TIME);
+      registerOperator(STR_TO_DATE, PPLBuiltinOperators.STR_TO_DATE);
+      registerOperator(SYSDATE, PPLBuiltinOperators.SYSDATE);
+      registerOperator(TIME_TO_SEC, PPLBuiltinOperators.TIME_TO_SEC);
+      registerOperator(TIMEDIFF, PPLBuiltinOperators.TIMEDIFF);
+      registerOperator(TIMESTAMPADD, PPLBuiltinOperators.TIMESTAMPADD);
+      registerOperator(WEEK, PPLBuiltinOperators.WEEK);
+      registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
+      registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       // Register Array Function
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
@@ -277,13 +364,32 @@ public class PPLFuncImpTable {
                   builder.makeCall(
                       SqlLibraryOperators.LOG,
                       arg,
-                      builder.makeApproxLiteral(BigDecimal.valueOf(E)))));
+                      builder.makeApproxLiteral(BigDecimal.valueOf(Math.E)))));
+      // SqlStdOperatorTable.SQRT is declared but not implemented. The call to SQRT in Calcite is
+      // converted to POWER(x, 0.5).
+      register(
+          SQRT,
+          ((FunctionImp1)
+              (builder, arg) ->
+                  builder.makeCall(
+                      SqlStdOperatorTable.POWER,
+                      arg,
+                      builder.makeApproxLiteral(BigDecimal.valueOf(0.5)))));
       register(
           TYPEOF,
           (FunctionImp1)
               (builder, arg) ->
                   builder.makeLiteral(getLegacyTypeName(arg.getType(), QueryType.PPL)));
       register(XOR, new XOR_FUNC());
+      register(
+          NULLIF,
+          (FunctionImp2)
+              (builder, arg1, arg2) ->
+                  builder.makeCall(
+                      SqlStdOperatorTable.CASE,
+                      builder.makeCall(SqlStdOperatorTable.EQUALS, arg1, arg2),
+                      builder.makeNullLiteral(arg1.getType()),
+                      arg1));
     }
   }
 

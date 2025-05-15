@@ -19,11 +19,23 @@ pplStatement
 
 dmlStatement
    : queryStatement
+   | explainStatement
    ;
 
 queryStatement
    : pplCommands (PIPE commands)*
    ;
+
+explainStatement
+    : EXPLAIN (explainMode)? queryStatement
+    ;
+
+explainMode
+    : SIMPLE
+    | STANDARD
+    | COST
+    | EXTENDED
+    ;
 
 subSearch
    : searchCommand (PIPE commands)*
@@ -42,6 +54,7 @@ commands
    | joinCommand
    | renameCommand
    | statsCommand
+   | eventstatsCommand
    | dedupCommand
    | sortCommand
    | evalCommand
@@ -68,6 +81,7 @@ commandName
    | JOIN
    | RENAME
    | STATS
+   | EVENTSTATS
    | DEDUP
    | SORT
    | EVAL
@@ -83,6 +97,7 @@ commandName
    | ML
    | FILLNULL
    | TRENDLINE
+   | EXPLAIN
    ;
 
 searchCommand
@@ -113,6 +128,10 @@ renameCommand
 
 statsCommand
    : STATS (PARTITIONS EQUAL partitions = integerLiteral)? (ALLNUM EQUAL allnum = booleanLiteral)? (DELIM EQUAL delim = stringLiteral)? statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (DEDUP_SPLITVALUES EQUAL dedupsplit = booleanLiteral)?
+   ;
+
+eventstatsCommand
+   : EVENTSTATS eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
    ;
 
 dedupCommand
@@ -335,6 +354,31 @@ evalClause
    : fieldExpression EQUAL expression
    ;
 
+eventstatsAggTerm
+   : windowFunction (AS alias = wcFieldExpression)?
+   ;
+
+windowFunction
+   : windowFunctionName LT_PRTHS functionArgs RT_PRTHS
+   ;
+
+windowFunctionName
+   : statsFunctionName
+   | scalarWindowFunctionName
+   ;
+
+scalarWindowFunctionName
+   : ROW_NUMBER
+   | RANK
+   | DENSE_RANK
+   | PERCENT_RANK
+   | CUME_DIST
+   | FIRST
+   | LAST
+   | NTH
+   | NTILE
+   ;
+
 // aggregation terms
 statsAggTerm
    : statsFunction (AS alias = wcFieldExpression)?
@@ -412,6 +456,7 @@ valueExpression
    | left = valueExpression binaryOperator = (PLUS | MINUS) right = valueExpression             # binaryArithmetic
    | primaryExpression                                                                          # valueExpressionDefault
    | positionFunction                                                                           # positionFunctionCall
+   | caseFunction                                                                               # caseExpr
    | extractFunction                                                                            # extractFunctionCall
    | getFormatFunction                                                                          # getFormatFunctionCall
    | timestampFunction                                                                          # timestampFunctionCall
@@ -436,6 +481,10 @@ booleanExpression
    : booleanFunctionCall                                                # booleanFunctionCallExpr
    | valueExpressionList NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS    # inSubqueryExpr
    | EXISTS LT_SQR_PRTHS subSearch RT_SQR_PRTHS                         # existsSubqueryExpr
+   ;
+
+caseFunction
+   : CASE LT_PRTHS logicalExpression COMMA valueExpression (COMMA logicalExpression COMMA valueExpression)* (ELSE valueExpression)? RT_PRTHS
    ;
 
 relevanceExpression
@@ -530,6 +579,7 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
+   | cryptographicFunctionName
    | jsonFunctionName
    | geoipFunctionName
    | collectionFunctionName
@@ -652,6 +702,7 @@ trigonometricFunctionName
    | TAN
    ;
 
+<<<<<<< HEAD
 collectionFunctionName
     : ARRAY
     ;
@@ -678,6 +729,14 @@ lambdaFunctionName
   | REDUCE
   ;
 
+=======
+cryptographicFunctionName
+   : MD5
+   | SHA1
+   | SHA2
+   ;
+
+>>>>>>> origin/main
 dateTimeFunctionName
    : ADDDATE
    | ADDTIME
@@ -1012,7 +1071,10 @@ keywordsCanBeId
    | commandName
    | comparisonOperator
    | patternMethod
+   | explainMode
    // commands assist keywords
+   | CASE
+   | ELSE
    | IN
    | ARROW
    | BETWEEN
@@ -1062,8 +1124,9 @@ keywordsCanBeId
    | TIME_ZONE
    | TRAINING_DATA_SIZE
    | ANOMALY_SCORE_THRESHOLD
-   // AGGREGATIONS
+   // AGGREGATIONS AND WINDOW
    | statsFunctionName
+   | windowFunctionName
    | DISTINCT_COUNT
    | ESTDC
    | ESTDC_ERROR
@@ -1077,8 +1140,6 @@ keywordsCanBeId
    | VAR_SAMP
    | VAR_POP
    | TAKE
-   | FIRST
-   | LAST
    | LIST
    | VALUES
    | PER_DAY

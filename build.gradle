@@ -6,9 +6,9 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.0.0-beta1-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.1.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
-        buildVersionQualifier = System.getProperty("build.version_qualifier", "beta1")
+        buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
         prometheus_binary_version = "2.37.2"
@@ -86,6 +86,7 @@ plugins {
 // import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
 // versions https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/version.properties
 apply plugin: 'opensearch.java'
+apply plugin: 'opensearch.java-agent'
 
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {

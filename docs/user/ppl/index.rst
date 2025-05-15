@@ -86,11 +86,13 @@ The query start with search command and then flowing a set of command delimited 
 
   - `metadata commands <cmd/information_schema.rst>`_
 
-  - `(Experimental) join command <cmd/join.rst>`_
+  - `(Experimental)(From 3.0.0) join command <cmd/join.rst>`_
 
-  - `(Experimental) lookup command <cmd/lookup.rst>`_
+  - `(Experimental)(From 3.0.0) lookup command <cmd/lookup.rst>`_
 
-  - `(Experimental) subquery (aka subsearch) command <cmd/subquery.rst>`_
+  - `(Experimental)(From 3.0.0) subquery (aka subsearch) command <cmd/subquery.rst>`_
+
+  - `(Experimental)(From 3.1.0) eventstats command <cmd/eventstats.rst>`_
 
 * **Functions**
 

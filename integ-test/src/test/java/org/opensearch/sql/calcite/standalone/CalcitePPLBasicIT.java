@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.standalone;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -35,6 +37,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     client().performRequest(request3);
 
     loadIndex(Index.BANK);
+    loadIndex(Index.DATA_TYPE_ALIAS);
   }
 
   @Test
@@ -88,7 +91,10 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   public void testFieldsShouldBeCaseSensitive() {
     IllegalStateException e =
         assertThrows(IllegalStateException.class, () -> execute("source=test | fields NAME"));
-    verifyErrorMessageContains(e, "field [NAME] not found; input fields are: [name, age]");
+    verifyErrorMessageContains(
+        e,
+        "field [NAME] not found; input fields are: [name, age, _id, _index, _score, _maxscore,"
+            + " _sort, _routing]");
   }
 
   @Test
@@ -516,5 +522,46 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
                 "source=%s | where firstname='Hattie' xor age=36 | fields firstname, age",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows("Elinor", 36));
+  }
+
+  @Test
+  public void testKeepThrowCalciteException() throws IOException {
+    withFallbackEnabled(
+        () -> {
+          IllegalArgumentException e =
+              assertThrows(
+                  IllegalArgumentException.class,
+                  () ->
+                      executeQuery(
+                          String.format("source=%s | fields firstname1, age", TEST_INDEX_BANK)));
+          verifyErrorMessageContains(
+              e,
+              "field [firstname1] not found; input fields are: [account_number, firstname, address,"
+                  + " birthdate, gender, city, lastname, balance, employer, state, age, email,"
+                  + " male, _id, _index, _score, _maxscore, _sort, _routing]");
+        },
+        "");
+  }
+
+  @Test
+  public void testAliasDataType() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where alias_col > 1 | fields original_col, alias_col ",
+                TEST_INDEX_ALIAS));
+    verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
+    verifyDataRows(result, rows(2, 2), rows(3, 3));
+  }
+
+  @Test
+  public void testMetaFieldAlias() {
+    Exception e =
+        assertThrows(
+            Exception.class,
+            () ->
+                executeQuery(
+                    String.format("source=%s | stats count() as _score", TEST_INDEX_ACCOUNT)));
+    verifyErrorMessageContains(e, "Cannot use metadata field [_score] as the alias.");
   }
 }

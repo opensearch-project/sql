@@ -57,10 +57,12 @@ import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory.JsonPath;
 
 class OpenSearchExprValueFactoryTest {
 
@@ -78,6 +80,7 @@ class OpenSearchExprValueFactoryTest {
           .put("dateV", OpenSearchDateType.of(DATE))
           .put("timeV", OpenSearchDateType.of(TIME))
           .put("timestampV", OpenSearchDateType.of(TIMESTAMP))
+          .put("timeonlyV", OpenSearchDateType.of("HH:mm:ss"))
           .put("datetimeDefaultV", OpenSearchDateType.of())
           .put("dateStringV", OpenSearchDateType.of("date"))
           .put("timeStringV", OpenSearchDateType.of("time"))
@@ -314,10 +317,6 @@ class OpenSearchExprValueFactoryTest {
                 tupleValue("{\"timestampV\":\"2015-01-01T12:10:30\"}").get("timestampV")),
         () ->
             assertEquals(
-                new ExprTimestampValue("2015-01-01 12:10:30"),
-                tupleValue("{\"timestampV\":\"2015-01-01 12:10:30\"}").get("timestampV")),
-        () ->
-            assertEquals(
                 new ExprTimestampValue(Instant.ofEpochMilli(1420070400001L)),
                 constructFromObject("timestampV", 1420070400001L)),
         () ->
@@ -350,10 +349,6 @@ class OpenSearchExprValueFactoryTest {
                 tupleValue("{ \"dateTimeCustomV\" : 19840510203040 }").get("dateTimeCustomV")),
         () ->
             assertEquals(
-                new ExprTimestampValue("2015-01-01 12:10:30"),
-                constructFromObject("timestampV", "2015-01-01 12:10:30")),
-        () ->
-            assertEquals(
                 new ExprTimestampValue(Instant.ofEpochMilli(1420070400001L)),
                 constructFromObject("dateOrEpochMillisV", "1420070400001")),
 
@@ -361,7 +356,7 @@ class OpenSearchExprValueFactoryTest {
         () ->
             assertEquals(
                 new ExprTimeValue("19:36:22"),
-                tupleValue("{\"timestampV\":\"19:36:22\"}").get("timestampV")),
+                tupleValue("{\"timeonlyV\":\"19:36:22\"}").get("timeonlyV")),
 
         // case: timestamp-formatted field, but it only gets a date: should match a date
         () ->
@@ -383,10 +378,6 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(
         "Construct TIMESTAMP from \"2015-01-01 12-10-30\" failed, unsupported format.",
         exception.getMessage());
-
-    assertEquals(
-        new ExprTimestampValue("2015-01-01 12:10:30"),
-        constructFromObject("customAndEpochMillisV", "2015-01-01 12:10:30"));
 
     assertEquals(
         new ExprTimestampValue("2015-01-01 12:10:30"),
@@ -700,7 +691,7 @@ class OpenSearchExprValueFactoryTest {
             List.of(
                 new ExprTimestampValue("2015-01-01 12:10:30"),
                 new ExprTimestampValue("1999-11-09 01:09:44"))),
-        tupleValue("{\"customAndEpochMillisV\":[\"2015-01-01 12:10:30\",\"1999-11-09 01:09:44\"]}")
+        tupleValue("{\"customAndEpochMillisV\":[\"2015-01-01-12-10-30\",\"1999-11-09-01-09-44\"]}")
             .get("customAndEpochMillisV"));
   }
 
@@ -1001,6 +992,53 @@ class OpenSearchExprValueFactoryTest {
         () -> assertTrue(mapping.containsKey("agg")),
         () -> assertEquals(OpenSearchDataType.of(INTEGER), mapping.get("value")),
         () -> assertEquals(OpenSearchDataType.of(DATE), mapping.get("agg")));
+  }
+
+  @Test
+  public void testPopulateValueRecursive() {
+    ExprTupleValue tupleValue = ExprTupleValue.empty();
+
+    OpenSearchExprValueFactory.populateValueRecursive(
+        tupleValue, new JsonPath("log.json.time"), ExprValueUtils.integerValue(100));
+    ExprValue expectedValue =
+        ExprValueUtils.tupleValue(
+            Map.of("log", Map.of("json", new LinkedHashMap<>(Map.of("time", 100)))));
+    assertEquals(expectedValue, tupleValue);
+
+    OpenSearchExprValueFactory.populateValueRecursive(
+        tupleValue,
+        new JsonPath("log.json"),
+        ExprValueUtils.tupleValue(new LinkedHashMap<>(Map.of("status", "SUCCESS"))));
+    expectedValue =
+        ExprValueUtils.tupleValue(
+            Map.of(
+                "log",
+                Map.of(
+                    "json",
+                    new LinkedHashMap<>() {
+                      {
+                        put("status", "SUCCESS");
+                        put("time", 100);
+                      }
+                    })));
+    assertEquals(expectedValue, tupleValue);
+
+    // update the conflict value with the latest
+    OpenSearchExprValueFactory.populateValueRecursive(
+        tupleValue, new JsonPath("log.json.status"), ExprValueUtils.stringValue("FAILED"));
+    expectedValue =
+        ExprValueUtils.tupleValue(
+            Map.of(
+                "log",
+                Map.of(
+                    "json",
+                    new LinkedHashMap<>() {
+                      {
+                        put("status", "FAILED");
+                        put("time", 100);
+                      }
+                    })));
+    assertEquals(expectedValue, tupleValue);
   }
 
   public Map<String, ExprValue> tupleValue(String jsonString) {
