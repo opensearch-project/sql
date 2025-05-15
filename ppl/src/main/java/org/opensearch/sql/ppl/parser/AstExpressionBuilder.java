@@ -44,7 +44,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExp
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
