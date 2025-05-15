@@ -115,6 +115,9 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)
               .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
               .put(Key.DEFAULT_PATTERN_METHOD, "SIMPLE_PATTERN")
+              .put(Key.DEFAULT_PATTERN_MODE, "LABEL")
+              .put(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT, 10)
+              .put(Key.DEFAULT_PATTERN_BUFFER_LIMIT, 100000)
               .build();
 
       @Override

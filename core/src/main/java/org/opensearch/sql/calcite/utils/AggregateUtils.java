@@ -20,11 +20,8 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.type.ReturnTypes;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.udaf.BrainLogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -87,14 +84,6 @@ public interface AggregateUtils {
             ReturnTypes.ARG0_FORCE_NULLABLE,
             List.of(field),
             newArgList,
-            context.relBuilder);
-      case BRAIN:
-        return TransferUserDefinedAggFunction(
-            BrainLogPatternAggFunction.class,
-            "brain",
-            ReturnTypes.explicit(SqlTypeName.ANY).andThen(SqlTypeTransforms.TO_NULLABLE),
-            List.of(field),
-            argList,
             context.relBuilder);
     }
     throw new IllegalStateException("Not Supported value: " + funcName);

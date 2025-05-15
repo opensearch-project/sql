@@ -31,6 +31,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.WindowBound;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -253,6 +254,14 @@ public interface PlanUtils {
             ReturnTypes.ARG0_FORCE_NULLABLE,
             List.of(field),
             newArgList,
+            context.relBuilder);
+      case PATTERN:
+        return TransferUserDefinedAggFunction(
+            LogPatternAggFunction.class,
+            "pattern",
+            ReturnTypes.explicit(UserDefinedFunctionUtils.nullablePatternAggList),
+            List.of(field),
+            argList,
             context.relBuilder);
       default:
         throw new UnsupportedOperationException(

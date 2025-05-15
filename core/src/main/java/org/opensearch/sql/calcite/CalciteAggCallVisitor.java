@@ -15,7 +15,6 @@ import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.calcite.utils.AggregateUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
@@ -66,6 +65,11 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
     for (int i = 1; i < node.getFuncArgs().size(); i++) {
       argList.add(rexNodeVisitor.analyze(node.getFuncArgs().get(i), context));
     }
-    return AggregateUtils.translate(node.getFuncName(), false, field, context, argList);
+    return BuiltinFunctionName.ofAggregation(node.getFuncName())
+        .map(functionName -> PlanUtils.makeAggCall(context, functionName, false, field, argList))
+        .orElseThrow(
+            () ->
+                new UnsupportedOperationException("Unexpected aggregation: " + node.getFuncName()));
+    //    return AggregateUtils.translate(node.getFuncName(), false, field, context, argList);
   }
 }

@@ -6,10 +6,8 @@
 package org.opensearch.sql.ast.dsl;
 
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -39,6 +37,7 @@ import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.Span;
@@ -506,23 +505,23 @@ public class AstDSL {
 
   public static Patterns patterns(
       UnresolvedPlan input,
-      PatternMethod patternMethod,
       UnresolvedExpression sourceField,
+      List<UnresolvedExpression> partitionByList,
       String alias,
-      List<Argument> arguments) {
-    List<UnresolvedExpression> funArgs = new ArrayList<>();
-    funArgs.add(sourceField);
-    funArgs.addAll(arguments);
+      PatternMethod patternMethod,
+      PatternMode patternMode,
+      UnresolvedExpression patternMaxSampleCount,
+      UnresolvedExpression patternBufferLimit,
+      java.util.Map<String, Literal> arguments) {
     return new Patterns(
-        new Alias(
-            alias,
-            new WindowFunction(
-                new Function(patternMethod.name().toLowerCase(Locale.ROOT), funArgs),
-                List.of(),
-                List.of()),
-            alias),
         sourceField,
+        partitionByList,
+        alias,
         patternMethod,
+        patternMode,
+        patternMaxSampleCount,
+        patternBufferLimit,
+        arguments,
         input);
   }
 

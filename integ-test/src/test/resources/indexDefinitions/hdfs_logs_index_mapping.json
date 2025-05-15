@@ -13,13 +13,31 @@
         "type": "integer"
       },
       "level": {
-        "type": "text"
+        "type": "text",
+        "fields" : {
+          "keyword" : {
+            "type" : "keyword",
+            "ignore_above":256
+          }
+        }
       },
       "component": {
-        "type": "text"
+        "type": "text",
+        "fields" : {
+          "keyword" : {
+            "type" : "keyword",
+            "ignore_above":256
+          }
+        }
       },
       "content": {
-        "type": "text"
+        "type": "text",
+        "fields" : {
+          "keyword" : {
+            "type" : "keyword",
+            "ignore_above":256
+          }
+        }
       }
     }
   }

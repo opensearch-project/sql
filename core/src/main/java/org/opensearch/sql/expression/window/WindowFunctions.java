@@ -71,7 +71,11 @@ public class WindowFunctions {
                 functionBuilder,
             new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER, DOUBLE)),
                 functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, DOUBLE, INTEGER)),
+                functionBuilder,
             new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, INTEGER, DOUBLE)),
+                functionBuilder,
+            new FunctionSignature(functionName, ImmutableList.of(STRING, STRING, DOUBLE, INTEGER)),
                 functionBuilder));
   }
 

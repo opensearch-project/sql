@@ -12,6 +12,8 @@ import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -26,191 +28,272 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSimplePattern() {
+  public void testSimplePatternLabelMode() {
     JSONObject result =
         executeQuery(
             String.format(
                 """
-                   source = %s | patterns email | fields email, patterns_field
+                   source = %s | patterns email pattern_mode=label | head 1 | fields email, pattern, tokens
                    """,
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("email", "string"), schema("patterns_field", "string"));
+    verifySchema(
+        result, schema("email", "string"), schema("pattern", "string"), schema("tokens", "struct"));
     verifyDataRows(
         result,
-        rows("amberduke@pyrami.com", "@."),
-        rows("hattiebond@netagy.com", "@."),
-        rows("nanettebates@quility.com", "@."),
-        rows("daleadams@boink.com", "@."),
-        rows("elinorratliff@scentric.com", "@."),
-        rows("virginiaayala@filodyne.com", "@."),
-        rows("dillardmcpherson@quailcom.com", "@."));
+        rows(
+            "amberduke@pyrami.com",
+            "<token1>@<token2>.<token3>",
+            ImmutableMap.of(
+                "<token1>",
+                ImmutableList.of("amberduke"),
+                "<token2>",
+                ImmutableList.of("pyrami"),
+                "<token3>",
+                ImmutableList.of("com"))));
   }
 
   @Test
-  public void testSimplePatternGroupByPatternsField() {
+  public void testSimplePatternLabelModeWithCustomPattern() {
     JSONObject result =
         executeQuery(
             String.format(
                 """
-                   source = %s | patterns email | stats count() by patterns_field
+                   source = %s | patterns email pattern_mode=label pattern='@.*' | head 1 | fields email, pattern, tokens
                    """,
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("count()", "long"), schema("patterns_field", "string"));
-    verifyDataRows(result, rows(7, "@."));
-  }
-
-  @Test
-  public void testSimplePatternWithCustomPattern() {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                """
-                   source = %s | patterns pattern='@.*' email | fields email, patterns_field
-                   """,
-                TEST_INDEX_BANK));
-    verifySchema(result, schema("email", "string"), schema("patterns_field", "string"));
+    verifySchema(
+        result, schema("email", "string"), schema("pattern", "string"), schema("tokens", "struct"));
     verifyDataRows(
         result,
-        rows("amberduke@pyrami.com", "amberduke"),
-        rows("hattiebond@netagy.com", "hattiebond"),
-        rows("nanettebates@quility.com", "nanettebates"),
-        rows("daleadams@boink.com", "daleadams"),
-        rows("elinorratliff@scentric.com", "elinorratliff"),
-        rows("virginiaayala@filodyne.com", "virginiaayala"),
-        rows("dillardmcpherson@quailcom.com", "dillardmcpherson"));
+        rows(
+            "amberduke@pyrami.com",
+            "amberduke<token1>",
+            ImmutableMap.of("<token1>", ImmutableList.of("@pyrami.com"))));
   }
 
   @Test
-  public void testSimplePatternWithCustomNewField() {
+  public void testSimplePatternAggregationMode() {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | patterns new_field='username' pattern='@.*' email | fields email, username
-                   """,
+                "source=%s | patterns email pattern_mode=aggregation pattern_max_sample_count=3",
                 TEST_INDEX_BANK));
-    verifySchema(result, schema("email", "string"), schema("username", "string"));
+    verifySchema(
+        result,
+        schema("pattern_count", "long"),
+        schema("pattern", "string"),
+        schema("tokens", "struct"));
     verifyDataRows(
         result,
-        rows("amberduke@pyrami.com", "amberduke"),
-        rows("hattiebond@netagy.com", "hattiebond"),
-        rows("nanettebates@quility.com", "nanettebates"),
-        rows("daleadams@boink.com", "daleadams"),
-        rows("elinorratliff@scentric.com", "elinorratliff"),
-        rows("virginiaayala@filodyne.com", "virginiaayala"),
-        rows("dillardmcpherson@quailcom.com", "dillardmcpherson"));
+        rows(
+            7,
+            "<token1>@<token2>.<token3>",
+            ImmutableMap.of(
+                "<token1>",
+                ImmutableList.of("amberduke", "hattiebond", "nanettebates"),
+                "<token2>",
+                ImmutableList.of("pyrami", "netagy", "quility"),
+                "<token3>",
+                ImmutableList.of("com", "com", "com"))));
   }
 
   @Test
-  public void testBrain() {
+  public void testPatternsBrainMethodLabelMode() {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | where level='INFO' | patterns content BRAIN | fields content,"
-                    + " patterns_field",
+                "source=%s | patterns content pattern_method=BRAIN pattern_mode=label"
+                    + " pattern_max_sample_count=5 variable_count_threshold=5"
+                    + " frequency_threshold_percentage=0.2 | head 2 | fields content, pattern,"
+                    + " tokens",
                 TEST_INDEX_HDFS_LOGS));
-    verifySchema(result, schema("content", "string"), schema("patterns_field", "string"));
+    verifySchema(
+        result,
+        schema("content", "string"),
+        schema("pattern", "string"),
+        schema("tokens", "struct"));
     verifyDataRows(
         result,
         rows(
             "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to"
                 + " blk_-7017553867379051457 size 67108864",
-            "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*IP*> is added to blk_<*> size"
-                + " <*>"),
+            "BLOCK* NameSystem.addStoredBlock: blockMap updated: <token1> is added to blk_<token2>"
+                + " size <token3>",
+            ImmutableMap.of(
+                "<token1>",
+                ImmutableList.of("10.251.31.85:50010"),
+                "<token2>",
+                ImmutableList.of("-7017553867379051457"),
+                "<token3>",
+                ImmutableList.of("67108864"))),
         rows(
             "BLOCK* NameSystem.allocateBlock:"
                 + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296."
                 + " blk_-6620182933895093708",
-            "BLOCK* NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_<*>_<*>_r_<*>_<*>/part<*> blk_<*>"),
-        rows(
-            "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added to"
-                + " blk_-3249711809227781266 size 67108864",
-            "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*IP*> is added to blk_<*> size"
-                + " <*>"),
-        rows(
-            "Verification succeeded for blk_-1547954353065580372",
-            "Verification succeeded for blk_<*>"),
-        rows(
-            "BLOCK* NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000318_0/part-00318."
-                + " blk_2096692261399680562",
-            "BLOCK* NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_<*>_<*>_r_<*>_<*>/part<*> blk_<*>"),
-        rows(
-            "Verification succeeded for blk_6996194389878584395",
-            "Verification succeeded for blk_<*>"));
+            "<token1> NameSystem.allocateBlock:"
+                + " /user/root/sortrand/_temporary/_task_<token2>_<token3>_r_<token4>_<token5>/part<token6>"
+                + " blk_<token7>",
+            ImmutableMap.of(
+                "<token1>",
+                ImmutableList.of("BLOCK*"),
+                "<token2>",
+                ImmutableList.of("200811092030"),
+                "<token3>",
+                ImmutableList.of("0002"),
+                "<token4>",
+                ImmutableList.of("000296"),
+                "<token5>",
+                ImmutableList.of("0"),
+                "<token6>",
+                ImmutableList.of("-00296."),
+                "<token7>",
+                ImmutableList.of("-6620182933895093708"))));
   }
 
   @Test
-  public void testBrainWithAllValidCustomParameters() {
+  public void testBrainAggregationMode() {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | patterns new_field='log_pattern' variable_count_threshold=2"
-                    + " frequency_threshold_percentage=0.2 content BRAIN | fields content,"
-                    + " log_pattern",
+                "source=%s | patterns content pattern_method=BRAIN pattern_mode=aggregation"
+                    + " variable_count_threshold=5",
                 TEST_INDEX_HDFS_LOGS));
-    verifySchema(result, schema("content", "string"), schema("log_pattern", "string"));
+    verifySchema(result, schema("patterns_field", "array"));
     verifyDataRows(
         result,
         rows(
-            "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to"
-                + " blk_-7017553867379051457 size 67108864",
-            "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*IP*> is added to blk_<*> size"
-                + " <*>"),
-        rows(
-            "BLOCK* NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296."
-                + " blk_-6620182933895093708",
-            "<*> NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_<*>_<*>_r_<*>_<*>/part<*> blk_<*>"),
-        rows(
-            "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added to"
-                + " blk_-3249711809227781266 size 67108864",
-            "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*IP*> is added to blk_<*> size"
-                + " <*>"),
-        rows(
-            "Verification succeeded for blk_-1547954353065580372",
-            "Verification succeeded <*> blk_<*>"),
-        rows(
-            "BLOCK* NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_200811092030_0002_r_000318_0/part-00318."
-                + " blk_2096692261399680562",
-            "<*> NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_<*>_<*>_r_<*>_<*>/part<*> blk_<*>"),
-        rows(
-            "Verification succeeded for blk_6996194389878584395",
-            "Verification succeeded <*> blk_<*>"),
-        rows(
-            "PacketResponder failed for blk_6996194389878584395",
-            "PacketResponder failed <*> blk_<*>"),
-        rows(
-            "PacketResponder failed for blk_-1547954353065580372",
-            "PacketResponder failed <*> blk_<*>"));
+            ImmutableList.of(
+                ImmutableMap.of(
+                    "pattern",
+                    "Verification succeeded <token1> blk_<token2>",
+                    "count",
+                    2,
+                    "tokens",
+                    ImmutableMap.of(
+                        "<token1>",
+                        ImmutableList.of("for", "for"),
+                        "<token2>",
+                        ImmutableList.of("-1547954353065580372", "6996194389878584395"))),
+                ImmutableMap.of(
+                    "pattern",
+                    "BLOCK* NameSystem.addStoredBlock: blockMap updated: <token1> is added to"
+                        + " blk_<token2> size <token3>",
+                    "count",
+                    2,
+                    "tokens",
+                    ImmutableMap.of(
+                        "<token1>",
+                        ImmutableList.of("10.251.31.85:50010", "10.251.107.19:50010"),
+                        "<token3>",
+                        ImmutableList.of("67108864", "67108864"),
+                        "<token2>",
+                        ImmutableList.of("-7017553867379051457", "-3249711809227781266"))),
+                ImmutableMap.of(
+                    "pattern",
+                    "<token1> NameSystem.allocateBlock:"
+                        + " /user/root/sortrand/_temporary/_task_<token2>_<token3>_r_<token4>_<token5>/part<token6>"
+                        + " blk_<token7>",
+                    "count",
+                    2,
+                    "tokens",
+                    ImmutableMap.of(
+                        "<token5>",
+                        ImmutableList.of("0", "0"),
+                        "<token4>",
+                        ImmutableList.of("000296", "000318"),
+                        "<token7>",
+                        ImmutableList.of("-6620182933895093708", "2096692261399680562"),
+                        "<token6>",
+                        ImmutableList.of("-00296.", "-00318."),
+                        "<token1>",
+                        ImmutableList.of("BLOCK*", "BLOCK*"),
+                        "<token3>",
+                        ImmutableList.of("0002", "0002"),
+                        "<token2>",
+                        ImmutableList.of("200811092030", "200811092030"))),
+                ImmutableMap.of(
+                    "pattern",
+                    "PacketResponder failed <token1> blk_<token2>",
+                    "count",
+                    2,
+                    "tokens",
+                    ImmutableMap.of(
+                        "<token1>",
+                        ImmutableList.of("for", "for"),
+                        "<token2>",
+                        ImmutableList.of("6996194389878584395", "-1547954353065580372"))))));
   }
 
   @Test
-  public void testBrainWithAggregatedResult() {
+  public void testBrainAggregationModeWithGroupByClause() {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | patterns variable_count_threshold=2"
-                    + " frequency_threshold_percentage=0.2 content BRAIN | stats count() as count"
-                    + " by patterns_field",
+                "source=%s | patterns content by level pattern_method=BRAIN"
+                    + " pattern_mode=aggregation pattern_max_sample_count=5"
+                    + " variable_count_threshold=2 frequency_threshold_percentage=0.2",
                 TEST_INDEX_HDFS_LOGS));
-    verifySchema(result, schema("count", "long"), schema("patterns_field", "string"));
+    verifySchema(result, schema("level", "string"), schema("patterns_field", "array"));
     verifyDataRows(
         result,
-        rows(2, "Verification succeeded <*> blk_<*>"),
         rows(
-            2,
-            "BLOCK* NameSystem.addStoredBlock: blockMap updated: <*IP*> is added to blk_<*> size"
-                + " <*>"),
+            "INFO",
+            ImmutableList.of(
+                ImmutableMap.of(
+                    "pattern",
+                    "Verification succeeded for blk_<token1>",
+                    "count",
+                    2,
+                    "tokens",
+                    ImmutableMap.of(
+                        "<token1>",
+                        ImmutableList.of("-1547954353065580372", "6996194389878584395"))),
+                ImmutableMap.of(
+                    "pattern",
+                    "BLOCK* NameSystem.addStoredBlock: blockMap updated: <token1> is added to"
+                        + " blk_<token2> size <token3>",
+                    "count",
+                    2,
+                    "tokens",
+                    ImmutableMap.of(
+                        "<token1>",
+                        ImmutableList.of("10.251.31.85:50010", "10.251.107.19:50010"),
+                        "<token3>",
+                        ImmutableList.of("67108864", "67108864"),
+                        "<token2>",
+                        ImmutableList.of("-7017553867379051457", "-3249711809227781266"))),
+                ImmutableMap.of(
+                    "pattern",
+                    "BLOCK* NameSystem.allocateBlock:"
+                        + " /user/root/sortrand/_temporary/_task_<token1>_<token2>_r_<token3>_<token4>/part<token5>"
+                        + " blk_<token6>",
+                    "count",
+                    2,
+                    "tokens",
+                    ImmutableMap.of(
+                        "<token5>",
+                        ImmutableList.of("-00296.", "-00318."),
+                        "<token4>",
+                        ImmutableList.of("0", "0"),
+                        "<token6>",
+                        ImmutableList.of("-6620182933895093708", "2096692261399680562"),
+                        "<token1>",
+                        ImmutableList.of("200811092030", "200811092030"),
+                        "<token3>",
+                        ImmutableList.of("000296", "000318"),
+                        "<token2>",
+                        ImmutableList.of("0002", "0002"))))),
         rows(
-            2,
-            "<*> NameSystem.allocateBlock:"
-                + " /user/root/sortrand/_temporary/_task_<*>_<*>_r_<*>_<*>/part<*> blk_<*>"),
-        rows(2, "PacketResponder failed <*> blk_<*>"));
+            "WARN",
+            ImmutableList.of(
+                ImmutableMap.of(
+                    "pattern",
+                    "PacketResponder failed for blk_<token1>",
+                    "count",
+                    2,
+                    "tokens",
+                    ImmutableMap.of(
+                        "<token1>",
+                        ImmutableList.of("6996194389878584395", "-1547954353065580372"))))));
   }
 }

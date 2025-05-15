@@ -76,6 +76,29 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> DEFAULT_PATTERN_MODE_SETTING =
+      Setting.simpleString(
+          Key.DEFAULT_PATTERN_MODE.getKeyValue(),
+          "LABEL",
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> DEFAULT_PATTERN_MAX_SAMPLE_COUNT =
+      Setting.intSetting(
+          Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT.getKeyValue(),
+          10,
+          0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> DEFAULT_PATTERN_BUFFER_LIMIT =
+      Setting.intSetting(
+          Key.DEFAULT_PATTERN_BUFFER_LIMIT.getKeyValue(),
+          100000,
+          50000,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> CALCITE_ENGINE_ENABLED_SETTING =
       Setting.boolSetting(
           Key.CALCITE_ENGINE_ENABLED.getKeyValue(),
@@ -473,6 +496,9 @@ public class OpenSearchSettings extends Settings {
         .add(CALCITE_FALLBACK_ALLOWED_SETTING)
         .add(CALCITE_PUSHDOWN_ENABLED_SETTING)
         .add(DEFAULT_PATTERN_METHOD_SETTING)
+        .add(DEFAULT_PATTERN_MODE_SETTING)
+        .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT)
+        .add(DEFAULT_PATTERN_BUFFER_LIMIT)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)

@@ -81,6 +81,7 @@ import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
@@ -1873,10 +1874,14 @@ class AnalyzerTest extends AnalyzerTestBase {
         AstDSL.project(
             AstDSL.patterns(
                 AstDSL.relation("schema"),
-                PatternMethod.BRAIN,
                 AstDSL.field("string_value"),
+                ImmutableList.of(),
                 "patterns_field",
-                ImmutableList.of()),
+                PatternMethod.BRAIN,
+                PatternMode.LABEL,
+                AstDSL.intLiteral(10),
+                AstDSL.intLiteral(100000),
+                ImmutableMap.of()),
             AstDSL.field("string_value"));
     LogicalPlan expectedPlan =
         LogicalPlanDSL.project(
@@ -1896,15 +1901,18 @@ class AnalyzerTest extends AnalyzerTestBase {
         AstDSL.project(
             AstDSL.patterns(
                 AstDSL.relation("schema"),
-                PatternMethod.BRAIN,
                 AstDSL.field("string_value"),
+                ImmutableList.of(),
                 "custom_field",
-                ImmutableList.of(
-                    new Argument(
-                        "variable_count_threshold", AstDSL.intLiteral(10)), // with integer argument
-                    new Argument(
-                        "frequency_threshold_percentage",
-                        AstDSL.doubleLiteral(0.1)) // with double argument
+                PatternMethod.BRAIN,
+                PatternMode.LABEL,
+                AstDSL.intLiteral(10),
+                AstDSL.intLiteral(100000),
+                ImmutableMap.of(
+                    "variable_count_threshold",
+                    AstDSL.intLiteral(10), // with integer argument
+                    "frequency_threshold_percentage",
+                    AstDSL.doubleLiteral(0.1) // with double argument
                     )),
             AstDSL.field("string_value"));
     LogicalPlan expectedPlan =
@@ -1916,11 +1924,11 @@ class AnalyzerTest extends AnalyzerTestBase {
                     DSL.brain(
                         DSL.ref("string_value", STRING),
                         DSL.namedArgument(
-                            "variable_count_threshold",
-                            DSL.literal(10)), // with additional integer argument
-                        DSL.namedArgument(
                             "frequency_threshold_percentage",
-                            DSL.literal(0.1))), // with additional double argument
+                            DSL.literal(0.1)), // with additional double argument
+                        DSL.namedArgument(
+                            "variable_count_threshold",
+                            DSL.literal(10))), // with additional integer argument
                     "custom_field"),
                 new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
             DSL.named("string_value", DSL.ref("string_value", STRING)));

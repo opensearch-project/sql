@@ -20,14 +20,13 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import lombok.Data;
 import lombok.Getter;
 
 /** Log parser Brain algorithm implementation. See: https://ieeexplore.ieee.org/document/10109145 */
 public class BrainLogParser {
 
   private static final String VARIABLE_DENOTER = "<*>";
-  private static final Map<Pattern, String> DEFAULT_FILTER_PATTERN_VARIABLE_MAP =
+  public static final Map<Pattern, String> DEFAULT_FILTER_PATTERN_VARIABLE_MAP =
       new LinkedHashMap<>();
 
   static {
@@ -50,7 +49,7 @@ public class BrainLogParser {
         Pattern.compile("(?<=[^A-Za-z0-9 ])(-?\\+?\\d+)(?=[^A-Za-z0-9])"), VARIABLE_DENOTER);
   }
 
-  private static final List<String> DEFAULT_DELIMITERS = List.of(",", "+");
+  public static final List<String> DEFAULT_DELIMITERS = List.of(",", "+");
   // counting frequency will be grouped by composite of position and token string
   private static final String POSITIONED_TOKEN_KEY_FORMAT = "%d-%s";
   // Token set will be grouped by composite of tokens length per log message, word combination
@@ -171,6 +170,15 @@ public class BrainLogParser {
     if (logMessage == null || logId == null) {
       throw new IllegalArgumentException("log message or logId must not be null");
     }
+
+    List<String> tokens = preprocess(logMessage, this.filterPatternVariableMap, this.delimiters);
+    tokens.add(logId);
+
+    return tokens;
+  }
+
+  public static List<String> preprocess(
+      String logMessage, Map<Pattern, String> filterPatternVariableMap, List<String> delimiters) {
     // match regex and replace it with variable denoter in order
     for (Map.Entry<Pattern, String> patternVariablePair : filterPatternVariableMap.entrySet()) {
       logMessage =
@@ -185,9 +193,9 @@ public class BrainLogParser {
     }
 
     // Append logId/docId to the end of the split tokens
-    logMessage = logMessage.trim() + " " + logId;
+    logMessage = logMessage.trim();
 
-    return Arrays.asList(logMessage.split("\\s+"));
+    return new ArrayList<>(Arrays.asList(logMessage.split("\\s+")));
   }
 
   /**
@@ -330,26 +338,39 @@ public class BrainLogParser {
    * @param logMessages all lines of log messages
    * @return log pattern map with log pattern string as key, grouped logIds as value
    */
-  public Map<String, List<String>> parseAllLogPatterns(List<String> logMessages) {
+  public Map<String, Map<String, Object>> parseAllLogPatterns(
+      List<String> logMessages, int maxSampleCount) {
     List<List<String>> processedMessages = this.preprocessAllLogs(logMessages);
 
-    Map<String, List<String>> logPatternMap = new HashMap<>();
-    for (List<String> processedMessage : processedMessages) {
-      String logId = processedMessage.get(processedMessage.size() - 1);
-      List<String> logPattern = this.parseLogPattern(processedMessage);
+    Map<String, Map<String, Object>> logPatternMap = new HashMap<>();
+    for (int i = 0; i < processedMessages.size(); i++) {
+      List<String> logPattern = this.parseLogPattern(processedMessages.get(i));
       String patternKey = String.join(" ", logPattern);
-      logPatternMap.computeIfAbsent(patternKey, k -> new ArrayList<>()).add(logId);
+      String sampleLog = logMessages.get(i);
+      logPatternMap.compute(
+          patternKey,
+          (key, stats) -> {
+            if (stats == null) {
+              Map<String, Object> newStats = new HashMap<>();
+              newStats.put("pattern", key);
+              newStats.put("count", 1L);
+              List<String> samples = new ArrayList<>();
+              if (sampleLog != null && samples.size() < maxSampleCount) {
+                samples.add(sampleLog);
+              }
+              newStats.put("sampleLogs", samples);
+              return newStats;
+            } else {
+              stats.put("count", ((Long) stats.get("count")) + 1);
+              List<String> samples = (List<String>) stats.get("sampleLogs");
+              if (sampleLog != null && samples.size() < maxSampleCount) {
+                samples.add(sampleLog);
+              }
+              return stats;
+            }
+          });
     }
     return logPatternMap;
-  }
-
-  @Data
-  public static final class GroupTokenAggregationInfo {
-    private Map<String, Long> tokenFreqMap;
-    private Map<String, Set<String>> groupTokenSetMap;
-    private Map<String, String> logIdGroupCandidateMap;
-    private int variableCountThreshold;
-    private Map<String, List<String>> messageToProcessedLogMap;
   }
 
   private Map<Long, Integer> getWordOccurrences(List<String> tokens) {

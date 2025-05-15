@@ -27,24 +27,34 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -323,38 +333,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAggregation(Aggregation node, AnalysisContext context) {
     final LogicalPlan child = node.getChild().get(0).accept(this, context);
-    ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
-    for (UnresolvedExpression expr : node.getAggExprList()) {
-      NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
-      aggregatorBuilder.add(
-          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
-    }
-
-    ImmutableList.Builder<NamedExpression> groupbyBuilder = new ImmutableList.Builder<>();
-    // Span should be first expression if exist.
-    if (node.getSpan() != null) {
-      groupbyBuilder.add(namedExpressionAnalyzer.analyze(node.getSpan(), context));
-    }
-
-    for (UnresolvedExpression expr : node.getGroupExprList()) {
-      NamedExpression resolvedExpr = namedExpressionAnalyzer.analyze(expr, context);
-      verifySupportsCondition(resolvedExpr.getDelegated());
-      groupbyBuilder.add(resolvedExpr);
-    }
-    ImmutableList<NamedExpression> groupBys = groupbyBuilder.build();
-
-    ImmutableList<NamedAggregator> aggregators = aggregatorBuilder.build();
-    // new context
-    context.push();
-    TypeEnvironment newEnv = context.peek();
-    aggregators.forEach(
-        aggregator ->
-            newEnv.define(
-                new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));
-    groupBys.forEach(
-        group ->
-            newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
-    return new LogicalAggregation(child, aggregators, groupBys);
+    return analyzeAggregation(node, child, context);
   }
 
   /** Build {@link LogicalRareTopN}. */
@@ -473,38 +452,54 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitParse(Parse node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
-    ParseMethod parseMethod = node.getParseMethod();
-    java.util.Map<String, Literal> arguments = node.getArguments();
-    String pattern = (String) node.getPattern().getValue();
-    Expression patternExpression = DSL.literal(pattern);
-
-    TypeEnvironment curEnv = context.peek();
-    ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments)
-        .forEach(
-            group -> {
-              ParseExpression expr =
-                  ParseUtils.createParseExpression(
-                      parseMethod, sourceField, patternExpression, DSL.literal(group));
-              curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
-              context.getNamedParseExpressions().add(new NamedExpression(group, expr));
-            });
+    analyzeParseNode(node, context);
     return child;
   }
 
+  // TODO: We may need to align output structure with Calcite's output structure
   @Override
   public LogicalPlan visitPatterns(Patterns node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
-    WindowExpressionAnalyzer windowAnalyzer =
-        new WindowExpressionAnalyzer(expressionAnalyzer, child);
-    child = windowAnalyzer.analyze(node.getWindowFunction(), context);
+    if (PatternMethod.SIMPLE_PATTERN.equals(node.getPatternMethod())) {
+      Parse parseNode =
+          new Parse(
+              ParseMethod.PATTERNS,
+              node.getSourceField(),
+              node.getArguments().getOrDefault("pattern", AstDSL.stringLiteral("")),
+              node.getArguments());
+      analyzeParseNode(parseNode, context);
+    } else {
+      List<UnresolvedExpression> funcParamList = new ArrayList<>();
+      funcParamList.add(node.getSourceField());
+      funcParamList.addAll(
+          node.getArguments().entrySet().stream()
+              .map(entry -> new Argument(entry.getKey(), entry.getValue()))
+              .sorted(Comparator.comparing(Argument::getArgName))
+              .toList());
+      UnresolvedExpression windowFunction =
+          new Alias(
+              node.getAlias(),
+              new WindowFunction(
+                  new Function(node.getPatternMethod().getName(), funcParamList),
+                  node.getPartitionByList(),
+                  List.of()), // ignore sort by list for now as we haven't seen such requirement
+              node.getAlias());
 
-    TypeEnvironment curEnv = context.peek();
-    LogicalWindow window = (LogicalWindow) child;
-    curEnv.define(
-        new Symbol(Namespace.FIELD_NAME, window.getWindowFunction().getNameOrAlias()),
-        window.getWindowFunction().getDelegated().type());
+      WindowExpressionAnalyzer windowAnalyzer =
+          new WindowExpressionAnalyzer(expressionAnalyzer, child);
+      child = windowAnalyzer.analyze(windowFunction, context);
 
+      TypeEnvironment curEnv = context.peek();
+      LogicalWindow window = (LogicalWindow) child;
+      curEnv.define(
+          new Symbol(Namespace.FIELD_NAME, window.getWindowFunction().getNameOrAlias()),
+          window.getWindowFunction().getDelegated().type());
+    }
+
+    if (PatternMode.AGGREGATION.equals(node.getPatternMode())) {
+      Aggregation aggNode = analyzePatterns(node);
+      return analyzeAggregation(aggNode, child, context);
+    }
     return child;
   }
 
@@ -735,5 +730,82 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       return new SortOption((asc ? ASC : DESC), (isNullFirst ? NULL_FIRST : NULL_LAST));
     }
     return asc ? SortOption.DEFAULT_ASC : SortOption.DEFAULT_DESC;
+  }
+
+  private void analyzeParseNode(Parse node, AnalysisContext context) {
+    Expression sourceField = expressionAnalyzer.analyze(node.getSourceField(), context);
+    ParseMethod parseMethod = node.getParseMethod();
+    java.util.Map<String, Literal> arguments = node.getArguments();
+    String pattern = (String) node.getPattern().getValue();
+    Expression patternExpression = DSL.literal(pattern);
+
+    TypeEnvironment curEnv = context.peek();
+    ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments)
+        .forEach(
+            group -> {
+              ParseExpression expr =
+                  ParseUtils.createParseExpression(
+                      parseMethod, sourceField, patternExpression, DSL.literal(group));
+              curEnv.define(new Symbol(Namespace.FIELD_NAME, group), expr.type());
+              context.getNamedParseExpressions().add(new NamedExpression(group, expr));
+            });
+  }
+
+  private LogicalAggregation analyzeAggregation(
+      Aggregation node, LogicalPlan child, AnalysisContext context) {
+    ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
+    for (UnresolvedExpression expr : node.getAggExprList()) {
+      NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
+      aggregatorBuilder.add(
+          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
+    }
+
+    ImmutableList.Builder<NamedExpression> groupbyBuilder = new ImmutableList.Builder<>();
+    // Span should be first expression if exist.
+    if (node.getSpan() != null) {
+      groupbyBuilder.add(namedExpressionAnalyzer.analyze(node.getSpan(), context));
+    }
+
+    for (UnresolvedExpression expr : node.getGroupExprList()) {
+      NamedExpression resolvedExpr = namedExpressionAnalyzer.analyze(expr, context);
+      verifySupportsCondition(resolvedExpr.getDelegated());
+      groupbyBuilder.add(resolvedExpr);
+    }
+    ImmutableList<NamedExpression> groupBys = groupbyBuilder.build();
+
+    ImmutableList<NamedAggregator> aggregators = aggregatorBuilder.build();
+    // new context
+    context.push();
+    TypeEnvironment newEnv = context.peek();
+    aggregators.forEach(
+        aggregator ->
+            newEnv.define(
+                new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));
+    groupBys.forEach(
+        group ->
+            newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
+    return new LogicalAggregation(child, aggregators, groupBys);
+  }
+
+  private Aggregation analyzePatterns(Patterns node) {
+    UnresolvedExpression patternsField =
+        AstDSL.alias(node.getAlias(), AstDSL.field(node.getAlias()));
+    List<UnresolvedExpression> aggExprs =
+        Stream.of(
+                new Alias(
+                    "pattern_count",
+                    new AggregateFunction(BuiltinFunctionName.COUNT.name(), AllFields.of())),
+                new Alias(
+                    "sample_logs",
+                    new AggregateFunction(
+                        BuiltinFunctionName.TAKE.name(),
+                        node.getSourceField(),
+                        ImmutableList.of(node.getPatternMaxSampleCount()))))
+            .map(alias -> (UnresolvedExpression) alias)
+            .toList();
+    List<UnresolvedExpression> groupByList = new ArrayList<>();
+    groupByList.add(patternsField);
+    groupByList.addAll(node.getPartitionByList());
+    return new Aggregation(aggExprs, ImmutableList.of(), groupByList);
   }
 }

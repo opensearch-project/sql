@@ -59,12 +59,13 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
-import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.FillNull;
@@ -832,32 +833,39 @@ public class AstBuilderTest {
   public void testPatternsCommand() {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEqual(
-        "source=t | patterns new_field=\"custom_field\" " + "pattern=\"custom_pattern\" raw",
-        parse(
+        "source=t | patterns raw new_field=\"custom_field\" " + "pattern=\"custom_pattern\"",
+        patterns(
             relation("t"),
-            ParseMethod.PATTERNS,
             field("raw"),
-            stringLiteral("custom_pattern"),
-            ImmutableMap.<String, Literal>builder()
-                .put("new_field", stringLiteral("custom_field"))
-                .put("pattern", stringLiteral("custom_pattern"))
-                .build()));
+            ImmutableList.of(),
+            "custom_field",
+            PatternMethod.SIMPLE_PATTERN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
+            ImmutableMap.of(
+                "new_field", AstDSL.stringLiteral("custom_field"),
+                "pattern", AstDSL.stringLiteral("custom_pattern"))));
   }
 
   @Test
   public void testPatternsCommandWithBrainMethod() {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEqual(
-        "source=t | patterns variable_count_threshold=2 frequency_threshold_percentage=0.1 raw"
-            + " BRAIN",
+        "source=t | patterns raw pattern_method=BRAIN variable_count_threshold=2"
+            + " frequency_threshold_percentage=0.1",
         patterns(
             relation("t"),
-            PatternMethod.BRAIN,
             field("raw"),
+            ImmutableList.of(),
             "patterns_field",
-            Arrays.asList(
-                new Argument("frequency_threshold_percentage", new Literal(0.1, DataType.DOUBLE)),
-                new Argument("variable_count_threshold", new Literal(2, DataType.INTEGER)))));
+            PatternMethod.BRAIN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
+            ImmutableMap.of(
+                "frequency_threshold_percentage", new Literal(0.1, DataType.DOUBLE),
+                "variable_count_threshold", new Literal(2, DataType.INTEGER))));
   }
 
   @Test
@@ -865,11 +873,15 @@ public class AstBuilderTest {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEqual(
         "source=t | patterns raw",
-        parse(
+        patterns(
             relation("t"),
-            ParseMethod.PATTERNS,
             field("raw"),
-            stringLiteral(""),
+            ImmutableList.of(),
+            "patterns_field",
+            PatternMethod.SIMPLE_PATTERN,
+            PatternMode.LABEL,
+            AstDSL.intLiteral(10),
+            AstDSL.intLiteral(100000),
             ImmutableMap.of()));
   }
 

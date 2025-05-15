@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.utils;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+import static org.apache.calcite.sql.type.SqlTypeUtil.createMapType;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
@@ -63,6 +64,31 @@ public class UserDefinedFunctionUtils {
   public static SqlReturnTypeInference timeInference = ReturnTypes.explicit(nullableTimeUDT);
 
   public static SqlReturnTypeInference dateInference = ReturnTypes.explicit(nullableDateUDT);
+
+  public static RelDataType nullablePatternMap =
+      TYPE_FACTORY.createMapType(
+          TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+          TYPE_FACTORY.createMapType(
+              TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+              TYPE_FACTORY.createSqlType(SqlTypeName.ANY)));
+
+  public static RelDataType nullablePatternAggList =
+      createArrayType(
+          TYPE_FACTORY,
+          TYPE_FACTORY.createMapType(
+              TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+              TYPE_FACTORY.createSqlType(SqlTypeName.ANY)),
+          true);
+  public static RelDataType patternStruct =
+      createMapType(
+          TYPE_FACTORY,
+          TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+          TYPE_FACTORY.createSqlType(SqlTypeName.ANY),
+          false);
+  public static RelDataType tokensMap =
+      TYPE_FACTORY.createMapType(
+          TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+          createArrayType(TYPE_FACTORY, TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), false));
 
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,
