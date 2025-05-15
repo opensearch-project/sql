@@ -8,9 +8,18 @@ package org.opensearch.sql.opensearch.storage.system;
 import static org.opensearch.sql.utils.SystemIndexUtils.systemTable;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.util.List;
 import java.util.Map;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.linq4j.AbstractEnumerable;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.calcite.plan.OpenSearchTable;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.system.OpenSearchCatIndicesRequest;
@@ -20,15 +29,16 @@ import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
-import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
 /** OpenSearch System Index Table Implementation. */
-public class OpenSearchSystemIndex implements Table {
+@Getter
+public class OpenSearchSystemIndex extends OpenSearchTable {
   /** System Index Name. */
   private final Pair<OpenSearchSystemIndexSchema, OpenSearchSystemRequest> systemIndexBundle;
 
   public OpenSearchSystemIndex(OpenSearchClient client, String indexName) {
+    super(null);
     this.systemIndexBundle = buildIndexBundle(client, indexName);
   }
 
@@ -46,6 +56,23 @@ public class OpenSearchSystemIndex implements Table {
   @Override
   public Map<String, ExprType> getFieldTypes() {
     return systemIndexBundle.getLeft().getMapping();
+  }
+
+  @Override
+  public Enumerable<Object> search() {
+    return new AbstractEnumerable<>() {
+      @Override
+      public Enumerator<Object> enumerator() {
+        return new OpenSearchSystemIndexEnumerator(
+            List.copyOf(getFieldTypes().keySet()), systemIndexBundle.getRight());
+      }
+    };
+  }
+
+  @Override
+  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+    final RelOptCluster cluster = context.getCluster();
+    return new CalciteLogicalSystemIndexScan(cluster, relOptTable, this);
   }
 
   @Override

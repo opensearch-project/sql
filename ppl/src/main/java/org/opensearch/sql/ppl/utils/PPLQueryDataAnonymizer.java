@@ -50,6 +50,7 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
@@ -117,6 +118,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitRelation(Relation node, String context) {
+    if (node instanceof DescribeRelation) {
+      // remove the system table suffix
+      String systemTable = node.getTableQualifiedName().toString();
+      return StringUtils.format(
+          "describe %s", systemTable.substring(0, systemTable.lastIndexOf('.')));
+    }
     return StringUtils.format("source=%s", node.getTableQualifiedName().toString());
   }
 
