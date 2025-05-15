@@ -428,15 +428,15 @@ public class CalcitePPLJoinTest extends CalcitePPLAbstractTest {
         """;
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(cnt=[$1], JOB=[$0])\n"
-            + "  LogicalAggregate(group=[{2}], cnt=[COUNT($3)])\n"
-            + "    LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
-            + "      LogicalTableScan(table=[[scott, EMP]])\n"
-            + "      LogicalSort(sort0=[$0], dir0=[DESC], fetch=[10])\n"
-            + "        LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
-            + "          LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO':VARCHAR))])\n"
-            + "            LogicalTableScan(table=[[scott, DEPT]])\n";
+        "LogicalProject(cnt=[$1], JOB=[$0])\n"
+            + "  LogicalAggregate(group=[{0}], cnt=[COUNT($1)])\n"
+            + "    LogicalProject(JOB=[$2], MGR=[$3])\n"
+            + "      LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "        LogicalTableScan(table=[[scott, EMP]])\n"
+            + "        LogicalSort(sort0=[$0], dir0=[DESC], fetch=[10])\n"
+            + "          LogicalProject(DEPTNO=[$0], DNAME=[$1])\n"
+            + "            LogicalFilter(condition=[AND(>($0, 10), =($2, 'CHICAGO':VARCHAR))])\n"
+            + "              LogicalTableScan(table=[[scott, DEPT]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "cnt=4; JOB=SALESMAN\ncnt=1; JOB=CLERK\ncnt=1; JOB=MANAGER\n";
     verifyResult(root, expectedResult);

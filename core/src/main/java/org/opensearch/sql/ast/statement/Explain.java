@@ -8,6 +8,7 @@
 
 package org.opensearch.sql.ast.statement;
 
+import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -46,7 +47,7 @@ public class Explain extends Statement {
 
   public static ExplainFormat format(String format) {
     try {
-      return ExplainFormat.valueOf(format.toUpperCase());
+      return ExplainFormat.valueOf(format.toUpperCase(Locale.ROOT));
     } catch (Exception e) {
       return ExplainFormat.STANDARD;
     }
