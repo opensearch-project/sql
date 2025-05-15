@@ -7,18 +7,14 @@ package org.opensearch.sql.expression.function.jsonUDF;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
@@ -43,14 +39,10 @@ public class JsonArrayFunctionImpl extends ImplementorUDF {
   public SqlReturnTypeInference getReturnTypeInference() {
     return sqlOperatorBinding -> {
       RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
-      //List<RelDataType> argTypes = sqlOperatorBinding.collectOperandTypes();
-      //RelDataType commonType = typeFactory.leastRestrictive(argTypes);
-      //if (commonType == null) {
-      //  throw new IllegalArgumentException(
-      //      "All arguments in json array cannot be converted into one common types");
-      //}
       return createArrayType(
-          typeFactory, typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.ANY), true), true);
+          typeFactory,
+          typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.ANY), true),
+          true);
     };
   }
 
@@ -58,36 +50,13 @@ public class JsonArrayFunctionImpl extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      //RelDataType realType = call.getType().getComponentType();
-      //List<Expression> newArgs = new ArrayList<>(translatedOperands);
-      //assert realType != null;
-      //newArgs.add(Expressions.constant(realType.getSqlTypeName()));
       return Expressions.call(
-          Types.lookupMethod(JsonArrayFunctionImpl.class, "eval", Object[].class), translatedOperands);
+          Types.lookupMethod(JsonArrayFunctionImpl.class, "eval", Object[].class),
+          translatedOperands);
     }
   }
 
   public static Object eval(Object... args) {
     return Arrays.asList(args);
-    /*
-    SqlTypeName targetType = (SqlTypeName) args[args.length - 1];
-    switch (targetType) {
-      case DOUBLE:
-        List<Object> unboxed =
-            IntStream.range(0, args.length - 1)
-                .mapToObj(i -> ((Number) args[i]).doubleValue())
-                .collect(Collectors.toList());
-
-        return unboxed;
-      case FLOAT:
-        List<Object> unboxedFloat =
-            IntStream.range(0, args.length - 1)
-                .mapToObj(i -> ((Number) args[i]).floatValue())
-                .collect(Collectors.toList());
-        return unboxedFloat;
-      default:
-        return Arrays.asList(args).subList(0, args.length - 1);
-    }
-     */
   }
 }

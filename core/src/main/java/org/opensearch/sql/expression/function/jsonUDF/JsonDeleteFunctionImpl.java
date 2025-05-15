@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
+import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
@@ -14,6 +15,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -25,6 +28,7 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -36,12 +40,7 @@ public class JsonDeleteFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return opBinding -> {
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-      return typeFactory.createMapType(
-          typeFactory.createSqlType(SqlTypeName.VARCHAR),
-          typeFactory.createSqlType(SqlTypeName.ANY));
-    };
+    return VARCHAR_FORCE_NULLABLE;
   }
 
   public static class JsonDeleteImplementor implements NotNullImplementor {
@@ -57,22 +56,25 @@ public class JsonDeleteFunctionImpl extends ImplementorUDF {
   }
 
   public static Object eval(Object... args) throws JsonProcessingException {
-    String jsonStr = (String) args[0];
-    List<Object> jsonPaths = collectKeyValuePair(args);
-    ObjectMapper mapper = new ObjectMapper();
-    JsonNode root = mapper.readTree(jsonStr);
-    DocumentContext ctx = JsonPath.parse(jsonStr);
+    List<Object> jsonPaths = Arrays.asList(args).subList(1, args.length);
+    JsonNode root = verifyInput(args[0]);
+    DocumentContext ctx;
+    if (args[0] instanceof String) {
+      ctx = JsonPath.parse(args[0].toString());
+    } else {
+      ctx = JsonPath.parse(args[0]);
+    }
     for (Object originalPath : jsonPaths) {
       String jsonPath = convertToJsonPath(originalPath.toString());
       try {
         Object matches = ctx.read(jsonPath); // verify whether it's a valid path
       } catch (PathNotFoundException e) {
-        return gson.fromJson(jsonStr, Map.class);
+        continue;
       }
       // Resolve path tokens
       PathTokenizer tokenizer = new PathTokenizer(jsonPath);
       root = deletePath(root, tokenizer);
     }
-    return gson.fromJson(mapper.writeValueAsString(root), Map.class);
+    return root.toString();
   }
 }

@@ -5,11 +5,7 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -24,8 +20,8 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 /**
- * json(value) Evaluates whether the input can be parsed as JSON format. Returns the value if
- * valid, null otherwise. Argument type: ANY Return type: ANY/NULL
+ * json(value) Evaluates whether the input can be parsed as JSON format. Returns the value if valid,
+ * null otherwise. Argument type: ANY Return type: ANY/NULL
  */
 public class JsonFunctionImpl extends ImplementorUDF {
   public JsonFunctionImpl() {
@@ -55,9 +51,9 @@ public class JsonFunctionImpl extends ImplementorUDF {
     Object value = args[0];
     try {
       mapper.readTree(value.toString()); // try parse as JSON
-      return true;
+      return value;
     } catch (Exception e) {
-      return false;
+      return null;
     }
   }
 }

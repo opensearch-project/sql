@@ -5,11 +5,13 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
+import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl.jsonAppendIfArray;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.collectKeyValuePair;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -32,12 +34,7 @@ public class JsonExtendFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return opBinding -> {
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-      return typeFactory.createMapType(
-          typeFactory.createSqlType(SqlTypeName.VARCHAR),
-          typeFactory.createSqlType(SqlTypeName.ANY));
-    };
+    return VARCHAR_FORCE_NULLABLE;
   }
 
   public static class JsonExtendImplementor implements NotNullImplementor {
@@ -54,13 +51,11 @@ public class JsonExtendFunctionImpl extends ImplementorUDF {
 
   public static Object eval(Object... args) throws JsonProcessingException {
     String jsonStr = (String) args[0];
-    List<Object> keys = collectKeyValuePair(args);
+    List<Object> keys = Arrays.asList(args).subList(1, args.length);
     if (keys.size() % 2 != 0) {
       throw new RuntimeException(
           "Json extend function needs corresponding path and values, but current get: " + keys);
     }
-    String resultStr = jsonAppendIfArray(jsonStr, keys, true);
-    Map<?, ?> result = gson.fromJson(resultStr, Map.class);
-    return result;
+    return jsonAppendIfArray(jsonStr, keys, true);
   }
 }

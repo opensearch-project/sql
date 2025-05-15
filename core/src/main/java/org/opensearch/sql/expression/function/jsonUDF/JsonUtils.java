@@ -5,11 +5,14 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -287,11 +290,17 @@ public class JsonUtils {
     }
   }
 
-  public static List<Object> collectKeyValuePair(Object... args) {
-    List<Object> result = new ArrayList<>();
-    for (int i = 1; i < args.length; i++) {
-      result.add(args[i]);
+  public static JsonNode verifyInput(Object input) {
+    try {
+      JsonNode root;
+      if (input instanceof String) {
+         root = objectMapper.readTree(input.toString());
+      } else {
+        root = objectMapper.valueToTree(input);
+      }
+      return root;
+    } catch (Exception e) {
+        throw new RuntimeException("fail to parse input", e);
     }
-    return result;
   }
 }

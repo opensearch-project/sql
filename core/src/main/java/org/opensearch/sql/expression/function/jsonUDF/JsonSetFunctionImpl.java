@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
+import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.VARCHAR_FORCE_NULLABLE;
 import static org.opensearch.sql.calcite.utils.BuiltinFunctionUtils.gson;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
@@ -17,6 +18,8 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -39,12 +42,7 @@ public class JsonSetFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return opBinding -> {
-      RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
-      return typeFactory.createMapType(
-          typeFactory.createSqlType(SqlTypeName.VARCHAR),
-          typeFactory.createSqlType(SqlTypeName.ANY));
-    };
+    return VARCHAR_FORCE_NULLABLE;
   }
 
   public static class JsonSetImplementor implements NotNullImplementor {
@@ -61,20 +59,17 @@ public class JsonSetFunctionImpl extends ImplementorUDF {
 
   public static Object eval(Object... args) {
     String jsonStr = (String) args[0];
-    List<Object> keys = collectKeyValuePair(args);
+    List<Object> keys = Arrays.asList(args).subList(1, args.length);
     if (keys.size() % 2 != 0) {
       throw new RuntimeException(
           "Json set function needs corresponding path and values, but current get: " + keys);
     }
-    String resultStr = jsonSetIfParentObject(jsonStr, keys);
-    Map<?, ?> result = gson.fromJson(resultStr, Map.class);
-    return result;
+    return jsonSetIfParentObject(jsonStr, keys);
   }
 
-  public static String jsonSetIfParentObject(String json, List<Object> fullPathToValue) {
-    ObjectMapper mapper = new ObjectMapper();
+  public static String jsonSetIfParentObject(Object json, List<Object> fullPathToValue) {
     try {
-      JsonNode root = mapper.readTree(json);
+      JsonNode root = verifyInput(json);
 
       Configuration conf =
           Configuration.builder()
@@ -106,20 +101,20 @@ public class JsonSetFunctionImpl extends ImplementorUDF {
 
         if (JsonPath.isPathDefinite(parentPath)) {
           if (targets instanceof ObjectNode objectNode) {
-            objectNode.set(fieldName, mapper.valueToTree(value));
+            objectNode.set(fieldName, objectMapper.valueToTree(value));
           }
         } else {
           // Some * inside. an arrayNode returned
           for (int i = 0; i < targets.size(); i++) {
             JsonNode target = targets.get(i);
             if (target instanceof ObjectNode objectNode) {
-              objectNode.set(fieldName, mapper.valueToTree(value));
+              objectNode.set(fieldName, objectMapper.valueToTree(value));
             }
           }
         }
       }
 
-      return mapper.writeValueAsString(root);
+      return root.toString();
     } catch (Exception e) {
       throw new RuntimeException("jsonSetIfParentObject failed", e);
     }
