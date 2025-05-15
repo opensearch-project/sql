@@ -39,7 +39,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalAggregate(group=[{}], c=[TAKE($0, $1)])\n"
-            + "  LogicalProject(JOB=[$2], $f8=[2])\n"
+            + "  LogicalProject(JOB=[$2], $f1=[2])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "c=[CLERK, SALESMAN]\n";
@@ -55,8 +55,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
-            + "LogicalAggregate(group=[{}], avg(SAL)=[AVG($5)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+            + "LogicalAggregate(group=[{}], avg(SAL)=[AVG($0)])\n"
+            + "  LogicalProject(SAL=[$5])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "avg(SAL)=2073.21\n";
     verifyResult(root, expectedResult);
@@ -72,9 +73,10 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + " as cnt";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        "LogicalAggregate(group=[{}], avg_sal=[AVG($5)], max_sal=[MAX($5)], min_sal=[MIN($5)],"
+        "LogicalAggregate(group=[{}], avg_sal=[AVG($0)], max_sal=[MAX($0)], min_sal=[MIN($0)],"
             + " cnt=[COUNT()])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalProject(SAL=[$5])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "avg_sal=2073.21; max_sal=5000.00; min_sal=800.00; cnt=14\n";
     verifyResult(root, expectedResult);
@@ -94,9 +96,10 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(avg_sal=[$1], max_sal=[$2], min_sal=[$3], cnt=[$4], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{7}], avg_sal=[AVG($5)], max_sal=[MAX($5)],"
-            + " min_sal=[MIN($5)], cnt=[COUNT()])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{0}], avg_sal=[AVG($1)], max_sal=[MAX($1)],"
+            + " min_sal=[MIN($1)], cnt=[COUNT()])\n"
+            + "    LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
@@ -120,8 +123,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(avg(SAL)=[$1], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{7}], avg(SAL)=[AVG($5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{0}], avg(SAL)=[AVG($1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
@@ -145,8 +149,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical1 =
         ""
             + "LogicalProject(avg(SAL)=[$2], JOB=[$0], DEPTNO=[$1])\n"
-            + "  LogicalAggregate(group=[{2, 7}], avg(SAL)=[AVG($5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{0, 1}], avg(SAL)=[AVG($2)])\n"
+            + "    LogicalProject(JOB=[$2], DEPTNO=[$7], SAL=[$5])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root1, expectedLogical1);
 
     String expectedSparkSql1 =
@@ -160,16 +165,17 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     RelNode root2 = getRelNode(ppl2);
     String expectedLogical2 =
         ""
-            + "LogicalProject(avg(SAL)=[$2], DEPTNO=[$1], JOB=[$0])\n"
-            + "  LogicalAggregate(group=[{2, 7}], avg(SAL)=[AVG($5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "LogicalProject(avg(SAL)=[$2], DEPTNO=[$0], JOB=[$1])\n"
+            + "  LogicalAggregate(group=[{0, 1}], avg(SAL)=[AVG($2)])\n"
+            + "    LogicalProject(DEPTNO=[$7], JOB=[$2], SAL=[$5])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root2, expectedLogical2);
 
     String expectedSparkSql2 =
         ""
             + "SELECT AVG(`SAL`) `avg(SAL)`, `DEPTNO`, `JOB`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `JOB`, `DEPTNO`";
+            + "GROUP BY `DEPTNO`, `JOB`";
     verifyPPLToSparkSQL(root2, expectedSparkSql2);
   }
 
@@ -206,8 +212,8 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
         ""
             + "LogicalSort(sort0=[$2], sort1=[$1], dir0=[ASC], dir1=[ASC])\n"
             + "  LogicalProject(avg(SAL)=[$2], empno_span=[$1], DEPTNO=[$0])\n"
-            + "    LogicalAggregate(group=[{1, 2}], avg(SAL)=[AVG($0)])\n"
-            + "      LogicalProject(SAL=[$5], DEPTNO=[$7], empno_span=[SPAN($0, 500, null:NULL)])\n"
+            + "    LogicalAggregate(group=[{0, 2}], avg(SAL)=[AVG($1)])\n"
+            + "      LogicalProject(DEPTNO=[$7], SAL=[$5], empno_span=[SPAN($0, 500, null:NULL)])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
@@ -270,8 +276,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(distinct_count(JOB)=[$1], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{7}], distinct_count(JOB)=[COUNT(DISTINCT $2)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{0}], distinct_count(JOB)=[COUNT(DISTINCT $1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
@@ -295,8 +302,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(dc=[$1], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{7}], dc=[COUNT(DISTINCT $2)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{0}], dc=[COUNT(DISTINCT $1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "dc=3; DEPTNO=20\ndc=3; DEPTNO=10\ndc=3; DEPTNO=30\n";
     verifyResult(root, expectedResult);
@@ -340,8 +348,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(stddev_samp(SAL)=[$1], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{7}], stddev_samp(SAL)=[STDDEV_SAMP($5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{0}], stddev_samp(SAL)=[STDDEV_SAMP($1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
@@ -395,8 +404,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(stddev_pop(SAL)=[$1], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{7}], stddev_pop(SAL)=[STDDEV_POP($5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{0}], stddev_pop(SAL)=[STDDEV_POP($1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         ""
@@ -420,8 +430,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(pop=[$1], DEPTNO=[$0])\n"
-            + "  LogicalAggregate(group=[{7}], pop=[STDDEV_POP($5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{0}], pop=[STDDEV_POP($1)])\n"
+            + "    LogicalProject(DEPTNO=[$7], SAL=[$5])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         "pop=1004.73; DEPTNO=20\npop=1546.14; DEPTNO=10\npop=610.10; DEPTNO=30\n";
@@ -459,8 +470,8 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(avg_a=[$1], b=[$0])\n"
-            + "  LogicalAggregate(group=[{1}], avg_a=[AVG($0)])\n"
-            + "    LogicalProject(a=[1], b=[1])\n"
+            + "  LogicalAggregate(group=[{0}], avg_a=[AVG($1)])\n"
+            + "    LogicalProject(b=[1], a=[1])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "avg_a=1.0; b=1\n";
@@ -477,8 +488,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
-            + "LogicalAggregate(group=[{}], avg_sal=[AVG($5)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+            + "LogicalAggregate(group=[{}], avg_sal=[AVG($0)])\n"
+            + "  LogicalProject(SAL=[$5])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "avg_sal=2073.21\n";
     verifyResult(root, expectedResult);
@@ -494,8 +506,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalAggregate(group=[{}], avg_avg_sal=[AVG($0)])\n"
-            + "  LogicalAggregate(group=[{}], avg_sal=[AVG($5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{}], avg_sal=[AVG($0)])\n"
+            + "    LogicalProject(SAL=[$5])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedResult = "avg_avg_sal=2073.21\n";
@@ -505,7 +518,7 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT AVG(`avg_sal`) `avg_avg_sal`\n"
             + "FROM (SELECT AVG(`SAL`) `avg_sal`\n"
-            + "FROM `scott`.`EMP`) `t`";
+            + "FROM `scott`.`EMP`) `t0`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -518,10 +531,11 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(avg_avg_sal=[$1], MGR=[$0])\n"
-            + "  LogicalAggregate(group=[{1}], avg_avg_sal=[AVG($0)])\n"
-            + "    LogicalProject(avg_sal=[$2], MGR=[$0])\n"
-            + "      LogicalAggregate(group=[{3, 7}], avg_sal=[AVG($5)])\n"
-            + "        LogicalTableScan(table=[[scott, EMP]])\n";
+            + "  LogicalAggregate(group=[{0}], avg_avg_sal=[AVG($1)])\n"
+            + "    LogicalProject(MGR=[$1], avg_sal=[$2])\n"
+            + "      LogicalAggregate(group=[{0, 1}], avg_sal=[AVG($2)])\n"
+            + "        LogicalProject(DEPTNO=[$7], MGR=[$3], SAL=[$5])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedResult =
@@ -538,9 +552,9 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         ""
             + "SELECT AVG(`avg_sal`) `avg_avg_sal`, `MGR`\n"
-            + "FROM (SELECT AVG(`SAL`) `avg_sal`, `MGR`\n"
+            + "FROM (SELECT `MGR`, AVG(`SAL`) `avg_sal`\n"
             + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `MGR`, `DEPTNO`) `t0`\n"
+            + "GROUP BY `DEPTNO`, `MGR`) `t1`\n"
             + "GROUP BY `MGR`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

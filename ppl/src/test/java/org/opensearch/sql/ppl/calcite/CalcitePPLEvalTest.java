@@ -287,8 +287,8 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         ""
             + "LogicalProject(avg(a)=[$1], b=[$0])\n"
-            + "  LogicalAggregate(group=[{1}], avg(a)=[AVG($0)])\n"
-            + "    LogicalProject(a=[$5], b=[$7])\n"
+            + "  LogicalAggregate(group=[{0}], avg(a)=[AVG($1)])\n"
+            + "    LogicalProject(b=[$7], a=[$5])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult = "avg(a)=2175.00; b=20\navg(a)=2916.66; b=10\navg(a)=1566.66; b=30\n";
