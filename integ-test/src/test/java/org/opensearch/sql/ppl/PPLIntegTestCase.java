@@ -20,6 +20,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /** OpenSearch Rest integration test base for PPL testing. */
@@ -169,6 +170,24 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             new SQLIntegTestCase.ClusterSetting(
                 "persistent", Settings.Key.CALCITE_FALLBACK_ALLOWED.getKeyValue(), "false"));
         LOG.info("Reset {} back to disabled", Settings.Key.CALCITE_FALLBACK_ALLOWED.name());
+      }
+    }
+  }
+
+  public static void withSettings(Key setting, String value, Runnable f) throws IOException {
+    String originalValue = getClusterSetting(setting.getKeyValue(), "persistent");
+    if (originalValue.equals(value)) f.run();
+    else {
+      try {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting("persistent", setting.getKeyValue(), value));
+        LOG.info("Set {} to {} and run the test", setting.name(), value);
+        f.run();
+      } finally {
+        updateClusterSettings(
+            new SQLIntegTestCase.ClusterSetting(
+                "persistent", setting.getKeyValue(), originalValue));
+        LOG.info("Reset {} back to {}", setting.name(), originalValue);
       }
     }
   }

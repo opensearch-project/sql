@@ -203,10 +203,8 @@ public class OpenSearchIndex extends OpenSearchTable {
 
   @Override
   public TableScanBuilder createScanBuilder() {
-    final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
-
     final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    var builder = new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory(), settings);
+    var builder = createRequestBuilder();
     Function<OpenSearchRequestBuilder, OpenSearchIndexScan> createScanOperator =
         requestBuilder ->
             new OpenSearchIndexScan(
@@ -265,12 +263,9 @@ public class OpenSearchIndex extends OpenSearchTable {
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
-        final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
-
         final TimeValue cursorKeepAlive =
             settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-        var builder =
-            new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory(), settings);
+        var builder = createRequestBuilder();
         return new OpenSearchIndexEnumerator(
             client,
             List.copyOf(getFieldTypes().keySet()),
@@ -281,10 +276,7 @@ public class OpenSearchIndex extends OpenSearchTable {
   }
 
   public OpenSearchRequestBuilder createRequestBuilder() {
-    return new OpenSearchRequestBuilder(
-        settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
-        this.createExprValueFactory(),
-        settings);
+    return new OpenSearchRequestBuilder(getMaxResultWindow(), createExprValueFactory(), settings);
   }
 
   public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {
