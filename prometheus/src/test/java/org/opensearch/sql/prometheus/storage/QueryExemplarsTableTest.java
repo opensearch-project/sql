@@ -7,9 +7,9 @@ package org.opensearch.sql.prometheus.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.opensearch.sql.prometheus.constants.TestConstants.ENDTIME;
-import static org.opensearch.sql.prometheus.constants.TestConstants.QUERY;
-import static org.opensearch.sql.prometheus.constants.TestConstants.STARTTIME;
+import static org.opensearch.sql.prometheus.constant.TestConstants.ENDTIME;
+import static org.opensearch.sql.prometheus.constant.TestConstants.QUERY;
+import static org.opensearch.sql.prometheus.constant.TestConstants.STARTTIME;
 
 import java.util.Map;
 import lombok.SneakyThrows;
