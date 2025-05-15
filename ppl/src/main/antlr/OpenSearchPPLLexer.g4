@@ -192,7 +192,6 @@ RT_SQR_PRTHS:                       ']';
 SINGLE_QUOTE:                       '\'';
 DOUBLE_QUOTE:                       '"';
 BACKTICK:                           '`';
-ARROW:                              '->';
 
 // Operators. Bit
 
