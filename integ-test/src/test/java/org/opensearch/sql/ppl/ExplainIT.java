@@ -95,7 +95,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testLimitPushDownExplain() throws Exception {
-    // TODO fix after https://github.com/opensearch-project/sql/issues/3381
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_limit_push.json")
