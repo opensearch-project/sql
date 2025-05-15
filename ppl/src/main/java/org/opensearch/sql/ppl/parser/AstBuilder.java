@@ -562,7 +562,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
               String argName = (arg.ident() != null) ? arg.ident().getText() : null;
               builder.add(
                   new UnresolvedArgument(
-                      argName, this.internalVisitExpression(arg.valueExpression())));
+                      argName, this.internalVisitExpression(arg.expression())));
             });
     return new TableFunction(this.internalVisitExpression(ctx.qualifiedName()), builder.build());
   }

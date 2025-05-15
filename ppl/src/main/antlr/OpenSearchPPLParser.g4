@@ -462,8 +462,6 @@ valueExpression
    | timestampFunction                                                                          # timestampFunctionCall
    | LT_PRTHS valueExpression RT_PRTHS                                                          # parentheticValueExpr
    | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                        # scalarSubqueryExpr
-   | ident ARROW expression                                                                     # lambda
-   | LT_PRTHS ident (COMMA ident)+ RT_PRTHS ARROW expression                                    # lambda
    ;
 
 primaryExpression
@@ -583,7 +581,6 @@ evalFunctionName
    | jsonFunctionName
    | geoipFunctionName
    | collectionFunctionName
-   | lambdaFunctionName
    ;
 
 functionArgs
@@ -591,7 +588,7 @@ functionArgs
    ;
 
 functionArg
-   : (ident EQUAL)? valueExpression
+   : (ident EQUAL)? expression
    ;
 
 relevanceArg
@@ -719,14 +716,6 @@ jsonFunctionName
    | JSON_APPEND
    | JSON_EXTEND
    ;
-
-lambdaFunctionName
-  : FORALL
-  | EXISTS
-  | FILTER
-  | TRANSFORM
-  | REDUCE
-  ;
 
 cryptographicFunctionName
    : MD5

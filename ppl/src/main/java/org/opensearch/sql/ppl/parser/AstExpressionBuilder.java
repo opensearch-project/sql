@@ -133,17 +133,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new Xor(visit(ctx.left), visit(ctx.right));
   }
 
-  @Override
-  public UnresolvedExpression visitLambda(OpenSearchPPLParser.LambdaContext ctx) {
-
-    List<QualifiedName> arguments =
-        ctx.ident().stream()
-            .map(x -> this.visitIdentifiers(Collections.singletonList(x)))
-            .collect(Collectors.toList());
-    UnresolvedExpression function = visitExpression(ctx.expression());
-    return new LambdaFunction(function, arguments);
-  }
-
   /** Comparison expression. */
   @Override
   public UnresolvedExpression visitCompareExpr(CompareExprContext ctx) {
