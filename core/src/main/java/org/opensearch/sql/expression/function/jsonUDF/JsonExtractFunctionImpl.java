@@ -55,40 +55,28 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
     if (args.length < 2) {
       return null;
     }
+    JsonFunctions.StatefulFunction a = new JsonFunctions.StatefulFunction();
     String jsonStr = (String) args[0];
     List<Object> jsonPaths = Arrays.asList(args).subList(1, args.length);
-    /*
-    JsonNode root = verifyInput(args[0]);
-    List<Object> expands = new ArrayList<>();
-    List<String> results = new ArrayList<>();
-    for (Object key : keys) {
-      expands.addAll(expandJsonPath(root, convertToJsonPath(key.toString())));
-    }
-     */
-    JsonNode root = convertInputToJsonNode(args[0]);
-    List<String> expands = new ArrayList<>();
+    List<String> pathSpecs =
+            jsonPaths.stream()
+                    .map(Object::toString)
+                    .map(JsonUtils::convertToJsonPath)
+                    .map(s -> " lax " + s).toList();
     List<Object> results = new ArrayList<>();
-    for (Object key : jsonPaths) {
-      expands.addAll(expandJsonPath(root, convertToJsonPath(key.toString())));
-    }
-    List<String> modeExpands = new ArrayList<>();
-    for (String expand : expands) {
-      modeExpands.add(" lax " + expand);
-    }
-    JsonFunctions.StatefulFunction a = new JsonFunctions.StatefulFunction();
-    for (String pathSpec : modeExpands) {
+    for (String pathSpec : pathSpecs) {
       Object queryResult = a.jsonQuery(jsonStr, pathSpec, WITHOUT_ARRAY, NULL, NULL, false);
       Object valueResult =
-          a.jsonValue(
-              jsonStr,
-              pathSpec,
-              SqlJsonValueEmptyOrErrorBehavior.NULL,
-              null,
-              SqlJsonValueEmptyOrErrorBehavior.NULL,
-              null);
+              a.jsonValue(
+                      jsonStr,
+                      pathSpec,
+                      SqlJsonValueEmptyOrErrorBehavior.NULL,
+                      null,
+                      SqlJsonValueEmptyOrErrorBehavior.NULL,
+                      null);
       results.add(queryResult != null ? queryResult : valueResult);
     }
-    if (expands.size() == 1) {
+    if (jsonPaths.size() == 1) {
       return doJsonize(results.getFirst());
     }
     return doJsonize(results);
