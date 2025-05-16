@@ -5,26 +5,28 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.convertToJsonPath;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
+import static org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior.NULL;
+import static org.apache.calcite.sql.SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY;
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
-import com.jayway.jsonpath.JsonPath;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class JsonExtractFunctionImpl extends ImplementorUDF {
@@ -34,17 +36,7 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return sqlOperatorBinding -> {
-      RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
-      RelDataType varcharType =
-          typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(SqlTypeName.VARCHAR), true);
-      if (sqlOperatorBinding.collectOperandTypes().size() > 2) {
-        return createArrayType(typeFactory, varcharType, true);
-      } else {
-        return varcharType;
-      }
-    };
+    return STRING_FORCE_NULLABLE;
   }
 
   public static class JsonExtractImplementor implements NotNullImplementor {
@@ -63,27 +55,58 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
     if (args.length < 2) {
       return null;
     }
-    Object value = args[0];
+    String jsonStr = (String) args[0];
+    List<Object> jsonPaths = Arrays.asList(args).subList(1, args.length);
+    /*
+    JsonNode root = verifyInput(args[0]);
+    List<Object> expands = new ArrayList<>();
+    List<String> results = new ArrayList<>();
+    for (Object key : keys) {
+      expands.addAll(expandJsonPath(root, convertToJsonPath(key.toString())));
+    }
+     */
+    JsonNode root = verifyInput(args[0]);
+    List<String> expands = new ArrayList<>();
     List<Object> results = new ArrayList<>();
-    List<Object> paths = Arrays.asList(args).subList(1, args.length);
-    for (Object path : paths) {
-      String jsonPath = convertToJsonPath(path.toString());
-      try {
-        Object result;
-        if (value instanceof String) {
-          result = JsonPath.read((String) value, jsonPath);
-        } else {
-          result = JsonPath.read(value, jsonPath);
-        }
-        result = result != null ? gson.toJson(result) : null;
-        results.add(result);
-      } catch (Exception e) {
-        results.add(null);
-      }
+    for (Object key : jsonPaths) {
+      expands.addAll(expandJsonPath(root, convertToJsonPath(key.toString())));
     }
-    if (paths.size() > 1) {
-      return results;
+    List<String> modeExpands = new ArrayList<>();
+    for (String expand : expands) {
+      modeExpands.add(" lax " + expand);
     }
-    return results.get(0);
+    JsonFunctions.StatefulFunction a = new JsonFunctions.StatefulFunction();
+    for (String pathSpec : modeExpands) {
+      Object queryResult = a.jsonQuery(jsonStr, pathSpec, WITHOUT_ARRAY, NULL, NULL, false);
+      Object valueResult =
+          a.jsonValue(
+              jsonStr,
+              pathSpec,
+              SqlJsonValueEmptyOrErrorBehavior.NULL,
+              null,
+              SqlJsonValueEmptyOrErrorBehavior.NULL,
+              null);
+      results.add(queryResult != null ? queryResult : valueResult);
+    }
+    if (expands.size() == 1) {
+      return doJsonize(results.getFirst());
+    }
+    return doJsonize(results);
+  }
+
+  private static boolean isScalarObject(Object obj) {
+    if (obj instanceof Collection) {
+      return false;
+    } else {
+      return !(obj instanceof Map);
+    }
+  }
+
+  private static String doJsonize(Object candidate) {
+    if (isScalarObject(candidate)) {
+      return candidate.toString();
+    } else {
+      return JsonFunctions.jsonize(candidate);
+    }
   }
 }

@@ -6,9 +6,9 @@
 package org.opensearch.sql.expression.function.jsonUDF;
 
 import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
 
 import java.util.List;
+import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
@@ -16,6 +16,7 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -43,6 +44,9 @@ public class ToJsonStringFunctionImpl extends ImplementorUDF {
   }
 
   public static Object eval(Object... args) {
-    return gson.toJson(args[0]);
+    if (args[0] instanceof Map) {
+      return JsonFunctions.jsonize(args[0]);
+    }
+    return null;
   }
 }

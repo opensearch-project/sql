@@ -17,6 +17,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -26,6 +27,7 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -59,7 +61,19 @@ public class JsonAppendFunctionImpl extends ImplementorUDF {
       throw new RuntimeException(
           "Json append function needs corresponding path and values, but current get: " + keys);
     }
-    return jsonAppendIfArray(jsonStr, keys, false);
+    JsonNode root = verifyInput(args[0]);
+    List<Object> expands = new ArrayList<>();
+    for (int i = 0; i < keys.size(); i += 2) {
+      List<String> expandedPaths = expandJsonPath(root, convertToJsonPath(keys.get(i).toString()));
+      for (String expandedPath : expandedPaths) {
+        expands.add(
+            expandedPath
+                + ".meaninglessKey"); // We add meaningless Key since calcite json_insert can only
+        // insert when the path point to null
+        expands.add(keys.get(i + 1));
+      }
+    }
+    return JsonFunctions.jsonInsert(jsonStr, expands.toArray());
   }
 
   public static String jsonAppendIfArray(Object json, List<Object> pathValueMap, boolean isExtend) {

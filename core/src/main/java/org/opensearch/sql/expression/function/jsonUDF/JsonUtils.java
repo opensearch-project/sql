@@ -7,15 +7,13 @@ package org.opensearch.sql.expression.function.jsonUDF;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.List;
 
 public class JsonUtils {
   static ObjectMapper objectMapper = new ObjectMapper();
-  static Gson gson = new Gson();
+  public static Gson gson = new Gson();
 
   /**
    * @param input candidate json path like a.b{}.c{2}
@@ -57,88 +55,6 @@ public class JsonUtils {
     return sb.toString();
   }
 
-  static JsonNode deletePath(JsonNode node, PathTokenizer tokenizer) {
-    if (!tokenizer.hasNext()) return node;
-
-    PathToken token = tokenizer.next();
-
-    if (token.key.equals("$")) {
-      return deletePath(node, tokenizer);
-    }
-    if (node instanceof ArrayNode arr && token.isIndex) {
-      if (token.key.equals("*")) {
-        for (int i = arr.size() - 1; i >= 0; i--) {
-          deletePath(arr.get(i), tokenizer.cloneFromNext());
-        }
-      } else {
-        int idx = Integer.parseInt(token.key);
-        if (!tokenizer.hasNext()) {
-          if (idx >= 0 && idx < arr.size()) arr.remove(idx);
-        } else {
-          if (idx >= 0 && idx < arr.size()) {
-            deletePath(arr.get(idx), tokenizer);
-          }
-        }
-      }
-    } else if (node instanceof ObjectNode obj && !token.isIndex) {
-      if (!tokenizer.hasNext()) {
-        obj.remove(token.key);
-      } else if (obj.has(token.key)) {
-        deletePath(obj.get(token.key), tokenizer);
-      }
-    }
-
-    return node;
-  }
-
-  // Tokenizer for JSONPath like $[0].cities[1]
-  public static class PathTokenizer {
-    private final List<PathToken> tokens;
-    private int index = 0;
-
-    public PathTokenizer(String path) {
-      this.tokens = new ArrayList<>();
-
-      // normalize brackets (a[1] => a.[1])
-      String normalized = path.replaceAll("\\[", ".[");
-
-      for (String raw : normalized.split("\\.")) {
-        if (raw.isEmpty()) continue;
-
-        if (raw.startsWith("[") && raw.endsWith("]")) {
-          tokens.add(new PathToken(raw.substring(1, raw.length() - 1), true));
-        } else {
-          tokens.add(new PathToken(raw, false));
-        }
-      }
-    }
-
-    public boolean hasNext() {
-      return index < tokens.size();
-    }
-
-    public PathToken next() {
-      return tokens.get(index++);
-    }
-
-    public PathTokenizer cloneFromNext() {
-      PathTokenizer clone = new PathTokenizer("");
-      clone.tokens.addAll(this.tokens);
-      clone.index = this.index;
-      return clone;
-    }
-  }
-
-  static class PathToken {
-    public final String key;
-    public final boolean isIndex;
-
-    public PathToken(String key, boolean isIndex) {
-      this.key = key;
-      this.isIndex = isIndex;
-    }
-  }
-
   public static JsonNode verifyInput(Object input) {
     try {
       JsonNode root;
@@ -151,5 +67,72 @@ public class JsonUtils {
     } catch (Exception e) {
       throw new RuntimeException("fail to parse input", e);
     }
+  }
+
+  public static List<String> expandJsonPath(JsonNode root, String rawPath) {
+    // Remove only leading "$." or "$"
+    String cleanedPath = rawPath.replaceFirst("^\\$\\.", "").replaceFirst("^\\$", "");
+
+    String[] parts = cleanedPath.split("\\.");
+    return expand(root, parts, 0, "$");
+  }
+
+  private static List<String> expand(
+      JsonNode currentNode, String[] parts, int index, String prefix) {
+    if (index >= parts.length || currentNode == null) {
+      return List.of(prefix);
+    }
+
+    String part = parts[index];
+    List<String> results = new ArrayList<>();
+
+    if (part.endsWith("[*]")) {
+      String field = part.substring(0, part.length() - 3);
+      JsonNode arrayNode;
+      if (field.isEmpty()) {
+        arrayNode = currentNode;
+      } else {
+        arrayNode = currentNode.get(field);
+      }
+      if (arrayNode != null && arrayNode.isArray()) {
+        for (int i = 0; i < arrayNode.size(); i++) {
+          String newPrefix = prefix + "." + field + "[" + i + "]";
+          results.addAll(expand(arrayNode.get(i), parts, index + 1, newPrefix));
+        }
+      }
+    } else if (part.endsWith("]")) {
+      int leftBracketIndex = part.lastIndexOf('[');
+      String field = part.substring(0, part.length() - 3);
+      JsonNode arrayNode;
+      if (field.isEmpty()) {
+        arrayNode = currentNode;
+      } else {
+        arrayNode = currentNode.get(field);
+      }
+      Boolean arrayFlag = false;
+      if (leftBracketIndex > -1
+          && part.substring(leftBracketIndex + 1, part.length() - 1).matches("-?\\d+")) {
+        int currentIndex =
+            Integer.parseInt(part.substring(leftBracketIndex + 1, part.length() - 1));
+        if (arrayNode != null && arrayNode.isArray()) {
+          if (arrayNode.size() > currentIndex) {
+            String newPrefix = prefix + "." + part;
+            results.addAll(expand(arrayNode.get(currentIndex), parts, index + 1, newPrefix));
+            arrayFlag = true;
+          }
+        }
+      }
+      if (!arrayFlag) {
+        JsonNode next = currentNode.get(part);
+        String newPrefix = prefix + "." + part;
+        results.addAll(expand(next, parts, index + 1, newPrefix));
+      }
+    } else { // ends with string
+      JsonNode next = currentNode.get(part);
+      String newPrefix = prefix + "." + part;
+      results.addAll(expand(next, parts, index + 1, newPrefix));
+    }
+
+    return results;
   }
 }

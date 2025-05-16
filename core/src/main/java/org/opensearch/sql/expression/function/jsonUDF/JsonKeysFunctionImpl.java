@@ -5,24 +5,19 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
-import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
 
-import com.google.gson.JsonSyntaxException;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexImpTable;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.runtime.JsonFunctions;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class JsonKeysFunctionImpl extends ImplementorUDF {
@@ -32,14 +27,7 @@ public class JsonKeysFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return sqlOperatorBinding -> {
-      RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
-      return createArrayType(
-          typeFactory,
-          typeFactory.createTypeWithNullability(
-              typeFactory.createSqlType(SqlTypeName.VARCHAR), true),
-          true);
-    };
+    return STRING_FORCE_NULLABLE;
   }
 
   public static class JsonKeysImplementor implements NotNullImplementor {
@@ -56,13 +44,10 @@ public class JsonKeysFunctionImpl extends ImplementorUDF {
 
   public static Object eval(Object... args) {
     assert args.length == 1 : "Json keys only accept one argument";
-    String value = (String) args[0];
-    try {
-      Map<?, ?> map = gson.fromJson(value, Map.class);
-      List<Object> demo = Arrays.asList(map.keySet().toArray());
-      return Arrays.asList(map.keySet().toArray());
-    } catch (JsonSyntaxException e) {
+    String value = JsonFunctions.jsonKeys(args[0].toString());
+    if (value.equals("null")) {
       return null;
     }
+    return value;
   }
 }

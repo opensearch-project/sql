@@ -5,14 +5,11 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
+import static org.apache.calcite.runtime.JsonFunctions.jsonRemove;
 import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -50,24 +47,11 @@ public class JsonDeleteFunctionImpl extends ImplementorUDF {
 
   public static Object eval(Object... args) throws JsonProcessingException {
     List<Object> jsonPaths = Arrays.asList(args).subList(1, args.length);
-    JsonNode root = verifyInput(args[0]);
-    DocumentContext ctx;
-    if (args[0] instanceof String) {
-      ctx = JsonPath.parse(args[0].toString());
-    } else {
-      ctx = JsonPath.parse(args[0]);
-    }
-    for (Object originalPath : jsonPaths) {
-      String jsonPath = convertToJsonPath(originalPath.toString());
-      try {
-        Object matches = ctx.read(jsonPath); // verify whether it's a valid path
-      } catch (PathNotFoundException e) {
-        continue;
-      }
-      // Resolve path tokens
-      PathTokenizer tokenizer = new PathTokenizer(jsonPath);
-      root = deletePath(root, tokenizer);
-    }
-    return root.toString();
+    String[] pathSpecs =
+        jsonPaths.stream()
+            .map(Object::toString)
+            .map(JsonUtils::convertToJsonPath)
+            .toArray(String[]::new);
+    return jsonRemove(args[0].toString(), pathSpecs);
   }
 }

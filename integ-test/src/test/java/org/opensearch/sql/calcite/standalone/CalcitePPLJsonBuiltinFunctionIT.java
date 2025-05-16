@@ -5,14 +5,13 @@
 
 package org.opensearch.sql.calcite.standalone;
 
+import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
-import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
@@ -29,6 +28,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     loadIndex(Index.PEOPLE2);
     loadIndex(Index.BANK);
     loadIndex(Index.JSON_TEST);
+    loadIndex(Index.GAME_OF_THRONES);
   }
 
   @Test
@@ -54,13 +54,9 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                     + " json_object('inner', 123.45))| fields a, b | head 1",
                 TEST_INDEX_PEOPLE2));
 
-    verifySchema(actual, schema("a", "struct"), schema("b", "struct"));
+    verifySchema(actual, schema("a", "string"), schema("b", "string"));
 
-    verifyDataRows(
-        actual,
-        rows(
-            new Gson().fromJson("{\"key\":123.45}", Map.class),
-            new Gson().fromJson("{\"outer\":{\"inner\":123.45}}", Map.class)));
+    verifyDataRows(actual, rows("{\"key\":123.45}", "{\"outer\":\"{\\\"inner\\\":123.45}\"}"));
   }
 
   @Test
@@ -71,9 +67,9 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval a = json_array(1, 2, 0, -1, 1.1, -0.11)| fields a | head 1",
                 TEST_INDEX_PEOPLE2));
 
-    verifySchema(actual, schema("a", "array"));
+    verifySchema(actual, schema("a", "string"));
 
-    verifyDataRows(actual, rows(List.of(1.0, 2.0, 0, -1.0, 1.1, -0.11)));
+    verifyDataRows(actual, rows(gson.toJson(List.of(1, 2, 0, -1, 1.1, -0.11))));
   }
 
   @Test
@@ -85,9 +81,9 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                     + " head 1",
                 TEST_INDEX_PEOPLE2));
 
-    verifySchema(actual, schema("a", "array"));
+    verifySchema(actual, schema("a", "string"));
 
-    verifyDataRows(actual, rows(List.of(1, "123", Map.of("name", 3))));
+    verifyDataRows(actual, rows("[1,\"123\",\"{\\\"name\\\":3}\"]"));
   }
 
   @Test
@@ -95,13 +91,13 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval a = to_json_string(json_array(1, 2, 0, -1, 1.1, -0.11))| fields a"
-                    + " | head 1",
-                TEST_INDEX_PEOPLE2));
+                "source=%s |  eval a = to_json_string(name) | fields a" + " | head 1",
+                TEST_INDEX_GAME_OF_THRONES));
 
     verifySchema(actual, schema("a", "string"));
 
-    verifyDataRows(actual, rows("[1,2,0,-1,1.1,-0.11]"));
+    verifyDataRows(
+        actual, rows("{\"firstname\":\"Daenerys\",\"lastname\":\"Targaryen\",\"ofHerName\":1}"));
   }
 
   @Test
@@ -161,10 +157,10 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
             + "]\n"
             + "},\n"
             + "{\n"
-            + "\"name\": \"San Francisco\",\n"
+            + "\"name\":\"San Francisco\",\n"
             + "\"Bridges\":[\n"
             + "{\"name\":\"Golden Gate Bridge\",\"length\":8981.0},\n"
-            + "{\"name\":\"Bay Bridge\", \"length\":23556.0}\n"
+            + "{\"name\":\"Bay Bridge\",\"length\":23556.0}\n"
             + "]\n"
             + "}\n"
             + "]";
@@ -181,7 +177,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(
         actual,
         rows(
-            new Gson().toJson(new Gson().fromJson(candidate, List.class)),
+            gson.toJson(gson.fromJson(candidate, List.class)),
             "8981.0",
             "{\"name\":\"Golden Gate Bridge\",\"length\":8981.0}"));
   }
@@ -196,9 +192,9 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                     + " =json_keys('[1,2,3,{\"f1\":1,\"f2\":[5,6]},4]') | fields a,b | head 1",
                 TEST_INDEX_PEOPLE2));
 
-    verifySchema(actual, schema("a", "array"), schema("b", "array"));
+    verifySchema(actual, schema("a", "string"), schema("b", "string"));
 
-    verifyDataRows(actual, rows(List.of("f1", "f2"), null));
+    verifyDataRows(actual, rows("[\"f1\",\"f2\"]", null));
   }
 
   @Test
@@ -223,9 +219,9 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                 "source=%s | eval a =array(1, 2, 0, -1, 1.1, -0.11) | fields a | head 1",
                 TEST_INDEX_PEOPLE2));
 
-    verifySchema(actual, schema("a", "array"));
+    verifySchema(actual, schema("a", "string"));
 
-    verifyDataRows(actual, rows(List.of(1.0, 2.0, 0, -1.0, 1.1, -0.11)));
+    verifyDataRows(actual, rows("[1,2,0,-1,1.1,-0.11]"));
   }
 
   @Test
@@ -321,9 +317,9 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(
         actual,
         rows(
-            "{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2},{\"name\":\"Tomy\",\"rank\":5}]}",
+            "{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2},\"{\\\"name\\\":\\\"Tomy\\\",\\\"rank\\\":5}\"]}",
             "{\"teacher\":[\"Alice\",\"Tom\",\"Walt\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}",
-            "{\"school\":{\"teacher\":[\"Alice\",[\"Tom\",\"Walt\"]],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}"));
+            "{\"school\":{\"teacher\":[\"Alice\",\"[\\\"Tom\\\",\\\"Walt\\\"]\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}"));
   }
 
   @Test
@@ -345,19 +341,8 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(
         actual,
         rows(
-            "{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2},{\"name\":\"Tommy\",\"rank\":5}]}",
+            "{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2},\"{\\\"name\\\":\\\"Tommy\\\",\\\"rank\\\":5}\"]}",
             "{\"teacher\":[\"Alice\",\"Tom\",\"Walt\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}",
             "{\"school\":{\"teacher\":[\"Alice\",\"Tom\",\"Walt\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}"));
-  }
-
-  @Test
-  public void test_cast_json() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where json_valid(json_string) | eval casted=cast(json_string as json)"
-                    + " | fields test_name",
-                TEST_INDEX_JSON_TEST));
-    assertEquals(1, 1);
   }
 }

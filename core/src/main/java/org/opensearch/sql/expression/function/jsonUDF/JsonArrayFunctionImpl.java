@@ -5,9 +5,8 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
+import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
 
-import java.util.Arrays;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -15,10 +14,10 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
-import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.runtime.JsonFunctions;
+import org.apache.calcite.sql.SqlJsonConstructorNullClause;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
-import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 /**
@@ -37,13 +36,7 @@ public class JsonArrayFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return sqlOperatorBinding -> {
-      RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
-      return createArrayType(
-          typeFactory,
-          typeFactory.createTypeWithNullability(typeFactory.createSqlType(SqlTypeName.ANY), true),
-          true);
-    };
+    return STRING_FORCE_NULLABLE;
   }
 
   public static class JsonArrayImplementor implements NotNullImplementor {
@@ -57,6 +50,6 @@ public class JsonArrayFunctionImpl extends ImplementorUDF {
   }
 
   public static Object eval(Object... args) {
-    return Arrays.asList(args);
+    return JsonFunctions.jsonArray(SqlJsonConstructorNullClause.NULL_ON_NULL, args);
   }
 }
