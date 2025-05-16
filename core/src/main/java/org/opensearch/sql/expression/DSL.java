@@ -688,6 +688,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.JSON_VALID, expressions);
   }
 
+  public static FunctionExpression jsonExtract(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.JSON_EXTRACT, expressions);
+  }
+
   public static FunctionExpression stringToJson(Expression value) {
     return compile(FunctionProperties.None, BuiltinFunctionName.JSON, value);
   }
