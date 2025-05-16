@@ -5,9 +5,12 @@
 
 package org.opensearch.sql.expression.function;
 
-import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+import static org.apache.calcite.sql.type.SqlTypeFamily.IGNORE;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
+import static org.opensearch.sql.expression.function.PPLTypeChecker.compositeWrapper;
+import static org.opensearch.sql.expression.function.PPLTypeChecker.family;
+import static org.opensearch.sql.expression.function.PPLTypeChecker.familyWrapper;
 
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
@@ -15,7 +18,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -24,30 +30,35 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 
 public class PPLFuncImpTable {
 
   public interface FunctionImp {
-    RelDataType ANY_TYPE = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
-
     RexNode resolve(RexBuilder builder, RexNode... args);
 
     /**
-     * @return the list of parameters. Default return null implies unknown parameters {@link
+     * @return the PPLTypeChecker. Default return null implies unknown parameters {@link
      *     CalciteFuncSignature} won't check parameters if it's null
      */
-    default List<RelDataType> getParams() {
+    default PPLTypeChecker getTypeChecker() {
       return null;
     }
   }
 
   public interface FunctionImp1 extends FunctionImp {
-    List<RelDataType> ANY_TYPE_1 = List.of(ANY_TYPE);
-
     RexNode resolve(RexBuilder builder, RexNode arg1);
+
+    PPLTypeChecker IGNORE_1 = family(IGNORE);
 
     @Override
     default RexNode resolve(RexBuilder builder, RexNode... args) {
@@ -58,13 +69,13 @@ public class PPLFuncImpTable {
     }
 
     @Override
-    default List<RelDataType> getParams() {
-      return ANY_TYPE_1;
+    default PPLTypeChecker getTypeChecker() {
+      return IGNORE_1;
     }
   }
 
   public interface FunctionImp2 extends FunctionImp {
-    List<RelDataType> ANY_TYPE_2 = List.of(ANY_TYPE, ANY_TYPE);
+    PPLTypeChecker IGNORE_2 = family(IGNORE, IGNORE);
 
     RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2);
 
@@ -77,8 +88,8 @@ public class PPLFuncImpTable {
     }
 
     @Override
-    default List<RelDataType> getParams() {
-      return ANY_TYPE_2;
+    default PPLTypeChecker getTypeChecker() {
+      return IGNORE_2;
     }
   }
 
@@ -137,8 +148,20 @@ public class PPLFuncImpTable {
               functionName, argTypes, e.getMessage()),
           e);
     }
-    throw new IllegalArgumentException(
-        String.format("Cannot resolve function: %s, arguments: %s", functionName, argTypes));
+    StringJoiner joiner = new StringJoiner(",");
+    for (var implement : implementList) {
+      joiner.add(implement.getKey().typeChecker().getAllowedSignatures());
+    }
+    String actualSignature =
+        "["
+            + argTypes.stream()
+                .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+                .map(Objects::toString)
+                .collect(Collectors.joining(","))
+            + "]";
+    throw new ExpressionEvaluationException(
+        String.format(
+            "%s function expects {%s}, but got %s", functionName, joiner, actualSignature));
   }
 
   @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
@@ -148,8 +171,61 @@ public class PPLFuncImpTable {
     abstract void register(BuiltinFunctionName functionName, FunctionImp functionImp);
 
     void registerOperator(BuiltinFunctionName functionName, SqlOperator operator) {
-      register(
-          functionName, (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
+      SqlOperandTypeChecker typeChecker;
+      if (operator instanceof SqlUserDefinedFunction udfOperator) {
+        typeChecker = extractTypeCheckerFromUDF(udfOperator);
+      } else {
+        typeChecker = operator.getOperandTypeChecker();
+      }
+
+      // Only the composite operand type checker for UDFs are concerned here.
+      if (operator instanceof SqlUserDefinedFunction
+          && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+        register(functionName, createCompositeFunctionImp(operator, compositeTypeChecker));
+      } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
+        register(functionName, createImplicitCastFunctionImp(operator, implicitCastTypeChecker));
+      } else {
+        register(
+            functionName,
+            (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
+      }
+    }
+
+    private static SqlOperandTypeChecker extractTypeCheckerFromUDF(
+        SqlUserDefinedFunction udfOperator) {
+      UDFOperandMetadata udfOperandMetadata =
+          (UDFOperandMetadata) udfOperator.getOperandTypeChecker();
+      return (udfOperandMetadata == null) ? null : udfOperandMetadata.getInnerTypeChecker();
+    }
+
+    private static FunctionImp createCompositeFunctionImp(
+        SqlOperator operator, CompositeOperandTypeChecker typeChecker) {
+      return new FunctionImp() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode... args) {
+          return builder.makeCall(operator, args);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return compositeWrapper(typeChecker);
+        }
+      };
+    }
+
+    private static FunctionImp createImplicitCastFunctionImp(
+        SqlOperator operator, ImplicitCastOperandTypeChecker typeChecker) {
+      return new FunctionImp() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode... args) {
+          return builder.makeCall(operator, args);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return familyWrapper(typeChecker);
+        }
+      };
     }
 
     void populate() {
@@ -166,7 +242,6 @@ public class PPLFuncImpTable {
       registerOperator(ADD, SqlStdOperatorTable.PLUS);
       registerOperator(SUBTRACT, SqlStdOperatorTable.MINUS);
       registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
-      // registerOperator(DIVIDE, SqlStdOperatorTable.DIVIDE);
       registerOperator(ASCII, SqlStdOperatorTable.ASCII);
       registerOperator(LENGTH, SqlStdOperatorTable.CHAR_LENGTH);
       registerOperator(LOWER, SqlStdOperatorTable.LOWER);
@@ -305,57 +380,65 @@ public class PPLFuncImpTable {
       // Note, make the implementation an individual class if too complex.
       register(
           TRIM,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlStdOperatorTable.TRIM,
                       builder.makeFlag(Flag.BOTH),
                       builder.makeLiteral(" "),
-                      arg)));
+                      arg),
+              family(SqlTypeFamily.STRING)));
+
       register(
           LTRIM,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlStdOperatorTable.TRIM,
                       builder.makeFlag(Flag.LEADING),
                       builder.makeLiteral(" "),
-                      arg)));
+                      arg),
+              family(SqlTypeFamily.STRING)));
       register(
           RTRIM,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlStdOperatorTable.TRIM,
                       builder.makeFlag(Flag.TRAILING),
                       builder.makeLiteral(" "),
-                      arg)));
+                      arg),
+              family(SqlTypeFamily.STRING)));
       register(
           STRCMP,
-          ((FunctionImp2)
-              (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1)));
+          createFunctionImpWithTypeChecker(
+              (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),
+              family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
       register(
           LOG,
-          ((FunctionImp2)
-              (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.LOG, arg2, arg1)));
+          createFunctionImpWithTypeChecker(
+              (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.LOG, arg2, arg1),
+              family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC)));
       register(
           LOG,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlLibraryOperators.LOG,
                       arg,
-                      builder.makeApproxLiteral(BigDecimal.valueOf(Math.E)))));
+                      builder.makeApproxLiteral(BigDecimal.valueOf(Math.E))),
+              family(SqlTypeFamily.NUMERIC)));
       // SqlStdOperatorTable.SQRT is declared but not implemented. The call to SQRT in Calcite is
       // converted to POWER(x, 0.5).
       register(
           SQRT,
-          ((FunctionImp1)
+          createFunctionImpWithTypeChecker(
               (builder, arg) ->
                   builder.makeCall(
                       SqlStdOperatorTable.POWER,
                       arg,
-                      builder.makeApproxLiteral(BigDecimal.valueOf(0.5)))));
+                      builder.makeApproxLiteral(BigDecimal.valueOf(0.5))),
+              family(SqlTypeFamily.NUMERIC)));
       register(
           TYPEOF,
           (FunctionImp1)
@@ -381,7 +464,7 @@ public class PPLFuncImpTable {
     @Override
     void register(BuiltinFunctionName functionName, FunctionImp implement) {
       CalciteFuncSignature signature =
-          new CalciteFuncSignature(functionName.getName(), implement.getParams());
+          new CalciteFuncSignature(functionName.getName(), implement.getTypeChecker());
       if (map.containsKey(functionName)) {
         map.get(functionName).add(signature, implement);
       } else {
@@ -401,9 +484,49 @@ public class PPLFuncImpTable {
     }
 
     @Override
-    public List<RelDataType> getParams() {
-      RelDataType boolType = TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN);
-      return List.of(boolType, boolType);
+    public PPLTypeChecker getTypeChecker() {
+      SqlTypeFamily booleanFamily = SqlTypeName.BOOLEAN.getFamily();
+      return family(booleanFamily, booleanFamily);
     }
+  }
+
+  @FunctionalInterface
+  private interface RexUnaryResolver {
+    RexNode apply(RexBuilder builder, RexNode node);
+  }
+
+  @FunctionalInterface
+  private interface RexBinaryResolver {
+    RexNode apply(RexBuilder builder, RexNode arg1, RexNode arg2);
+  }
+
+  private static FunctionImp createFunctionImpWithTypeChecker(
+      RexUnaryResolver resolver, PPLTypeChecker typeChecker) {
+    return new FunctionImp1() {
+      @Override
+      public RexNode resolve(RexBuilder builder, RexNode arg1) {
+        return resolver.apply(builder, arg1);
+      }
+
+      @Override
+      public PPLTypeChecker getTypeChecker() {
+        return typeChecker;
+      }
+    };
+  }
+
+  private static FunctionImp createFunctionImpWithTypeChecker(
+      RexBinaryResolver resolver, PPLTypeChecker typeChecker) {
+    return new FunctionImp2() {
+      @Override
+      public RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2) {
+        return resolver.apply(builder, arg1, arg2);
+      }
+
+      @Override
+      public PPLTypeChecker getTypeChecker() {
+        return typeChecker;
+      }
+    };
   }
 }

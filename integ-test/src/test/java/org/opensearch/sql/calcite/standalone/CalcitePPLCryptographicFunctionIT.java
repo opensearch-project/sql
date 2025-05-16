@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 public class CalcitePPLCryptographicFunctionIT extends CalcitePPLIntegTestCase {
   @Override
@@ -87,5 +88,19 @@ public class CalcitePPLCryptographicFunctionIT extends CalcitePPLIntegTestCase {
                         "source=%s | head 1 | eval sha100 = SHA2('hello', 100) | fields sha100",
                         TEST_INDEX_STATE_COUNTRY)));
     verifyErrorMessageContains(e, "Unsupported SHA2 algorithm");
+  }
+
+  @Test
+  public void testSha2WrongArgShouldThrow() {
+    Throwable e =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | head 1 | eval sha256 = SHA2('hello', '256') | fields sha256",
+                        TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(
+        e, "SHA2 function expects {[STRING,INTEGER]}, but got [STRING,STRING]");
   }
 }

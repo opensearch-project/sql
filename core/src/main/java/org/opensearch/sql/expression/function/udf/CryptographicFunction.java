@@ -12,6 +12,8 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
@@ -19,14 +21,20 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.digest.MessageDigestAlgorithms;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
-public class CryptographicFunction extends ImplementorUDF {
+public abstract class CryptographicFunction extends ImplementorUDF {
   private CryptographicFunction(NotNullImplementor implementor, NullPolicy nullPolicy) {
     super(implementor, nullPolicy);
   }
 
   public static CryptographicFunction sha2() {
-    return new CryptographicFunction(new Sha2Implementor(), NullPolicy.ANY);
+    return new CryptographicFunction(new Sha2Implementor(), NullPolicy.ANY) {
+      @Override
+      public UDFOperandMetadata getOperandMetadata() {
+        return UDFOperandMetadata.wrap((FamilyOperandTypeChecker) OperandTypes.STRING_INTEGER);
+      }
+    };
   }
 
   @Override

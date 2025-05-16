@@ -21,6 +21,8 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -33,6 +35,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * Adds or sub an interval or a number of days to a date or time.
@@ -67,6 +70,16 @@ public class AddSubDateFunction extends ImplementorUDF {
         return NULLABLE_TIMESTAMP_UDT;
       }
     };
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.DATETIME_INTERVAL
+                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER))
+                .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATETIME_INTERVAL))
+                .or(OperandTypes.STRING_INTEGER));
   }
 
   @RequiredArgsConstructor
