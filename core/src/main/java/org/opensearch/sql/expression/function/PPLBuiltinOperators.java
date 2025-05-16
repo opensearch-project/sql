@@ -26,18 +26,14 @@ import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
-import org.opensearch.sql.expression.function.collectionUDF.ForallFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
-import org.opensearch.sql.expression.function.jsonUDF.JsonArrayFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonExtractFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonKeysFunctionImpl;
-import org.opensearch.sql.expression.function.jsonUDF.JsonObjectFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
-import org.opensearch.sql.expression.function.jsonUDF.JsonValidFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.ToJsonStringFunctionImpl;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
@@ -72,8 +68,6 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   // Math functions
   public static final SqlOperator SPAN = new SpanFunctionImpl().toUDF("SPAN");
   public static final SqlOperator JSON = new JsonFunctionImpl().toUDF("JSON");
-  public static final SqlOperator JSON_OBJECT = new JsonObjectFunctionImpl().toUDF("JSON_OBJECT");
-  public static final SqlOperator JSON_ARRAY = new JsonArrayFunctionImpl().toUDF("JSON_ARRAY");
   public static final SqlOperator TO_JSON_STRING =
       new ToJsonStringFunctionImpl().toUDF("TO_JSON_STRING");
   public static final SqlOperator JSON_ARRAY_LENGTH =
@@ -81,14 +75,11 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator JSON_EXTRACT =
       new JsonExtractFunctionImpl().toUDF("JSON_EXTRACT");
   public static final SqlOperator JSON_KEYS = new JsonKeysFunctionImpl().toUDF("JSON_KEYS");
-  public static final SqlOperator JSON_VALID = new JsonValidFunctionImpl().toUDF("JSON_VALID");
-  public static final SqlOperator ARRAY = new JsonArrayFunctionImpl().toUDF("ARRAY");
   public static final SqlOperator JSON_SET = new JsonSetFunctionImpl().toUDF("JSON_SET");
   public static final SqlOperator JSON_DELETE = new JsonDeleteFunctionImpl().toUDF("JSON_DELETE");
   public static final SqlOperator JSON_APPEND = new JsonAppendFunctionImpl().toUDF("JSON_APPEND");
   public static final SqlOperator JSON_EXTEND = new JsonExtendFunctionImpl().toUDF("JSON_EXTEND");
 
-  public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF("FORALL");
   public static final SqlOperator E = new EulerFunction().toUDF("E");
   public static final SqlOperator CONV = new ConvFunction().toUDF("CONVERT");
   public static final SqlOperator MOD = new ModFunction().toUDF("MOD");

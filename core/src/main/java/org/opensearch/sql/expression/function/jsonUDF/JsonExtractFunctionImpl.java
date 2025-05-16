@@ -65,7 +65,7 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
       expands.addAll(expandJsonPath(root, convertToJsonPath(key.toString())));
     }
      */
-    JsonNode root = verifyInput(args[0]);
+    JsonNode root = convertInputToJsonNode(args[0]);
     List<String> expands = new ArrayList<>();
     List<Object> results = new ArrayList<>();
     for (Object key : jsonPaths) {

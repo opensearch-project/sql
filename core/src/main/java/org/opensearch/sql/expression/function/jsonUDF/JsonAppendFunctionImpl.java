@@ -61,7 +61,7 @@ public class JsonAppendFunctionImpl extends ImplementorUDF {
       throw new RuntimeException(
           "Json append function needs corresponding path and values, but current get: " + keys);
     }
-    JsonNode root = verifyInput(args[0]);
+    JsonNode root = convertInputToJsonNode(args[0]);
     List<Object> expands = new ArrayList<>();
     for (int i = 0; i < keys.size(); i += 2) {
       List<String> expandedPaths = expandJsonPath(root, convertToJsonPath(keys.get(i).toString()));
@@ -78,7 +78,7 @@ public class JsonAppendFunctionImpl extends ImplementorUDF {
 
   public static String jsonAppendIfArray(Object json, List<Object> pathValueMap, boolean isExtend) {
     try {
-      JsonNode tree = verifyInput(json);
+      JsonNode tree = convertInputToJsonNode(json);
 
       Configuration conf =
           Configuration.builder()

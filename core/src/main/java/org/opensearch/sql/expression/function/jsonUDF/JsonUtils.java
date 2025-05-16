@@ -28,7 +28,6 @@ public class JsonUtils {
       char c = input.charAt(i);
 
       if (c == '{') {
-        // 处理 {...} 为数组访问或通配符
         int end = input.indexOf('}', i);
         if (end == -1) throw new IllegalArgumentException("Unmatched { in input");
 
@@ -43,7 +42,6 @@ public class JsonUtils {
         sb.append(".");
         i++;
       } else {
-        // 读取字段名
         int start = i;
         while (i < input.length() && input.charAt(i) != '.' && input.charAt(i) != '{') {
           i++;
@@ -55,7 +53,7 @@ public class JsonUtils {
     return sb.toString();
   }
 
-  public static JsonNode verifyInput(Object input) {
+  public static JsonNode convertInputToJsonNode(Object input) {
     try {
       JsonNode root;
       if (input instanceof String) {
@@ -69,6 +67,14 @@ public class JsonUtils {
     }
   }
 
+  /**
+   * The function will expand the json path to eliminate the wildcard *. For example, a[*] would be
+   * a[0], a[1]...
+   *
+   * @param root The json node
+   * @param rawPath original path
+   * @return List of expanded paths
+   */
   public static List<String> expandJsonPath(JsonNode root, String rawPath) {
     // Remove only leading "$." or "$"
     String cleanedPath = rawPath.replaceFirst("^\\$\\.", "").replaceFirst("^\\$", "");
@@ -86,7 +92,7 @@ public class JsonUtils {
     String part = parts[index];
     List<String> results = new ArrayList<>();
 
-    if (part.endsWith("[*]")) {
+    if (part.endsWith("[*]")) { // Contains wildcard symbol
       String field = part.substring(0, part.length() - 3);
       JsonNode arrayNode;
       if (field.isEmpty()) {
@@ -100,7 +106,7 @@ public class JsonUtils {
           results.addAll(expand(arrayNode.get(i), parts, index + 1, newPrefix));
         }
       }
-    } else if (part.endsWith("]")) {
+    } else if (part.endsWith("]")) { // Normal index symbol
       int leftBracketIndex = part.lastIndexOf('[');
       String field = part.substring(0, part.length() - 3);
       JsonNode arrayNode;
@@ -122,7 +128,7 @@ public class JsonUtils {
           }
         }
       }
-      if (!arrayFlag) {
+      if (!arrayFlag) { // normal keys
         JsonNode next = currentNode.get(part);
         String newPrefix = prefix + "." + part;
         results.addAll(expand(next, parts, index + 1, newPrefix));

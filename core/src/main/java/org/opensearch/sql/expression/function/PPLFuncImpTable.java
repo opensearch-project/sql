@@ -320,9 +320,6 @@ public class PPLFuncImpTable {
       registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
-      // Register Array Function
-      registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
-
       // Register Json function
       register(
           JSON_ARRAY,
@@ -348,8 +345,6 @@ public class PPLFuncImpTable {
       registerOperator(JSON_DELETE, PPLBuiltinOperators.JSON_DELETE);
       registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
       registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);
-
-      registerOperator(ARRAY_FORALL, PPLBuiltinOperators.FORALL);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
