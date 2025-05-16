@@ -59,7 +59,7 @@ public class CurrentFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return PPLOperandTypes.EMPTY;
+    return PPLOperandTypes.NONE;
   }
 
   @RequiredArgsConstructor

@@ -19,6 +19,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -53,7 +54,10 @@ public class WeekdayFunction extends ImplementorUDF {
   @Override
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker) OperandTypes.DATETIME.or(OperandTypes.STRING));
+        (CompositeOperandTypeChecker)
+            OperandTypes.DATETIME
+                .or(OperandTypes.STRING)
+                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER)));
   }
 
   public static class WeekdayImplementor implements NotNullImplementor {

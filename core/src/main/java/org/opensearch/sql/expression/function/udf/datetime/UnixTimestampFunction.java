@@ -52,7 +52,7 @@ public class UnixTimestampFunction extends ImplementorUDF {
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
         (CompositeOperandTypeChecker)
-            OperandTypes.DATE_OR_TIMESTAMP.or(OperandTypes.NUMERIC).or(OperandTypes.family()));
+            OperandTypes.DATETIME.or(OperandTypes.NUMERIC).or(OperandTypes.family()));
   }
 
   public static class UnixTimestampImplementor implements NotNullImplementor {

@@ -46,7 +46,11 @@ public class DatetimeFunction extends ImplementorUDF {
   @Override
   public UDFOperandMetadata getOperandMetadata() {
     return UDFOperandMetadata.wrap(
-        (CompositeOperandTypeChecker) OperandTypes.TIMESTAMP_STRING.or(OperandTypes.TIMESTAMP));
+        (CompositeOperandTypeChecker)
+            OperandTypes.TIMESTAMP_STRING
+                .or(OperandTypes.STRING_STRING)
+                .or(OperandTypes.TIMESTAMP)
+                .or(OperandTypes.STRING));
   }
 
   public static class DatetimeImplementor implements NotNullImplementor {

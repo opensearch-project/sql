@@ -40,7 +40,7 @@ public class EulerFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return PPLOperandTypes.EMPTY;
+    return PPLOperandTypes.NONE;
   }
 
   public static class EulerImplementor implements NotNullImplementor {

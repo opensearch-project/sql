@@ -19,8 +19,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Override
@@ -56,18 +56,17 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows((Object) null));
   }
 
-  // TODO: Enable it once parameter validation for UDF is ready
   @Test
-  public void testSqrtNanArgShouldThrowError() {
+  public void testSqrtStrArgShouldThrowException() {
     Exception nanException =
         assertThrows(
-            IllegalArgumentException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s | head 1 | eval sqrt_name = sqrt(name) | fields sqrt_name",
                         TEST_INDEX_STATE_COUNTRY)));
-    verifyErrorMessageContains(nanException, "Invalid argument type: Expected a numeric value");
+    verifyErrorMessageContains(nanException, "SQRT function expects {[NUMERIC]}, but got [STRING]");
   }
 
   @Test
@@ -318,19 +317,20 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows((Object) null));
   }
 
-  // TODO: Enable it once parameter validation for UDF is ready
   @Test
-  public void testMod3ArgsShouldThrowIllegalArgError() {
+  public void testMod3ArgsShouldThrowExprEvalException() {
     Exception wrongArgException =
         assertThrows(
-            IllegalArgumentException.class,
+            ExpressionEvaluationException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s | eval z = mod(float_number, integer_number, byte_number) |"
                             + " fields z",
                         TEST_INDEX_DATATYPE_NUMERIC)));
-    verifyErrorMessageContains(wrongArgException, "MOD function requires exactly two arguments");
+    verifyErrorMessageContains(
+        wrongArgException,
+        "MOD function expects {[NUMERIC,NUMERIC]}, but got [FLOAT,INTEGER,BYTE]");
   }
 
   @Test

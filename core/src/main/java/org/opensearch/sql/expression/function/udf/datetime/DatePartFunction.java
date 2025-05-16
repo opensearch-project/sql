@@ -61,12 +61,8 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  * </ul>
  */
 public class DatePartFunction extends ImplementorUDF {
-  static final Set<String> TIME_UNITS = Set.of("MICROSECOND", "SECOND", "MINUTE", "HOUR");
-  private final TimeUnit timeUnit;
-
   public DatePartFunction(TimeUnit timeUnit) {
     super(new DatePartImplementor(timeUnit), NullPolicy.ANY);
-    this.timeUnit = timeUnit;
   }
 
   @Override
@@ -76,17 +72,12 @@ public class DatePartFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    // For microsecond, second, minute, and hour, we allow STRING, TIME, or TIMESTAMP.
-    // For other unit (day, month, quarter, year), we allow STRING, DATE, or TIMESTAMP.
-    if (TIME_UNITS.contains(timeUnit.name())) {
-      return PPLOperandTypes.TIME_OR_TIMESTAMP_OR_STRING;
-    } else {
-      return PPLOperandTypes.DATE_OR_TIMESTAMP_OR_STRING;
-    }
+    return PPLOperandTypes.DATETIME_OR_STRING;
   }
 
   @RequiredArgsConstructor
   public static class DatePartImplementor implements NotNullImplementor {
+    static final Set<String> TIME_UNITS = Set.of("MICROSECOND", "SECOND", "MINUTE", "HOUR");
     private final TimeUnit timeUnit;
 
     @Override

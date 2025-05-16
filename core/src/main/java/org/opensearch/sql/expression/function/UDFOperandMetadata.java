@@ -18,11 +18,12 @@ import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 
 /**
- * This class is created for the compatibility with SqlUserDefinedFunction constructors when
+ * This class is created for the compatibility with {@link SqlUserDefinedFunction} constructors when
  * creating UDFs, so that a type checker can be passed to the constructor of {@link
- * org.apache.calcite.sql.validate.SqlUserDefinedFunction} as an OperandMetadata.
+ * SqlUserDefinedFunction} as a {@link SqlOperandMetadata}.
  */
 public interface UDFOperandMetadata extends SqlOperandMetadata, ImplicitCastOperandTypeChecker {
   SqlOperandTypeChecker getInnerTypeChecker();
@@ -75,6 +76,13 @@ public interface UDFOperandMetadata extends SqlOperandMetadata, ImplicitCastOper
   }
 
   static UDFOperandMetadata wrap(CompositeOperandTypeChecker typeChecker) {
+    for (SqlOperandTypeChecker rule : typeChecker.getRules()) {
+      if (!(rule instanceof FamilyOperandTypeChecker)) {
+        throw new IllegalArgumentException(
+            "Currently only compositions of ImplicitCastOperandTypeChecker are supported");
+      }
+    }
+
     return new UDFOperandMetadata() {
       @Override
       public SqlOperandTypeChecker getInnerTypeChecker() {
@@ -95,11 +103,13 @@ public interface UDFOperandMetadata extends SqlOperandMetadata, ImplicitCastOper
 
       @Override
       public List<RelDataType> paramTypes(RelDataTypeFactory typeFactory) {
+        // This function is not used in the current context, so we return an empty list.
         return Collections.emptyList();
       }
 
       @Override
       public List<String> paramNames() {
+        // This function is not used in the current context, so we return an empty list.
         return Collections.emptyList();
       }
 

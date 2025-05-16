@@ -91,7 +91,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprAddTime",
               PPLReturnTypes.TIME_APPLY_RETURN_TYPE,
               NullPolicy.ANY,
-              PPLOperandTypes.DATETIME_DATETIME)
+              PPLOperandTypes.DATETIME_OR_STRING_DATETIME_OR_STRING)
           .toUDF("ADDTIME");
   public static final SqlOperator SUBTIME =
       adaptExprMethodWithPropertiesToUDF(
@@ -99,7 +99,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprSubTime",
               PPLReturnTypes.TIME_APPLY_RETURN_TYPE,
               NullPolicy.ANY,
-              PPLOperandTypes.DATETIME_DATETIME)
+              PPLOperandTypes.DATETIME_OR_STRING_DATETIME_OR_STRING)
           .toUDF("SUBTIME");
   public static final SqlOperator ADDDATE = new AddSubDateFunction(true).toUDF("ADDDATE");
   public static final SqlOperator SUBDATE = new AddSubDateFunction(false).toUDF("SUBDATE");
@@ -149,9 +149,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
                   (CompositeOperandTypeChecker)
                       OperandTypes.STRING_STRING_STRING.or(
                           OperandTypes.family(
-                              SqlTypeFamily.TIMESTAMP,
-                              SqlTypeFamily.STRING,
-                              SqlTypeFamily.STRING))))
+                              SqlTypeFamily.DATETIME, SqlTypeFamily.STRING, SqlTypeFamily.STRING))))
           .toUDF("CONVERT_TZ");
   public static final SqlOperator DATEDIFF =
       adaptExprMethodWithPropertiesToUDF(
@@ -159,7 +157,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprDateDiff",
               ReturnTypes.BIGINT_FORCE_NULLABLE,
               NullPolicy.ANY,
-              PPLOperandTypes.DATETIME_DATETIME)
+              PPLOperandTypes.DATETIME_OR_STRING_DATETIME_OR_STRING)
           .toUDF("DATEDIFF");
   public static final SqlOperator TIMESTAMPDIFF =
       new TimestampDiffFunction().toUDF("TIMESTAMPDIFF");
@@ -237,7 +235,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprTimeToSec",
               ReturnTypes.BIGINT_FORCE_NULLABLE,
               NullPolicy.ARG0,
-              PPLOperandTypes.TIME_OR_TIMESTAMP_OR_STRING)
+              PPLOperandTypes.DATETIME_OR_STRING)
           .toUDF("TIME_TO_SEC");
   public static final SqlOperator TIMEDIFF =
       UserDefinedFunctionUtils.adaptExprMethodToUDF(
@@ -263,7 +261,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprUtcDate",
               PPLReturnTypes.DATE_FORCE_NULLABLE,
               NullPolicy.NONE,
-              PPLOperandTypes.EMPTY)
+              PPLOperandTypes.NONE)
           .toUDF("UTC_DATE");
   public static final SqlOperator UTC_TIME =
       adaptExprMethodWithPropertiesToUDF(
@@ -271,7 +269,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprUtcTime",
               PPLReturnTypes.TIME_FORCE_NULLABLE,
               NullPolicy.NONE,
-              PPLOperandTypes.EMPTY)
+              PPLOperandTypes.NONE)
           .toUDF("UTC_TIME");
   public static final SqlOperator UTC_TIMESTAMP =
       adaptExprMethodWithPropertiesToUDF(
@@ -279,7 +277,7 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               "exprUtcTimestamp",
               PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE,
               NullPolicy.NONE,
-              PPLOperandTypes.EMPTY)
+              PPLOperandTypes.NONE)
           .toUDF("UTC_TIMESTAMP");
   public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
 
