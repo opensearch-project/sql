@@ -241,10 +241,12 @@ Example::
     +-----------+----------+-----+
 
 ISPRESENT
-------
+---------
 
 Description
 >>>>>>>>>>>
+
+Version: 3.1.0
 
 Usage: ispresent(field) return true if the field exists.
 
@@ -267,10 +269,12 @@ Example::
     +----------+-----------+
 
 ISBLANK
-------
+-------
 
 Description
 >>>>>>>>>>>
+
+Version: 3.1.0
 
 Usage: isblank(field) returns true if the field is missing, an empty string, or contains only white space.
 
@@ -293,10 +297,12 @@ Example::
 
 
 ISEMPTY
-------
+-------
 
 Description
 >>>>>>>>>>>
+
+Version: 3.1.0
 
 Usage: isempty(field) returns true if the field is missing or is an empty string.
 
