@@ -841,6 +841,7 @@ flowControlFunctionName
    : IF
    | IFNULL
    | NULLIF
+   | COALESCE
    ;
 
 systemFunctionName

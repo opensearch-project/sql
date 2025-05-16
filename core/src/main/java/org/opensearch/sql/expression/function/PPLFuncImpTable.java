@@ -202,6 +202,7 @@ public class PPLFuncImpTable {
       registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
       registerOperator(IF, SqlStdOperatorTable.CASE);
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
+      registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
