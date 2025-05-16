@@ -13,6 +13,11 @@ import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
+/**
+ * This class contains common operand types for PPL functions. They are created by either wrapping a
+ * {@link FamilyOperandTypeChecker} or a {@link CompositeOperandTypeChecker} with a {@link
+ * UDFOperandMetadata}.
+ */
 public class PPLOperandTypes {
   // This class is not meant to be instantiated.
   private PPLOperandTypes() {}
