@@ -57,19 +57,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testSqrtStrArgShouldThrowException() {
-    Exception nanException =
-        assertThrows(
-            ExpressionEvaluationException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | head 1 | eval sqrt_name = sqrt(name) | fields sqrt_name",
-                        TEST_INDEX_STATE_COUNTRY)));
-    verifyErrorMessageContains(nanException, "SQRT function expects {[NUMERIC]}, but got [STRING]");
-  }
-
-  @Test
   public void testSinAndCosAndAsinAndAcos() {
     JSONObject actual =
         executeQuery(
@@ -318,22 +305,6 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMod3ArgsShouldThrowExprEvalException() {
-    Exception wrongArgException =
-        assertThrows(
-            ExpressionEvaluationException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | eval z = mod(float_number, integer_number, byte_number) |"
-                            + " fields z",
-                        TEST_INDEX_DATATYPE_NUMERIC)));
-    verifyErrorMessageContains(
-        wrongArgException,
-        "MOD function expects {[NUMERIC,NUMERIC]}, but got [FLOAT,INTEGER,BYTE]");
-  }
-
-  @Test
   public void testRadiansAndDegrees() {
     JSONObject actual =
         executeQuery(
@@ -439,5 +410,65 @@ public class CalcitePPLBuiltinFunctionIT extends CalcitePPLIntegTestCase {
         schema("r5", "double"),
         schema("r6", "double"));
     verifyDataRows(actual, rows(null, null, null, null, null));
+  }
+
+  // Test type checking on udf with direct registration: register(SQRT, funcImp)
+  @Test
+  public void testSqrtWrongArgShouldThrow() {
+    Exception nanException =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | head 1 | eval sqrt_name = sqrt(name) | fields sqrt_name",
+                        TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(nanException, "SQRT function expects {[NUMERIC]}, but got [STRING]");
+  }
+
+  // Test UDF registered with PPL builtin operators: registerOperator(MOD, PPLBuiltinOperators.MOD);
+  @Test
+  public void testModWrongArgShouldThrow() {
+    Exception wrongArgException =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval z = mod(float_number, integer_number, byte_number) |"
+                            + " fields z",
+                        TEST_INDEX_DATATYPE_NUMERIC)));
+    verifyErrorMessageContains(
+        wrongArgException,
+        "MOD function expects {[NUMERIC,NUMERIC]}, but got [FLOAT,INTEGER,BYTE]");
+  }
+
+  // Test UDF registered with sql std operators: registerOperator(PI, SqlStdOperatorTable.PI)
+  @Test
+  public void testPiWithArgShouldThrow() {
+    Exception wrongArgException =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval pi = pi(1) | fields pi", TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(wrongArgException, "PI function expects {[]}, but got [INTEGER]");
+  }
+
+  // Test UDF registered with sql library operators: registerOperator(LOG2,
+  // SqlLibraryOperators.LOG2)
+  @Test
+  public void testLog2WithWrongArgShouldThrow() {
+    Exception wrongArgException =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval log2 = log2(age, 2) | fields log2",
+                        TEST_INDEX_STATE_COUNTRY)));
+    verifyErrorMessageContains(
+        wrongArgException, "LOG2 function expects {[NUMERIC]}, but got [INTEGER,INTEGER]");
   }
 }
