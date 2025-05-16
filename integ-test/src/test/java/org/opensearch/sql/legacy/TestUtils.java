@@ -459,4 +459,12 @@ public class TestUtils {
       return null;
     }
   }
+
+  public static String getTpchMappingFile(String fileName) {
+    try {
+      return TestUtils.fileToString("src/test/resources/tpch/mappings/" + fileName, false);
+    } catch (IOException e) {
+      return null;
+    }
+  }
 }
