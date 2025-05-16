@@ -277,10 +277,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     // 2. resolve QualifiedName in non-join condition
     String qualifiedName = node.toString();
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
-    Map<String, RexLambdaRef> map = context.getTemparolInputmap();
-    if (map.containsKey(qualifiedName)) {
-      return map.get(qualifiedName);
-    }
     if (currentFields.contains(qualifiedName)) {
       // 2.1 resolve QualifiedName from stack top
       return context.relBuilder.field(qualifiedName);
