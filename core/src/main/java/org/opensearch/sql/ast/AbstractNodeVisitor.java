@@ -22,7 +22,6 @@ import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
-import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -226,10 +225,6 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitLet(Let node, C context) {
-    return visitChildren(node, context);
-  }
-
-  public T visitLambdaFunction(LambdaFunction node, C context) {
     return visitChildren(node, context);
   }
 

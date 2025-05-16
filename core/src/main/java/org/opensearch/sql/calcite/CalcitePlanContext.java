@@ -8,16 +8,13 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.calcite.rex.RexCorrelVariable;
-import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.RelBuilder;
@@ -34,7 +31,6 @@ public class CalcitePlanContext {
   public final ExtendedRexBuilder rexBuilder;
   public final FunctionProperties functionProperties;
   public final QueryType queryType;
-  @Getter public Map<String, RexLambdaRef> temparolInputmap;
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
@@ -57,11 +53,6 @@ public class CalcitePlanContext {
     this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
     this.rexBuilder = new ExtendedRexBuilder(relBuilder.getRexBuilder());
     this.functionProperties = new FunctionProperties(QueryType.PPL);
-    this.temparolInputmap = new HashMap<>();
-  }
-
-  public void putTemparolInputmap(String name, RexLambdaRef input) {
-    this.temparolInputmap.put(name, input);
   }
 
   public RexNode resolveJoinCondition(

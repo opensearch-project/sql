@@ -41,7 +41,6 @@ import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
-import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
@@ -338,28 +337,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitLet(Let node, CalcitePlanContext context) {
     RexNode expr = analyze(node.getExpression(), context);
     return context.relBuilder.alias(expr, node.getVar().getField().toString());
-  }
-
-  @Override
-  public RexNode visitLambdaFunction(LambdaFunction node, CalcitePlanContext context) {
-    List<QualifiedName> names = node.getFuncArgs();
-    List<RexLambdaRef> args = new ArrayList<>();
-    for (int i = 0; i < names.size(); i++) {
-      context.putTemparolInputmap(
-          names.get(i).toString(),
-          new RexLambdaRef(
-              i,
-              names.get(i).toString(),
-              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
-      args.add(
-          new RexLambdaRef(
-              i,
-              names.get(i).toString(),
-              context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.ANY)));
-    }
-    RexNode body = node.getFunction().accept(this, context);
-    RexNode lambdaNode = context.rexBuilder.makeLambdaCall(body, args);
-    return lambdaNode;
   }
 
   @Override
