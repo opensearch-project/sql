@@ -1043,7 +1043,6 @@ keywordsCanBeId
    | SPAN
    | evalFunctionName
    | jsonFunctionName
-   | collectionFunctionName
    | relevanceArgName
    | intervalUnit
    | trendlineType
