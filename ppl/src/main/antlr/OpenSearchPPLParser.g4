@@ -580,7 +580,6 @@ evalFunctionName
    | cryptographicFunctionName
    | jsonFunctionName
    | geoipFunctionName
-   | collectionFunctionName
    ;
 
 functionArgs
@@ -698,10 +697,6 @@ trigonometricFunctionName
    | SIN
    | TAN
    ;
-
-collectionFunctionName
-    : ARRAY
-    ;
 
 jsonFunctionName
    : JSON

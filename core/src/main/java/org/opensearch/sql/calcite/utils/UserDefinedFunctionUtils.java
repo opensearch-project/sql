@@ -21,27 +21,20 @@ import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
-import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
-import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.InferTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
-import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
-import org.opensearch.sql.calcite.udf.UserDefinedFunction;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.QueryType;
@@ -78,23 +71,6 @@ public class UserDefinedFunctionUtils {
     List<RexNode> addArgList = new ArrayList<>(fields);
     addArgList.addAll(argList);
     return relBuilder.aggregateCall(sqlUDAF, addArgList);
-  }
-
-  public static SqlOperator TransferUserDefinedFunction(
-      Class<? extends UserDefinedFunction> UDF,
-      String functionName,
-      SqlReturnTypeInference returnType) {
-    final ScalarFunction udfFunction =
-        ScalarFunctionImpl.create(Types.lookupMethod(UDF, "eval", Object[].class));
-    SqlIdentifier udfLtrimIdentifier =
-        new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
-    return new SqlUserDefinedFunction(
-        udfLtrimIdentifier,
-        SqlKind.OTHER_FUNCTION,
-        returnType,
-        InferTypes.ANY_NULLABLE,
-        null,
-        udfFunction);
   }
 
   static SqlReturnTypeInference getReturnTypeInferenceForArray() {

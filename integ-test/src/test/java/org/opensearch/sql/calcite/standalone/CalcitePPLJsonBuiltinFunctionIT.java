@@ -212,19 +212,6 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testArray() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | eval a =array(1, 2, 0, -1, 1.1, -0.11) | fields a | head 1",
-                TEST_INDEX_PEOPLE2));
-
-    verifySchema(actual, schema("a", "string"));
-
-    verifyDataRows(actual, rows("[1,2,0,-1,1.1,-0.11]"));
-  }
-
-  @Test
   public void testJsonSet() {
     JSONObject actual =
         executeQuery(
@@ -333,7 +320,7 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
                     + " json_extend('{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}',"
                     + " 'teacher', 'Tom', 'teacher', 'Walt'),c ="
                     + " json_extend('{\"school\":{\"teacher\":[\"Alice\"],\"student\":[{\"name\":\"Bob\",\"rank\":1},{\"name\":\"Charlie\",\"rank\":2}]}}',"
-                    + " 'school.teacher', array(\"Tom\", \"Walt\"))| fields a, b, c | head 1",
+                    + " 'school.teacher', json_array(\"Tom\", \"Walt\"))| fields a, b, c | head 1",
                 TEST_INDEX_PEOPLE2));
 
     verifySchema(actual, schema("a", "string"), schema("b", "string"), schema("c", "string"));

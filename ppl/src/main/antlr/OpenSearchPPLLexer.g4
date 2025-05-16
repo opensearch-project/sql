@@ -367,9 +367,6 @@ ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
 BETWEEN:                            'BETWEEN';
 
-// COLLECTION FUNCTIONS
-ARRAY:                              'ARRAY';
-
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
 JSON:                               'JSON';

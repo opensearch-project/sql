@@ -84,23 +84,6 @@ public class PPLFuncImpTable {
     }
   }
 
-  public interface FunctionImpAny extends FunctionImp {
-    RexNode resolve(RexBuilder builder, List<RexNode> additonalArgs, RexNode... args);
-
-    @Override
-    default RexNode resolve(RexBuilder builder, RexNode... args) {
-      if (args.length != 2) {
-        throw new IllegalArgumentException("This function requires exactly 2 arguments");
-      }
-      return resolve(builder, args[0], args[1]);
-    }
-
-    @Override
-    default List<RelDataType> getParams() {
-      return null;
-    }
-  }
-
   /** The singleton instance. */
   public static final PPLFuncImpTable INSTANCE;
 
