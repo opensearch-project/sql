@@ -8,20 +8,12 @@ package org.opensearch.sql.calcite.utils;
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
 import java.util.TimeZone;
 import javax.annotation.Nullable;
 import org.apache.calcite.DataContext;
@@ -47,7 +39,6 @@ import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -100,133 +91,6 @@ public class UserDefinedFunctionUtils {
     };
   }
 
-  static List<Integer> transferStringExprToDateValue(String timeExpr) {
-    try {
-      if (timeExpr.contains(":")) {
-        // A timestamp
-        LocalDateTime localDateTime =
-            LocalDateTime.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-        return List.of(
-            localDateTime.getYear(), localDateTime.getMonthValue(), localDateTime.getDayOfMonth());
-      } else {
-        LocalDate localDate =
-            LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-        return List.of(localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth());
-      }
-    } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(
-          String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", timeExpr));
-    }
-  }
-
-  /**
-   * Check whether a function gets enough arguments.
-   *
-   * @param funcName the name of the function
-   * @param expectedArguments the number of expected arguments
-   * @param actualArguments the number of actual arguments
-   * @param exactMatch whether the number of actual arguments should precisely match the number of
-   *     expected arguments. If false, it suffices as long as the number of actual number of
-   *     arguments is not smaller that the number of expected arguments.
-   * @throws IllegalArgumentException if the argument length does not match the expected one
-   */
-  public static void validateArgumentCount(
-      String funcName, int expectedArguments, int actualArguments, boolean exactMatch) {
-    if (exactMatch) {
-      if (actualArguments != expectedArguments) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Mismatch arguments: function %s expects %d arguments, but got %d",
-                funcName, expectedArguments, actualArguments));
-      }
-    } else {
-      if (actualArguments < expectedArguments) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Mismatch arguments: function %s expects at least %d arguments, but got %d",
-                funcName, expectedArguments, actualArguments));
-      }
-    }
-  }
-
-  /**
-   * Validates that the given list of objects matches the given list of types.
-   *
-   * <p>This function first checks if the sizes of the two lists match. If not, it throws an {@code
-   * IllegalArgumentException}. Then, it iterates through the lists and checks if each object is an
-   * instance of the corresponding type. If any object is not of the expected type, it throws an
-   * {@code IllegalArgumentException} with a descriptive message.
-   *
-   * @param objects the list of objects to validate
-   * @param types the list of expected types
-   * @throws IllegalArgumentException if the sizes of the lists do not match or if any object is not
-   *     an instance of the corresponding type
-   */
-  public static void validateArgumentTypes(List<Object> objects, List<Class<?>> types) {
-    validateArgumentTypes(objects, types, Collections.nCopies(types.size(), false));
-  }
-
-  public static void validateArgumentTypes(
-      List<Object> objects, List<Class<?>> types, boolean nullable) {
-    validateArgumentTypes(objects, types, Collections.nCopies(types.size(), nullable));
-  }
-
-  public static void validateArgumentTypes(
-      List<Object> objects, List<Class<?>> types, List<Boolean> nullables) {
-    if (objects.size() < types.size()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Mismatch in the number of objects and types. Got %d objects and %d types",
-              objects.size(), types.size()));
-    }
-    for (int i = 0; i < types.size(); i++) {
-      if (objects.get(i) == null && nullables.get(i)) {
-        continue;
-      }
-      if (!types.get(i).isInstance(objects.get(i))) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Object at index %d is not of type %s (Got %s)",
-                i,
-                types.get(i).getName(),
-                objects.get(i) == null ? "null" : objects.get(i).getClass().getName()));
-      }
-    }
-  }
-
-  /** Check whether the given array contains null values. */
-  public static boolean containsNull(Object[] objects) {
-    return Arrays.stream(objects).anyMatch(Objects::isNull);
-  }
-
-  public static String formatTimestampWithoutUnnecessaryNanos(LocalDateTime localDateTime) {
-    String base = localDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-    int nano = localDateTime.getNano();
-    if (nano == 0) return base;
-
-    String nanoStr = String.format(Locale.ENGLISH, "%09d", nano);
-    nanoStr = nanoStr.replaceFirst("0+$", "");
-    if (!nanoStr.isEmpty()) {
-      return base + "." + nanoStr;
-    }
-    return base;
-  }
-
-  public static SqlTypeName transferDateRelatedTimeName(RexNode candidate) {
-    RelDataType type = candidate.getType();
-    if (type instanceof ExprSqlType) {
-      ExprUDT exprUDT = ((ExprSqlType) type).getUdt();
-      if (exprUDT == EXPR_TIME) {
-        return SqlTypeName.TIME;
-      } else if (exprUDT == EXPR_TIMESTAMP) {
-        return SqlTypeName.TIMESTAMP;
-      } else if (exprUDT == EXPR_DATE) {
-        return SqlTypeName.DATE;
-      }
-    }
-    return type.getSqlTypeName();
-  }
-
   public static SqlTypeName convertRelDataTypeToSqlTypeName(RelDataType type) {
     if (type instanceof ExprSqlType exprSqlType) {
       return switch (exprSqlType.getUdt()) {
@@ -239,7 +103,6 @@ public class UserDefinedFunctionUtils {
     return type.getSqlTypeName();
   }
 
-  // TODO: pass the function properties directly to the UDF instead of string
   public static FunctionProperties restoreFunctionProperties(DataContext dataContext) {
     long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(dataContext);
     Instant instant =
