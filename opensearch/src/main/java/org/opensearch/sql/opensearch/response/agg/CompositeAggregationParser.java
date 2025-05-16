@@ -19,10 +19,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 
 /** Composite Aggregation Parser which include composite aggregation and metric parsers. */
+@Getter
 @EqualsAndHashCode
 public class CompositeAggregationParser implements OpenSearchAggregationResponseParser {
 
