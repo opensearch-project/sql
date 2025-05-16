@@ -179,7 +179,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
         rows(4423, 3055.9365, "1995-02-17 00:00:00", 0));
   }
 
-  @Ignore("https://github.com/opensearch-project/sql/issues/3566")
+  @Test
   public void testQ4() {
     String ppl = loadFromFile("tpch/queries/q4.ppl");
     JSONObject actual = executeQuery(ppl);
@@ -469,7 +469,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     verifyNumOfRows(actual, 0);
   }
 
-  @Ignore("https://github.com/opensearch-project/sql/issues/3566")
+  @Test
   public void testQ21() {
     String ppl = loadFromFile("tpch/queries/q21.ppl");
     JSONObject actual = executeQuery(ppl);
