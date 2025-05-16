@@ -698,6 +698,20 @@ trigonometricFunctionName
    | TAN
    ;
 
+jsonFunctionName
+   : JSON
+   | JSON_OBJECT
+   | JSON_ARRAY
+   | TO_JSON_STRING
+   | JSON_ARRAY_LENGTH
+   | JSON_EXTRACT
+   | JSON_KEYS
+   | JSON_SET
+   | JSON_DELETE
+   | JSON_APPEND
+   | JSON_EXTEND
+   ;
+
 cryptographicFunctionName
    : MD5
    | SHA1
@@ -871,10 +885,6 @@ positionFunctionName
    : POSITION
    ;
 
-jsonFunctionName
-   : JSON
-   ;
-
 // operators
  comparisonOperator
    : EQUAL
@@ -1032,6 +1042,7 @@ keywordsCanBeId
    | timespanUnit
    | SPAN
    | evalFunctionName
+   | jsonFunctionName
    | relevanceArgName
    | intervalUnit
    | trendlineType
@@ -1045,6 +1056,7 @@ keywordsCanBeId
    | CASE
    | ELSE
    | IN
+   | ARROW
    | BETWEEN
    | EXISTS
    | SOURCE
