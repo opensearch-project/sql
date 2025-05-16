@@ -10,7 +10,6 @@ import static org.apache.calcite.sql.SqlJsonQueryWrapperBehavior.WITHOUT_ARRAY;
 import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,21 +58,22 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
     String jsonStr = (String) args[0];
     List<Object> jsonPaths = Arrays.asList(args).subList(1, args.length);
     List<String> pathSpecs =
-            jsonPaths.stream()
-                    .map(Object::toString)
-                    .map(JsonUtils::convertToJsonPath)
-                    .map(s -> " lax " + s).toList();
+        jsonPaths.stream()
+            .map(Object::toString)
+            .map(JsonUtils::convertToJsonPath)
+            .map(s -> " lax " + s)
+            .toList();
     List<Object> results = new ArrayList<>();
     for (String pathSpec : pathSpecs) {
       Object queryResult = a.jsonQuery(jsonStr, pathSpec, WITHOUT_ARRAY, NULL, NULL, false);
       Object valueResult =
-              a.jsonValue(
-                      jsonStr,
-                      pathSpec,
-                      SqlJsonValueEmptyOrErrorBehavior.NULL,
-                      null,
-                      SqlJsonValueEmptyOrErrorBehavior.NULL,
-                      null);
+          a.jsonValue(
+              jsonStr,
+              pathSpec,
+              SqlJsonValueEmptyOrErrorBehavior.NULL,
+              null,
+              SqlJsonValueEmptyOrErrorBehavior.NULL,
+              null);
       results.add(queryResult != null ? queryResult : valueResult);
     }
     if (jsonPaths.size() == 1) {
