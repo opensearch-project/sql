@@ -18,6 +18,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
@@ -38,6 +39,16 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
     loadIndex(Index.BANK);
     loadIndex(Index.DATA_TYPE_ALIAS);
+  }
+
+  @Test
+  public void testRequestTotalSizeLimit() throws IOException {
+    withSettings(Key.REQUEST_TOTAL_SIZE_LIMIT, "1", () -> {
+      Exception e = assertThrows(
+          IllegalStateException.class,
+          () -> executeQuery(String.format("source = %s | head 2", TEST_INDEX_BANK)));
+      assertEquals("The number of rows retrieved from index reach the max total size: 1", e.getMessage());
+    });
   }
 
   @Test

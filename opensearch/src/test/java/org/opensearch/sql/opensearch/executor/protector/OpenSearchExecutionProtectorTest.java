@@ -99,7 +99,7 @@ class OpenSearchExecutionProtectorTest {
   void test_protect_indexScan() {
     String indexName = "test";
     final int maxResultWindow = 10000;
-    final int querySizeLimit = 200;
+    final int requestTotalSizeLimit = 200;
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
@@ -120,7 +120,7 @@ class OpenSearchExecutionProtectorTest {
 
     final var name = new OpenSearchRequest.IndexName(indexName);
     final var request =
-        new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory, settings)
+        new OpenSearchRequestBuilder(requestTotalSizeLimit, exprValueFactory, settings)
             .build(
                 name,
                 maxResultWindow,

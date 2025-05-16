@@ -41,6 +41,7 @@ import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -95,6 +96,10 @@ public class OpenSearchRequestBuilder {
       int maxResultWindow,
       TimeValue cursorKeepAlive,
       OpenSearchClient client) {
+    if (sourceBuilder.size() == 0) {
+      // If size is 0, it means this is an aggregation request and no need to use pit.
+      return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, List.of());
+    }
     return buildRequestWithPit(indexName, maxResultWindow, cursorKeepAlive, client);
   }
 
@@ -197,6 +202,12 @@ public class OpenSearchRequestBuilder {
 
   /** Pushdown size (limit) and from (offset) to DSL request. */
   public void pushDownLimit(Integer limit, Integer offset) {
+    if (limit >= requestedTotalSize) {
+      throw new IllegalStateException(
+          String.format(
+              "The push-down limit %s must be less than the max requested size %s",
+              limit, requestedTotalSize));
+    }
     requestedTotalSize = limit;
     startFrom = offset;
     sourceBuilder.from(offset).size(limit);
@@ -305,6 +316,13 @@ public class OpenSearchRequestBuilder {
 
   public int getMaxResponseSize() {
     return pageSize == null ? requestedTotalSize : pageSize;
+    /*
+    return pageSize == null ?
+        (requestedTotalSize == -1 ?
+            settings.getSettingValue(Key.REQUEST_TOTAL_SIZE_LIMIT)
+            : requestedTotalSize)
+        : pageSize;
+     */
   }
 
   /** Initialize bool query for push down. */

@@ -62,7 +62,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexTest {
 
-  public static final int QUERY_SIZE_LIMIT = 200;
+  public static final int REQUEST_TOTAL_SIZE_LIMIT = 200;
   public static final TimeValue SCROLL_TIMEOUT = new TimeValue(1);
   public static final OpenSearchRequest.IndexName INDEX_NAME =
       new OpenSearchRequest.IndexName("test");
@@ -201,7 +201,7 @@ class OpenSearchIndexTest {
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder =
-        new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
+        new OpenSearchRequestBuilder(REQUEST_TOTAL_SIZE_LIMIT, exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
             client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
@@ -215,7 +215,7 @@ class OpenSearchIndexTest {
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder =
-        new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
+        new OpenSearchRequestBuilder(REQUEST_TOTAL_SIZE_LIMIT, exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
             client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
@@ -248,7 +248,7 @@ class OpenSearchIndexTest {
 
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder =
-        new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory, settings);
+        new OpenSearchRequestBuilder(REQUEST_TOTAL_SIZE_LIMIT, exprValueFactory, settings);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.dedupe(
@@ -258,7 +258,7 @@ class OpenSearchIndexTest {
                             PhysicalPlanDSL.rename(
                                 new OpenSearchIndexScan(
                                     client,
-                                    QUERY_SIZE_LIMIT,
+                                    REQUEST_TOTAL_SIZE_LIMIT,
                                     requestBuilder.build(
                                         INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
                                 mappings),

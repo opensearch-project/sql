@@ -64,7 +64,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   @Override
   public boolean hasNext() {
     if (queryCount >= maxResponseSize) {
-      iterator = Collections.emptyIterator();
+      throw new IllegalStateException(String.format("The number of rows retrieved from index reach the max requested size: %s", maxResponseSize));
     } else if (!iterator.hasNext()) {
       fetchNextBatch();
     }

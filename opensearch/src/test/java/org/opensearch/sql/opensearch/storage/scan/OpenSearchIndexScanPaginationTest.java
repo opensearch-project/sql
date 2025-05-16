@@ -16,7 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.QUERY_SIZE;
+import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.REQEUST_TOTAL_SIZE;
 import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.mockResponse;
 
 import java.io.ByteArrayOutputStream;
@@ -52,7 +52,8 @@ public class OpenSearchIndexScanPaginationTest {
 
   @BeforeEach
   void setup() {
-    lenient().when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(QUERY_SIZE);
+    lenient().when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(
+        REQEUST_TOTAL_SIZE);
     lenient()
         .when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
@@ -71,7 +72,7 @@ public class OpenSearchIndexScanPaginationTest {
   @Test
   void query_empty_result() {
     mockResponse(client);
-    var builder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory, settings);
+    var builder = new OpenSearchRequestBuilder(REQEUST_TOTAL_SIZE, exprValueFactory, settings);
     try (var indexScan =
         new OpenSearchIndexScan(
             client,

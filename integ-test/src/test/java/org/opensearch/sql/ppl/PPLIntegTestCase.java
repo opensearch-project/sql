@@ -175,18 +175,18 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   public static void withSettings(Key setting, String value, Runnable f) throws IOException {
-    String originalValue = getClusterSetting(setting.getKeyValue(), "persistent");
+    String originalValue = getClusterSetting(setting.getKeyValue(), "transient");
     if (originalValue.equals(value)) f.run();
     else {
       try {
         updateClusterSettings(
-            new SQLIntegTestCase.ClusterSetting("persistent", setting.getKeyValue(), value));
+            new SQLIntegTestCase.ClusterSetting("transient", setting.getKeyValue(), value));
         LOG.info("Set {} to {} and run the test", setting.name(), value);
         f.run();
       } finally {
         updateClusterSettings(
             new SQLIntegTestCase.ClusterSetting(
-                "persistent", setting.getKeyValue(), originalValue));
+                "transient", setting.getKeyValue(), originalValue));
         LOG.info("Reset {} back to {}", setting.name(), originalValue);
       }
     }

@@ -78,8 +78,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   @Override
   public boolean moveNext() {
     if (queryCount >= maxResponseSize) {
-      iterator = Collections.emptyIterator();
-      return false;
+      throw new IllegalStateException(String.format("The number of rows retrieved from index reach the max requested size: %s", maxResponseSize));
     } else if (iterator == null || !iterator.hasNext()) {
       fetchNextBatch();
     }

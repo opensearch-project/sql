@@ -177,10 +177,10 @@ class OpenSearchExecutionEngineTest {
 
     OpenSearchExprValueFactory exprValueFactory = mock(OpenSearchExprValueFactory.class);
     final var name = new OpenSearchRequest.IndexName("test");
-    final int defaultQuerySize = 100;
+    final int defaultRequestTotalSize = 100;
     final int maxResultWindow = 10000;
     final var requestBuilder =
-        new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory, settings);
+        new OpenSearchRequestBuilder(defaultRequestTotalSize, exprValueFactory, settings);
     PhysicalPlan plan =
         new OpenSearchIndexScan(
             mock(OpenSearchClient.class),

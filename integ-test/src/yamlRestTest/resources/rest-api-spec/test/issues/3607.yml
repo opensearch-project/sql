@@ -1,11 +1,17 @@
 setup:
   - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            max_result_window: 100
+  - do:
       query.settings:
         body:
           transient:
             plugins.calcite.enabled : true
             plugins.calcite.fallback.allowed : false
-            plugins.query.size_limit : 1
+            plugins.query.size_limit : 200
 
 ---
 teardown:
@@ -17,7 +23,7 @@ teardown:
             plugins.calcite.fallback.allowed : true
 
 ---
-"Handle flattened document value":
+"Handle aggregation with window_size_limit is less than query.size_limit":
   - skip:
       features:
         - headers
@@ -29,20 +35,13 @@ teardown:
              {"regionId": "1", "action": "login_attempt", "timestamp": "2024-04-29T10:00:00Z"}
              {"index": {"_index": "logs"}}
              {"regionId": "2", "action": "file_upload", "timestamp": "2024-04-29T10:05:00Z"}'
-          - '{"index": {"_index": "region_info"}}
-             {"regionId": "0", "regionName": "eu"}
-             {"index": {"_index": "region_info"}}
-             {"regionId": "0", "regionName": "de"}
-             {"index": {"_index": "region_info"}}
-             {"regionId": "1", "regionName": "us-east-1"}
-             {"index": {"_index": "region_info"}}
-             {"regionId": "2", "regionName": "us-west-2"}'
+
   - do:
       headers:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: 'source=logs | lookup region_info regionId'
+          query: 'source=logs | stats count() as cnt'
   - match: {"total": 1}
-  - match: {"schema": [{"name": "action", "type": "string"}, {"name": "regionId", "type": "string"}, {"name": "timestamp", "type": "timestamp"},  {"name": "regionName", "type": "string"}]}
-  - match: {"datarows": [["login_attempt", "1", "2024-04-29 10:00:00", "us-east-1"]]}
+  - match: {"schema": [{"name": "cnt", "type": "bigint"}]}
+  - match: {"datarows": [[2]]}
