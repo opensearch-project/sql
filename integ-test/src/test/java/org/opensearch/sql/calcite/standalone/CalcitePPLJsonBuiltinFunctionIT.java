@@ -248,6 +248,34 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testJsonSetWithWrongPath() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a =json_set('{\"a\":[{\"b\":1},{\"b\":2}]}', 'a{}.b.d', '3')|"
+                    + " fields a | head 1",
+                TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "string"));
+
+    verifyDataRows(actual, rows("{\"a\":[{\"b\":1},{\"b\":2}]}"));
+  }
+
+  @Test
+  public void testJsonSetPartialSet() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a =json_set('{\"a\":[{\"b\":1},{\"b\":{\"c\": 2}}]}', 'a{}.b.c',"
+                    + " '3')| fields a | head 1",
+                TEST_INDEX_PEOPLE2));
+
+    verifySchema(actual, schema("a", "string"));
+
+    verifyDataRows(actual, rows("{\"a\":[{\"b\":1},{\"b\":{\"c\":\"3\"}}]}"));
+  }
+
+  @Test
   public void testJsonDelete() {
     JSONObject actual =
         executeQuery(

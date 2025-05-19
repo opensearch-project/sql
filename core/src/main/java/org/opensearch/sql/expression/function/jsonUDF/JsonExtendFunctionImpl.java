@@ -67,17 +67,18 @@ public class JsonExtendFunctionImpl extends ImplementorUDF {
           }
         } else if (value instanceof String stringValue) {
           try {
-            List<Object> targetValues = gson.fromJson(stringValue, List.class);
+            List<Object> targetValues =
+                gson.fromJson(stringValue, List.class); // We first try to extend it as an array
             for (Object targetValue : targetValues) {
-              expands.add(expandedPath + ".meaninglessKey");
+              expands.add(expandedPath + MEANING_LESS_KEY_FOR_APPEND_AND_EXTEND);
               expands.add(targetValue);
             }
           } catch (Exception e) {
-            expands.add(expandedPath + ".meaninglessKey");
+            expands.add(expandedPath + MEANING_LESS_KEY_FOR_APPEND_AND_EXTEND);
             expands.add(value);
           }
         } else {
-          expands.add(expandedPath + ".meaninglessKey");
+          expands.add(expandedPath + MEANING_LESS_KEY_FOR_APPEND_AND_EXTEND);
           expands.add(value);
         }
       }

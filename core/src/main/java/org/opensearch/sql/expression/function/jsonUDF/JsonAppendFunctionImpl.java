@@ -68,8 +68,10 @@ public class JsonAppendFunctionImpl extends ImplementorUDF {
       for (String expandedPath : expandedPaths) {
         expands.add(
             expandedPath
-                + ".meaninglessKey"); // We add meaningless Key since calcite json_insert can only
-        // insert when the path point to null
+                + MEANING_LESS_KEY_FOR_APPEND_AND_EXTEND); // We add meaningless Key since calcite
+        // json_insert can only
+        // insert when the path point to null see:
+        // https://github.com/apache/calcite/blob/d96709c4cc7ca962601317d0a70914ad95e306e1/core/src/main/java/org/apache/calcite/runtime/JsonFunctions.java#L737
         expands.add(keys.get(i + 1));
       }
     }

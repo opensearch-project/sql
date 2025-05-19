@@ -14,6 +14,7 @@ import java.util.List;
 public class JsonUtils {
   static ObjectMapper objectMapper = new ObjectMapper();
   public static Gson gson = new Gson();
+  public static String MEANING_LESS_KEY_FOR_APPEND_AND_EXTEND = ".meaningless_key";
 
   /**
    * @param input candidate json path like a.b{}.c{2}
@@ -53,6 +54,12 @@ public class JsonUtils {
     return sb.toString();
   }
 
+  /**
+   * Transfer the object input to json node
+   *
+   * @param input
+   * @return
+   */
   public static JsonNode convertInputToJsonNode(Object input) {
     try {
       JsonNode root;
