@@ -16,19 +16,19 @@ Using ``fillnull`` command to fill null with provided value in one or more field
 
 Syntax
 ============
-`fillnull [with <null-replacement> in <nullable-field>["," <nullable-field>]] | [using <source-field> = <null-replacement> [","<source-field> = <null-replacement>]]`
+fillnull with <replacement> [in <field-list>]
 
-* null-replacement: mandatory. The value used to replace `null`s.
-* nullable-field: mandatory. Field reference. The `null` values in the field referred to by the property will be replaced with the values from the null-replacement.
+fillnull using <field> = <replacement> [, <field> = <replacement>]
 
-Example 1: fillnull one field
-======================================================================
+* replacement: mandatory. The value used to replace `null`s.
+* field-list: optional. The comma-delimited field list. The `null` values in the field will be replaced with the values from the replacement. In v2, at least one field is required. In v3, if no field specified, the replacement is applied to all fields.
 
-The example show fillnull one field.
+Example 1: replace null values with a specified value on one field
+==================================================================
 
 PPL query::
 
-    os> source=accounts | fields email, employer | fillnull with '<not found>' in email ;
+    os> source=accounts | fields email, employer | fillnull with '<not found>' in email;
     fetched rows / total rows = 4/4
     +-----------------------+----------+
     | email                 | employer |
@@ -39,14 +39,46 @@ PPL query::
     | daleadams@boink.com   | null     |
     +-----------------------+----------+
 
-Example 2: fillnull applied to multiple fields
+Example 2: replace null values with a specified value on multiple fields
 ========================================================================
-
-The example show fillnull applied to multiple fields.
 
 PPL query::
 
-    os> source=accounts | fields email, employer | fillnull using email = '<not found>', employer = '<no employer>' ;
+    os> source=accounts | fields email, employer | fillnull with '<not found>' in email, employer;
+    fetched rows / total rows = 4/4
+    +-----------------------+-------------+
+    | email                 | employer    |
+    |-----------------------+-------------|
+    | amberduke@pyrami.com  | Pyrami      |
+    | hattiebond@netagy.com | Netagy      |
+    | <not found>           | Quility     |
+    | daleadams@boink.com   | <not found> |
+    +-----------------------+-------------+
+
+Example 3: replace null values with a specified value on all fields
+===================================================================
+
+This example only works when Calcite enabled.
+
+PPL query::
+
+    PPL> source=accounts | fields email, employer | fillnull with '<not found>';
+    fetched rows / total rows = 4/4
+    +-----------------------+-------------+
+    | email                 | employer    |
+    |-----------------------+-------------|
+    | amberduke@pyrami.com  | Pyrami      |
+    | hattiebond@netagy.com | Netagy      |
+    | <not found>           | Quility     |
+    | daleadams@boink.com   | <not found> |
+    +-----------------------+-------------+
+
+Example 4: replace null values with multiple specified values on multiple fields
+================================================================================
+
+PPL query::
+
+    os> source=accounts | fields email, employer | fillnull using email = '<not found>', employer = '<no employer>';
     fetched rows / total rows = 4/4
     +-----------------------+---------------+
     | email                 | employer      |
@@ -57,6 +89,8 @@ PPL query::
     | daleadams@boink.com   | <no employer> |
     +-----------------------+---------------+
 
+
 Limitation
 ==========
-The ``fillnull`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
+* The ``fillnull`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
+* In v2, at least one field is required.

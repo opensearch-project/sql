@@ -209,20 +209,20 @@ lookupPair
    ;
 
 fillnullCommand
-   : FILLNULL (fillNullWithTheSameValue
-   | fillNullWithFieldVariousValues)
+   : FILLNULL fillNullWith
+   | FILLNULL fillNullUsing
    ;
 
-fillNullWithTheSameValue
-   : WITH nullReplacement = valueExpression IN nullableFieldList = fieldList
+fillNullWith
+   : WITH replacement = valueExpression (IN fieldList)?
    ;
 
-fillNullWithFieldVariousValues
-   : USING nullReplacementExpression (COMMA nullReplacementExpression)*
+fillNullUsing
+   : USING replacementPair (COMMA replacementPair)*
    ;
 
-nullReplacementExpression
-   : nullableField = fieldExpression EQUAL nullReplacement = valueExpression
+replacementPair
+   : fieldExpression EQUAL replacement = valueExpression
    ;
 
 trendlineCommand
