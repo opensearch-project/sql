@@ -7,12 +7,13 @@ on:
       - main
       - 1.*
       - 2.*
+      - poc/commit-metadata
 
 jobs:
   build-and-publish-snapshots:
     strategy:
       fail-fast: false
-    if: github.repository == 'opensearch-project/sql'
+    #if: github.repository == 'opensearch-project/sql'
     runs-on: ubuntu-latest
 
     permissions:
@@ -36,3 +37,49 @@ jobs:
           echo "::add-mask::$SONATYPE_USERNAME"
           echo "::add-mask::$SONATYPE_PASSWORD"
           ./gradlew publishPluginZipPublicationToSnapshotsRepository
+
+      - name: Mirror SQL plugin directory to direct-query directory
+        run: |
+          # Get credentials from previous step
+          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
+          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
+          echo "::add-mask::$SONATYPE_USERNAME"
+          echo "::add-mask::$SONATYPE_PASSWORD"
+          
+          # Create temporary directories
+          SOURCE_DIR=$(mktemp -d)
+          TARGET_DIR=$(mktemp -d)
+          
+          # Download the source directory content
+          echo "Downloading original content..."
+          wget --recursive --no-parent --no-host-directories --cut-dirs=6 \
+            --directory-prefix="$SOURCE_DIR" \
+            --user="$SONATYPE_USERNAME" --password="$SONATYPE_PASSWORD" \
+            https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/plugin/opensearch-sql-plugin/
+          
+          echo "Downloaded files structure:"
+          find "$SOURCE_DIR" -type f | sort
+          
+          # Upload to the target directory
+          echo "Uploading to new directory..."
+          
+          # For each file in the source directory
+          find "$SOURCE_DIR" -type f | while read -r file; do
+            # Get the relative path from SOURCE_DIR
+            relative_path="${file#$SOURCE_DIR/}"
+          
+            # Create the target URL
+            target_url="https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query/$relative_path"
+          
+            echo "Uploading $relative_path to $target_url"
+          
+            # Create directory structure if needed
+            target_dir=$(dirname "$TARGET_DIR/$relative_path")
+            mkdir -p "$target_dir"
+          
+            # Upload the file using curl
+            curl -X PUT -u "$SONATYPE_USERNAME:$SONATYPE_PASSWORD" \
+              --upload-file "$file" "$target_url"
+          done
+          
+          echo "Mirror operation completed"
