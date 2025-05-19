@@ -319,7 +319,6 @@ public class PPLFuncImpTable {
                   Stream.concat(Stream.of(builder.makeFlag(NULL_ON_NULL)), Arrays.stream(args))
                       .toArray(RexNode[]::new))));
       registerOperator(JSON, PPLBuiltinOperators.JSON);
-      registerOperator(TO_JSON_STRING, PPLBuiltinOperators.TO_JSON_STRING);
       registerOperator(JSON_ARRAY_LENGTH, PPLBuiltinOperators.JSON_ARRAY_LENGTH);
       registerOperator(JSON_EXTRACT, PPLBuiltinOperators.JSON_EXTRACT);
       registerOperator(JSON_KEYS, PPLBuiltinOperators.JSON_KEYS);

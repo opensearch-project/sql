@@ -86,20 +86,6 @@ public class CalcitePPLJsonBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testToJsonString() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s |  eval a = to_json_string(name) | fields a" + " | head 1",
-                TEST_INDEX_GAME_OF_THRONES));
-
-    verifySchema(actual, schema("a", "string"));
-
-    verifyDataRows(
-        actual, rows("{\"firstname\":\"Daenerys\",\"lastname\":\"Targaryen\",\"ofHerName\":1}"));
-  }
-
-  @Test
   public void testJsonArrayLength() {
     JSONObject actual =
         executeQuery(

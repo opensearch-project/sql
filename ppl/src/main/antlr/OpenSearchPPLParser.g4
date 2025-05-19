@@ -702,7 +702,6 @@ jsonFunctionName
    : JSON
    | JSON_OBJECT
    | JSON_ARRAY
-   | TO_JSON_STRING
    | JSON_ARRAY_LENGTH
    | JSON_EXTRACT
    | JSON_KEYS
