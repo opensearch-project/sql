@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.unittest.planner;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.sql.legacy.query.planner.core.QueryPlanner;
 
@@ -39,5 +40,12 @@ public class QueryPlannerExplainTest extends QueryPlannerTest {
                 + "  JOIN department d ON d.id = e.departmentId AND d.location = e.region "
                 + "    WHERE d.region = 'US' AND e.age > 30");
     planner.explain();
+  }
+
+  @Test
+  public void explainInUnion() {
+    String explain =
+        explainUnion("SELECT lastname as name FROM employee UNION SELECT name FROM department");
+    Assert.assertTrue(explain.contains("performing UNION on"));
   }
 }

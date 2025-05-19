@@ -49,6 +49,7 @@ import org.opensearch.sql.legacy.domain.MethodField;
 import org.opensearch.sql.legacy.domain.Query;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.TableOnJoinSelect;
+import org.opensearch.sql.legacy.domain.Union;
 import org.opensearch.sql.legacy.esdomain.mapping.FieldMapping;
 import org.opensearch.sql.legacy.exception.SqlFeatureNotImplementedException;
 import org.opensearch.sql.legacy.executor.Format;
@@ -104,6 +105,10 @@ public class SelectResultSet extends ResultSet {
       JoinSelect joinQuery = (JoinSelect) query;
       loadFromEsState(joinQuery.getFirstTable());
       loadFromEsState(joinQuery.getSecondTable());
+    } else if (isUnionQuery()) {
+      Union unionQuery = (Union) query;
+      loadFromEsState(unionQuery.getFirstTable());
+      loadFromEsState(unionQuery.getSecondTable());
     } else {
       loadFromEsState(query);
     }
@@ -187,8 +192,12 @@ public class SelectResultSet extends ResultSet {
     Map<String, FieldMappingMetadata> typeMappings = mappings.get(indexName);
 
     this.indexName = this.indexName == null ? indexName : (this.indexName + "|" + indexName);
-    this.columns.addAll(
-        renameColumnWithTableAlias(query, populateColumns(query, fieldNames, typeMappings)));
+    if (isPartOfUnion(query) && !this.columns.isEmpty()) {
+      // Skip the second SELECT schema for Union query
+    } else {
+      this.columns.addAll(
+          renameColumnWithTableAlias(query, populateColumns(query, fieldNames, typeMappings)));
+    }
   }
 
   /** Rename column name with table alias as prefix for join query */
@@ -456,12 +465,15 @@ public class SelectResultSet extends ResultSet {
         if (Schema.hasType(type)) {
 
           // If the current field is a group key, we should use alias as the identifier
-          boolean isGroupKey = false;
+          boolean identifiedByAlias = false;
           Select select = (Select) query;
           if (null != select.getGroupBys()
               && !select.getGroupBys().isEmpty()
               && select.getGroupBys().get(0).contains(fieldMap.get(fieldName))) {
-            isGroupKey = true;
+            identifiedByAlias = true;
+          }
+          if (select.isPartOfUnion()) {
+            identifiedByAlias = true;
           }
 
           columns.add(
@@ -469,7 +481,7 @@ public class SelectResultSet extends ResultSet {
                   fieldName,
                   fetchAlias(fieldName, fieldMap),
                   Schema.Type.valueOf(type),
-                  isGroupKey));
+                  identifiedByAlias));
         } else if (!isSelectAll()) {
           throw new IllegalArgumentException(
               String.format("%s fieldName types are currently not supported.", type));
@@ -889,5 +901,13 @@ public class SelectResultSet extends ResultSet {
 
   private boolean isJoinQuery() {
     return query instanceof JoinSelect;
+  }
+
+  private boolean isUnionQuery() {
+    return query instanceof Union;
+  }
+
+  private boolean isPartOfUnion(Query query) {
+    return query instanceof Select && ((Select) query).isPartOfUnion();
   }
 }

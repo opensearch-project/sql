@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 import org.opensearch.sql.legacy.domain.IndexStatement;
 
 public class Schema implements Iterable<Schema.Column> {
-
   private String indexName;
   private List<Column> columns;
 
@@ -44,7 +43,7 @@ public class Schema implements Iterable<Schema.Column> {
   }
 
   public List<String> getHeaders() {
-    return columns.stream().map(column -> column.getName()).collect(Collectors.toList());
+    return columns.stream().map(Column::getIdentifier).collect(Collectors.toList());
   }
 
   public List<Column> getColumns() {
@@ -165,6 +164,22 @@ public class Schema implements Iterable<Schema.Column> {
 
     public Type getEnumType() {
       return type;
+    }
+
+    @Override
+    public String toString() {
+      return "Column{"
+          + "name='"
+          + name
+          + '\''
+          + ", alias='"
+          + alias
+          + '\''
+          + ", type="
+          + type
+          + ", identifiedByAlias="
+          + identifiedByAlias
+          + '}';
     }
   }
 }
