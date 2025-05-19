@@ -276,7 +276,7 @@ Description
 
 Version: 3.1.0
 
-Usage: isblank(field) returns true if the field is missing, an empty string, or contains only white space.
+Usage: isblank(field) returns true if the field is null, an empty string, or contains only white space.
 
 Argument type: all the supported data type.
 
@@ -304,7 +304,7 @@ Description
 
 Version: 3.1.0
 
-Usage: isempty(field) returns true if the field is missing or is an empty string.
+Usage: isempty(field) returns true if the field is null or is an empty string.
 
 Argument type: all the supported data type.
 
@@ -312,13 +312,13 @@ Return type: BOOLEAN
 
 Example::
 
-    PPL> source=accounts | eval temp = ifnull(employer, '   ') | eval `isblank(employer)` = isblank(employer), `isblank(temp)` = isblank(temp) | fields `isblank(temp)`, temp, `isblank(employer)`, employer
+    PPL> source=accounts | eval temp = ifnull(employer, '   ') | eval `isempty(employer)` = isempty(employer), `isempty(temp)` = isempty(temp) | fields `isempty(temp)`, temp, `isempty(employer)`, employer
     fetched rows / total rows = 4/4
     +---------------+---------+-------------------+----------+
-    | isblank(temp) | temp    | isblank(employer) | employer |
+    | isempty(temp) | temp    | isempty(employer) | employer |
     |---------------+---------+-------------------+----------|
     | False         | Pyrami  | False             | Pyrami   |
     | False         | Netagy  | False             | Netagy   |
     | False         | Quility | False             | Quility  |
-    | True          |         | True              | null     |
+    | False         |         | True              | null     |
     +---------------+---------+-------------------+----------+
