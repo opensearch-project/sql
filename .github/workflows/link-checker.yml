@@ -18,7 +18,25 @@ jobs:
         id: lychee
         uses: lycheeverse/lychee-action@master
         with:
-          args: --accept=200,403,429,999  "./**/*.html" "./**/*.md" "./**/*.txt" --exclude "https://aws.oss.sonatype.*" "http://localhost*" "https://localhost" "https://odfe-node1:9200/" "https://community.tableau.com/docs/DOC-17978" ".*family.zzz" "https://pypi.python.org/pypi/opensearchsql/" "opensearch*" ".*@amazon.com" ".*email.com" "git@github.com" "http://timestamp.verisign.com/scripts/timstamp.dll" ".*/PowerBIConnector/bin/Release"
+          args: |
+            --accept=200,403,429,999
+            "./**/*.html"
+            "./**/*.md"
+            "./**/*.txt"
+            --exclude
+            "https://aws.oss.sonatype.*"
+            "http://localhost*"
+            "https://localhost"
+            "https://odfe-node1:9200/"
+            "https://community.tableau.com/docs/DOC-17978"
+            ".*family.zzz"
+            "https://pypi.python.org/pypi/opensearchsql/"
+            "opensearch*"
+            ".*@amazon.com"
+            ".*email.com"
+            "git@github.com"
+            "http://timestamp.verisign.com/scripts/timstamp.dll"
+            ".*/PowerBIConnector/bin/Release"
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Fail if there were link errors
