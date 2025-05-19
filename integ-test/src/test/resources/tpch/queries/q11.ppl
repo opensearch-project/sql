@@ -1,0 +1,46 @@
+/*
+select
+    ps_partkey,
+    sum(ps_supplycost * ps_availqty) as value
+from
+    partsupp,
+    supplier,
+    nation
+where
+    ps_suppkey = s_suppkey
+    and s_nationkey = n_nationkey
+    and n_name = 'GERMANY'
+group by
+    ps_partkey having
+        sum(ps_supplycost * ps_availqty) > (
+            select
+                sum(ps_supplycost * ps_availqty) * 0.0001000000
+            from
+                partsupp,
+                supplier,
+                nation
+            where
+                ps_suppkey = s_suppkey
+                and s_nationkey = n_nationkey
+                and n_name = 'GERMANY'
+        )
+order by
+    value desc
+*/
+
+source = partsupp
+| join ON ps_suppkey = s_suppkey supplier
+| join ON s_nationkey = n_nationkey nation
+| where n_name = 'GERMANY'
+| stats sum(ps_supplycost * ps_availqty) as value by ps_partkey
+| where value > [
+    source = partsupp
+    | join ON ps_suppkey = s_suppkey supplier
+    | join ON s_nationkey = n_nationkey nation
+    | where n_name = 'GERMANY'
+    | stats sum(ps_supplycost * ps_availqty) as check
+    | eval threshold = check * 0.0001000000
+    | fields threshold
+  ]
+| fields ps_partkey, value
+| sort - value
