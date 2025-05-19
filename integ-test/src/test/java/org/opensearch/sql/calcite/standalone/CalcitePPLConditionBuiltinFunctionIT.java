@@ -113,14 +113,20 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where age = 10 | eval new_country = coalesce(name, state, country) | fields name, state, country, new_country",
+                "source=%s | where age = 10 | eval new_country = coalesce(name, state, country),"
+                    + " null = coalesce(name, state, name)  | fields name, state, country,"
+                    + " new_country, null",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
-    verifySchema(actual, schema("name", "string"), schema("state", "string"), schema("country", "string"), schema("new_country", "string"));
-
-    verifyDataRows(
+    verifySchema(
         actual,
-        rows(null, null, "Canada", "Canada"));
+        schema("name", "string"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("new_country", "string"),
+        schema("null", "string"));
+
+    verifyDataRows(actual, rows(null, null, "Canada", "Canada", null));
   }
 
   @Test
