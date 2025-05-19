@@ -1,6 +1,6 @@
 {
   "calcite": {
     "logical": "LogicalSort(sort0=[$0], dir0=[ASC])\n  LogicalProject(age=[$8])\n    LogicalFilter(condition=[>($8, 30)])\n      LogicalSort(sort0=[$8], dir0=[ASC])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=[>($t0, $t1)], age=[$t0], $condition=[$t2])\n  EnumerableSort(sort0=[$0], dir0=[ASC])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[age]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\"],\"excludes\":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n"
+    "physical": "EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=[>($t0, $t1)], age=[$t0], $condition=[$t2])\n  EnumerableSort(sort0=[$0], dir0=[ASC])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[age]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\"],\"excludes\":[]}}, requestedTotalSize=-1, pageSize=null, startFrom=0)])\n"
   }
 }

@@ -24,7 +24,6 @@ import org.apache.calcite.rel.RelNode;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.plan.OpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -270,14 +269,13 @@ public class OpenSearchIndex extends OpenSearchTable {
         return new OpenSearchIndexEnumerator(
             client,
             List.copyOf(getFieldTypes().keySet()),
-            builder.getMaxResponseSize(),
             builder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
       }
     };
   }
 
   public OpenSearchRequestBuilder createRequestBuilder() {
-    return new OpenSearchRequestBuilder(settings.getSettingValue(Key.REQUEST_TOTAL_SIZE_LIMIT), createExprValueFactory(), settings);
+    return new OpenSearchRequestBuilder(createExprValueFactory(), settings);
   }
 
   public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {

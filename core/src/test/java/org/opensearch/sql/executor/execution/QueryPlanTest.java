@@ -107,7 +107,7 @@ class QueryPlanTest {
             queryType,
             mock(UnresolvedPlan.class),
             10,
-            new QueryService(null, new DefaultExecutionEngine(), null),
+            new QueryService(null, new DefaultExecutionEngine(), null, null),
             listener);
     plan.execute();
   }

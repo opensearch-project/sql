@@ -62,7 +62,6 @@ import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexTest {
 
-  public static final int REQUEST_TOTAL_SIZE_LIMIT = 200;
   public static final TimeValue SCROLL_TIMEOUT = new TimeValue(1);
   public static final OpenSearchRequest.IndexName INDEX_NAME =
       new OpenSearchRequest.IndexName("test");
@@ -200,11 +199,10 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder =
-        new OpenSearchRequestBuilder(REQUEST_TOTAL_SIZE_LIMIT, exprValueFactory, settings);
+    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
+            client, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
         index.implement(index.optimize(plan)));
   }
 
@@ -214,11 +212,10 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder =
-        new OpenSearchRequestBuilder(REQUEST_TOTAL_SIZE_LIMIT, exprValueFactory, settings);
+    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
+            client, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
         index.implement(plan));
   }
 
@@ -247,8 +244,7 @@ class OpenSearchIndexTest {
             include);
 
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var requestBuilder =
-        new OpenSearchRequestBuilder(REQUEST_TOTAL_SIZE_LIMIT, exprValueFactory, settings);
+    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.dedupe(
@@ -258,7 +254,6 @@ class OpenSearchIndexTest {
                             PhysicalPlanDSL.rename(
                                 new OpenSearchIndexScan(
                                     client,
-                                    REQUEST_TOTAL_SIZE_LIMIT,
                                     requestBuilder.build(
                                         INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
                                 mappings),

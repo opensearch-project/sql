@@ -16,7 +16,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.REQEUST_TOTAL_SIZE;
 import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.mockResponse;
 
 import java.io.ByteArrayOutputStream;
@@ -52,8 +51,7 @@ public class OpenSearchIndexScanPaginationTest {
 
   @BeforeEach
   void setup() {
-    lenient().when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(
-        REQEUST_TOTAL_SIZE);
+    lenient().when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     lenient()
         .when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
@@ -72,12 +70,10 @@ public class OpenSearchIndexScanPaginationTest {
   @Test
   void query_empty_result() {
     mockResponse(client);
-    var builder = new OpenSearchRequestBuilder(REQEUST_TOTAL_SIZE, exprValueFactory, settings);
+    var builder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     try (var indexScan =
         new OpenSearchIndexScan(
-            client,
-            MAX_RESULT_WINDOW,
-            builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
+            client, builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
@@ -103,9 +99,7 @@ public class OpenSearchIndexScanPaginationTest {
     when(client.search(any())).thenReturn(response);
     try (var indexScan =
         new OpenSearchIndexScan(
-            client,
-            MAX_RESULT_WINDOW,
-            builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
+            client, builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT, client))) {
       indexScan.open();
 
       when(request.hasAnotherBatch()).thenReturn(false);

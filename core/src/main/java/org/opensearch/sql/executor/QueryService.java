@@ -59,7 +59,7 @@ public class QueryService {
   private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor();
 
   private DataSourceService dataSourceService;
-  private Settings settings;
+  private final Settings settings;
 
   /** Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.<br> */
   public void execute(

@@ -41,7 +41,6 @@ import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -60,7 +59,7 @@ public class OpenSearchRequestBuilder {
   private final SearchSourceBuilder sourceBuilder;
 
   /** Query size of the request -- how many rows will be returned. */
-  private int requestedTotalSize;
+  private int requestedTotalSize = -1;
 
   /** Size of each page request to return. */
   private Integer pageSize = null;
@@ -74,9 +73,7 @@ public class OpenSearchRequestBuilder {
   @ToString.Exclude private final Settings settings;
 
   /** Constructor. */
-  public OpenSearchRequestBuilder(
-      int requestedTotalSize, OpenSearchExprValueFactory exprValueFactory, Settings settings) {
-    this.requestedTotalSize = requestedTotalSize;
+  public OpenSearchRequestBuilder(OpenSearchExprValueFactory exprValueFactory, Settings settings) {
     this.settings = settings;
     this.sourceBuilder =
         new SearchSourceBuilder()
@@ -113,7 +110,8 @@ public class OpenSearchRequestBuilder {
     List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
 
     if (pageSize == null) {
-      if (startFrom + size > maxResultWindow) {
+      // size < 0 means having to fetch all data.
+      if (size < 0 || startFrom + size > maxResultWindow) {
         sourceBuilder.size(maxResultWindow - startFrom);
         // Search with PIT request
         String pitId = createPit(indexName, cursorKeepAlive, client);
@@ -202,12 +200,6 @@ public class OpenSearchRequestBuilder {
 
   /** Pushdown size (limit) and from (offset) to DSL request. */
   public void pushDownLimit(Integer limit, Integer offset) {
-    if (limit >= requestedTotalSize) {
-      throw new IllegalStateException(
-          String.format(
-              "The push-down limit %s must be less than the max requested size %s",
-              limit, requestedTotalSize));
-    }
     requestedTotalSize = limit;
     startFrom = offset;
     sourceBuilder.from(offset).size(limit);
@@ -316,13 +308,6 @@ public class OpenSearchRequestBuilder {
 
   public int getMaxResponseSize() {
     return pageSize == null ? requestedTotalSize : pageSize;
-    /*
-    return pageSize == null ?
-        (requestedTotalSize == -1 ?
-            settings.getSettingValue(Key.REQUEST_TOTAL_SIZE_LIMIT)
-            : requestedTotalSize)
-        : pageSize;
-     */
   }
 
   /** Initialize bool query for push down. */

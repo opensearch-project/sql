@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.remote;
 
 import java.io.IOException;
-import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.SettingsIT;
 
@@ -30,10 +29,5 @@ public class CalciteSettingsIT extends SettingsIT {
             throw new RuntimeException(e);
           }
         });
-  }
-
-  @Override
-  public void testRequestTotalSizeLimit() throws IOException {
-    super.testRequestTotalSizeLimit();
   }
 }

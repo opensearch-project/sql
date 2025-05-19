@@ -26,6 +26,7 @@ import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -166,6 +167,7 @@ public class StandaloneIT extends PPLIntegTestCase {
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
               .put(Key.REQUEST_TOTAL_SIZE_LIMIT, 1000000)
+              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .build();
 
@@ -256,7 +258,7 @@ public class StandaloneIT extends PPLIntegTestCase {
           new Analyzer(
               new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
       Planner planner = new Planner(LogicalPlanOptimizer.create());
-      QueryService queryService = new QueryService(analyzer, executionEngine, planner);
+      QueryService queryService = new QueryService(analyzer, executionEngine, planner, null);
       return new QueryPlanFactory(queryService);
     }
   }

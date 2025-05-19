@@ -185,8 +185,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
         f.run();
       } finally {
         updateClusterSettings(
-            new SQLIntegTestCase.ClusterSetting(
-                "transient", setting.getKeyValue(), originalValue));
+            new SQLIntegTestCase.ClusterSetting("transient", setting.getKeyValue(), originalValue));
         LOG.info("Reset {} back to {}", setting.name(), originalValue);
       }
     }

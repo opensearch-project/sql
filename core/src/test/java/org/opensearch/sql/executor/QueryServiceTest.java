@@ -26,6 +26,8 @@ import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
@@ -39,6 +41,8 @@ class QueryServiceTest {
   private QueryService queryService;
 
   @Mock private ExecutionEngine executionEngine;
+
+  @Mock private Settings settings;
 
   @Mock private Analyzer analyzer;
 
@@ -101,8 +105,10 @@ class QueryServiceTest {
     public Helper() {
       lenient().when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
       lenient().when(planner.plan(any())).thenReturn(plan);
+      lenient().when(settings.getSettingValue(Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+      lenient().when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
 
-      queryService = new QueryService(analyzer, executionEngine, planner);
+      queryService = new QueryService(analyzer, executionEngine, planner, settings);
     }
 
     Helper executeSuccess() {

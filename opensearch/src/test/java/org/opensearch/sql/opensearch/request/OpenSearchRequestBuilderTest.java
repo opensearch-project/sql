@@ -84,7 +84,7 @@ class OpenSearchRequestBuilderTest {
 
   @BeforeEach
   void setup() {
-    requestBuilder = new OpenSearchRequestBuilder(DEFAULT_LIMIT, exprValueFactory, settings);
+    requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(false);
   }
 
@@ -143,8 +143,7 @@ class OpenSearchRequestBuilderTest {
     when(client.createPit(any(CreatePitRequest.class))).thenReturn("samplePITId");
     Integer limit = 600;
     Integer offset = 0;
-    int requestedTotalSize = 600;
-    requestBuilder = new OpenSearchRequestBuilder(requestedTotalSize, exprValueFactory, settings);
+    requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     requestBuilder.pushDownLimit(limit, offset);
 
     assertEquals(
@@ -165,17 +164,13 @@ class OpenSearchRequestBuilderTest {
   void buildRequestWithPit_pageSizeNull_sizeLessThanMaxResultWindow() {
     Integer limit = 400;
     Integer offset = 0;
-    int requestedTotalSize = 400;
-    requestBuilder = new OpenSearchRequestBuilder(requestedTotalSize, exprValueFactory, settings);
+    requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     requestBuilder.pushDownLimit(limit, offset);
 
     assertEquals(
         new OpenSearchQueryRequest(
             new OpenSearchRequest.IndexName("test"),
-            new SearchSourceBuilder()
-                .from(offset)
-                .size(requestedTotalSize)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
+            new SearchSourceBuilder().from(offset).size(limit).timeout(DEFAULT_QUERY_TIMEOUT),
             exprValueFactory,
             List.of()),
         requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT, client));

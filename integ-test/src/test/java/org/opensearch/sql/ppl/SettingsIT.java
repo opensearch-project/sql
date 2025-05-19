@@ -11,6 +11,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.setting.Settings.Key;
 
@@ -63,23 +64,5 @@ public class SettingsIT extends PPLIntegTestCase {
                 "search source=%s | eval a = 1 | where age>35 | fields firstname",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"));
-  }
-
-  @Test
-  public void testRequestTotalSizeLimit() throws IOException {
-    resetQuerySizeLimit();
-    // Test push down the limit more than REQUEST_TOTAL_SIZE_LIMIT
-    withSettings(Key.REQUEST_TOTAL_SIZE_LIMIT, "2", () -> {
-      Exception e = assertThrows(Exception.class,
-          () -> executeQuery(String.format("source = %s | head 10", TEST_INDEX_BANK)));
-      assertTrue(e.getMessage().contains("The push-down limit 10 must be less than the max requested size 2"));
-    });
-
-    // Test source retrieved rows are more than REQUEST_TOTAL_SIZE_LIMIT
-    withSettings(Key.REQUEST_TOTAL_SIZE_LIMIT, "2", () -> {
-      Exception e = assertThrows(Exception.class,
-          () -> executeQuery(String.format("source = %s", TEST_INDEX_BANK)));
-      assertTrue(e.getMessage().contains("The number of rows retrieved from index reach the max requested size: 2"));
-    });
   }
 }

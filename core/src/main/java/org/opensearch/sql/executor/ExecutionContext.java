@@ -12,7 +12,11 @@ import org.opensearch.sql.storage.split.Split;
 /** Execution context hold planning related information. */
 public class ExecutionContext {
   @Getter private final Optional<Split> split;
-  @Getter private final Integer querySizeLimit;
+  private final Integer querySizeLimit;
+
+  public Integer getQuerySizeLimit() {
+    return querySizeLimit;
+  }
 
   public ExecutionContext(Split split) {
     this.split = Optional.of(split);

@@ -27,9 +27,6 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   /** Search request. */
   @EqualsAndHashCode.Include @ToString.Include private final OpenSearchRequest request;
 
-  /** Largest number of rows allowed in the response. */
-  @EqualsAndHashCode.Include @ToString.Include private final int maxResponseSize;
-
   /** Number of rows returned. */
   private Integer queryCount;
 
@@ -39,13 +36,9 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   private ExprValue current;
 
   public OpenSearchIndexEnumerator(
-      OpenSearchClient client,
-      List<String> fields,
-      int maxResponseSize,
-      OpenSearchRequest request) {
+      OpenSearchClient client, List<String> fields, OpenSearchRequest request) {
     this.client = client;
     this.fields = fields;
-    this.maxResponseSize = maxResponseSize;
     this.request = request;
     this.queryCount = 0;
     this.current = null;
@@ -77,9 +70,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public boolean moveNext() {
-    if (queryCount >= maxResponseSize) {
-      throw new IllegalStateException(String.format("The number of rows retrieved from index reach the max requested size: %s", maxResponseSize));
-    } else if (iterator == null || !iterator.hasNext()) {
+    if (iterator == null || !iterator.hasNext()) {
       fetchNextBatch();
     }
     if (iterator.hasNext()) {

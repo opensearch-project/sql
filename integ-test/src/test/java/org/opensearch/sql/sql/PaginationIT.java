@@ -23,6 +23,7 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.SQLIntegTestCase.Index;
 import org.opensearch.sql.util.TestUtils;
 
 public class PaginationIT extends SQLIntegTestCase {
