@@ -204,6 +204,12 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
+  public UnresolvedExpression visitDistinctCountApproxFunctionCall(
+      OpenSearchPPLParser.DistinctCountApproxFunctionCallContext ctx) {
+    return new AggregateFunction("distinct_count_approx", visit(ctx.valueExpression()), true);
+  }
+
+  @Override
   public UnresolvedExpression visitPercentileApproxFunctionCall(
       OpenSearchPPLParser.PercentileApproxFunctionCallContext ctx) {
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
