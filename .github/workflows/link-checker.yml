@@ -9,31 +9,16 @@ on:
 
 jobs:
   linkchecker:
+
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Create exclude file
-        run: |
-          cat > exclude.txt << 'EOL'
-          http://localhost
-          https://localhost
-          https://aws.oss.sonatype
-          https://odfe-node1:9200
-          https://community.tableau.com/docs/DOC-17978
-          family.zzz
-          https://pypi.python.org/pypi/opensearchsql
-          opensearch
-          @amazon.com
-          email.com
-          git@github.com
-          http://timestamp.verisign.com/scripts/timstamp.dll
-          /PowerBIConnector/bin/Release
-          EOL
+      - uses: actions/checkout@v3
       - name: lychee Link Checker
         id: lychee
         uses: lycheeverse/lychee-action@master
         with:
-          args: --accept 200,403,429,999 --exclude-file ./exclude.txt "./**/*.html" "./**/*.md" "./**/*.txt"
+          args: --accept=200,403,429,999  "./**/*.html" "./**/*.md" "./**/*.txt" --exclude "https://aws.oss.sonatype.*|http://localhost.*|https://localhost|https://odfe-node1:9200/|https://community.tableau.com/docs/DOC-17978|.*family.zzz|opensearch*|.*@amazon.com|.*email.com|.*@github.com|http://timestamp.verisign.com/scripts/timstamp.dll"
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Fail if there were link errors
