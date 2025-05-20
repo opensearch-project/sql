@@ -70,6 +70,5 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
         .orElseThrow(
             () ->
                 new UnsupportedOperationException("Unexpected aggregation: " + node.getFuncName()));
-    //    return AggregateUtils.translate(node.getFuncName(), false, field, context, argList);
   }
 }

@@ -65,13 +65,6 @@ public class UserDefinedFunctionUtils {
 
   public static SqlReturnTypeInference dateInference = ReturnTypes.explicit(nullableDateUDT);
 
-  public static RelDataType nullablePatternMap =
-      TYPE_FACTORY.createMapType(
-          TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
-          TYPE_FACTORY.createMapType(
-              TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
-              TYPE_FACTORY.createSqlType(SqlTypeName.ANY)));
-
   public static RelDataType nullablePatternAggList =
       createArrayType(
           TYPE_FACTORY,
