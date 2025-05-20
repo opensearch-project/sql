@@ -77,7 +77,7 @@ jobs:
           fi
           
           # Define version variables
-          VERSION=$(./gradlew properties -q | grep "version:" | awk '{print $2}')
+          VERSION="2.20.0.0"  # Use the hardcoded version directly
           ARTIFACT_ID="async-query-core"
           GROUP_PATH="org/opensearch/direct-query-poc"
           
