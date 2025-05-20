@@ -202,6 +202,7 @@ public class PPLFuncImpTable {
       registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
       registerOperator(IF, SqlStdOperatorTable.CASE);
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
+      registerOperator(IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
@@ -371,6 +372,28 @@ public class PPLFuncImpTable {
                       builder.makeCall(SqlStdOperatorTable.EQUALS, arg1, arg2),
                       builder.makeNullLiteral(arg1.getType()),
                       arg1));
+      register(
+          IS_EMPTY,
+          ((FunctionImp1)
+              (builder, arg) ->
+                  builder.makeCall(
+                      SqlStdOperatorTable.OR,
+                      builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
+                      builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg))));
+      register(
+          IS_BLANK,
+          ((FunctionImp1)
+              (builder, arg) ->
+                  builder.makeCall(
+                      SqlStdOperatorTable.OR,
+                      builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
+                      builder.makeCall(
+                          SqlStdOperatorTable.IS_EMPTY,
+                          builder.makeCall(
+                              SqlStdOperatorTable.TRIM,
+                              builder.makeFlag(Flag.BOTH),
+                              builder.makeLiteral(" "),
+                              arg)))));
     }
   }
 

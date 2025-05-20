@@ -838,6 +838,9 @@ conditionFunctionName
    | ISNOTNULL
    | CIDRMATCH
    | JSON_VALID
+   | ISPRESENT
+   | ISEMPTY
+   | ISBLANK
    ;
 
 // flow control function return non-boolean value
