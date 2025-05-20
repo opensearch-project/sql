@@ -137,7 +137,7 @@ jobs:
           echo "Snapshot publishing completed. Now uploading commit ID metadata..."
           
           # Get the version
-          VERSION=$(cd ../../../ && ./gradlew properties -q | grep "version:" | awk '{print $2}')
+          VERSION="2.20.0.0"
           COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
           ARTIFACT_ID="async-query-core"
           
