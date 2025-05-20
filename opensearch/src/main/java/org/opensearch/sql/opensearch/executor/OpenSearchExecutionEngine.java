@@ -18,7 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import lombok.RequiredArgsConstructor;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
@@ -38,20 +37,32 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 import org.opensearch.sql.executor.Explain;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
+import org.opensearch.sql.opensearch.functions.GeoIpFunction;
 import org.opensearch.sql.opensearch.util.JdbcOpenSearchDataTypeConvertor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /** OpenSearch execution engine implementation. */
-@RequiredArgsConstructor
 public class OpenSearchExecutionEngine implements ExecutionEngine {
 
   private final OpenSearchClient client;
 
   private final ExecutionProtector executionProtector;
   private final PlanSerializer planSerializer;
+
+  public OpenSearchExecutionEngine(
+      OpenSearchClient client,
+      ExecutionProtector executionProtector,
+      PlanSerializer planSerializer) {
+    this.client = client;
+    this.executionProtector = executionProtector;
+    this.planSerializer = planSerializer;
+    registerOpenSearchFunctions();
+  }
 
   @Override
   public void execute(PhysicalPlan physicalPlan, ResponseListener<QueryResponse> listener) {
@@ -223,5 +234,13 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
     listener.onResponse(response);
+  }
+
+  /** Registers opensearch-dependent functions */
+  private void registerOpenSearchFunctions() {
+    PPLFuncImpTable.FunctionImp geoIpImpl =
+        (builder, args) ->
+            builder.makeCall(new GeoIpFunction(client.getNodeClient()).toUDF("GEOIP"), args);
+    PPLFuncImpTable.INSTANCE.registerExternalFunction(BuiltinFunctionName.GEOIP, geoIpImpl);
   }
 }

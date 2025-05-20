@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.expression.function.udf.ip;
+package org.opensearch.sql.opensearch.functions;
 
 import java.util.*;
 import java.util.stream.Collectors;

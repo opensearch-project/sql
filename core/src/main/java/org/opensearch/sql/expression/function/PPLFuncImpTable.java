@@ -152,13 +152,29 @@ public class PPLFuncImpTable {
     INSTANCE = new PPLFuncImpTable(builder);
   }
 
-  private final ImmutableMap<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>> map;
+  private final ImmutableMap<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>>
+      functionRegistry;
+  private final Map<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>>
+      externalFunctionRegistry;
 
   private PPLFuncImpTable(Builder builder) {
     final ImmutableMap.Builder<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>>
         mapBuilder = ImmutableMap.builder();
     builder.map.forEach((k, v) -> mapBuilder.put(k, v.immutable()));
-    this.map = ImmutableMap.copyOf(mapBuilder.build());
+    this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
+    this.externalFunctionRegistry = new HashMap<>();
+  }
+
+  /**
+   * Register a function implementation from external services dynamically.
+   *
+   * @param functionName the name of the function, has to be defined in BuiltinFunctionName
+   * @param functionImp the implementation of the function
+   */
+  public void registerExternalFunction(BuiltinFunctionName functionName, FunctionImp functionImp) {
+    CalciteFuncSignature signature =
+        new CalciteFuncSignature(functionName.getName(), functionImp.getParams());
+    externalFunctionRegistry.put(functionName, PairList.of(signature, functionImp));
   }
 
   public @Nullable RexNode resolveSafe(
@@ -180,7 +196,11 @@ public class PPLFuncImpTable {
 
   public RexNode resolve(
       final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
-    final PairList<CalciteFuncSignature, FunctionImp> implementList = map.get(functionName);
+    PairList<CalciteFuncSignature, FunctionImp> implementList = functionRegistry.get(functionName);
+    // If the function is not part of the built-in registry, check the external registry
+    if (implementList == null) {
+      implementList = externalFunctionRegistry.get(functionName);
+    }
     if (implementList == null || implementList.isEmpty()) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }

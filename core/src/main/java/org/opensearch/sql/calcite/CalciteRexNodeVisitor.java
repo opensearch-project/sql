@@ -65,7 +65,6 @@ import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
-import org.opensearch.sql.expression.function.udf.ip.GeoIpFunction;
 
 @RequiredArgsConstructor
 public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalcitePlanContext> {
@@ -349,13 +348,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> arguments =
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
 
-    // GEOIP needs NodeClient to perform RPC calls. Therefore, we handle it separately.
-    if (BuiltinFunctionName.GEOIP.equals(BuiltinFunctionName.of(node.getFuncName()).orElse(null))) {
-      PPLFuncImpTable.FunctionImp geoIpImpl =
-          (builder, args) ->
-              builder.makeCall(new GeoIpFunction(context.getClient()).toUDF("GEOIP"), args);
-      return geoIpImpl.resolve(context.rexBuilder, arguments.toArray(new RexNode[0]));
-    }
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolveSafe(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));

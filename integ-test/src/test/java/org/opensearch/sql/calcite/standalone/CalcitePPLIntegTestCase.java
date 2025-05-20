@@ -372,7 +372,7 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
       Planner planner = new Planner(LogicalPlanOptimizer.create());
       // NodeClient is not used in integration test, so we pass null
       QueryService queryService =
-          new QueryService(analyzer, executionEngine, planner, dataSourceService, settings, null);
+          new QueryService(analyzer, executionEngine, planner, dataSourceService, settings);
       return new QueryPlanFactory(queryService);
     }
   }
