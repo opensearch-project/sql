@@ -45,6 +45,8 @@ Argument type: all the supported data type.
 
 Return type: BOOLEAN
 
+Synonyms: `ISPRESENT`_
+
 Example::
 
     os> source=accounts | where not isnotnull(employer) | fields account_number, employer
@@ -238,3 +240,85 @@ Example::
     | Dale      | Adams    | 33  |
     +-----------+----------+-----+
 
+ISPRESENT
+---------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: ispresent(field) return true if the field exists.
+
+Argument type: all the supported data type.
+
+Return type: BOOLEAN
+
+Synonyms: `ISNOTNULL`_
+
+Example::
+
+    PPL> source=accounts | where ispresent(employer) | fields employer, firstname
+    fetched rows / total rows = 3/3
+    +----------+-----------+
+    | employer | firstname |
+    |----------+-----------|
+    | Pyrami   | Amber     |
+    | Netagy   | Hattie    |
+    | Quility  | Nanette   |
+    +----------+-----------+
+
+ISBLANK
+-------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: isblank(field) returns true if the field is null, an empty string, or contains only white space.
+
+Argument type: all the supported data type.
+
+Return type: BOOLEAN
+
+Example::
+
+    PPL> source=accounts | eval temp = ifnull(employer, '   ') | eval `isblank(employer)` = isblank(employer), `isblank(temp)` = isblank(temp) | fields `isblank(temp)`, temp, `isblank(employer)`, employer
+    fetched rows / total rows = 4/4
+    +---------------+---------+-------------------+----------+
+    | isblank(temp) | temp    | isblank(employer) | employer |
+    |---------------+---------+-------------------+----------|
+    | False         | Pyrami  | False             | Pyrami   |
+    | False         | Netagy  | False             | Netagy   |
+    | False         | Quility | False             | Quility  |
+    | True          |         | True              | null     |
+    +---------------+---------+-------------------+----------+
+
+
+ISEMPTY
+-------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: isempty(field) returns true if the field is null or is an empty string.
+
+Argument type: all the supported data type.
+
+Return type: BOOLEAN
+
+Example::
+
+    PPL> source=accounts | eval temp = ifnull(employer, '   ') | eval `isempty(employer)` = isempty(employer), `isempty(temp)` = isempty(temp) | fields `isempty(temp)`, temp, `isempty(employer)`, employer
+    fetched rows / total rows = 4/4
+    +---------------+---------+-------------------+----------+
+    | isempty(temp) | temp    | isempty(employer) | employer |
+    |---------------+---------+-------------------+----------|
+    | False         | Pyrami  | False             | Pyrami   |
+    | False         | Netagy  | False             | Netagy   |
+    | False         | Quility | False             | Quility  |
+    | False         |         | True              | null     |
+    +---------------+---------+-------------------+----------+
