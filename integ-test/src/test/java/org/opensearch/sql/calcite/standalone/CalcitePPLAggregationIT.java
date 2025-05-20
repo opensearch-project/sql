@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 
@@ -519,6 +518,17 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
+                "source=%s | stats distinct_count_approx(state) as dca by gender",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("gender", "string"), schema("dca", "long"));
+    verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
+  }
+
+  @Test
+  public void testCountDistinctApproxWithAlias() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
                 "source=%s | stats distinct_count_approx(state) by gender", TEST_INDEX_BANK));
     verifySchema(
         actual, schema("gender", "string"), schema("distinct_count_approx(state)", "long"));
@@ -533,14 +543,6 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
                 "source=%s | stats distinct_count(state) as dc by gender", TEST_INDEX_BANK));
     verifySchema(actual, schema("gender", "string"), schema("dc", "long"));
     verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
-  }
-
-  @Ignore("https://github.com/opensearch-project/sql/issues/3353")
-  public void testApproxCountDistinct() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | stats distinct_count_approx(state) by gender", TEST_INDEX_BANK));
   }
 
   @Test

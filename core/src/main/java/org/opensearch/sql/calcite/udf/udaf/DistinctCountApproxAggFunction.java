@@ -44,7 +44,7 @@ public class DistinctCountApproxAggFunction
 
     @Override
     public Object value(Object... args) {
-        return hll.result();
+      return hll.result();
     }
   }
 }
