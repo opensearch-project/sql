@@ -98,6 +98,7 @@ public abstract class CalciteIndexScan extends TableScan {
   public static class PushDownContext extends ArrayDeque<PushDownAction> {
 
     private boolean isAggregatePushed = false;
+    private boolean isLimitPushed = false;
 
     @Override
     public PushDownContext clone() {
@@ -111,6 +112,9 @@ public abstract class CalciteIndexScan extends TableScan {
       if (pushDownAction.type == PushDownType.AGGREGATION) {
         isAggregatePushed = true;
       }
+      if (pushDownAction.type == PushDownType.LIMIT) {
+        isLimitPushed = true;
+      }
       return super.add(pushDownAction);
     }
 
@@ -118,6 +122,10 @@ public abstract class CalciteIndexScan extends TableScan {
       if (isAggregatePushed) return true;
       isAggregatePushed = !isEmpty() && super.peekLast().type == PushDownType.AGGREGATION;
       return isAggregatePushed;
+    }
+
+    public boolean isLimitPushed() {
+      return isLimitPushed;
     }
   }
 

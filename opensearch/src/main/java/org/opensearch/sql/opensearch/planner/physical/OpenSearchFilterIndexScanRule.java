@@ -4,6 +4,7 @@
  */
 package org.opensearch.sql.opensearch.planner.physical;
 
+import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.core.Filter;
@@ -55,7 +56,14 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
-                                    .predicate(OpenSearchIndexScanRule::test)
+                                    .predicate(
+                                        // Filter pushdown is skipped if a limit has already been
+                                        // pushed down because the current DSL cannot correctly
+                                        // handle filter pushdown after limit. Both "limit after
+                                        // filter" and "filter after limit" result in the same
+                                        // limit-after-filter DSL.
+                                        Predicate.not(OpenSearchIndexScanRule::isLimitPushed)
+                                            .and(OpenSearchIndexScanRule::test))
                                     .noInputs()));
 
     @Override

@@ -110,6 +110,36 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testLimitWithFilterPushdownExplain() throws Exception {
+    // TODO: Fix limit-then-filter pushdown without Calcite
+    //  Currently both limit-then-filter and filter-then-limit have the
+    //  limit-then-filter effect
+    String expectedFilterThenLimit =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_filter_then_limit_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_filter_then_limit_push.json");
+    assertJsonEqualsIgnoreRelId(
+        expectedFilterThenLimit,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| where age > 30 "
+                + "| head 5 "
+                + "| fields age"));
+
+    String expectedLimitThenFilter =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_then_filter_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_then_filter_push.json");
+    assertJsonEqualsIgnoreRelId(
+        expectedLimitThenFilter,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| where age > 30 "
+                + "| fields age"));
+  }
+
+  @Test
   public void testFillNullPushDownExplain() throws Exception {
     String expected = loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
 

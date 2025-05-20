@@ -18,4 +18,8 @@ public interface OpenSearchIndexScanRule {
     final RelOptTable table = scan.getTable();
     return table.unwrap(OpenSearchIndex.class) != null;
   }
+
+  static boolean isLimitPushed(CalciteLogicalIndexScan scan) {
+    return scan.getPushDownContext().isLimitPushed();
+  }
 }
