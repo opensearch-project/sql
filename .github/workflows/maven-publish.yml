@@ -7,12 +7,13 @@ on:
       - main
       - 1.*
       - 2.*
+      - poc/commit-metadata
 
 jobs:
   build-and-publish-snapshots:
     strategy:
       fail-fast: false
-    if: github.repository == 'opensearch-project/sql'
+    #if: github.repository == 'opensearch-project/sql'
     runs-on: ubuntu-latest
 
     permissions:
@@ -22,13 +23,197 @@ jobs:
     steps:
       - uses: actions/setup-java@v4
         with:
-          distribution: temurin # Temurin is a distribution of adoptium
+          distribution: temurin
           java-version: 11
       - uses: actions/checkout@v4
+        id: checkout
       - uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
           role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
           aws-region: us-east-1
+
+      # Create the initial direct-query-poc directory structure
+      - name: Create direct-query-poc directory structure in repository
+        run: |
+          # Get credentials for publishing
+          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
+          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
+          echo "::add-mask::$SONATYPE_USERNAME"
+          echo "::add-mask::$SONATYPE_PASSWORD"
+          
+          # Create a placeholder file
+          TEMP_DIR=$(mktemp -d)
+          echo "Directory placeholder - $(date)" > "${TEMP_DIR}/.placeholder"
+          
+          # Upload the placeholder file to create the directory structure
+          echo "Creating initial directory structure..."
+          curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" \
+            --upload-file "${TEMP_DIR}/.placeholder" \
+            "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/.placeholder"
+          
+          # Clean up
+          rm -rf "${TEMP_DIR}"
+          echo "Directory structure created"
+
+      # Capture the commit ID for metadata purposes
+      - name: Set commit ID
+        id: set_commit
+        run: |
+          COMMIT_ID=$(git log -1 --format='%H')
+          echo "commit_id=${COMMIT_ID}" >> $GITHUB_OUTPUT
+          echo "Using commit ID: ${COMMIT_ID}"
+
+      - name: Build async-query-core shadow JAR and publish to local Maven
+        run: |
+          # Build the shadow JAR
+          ./gradlew :async-query-core:shadowJar
+          
+          # Find the generated shadow JAR
+          SHADOW_JAR=$(find ./async-query-core/build/libs/ -name "*-all.jar" | head -n 1)
+          
+          if [ -z "$SHADOW_JAR" ]; then
+            echo "Error: Shadow JAR not found!"
+            exit 1
+          fi
+          
+          # Define version variables
+          VERSION="2.20.0.0"  # Use the hardcoded version directly
+          ARTIFACT_ID="async-query-core"
+          GROUP_PATH="org/opensearch/direct-query-poc"
+          
+          # Create directory structure in local Maven repository
+          MAVEN_LOCAL_PATH="${HOME}/.m2/repository/${GROUP_PATH}/${ARTIFACT_ID}/${VERSION}-SNAPSHOT"
+          mkdir -p "${MAVEN_LOCAL_PATH}"
+          
+          # Copy the shadow JAR to the local Maven repository with proper naming
+          MAVEN_JAR_NAME="${ARTIFACT_ID}-${VERSION}-SNAPSHOT.jar"
+          cp "${SHADOW_JAR}" "${MAVEN_LOCAL_PATH}/${MAVEN_JAR_NAME}"
+          
+          # Generate a POM file
+          cat > "${MAVEN_LOCAL_PATH}/${ARTIFACT_ID}-${VERSION}-SNAPSHOT.pom" << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>org.opensearch.direct-query-poc</groupId>
+              <artifactId>${ARTIFACT_ID}</artifactId>
+              <version>${VERSION}-SNAPSHOT</version>
+          </project>
+          EOF
+          
+          echo "Shadow JAR and POM published to local Maven repository"
+
+      # Checkout opensearch-build-libraries repository for publishing scripts
+      - uses: actions/checkout@v4
+        with:
+          repository: 'opensearch-project/opensearch-build-libraries'
+          path: 'build'
+
+      - name: generate sha and md5
+        run: |
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.jar" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.jar" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
+
+      - name: Install XML tools
+        run: sudo apt-get update && sudo apt-get install -y xmlstarlet
+
+      - name: Publish snapshots to maven and update metadata
+        run: |
+          # Get credentials for publishing
+          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
+          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
+          echo "::add-mask::$SONATYPE_USERNAME"
+          echo "::add-mask::$SONATYPE_PASSWORD"
+          export SNAPSHOT_REPO_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/"
+          
+          # Publish snapshots to maven
+          cd build/resources/publish/
+          cp -a $HOME/.m2/repository/* ./
+          ./publish-snapshot.sh ./
+
+          echo "Snapshot publishing completed. Now uploading commit ID metadata..."
+          
+          # Get the version
+          VERSION=$(cd ../../../ && ./gradlew properties -q | grep "version:" | awk '{print $2}')
+          COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
+          ARTIFACT_ID="async-query-core"
+          
+          # Modify metadata to include commit ID
+          echo "Processing metadata for ${ARTIFACT_ID}"
+          
+          # Create a temporary metadata file with commit ID
+          TEMP_DIR=$(mktemp -d)
+          METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
+          
+          # Download the current metadata from the repository
+          META_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/${ARTIFACT_ID}/${VERSION}-SNAPSHOT/maven-metadata.xml"
+          echo "Downloading metadata from ${META_URL}"
+          
+          # Wait a bit to ensure the metadata file is available after publishing
+          sleep 10
+          
+          curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${METADATA_FILE}" "${META_URL}"
+          
+          # Check if download was successful
+          if [ -s "${METADATA_FILE}" ]; then
+            echo "Successfully downloaded metadata file"
+            # Modify the metadata to include commit ID
+            cp "${METADATA_FILE}" "${METADATA_FILE}.bak"
+          
+            awk -v commit="${COMMIT_ID}" '
+              /<versioning>/ {
+                print $0
+                print "  <commitId>" commit "</commitId>"
+                next
+              }
+              {print}
+            ' "${METADATA_FILE}.bak" > "${METADATA_FILE}"
+          
+            echo "Modified metadata content:"
+            cat "${METADATA_FILE}"
+          
+            # Upload the modified metadata back
+            echo "Uploading modified metadata to ${META_URL}"
+            curl -v -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${METADATA_FILE}" "${META_URL}"
+          else
+            echo "Failed to download metadata for ${ARTIFACT_ID} or file is empty"
+            echo "Checking if URL exists:"
+            curl -I -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${META_URL}"
+            echo "Will retry after 20 seconds..."
+            sleep 20
+          
+            curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${METADATA_FILE}" "${META_URL}"
+          
+            if [ -s "${METADATA_FILE}" ]; then
+              echo "Retry successful. Modifying metadata to include commit ID"
+              cp "${METADATA_FILE}" "${METADATA_FILE}.bak"
+          
+              awk -v commit="${COMMIT_ID}" '
+                /<versioning>/ {
+                  print $0
+                  print "  <commitId>" commit "</commitId>"
+                  next
+                }
+                {print}
+              ' "${METADATA_FILE}.bak" > "${METADATA_FILE}"
+          
+              echo "Modified metadata content:"
+              cat "${METADATA_FILE}"
+          
+              # Upload the modified metadata back
+              echo "Uploading modified metadata to ${META_URL}"
+              curl -v -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${METADATA_FILE}" "${META_URL}"
+            else
+              echo "Failed again to download metadata for ${ARTIFACT_ID}, skipping"
+            fi
+          fi
+          
+          # Clean up
+          rm -rf "${TEMP_DIR}"
+
       - name: publish snapshots to maven
         run: |
           export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
