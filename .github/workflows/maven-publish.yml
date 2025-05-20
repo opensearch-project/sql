@@ -63,7 +63,7 @@ jobs:
           echo "commit_id=${COMMIT_ID}" >> $GITHUB_OUTPUT
           echo "Using commit ID: ${COMMIT_ID}"
 
-      - name: Build and publish shadow JARs for all versions
+      - name: Build and publish shadow JAR for version 2.20.0.0
         run: |
           # Get credentials for publishing
           export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
@@ -74,8 +74,9 @@ jobs:
           # Define constants
           ARTIFACT_ID="async-query-core"
           GROUP_PATH="org/opensearch/direct-query-poc"
+          VERSION="2.20.0.0"
           
-          # Build the shadow JAR once
+          # Build the shadow JAR
           ./gradlew :async-query-core:shadowJar
           
           # Find the generated shadow JAR
@@ -86,39 +87,16 @@ jobs:
             exit 1
           fi
           
-          # List of versions to create
-          VERSIONS=(
-            "2.3.1.0"
-            "2.9.1.0"
-            "2.10.1.0"
-            "2.12.1.0"
-            "2.13.1.0"
-            "2.14.1.0" 
-            "2.16.1.0"
-            "2.19.0.0"
-            "2.19.1.0"
-            "2.19.2.0"
-            "2.20.0.0"
-            "3.0.0.0-alpha1"
-            "3.0.0.0-beta1"
-            "3.0.0.0"
-            "3.1.0.0"
-          )
+          # Create directory structure in local Maven repository
+          MAVEN_LOCAL_PATH="${HOME}/.m2/repository/${GROUP_PATH}/${ARTIFACT_ID}/${VERSION}-SNAPSHOT"
+          mkdir -p "${MAVEN_LOCAL_PATH}"
           
-          # Process each version
-          for VERSION in "${VERSIONS[@]}"; do
-            echo "Processing version: ${VERSION}"
+          # Copy the shadow JAR to the local Maven repository with proper naming
+          MAVEN_JAR_NAME="${ARTIFACT_ID}-${VERSION}-SNAPSHOT.jar"
+          cp "${SHADOW_JAR}" "${MAVEN_LOCAL_PATH}/${MAVEN_JAR_NAME}"
           
-            # Create directory structure in local Maven repository
-            MAVEN_LOCAL_PATH="${HOME}/.m2/repository/${GROUP_PATH}/${ARTIFACT_ID}/${VERSION}-SNAPSHOT"
-            mkdir -p "${MAVEN_LOCAL_PATH}"
-          
-            # Copy the shadow JAR to the local Maven repository with proper naming
-            MAVEN_JAR_NAME="${ARTIFACT_ID}-${VERSION}-SNAPSHOT.jar"
-            cp "${SHADOW_JAR}" "${MAVEN_LOCAL_PATH}/${MAVEN_JAR_NAME}"
-          
-            # Generate a POM file
-            cat > "${MAVEN_LOCAL_PATH}/${ARTIFACT_ID}-${VERSION}-SNAPSHOT.pom" << EOF
+          # Generate a POM file
+          cat > "${MAVEN_LOCAL_PATH}/${ARTIFACT_ID}-${VERSION}-SNAPSHOT.pom" << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <project xmlns="http://maven.apache.org/POM/4.0.0"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -130,32 +108,20 @@ jobs:
           </project>
           EOF
           
-            # Generate all checksum files directly
-            cd "${MAVEN_LOCAL_PATH}"
-          
-            # Generate checksums for JAR
-            md5sum "${MAVEN_JAR_NAME}" | awk '{print $1}' > "${MAVEN_JAR_NAME}.md5"
-            sha1sum "${MAVEN_JAR_NAME}" | awk '{print $1}' > "${MAVEN_JAR_NAME}.sha1"
-            sha256sum "${MAVEN_JAR_NAME}" | awk '{print $1}' > "${MAVEN_JAR_NAME}.sha256"
-            sha512sum "${MAVEN_JAR_NAME}" | awk '{print $1}' > "${MAVEN_JAR_NAME}.sha512"
-          
-            # Generate checksums for POM
-            POM_FILE="${ARTIFACT_ID}-${VERSION}-SNAPSHOT.pom"
-            md5sum "${POM_FILE}" | awk '{print $1}' > "${POM_FILE}.md5"
-            sha1sum "${POM_FILE}" | awk '{print $1}' > "${POM_FILE}.sha1"
-            sha256sum "${POM_FILE}" | awk '{print $1}' > "${POM_FILE}.sha256"
-            sha512sum "${POM_FILE}" | awk '{print $1}' > "${POM_FILE}.sha512"
-          
-            cd - > /dev/null
-          done
-          
-          echo "Shadow JARs and POMs published to local Maven repository for all versions"
+          echo "Shadow JAR and POM published to local Maven repository for version ${VERSION}-SNAPSHOT"
 
       # Checkout opensearch-build-libraries repository for publishing scripts
       - uses: actions/checkout@v4
         with:
           repository: 'opensearch-project/opensearch-build-libraries'
           path: 'build'
+
+      - name: Generate SHA checksums for JAR and POM files
+        run: |
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.jar" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.jar" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
 
       - name: Install XML tools
         run: sudo apt-get update && sudo apt-get install -y xmlstarlet
@@ -174,6 +140,67 @@ jobs:
           cp -a $HOME/.m2/repository/* ./
           ./publish-snapshot.sh ./
 
+      - name: Delete old versions from repository
+        run: |
+          # Get credentials for repository access
+          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
+          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
+          echo "::add-mask::$SONATYPE_USERNAME"
+          echo "::add-mask::$SONATYPE_PASSWORD"
+          
+          # List of versions to delete (excluding 2.20.0.0-SNAPSHOT)
+          VERSIONS_TO_DELETE=(
+            "2.3.1.0"
+            "2.9.1.0"
+            "2.10.1.0"
+            "2.12.1.0"
+            "2.13.1.0"
+            "2.14.1.0" 
+            "2.16.1.0"
+            "2.19.0.0"
+            "2.19.1.0"
+            "2.19.2.0"
+            "3.0.0.0-alpha1"
+            "3.0.0.0-beta1"
+            "3.0.0.0"
+            "3.1.0.0"
+          )
+          
+          ARTIFACT_ID="async-query-core"
+          BASE_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/${ARTIFACT_ID}"
+          
+          # Delete each version
+          for VERSION in "${VERSIONS_TO_DELETE[@]}"; do
+            VERSION_PATH="${VERSION}-SNAPSHOT"
+            DELETE_URL="${BASE_URL}/${VERSION_PATH}"
+          
+            echo "Deleting version: ${VERSION_PATH} from ${DELETE_URL}"
+          
+            # List all files in this version directory
+            FILES_LIST=$(curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --list-only "${DELETE_URL}/" | grep -o 'href="[^"]*"' | sed 's/href="//g' | sed 's/"//g')
+          
+            # Delete each file individually
+            for FILE in $FILES_LIST; do
+              if [[ $FILE == */ ]]; then
+                # Skip directories for now
+                continue
+              else
+                # Get the filename portion
+                FILENAME=$(basename "$FILE")
+                FILE_URL="${DELETE_URL}/${FILENAME}"
+          
+                echo "  Deleting file: ${FILE_URL}"
+                curl -X DELETE -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${FILE_URL}"
+              fi
+            done
+          
+            # Finally, try to delete the directory itself
+            echo "  Deleting directory: ${DELETE_URL}"
+            curl -X DELETE -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${DELETE_URL}"
+          done
+          
+          echo "Old versions deleted successfully"
+
       - name: Create and publish parent maven-metadata.xml
         run: |
           # Get credentials for publishing
@@ -186,31 +213,17 @@ jobs:
           TEMP_DIR=$(mktemp -d)
           ARTIFACT_ID="async-query-core"
           
-          # Create parent metadata XML
+          # Create parent metadata XML with only 2.20.0.0-SNAPSHOT
           cat > "${TEMP_DIR}/maven-metadata.xml" << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <metadata>
           <groupId>org.opensearch.direct-query-poc</groupId>
           <artifactId>${ARTIFACT_ID}</artifactId>
           <versioning>
-          <latest>3.1.0.0-SNAPSHOT</latest>
+          <latest>2.20.0.0-SNAPSHOT</latest>
           <release/>
           <versions>
-          <version>2.3.1.0-SNAPSHOT</version>
-          <version>2.9.1.0-SNAPSHOT</version>
-          <version>2.10.1.0-SNAPSHOT</version>
-          <version>2.12.1.0-SNAPSHOT</version>
-          <version>2.13.1.0-SNAPSHOT</version>
-          <version>2.14.1.0-SNAPSHOT</version>
-          <version>2.16.1.0-SNAPSHOT</version>
-          <version>2.19.0.0-SNAPSHOT</version>
-          <version>2.19.1.0-SNAPSHOT</version>
-          <version>2.19.2.0-SNAPSHOT</version>
           <version>2.20.0.0-SNAPSHOT</version>
-          <version>3.0.0.0-alpha1-SNAPSHOT</version>
-          <version>3.0.0.0-beta1-SNAPSHOT</version>
-          <version>3.0.0.0-SNAPSHOT</version>
-          <version>3.1.0.0-SNAPSHOT</version>
           </versions>
           <lastUpdated>$(date +%Y%m%d%H%M%S)</lastUpdated>
           </versioning>
@@ -219,8 +232,6 @@ jobs:
           
           # Generate SHA checksums for the parent metadata
           cd "${TEMP_DIR}"
-          md5sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.md5"
-          sha1sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha1" 
           sha256sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha256"
           sha512sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha512"
           
@@ -230,10 +241,10 @@ jobs:
           echo "Uploading parent maven-metadata.xml to ${PARENT_URL}/maven-metadata.xml"
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml" "${PARENT_URL}/maven-metadata.xml"
           
-          echo "Uploading parent maven-metadata.xml checksums"
-          curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.md5" "${PARENT_URL}/maven-metadata.xml.md5"
-          curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha1" "${PARENT_URL}/maven-metadata.xml.sha1"
+          echo "Uploading parent maven-metadata.xml.sha256"
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha256" "${PARENT_URL}/maven-metadata.xml.sha256"
+          
+          echo "Uploading parent maven-metadata.xml.sha512"
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha512" "${PARENT_URL}/maven-metadata.xml.sha512"
           
           # Clean up
@@ -251,170 +262,57 @@ jobs:
           
           COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
           ARTIFACT_ID="async-query-core"
+          VERSION="2.20.0.0"
           
-          # List of versions to update
-          VERSIONS=(
-            "2.3.1.0"
-            "2.9.1.0"
-            "2.10.1.0"
-            "2.12.1.0"
-            "2.13.1.0"
-            "2.14.1.0" 
-            "2.16.1.0"
-            "2.19.0.0"
-            "2.19.1.0"
-            "2.19.2.0"
-            "2.20.0.0"
-            "3.0.0.0-alpha1"
-            "3.0.0.0-beta1"
-            "3.0.0.0"
-            "3.1.0.0"
-          )
+          # Add commit ID to version-specific metadata file
+          echo "Processing commit ID for version: ${VERSION}-SNAPSHOT"
           
-          # Add commit ID to all version-specific metadata files
-          for VERSION in "${VERSIONS[@]}"; do
-            echo "Processing commit ID for version: ${VERSION}-SNAPSHOT"
-          
-            TEMP_DIR=$(mktemp -d)
-            METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
-          
-            # Download metadata from repository
-            META_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/${ARTIFACT_ID}/${VERSION}-SNAPSHOT/maven-metadata.xml"
-            echo "Downloading metadata from ${META_URL}"
-          
-            # Try to download the metadata file
-            curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${METADATA_FILE}" "${META_URL}"
-          
-            # If successful, modify and upload back
-            if [ -s "${METADATA_FILE}" ]; then
-              echo "Modifying metadata for ${VERSION}-SNAPSHOT"
-              cp "${METADATA_FILE}" "${METADATA_FILE}.bak"
-          
-              awk -v commit="${COMMIT_ID}" '
-                /<versioning>/ {
-                  print $0
-                  print "  <commitId>" commit "</commitId>"
-                  next
-                }
-                {print}
-              ' "${METADATA_FILE}.bak" > "${METADATA_FILE}"
-          
-              # Upload modified file back
-              curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${METADATA_FILE}" "${META_URL}"
-          
-              # Generate and upload all checksums
-              cd "${TEMP_DIR}"
-              md5sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.md5"
-              sha1sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha1"
-              sha256sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha256"
-              sha512sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha512"
-          
-              # Upload the checksums
-              curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.md5" "${META_URL}.md5"
-              curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha1" "${META_URL}.sha1"
-              curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha256" "${META_URL}.sha256"
-              curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha512" "${META_URL}.sha512"
-              cd -
-          
-              echo "Updated metadata and checksums for ${VERSION}-SNAPSHOT"
-            else
-              echo "Failed to download metadata for ${VERSION}-SNAPSHOT, skipping"
-            fi
-          
-            # Clean up
-            rm -rf "${TEMP_DIR}"
-          done
-          
-          echo "All version metadata updated with commit ID"
-
-      - name: Verify and ensure checksums for all artifacts
-        run: |
-          # Get credentials
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
-          
-          ARTIFACT_ID="async-query-core"
-          
-          # List of versions to verify
-          VERSIONS=(
-            "2.3.1.0"
-            "2.9.1.0"
-            "2.10.1.0"
-            "2.12.1.0"
-            "2.13.1.0"
-            "2.14.1.0" 
-            "2.16.1.0"
-            "2.19.0.0"
-            "2.19.1.0"
-            "2.19.2.0"
-            "2.20.0.0"
-            "3.0.0.0-alpha1"
-            "3.0.0.0-beta1"
-            "3.0.0.0"
-            "3.1.0.0"
-          )
-          
-          # Create a temporary working directory
           TEMP_DIR=$(mktemp -d)
+          METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
           
-          for VERSION in "${VERSIONS[@]}"; do
-            echo "Verifying checksums for version: ${VERSION}-SNAPSHOT"
+          # Download metadata from repository
+          META_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/${ARTIFACT_ID}/${VERSION}-SNAPSHOT/maven-metadata.xml"
+          echo "Downloading metadata from ${META_URL}"
           
-            # Find all artifact files in this version directory
-            VERSION_DIR="${TEMP_DIR}/version"
-            mkdir -p "${VERSION_DIR}"
-            VERSION_BASE_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/${ARTIFACT_ID}/${VERSION}-SNAPSHOT"
+          # Try to download the metadata file
+          curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${METADATA_FILE}" "${META_URL}"
           
-            # Get a listing of the directory to find artifacts
-            # This uses wget to get and parse the HTML directory listing
-            wget -q -O "${VERSION_DIR}/listing.html" --user="${SONATYPE_USERNAME}" --password="${SONATYPE_PASSWORD}" "${VERSION_BASE_URL}/"
+          # If successful, modify and upload back
+          if [ -s "${METADATA_FILE}" ]; then
+            echo "Modifying metadata for ${VERSION}-SNAPSHOT"
+            cp "${METADATA_FILE}" "${METADATA_FILE}.bak"
           
-            if [ -s "${VERSION_DIR}/listing.html" ]; then
-              # Extract jar and pom files from listing
-              grep -o "href=\"[^\"]*\.(jar|pom)\"" "${VERSION_DIR}/listing.html" | cut -d'"' -f2 | while read -r file; do
-                echo "  Checking artifact: ${file}"
+            awk -v commit="${COMMIT_ID}" '
+              /<versioning>/ {
+                print $0
+                print "  <commitId>" commit "</commitId>"
+                next
+              }
+              {print}
+            ' "${METADATA_FILE}.bak" > "${METADATA_FILE}"
           
-                # Download the artifact to verify/create checksums
-                mkdir -p "${VERSION_DIR}/artifacts"
-                curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${VERSION_DIR}/artifacts/${file}" "${VERSION_BASE_URL}/${file}"
+            # Upload modified file back
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${METADATA_FILE}" "${META_URL}"
           
-                # Check and create SHA-256 checksum if needed
-                curl -s -I -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${VERSION_BASE_URL}/${file}.sha256" | grep -q "404 Not Found"
-                if [ $? -eq 0 ]; then
-                  echo "    Creating missing SHA-256 checksum for ${file}"
-                  cd "${VERSION_DIR}/artifacts"
-                  sha256sum "${file}" | awk '{print $1}' > "${file}.sha256"
-                  curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${file}.sha256" "${VERSION_BASE_URL}/${file}.sha256"
-                  cd - > /dev/null
-                else
-                  echo "    SHA-256 checksum exists for ${file}"
-                fi
+            # Update the SHA checksums (the publishing script might not have created these)
+            cd "${TEMP_DIR}"
+            sha256sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha256"
+            sha512sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha512"
           
-                # Check and create SHA-512 checksum if needed
-                curl -s -I -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${VERSION_BASE_URL}/${file}.sha512" | grep -q "404 Not Found"
-                if [ $? -eq 0 ]; then
-                  echo "    Creating missing SHA-512 checksum for ${file}"
-                  cd "${VERSION_DIR}/artifacts"
-                  sha512sum "${file}" | awk '{print $1}' > "${file}.sha512"
-                  curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${file}.sha512" "${VERSION_BASE_URL}/${file}.sha512"
-                  cd - > /dev/null
-                else
-                  echo "    SHA-512 checksum exists for ${file}"
-                fi
-              done
-            else
-              echo "  Could not retrieve directory listing for ${VERSION}-SNAPSHOT"
-            fi
+            # Upload the checksums
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha256" "${META_URL}.sha256"
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha512" "${META_URL}.sha512"
+            cd -
           
-            # Clean up version specific files
-            rm -rf "${VERSION_DIR}"
-          done
+            echo "Updated metadata and checksums for ${VERSION}-SNAPSHOT"
+          else
+            echo "Failed to download metadata for ${VERSION}-SNAPSHOT, skipping"
+          fi
           
-          # Final cleanup
+          # Clean up
           rm -rf "${TEMP_DIR}"
-          echo "Checksum verification and creation completed"
+          
+          echo "Version metadata updated with commit ID"
 
       - name: publish plugin zip snapshots to maven
         run: |
