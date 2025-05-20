@@ -164,6 +164,20 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| head 10 "
                 + "| head 5 "
                 + "| fields age"));
+
+    // TODO: Fix limit-filter-limit pushdown without Calcite
+    String expected10ThenFilterThen5 =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_10_filter_5.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_10_filter_5.json");
+    assertJsonEqualsIgnoreRelId(
+        expected10ThenFilterThen5,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 10 "
+                + "| where age > 30 "
+                + "| head 5 "
+                + "| fields age"));
   }
 
   @Test
