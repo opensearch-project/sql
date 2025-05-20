@@ -10,7 +10,6 @@ import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.RequestContext;
 import org.opensearch.sql.datasource.model.DataSource;
