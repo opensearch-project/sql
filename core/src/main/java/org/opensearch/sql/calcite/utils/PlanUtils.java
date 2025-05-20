@@ -33,6 +33,8 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.WindowBound;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.udaf.EarliestFunction;
+import org.opensearch.sql.calcite.udf.udaf.LatestFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -255,6 +257,22 @@ public interface PlanUtils {
             ReturnTypes.ARG0_FORCE_NULLABLE,
             List.of(field),
             newArgList,
+            context.relBuilder);
+      case EARLIEST:
+        return TransferUserDefinedAggFunction(
+            EarliestFunction.class,
+            "earliest",
+            ReturnTypes.ARG0_FORCE_NULLABLE,
+            List.of(field),
+            argList,
+            context.relBuilder);
+      case LATEST:
+        return TransferUserDefinedAggFunction(
+            LatestFunction.class,
+            "latest",
+            ReturnTypes.ARG0_FORCE_NULLABLE,
+            List.of(field),
+            argList,
             context.relBuilder);
       default:
         throw new UnsupportedOperationException(

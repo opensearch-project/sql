@@ -5,14 +5,8 @@
 
 package org.opensearch.sql.calcite.standalone;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
-import static org.opensearch.sql.util.MatcherUtils.rows;
-import static org.opensearch.sql.util.MatcherUtils.schema;
-import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
-import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
-import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
-import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
+import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,6 +22,7 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
     super.init();
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
+    loadIndex(Index.BANK_TWO);
   }
 
   @Test
@@ -599,5 +594,49 @@ public class CalcitePPLEventstatsIT extends CalcitePPLIntegTestCase {
             38.88888888888888,
             58.333333333333314),
         rows("Hello", "USA", "New York", 4, 2023, 30, 20, 28.284271247461902, 400, 800));
+  }
+
+  @Test
+  public void testEventstatEarliestAndLatest() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats earliest(birthdate), latest(birthdate) | head 1",
+                TEST_INDEX_BANK_TWO));
+    verifySchema(
+        actual,
+        schema("account_number", "long"),
+        schema("firstname", "string"),
+        schema("address", "string"),
+        schema("birthdate", "timestamp"),
+        schema("gender", "string"),
+        schema("city", "string"),
+        schema("lastname", "string"),
+        schema("balance", "long"),
+        schema("employer", "string"),
+        schema("state", "string"),
+        schema("age", "integer"),
+        schema("email", "string"),
+        schema("male", "boolean"),
+        schema("earliest(birthdate)", "timestamp"),
+        schema("latest(birthdate)", "timestamp"));
+    verifyDataRows(
+        actual,
+        rows(
+            1,
+            "Amber JOHnny",
+            "880 Holmes Lane",
+            "2017-10-23 00:00:00",
+            "M",
+            "Brogan",
+            "Duke Willmington",
+            39225,
+            "Pyrami",
+            "IL",
+            32,
+            "amberduke@pyrami.com",
+            true,
+            "1970-01-18 20:22:32",
+            "2018-08-19 00:00:00"));
   }
 }

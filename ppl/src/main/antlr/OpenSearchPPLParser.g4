@@ -405,6 +405,8 @@ statsFunctionName
    | STDDEV_POP
    | PERCENTILE
    | PERCENTILE_APPROX
+   | EARLIEST
+   | LATEST
    ;
 
 takeAggFunction
