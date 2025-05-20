@@ -140,6 +140,33 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMultipleLimitExplain() throws Exception {
+    String expected5Then10 =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_5_10.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_5_10.json");
+    assertJsonEqualsIgnoreRelId(
+        expected5Then10,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| head 10 "
+                + "| fields age"));
+
+    String expected10Then5 =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_10_5.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_10_5.json");
+    assertJsonEqualsIgnoreRelId(
+        expected10Then5,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 10 "
+                + "| head 5 "
+                + "| fields age"));
+  }
+
+  @Test
   public void testFillNullPushDownExplain() throws Exception {
     String expected = loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
 

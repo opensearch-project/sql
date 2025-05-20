@@ -203,7 +203,7 @@ public class OpenSearchRequestBuilder {
     // Settings.Key.QUERY_SIZE_LIMIT in OpenSearchIndex)
     requestedTotalSize = Math.min(limit, requestedTotalSize);
     startFrom = offset;
-    sourceBuilder.from(offset).size(limit);
+    sourceBuilder.from(offset).size(requestedTotalSize);
   }
 
   public void pushDownTrackedScore(boolean trackScores) {
