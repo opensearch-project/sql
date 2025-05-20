@@ -132,7 +132,7 @@ public class OpenSearchRequestBuilder {
             indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
       } else {
         sourceBuilder.from(startFrom);
-        sourceBuilder.size(10);
+        sourceBuilder.size(size);
         // Search with non-Pit request
         return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
       }
