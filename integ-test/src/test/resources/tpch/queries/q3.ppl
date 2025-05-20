@@ -1,0 +1,35 @@
+/*
+select
+    l_orderkey,
+    sum(l_extendedprice * (1 - l_discount)) as revenue,
+    o_orderdate,
+    o_shippriority
+from
+    customer,
+    orders,
+    lineitem
+where
+    c_mktsegment = 'BUILDING'
+    and c_custkey = o_custkey
+    and l_orderkey = o_orderkey
+    and o_orderdate < date '1995-03-15'
+    and l_shipdate > date '1995-03-15'
+group by
+    l_orderkey,
+    o_orderdate,
+    o_shippriority
+order by
+    revenue desc,
+    o_orderdate
+limit 10
+*/
+
+source = customer
+| where c_mktsegment = 'BUILDING'
+| join ON c_custkey = o_custkey orders
+| join ON l_orderkey = o_orderkey lineitem
+| where o_orderdate < date('1995-03-15') AND l_shipdate > date('1995-03-15')
+| stats sum(l_extendedprice * (1 - l_discount)) as revenue by l_orderkey, o_orderdate, o_shippriority
+| sort - revenue, o_orderdate
+| fields l_orderkey, revenue, o_orderdate, o_shippriority
+| head 10

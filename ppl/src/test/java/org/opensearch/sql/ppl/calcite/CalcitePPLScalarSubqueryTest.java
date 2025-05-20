@@ -27,10 +27,10 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         """;
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalFilter(condition=[>($5, $SCALAR_QUERY({\n"
-            + "LogicalAggregate(group=[{}], AVG(SAL)=[AVG($5)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+        "LogicalFilter(condition=[>($5, $SCALAR_QUERY({\n"
+            + "LogicalAggregate(group=[{}], AVG(SAL)=[AVG($0)])\n"
+            + "  LogicalProject(SAL=[$5])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
             + "}))], variablesSet=[[$cor0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -56,10 +56,10 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         """;
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalProject(variablesSet=[[$cor0]], min_empno=[$SCALAR_QUERY({\n"
+        "LogicalProject(variablesSet=[[$cor0]], min_empno=[$SCALAR_QUERY({\n"
             + "LogicalAggregate(group=[{}], min(EMPNO)=[MIN($0)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalProject(EMPNO=[$0])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
             + "})], SAL=[$5])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -90,14 +90,16 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalProject(min_empno=[$8], SAL=[$5])\n"
             + "  LogicalFilter(condition=[>($5, $SCALAR_QUERY({\n"
-            + "LogicalAggregate(group=[{}], AVG(SAL)=[AVG($5)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+            + "LogicalAggregate(group=[{}], AVG(SAL)=[AVG($0)])\n"
+            + "  LogicalProject(SAL=[$5])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
             + "}))], variablesSet=[[$cor1]])\n"
             + "    LogicalProject(variablesSet=[[$cor0]], EMPNO=[$0], ENAME=[$1], JOB=[$2],"
             + " MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6], DEPTNO=[$7],"
             + " min_empno=[$SCALAR_QUERY({\n"
             + "LogicalAggregate(group=[{}], min(EMPNO)=[MIN($0)])\n"
-            + "  LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalProject(EMPNO=[$0])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
             + "})])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
@@ -107,7 +109,7 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
             + " (((SELECT MIN(`EMPNO`) `min(EMPNO)`\n"
             + "FROM `scott`.`EMP`))) `min_empno`\n"
-            + "FROM `scott`.`EMP`) `t0`\n"
+            + "FROM `scott`.`EMP`) `t1`\n"
             + "WHERE `SAL` > (((SELECT AVG(`SAL`) `AVG(SAL)`\n"
             + "FROM `scott`.`EMP`)))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -127,7 +129,7 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         ""
             + "LogicalFilter(condition=[>($5, $SCALAR_QUERY({\n"
             + "LogicalAggregate(group=[{}], AVG(SAL)=[AVG($0)])\n"
-            + "  LogicalProject($f3=[$cor0.SAL])\n"
+            + "  LogicalProject($f0=[$cor0.SAL])\n"
             + "    LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
             + "      LogicalTableScan(table=[[scott, SALGRADE]])\n"
             + "}))], variablesSet=[[$cor0]])\n"
@@ -159,7 +161,7 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         ""
             + "LogicalProject(variablesSet=[[$cor0]], min_empno=[$SCALAR_QUERY({\n"
             + "LogicalAggregate(group=[{}], min(EMPNO)=[MIN($0)])\n"
-            + "  LogicalProject($f3=[$cor0.EMPNO])\n"
+            + "  LogicalProject($f0=[$cor0.EMPNO])\n"
             + "    LogicalFilter(condition=[=($cor0.SAL, $2)])\n"
             + "      LogicalTableScan(table=[[scott, SALGRADE]])\n"
             + "})], SAL=[$5])\n"
@@ -248,32 +250,30 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         """;
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalFilter(condition=[OR(=($5, $SCALAR_QUERY({\n"
-            + "LogicalAggregate(group=[{}], max(HISAL)=[MAX($2)])\n"
-            + "  LogicalSort(sort0=[$1], dir0=[ASC])\n"
-            + "    LogicalTableScan(table=[[scott, SALGRADE]])\n"
-            + "})), =($5, $SCALAR_QUERY({\n"
-            + "LogicalAggregate(group=[{}], min(HISAL)=[MIN($2)])\n"
-            + "  LogicalSort(sort0=[$2], dir0=[DESC])\n"
-            + "    LogicalFilter(condition=[>($1, 1000.0E0:DOUBLE)])\n"
+        "LogicalFilter(condition=[OR(=($5, $SCALAR_QUERY({\n"
+            + "LogicalAggregate(group=[{}], max(HISAL)=[MAX($0)])\n"
+            + "  LogicalProject(HISAL=[$2])\n"
+            + "    LogicalSort(sort0=[$1], dir0=[ASC])\n"
             + "      LogicalTableScan(table=[[scott, SALGRADE]])\n"
+            + "})), =($5, $SCALAR_QUERY({\n"
+            + "LogicalAggregate(group=[{}], min(HISAL)=[MIN($0)])\n"
+            + "  LogicalProject(HISAL=[$2])\n"
+            + "    LogicalSort(sort0=[$2], dir0=[DESC])\n"
+            + "      LogicalFilter(condition=[>($1, 1000.0E0:DOUBLE)])\n"
+            + "        LogicalTableScan(table=[[scott, SALGRADE]])\n"
             + "})))], variablesSet=[[$cor0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        ""
-            + "SELECT *\n"
+        "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `SAL` = (((SELECT MAX(`HISAL`) `max(HISAL)`\n"
-            + "FROM (SELECT `GRADE`, `LOSAL`, `HISAL`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "ORDER BY `LOSAL` NULLS LAST) `t`))) OR `SAL` = (((SELECT MIN(`HISAL`) `min(HISAL)`\n"
-            + "FROM (SELECT `GRADE`, `LOSAL`, `HISAL`\n"
+            + "ORDER BY `LOSAL` NULLS LAST))) OR `SAL` = (((SELECT MIN(`HISAL`) `min(HISAL)`\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `LOSAL` > 1.0000E3\n"
-            + "ORDER BY `HISAL` DESC NULLS FIRST) `t2`)))";
+            + "ORDER BY `HISAL` DESC NULLS FIRST)))";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -296,17 +296,18 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         """;
     RelNode root = getRelNode(ppl);
     String expectedLogical =
-        ""
-            + "LogicalFilter(condition=[=($5, $SCALAR_QUERY({\n"
+        "LogicalFilter(condition=[=($5, $SCALAR_QUERY({\n"
             + "LogicalSort(fetch=[1])\n"
             + "  LogicalProject(max_hisal=[$1])\n"
-            + "    LogicalAggregate(group=[{0}], max_hisal=[MAX($2)])\n"
-            + "      LogicalFilter(condition=[=($2, $SCALAR_QUERY({\n"
+            + "    LogicalAggregate(group=[{0}], max_hisal=[MAX($1)])\n"
+            + "      LogicalProject(GRADE=[$0], HISAL=[$2])\n"
+            + "        LogicalFilter(condition=[=($2, $SCALAR_QUERY({\n"
             + "LogicalProject(max_sal=[$1])\n"
-            + "  LogicalAggregate(group=[{2}], max_sal=[MAX($5)])\n"
-            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "  LogicalAggregate(group=[{0}], max_sal=[MAX($1)])\n"
+            + "    LogicalProject(JOB=[$2], SAL=[$5])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n"
             + "}))], variablesSet=[[$cor1]])\n"
-            + "        LogicalTableScan(table=[[scott, SALGRADE]])\n"
+            + "          LogicalTableScan(table=[[scott, SALGRADE]])\n"
             + "}))], variablesSet=[[$cor0]])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
