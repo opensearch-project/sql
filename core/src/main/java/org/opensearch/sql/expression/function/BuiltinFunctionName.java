@@ -228,6 +228,10 @@ public enum BuiltinFunctionName {
   ISNULL(FunctionName.of("isnull")),
   COALESCE(FunctionName.of("coalesce")),
 
+  IS_PRESENT(FunctionName.of("ispresent")),
+  IS_EMPTY(FunctionName.of("isempty")),
+  IS_BLANK(FunctionName.of("isblank")),
+
   ROW_NUMBER(FunctionName.of("row_number")),
   RANK(FunctionName.of("rank")),
   DENSE_RANK(FunctionName.of("dense_rank")),
