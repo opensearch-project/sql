@@ -579,6 +579,19 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testEarliestAndLatestWithTimeBy() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats latest(time1) as late, earliest(time1) as early by" + " bool2",
+                TEST_INDEX_CALCS));
+
+    verifySchema(
+        actual, schema("late", "time"), schema("early", "time"), schema("bool2", "boolean"));
+    verifyDataRows(actual, rows("19:57:33", "04:40:49", true), rows("22:50:16", "00:05:57", false));
+  }
+
+  @Test
   public void testVarSampVarPop() {
     JSONObject actual =
         executeQuery(
