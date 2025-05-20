@@ -518,9 +518,9 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats distinct_count_approx(state) as dca by gender",
-                TEST_INDEX_BANK));
-    verifySchema(actual, schema("gender", "string"), schema("dca", "long"));
+                "source=%s | stats distinct_count_approx(state) by gender", TEST_INDEX_BANK));
+    verifySchema(
+        actual, schema("gender", "string"), schema("distinct_count_approx(state)", "long"));
     verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
   }
 
@@ -529,9 +529,9 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats distinct_count_approx(state) by gender", TEST_INDEX_BANK));
-    verifySchema(
-        actual, schema("gender", "string"), schema("distinct_count_approx(state)", "long"));
+                "source=%s | stats distinct_count_approx(state) as dca by gender",
+                TEST_INDEX_BANK));
+    verifySchema(actual, schema("gender", "string"), schema("dca", "long"));
     verifyDataRows(actual, rows(3, "F"), rows(4, "M"));
   }
 
