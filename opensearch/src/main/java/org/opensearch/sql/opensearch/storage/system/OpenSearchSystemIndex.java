@@ -8,13 +8,9 @@ package org.opensearch.sql.opensearch.storage.system;
 import static org.opensearch.sql.utils.SystemIndexUtils.systemTable;
 
 import com.google.common.annotations.VisibleForTesting;
-import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
@@ -38,7 +34,6 @@ public class OpenSearchSystemIndex extends AbstractOpenSearchTable {
   private final Pair<OpenSearchSystemIndexSchema, OpenSearchSystemRequest> systemIndexBundle;
 
   public OpenSearchSystemIndex(OpenSearchClient client, String indexName) {
-    super(null);
     this.systemIndexBundle = buildIndexBundle(client, indexName);
   }
 
@@ -56,17 +51,6 @@ public class OpenSearchSystemIndex extends AbstractOpenSearchTable {
   @Override
   public Map<String, ExprType> getFieldTypes() {
     return systemIndexBundle.getLeft().getMapping();
-  }
-
-  @Override
-  public Enumerable<Object> search() {
-    return new AbstractEnumerable<>() {
-      @Override
-      public Enumerator<Object> enumerator() {
-        return new OpenSearchSystemIndexEnumerator(
-            List.copyOf(getFieldTypes().keySet()), systemIndexBundle.getRight());
-      }
-    };
   }
 
   @Override
