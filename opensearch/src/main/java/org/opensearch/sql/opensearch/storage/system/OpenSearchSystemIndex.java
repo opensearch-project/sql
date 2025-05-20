@@ -19,7 +19,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.commons.lang3.tuple.Pair;
-import org.opensearch.sql.calcite.plan.OpenSearchTable;
+import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.system.OpenSearchCatIndicesRequest;
@@ -33,7 +33,7 @@ import org.opensearch.sql.utils.SystemIndexUtils;
 
 /** OpenSearch System Index Table Implementation. */
 @Getter
-public class OpenSearchSystemIndex extends OpenSearchTable {
+public class OpenSearchSystemIndex extends AbstractOpenSearchTable {
   /** System Index Name. */
   private final Pair<OpenSearchSystemIndexSchema, OpenSearchSystemRequest> systemIndexBundle;
 

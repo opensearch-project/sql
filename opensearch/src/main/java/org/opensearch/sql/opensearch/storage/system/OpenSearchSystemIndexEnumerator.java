@@ -14,6 +14,7 @@ import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
 
+/** Supports a simple iteration over a collection for OpenSearch system index */
 public class OpenSearchSystemIndexEnumerator implements Enumerator<Object> {
 
   private final List<String> fields;

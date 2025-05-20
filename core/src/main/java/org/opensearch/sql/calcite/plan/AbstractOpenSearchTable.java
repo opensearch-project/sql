@@ -18,10 +18,13 @@ import org.apache.calcite.schema.Schemas;
 import org.apache.calcite.schema.TranslatableTable;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 
-public abstract class OpenSearchTable extends AbstractQueryableTable
+/**
+ * Abstract class to map the {@link org.opensearch.sql.storage.Table} and {@link org.apache.calcite.schema.Table}
+ */
+public abstract class AbstractOpenSearchTable extends AbstractQueryableTable
     implements TranslatableTable, org.opensearch.sql.storage.Table {
 
-  protected OpenSearchTable(Type elementType) {
+  protected AbstractOpenSearchTable(Type elementType) {
     super(elementType);
   }
 

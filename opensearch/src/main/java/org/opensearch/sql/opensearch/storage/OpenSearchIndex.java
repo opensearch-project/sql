@@ -22,7 +22,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.sql.calcite.plan.OpenSearchTable;
+import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -50,7 +50,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /** OpenSearch table (index) implementation. */
-public class OpenSearchIndex extends OpenSearchTable {
+public class OpenSearchIndex extends AbstractOpenSearchTable {
 
   public static final String METADATA_FIELD_ID = "_id";
   public static final String METADATA_FIELD_INDEX = "_index";

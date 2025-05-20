@@ -26,7 +26,8 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-public class CalciteEnumerableSystemIndexScan extends CalciteSystemIndexScan
+/** The physical relational operator representing a scan of an OpenSearchSystemIndex type. */
+public class CalciteEnumerableSystemIndexScan extends AbstractCalciteSystemIndexScan
     implements EnumerableRel {
   public CalciteEnumerableSystemIndexScan(
       RelOptCluster cluster,

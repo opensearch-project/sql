@@ -15,7 +15,7 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 public class OpenSearchQueryable<T> extends AbstractTableQueryable<T> {
 
   OpenSearchQueryable(
-      QueryProvider queryProvider, SchemaPlus schema, OpenSearchTable table, String tableName) {
+      QueryProvider queryProvider, SchemaPlus schema, AbstractOpenSearchTable table, String tableName) {
     super(queryProvider, schema, table, tableName);
   }
 
@@ -26,7 +26,7 @@ public class OpenSearchQueryable<T> extends AbstractTableQueryable<T> {
     return enumerable.enumerator();
   }
 
-  private OpenSearchTable getTable() {
-    return (OpenSearchTable) table;
+  private AbstractOpenSearchTable getTable() {
+    return (AbstractOpenSearchTable) table;
   }
 }
