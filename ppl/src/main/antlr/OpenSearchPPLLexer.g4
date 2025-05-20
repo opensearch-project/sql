@@ -372,6 +372,9 @@ ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
 BETWEEN:                            'BETWEEN';
+ISPRESENT:                          'ISPRESENT';
+ISEMPTY:                            'ISEMPTY';
+ISBLANK:                            'ISBLANK';
 
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
