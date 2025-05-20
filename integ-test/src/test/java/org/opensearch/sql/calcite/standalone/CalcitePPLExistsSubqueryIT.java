@@ -14,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -61,6 +62,23 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
         rows(1000, "Jake", 100000),
         rows(1005, "Jane", 90000),
         rows(1006, "Tommy", 30000));
+  }
+
+  @Test
+  public void testExistsSubqueryAndAggregation() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                """
+                   source = %s
+                   | where exists [
+                       source = %s | where id = uid
+                     ]
+                   | stats count() by country
+                   """,
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifySchema(result, schema("country", "string"), schema("count()", "long"));
+    verifyDataRows(result, rows(1, null), rows(2, "Canada"), rows(1, "USA"), rows(1, "England"));
   }
 
   @Test
@@ -275,5 +293,24 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
     verifyDataRowsInOrder(result, rows(1003, "David", 120000), rows(1000, "Jake", 100000));
+  }
+
+  @Test
+  public void testIssue3566() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                """
+                   source = %s
+                   | fields id, country
+                   | where exists [
+                       source = %s
+                       | where id = uid
+                     ]
+                   | stats count() by country
+                   """,
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifySchemaInOrder(result, schema("count()", "long"), schema("country", "string"));
+    verifyDataRows(result, rows(1, null), rows(1, "England"), rows(1, "USA"), rows(2, "Canada"));
   }
 }

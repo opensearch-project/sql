@@ -37,6 +37,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
@@ -75,8 +76,10 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
@@ -370,10 +373,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.rename(expectedRenameFields);
   }
 
-  @Override
-  public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
-    visitChildren(node, context);
-    List<AggCall> aggList =
+  private Pair<List<AggCall>, List<RexNode>> resolveAggCallAndGroupBy(
+      Aggregation node, CalcitePlanContext context) {
+    List<AggCall> aggCallList =
         node.getAggExprList().stream()
             .map(expr -> aggVisitor.analyze(expr, context))
             .collect(Collectors.toList());
@@ -388,7 +390,37 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     groupByList.addAll(
         node.getGroupExprList().stream().map(expr -> rexVisitor.analyze(expr, context)).toList());
+    return Pair.of(aggCallList, groupByList);
+  }
 
+  @Override
+  public RelNode visitAggregation(Aggregation node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    // Add a trimmed Project before Aggregate.
+    // to avoid bugs in RelDecorrelator.decorrelateRel(Aggregate rel)
+    // For example:
+    // source=t | where a > 1 | stats avg(b+1) by c
+    // Before:
+    // Aggregate
+    //     \- Filter(a>1)
+    //            \- Scan t
+    // After:
+    // Aggregate
+    //     \- Project([c,b])
+    //            \- Filter(a>1)
+    //                   \- Scan t
+    Pair<List<AggCall>, List<RexNode>> resolved = resolveAggCallAndGroupBy(node, context);
+    List<RexInputRef> trimmedRefs = new ArrayList<>();
+    trimmedRefs.addAll(PlanUtils.getInputRefs(resolved.right)); // group-by keys first
+    trimmedRefs.addAll(PlanUtils.getInputRefsFromAggCall(resolved.left));
+    context.relBuilder.project(trimmedRefs);
+
+    // Re-resolve aggCalls and group-by list based on adding trimmed Project.
+    // Using re-resolving rather than Calcite Mapping (ref Calcite ProjectTableScanRule)
+    // because that Mapping only works for RexNode, but we need both AggCall and RexNode list.
+    Pair<List<AggCall>, List<RexNode>> reResolved = resolveAggCallAndGroupBy(node, context);
+    List<AggCall> aggList = reResolved.left;
+    List<RexNode> groupByList = reResolved.right;
     context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggList);
 
     // schema reordering
@@ -626,6 +658,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // DropColumns('_row_number_)
       context.relBuilder.projectExcept(_row_number_);
     }
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitWindow(Window node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    List<RexNode> overExpressions =
+        node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
+    context.relBuilder.projectPlus(overExpressions);
     return context.relBuilder.peek();
   }
 

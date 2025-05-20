@@ -138,6 +138,11 @@ public enum BuiltinFunctionName {
   /** IP Functions. */
   CIDRMATCH(FunctionName.of("cidrmatch")),
 
+  /** Cryptographic Functions. */
+  MD5(FunctionName.of("md5")),
+  SHA1(FunctionName.of("sha1")),
+  SHA2(FunctionName.of("sha2")),
+
   /** Arithmetic Operators. */
   ADD(FunctionName.of("+")),
   ADDFUNCTION(FunctionName.of("add")),
@@ -221,6 +226,10 @@ public enum BuiltinFunctionName {
   IF(FunctionName.of("if")),
   NULLIF(FunctionName.of("nullif")),
   ISNULL(FunctionName.of("isnull")),
+
+  IS_PRESENT(FunctionName.of("ispresent")),
+  IS_EMPTY(FunctionName.of("isempty")),
+  IS_BLANK(FunctionName.of("isblank")),
 
   ROW_NUMBER(FunctionName.of("row_number")),
   RANK(FunctionName.of("rank")),
@@ -307,6 +316,22 @@ public enum BuiltinFunctionName {
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
           .build();
 
+  private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
+      new ImmutableMap.Builder<String, BuiltinFunctionName>()
+          .put("max", BuiltinFunctionName.MAX)
+          .put("min", BuiltinFunctionName.MIN)
+          .put("avg", BuiltinFunctionName.AVG)
+          .put("count", BuiltinFunctionName.COUNT)
+          .put("sum", BuiltinFunctionName.SUM)
+          .put("var_pop", BuiltinFunctionName.VARPOP)
+          .put("var_samp", BuiltinFunctionName.VARSAMP)
+          .put("variance", BuiltinFunctionName.VARPOP)
+          .put("std", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
+          .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          .build();
+
   public static Optional<BuiltinFunctionName> of(String str) {
     return Optional.ofNullable(ALL_NATIVE_FUNCTIONS.getOrDefault(FunctionName.of(str), null));
   }
@@ -314,5 +339,10 @@ public enum BuiltinFunctionName {
   public static Optional<BuiltinFunctionName> ofAggregation(String functionName) {
     return Optional.ofNullable(
         AGGREGATION_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
+  }
+
+  public static Optional<BuiltinFunctionName> ofWindowFunction(String functionName) {
+    return Optional.ofNullable(
+        WINDOW_FUNC_MAPPING.getOrDefault(functionName.toLowerCase(Locale.ROOT), null));
   }
 }

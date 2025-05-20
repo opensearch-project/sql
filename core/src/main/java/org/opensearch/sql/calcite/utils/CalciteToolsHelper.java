@@ -27,13 +27,13 @@
 
 package org.opensearch.sql.calcite.utils;
 
-import static org.apache.calcite.linq4j.Nullness.castNonNull;
-
 import com.google.common.collect.ImmutableList;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Properties;
+import java.util.function.Consumer;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.AvaticaConnection;
 import org.apache.calcite.avatica.AvaticaFactory;
@@ -61,6 +61,7 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.server.CalciteServerStatement;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -70,10 +71,10 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunner;
+import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.udf.udaf.NullableSqlAvgAggFunction;
-import org.opensearch.sql.calcite.udf.udaf.NullableSqlSumAggFunction;
 
 /**
  * Calcite Tools Helper. This class is used to create customized: 1. Connection 2. JavaTypeFactory
@@ -142,6 +143,10 @@ public class CalciteToolsHelper {
     public Connection connect(
         String url, Properties info, CalciteSchema rootSchema, JavaTypeFactory typeFactory)
         throws SQLException {
+      // Add current timestamp in nanos as hook
+      Instant now = Instant.now();
+      long nanosSinceEpoch = now.getEpochSecond() * 1_000_000_000L + now.getNano();
+      Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(nanosSinceEpoch));
       CalciteJdbc41Factory factory = new CalciteJdbc41Factory();
       AvaticaConnection connection =
           factory.newConnection((Driver) this, factory, url, info, rootSchema, typeFactory);
@@ -154,21 +159,6 @@ public class CalciteToolsHelper {
   public static class OpenSearchRelBuilder extends RelBuilder {
     public OpenSearchRelBuilder(Context context, RelOptCluster cluster, RelOptSchema relOptSchema) {
       super(context, cluster, relOptSchema);
-    }
-
-    @Override
-    public AggCall sum(boolean distinct, String alias, RexNode operand) {
-      return aggregateCall(
-          SUM_NULLABLE,
-          distinct,
-          false,
-          false,
-          null,
-          null,
-          ImmutableList.of(),
-          alias,
-          ImmutableList.of(),
-          ImmutableList.of(operand));
     }
 
     @Override
@@ -188,8 +178,6 @@ public class CalciteToolsHelper {
     }
   }
 
-  public static final SqlAggFunction SUM_NULLABLE =
-      new NullableSqlSumAggFunction(castNonNull(null));
   public static final SqlAggFunction AVG_NULLABLE = new NullableSqlAvgAggFunction(SqlKind.AVG);
   public static final SqlAggFunction STDDEV_POP_NULLABLE =
       new NullableSqlAvgAggFunction(SqlKind.STDDEV_POP);
