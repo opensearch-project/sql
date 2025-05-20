@@ -80,6 +80,9 @@ class OpenSearchIndexTest {
   void setUp() {
     this.index = new OpenSearchIndex(client, settings, "test");
     lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(true);
+    lenient()
+        .when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
   }
 
   @Test
@@ -196,33 +199,32 @@ class OpenSearchIndexTest {
   @Test
   void implementRelationOperatorOnly() {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
+            client,
+            requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client, true)),
         index.implement(index.optimize(plan)));
   }
 
   @Test
   void implementRelationOperatorWithOptimization() {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     assertEquals(
         new OpenSearchIndexScan(
-            client, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
+            client,
+            requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client, true)),
         index.implement(plan));
   }
 
   @Test
   void implementOtherLogicalOperators() {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
@@ -255,7 +257,7 @@ class OpenSearchIndexTest {
                                 new OpenSearchIndexScan(
                                     client,
                                     requestBuilder.build(
-                                        INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client)),
+                                        INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT, client, true)),
                                 mappings),
                             exclude),
                         newEvalField),
