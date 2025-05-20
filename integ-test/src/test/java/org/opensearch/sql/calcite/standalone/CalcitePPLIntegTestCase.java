@@ -111,7 +111,6 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
-              .put(Key.REQUEST_TOTAL_SIZE_LIMIT, 1000000)
               .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
@@ -139,7 +138,6 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
-              .put(Key.REQUEST_TOTAL_SIZE_LIMIT, 1000000)
               .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)

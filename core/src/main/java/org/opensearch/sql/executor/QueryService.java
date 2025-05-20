@@ -43,6 +43,7 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
@@ -131,9 +132,7 @@ public class QueryService {
               () -> {
                 CalcitePlanContext context =
                     CalcitePlanContext.create(
-                        buildFrameworkConfig(),
-                        settings.getSettingValue(Key.QUERY_SIZE_LIMIT),
-                        queryType);
+                        buildFrameworkConfig(), getQuerySizeLimit(), queryType);
                 RelNode relNode = analyze(plan, context);
                 RelNode optimized = optimize(relNode);
                 RelNode calcitePlan = convertToCalcitePlan(optimized);
@@ -229,7 +228,9 @@ public class QueryService {
                   executionEngine.execute(
                       plan(plan),
                       ExecutionContext.querySizeLimit(
-                          settings.getSettingValue(Key.QUERY_SIZE_LIMIT)),
+                          // For pagination, querySizeLimit shouldn't take effect.
+                          // See {@link PaginationWindowIT::testQuerySizeLimitDoesNotEffectPageSize}
+                          plan instanceof LogicalPaginate ? null : getQuerySizeLimit()),
                       listener));
     } catch (Exception e) {
       listener.onFailure(e);
@@ -268,6 +269,10 @@ public class QueryService {
     } else {
       return false;
     }
+  }
+
+  private Integer getQuerySizeLimit() {
+    return settings == null ? null : settings.getSettingValue(Key.QUERY_SIZE_LIMIT);
   }
 
   // TODO https://github.com/opensearch-project/sql/issues/3457

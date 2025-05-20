@@ -210,7 +210,12 @@ public class OpenSearchIndex extends OpenSearchTable {
             new OpenSearchIndexScan(
                 client,
                 requestBuilder.getMaxResponseSize(),
-                requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
+                requestBuilder.build(
+                    indexName,
+                    getMaxResultWindow(),
+                    cursorKeepAlive,
+                    client,
+                    cachedFieldOpenSearchTypes.isEmpty()));
     return new OpenSearchIndexScanBuilder(builder, createScanOperator);
   }
 
@@ -269,7 +274,12 @@ public class OpenSearchIndex extends OpenSearchTable {
         return new OpenSearchIndexEnumerator(
             client,
             List.copyOf(getFieldTypes().keySet()),
-            builder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
+            builder.build(
+                indexName,
+                getMaxResultWindow(),
+                cursorKeepAlive,
+                client,
+                cachedFieldOpenSearchTypes.isEmpty()));
       }
     };
   }
@@ -280,6 +290,11 @@ public class OpenSearchIndex extends OpenSearchTable {
 
   public OpenSearchRequest buildRequest(OpenSearchRequestBuilder requestBuilder) {
     final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    return requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client);
+    return requestBuilder.build(
+        indexName,
+        getMaxResultWindow(),
+        cursorKeepAlive,
+        client,
+        cachedFieldOpenSearchTypes.isEmpty());
   }
 }

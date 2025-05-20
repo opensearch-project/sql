@@ -41,6 +41,11 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void test() throws IOException {
+    verifyDataRows(executeQuery("source=test | fields age, _id, _maxscore, _score"));
+  }
+
+  @Test
   public void testInvalidTable() {
     IllegalStateException e =
         assertThrows(IllegalStateException.class, () -> execute("source=unknown"));

@@ -11,9 +11,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.common.setting.Settings.Key;
 
 public class SettingsIT extends PPLIntegTestCase {
 

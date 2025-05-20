@@ -45,7 +45,8 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
-  public OpenSearchIndexScan(OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
+  public OpenSearchIndexScan(
+      OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
     this.maxResponseSize = maxResponseSize;
     this.client = client;
     this.request = request;
@@ -53,9 +54,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
 
   /** Creates index scan based on a provided OpenSearchRequestBuilder. */
   public OpenSearchIndexScan(OpenSearchClient client, OpenSearchRequest request) {
-    this.maxResponseSize = -1;
-    this.client = client;
-    this.request = request;
+    this(client, -1, request);
   }
 
   @Override
@@ -131,6 +130,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     try (BytesStreamInput bsi = new BytesStreamInput(requestStream)) {
       request = new OpenSearchQueryRequest(bsi, engine);
     }
+    maxResponseSize = in.readInt();
   }
 
   @Override
@@ -150,5 +150,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     // 3. Write out the byte[] to object output stream.
     out.writeInt(reqOut.size());
     out.write(reqAsBytes, 0, reqOut.size());
+
+    out.writeInt(maxResponseSize);
   }
 }

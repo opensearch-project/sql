@@ -35,10 +35,6 @@ public class PaginationFilterIT extends SQLIntegTestCase {
   private static final Map<String, Integer> STATEMENT_TO_NUM_OF_PAGES =
       Map.of(
           "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT,
-          1000);
-  /*
-      Map.of(
-          "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT,
           1000,
           "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street')",
           385,
@@ -62,7 +58,6 @@ public class PaginationFilterIT extends SQLIntegTestCase {
           1,
           "SELECT * FROM " + TestsConstants.TEST_INDEX_BANK,
           7);
-   */
 
   private final String sqlStatement;
 
@@ -88,7 +83,7 @@ public class PaginationFilterIT extends SQLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "query = %1$s, total_hits = %2$d, page_size = %3$d")
   public static Iterable<Object[]> generateParameters() {
-    List<Integer> pageSizes = List.of(5);
+    List<Integer> pageSizes = List.of(5, 1000);
     List<Object[]> testData = new ArrayList<Object[]>();
 
     STATEMENT_TO_NUM_OF_PAGES.forEach(

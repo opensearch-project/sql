@@ -40,7 +40,6 @@ public abstract class Settings {
     /** Common Settings for SQL and PPL. */
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),
-    REQUEST_TOTAL_SIZE_LIMIT("plugins.request.total.size_limit"),
     ENCYRPTION_MASTER_KEY("plugins.query.datasources.encryption.masterkey"),
     DATASOURCES_URI_HOSTS_DENY_LIST("plugins.query.datasources.uri.hosts.denylist"),
     DATASOURCES_LIMIT("plugins.query.datasources.limit"),

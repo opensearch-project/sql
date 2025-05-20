@@ -268,6 +268,7 @@ class OpenSearchIndexScanTest {
     try (OpenSearchIndexScan indexScan =
         new OpenSearchIndexScan(
             client,
+            3,
             requestuilder.build(INDEX_NAME, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE, client))) {
       indexScan.open();
 
@@ -278,8 +279,7 @@ class OpenSearchIndexScanTest {
           () -> assertEquals(employee(2, "Smith", "HR"), indexScan.next()),
           () -> assertTrue(indexScan.hasNext()),
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
-          () -> assertTrue(indexScan.hasNext()),
-          () -> assertEquals(employee(4, "Bob", "HR"), indexScan.next()));
+          () -> assertFalse(indexScan.hasNext()));
     }
     verify(client).cleanup(any());
   }

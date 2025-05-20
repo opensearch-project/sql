@@ -93,8 +93,20 @@ public class OpenSearchRequestBuilder {
       int maxResultWindow,
       TimeValue cursorKeepAlive,
       OpenSearchClient client) {
-    if (sourceBuilder.size() == 0) {
-      // If size is 0, it means this is an aggregation request and no need to use pit.
+    return build(indexName, maxResultWindow, cursorKeepAlive, client, false);
+  }
+
+  public OpenSearchRequest build(
+      OpenSearchRequest.IndexName indexName,
+      int maxResultWindow,
+      TimeValue cursorKeepAlive,
+      OpenSearchClient client,
+      boolean isMappingEmpty) {
+    /* Don't use PIT search:
+     * 1. If the size of source is 0. It means this is an aggregation request and no need to use pit.
+     * 2. If mapping is empty. It means no data in the index. PIT search relies on `_id` fields to do sort, thus it will fail if using PIT search in this case.
+     */
+    if (sourceBuilder.size() == 0 || isMappingEmpty) {
       return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, List.of());
     }
     return buildRequestWithPit(indexName, maxResultWindow, cursorKeepAlive, client);
@@ -112,6 +124,7 @@ public class OpenSearchRequestBuilder {
     if (pageSize == null) {
       // size < 0 means having to fetch all data.
       if (size < 0 || startFrom + size > maxResultWindow) {
+        // if (size > 0 && (size < 0 || startFrom + size > maxResultWindow)) {
         sourceBuilder.size(maxResultWindow - startFrom);
         // Search with PIT request
         String pitId = createPit(indexName, cursorKeepAlive, client);
@@ -119,7 +132,7 @@ public class OpenSearchRequestBuilder {
             indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
       } else {
         sourceBuilder.from(startFrom);
-        sourceBuilder.size(requestedTotalSize);
+        sourceBuilder.size(10);
         // Search with non-Pit request
         return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
       }
