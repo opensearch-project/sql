@@ -32,8 +32,8 @@ jobs:
           role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
           aws-region: us-east-1
 
-      # Create the initial direct-query directory structure
-      - name: Create direct-query directory structure in repository
+      # Create the initial direct-query-poc directory structure
+      - name: Create direct-query-poc directory structure in repository
         run: |
           # Get credentials for publishing
           export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
@@ -49,7 +49,7 @@ jobs:
           echo "Creating initial directory structure..."
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" \
             --upload-file "${TEMP_DIR}/.placeholder" \
-            "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query/.placeholder"
+            "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/.placeholder"
           
           # Clean up
           rm -rf "${TEMP_DIR}"
@@ -79,7 +79,7 @@ jobs:
           # Define version variables
           VERSION=$(./gradlew properties -q | grep "version:" | awk '{print $2}')
           ARTIFACT_ID="async-query-core"
-          GROUP_PATH="org/opensearch/direct-query"
+          GROUP_PATH="org/opensearch/direct-query-poc"
           
           # Create directory structure in local Maven repository
           MAVEN_LOCAL_PATH="${HOME}/.m2/repository/${GROUP_PATH}/${ARTIFACT_ID}/${VERSION}-SNAPSHOT"
@@ -96,7 +96,7 @@ jobs:
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
               <modelVersion>4.0.0</modelVersion>
-              <groupId>org.opensearch.direct-query</groupId>
+              <groupId>org.opensearch.direct-query-poc</groupId>
               <artifactId>${ARTIFACT_ID}</artifactId>
               <version>${VERSION}-SNAPSHOT</version>
           </project>
@@ -149,7 +149,7 @@ jobs:
           METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
           
           # Download the current metadata from the repository
-          META_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query/${ARTIFACT_ID}/${VERSION}-SNAPSHOT/maven-metadata.xml"
+          META_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/${ARTIFACT_ID}/${VERSION}-SNAPSHOT/maven-metadata.xml"
           echo "Downloading metadata from ${META_URL}"
           
           # Wait a bit to ensure the metadata file is available after publishing
