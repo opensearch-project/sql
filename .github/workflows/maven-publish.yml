@@ -43,9 +43,9 @@ jobs:
           SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
           echo "::add-mask::$SONATYPE_USERNAME"
           echo "::add-mask::$SONATYPE_PASSWORD"
+          echo "SONATYPE_USERNAME=$SONATYPE_USERNAME" >> $GITHUB_ENV
+          echo "SONATYPE_PASSWORD=$SONATYPE_PASSWORD" >> $GITHUB_ENV
           echo "username=$SONATYPE_USERNAME" >> $GITHUB_OUTPUT
-          echo "password=$SONATYPE_PASSWORD" >> $GITHUB_ENV
-          echo "username=$SONATYPE_USERNAME" >> $GITHUB_ENV
 
       # Capture the commit ID for metadata purposes
       - name: Set commit ID
