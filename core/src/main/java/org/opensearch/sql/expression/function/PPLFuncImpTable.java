@@ -181,6 +181,7 @@ public class PPLFuncImpTable {
       registerOperator(ASIN, SqlStdOperatorTable.ASIN);
       registerOperator(ATAN, SqlStdOperatorTable.ATAN);
       registerOperator(ATAN2, SqlStdOperatorTable.ATAN2);
+      registerOperator(CEIL, SqlStdOperatorTable.CEIL);
       registerOperator(CEILING, SqlStdOperatorTable.CEIL);
       registerOperator(COS, SqlStdOperatorTable.COS);
       registerOperator(COT, SqlStdOperatorTable.COT);
@@ -199,10 +200,11 @@ public class PPLFuncImpTable {
       registerOperator(SIN, SqlStdOperatorTable.SIN);
       registerOperator(CBRT, SqlStdOperatorTable.CBRT);
       registerOperator(IS_NOT_NULL, SqlStdOperatorTable.IS_NOT_NULL);
+      registerOperator(IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL);
       registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
       registerOperator(IF, SqlStdOperatorTable.CASE);
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
-      registerOperator(IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL);
+      registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);

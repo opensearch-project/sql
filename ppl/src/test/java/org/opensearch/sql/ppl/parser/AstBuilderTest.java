@@ -25,6 +25,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.describe;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
+import static org.opensearch.sql.ast.dsl.AstDSL.fillNull;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.head;
@@ -49,10 +50,11 @@ import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,13 +63,11 @@ import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
-import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -674,29 +674,19 @@ public class AstBuilderTest {
   public void testFillNullCommandSameValue() {
     assertEqual(
         "source=t | fillnull with 0 in a, b, c",
-        new FillNull(
-            relation("t"),
-            FillNull.ContainNullableFieldFill.ofSameValue(
-                intLiteral(0),
-                ImmutableList.<Field>builder()
-                    .add(field("a"))
-                    .add(field("b"))
-                    .add(field("c"))
-                    .build())));
+        fillNull(relation("t"), intLiteral(0), field("a"), field("b"), field("c")));
   }
 
   @Test
   public void testFillNullCommandVariousValues() {
     assertEqual(
         "source=t | fillnull using a = 1, b = 2, c = 3",
-        new FillNull(
+        fillNull(
             relation("t"),
-            FillNull.ContainNullableFieldFill.ofVariousValue(
-                ImmutableList.<FillNull.NullableFieldFill>builder()
-                    .add(new FillNull.NullableFieldFill(field("a"), intLiteral(1)))
-                    .add(new FillNull.NullableFieldFill(field("b"), intLiteral(2)))
-                    .add(new FillNull.NullableFieldFill(field("c"), intLiteral(3)))
-                    .build())));
+            List.of(
+                Pair.of(field("a"), intLiteral(1)),
+                Pair.of(field("b"), intLiteral(2)),
+                Pair.of(field("c"), intLiteral(3)))));
   }
 
   public void testTrendline() {

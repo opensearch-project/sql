@@ -381,6 +381,7 @@ IFNULL:                             'IFNULL';
 NULLIF:                             'NULLIF';
 IF:                                 'IF';
 TYPEOF:                             'TYPEOF';
+COALESCE:                           'COALESCE';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';
