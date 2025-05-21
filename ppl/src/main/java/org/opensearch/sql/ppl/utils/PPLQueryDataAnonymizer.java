@@ -50,6 +50,7 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
@@ -117,6 +118,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitRelation(Relation node, String context) {
+    if (node instanceof DescribeRelation) {
+      // remove the system table suffix
+      String systemTable = node.getTableQualifiedName().toString();
+      return StringUtils.format(
+          "describe %s", systemTable.substring(0, systemTable.lastIndexOf('.')));
+    }
     return StringUtils.format("source=%s", node.getTableQualifiedName().toString());
   }
 
@@ -369,26 +376,25 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitFillNull(FillNull node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    List<FillNull.NullableFieldFill> fieldFills = node.getNullableFieldFills();
-    final UnresolvedExpression firstReplacement = fieldFills.getFirst().getReplaceNullWithMe();
-    if (fieldFills.stream().allMatch(n -> firstReplacement == n.getReplaceNullWithMe())) {
+    List<Pair<Field, UnresolvedExpression>> fieldFills = node.getReplacementPairs();
+    if (fieldFills.isEmpty()) {
+      return StringUtils.format("%s | fillnull with %s", child, MASK_LITERAL);
+    }
+    final UnresolvedExpression firstReplacement = fieldFills.getFirst().getRight();
+    if (fieldFills.stream().allMatch(n -> firstReplacement == n.getRight())) {
       return StringUtils.format(
           "%s | fillnull with %s in %s",
           child,
-          firstReplacement,
-          node.getNullableFieldFills().stream()
-              .map(n -> visitExpression(n.getNullableFieldReference()))
+          MASK_LITERAL,
+          node.getReplacementPairs().stream()
+              .map(n -> visitExpression(n.getLeft()))
               .collect(Collectors.joining(", ")));
     } else {
       return StringUtils.format(
           "%s | fillnull using %s",
           child,
-          node.getNullableFieldFills().stream()
-              .map(
-                  n ->
-                      StringUtils.format(
-                          "%s = %s",
-                          visitExpression(n.getNullableFieldReference()), n.getReplaceNullWithMe()))
+          node.getReplacementPairs().stream()
+              .map(n -> StringUtils.format("%s = %s", visitExpression(n.getLeft()), MASK_LITERAL))
               .collect(Collectors.joining(", ")));
     }
   }
