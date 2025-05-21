@@ -23,6 +23,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
@@ -67,6 +68,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -83,9 +85,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   private static final String MASK_LITERAL = "***";
 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
+  private final Settings settings;
 
-  public PPLQueryDataAnonymizer() {
+  public PPLQueryDataAnonymizer(Settings settings) {
     this.expressionAnalyzer = new AnonymizerExpressionAnalyzer(this);
+    this.settings = settings;
   }
 
   /**
@@ -237,15 +241,22 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitRareTopN(RareTopN node, String context) {
     final String child = node.getChild().get(0).accept(this, context);
-    List<Argument> options = node.getNoOfResults();
-    Integer noOfResults = (Integer) options.get(0).getValue().getValue();
+    ArgumentMap arguments = ArgumentMap.of(node.getArguments());
+    Integer noOfResults = (Integer) arguments.get("noOfResults").getValue();
+    String countField = (String) arguments.get("countField").getValue();
+    Boolean showCount = (Boolean) arguments.get("showCount").getValue();
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
+    String options =
+        isCalciteEnabled(settings)
+            ? StringUtils.format("countield='%s' showcount=%s ", countField, showCount)
+            : "";
     return StringUtils.format(
-        "%s | %s %d %s",
+        "%s | %s %d %s%s",
         child,
         node.getCommandType().name().toLowerCase(),
         noOfResults,
+        options,
         String.join(" ", fields, groupBy(group)).trim());
   }
 
@@ -395,6 +406,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   private String groupBy(String groupBy) {
     return Strings.isNullOrEmpty(groupBy) ? "" : StringUtils.format("by %s", groupBy);
+  }
+
+  private boolean isCalciteEnabled(Settings settings) {
+    if (settings != null) {
+      return settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
+    } else {
+      return false;
+    }
   }
 
   /** Expression Anonymizer. */

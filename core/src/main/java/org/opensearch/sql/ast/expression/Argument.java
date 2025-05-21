@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.expression;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -31,5 +32,23 @@ public class Argument extends UnresolvedExpression {
   @Override
   public <R, C> R accept(AbstractNodeVisitor<R, C> nodeVisitor, C context) {
     return nodeVisitor.visitArgument(this, context);
+  }
+
+  public static class ArgumentMap {
+    private final Map<String, Literal> map;
+
+    public ArgumentMap(List<Argument> arguments) {
+      this.map =
+          arguments.stream()
+              .collect(java.util.stream.Collectors.toMap(Argument::getArgName, Argument::getValue));
+    }
+
+    public static ArgumentMap of(List<Argument> arguments) {
+      return new ArgumentMap(arguments);
+    }
+
+    public Literal get(String name) {
+      return map.get(name);
+    }
   }
 }

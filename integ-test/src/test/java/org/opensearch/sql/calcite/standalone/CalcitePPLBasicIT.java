@@ -38,6 +38,36 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
     loadIndex(Index.BANK);
     loadIndex(Index.DATA_TYPE_ALIAS);
+    loadIndex(Index.ACCOUNT);
+  }
+
+  @Test
+  public void testRareWithGroup() throws IOException {
+    String result = execute(String.format("source=%s | rare state by gender", TEST_INDEX_ACCOUNT));
+    assertEquals("", result);
+    //    verifyDataRows(
+    //        result,
+    //        rows("F", "DE"),
+    //        rows("F", "WI"),
+    //        rows("F", "OR"),
+    //        rows("F", "CT"),
+    //        rows("F", "WA"),
+    //        rows("F", "SC"),
+    //        rows("F", "OK"),
+    //        rows("F", "KS"),
+    //        rows("F", "CO"),
+    //        rows("F", "VA"),
+
+    //        rows("M", "NE"),
+    //        rows("M", "RI"),
+    //        rows("M", "NV"),
+    //        rows("M", "MI"),
+    //        rows("M", "MT"),
+    //        rows("M", "AZ"),
+    //        rows("M", "NM"),
+    //        rows("M", "SD"),
+    //        rows("M", "KY"),
+    //        rows("M", "IN"));
   }
 
   @Test

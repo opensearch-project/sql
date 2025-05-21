@@ -11,6 +11,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_DESC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.calcite.utils.PlanUtils.ROW_NUMBER_COLUMN_NAME;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -44,11 +45,13 @@ import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -82,6 +85,7 @@ import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.utils.ParseUtils;
 
@@ -708,9 +712,77 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     throw new CalciteUnsupportedException("FillNull command is unsupported in Calcite");
   }
 
+  List<RexNode> resolveGroupByPlusFieldList(RareTopN node, CalcitePlanContext context) {
+    List<RexNode> groupByList = resolveGroupByList(node, context);
+    List<RexNode> filedsList =
+        node.getFields().stream().map(g -> rexVisitor.analyze(g, context)).toList();
+    List<RexNode> all = new ArrayList<>(groupByList);
+    all.addAll(filedsList);
+    return all;
+  }
+
+  List<RexNode> resolveGroupByList(RareTopN node, CalcitePlanContext context) {
+    return node.getGroupExprList().stream().map(g -> rexVisitor.analyze(g, context)).toList();
+  }
+
   @Override
   public RelNode visitRareTopN(RareTopN node, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("Rare and Top commands are unsupported in Calcite");
+    visitChildren(node, context);
+
+    // 1. before aggregating, add a trim project
+    List<RexInputRef> trimmedRefs =
+        PlanUtils.getInputRefs(resolveGroupByPlusFieldList(node, context));
+    context.relBuilder.project(trimmedRefs);
+
+    ArgumentMap arguments = ArgumentMap.of(node.getArguments());
+    // 2. group the group-by list + field list and add a count() aggregation
+    List<RexNode> firstGroupBy = resolveGroupByPlusFieldList(node, context);
+    String countFieldName = (String) arguments.get("countField").getValue();
+    if (context.relBuilder.peek().getRowType().getFieldNames().contains(countFieldName)) {
+      throw new IllegalArgumentException(
+          "Field `"
+              + countFieldName
+              + "` is existed, change the count field by setting countfield='xyz'");
+    }
+    AggCall aggCall =
+        PlanUtils.makeAggCall(context, BuiltinFunctionName.COUNT, false, null, List.of())
+            .as(countFieldName);
+    context.relBuilder.aggregate(context.relBuilder.groupKey(firstGroupBy), aggCall);
+
+    // 3. add a window column
+    List<RexNode> partitionKeys = new ArrayList<>(resolveGroupByList(node, context));
+    RexNode countField;
+    if (node.getCommandType() == RareTopN.CommandType.TOP) {
+      countField = context.relBuilder.desc(context.relBuilder.field(countFieldName));
+    } else {
+      countField = context.relBuilder.field(countFieldName);
+    }
+    RexNode rowNumberWindowOver =
+        PlanUtils.makeOver(
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+            List.of(),
+            partitionKeys,
+            List.of(countField),
+            WindowFrame.toCurrentRow());
+    context.relBuilder.projectPlus(
+        context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_NAME));
+
+    // 4. filter row_number() <= k in each partition
+    Integer N = (Integer) arguments.get("noOfResults").getValue();
+    context.relBuilder.filter(
+        context.relBuilder.lessThanOrEqual(
+            context.relBuilder.field(ROW_NUMBER_COLUMN_NAME), context.relBuilder.literal(N)));
+
+    // 5. project final output. the default output is group by list + field list
+    List<RexNode> finalProjectList = new ArrayList<>(resolveGroupByPlusFieldList(node, context));
+    Boolean showCount = (Boolean) arguments.get("showCount").getValue();
+    if (showCount) {
+      finalProjectList.add(context.relBuilder.field(countFieldName));
+    }
+    context.relBuilder.project(finalProjectList);
+    return context.relBuilder.peek();
   }
 
   @Override

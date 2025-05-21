@@ -330,6 +330,7 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          .put("rank", BuiltinFunctionName.RANK)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {
