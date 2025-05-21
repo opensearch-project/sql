@@ -34,6 +34,7 @@ public class Argument extends UnresolvedExpression {
     return nodeVisitor.visitArgument(this, context);
   }
 
+  /** ArgumentMap is a helper class to get argument value by name. */
   public static class ArgumentMap {
     private final Map<String, Literal> map;
 
@@ -47,6 +48,12 @@ public class Argument extends UnresolvedExpression {
       return new ArgumentMap(arguments);
     }
 
+    /**
+     * Get argument value by name.
+     *
+     * @param name argument name
+     * @return argument value
+     */
     public Literal get(String name) {
       return map.get(name);
     }
