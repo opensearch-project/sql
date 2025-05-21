@@ -1,4 +1,4 @@
-name: Publish snapshots to maven
+name: Publish grammar files to maven
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
       - poc/commit-metadata
 
 jobs:
-  build-and-publish-snapshots:
+  publish-grammar-files:
     strategy:
       fail-fast: false
     #if: github.repository == 'opensearch-project/sql'
@@ -20,27 +20,34 @@ jobs:
       id-token: write
       contents: write
 
+    env:
+      SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+      TARGET_REPO_PATH: org/opensearch/opensearch-language-grammar-poc
+
     steps:
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 11
       - uses: actions/checkout@v4
         id: checkout
+
       - uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
           role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
           aws-region: us-east-1
 
-      # Create the initial direct-query-poc directory structure
-      - name: Create direct-query-poc directory structure in repository
+      # Get Maven credentials
+      - name: Setup publishing credentials
+        id: creds
         run: |
-          # Get credentials for publishing
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
+          SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
+          SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
           echo "::add-mask::$SONATYPE_USERNAME"
           echo "::add-mask::$SONATYPE_PASSWORD"
-          
+          echo "username=$SONATYPE_USERNAME" >> $GITHUB_OUTPUT
+          echo "password=$SONATYPE_PASSWORD" >> $GITHUB_ENV
+          echo "username=$SONATYPE_USERNAME" >> $GITHUB_ENV
+
+      # Create the initial directory structure in repository
+      - name: Create grammar-poc directory structure in repository
+        run: |
           # Create a placeholder file
           TEMP_DIR=$(mktemp -d)
           echo "Directory placeholder - $(date)" > "${TEMP_DIR}/.placeholder"
@@ -49,13 +56,21 @@ jobs:
           echo "Creating initial directory structure..."
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" \
             --upload-file "${TEMP_DIR}/.placeholder" \
-            "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/.placeholder"
+            "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/opensearch-language-grammar-poc/.placeholder"
           
           # Clean up
           rm -rf "${TEMP_DIR}"
           echo "Directory structure created"
 
-      # Capture the commit ID for metadata purposes
+      # Extract version information - using a simpler method for grammar files
+      - name: Set version
+        id: set_version
+        run: |
+          VERSION="1.0.0-SNAPSHOT" # You can adjust this version as needed
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Using version: ${VERSION}"
+
+      # Capture commit ID
       - name: Set commit ID
         id: set_commit
         run: |
@@ -63,225 +78,142 @@ jobs:
           echo "commit_id=${COMMIT_ID}" >> $GITHUB_OUTPUT
           echo "Using commit ID: ${COMMIT_ID}"
 
-      - name: Build and publish shadow JAR for version 2.20.0.0
+      # Create ZIP of grammar files
+      - name: Package grammar files
         run: |
-          # Get credentials for publishing
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
+          # Create directory for the zip content
+          mkdir -p grammar_files
           
+          # Copy all .g4 files to the directory
+          find ./unified-grammar/src/main/antlr4 -name "*.g4" -type f -exec cp {} grammar_files/ \;
+          
+          # List the files that will be included in the zip
+          echo "Files to be included in the zip:"
+          ls -la grammar_files/
+          
+          # Create zip file
+          cd grammar_files
+          zip -r ../grammar.zip ./*
+          cd ..
+          
+          # Check the zip file
+          ls -la grammar.zip
+
+      - name: Prepare for Maven publishing
+        run: |
           # Define constants
-          ARTIFACT_ID="async-query-core"
-          GROUP_PATH="org/opensearch/direct-query-poc"
-          VERSION="2.20.0.0"
+          ARTIFACT_ID="opensearch-language-grammar-poc"
+          GROUP_ID="org.opensearch"
+          VERSION="${{ steps.set_version.outputs.VERSION }}"
           
-          # Build the shadow JAR
-          ./gradlew :async-query-core:shadowJar
-          
-          # Find the generated shadow JAR
-          SHADOW_JAR=$(find ./async-query-core/build/libs/ -name "*-all.jar" | head -n 1)
-          
-          if [ -z "$SHADOW_JAR" ]; then
-            echo "Error: Shadow JAR not found!"
-            exit 1
-          fi
-          
-          # Create directory structure in local Maven repository
-          MAVEN_LOCAL_PATH="${HOME}/.m2/repository/${GROUP_PATH}/${ARTIFACT_ID}/${VERSION}-SNAPSHOT"
+          # Create directory structure for Maven
+          MAVEN_LOCAL_PATH="${HOME}/.m2/repository/${GROUP_ID//.//}/${ARTIFACT_ID}/${VERSION}"
           mkdir -p "${MAVEN_LOCAL_PATH}"
           
-          # Copy the shadow JAR to the local Maven repository with proper naming
-          MAVEN_JAR_NAME="${ARTIFACT_ID}-${VERSION}-SNAPSHOT.jar"
-          cp "${SHADOW_JAR}" "${MAVEN_LOCAL_PATH}/${MAVEN_JAR_NAME}"
+          # Copy the zip file to Maven directory with proper naming
+          MAVEN_ZIP_NAME="${ARTIFACT_ID}-${VERSION}.zip"
+          cp grammar.zip "${MAVEN_LOCAL_PATH}/${MAVEN_ZIP_NAME}"
           
-          # Generate a POM file
-          cat > "${MAVEN_LOCAL_PATH}/${ARTIFACT_ID}-${VERSION}-SNAPSHOT.pom" << EOF
+          # Generate POM file
+          cat > "${MAVEN_LOCAL_PATH}/${ARTIFACT_ID}-${VERSION}.pom" << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <project xmlns="http://maven.apache.org/POM/4.0.0"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
               <modelVersion>4.0.0</modelVersion>
-              <groupId>org.opensearch.direct-query-poc</groupId>
+              <groupId>${GROUP_ID}</groupId>
               <artifactId>${ARTIFACT_ID}</artifactId>
-              <version>${VERSION}-SNAPSHOT</version>
+              <version>${VERSION}</version>
+              <packaging>zip</packaging>
+              <description>OpenSearch Language Grammar Files</description>
           </project>
           EOF
           
-          echo "Shadow JAR and POM published to local Maven repository for version ${VERSION}-SNAPSHOT"
+          echo "Grammar files prepared for Maven publishing as version ${VERSION}"
 
-      # Checkout opensearch-build-libraries repository for publishing scripts
+      # Generate checksums for the Maven artifacts
+      - name: Generate checksums
+        run: |
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.zip" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.zip" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
+
+      # Checkout build libraries for publishing scripts
       - uses: actions/checkout@v4
         with:
           repository: 'opensearch-project/opensearch-build-libraries'
           path: 'build'
 
-      - name: Generate SHA checksums for JAR and POM files
+      # Publish to Maven
+      - name: Publish to Maven
         run: |
-          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
-          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.jar" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
-          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
-          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.jar" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
-
-      - name: Install XML tools
-        run: sudo apt-get update && sudo apt-get install -y xmlstarlet
-
-      - name: Publish snapshots to maven
-        run: |
-          # Get credentials for publishing
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
-          export SNAPSHOT_REPO_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/"
-          
-          # Publish snapshots to maven
+          # Copy local Maven repo to build directory
           cd build/resources/publish/
           cp -a $HOME/.m2/repository/* ./
+          
+          # Run the publish script
           ./publish-snapshot.sh ./
 
-      - name: Delete old versions from repository
+      # Create and publish parent metadata
+      - name: Create parent maven-metadata.xml
         run: |
-          # Get credentials for repository access
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
+          VERSION="${{ steps.set_version.outputs.VERSION }}"
+          ARTIFACT_ID="opensearch-language-grammar-poc"
           
-          # List of versions to delete (excluding 2.20.0.0-SNAPSHOT)
-          VERSIONS_TO_DELETE=(
-            "2.3.1.0"
-            "2.9.1.0"
-            "2.10.1.0"
-            "2.12.1.0"
-            "2.13.1.0"
-            "2.14.1.0" 
-            "2.16.1.0"
-            "2.19.0.0"
-            "2.19.1.0"
-            "2.19.2.0"
-            "3.0.0.0-alpha1"
-            "3.0.0.0-beta1"
-            "3.0.0.0"
-            "3.1.0.0"
-          )
-          
-          ARTIFACT_ID="async-query-core"
-          BASE_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/${ARTIFACT_ID}"
-          
-          # Delete each version
-          for VERSION in "${VERSIONS_TO_DELETE[@]}"; do
-            VERSION_PATH="${VERSION}-SNAPSHOT"
-            DELETE_URL="${BASE_URL}/${VERSION_PATH}"
-          
-            echo "Deleting version: ${VERSION_PATH} from ${DELETE_URL}"
-          
-            # List all files in this version directory
-            FILES_LIST=$(curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --list-only "${DELETE_URL}/" | grep -o 'href="[^"]*"' | sed 's/href="//g' | sed 's/"//g')
-          
-            # Delete each file individually
-            for FILE in $FILES_LIST; do
-              if [[ $FILE == */ ]]; then
-                # Skip directories for now
-                continue
-              else
-                # Get the filename portion
-                FILENAME=$(basename "$FILE")
-                FILE_URL="${DELETE_URL}/${FILENAME}"
-          
-                echo "  Deleting file: ${FILE_URL}"
-                curl -X DELETE -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${FILE_URL}"
-              fi
-            done
-          
-            # Finally, try to delete the directory itself
-            echo "  Deleting directory: ${DELETE_URL}"
-            curl -X DELETE -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${DELETE_URL}"
-          done
-          
-          echo "Old versions deleted successfully"
-
-      - name: Create and publish parent maven-metadata.xml
-        run: |
-          # Get credentials for publishing
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
-          
-          # Create temporary directory
           TEMP_DIR=$(mktemp -d)
-          ARTIFACT_ID="async-query-core"
           
-          # Create parent metadata XML with only 2.20.0.0-SNAPSHOT
+          # Create parent metadata XML
           cat > "${TEMP_DIR}/maven-metadata.xml" << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <metadata>
-          <groupId>org.opensearch.direct-query-poc</groupId>
+          <groupId>org.opensearch</groupId>
           <artifactId>${ARTIFACT_ID}</artifactId>
           <versioning>
-          <latest>2.20.0.0-SNAPSHOT</latest>
+          <latest>${VERSION}</latest>
           <release/>
           <versions>
-          <version>2.20.0.0-SNAPSHOT</version>
+          <version>${VERSION}</version>
           </versions>
           <lastUpdated>$(date +%Y%m%d%H%M%S)</lastUpdated>
           </versioning>
           </metadata>
           EOF
           
-          # Generate SHA checksums for the parent metadata
+          # Generate checksums
           cd "${TEMP_DIR}"
           sha256sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha256"
           sha512sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha512"
           
-          # Upload parent metadata and checksum files
-          PARENT_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/${ARTIFACT_ID}"
+          # Upload metadata and checksums
+          PARENT_URL="${SNAPSHOT_REPO_URL}org/opensearch/${ARTIFACT_ID}"
           
-          echo "Uploading parent maven-metadata.xml to ${PARENT_URL}/maven-metadata.xml"
+          echo "Uploading parent maven-metadata.xml"
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml" "${PARENT_URL}/maven-metadata.xml"
-          
-          echo "Uploading parent maven-metadata.xml.sha256"
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha256" "${PARENT_URL}/maven-metadata.xml.sha256"
-          
-          echo "Uploading parent maven-metadata.xml.sha512"
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha512" "${PARENT_URL}/maven-metadata.xml.sha512"
           
-          # Clean up
-          cd -
           rm -rf "${TEMP_DIR}"
           echo "Parent maven-metadata.xml published successfully"
 
-      - name: Update version metadata with commit ID
+      # Update metadata with commit ID
+      - name: Add commit ID to metadata
         run: |
-          # Get credentials
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
-          
           COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
-          ARTIFACT_ID="async-query-core"
-          VERSION="2.20.0.0"
-          
-          # Add commit ID to version-specific metadata file
-          echo "Processing commit ID for version: ${VERSION}-SNAPSHOT"
+          ARTIFACT_ID="opensearch-language-grammar-poc"
+          VERSION="${{ steps.set_version.outputs.VERSION }}"
           
           TEMP_DIR=$(mktemp -d)
           METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
           
-          # Download metadata from repository
-          META_URL="https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query-poc/${ARTIFACT_ID}/${VERSION}-SNAPSHOT/maven-metadata.xml"
-          echo "Downloading metadata from ${META_URL}"
-          
-          # Try to download the metadata file
+          # Download existing metadata
+          META_URL="${SNAPSHOT_REPO_URL}org/opensearch/${ARTIFACT_ID}/${VERSION}/maven-metadata.xml"
           curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${METADATA_FILE}" "${META_URL}"
           
-          # If successful, modify and upload back
           if [ -s "${METADATA_FILE}" ]; then
-            echo "Modifying metadata for ${VERSION}-SNAPSHOT"
             cp "${METADATA_FILE}" "${METADATA_FILE}.bak"
           
+            # Add commit ID to metadata
             awk -v commit="${COMMIT_ID}" '
               /<versioning>/ {
                 print $0
@@ -291,33 +223,20 @@ jobs:
               {print}
             ' "${METADATA_FILE}.bak" > "${METADATA_FILE}"
           
-            # Upload modified file back
+            # Upload modified metadata
             curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${METADATA_FILE}" "${META_URL}"
           
-            # Update the SHA checksums (the publishing script might not have created these)
+            # Update checksums
             cd "${TEMP_DIR}"
             sha256sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha256"
             sha512sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha512"
           
-            # Upload the checksums
             curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha256" "${META_URL}.sha256"
             curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha512" "${META_URL}.sha512"
-            cd -
           
-            echo "Updated metadata and checksums for ${VERSION}-SNAPSHOT"
+            echo "Version metadata updated with commit ID"
           else
-            echo "Failed to download metadata for ${VERSION}-SNAPSHOT, skipping"
+            echo "Failed to download metadata, skipping commit ID addition"
           fi
           
-          # Clean up
           rm -rf "${TEMP_DIR}"
-          
-          echo "Version metadata updated with commit ID"
-
-      - name: publish plugin zip snapshots to maven
-        run: |
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
-          ./gradlew publishPluginZipPublicationToSnapshotsRepository
