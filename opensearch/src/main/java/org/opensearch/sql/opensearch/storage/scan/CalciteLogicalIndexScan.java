@@ -37,8 +37,9 @@ import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
+/** The logical relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
-public class CalciteLogicalIndexScan extends CalciteIndexScan {
+public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
   private static final Logger LOG = LogManager.getLogger(CalciteLogicalIndexScan.class);
 
   public CalciteLogicalIndexScan(

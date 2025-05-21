@@ -31,8 +31,8 @@ import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
-/** Relational expression representing a scan of an OpenSearchIndex type. */
-public class CalciteEnumerableIndexScan extends CalciteIndexScan implements EnumerableRel {
+/** The physical relational operator representing a scan of an OpenSearchIndex type. */
+public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan implements EnumerableRel {
   private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);
 
   /**

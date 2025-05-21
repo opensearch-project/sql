@@ -8,21 +8,17 @@ package org.opensearch.sql.opensearch.storage;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.calcite.linq4j.AbstractEnumerable;
-import org.apache.calcite.linq4j.Enumerable;
-import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.rel.RelNode;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.sql.calcite.plan.OpenSearchTable;
+import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -36,7 +32,6 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
-import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexEnumerator;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
 import org.opensearch.sql.planner.DefaultImplementor;
@@ -48,7 +43,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /** OpenSearch table (index) implementation. */
-public class OpenSearchIndex extends OpenSearchTable {
+public class OpenSearchIndex extends AbstractOpenSearchTable {
 
   public static final String METADATA_FIELD_ID = "_id";
   public static final String METADATA_FIELD_INDEX = "_index";
@@ -92,7 +87,6 @@ public class OpenSearchIndex extends OpenSearchTable {
 
   /** Constructor. */
   public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
-    super(null);
     this.client = client;
     this.settings = settings;
     this.indexName = new OpenSearchRequest.IndexName(indexName);
@@ -250,26 +244,6 @@ public class OpenSearchIndex extends OpenSearchTable {
     public PhysicalPlan visitML(LogicalML node, OpenSearchIndexScan context) {
       return new MLOperator(visitChild(node, context), node.getArguments(), client.getNodeClient());
     }
-  }
-
-  @Override
-  public Enumerable<Object> search() {
-    return new AbstractEnumerable<>() {
-      @Override
-      public Enumerator<Object> enumerator() {
-        final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
-
-        final TimeValue cursorKeepAlive =
-            settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-        var builder =
-            new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory(), settings);
-        return new OpenSearchIndexEnumerator(
-            client,
-            List.copyOf(getFieldTypes().keySet()),
-            builder.getMaxResponseSize(),
-            builder.build(indexName, getMaxResultWindow(), cursorKeepAlive, client));
-      }
-    };
   }
 
   public OpenSearchRequestBuilder createRequestBuilder() {

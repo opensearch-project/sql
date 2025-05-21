@@ -17,6 +17,13 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
+/**
+ * Supports a simple iteration over a collection for OpenSearch index
+ *
+ * <p>Analogous to LINQ's System.Collections.Enumerator. Unlike LINQ, if the underlying collection
+ * has been modified it is only optional that an implementation of the Enumerator interface detects
+ * it and throws a {@link java.util.ConcurrentModificationException}.
+ */
 public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   /** OpenSearch client. */
