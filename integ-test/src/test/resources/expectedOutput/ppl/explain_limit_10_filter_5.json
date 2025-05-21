@@ -6,11 +6,28 @@
     },
     "children": [
       {
-        "name": "OpenSearchIndexScan",
+        "name": "LimitOperator",
         "description": {
-          "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\",\"query\":{\"range\":{\"age\":{\"from\":30,\"to\":null,\"include_lower\":false,\"include_upper\":true,\"boost\":1.0}}},\"_source\":{\"includes\":[\"age\"],\"excludes\":[]},\"sort\":[{\"_doc\":{\"order\":\"asc\"}}]}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+          "limit": 5,
+          "offset": 0
         },
-        "children": []
+        "children": [
+          {
+            "name": "FilterOperator",
+            "description": {
+              "conditions": ">(age, 30)"
+            },
+            "children": [
+              {
+                "name": "OpenSearchIndexScan",
+                "description": {
+                  "request": "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10,\"timeout\":\"1m\"}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
       }
     ]
   }

@@ -111,9 +111,6 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testLimitWithFilterPushdownExplain() throws Exception {
-    // TODO: Fix limit-then-filter pushdown without Calcite
-    //  Currently both limit-then-filter and filter-then-limit have the
-    //  limit-then-filter effect
     String expectedFilterThenLimit =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_then_limit_push.json")
@@ -126,6 +123,8 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| head 5 "
                 + "| fields age"));
 
+    // The filter in limit-then-filter queries should not be pushed since the current DSL will
+    // execute it as filter-then-limit
     String expectedLimitThenFilter =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_limit_then_filter_push.json")
@@ -165,7 +164,7 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| head 5 "
                 + "| fields age"));
 
-    // TODO: Fix limit-filter-limit pushdown without Calcite
+    // The second limit should not be pushed down for limit-filter-limit queries
     String expected10ThenFilterThen5 =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_limit_10_filter_5.json")
