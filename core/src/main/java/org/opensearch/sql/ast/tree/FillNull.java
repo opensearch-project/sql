@@ -10,68 +10,52 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import lombok.AllArgsConstructor;
+import java.util.Optional;
 import lombok.Getter;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
 /** AST node represent FillNull operation. */
-@RequiredArgsConstructor
-@AllArgsConstructor
+@Getter
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class FillNull extends UnresolvedPlan {
 
-  @Getter
-  @RequiredArgsConstructor
-  public static class NullableFieldFill {
-    @NonNull private final Field nullableFieldReference;
-    @NonNull private final UnresolvedExpression replaceNullWithMe;
+  public static FillNull ofVariousValue(List<Pair<Field, UnresolvedExpression>> replacements) {
+    return new FillNull(replacements);
   }
 
-  public interface ContainNullableFieldFill {
-    List<NullableFieldFill> getNullFieldFill();
-
-    static ContainNullableFieldFill ofVariousValue(List<NullableFieldFill> replacements) {
-      return new VariousValueNullFill(replacements);
+  public static FillNull ofSameValue(UnresolvedExpression replacement, List<Field> fieldList) {
+    List<Pair<Field, UnresolvedExpression>> replacementPairs =
+        fieldList.stream().map(f -> Pair.of(f, replacement)).toList();
+    FillNull instance = new FillNull(replacementPairs);
+    if (replacementPairs.isEmpty()) {
+      // no field specified, the replacement value will be applied to all fields.
+      instance.replacementForAll = Optional.of(replacement);
     }
-
-    static ContainNullableFieldFill ofSameValue(
-        UnresolvedExpression replaceNullWithMe, List<Field> nullableFieldReferences) {
-      return new SameValueNullFill(replaceNullWithMe, nullableFieldReferences);
-    }
+    return instance;
   }
 
-  private static class SameValueNullFill implements ContainNullableFieldFill {
-    @Getter private final List<NullableFieldFill> nullFieldFill;
+  private Optional<UnresolvedExpression> replacementForAll = Optional.empty();
 
-    public SameValueNullFill(
-        UnresolvedExpression replaceNullWithMe, List<Field> nullableFieldReferences) {
-      Objects.requireNonNull(replaceNullWithMe, "Null replacement is required");
-      this.nullFieldFill =
-          Objects.requireNonNull(nullableFieldReferences, "Nullable field reference is required")
-              .stream()
-              .map(nullableReference -> new NullableFieldFill(nullableReference, replaceNullWithMe))
-                  .collect(Collectors.toList());
-    }
-  }
+  private final List<Pair<Field, UnresolvedExpression>> replacementPairs;
 
-  @RequiredArgsConstructor
-  private static class VariousValueNullFill implements ContainNullableFieldFill {
-    @NonNull @Getter private final List<NullableFieldFill> nullFieldFill;
+  FillNull(List<Pair<Field, UnresolvedExpression>> replacementPairs) {
+    this.replacementPairs = replacementPairs;
   }
 
   private UnresolvedPlan child;
 
-  @NonNull private final ContainNullableFieldFill containNullableFieldFill;
-
-  public List<NullableFieldFill> getNullableFieldFills() {
-    return containNullableFieldFill.getNullFieldFill();
+  public List<Field> getFields() {
+    return getReplacementPairs().stream().map(Pair::getLeft).toList();
   }
 
   @Override
-  public UnresolvedPlan attach(UnresolvedPlan child) {
+  public FillNull attach(UnresolvedPlan child) {
     this.child = child;
     return this;
   }

@@ -112,7 +112,10 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFillNullPushDownExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_fillnull_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
 
     assertJsonEqualsIgnoreRelId(
         expected,

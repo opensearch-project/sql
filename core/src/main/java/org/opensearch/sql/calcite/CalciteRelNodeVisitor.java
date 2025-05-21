@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
@@ -37,7 +38,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
-import org.apache.calcite.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
@@ -414,16 +415,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     //                   \- Scan t
     Pair<List<AggCall>, List<RexNode>> resolved = resolveAggCallAndGroupBy(node, context);
     List<RexInputRef> trimmedRefs = new ArrayList<>();
-    trimmedRefs.addAll(PlanUtils.getInputRefs(resolved.right)); // group-by keys first
-    trimmedRefs.addAll(PlanUtils.getInputRefsFromAggCall(resolved.left));
+    trimmedRefs.addAll(PlanUtils.getInputRefs(resolved.getRight())); // group-by keys first
+    trimmedRefs.addAll(PlanUtils.getInputRefsFromAggCall(resolved.getLeft()));
     context.relBuilder.project(trimmedRefs);
 
     // Re-resolve aggCalls and group-by list based on adding trimmed Project.
     // Using re-resolving rather than Calcite Mapping (ref Calcite ProjectTableScanRule)
     // because that Mapping only works for RexNode, but we need both AggCall and RexNode list.
     Pair<List<AggCall>, List<RexNode>> reResolved = resolveAggCallAndGroupBy(node, context);
-    List<AggCall> aggList = reResolved.left;
-    List<RexNode> groupByList = reResolved.right;
+    List<AggCall> aggList = reResolved.getLeft();
+    List<RexNode> groupByList = reResolved.getRight();
     context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggList);
 
     // schema reordering
@@ -673,6 +674,42 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
+  @Override
+  public RelNode visitFillNull(FillNull node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    if (node.getFields().size()
+        != new HashSet<>(node.getFields().stream().map(f -> f.getField().toString()).toList())
+            .size()) {
+      throw new IllegalArgumentException("The field list cannot be duplicated in fillnull");
+    }
+    List<RexNode> projects = new ArrayList<>();
+    List<RelDataTypeField> fieldsList = context.relBuilder.peek().getRowType().getFieldList();
+    for (RelDataTypeField field : fieldsList) {
+      RexNode fieldRef = context.rexBuilder.makeInputRef(field.getType(), field.getIndex());
+      boolean toReplace = false;
+      for (Pair<Field, UnresolvedExpression> pair : node.getReplacementPairs()) {
+        if (field.getName().equalsIgnoreCase(pair.getLeft().getField().toString())) {
+          RexNode replacement = rexVisitor.analyze(pair.getRight(), context);
+          RexNode coalesce = context.rexBuilder.coalesce(fieldRef, replacement);
+          RexNode coalesceWithAlias = context.relBuilder.alias(coalesce, field.getName());
+          projects.add(coalesceWithAlias);
+          toReplace = true;
+          break;
+        }
+      }
+      if (!toReplace && node.getReplacementForAll().isEmpty()) {
+        projects.add(fieldRef);
+      } else if (node.getReplacementForAll().isPresent()) {
+        RexNode replacement = rexVisitor.analyze(node.getReplacementForAll().get(), context);
+        RexNode coalesce = context.rexBuilder.coalesce(fieldRef, replacement);
+        RexNode coalesceWithAlias = context.relBuilder.alias(coalesce, field.getName());
+        projects.add(coalesceWithAlias);
+      }
+    }
+    context.relBuilder.project(projects);
+    return context.relBuilder.peek();
+  }
+
   /*
    * Unsupported Commands of PPL with Calcite for OpenSearch 3.0.0-beta
    */
@@ -704,11 +741,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitKmeans(Kmeans node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("Kmeans command is unsupported in Calcite");
-  }
-
-  @Override
-  public RelNode visitFillNull(FillNull fillNull, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("FillNull command is unsupported in Calcite");
   }
 
   @Override
