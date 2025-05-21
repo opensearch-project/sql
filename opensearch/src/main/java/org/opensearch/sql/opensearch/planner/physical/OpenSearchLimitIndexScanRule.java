@@ -30,28 +30,14 @@ public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexSc
     final LogicalSort sort = call.rel(0);
     final CalciteLogicalIndexScan scan = call.rel(1);
 
-    if (isLogicalSortLimit(sort)) {
-      Integer limitValue = extractLimitValue(sort.fetch);
-      Integer offsetValue = extractOffsetValue(sort.offset);
-      if (limitValue != null && offsetValue != null) {
-        CalciteLogicalIndexScan newScan = scan.pushDownLimit(limitValue, offsetValue);
-        if (newScan != null) {
-          call.transformTo(newScan);
-        }
+    Integer limitValue = extractLimitValue(sort.fetch);
+    Integer offsetValue = extractOffsetValue(sort.offset);
+    if (limitValue != null && offsetValue != null) {
+      CalciteLogicalIndexScan newScan = scan.pushDownLimit(limitValue, offsetValue);
+      if (newScan != null) {
+        call.transformTo(newScan);
       }
     }
-  }
-
-  /**
-   * The LogicalSort is a LIMIT that should be pushed down when its fetch field is not null and its
-   * collation is empty. For example: <code>sort name | head 5</code> should not be pushed down
-   * because it has a field collation.
-   *
-   * @param sort The LogicalSort to check.
-   * @return True if the LogicalSort is a LIMIT that can be pushed down, false otherwise.
-   */
-  private static boolean isLogicalSortLimit(LogicalSort sort) {
-    return sort.fetch != null && sort.getCollation().getFieldCollations().isEmpty();
   }
 
   private static Integer extractLimitValue(RexNode fetch) {
@@ -93,10 +79,11 @@ public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexSc
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalSort.class)
+                        .predicate(OpenSearchIndexScanRule::isLogicalSortLimit)
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
-                                    .predicate(OpenSearchIndexScanRule::test)
+                                    .predicate(OpenSearchIndexScanRule::noAggregatePushed)
                                     .noInputs()));
 
     @Override

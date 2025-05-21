@@ -59,7 +59,7 @@ public class OpenSearchAggregateIndexScanRule
                                 b1.operand(CalciteLogicalIndexScan.class)
                                     .predicate(
                                         Predicate.not(OpenSearchIndexScanRule::isLimitPushed)
-                                            .and(OpenSearchIndexScanRule::test))
+                                            .and(OpenSearchIndexScanRule::noAggregatePushed))
                                     .noInputs()));
 
     @Override

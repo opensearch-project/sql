@@ -63,7 +63,7 @@ public class OpenSearchFilterIndexScanRule extends RelRule<OpenSearchFilterIndex
                                         // filter" and "filter after limit" result in the same
                                         // limit-after-filter DSL.
                                         Predicate.not(OpenSearchIndexScanRule::isLimitPushed)
-                                            .and(OpenSearchIndexScanRule::test))
+                                            .and(OpenSearchIndexScanRule::noAggregatePushed))
                                     .noInputs()));
 
     @Override
