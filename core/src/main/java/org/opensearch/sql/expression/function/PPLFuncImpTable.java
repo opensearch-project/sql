@@ -91,8 +91,19 @@ public class PPLFuncImpTable {
     INSTANCE = new PPLFuncImpTable(builder);
   }
 
+  /**
+   * The registry for built-in functions. Functions defined by the PPL specification, whose
+   * implementations are independent of any specific data storage, should be registered here
+   * internally.
+   */
   private final ImmutableMap<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>>
       functionRegistry;
+
+  /**
+   * The external function registry. Functions whose implementations depend on a specific data
+   * engine should be registered here. This reduces coupling between the core module and particular
+   * storage backends.
+   */
   private final Map<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>>
       externalFunctionRegistry;
 
@@ -113,7 +124,11 @@ public class PPLFuncImpTable {
   public void registerExternalFunction(BuiltinFunctionName functionName, FunctionImp functionImp) {
     CalciteFuncSignature signature =
         new CalciteFuncSignature(functionName.getName(), functionImp.getParams());
-    externalFunctionRegistry.put(functionName, PairList.of(signature, functionImp));
+    if (externalFunctionRegistry.containsKey(functionName)) {
+      externalFunctionRegistry.get(functionName).add(signature, functionImp);
+    } else {
+      externalFunctionRegistry.put(functionName, PairList.of(signature, functionImp));
+    }
   }
 
   public @Nullable RexNode resolveSafe(
