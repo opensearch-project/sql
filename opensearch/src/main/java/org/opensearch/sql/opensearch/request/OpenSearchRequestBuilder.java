@@ -202,8 +202,10 @@ public class OpenSearchRequestBuilder {
     // This also ensures that the limit won't exceed the initial default value. (set to
     // Settings.Key.QUERY_SIZE_LIMIT in OpenSearchIndex)
     requestedTotalSize = Math.min(limit, requestedTotalSize);
-    startFrom = offset;
-    sourceBuilder.from(offset).size(requestedTotalSize);
+    // If there are multiple offset, we aggregate the offset
+    // E.g. for `head 10 from 1 | head 5 from 2` equals to `head 5 from 3`
+    startFrom += offset;
+    sourceBuilder.from(startFrom).size(requestedTotalSize);
   }
 
   public void pushDownTrackedScore(boolean trackScores) {

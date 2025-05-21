@@ -142,8 +142,8 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testMultipleLimitExplain() throws Exception {
     String expected5Then10 =
         isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_limit_5_10.json")
-            : loadFromFile("expectedOutput/ppl/explain_limit_5_10.json");
+            ? loadFromFile("expectedOutput/calcite/explain_limit_5_10_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_5_10_push.json");
     assertJsonEqualsIgnoreRelId(
         expected5Then10,
         explainQueryToString(
@@ -154,8 +154,8 @@ public class ExplainIT extends PPLIntegTestCase {
 
     String expected10Then5 =
         isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_limit_10_5.json")
-            : loadFromFile("expectedOutput/ppl/explain_limit_10_5.json");
+            ? loadFromFile("expectedOutput/calcite/explain_limit_10_5_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_10_5_push.json");
     assertJsonEqualsIgnoreRelId(
         expected10Then5,
         explainQueryToString(
@@ -167,8 +167,8 @@ public class ExplainIT extends PPLIntegTestCase {
     // The second limit should not be pushed down for limit-filter-limit queries
     String expected10ThenFilterThen5 =
         isCalciteEnabled()
-            ? loadFromFile("expectedOutput/calcite/explain_limit_10_filter_5.json")
-            : loadFromFile("expectedOutput/ppl/explain_limit_10_filter_5.json");
+            ? loadFromFile("expectedOutput/calcite/explain_limit_10_filter_5_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_10_filter_5_push.json");
     assertJsonEqualsIgnoreRelId(
         expected10ThenFilterThen5,
         explainQueryToString(
@@ -176,6 +176,22 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| head 10 "
                 + "| where age > 30 "
                 + "| head 5 "
+                + "| fields age"));
+  }
+
+  @Test
+  public void testLimitWithMultipleOffsetPushdownExplain() throws Exception {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_offsets_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_offsets_push.json");
+
+    assertJsonEqualsIgnoreRelId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 10 from 1 "
+                + "| head 5 from 2 "
                 + "| fields age"));
   }
 
