@@ -240,6 +240,33 @@ Example::
     | Dale      | Adams    | 33  |
     +-----------+----------+-----+
 
+COALESCE
+--------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: coalesce(field1, field2, ...) return the first non-null value in the argument list.
+
+Argument type: all the supported data type. The data types of all fields must be same.
+
+Return type: any
+
+Example::
+
+    PPL source=accounts | eval result = coalesce(employer, firstname, lastname) | fields result, firstname, lastname, employer
+    fetched rows / total rows = 4/4
+    +---------+-----------+----------+----------+
+    | result  | firstname | lastname | employer |
+    |---------+-----------+----------+----------|
+    | Pyrami  | Amber     | Duke     | Pyrami   |
+    | Netagy  | Hattie    | Bond     | Netagy   |
+    | Quility | Nanette   | Bates    | Quility  |
+    | Dale    | Dale      | Adams    | null     |
+    +---------+-----------+----------+----------+
+
 ISPRESENT
 ---------
 
