@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -506,45 +505,45 @@ public class AstDSL {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
   }
 
-<<<<<<< HEAD
-  public static FillNull fillNull(UnresolvedExpression replaceNullWithMe, Field... fields) {
-    return new FillNull(
-        FillNull.ContainNullableFieldFill.ofSameValue(
-            replaceNullWithMe, ImmutableList.copyOf(fields)));
-  }
 
-  public static FillNull fillNull(
-      List<ImmutablePair<Field, UnresolvedExpression>> fieldAndReplacements) {
-    ImmutableList.Builder<FillNull.NullableFieldFill> replacementsBuilder = ImmutableList.builder();
-    for (ImmutablePair<Field, UnresolvedExpression> fieldAndReplacement : fieldAndReplacements) {
-      replacementsBuilder.add(
-              new FillNull.NullableFieldFill(
-                      fieldAndReplacement.getLeft(), fieldAndReplacement.getRight()));
-    }
-    return new FillNull(
-            FillNull.ContainNullableFieldFill.ofVariousValue(replacementsBuilder.build()));
-  }
-
-  public static Window window(
-=======
   public static Patterns patterns(
->>>>>>> 788da98bb (Revert stream pattern method in V2 and implement SIMPLE_PATTERN in Calcite (#3553))
-      UnresolvedPlan input,
-      PatternMethod patternMethod,
-      UnresolvedExpression sourceField,
-      String alias,
-      List<Argument> arguments) {
+          UnresolvedPlan input,
+          PatternMethod patternMethod,
+          UnresolvedExpression sourceField,
+          String alias,
+          List<Argument> arguments) {
     List<UnresolvedExpression> funArgs = new ArrayList<>();
     funArgs.add(sourceField);
     funArgs.addAll(arguments);
     return new Patterns(
-        new Alias(
-            alias,
-            new WindowFunction(
-                new Function(patternMethod.name().toLowerCase(Locale.ROOT), funArgs),
-                List.of(),
-                List.of()),
-            alias),
-        input);
+            new Alias(
+                    alias,
+                    new WindowFunction(
+                            new Function(patternMethod.name().toLowerCase(Locale.ROOT), funArgs),
+                            List.of(),
+                            List.of()),
+                    alias),
+            input);
+  }
+
+
+  public static FillNull fillNull(UnresolvedPlan input, UnresolvedExpression replacement) {
+    return FillNull.ofSameValue(replacement, ImmutableList.of()).attach(input);
+  }
+
+  public static FillNull fillNull(
+      UnresolvedPlan input, UnresolvedExpression replacement, Field... fields) {
+    return FillNull.ofSameValue(replacement, ImmutableList.copyOf(fields)).attach(input);
+  }
+
+  public static FillNull fillNull(
+      UnresolvedPlan input, List<Pair<Field, UnresolvedExpression>> fieldAndReplacements) {
+    ImmutableList.Builder<Pair<Field, UnresolvedExpression>> replacementsBuilder =
+        ImmutableList.builder();
+    for (Pair<Field, UnresolvedExpression> fieldAndReplacement : fieldAndReplacements) {
+      replacementsBuilder.add(
+          Pair.of(fieldAndReplacement.getLeft(), fieldAndReplacement.getRight()));
+    }
+    return FillNull.ofVariousValue(replacementsBuilder.build()).attach(input);
   }
 }

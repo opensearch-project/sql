@@ -181,6 +181,7 @@ public class PPLFuncImpTable {
       registerOperator(ASIN, SqlStdOperatorTable.ASIN);
       registerOperator(ATAN, SqlStdOperatorTable.ATAN);
       registerOperator(ATAN2, SqlStdOperatorTable.ATAN2);
+      registerOperator(CEIL, SqlStdOperatorTable.CEIL);
       registerOperator(CEILING, SqlStdOperatorTable.CEIL);
       registerOperator(COS, SqlStdOperatorTable.COS);
       registerOperator(COT, SqlStdOperatorTable.COT);

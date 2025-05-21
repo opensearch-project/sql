@@ -76,7 +76,6 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
@@ -86,7 +85,6 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.FetchCursor;
-import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
@@ -1397,14 +1395,11 @@ class AnalyzerTest extends AnalyzerTestBase {
             ImmutablePair.of(
                 DSL.ref("int_null_value", INTEGER),
                 DSL.ifnull(DSL.ref("int_null_value", INTEGER), DSL.literal(0)))),
-        new FillNull(
+        AstDSL.fillNull(
             AstDSL.relation("schema"),
-            FillNull.ContainNullableFieldFill.ofSameValue(
-                AstDSL.intLiteral(0),
-                ImmutableList.<Field>builder()
-                    .add(AstDSL.field("integer_value"))
-                    .add(AstDSL.field("int_null_value"))
-                    .build())));
+            AstDSL.intLiteral(0),
+            AstDSL.field("integer_value"),
+            AstDSL.field("int_null_value")));
   }
 
   @Test
@@ -1418,14 +1413,11 @@ class AnalyzerTest extends AnalyzerTestBase {
             ImmutablePair.of(
                 DSL.ref("int_null_value", INTEGER),
                 DSL.ifnull(DSL.ref("int_null_value", INTEGER), DSL.literal(1)))),
-        new FillNull(
+        AstDSL.fillNull(
             AstDSL.relation("schema"),
-            FillNull.ContainNullableFieldFill.ofVariousValue(
-                ImmutableList.of(
-                    new FillNull.NullableFieldFill(
-                        AstDSL.field("integer_value"), AstDSL.intLiteral(0)),
-                    new FillNull.NullableFieldFill(
-                        AstDSL.field("int_null_value"), AstDSL.intLiteral(1))))));
+            List.of(
+                Pair.of(AstDSL.field("integer_value"), AstDSL.intLiteral(0)),
+                Pair.of(AstDSL.field("int_null_value"), AstDSL.intLiteral(1)))));
   }
 
   @Test
