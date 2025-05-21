@@ -85,7 +85,7 @@ jobs:
           mkdir -p grammar_files
           
           # Copy all .g4 files to the directory
-          find ./unified-grammar/src/main/antlr4 -name "*.g4" -type f -exec cp {} grammar_files/ \;
+          find ./language-grammar/src/main/antlr4 -name "*.g4" -type f -exec cp {} grammar_files/ \;
           
           # List the files that will be included in the zip
           echo "Files to be included in the zip:"
