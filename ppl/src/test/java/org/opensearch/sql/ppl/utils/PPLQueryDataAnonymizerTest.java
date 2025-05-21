@@ -145,14 +145,20 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testFillNullSameValue() {
     assertEquals(
-        "source=t | fillnull with 0 in f1, f2", anonymize("source=t | fillnull with 0 in f1, f2"));
+        "source=t | fillnull with *** in f1, f2",
+        anonymize("source=t | fillnull with 0 in f1, f2"));
   }
 
   @Test
   public void testFillNullVariousValues() {
     assertEquals(
-        "source=t | fillnull using f1 = 0, f2 = -1",
+        "source=t | fillnull using f1 = ***, f2 = ***",
         anonymize("source=t | fillnull using f1 = 0, f2 = -1"));
+  }
+
+  @Test
+  public void testFillNullWithoutFields() {
+    assertEquals("source=t | fillnull with ***", anonymize("source=t | fillnull with 0"));
   }
 
   @Test
@@ -200,6 +206,11 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=t | eval date=DATE_ADD(DATE(***),INTERVAL *** HOUR)",
         anonymize("source=t | eval date=DATE_ADD(DATE('2020-08-26'),INTERVAL 1 HOUR)"));
+  }
+
+  @Test
+  public void testDescribe() {
+    assertEquals("describe t", anonymize("describe t"));
   }
 
   @Test
