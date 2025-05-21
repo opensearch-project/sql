@@ -203,6 +203,11 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testDescribe() {
+    assertEquals("describe t", anonymize("describe t"));
+  }
+
+  @Test
   public void testExplain() {
     assertEquals(
         "explain standard source=t | fields + a", anonymizeStatement("source=t | fields a", true));
