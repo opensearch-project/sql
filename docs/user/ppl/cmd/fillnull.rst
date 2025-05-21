@@ -21,7 +21,7 @@ fillnull with <replacement> [in <field-list>]
 fillnull using <field> = <replacement> [, <field> = <replacement>]
 
 * replacement: mandatory. The value used to replace `null`s.
-* field-list: optional. The comma-delimited field list. The `null` values in the field will be replaced with the values from the replacement. In v2, at least one field is required. In v3, if no field specified, the replacement is applied to all fields.
+* field-list: optional. The comma-delimited field list. The `null` values in the field will be replaced with the values from the replacement. From 3.1.0, when ``plugins.calcite.enabled`` is true, if no field specified, the replacement is applied to all fields.
 
 Example 1: replace null values with a specified value on one field
 ==================================================================
@@ -93,4 +93,4 @@ PPL query::
 Limitation
 ==========
 * The ``fillnull`` command is not rewritten to OpenSearch DSL, it is only executed on the coordination node.
-* In v2, at least one field is required.
+* Before 3.1.0, at least one field is required.
