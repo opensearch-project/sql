@@ -32,6 +32,7 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -270,7 +271,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   public static RelDataType convertSchema(Table table) {
     List<String> fieldNameList = new ArrayList<>();
     List<RelDataType> typeList = new ArrayList<>();
-    Map<String, ExprType> fieldTypes = table.getFieldTypes();
+    Map<String, ExprType> fieldTypes = new LinkedHashMap<>(table.getFieldTypes());
     fieldTypes.putAll(table.getReservedFieldTypes());
     for (Entry<String, ExprType> entry : fieldTypes.entrySet()) {
       fieldNameList.add(entry.getKey());
