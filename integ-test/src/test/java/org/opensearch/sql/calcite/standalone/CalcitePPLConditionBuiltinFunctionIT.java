@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 
 public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Override
@@ -20,6 +21,17 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
     super.init();
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
+    Request request1 =
+        new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/7?refresh=true");
+    request1.setJsonEntity(
+        "{\"name\":\"   "
+            + " \",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
+    client().performRequest(request1);
+    Request request2 =
+        new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/8?refresh=true");
+    request2.setJsonEntity(
+        "{\"name\":\"\",\"age\":57,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
+    client().performRequest(request2);
   }
 
   @Test
@@ -44,7 +56,15 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
 
     verifySchema(actual, schema("name", "string"));
 
-    verifyDataRows(actual, rows("John"), rows("Jane"), rows("Jake"), rows("Hello"), rows("Kevin"));
+    verifyDataRows(
+        actual,
+        rows("John"),
+        rows("Jane"),
+        rows("Jake"),
+        rows("Hello"),
+        rows("Kevin"),
+        rows("    "),
+        rows(""));
   }
 
   @Test
@@ -64,7 +84,9 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
         rows(null, 10),
         rows("Jake", 70),
         rows("Kevin", null),
-        rows("Hello", 30));
+        rows("Hello", 30),
+        rows("    ", 27),
+        rows("", 57));
   }
 
   @Test
@@ -85,7 +107,9 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
         rows(null, null),
         rows("Jake", "HJake"),
         rows("Kevin", "HKevin"),
-        rows("Hello", null));
+        rows("Hello", null),
+        rows("    ", "H    "),
+        rows("", "H"));
   }
 
   @Test
@@ -105,7 +129,30 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
         rows("Unknown", 10),
         rows("Jake", 70),
         rows("Kevin", null),
-        rows("Hello", 30));
+        rows("Hello", 30),
+        rows("    ", 27),
+        rows("", 57));
+  }
+
+  @Test
+  public void testCoalesce() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age = 10 | eval new_country = coalesce(name, state, country),"
+                    + " null = coalesce(name, state, name)  | fields name, state, country,"
+                    + " new_country, null",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(
+        actual,
+        schema("name", "string"),
+        schema("state", "string"),
+        schema("country", "string"),
+        schema("new_country", "string"),
+        schema("null", "string"));
+
+    verifyDataRows(actual, rows(null, null, "Canada", "Canada", null));
   }
 
   @Test
@@ -125,7 +172,9 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
         rows("young", 20),
         rows("young", 10),
         rows("old", 70),
-        rows("young", 30));
+        rows("young", 30),
+        rows("young", 27),
+        rows("old", 57));
   }
 
   @Test
@@ -140,5 +189,52 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
 
     verifyDataRows(
         actual, rows(0.0, "John"), rows(0.0, "Jane"), rows(0.0, "Jake"), rows(1.0, "Hello"));
+  }
+
+  @Test
+  public void testIsPresent() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where ispresent(name) | fields name, age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+
+    verifyDataRows(
+        actual,
+        rows("Jake", 70),
+        rows("Hello", 30),
+        rows("John", 25),
+        rows("Jane", 20),
+        rows("Kevin", null),
+        rows("    ", 27),
+        rows("", 57));
+  }
+
+  @Test
+  public void testIsEmpty() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where isempty(name) | fields name, age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+
+    verifyDataRows(actual, rows(null, 10), rows("", 57));
+  }
+
+  @Test
+  public void testIsBlank() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where isblank(name) | fields name, age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+
+    verifySchema(actual, schema("name", "string"), schema("age", "integer"));
+
+    verifyDataRows(actual, rows(null, 10), rows("    ", 27), rows("", 57));
   }
 }
