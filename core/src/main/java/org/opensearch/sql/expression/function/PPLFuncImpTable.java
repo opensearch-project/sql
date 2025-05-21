@@ -11,6 +11,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -19,12 +20,12 @@ import java.util.Optional;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.executor.QueryType;
 
@@ -96,7 +97,7 @@ public class PPLFuncImpTable {
    * implementations are independent of any specific data storage, should be registered here
    * internally.
    */
-  private final ImmutableMap<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>>
+  private final ImmutableMap<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
       functionRegistry;
 
   /**
@@ -104,13 +105,13 @@ public class PPLFuncImpTable {
    * engine should be registered here. This reduces coupling between the core module and particular
    * storage backends.
    */
-  private final Map<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>>
+  private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
       externalFunctionRegistry;
 
   private PPLFuncImpTable(Builder builder) {
-    final ImmutableMap.Builder<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>>
+    final ImmutableMap.Builder<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
         mapBuilder = ImmutableMap.builder();
-    builder.map.forEach((k, v) -> mapBuilder.put(k, v.immutable()));
+    builder.map.forEach((k, v) -> mapBuilder.put(k, List.copyOf(v)));
     this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
     this.externalFunctionRegistry = new HashMap<>();
   }
@@ -125,9 +126,10 @@ public class PPLFuncImpTable {
     CalciteFuncSignature signature =
         new CalciteFuncSignature(functionName.getName(), functionImp.getParams());
     if (externalFunctionRegistry.containsKey(functionName)) {
-      externalFunctionRegistry.get(functionName).add(signature, functionImp);
+      externalFunctionRegistry.get(functionName).add(Pair.of(signature, functionImp));
     } else {
-      externalFunctionRegistry.put(functionName, PairList.of(signature, functionImp));
+      externalFunctionRegistry.put(
+          functionName, new ArrayList<>(List.of(Pair.of(signature, functionImp))));
     }
   }
 
@@ -150,7 +152,8 @@ public class PPLFuncImpTable {
 
   public RexNode resolve(
       final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
-    PairList<CalciteFuncSignature, FunctionImp> implementList = functionRegistry.get(functionName);
+    List<Pair<CalciteFuncSignature, FunctionImp>> implementList =
+        functionRegistry.get(functionName);
     // If the function is not part of the built-in registry, check the external registry
     if (implementList == null) {
       implementList = externalFunctionRegistry.get(functionName);
@@ -433,7 +436,7 @@ public class PPLFuncImpTable {
   }
 
   private static class Builder extends AbstractBuilder {
-    private final Map<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>> map =
+    private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>> map =
         new HashMap<>();
 
     @Override
@@ -441,9 +444,9 @@ public class PPLFuncImpTable {
       CalciteFuncSignature signature =
           new CalciteFuncSignature(functionName.getName(), implement.getParams());
       if (map.containsKey(functionName)) {
-        map.get(functionName).add(signature, implement);
+        map.get(functionName).add(Pair.of(signature, implement));
       } else {
-        map.put(functionName, PairList.of(signature, implement));
+        map.put(functionName, new ArrayList<>(List.of(Pair.of(signature, implement))));
       }
     }
   }
