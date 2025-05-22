@@ -45,8 +45,9 @@ public interface PPLTypeChecker {
 
   private static boolean validateOperands(
       List<SqlTypeFamily> funcTypeFamilies, List<RelDataType> operandTypes) {
+    // If the number of actual operands does not match expectation, return false
     if (funcTypeFamilies.size() != operandTypes.size()) {
-      return true; // Skip checking if sizes do not match because some arguments may be optional
+      return false;
     }
     for (int i = 0; i < operandTypes.size(); i++) {
       SqlTypeName paramType =

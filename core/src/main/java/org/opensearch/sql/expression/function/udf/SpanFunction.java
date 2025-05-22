@@ -54,7 +54,10 @@ public class SpanFunction extends ImplementorUDF {
             OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING)
                 .or(
                     OperandTypes.family(
-                        SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING)));
+                        SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING))
+                .or(
+                    OperandTypes.family(
+                        SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER, SqlTypeFamily.ANY)));
   }
 
   public static class SpanImplementor implements NotNullImplementor {
