@@ -26,7 +26,7 @@ public class WindowFunction extends UnresolvedExpression {
   private final UnresolvedExpression function;
   @Setter private List<UnresolvedExpression> partitionByList = new ArrayList<>();
   @Setter private List<Pair<SortOption, UnresolvedExpression>> sortList = new ArrayList<>();
-  @Setter private WindowFrame windowFrame = WindowFrame.defaultFrame();
+  @Setter private WindowFrame windowFrame = WindowFrame.rowsUnbounded();
 
   public WindowFunction(
       UnresolvedExpression function,

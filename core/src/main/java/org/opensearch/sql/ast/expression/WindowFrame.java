@@ -10,6 +10,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
+import org.opensearch.sql.ast.dsl.AstDSL;
 
 @EqualsAndHashCode(callSuper = false)
 @Getter
@@ -25,12 +26,25 @@ public class WindowFrame extends UnresolvedExpression {
     ROWS
   }
 
-  public static WindowFrame defaultFrame() {
-    return new WindowFrame(
-        FrameType.ROWS, createBound("UNBOUNDED PRECEDING"), createBound("UNBOUNDED FOLLOWING"));
+  public static WindowFrame rowsUnbounded() {
+    return WindowFrame.of(
+        FrameType.ROWS,
+        AstDSL.stringLiteral("UNBOUNDED PRECEDING"),
+        AstDSL.stringLiteral("UNBOUNDED FOLLOWING"));
   }
 
-  public static WindowFrame create(FrameType type, Literal lower, Literal upper) {
+  public static WindowFrame toCurrentRow() {
+    return WindowFrame.of(
+        FrameType.ROWS,
+        AstDSL.stringLiteral("UNBOUNDED PRECEDING"),
+        AstDSL.stringLiteral("CURRENT ROW"));
+  }
+
+  public static WindowFrame of(FrameType type, String lower, String upper) {
+    return WindowFrame.of(type, AstDSL.stringLiteral(lower), AstDSL.stringLiteral(upper));
+  }
+
+  public static WindowFrame of(FrameType type, Literal lower, Literal upper) {
     WindowBound lowerBound = null;
     WindowBound upperBound = null;
     if (lower != null) {

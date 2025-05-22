@@ -12,7 +12,6 @@ public class CalciteRareCommandIT extends RareCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    // TODO: "https://github.com/opensearch-project/sql/issues/3464"
-    // disallowCalciteFallback();
+    disallowCalciteFallback();
   }
 }
