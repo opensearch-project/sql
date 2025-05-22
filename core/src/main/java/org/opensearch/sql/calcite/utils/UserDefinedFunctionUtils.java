@@ -35,7 +35,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
-import org.opensearch.sql.calcite.type.ExprSqlType;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprType;
@@ -92,8 +92,8 @@ public class UserDefinedFunctionUtils {
   }
 
   public static SqlTypeName convertRelDataTypeToSqlTypeName(RelDataType type) {
-    if (type instanceof ExprSqlType exprSqlType) {
-      return switch (exprSqlType.getUdt()) {
+    if (type instanceof AbstractExprRelDataType<?> exprType) {
+      return switch (exprType.getUdt()) {
         case EXPR_DATE -> SqlTypeName.DATE;
         case EXPR_TIME -> SqlTypeName.TIME;
         case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
