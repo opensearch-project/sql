@@ -4,6 +4,7 @@
  */
 package org.opensearch.sql.opensearch.planner.physical;
 
+import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -56,7 +57,9 @@ public class OpenSearchAggregateIndexScanRule
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
-                                    .predicate(OpenSearchIndexScanRule::test)
+                                    .predicate(
+                                        Predicate.not(OpenSearchIndexScanRule::isLimitPushed)
+                                            .and(OpenSearchIndexScanRule::noAggregatePushed))
                                     .noInputs()));
 
     @Override

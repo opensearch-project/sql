@@ -91,7 +91,7 @@ public class OpenSearchProjectIndexScanRule extends RelRule<OpenSearchProjectInd
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
-                                    .predicate(OpenSearchIndexScanRule::test)
+                                    .predicate(OpenSearchIndexScanRule::noAggregatePushed)
                                     .noInputs()));
 
     @Override
