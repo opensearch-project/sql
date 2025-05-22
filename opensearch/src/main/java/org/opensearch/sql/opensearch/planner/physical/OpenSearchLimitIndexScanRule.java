@@ -41,6 +41,7 @@ public class OpenSearchLimitIndexScanRule extends RelRule<OpenSearchLimitIndexSc
   }
 
   private static Integer extractLimitValue(RexNode fetch) {
+    // fetch is always a integer literal (specified in our PPL/SQL syntax)
     if (fetch instanceof RexLiteral) {
       return ((RexLiteral) fetch).getValueAs(Integer.class);
     }
