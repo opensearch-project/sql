@@ -31,6 +31,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.query.TermsQueryBuilder;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ExpressionNotAnalyzableException;
@@ -39,7 +40,7 @@ public class PredicateAnalyzerTest {
   final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   final RexBuilder builder = new RexBuilder(typeFactory);
   final List<String> schema = List.of("a", "b", "c");
-  final Map<String, OpenSearchDataType> typeMapping =
+  final Map<String, ExprType> fieldTypes =
       Map.of(
           "a", OpenSearchDataType.of(MappingType.Integer),
           "b",
@@ -56,7 +57,7 @@ public class PredicateAnalyzerTest {
   @Test
   void equals_generatesTermQuery() throws ExpressionNotAnalyzableException {
     RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field1, numericLiteral);
-    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
 
     assertInstanceOf(TermQueryBuilder.class, result);
     assertEquals(
@@ -75,7 +76,7 @@ public class PredicateAnalyzerTest {
   @Test
   void notEquals_generatesBoolQuery() throws ExpressionNotAnalyzableException {
     RexNode call = builder.makeCall(SqlStdOperatorTable.NOT_EQUALS, field1, numericLiteral);
-    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
 
     assertInstanceOf(BoolQueryBuilder.class, result);
     assertEquals(
@@ -110,7 +111,7 @@ public class PredicateAnalyzerTest {
   @Test
   void gt_generatesRangeQuery() throws ExpressionNotAnalyzableException {
     RexNode call = builder.makeCall(SqlStdOperatorTable.GREATER_THAN, field1, numericLiteral);
-    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
 
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
@@ -133,7 +134,7 @@ public class PredicateAnalyzerTest {
   void gte_generatesRangeQuery() throws ExpressionNotAnalyzableException {
     RexNode call =
         builder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, field1, numericLiteral);
-    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
 
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
@@ -155,7 +156,7 @@ public class PredicateAnalyzerTest {
   @Test
   void lt_generatesRangeQuery() throws ExpressionNotAnalyzableException {
     RexNode call = builder.makeCall(SqlStdOperatorTable.LESS_THAN, field1, numericLiteral);
-    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
 
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
@@ -177,7 +178,7 @@ public class PredicateAnalyzerTest {
   @Test
   void lte_generatesRangeQuery() throws ExpressionNotAnalyzableException {
     RexNode call = builder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, field1, numericLiteral);
-    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
 
     assertInstanceOf(RangeQueryBuilder.class, result);
     assertEquals(
@@ -199,7 +200,7 @@ public class PredicateAnalyzerTest {
   @Test
   void exists_generatesExistsQuery() throws ExpressionNotAnalyzableException {
     RexNode call = builder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, field1);
-    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
 
     assertInstanceOf(ExistsQueryBuilder.class, result);
     assertEquals(
@@ -216,7 +217,7 @@ public class PredicateAnalyzerTest {
   @Test
   void notExists_generatesMustNotExistsQuery() throws ExpressionNotAnalyzableException {
     RexNode call = builder.makeCall(SqlStdOperatorTable.IS_NULL, field1);
-    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
 
     assertInstanceOf(BoolQueryBuilder.class, result);
     assertEquals(
@@ -244,7 +245,7 @@ public class PredicateAnalyzerTest {
     final RexLiteral numericLiteral2 = builder.makeExactLiteral(new BigDecimal(14));
     RexNode call =
         builder.makeIn(field1, ImmutableList.of(numericLiteral, numericLiteral1, numericLiteral2));
-    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
 
     assertInstanceOf(TermsQueryBuilder.class, result);
     assertEquals(
@@ -265,7 +266,7 @@ public class PredicateAnalyzerTest {
   @Test
   void contains_generatesMatchQuery() throws ExpressionNotAnalyzableException {
     RexNode call = builder.makeCall(SqlStdOperatorTable.CONTAINS, field2, stringLiteral);
-    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
 
     assertInstanceOf(MatchQueryBuilder.class, result);
     assertEquals(
@@ -298,7 +299,7 @@ public class PredicateAnalyzerTest {
     RexNode orCall = builder.makeCall(SqlStdOperatorTable.OR, call1, call2);
     RexNode andCall = builder.makeCall(SqlStdOperatorTable.AND, orCall, call3);
     RexNode notCall = builder.makeCall(SqlStdOperatorTable.NOT, andCall);
-    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(notCall, schema, fieldTypes);
 
     assertInstanceOf(BoolQueryBuilder.class, result);
     assertEquals(
@@ -357,7 +358,7 @@ public class PredicateAnalyzerTest {
   @Test
   void equals_generatesTermQuery_TextWithKeyword() throws ExpressionNotAnalyzableException {
     RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field2, stringLiteral);
-    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, typeMapping);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
 
     assertInstanceOf(TermQueryBuilder.class, result);
     assertEquals(
@@ -381,7 +382,7 @@ public class PredicateAnalyzerTest {
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
-            () -> PredicateAnalyzer.analyze(call, schema, typeMapping));
+            () -> PredicateAnalyzer.analyze(call, schema, fieldTypes));
     assertEquals("Can't convert =($2, 'Hi')", exception.getMessage());
   }
 
@@ -392,7 +393,7 @@ public class PredicateAnalyzerTest {
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
-            () -> PredicateAnalyzer.analyze(call, schema, typeMapping));
+            () -> PredicateAnalyzer.analyze(call, schema, fieldTypes));
     assertEquals("Can't convert =($0, 1970-04-11)", exception.getMessage());
   }
 }
