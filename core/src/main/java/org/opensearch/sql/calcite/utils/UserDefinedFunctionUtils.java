@@ -97,6 +97,8 @@ public class UserDefinedFunctionUtils {
         case EXPR_DATE -> SqlTypeName.DATE;
         case EXPR_TIME -> SqlTypeName.TIME;
         case EXPR_TIMESTAMP -> SqlTypeName.TIMESTAMP;
+        case EXPR_IP -> SqlTypeName.VARCHAR;
+        case EXPR_BINARY -> SqlTypeName.VARBINARY;
         default -> type.getSqlTypeName();
       };
     }
