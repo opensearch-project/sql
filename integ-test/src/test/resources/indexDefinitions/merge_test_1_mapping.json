@@ -1,0 +1,27 @@
+{
+  "mappings": {
+    "properties": {
+      "machine": {
+        "properties": {
+          "os1": {
+            "type": "text"
+          },
+          "ram1": {
+            "type": "long"
+          }
+        }
+      },
+      "machine_array": {
+        "type": "nested",
+        "properties": {
+          "os1": {
+            "type": "text"
+          },
+          "ram1": {
+            "type": "long"
+          }
+        }
+      }
+    }
+  }
+}

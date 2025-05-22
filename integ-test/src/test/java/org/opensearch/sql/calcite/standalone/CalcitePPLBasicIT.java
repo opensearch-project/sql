@@ -5,9 +5,7 @@
 
 package org.opensearch.sql.calcite.standalone;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -38,6 +36,8 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
 
     loadIndex(Index.BANK);
     loadIndex(Index.DATA_TYPE_ALIAS);
+    loadIndex(Index.MERGE_TEST_1);
+    loadIndex(Index.MERGE_TEST_2);
   }
 
   @Test
@@ -563,5 +563,26 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
                 executeQuery(
                     String.format("source=%s | stats count() as _score", TEST_INDEX_ACCOUNT)));
     verifyErrorMessageContains(e, "Cannot use metadata field [_score] as the alias.");
+  }
+
+  @Test
+  public void testMergeTwoObject() {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | fields machine.os1 ", TEST_INDEX_MERGE_TEST_WILDCARD));
+    verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
+    verifyDataRows(result, rows(2, 2), rows(3, 3));
+  }
+
+  @Test
+  public void testMergeTwoObjectReturn() {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fields machine.os1,  machine.os2, machine_array.os1, "
+                    + " machine_array.os2",
+                TEST_INDEX_MERGE_TEST_WILDCARD));
+    verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
+    verifyDataRows(result, rows(2, 2), rows(3, 3));
   }
 }

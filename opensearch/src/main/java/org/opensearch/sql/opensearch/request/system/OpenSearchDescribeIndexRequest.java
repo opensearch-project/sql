@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.opensearch.request.system;
 
-import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.*;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
 
 import java.util.ArrayList;
@@ -18,6 +17,7 @@ import java.util.Locale;
 import java.util.Map;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -101,9 +101,48 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     Map<String, IndexMapping> indexMappings =
         client.getIndexMappings(getLocalIndexNames(indexName.getIndexNames()));
     for (IndexMapping indexMapping : indexMappings.values()) {
-      fieldTypes.putAll(indexMapping.getFieldMappings());
+      addIndexMapping(fieldTypes, indexMapping.getFieldMappings());
     }
     return fieldTypes;
+  }
+
+  private void addIndexMapping(
+      Map<String, OpenSearchDataType> resultMap, Map<String, OpenSearchDataType> candidateMap) {
+    for (Map.Entry<String, OpenSearchDataType> entry : candidateMap.entrySet()) {
+      if (resultMap.containsKey(entry.getKey())
+          && checkWhetherToMerge(entry.getValue(), resultMap.get(entry.getKey()))) {
+        resultMap.put(
+            entry.getKey(), mergetTwoObject(resultMap.get(entry.getKey()), entry.getValue()));
+      } else {
+        resultMap.put(entry.getKey(), entry.getValue());
+      }
+    }
+  }
+
+  private OpenSearchDataType mergetTwoObject(OpenSearchDataType first, OpenSearchDataType second) {
+    Map<String, OpenSearchDataType> candidateMap = second.getProperties();
+    for (Map.Entry<String, OpenSearchDataType> entry : candidateMap.entrySet()) {
+      if (first.getProperties().containsKey(entry.getKey())
+          && checkWhetherToMerge(entry.getValue(), first.getProperties().get(entry.getKey()))) {
+        first
+            .getProperties()
+            .put(
+                entry.getKey(),
+                mergetTwoObject(first.getProperties().get(entry.getKey()), entry.getValue()));
+      } else {
+        first.getProperties().put(entry.getKey(), entry.getValue());
+      }
+    }
+    return first;
+  }
+
+  private Boolean checkWhetherToMerge(OpenSearchDataType first, OpenSearchDataType second) {
+    if (first.getExprCoreType() == second.getExprCoreType()
+        && (first.getExprCoreType() == ExprCoreType.STRUCT
+            || first.getExprCoreType() == ExprCoreType.ARRAY)) {
+      return true;
+    }
+    return false;
   }
 
   /**
