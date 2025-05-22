@@ -99,7 +99,6 @@ class OpenSearchExecutionProtectorTest {
   void test_protect_indexScan() {
     String indexName = "test";
     final int maxResultWindow = 10000;
-    final int requestTotalSizeLimit = 200;
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);

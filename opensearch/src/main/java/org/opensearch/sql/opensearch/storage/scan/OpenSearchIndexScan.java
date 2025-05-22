@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.jetbrains.annotations.TestOnly;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.core.common.io.stream.BytesStreamInput;
 import org.opensearch.sql.data.model.ExprValue;
@@ -45,6 +46,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
+  /** Creates index scan based on a provided OpenSearchRequestBuilder. */
   public OpenSearchIndexScan(
       OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
     this.maxResponseSize = maxResponseSize;
@@ -52,9 +54,9 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     this.request = request;
   }
 
-  /** Creates index scan based on a provided OpenSearchRequestBuilder. */
+  @TestOnly
   public OpenSearchIndexScan(OpenSearchClient client, OpenSearchRequest request) {
-    this(client, -1, request);
+    this(client, Integer.MAX_VALUE, request);
   }
 
   @Override
@@ -67,10 +69,12 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
 
   @Override
   public boolean hasNext() {
-    // For pagination, we need to limit the return rows count to pageSize
-    if (maxResponseSize > 0 && queryCount >= maxResponseSize) {
+    // For pagination and limit, we need to limit the return rows count to pageSize or limit size
+    if (queryCount >= maxResponseSize) {
       return false;
-    } else if (!iterator.hasNext()) {
+    }
+
+    if (!iterator.hasNext()) {
       fetchNextBatch();
     }
     return iterator.hasNext();

@@ -59,7 +59,7 @@ public class OpenSearchRequestBuilder {
   private final SearchSourceBuilder sourceBuilder;
 
   /** Query size of the request -- how many rows will be returned. */
-  private int requestedTotalSize = -1;
+  private int requestedTotalSize = Integer.MAX_VALUE;
 
   /** Size of each page request to return. */
   private Integer pageSize = null;
@@ -122,9 +122,7 @@ public class OpenSearchRequestBuilder {
     List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
 
     if (pageSize == null) {
-      // size < 0 means having to fetch all data.
-      if (size < 0 || startFrom + size > maxResultWindow) {
-        // if (size > 0 && (size < 0 || startFrom + size > maxResultWindow)) {
+      if (startFrom + size > maxResultWindow) {
         sourceBuilder.size(maxResultWindow - startFrom);
         // Search with PIT request
         String pitId = createPit(indexName, cursorKeepAlive, client);

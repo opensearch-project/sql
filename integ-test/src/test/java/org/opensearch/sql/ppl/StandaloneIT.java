@@ -257,7 +257,7 @@ public class StandaloneIT extends PPLIntegTestCase {
           new Analyzer(
               new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
       Planner planner = new Planner(LogicalPlanOptimizer.create());
-      QueryService queryService = new QueryService(analyzer, executionEngine, planner, null);
+      QueryService queryService = new QueryService(analyzer, executionEngine, planner);
       return new QueryPlanFactory(queryService);
     }
   }

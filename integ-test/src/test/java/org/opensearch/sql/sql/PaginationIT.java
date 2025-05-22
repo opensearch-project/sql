@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.sql;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ONLINE;
@@ -23,7 +21,6 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
-import org.opensearch.sql.legacy.SQLIntegTestCase.Index;
 import org.opensearch.sql.util.TestUtils;
 
 public class PaginationIT extends SQLIntegTestCase {

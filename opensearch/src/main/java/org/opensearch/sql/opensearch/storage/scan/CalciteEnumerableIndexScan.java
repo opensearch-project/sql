@@ -98,7 +98,10 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
         OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
         pushDownContext.forEach(action -> action.apply(requestBuilder));
         return new OpenSearchIndexEnumerator(
-            osIndex.getClient(), getFieldPath(), osIndex.buildRequest(requestBuilder));
+            osIndex.getClient(),
+            getFieldPath(),
+            requestBuilder.getMaxResponseSize(),
+            osIndex.buildRequest(requestBuilder));
       }
     };
   }
