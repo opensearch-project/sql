@@ -175,11 +175,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
               requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));
       return newScan;
     } catch (Exception e) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Cannot pushdown the limit {}", limit, e);
-      } else {
-        LOG.warn("Cannot pushdown the limit {}, ", limit);
-      }
+      LOG.debug("Cannot pushdown limit {} with offset {}. Exception: {}", limit, offset, e);
     }
     return null;
   }
