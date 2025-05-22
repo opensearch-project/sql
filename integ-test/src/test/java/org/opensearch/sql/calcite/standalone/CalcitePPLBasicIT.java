@@ -566,23 +566,19 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
-  public void testMergeTwoObject() {
-    JSONObject result =
-        executeQuery(
-            String.format("source=%s | fields machine.os1 ", TEST_INDEX_MERGE_TEST_WILDCARD));
-    verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
-    verifyDataRows(result, rows(2, 2), rows(3, 3));
-  }
-
-  @Test
-  public void testMergeTwoObjectReturn() {
+  public void testFieldsMergedObject() {
     JSONObject result =
         executeQuery(
             String.format(
                 "source=%s | fields machine.os1,  machine.os2, machine_array.os1, "
                     + " machine_array.os2",
                 TEST_INDEX_MERGE_TEST_WILDCARD));
-    verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
-    verifyDataRows(result, rows(2, 2), rows(3, 3));
+    verifySchema(
+        result,
+        schema("machine.os1", "string"),
+        schema("machine.os2", "string"),
+        schema("machine_array.os1", "string"),
+        schema("machine_array.os2", "string"));
+    verifyDataRows(result, rows("linux", null, "linux", null), rows(null, "linux", null, "linux"));
   }
 }

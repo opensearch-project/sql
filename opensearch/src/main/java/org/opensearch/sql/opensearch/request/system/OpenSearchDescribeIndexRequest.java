@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import lombok.extern.log4j.Log4j2;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -25,6 +26,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 
+@Log4j2
 /** Describe index meta data request. */
 public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
@@ -100,40 +102,27 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     Map<String, OpenSearchDataType> fieldTypes = new HashMap<>();
     Map<String, IndexMapping> indexMappings =
         client.getIndexMappings(getLocalIndexNames(indexName.getIndexNames()));
+    log.error(indexMappings.keySet());
     for (IndexMapping indexMapping : indexMappings.values()) {
-      addIndexMapping(fieldTypes, indexMapping.getFieldMappings());
+      mergeObjectAndArrayInsideMap(fieldTypes, indexMapping.getFieldMappings());
     }
     return fieldTypes;
   }
 
-  private void addIndexMapping(
-      Map<String, OpenSearchDataType> resultMap, Map<String, OpenSearchDataType> candidateMap) {
-    for (Map.Entry<String, OpenSearchDataType> entry : candidateMap.entrySet()) {
-      if (resultMap.containsKey(entry.getKey())
-          && checkWhetherToMerge(entry.getValue(), resultMap.get(entry.getKey()))) {
-        resultMap.put(
-            entry.getKey(), mergetTwoObject(resultMap.get(entry.getKey()), entry.getValue()));
-      } else {
-        resultMap.put(entry.getKey(), entry.getValue());
-      }
-    }
-  }
+  private void mergeObjectAndArrayInsideMap(
+      Map<String, OpenSearchDataType> target, Map<String, OpenSearchDataType> source) {
+    for (Map.Entry<String, OpenSearchDataType> entry : source.entrySet()) {
+      String key = entry.getKey();
+      OpenSearchDataType value = entry.getValue();
 
-  private OpenSearchDataType mergetTwoObject(OpenSearchDataType first, OpenSearchDataType second) {
-    Map<String, OpenSearchDataType> candidateMap = second.getProperties();
-    for (Map.Entry<String, OpenSearchDataType> entry : candidateMap.entrySet()) {
-      if (first.getProperties().containsKey(entry.getKey())
-          && checkWhetherToMerge(entry.getValue(), first.getProperties().get(entry.getKey()))) {
-        first
-            .getProperties()
-            .put(
-                entry.getKey(),
-                mergetTwoObject(first.getProperties().get(entry.getKey()), entry.getValue()));
+      if (target.containsKey(key) && checkWhetherToMerge(value, target.get(key))) {
+        OpenSearchDataType merged = target.get(key);
+        mergeObjectAndArrayInsideMap(merged.getProperties(), value.getProperties());
+        target.put(key, merged);
       } else {
-        first.getProperties().put(entry.getKey(), entry.getValue());
+        target.put(key, value);
       }
     }
-    return first;
   }
 
   private Boolean checkWhetherToMerge(OpenSearchDataType first, OpenSearchDataType second) {

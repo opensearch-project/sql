@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.columnPattern;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -28,6 +27,8 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     super.init();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK);
+    loadIndex(Index.MERGE_TEST_1);
+    loadIndex(Index.MERGE_TEST_2);
   }
 
   @Test
@@ -104,5 +105,22 @@ public class FieldsCommandIT extends PPLIntegTestCase {
                     String.format(
                         "source=%s | eval _id = 1 | fields firstname, _id", TEST_INDEX_ACCOUNT)));
     verifyErrorMessageContains(e, "Cannot use metadata field [_id] as the eval field.");
+  }
+
+  @Test
+  public void testFieldsTwoMergedObject() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | fields machine.os1,  machine.os2, machine_array.os1, "
+                    + " machine_array.os2",
+                TEST_INDEX_MERGE_TEST_WILDCARD));
+    verifySchema(
+        result,
+        schema("machine.os1", "string"),
+        schema("machine.os2", "string"),
+        schema("machine_array.os1", "string"),
+        schema("machine_array.os2", "string"));
+    verifyDataRows(result, rows("linux", null, "linux", null), rows(null, "linux", null, "linux"));
   }
 }
