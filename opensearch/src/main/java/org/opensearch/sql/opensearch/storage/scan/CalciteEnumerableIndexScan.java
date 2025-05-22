@@ -86,12 +86,17 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
+  /**
+   * This Enumerator may be iterated for multiple times, so we need to create opensearch request for
+   * each time to avoid reusing source builder. That's because the source builder has stats like PIT
+   * or SearchAfter recorded during previous search.
+   */
   public Enumerable<@Nullable Object> scan() {
-    OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
-    pushDownContext.forEach(action -> action.apply(requestBuilder));
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
+        OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
+        pushDownContext.forEach(action -> action.apply(requestBuilder));
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getFieldPath(),

@@ -1,0 +1,48 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.fallback.allowed : false
+            plugins.query.size_limit : 1
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
+---
+"Handle lookup command with query size limit is 1":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "logs"}}
+             {"regionId": "1", "action": "login_attempt", "timestamp": "2024-04-29T10:00:00Z"}
+             {"index": {"_index": "logs"}}
+             {"regionId": "2", "action": "file_upload", "timestamp": "2024-04-29T10:05:00Z"}'
+          - '{"index": {"_index": "region_info"}}
+             {"regionId": "0", "regionName": "eu"}
+             {"index": {"_index": "region_info"}}
+             {"regionId": "0", "regionName": "de"}
+             {"index": {"_index": "region_info"}}
+             {"regionId": "1", "regionName": "us-east-1"}
+             {"index": {"_index": "region_info"}}
+             {"regionId": "2", "regionName": "us-west-2"}'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=logs | lookup region_info regionId'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "action", "type": "string"}, {"name": "regionId", "type": "string"}, {"name": "timestamp", "type": "timestamp"},  {"name": "regionName", "type": "string"}]}
+  - match: {"datarows": [["login_attempt", "1", "2024-04-29 10:00:00", "us-east-1"]]}
