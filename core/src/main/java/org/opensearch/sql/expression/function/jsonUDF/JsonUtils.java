@@ -30,7 +30,8 @@ public class JsonUtils {
 
       if (c == '{') {
         int end = input.indexOf('}', i);
-        if (end == -1) throw new IllegalArgumentException("Unmatched { in input");
+        if (end == -1)
+          throw new IllegalArgumentException("Unmatched { in input when converting json path");
 
         String index = input.substring(i + 1, end).trim();
         if (index.isEmpty()) {

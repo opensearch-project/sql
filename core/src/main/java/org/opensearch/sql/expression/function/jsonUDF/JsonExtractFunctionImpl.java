@@ -58,11 +58,7 @@ public class JsonExtractFunctionImpl extends ImplementorUDF {
     String jsonStr = (String) args[0];
     List<Object> jsonPaths = Arrays.asList(args).subList(1, args.length);
     List<String> pathSpecs =
-        jsonPaths.stream()
-            .map(Object::toString)
-            .map(JsonUtils::convertToJsonPath)
-            .map(s -> " lax " + s)
-            .toList();
+        jsonPaths.stream().map(Object::toString).map(JsonUtils::convertToJsonPath).toList();
     List<Object> results = new ArrayList<>();
     for (String pathSpec : pathSpecs) {
       Object queryResult = a.jsonQuery(jsonStr, pathSpec, WITHOUT_ARRAY, NULL, NULL, false);

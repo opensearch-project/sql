@@ -10,13 +10,6 @@ import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
-import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
-import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -76,61 +69,5 @@ public class JsonAppendFunctionImpl extends ImplementorUDF {
       }
     }
     return JsonFunctions.jsonInsert(jsonStr, expands.toArray());
-  }
-
-  public static String jsonAppendIfArray(Object json, List<Object> pathValueMap, boolean isExtend) {
-    try {
-      JsonNode tree = convertInputToJsonNode(json);
-
-      Configuration conf =
-          Configuration.builder()
-              .jsonProvider(new JacksonJsonNodeJsonProvider())
-              .mappingProvider(new JacksonMappingProvider())
-              .build();
-
-      DocumentContext context = JsonPath.using(conf).parse(tree);
-
-      for (int index = 0; index < pathValueMap.size(); index += 2) {
-        String jsonPath = pathValueMap.get(index).toString();
-        Object valueToAppend = pathValueMap.get(index + 1);
-        JsonNode targets;
-        try {
-          targets = context.read(jsonPath);
-        } catch (PathNotFoundException e) {
-          continue;
-        }
-        if (JsonPath.isPathDefinite(jsonPath)) {
-          if (targets instanceof ArrayNode arrayNode) {
-            if (isExtend && valueToAppend instanceof List list) {
-              for (Object value : list) {
-                arrayNode.addPOJO(value);
-              }
-            } else {
-              arrayNode.addPOJO(valueToAppend);
-            }
-          }
-        } else {
-          // Some * inside. an arrayNode returned
-          for (int i = 0; i < targets.size(); i++) {
-            JsonNode target = targets.get(i);
-            if (target instanceof ArrayNode arrayNode) {
-              if (isExtend && valueToAppend instanceof List list) {
-                for (Object value : list) {
-                  arrayNode.addPOJO(value);
-                }
-              } else {
-                arrayNode.addPOJO(valueToAppend);
-              }
-            }
-          }
-        }
-      }
-      return tree.toString();
-    } catch (Exception e) {
-      if (e instanceof PathNotFoundException) {
-        return json.toString();
-      }
-      throw new RuntimeException("Failed to process JSON", e);
-    }
   }
 }

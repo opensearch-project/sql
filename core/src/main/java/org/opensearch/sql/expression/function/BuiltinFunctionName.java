@@ -227,7 +227,6 @@ public enum BuiltinFunctionName {
   JSON(FunctionName.of("json")),
   JSON_OBJECT(FunctionName.of("json_object")),
   JSON_ARRAY(FunctionName.of("json_array")),
-  TO_JSON_STRING(FunctionName.of("to_json_string")),
   JSON_ARRAY_LENGTH(FunctionName.of("json_array_length")),
   JSON_EXTRACT(FunctionName.of("json_extract")),
   JSON_KEYS(FunctionName.of("json_keys")),
