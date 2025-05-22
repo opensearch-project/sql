@@ -18,6 +18,14 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 
+/**
+ * Type checker interface for PPL (Piped Processing Language) functions.
+ *
+ * <p>Provides operand type validation based on specified type families, similar to Calcite's {@link
+ * SqlOperandTypeChecker}, but adapted for PPL function requirements. This abstraction is necessary
+ * because {@code SqlOperandTypeChecker::checkOperandTypes(SqlCallBinding, boolean)} cannot be
+ * directly used for type checking at the logical plan level.
+ */
 public interface PPLTypeChecker {
   boolean checkOperandTypes(List<RelDataType> types);
 

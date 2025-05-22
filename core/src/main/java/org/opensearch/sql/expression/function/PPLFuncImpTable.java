@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
@@ -36,6 +37,7 @@ import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
+import org.apache.commons.lang3.function.TriFunction;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -490,18 +492,8 @@ public class PPLFuncImpTable {
     }
   }
 
-  @FunctionalInterface
-  private interface RexUnaryResolver {
-    RexNode apply(RexBuilder builder, RexNode node);
-  }
-
-  @FunctionalInterface
-  private interface RexBinaryResolver {
-    RexNode apply(RexBuilder builder, RexNode arg1, RexNode arg2);
-  }
-
   private static FunctionImp createFunctionImpWithTypeChecker(
-      RexUnaryResolver resolver, PPLTypeChecker typeChecker) {
+      BiFunction<RexBuilder, RexNode, RexNode> resolver, PPLTypeChecker typeChecker) {
     return new FunctionImp1() {
       @Override
       public RexNode resolve(RexBuilder builder, RexNode arg1) {
@@ -516,7 +508,7 @@ public class PPLFuncImpTable {
   }
 
   private static FunctionImp createFunctionImpWithTypeChecker(
-      RexBinaryResolver resolver, PPLTypeChecker typeChecker) {
+      TriFunction<RexBuilder, RexNode, RexNode, RexNode> resolver, PPLTypeChecker typeChecker) {
     return new FunctionImp2() {
       @Override
       public RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2) {

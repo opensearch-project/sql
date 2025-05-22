@@ -12,6 +12,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.opensearch.sql.executor.QueryType.PPL;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
@@ -31,6 +33,7 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelRunners;
+import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.calcite.CalcitePlanContext;
@@ -126,5 +129,19 @@ public class CalcitePPLAbstractTest {
     final SqlNode sqlNode = result.asStatement();
     final String sql = sqlNode.toSqlString(SparkSqlDialect.DEFAULT).getSql();
     assertThat(sql, is(normalized));
+  }
+
+  private static String getStackTrace(final Throwable throwable) {
+    if (throwable == null) {
+      return StringUtils.EMPTY;
+    }
+    final StringWriter sw = new StringWriter();
+    throwable.printStackTrace(new PrintWriter(sw, true));
+    return sw.toString();
+  }
+
+  public void verifyErrorMessageContains(Throwable t, String msg) {
+    String stackTrace = getStackTrace(t);
+    assertThat(String.format("Actual stack trace was:\n%s", stack), stack.contains(msg));
   }
 }

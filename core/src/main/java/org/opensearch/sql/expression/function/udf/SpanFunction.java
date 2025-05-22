@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.expression.function;
+package org.opensearch.sql.expression.function.udf;
 
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -18,8 +18,11 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.type.ExprSqlType;
@@ -27,13 +30,15 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 import org.opensearch.sql.planner.physical.collector.Rounding;
 import org.opensearch.sql.planner.physical.collector.Rounding.DateRounding;
 import org.opensearch.sql.planner.physical.collector.Rounding.TimeRounding;
 import org.opensearch.sql.planner.physical.collector.Rounding.TimestampRounding;
 
-public class SpanFunctionImpl extends ImplementorUDF {
-  protected SpanFunctionImpl() {
+public class SpanFunction extends ImplementorUDF {
+  public SpanFunction() {
     super(new SpanImplementor(), NullPolicy.ARG0);
   }
 
@@ -44,8 +49,12 @@ public class SpanFunctionImpl extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    // TODO: Implement a proper type checker for SPAN function
-    return null;
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING)
+                .or(
+                    OperandTypes.family(
+                        SqlTypeFamily.DATETIME, SqlTypeFamily.INTEGER, SqlTypeFamily.STRING)));
   }
 
   public static class SpanImplementor implements NotNullImplementor {
@@ -82,7 +91,7 @@ public class SpanFunctionImpl extends ImplementorUDF {
             (ScalarFunctionImpl)
                 ScalarFunctionImpl.create(
                     Types.lookupMethod(
-                        SpanFunctionImpl.class, methodName, String.class, int.class, String.class));
+                        SpanFunction.class, methodName, String.class, int.class, String.class));
         return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
       }
       throw new IllegalArgumentException(

@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl.calcite;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
 
@@ -18,7 +19,8 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
   @Test
   public void testLowerWithIntegerType() {
     String ppl = "source=EMP | eval lower_name = lower(EMPNO) | fields lower_name";
-    Assert.assertThrows(Exception.class, () -> getRelNode(ppl));
+    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(t, "LOWER function expects {[CHARACTER]}, but got [SHORT]");
   }
 
   @Test
@@ -31,6 +33,10 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     String wrongPpl = "source=EMP | eval time_diff = timediff(12, '2009-12-10') | fields time_diff";
     getRelNode(strPpl);
     getRelNode(timePpl);
-    Assert.assertThrows(Exception.class, () -> getRelNode(wrongPpl));
+    Throwable t = Assert.assertThrows(Exception.class, () -> getRelNode(wrongPpl));
+    verifyErrorMessageContains(
+        t,
+        "TIMEDIFF function expects {[STRING,STRING], [DATETIME,DATETIME], [DATETIME,STRING],"
+            + " [STRING,DATETIME]}, but got [INTEGER,STRING]");
   }
 }
