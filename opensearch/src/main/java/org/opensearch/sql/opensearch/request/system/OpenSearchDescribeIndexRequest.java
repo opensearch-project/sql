@@ -109,31 +109,6 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     return fieldTypes;
   }
 
-  private void mergeObjectAndArrayInsideMap(
-      Map<String, OpenSearchDataType> target, Map<String, OpenSearchDataType> source) {
-    for (Map.Entry<String, OpenSearchDataType> entry : source.entrySet()) {
-      String key = entry.getKey();
-      OpenSearchDataType value = entry.getValue();
-
-      if (target.containsKey(key) && checkWhetherToMerge(value, target.get(key))) {
-        OpenSearchDataType merged = target.get(key);
-        mergeObjectAndArrayInsideMap(merged.getProperties(), value.getProperties());
-        target.put(key, merged);
-      } else {
-        target.put(key, value);
-      }
-    }
-  }
-
-  private Boolean checkWhetherToMerge(OpenSearchDataType first, OpenSearchDataType second) {
-    if (first.getExprCoreType() == second.getExprCoreType()
-        && (first.getExprCoreType() == ExprCoreType.STRUCT
-            || first.getExprCoreType() == ExprCoreType.ARRAY)) {
-      return true;
-    }
-    return false;
-  }
-
   /**
    * Get the minimum of the max result windows of the indices.
    *
@@ -183,6 +158,46 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
   private String clusterName(Map<String, String> meta) {
     return meta.getOrDefault(META_CLUSTER_NAME, DEFAULT_TABLE_CAT);
+  }
+
+  /**
+   * The function accept two map and merge them. It will merge object/nested DataType if they're
+   * under same key
+   *
+   * @param target The target map we will merge into
+   * @param source The candidate map
+   */
+  private void mergeObjectAndArrayInsideMap(
+      Map<String, OpenSearchDataType> target, Map<String, OpenSearchDataType> source) {
+    for (Map.Entry<String, OpenSearchDataType> entry : source.entrySet()) {
+      String key = entry.getKey();
+      OpenSearchDataType value = entry.getValue();
+
+      if (target.containsKey(key) && checkWhetherToMerge(value, target.get(key))) {
+        OpenSearchDataType merged = target.get(key);
+        mergeObjectAndArrayInsideMap(merged.getProperties(), value.getProperties());
+        target.put(key, merged);
+      } else {
+        target.put(key, value);
+      }
+    }
+  }
+
+  /**
+   * The function check whether the two DataType need to be merged if they are under same key.
+   * currently we only merge nested and object
+   *
+   * @param first the
+   * @param second
+   * @return
+   */
+  private Boolean checkWhetherToMerge(OpenSearchDataType first, OpenSearchDataType second) {
+    if (first.getExprCoreType() == second.getExprCoreType()
+        && (first.getExprCoreType() == ExprCoreType.STRUCT
+            || first.getExprCoreType() == ExprCoreType.ARRAY)) {
+      return true;
+    }
+    return false;
   }
 
   @Override
