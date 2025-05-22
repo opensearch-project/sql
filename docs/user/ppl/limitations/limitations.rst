@@ -77,8 +77,10 @@ Nested Field Behavior
 Multi-value Field Behavior
 ==========================
 
-OpenSearch does not natively support the ARRAY data type but does allow multi-value fields implicitly. The SQL/PPL plugin adheres strictly to the data type semantics defined in index mappings. When parsing OpenSearch responses, it expects data to match the declared type and does not account for data in array format.
-
-If the ``plugins.query.field_type_tolerance`` setting is enabled, the SQL/PPL plugin will handle array datasets by returning scalar data types, allowing basic queries (e.g., ``SELECT * FROM tbl WHERE condition``). However, using multi-value fields in expressions or functions will result in exceptions.
-
-If this setting is disabled or absent, only the first element of an array is returned, preserving the default behavior.
+OpenSearch does not natively support the ARRAY data type but does allow multi-value fields implicitly. The
+SQL/PPL plugin adheres strictly to the data type semantics defined in index mappings. When parsing OpenSearch
+responses, it expects data to match the declared type and does not account for data in array format. If the
+plugins.query.field_type_tolerance setting is enabled, the SQL/PPL plugin will handle array datasets by returning
+scalar data types, allowing basic queries (e.g., source = tbl | where condition). However, using multi-value
+fields in expressions or functions will result in exceptions. If this setting is disabled or absent, only the
+first element of an array is returned, preserving the default behavior.
