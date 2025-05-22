@@ -11,6 +11,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -19,12 +20,12 @@ import java.util.Optional;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.executor.QueryType;
 
@@ -91,13 +92,45 @@ public class PPLFuncImpTable {
     INSTANCE = new PPLFuncImpTable(builder);
   }
 
-  private final ImmutableMap<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>> map;
+  /**
+   * The registry for built-in functions. Functions defined by the PPL specification, whose
+   * implementations are independent of any specific data storage, should be registered here
+   * internally.
+   */
+  private final ImmutableMap<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
+      functionRegistry;
+
+  /**
+   * The external function registry. Functions whose implementations depend on a specific data
+   * engine should be registered here. This reduces coupling between the core module and particular
+   * storage backends.
+   */
+  private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
+      externalFunctionRegistry;
 
   private PPLFuncImpTable(Builder builder) {
-    final ImmutableMap.Builder<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>>
+    final ImmutableMap.Builder<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
         mapBuilder = ImmutableMap.builder();
-    builder.map.forEach((k, v) -> mapBuilder.put(k, v.immutable()));
-    this.map = ImmutableMap.copyOf(mapBuilder.build());
+    builder.map.forEach((k, v) -> mapBuilder.put(k, List.copyOf(v)));
+    this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
+    this.externalFunctionRegistry = new HashMap<>();
+  }
+
+  /**
+   * Register a function implementation from external services dynamically.
+   *
+   * @param functionName the name of the function, has to be defined in BuiltinFunctionName
+   * @param functionImp the implementation of the function
+   */
+  public void registerExternalFunction(BuiltinFunctionName functionName, FunctionImp functionImp) {
+    CalciteFuncSignature signature =
+        new CalciteFuncSignature(functionName.getName(), functionImp.getParams());
+    if (externalFunctionRegistry.containsKey(functionName)) {
+      externalFunctionRegistry.get(functionName).add(Pair.of(signature, functionImp));
+    } else {
+      externalFunctionRegistry.put(
+          functionName, new ArrayList<>(List.of(Pair.of(signature, functionImp))));
+    }
   }
 
   public @Nullable RexNode resolveSafe(
@@ -119,7 +152,12 @@ public class PPLFuncImpTable {
 
   public RexNode resolve(
       final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
-    final PairList<CalciteFuncSignature, FunctionImp> implementList = map.get(functionName);
+    List<Pair<CalciteFuncSignature, FunctionImp>> implementList =
+        functionRegistry.get(functionName);
+    // If the function is not part of the built-in registry, check the external registry
+    if (implementList == null) {
+      implementList = externalFunctionRegistry.get(functionName);
+    }
     if (implementList == null || implementList.isEmpty()) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
@@ -401,7 +439,7 @@ public class PPLFuncImpTable {
   }
 
   private static class Builder extends AbstractBuilder {
-    private final Map<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>> map =
+    private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>> map =
         new HashMap<>();
 
     @Override
@@ -409,9 +447,9 @@ public class PPLFuncImpTable {
       CalciteFuncSignature signature =
           new CalciteFuncSignature(functionName.getName(), implement.getParams());
       if (map.containsKey(functionName)) {
-        map.get(functionName).add(signature, implement);
+        map.get(functionName).add(Pair.of(signature, implement));
       } else {
-        map.put(functionName, PairList.of(signature, implement));
+        map.put(functionName, new ArrayList<>(List.of(Pair.of(signature, implement))));
       }
     }
   }
