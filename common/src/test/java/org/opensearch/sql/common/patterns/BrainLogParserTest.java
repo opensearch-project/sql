@@ -277,7 +277,7 @@ public class BrainLogParserTest {
             entry -> {
               String key = entry.getKey();
               Map<String, Object> value = entry.getValue();
-              Long count = (Long) value.get("count");
+              Long count = (Long) value.get(PatternUtils.PATTERN_COUNT);
               return new AbstractMap.SimpleEntry<>(key, count);
             })
         .collect(

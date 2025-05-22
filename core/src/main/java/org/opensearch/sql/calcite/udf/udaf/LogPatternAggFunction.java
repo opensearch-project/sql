@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LogPatternAggFunction.LogParserAccumulator;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -146,12 +147,12 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
       return patternGroupMap.values().stream()
           .sorted(
               Comparator.comparing(
-                  m -> (Long) m.get(PatternUtils.COUNT),
+                  m -> (Long) m.get(PatternUtils.PATTERN_COUNT),
                   Comparator.nullsLast(Comparator.reverseOrder())))
           .map(
               m -> {
                 String pattern = (String) m.get(PatternUtils.PATTERN);
-                Long count = (Long) m.get(PatternUtils.COUNT);
+                Long count = (Long) m.get(PatternUtils.PATTERN_COUNT);
                 List<String> sampleLogs = (List<String>) m.get(PatternUtils.SAMPLE_LOGS);
                 Map<String, List<String>> tokensMap = new HashMap<>();
                 ParseResult parseResult =
@@ -163,10 +164,10 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
                 return ImmutableMap.of(
                     PatternUtils.PATTERN,
                         parseResult.toTokenOrderString(PatternUtils.WILDCARD_PREFIX),
-                    PatternUtils.COUNT, count,
+                    PatternUtils.PATTERN_COUNT, count,
                     PatternUtils.TOKENS, tokensMap);
               })
-          .toList();
+          .collect(Collectors.toList());
     }
   }
 }

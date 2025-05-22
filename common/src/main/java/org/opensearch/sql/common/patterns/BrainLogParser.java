@@ -352,17 +352,18 @@ public class BrainLogParser {
           (key, stats) -> {
             if (stats == null) {
               Map<String, Object> newStats = new HashMap<>();
-              newStats.put("pattern", key);
-              newStats.put("count", 1L);
+              newStats.put(PatternUtils.PATTERN, key);
+              newStats.put(PatternUtils.PATTERN_COUNT, 1L);
               List<String> samples = new ArrayList<>();
               if (sampleLog != null && samples.size() < maxSampleCount) {
                 samples.add(sampleLog);
               }
-              newStats.put("sampleLogs", samples);
+              newStats.put(PatternUtils.SAMPLE_LOGS, samples);
               return newStats;
             } else {
-              stats.put("count", ((Long) stats.get("count")) + 1);
-              List<String> samples = (List<String>) stats.get("sampleLogs");
+              stats.put(
+                  PatternUtils.PATTERN_COUNT, ((Long) stats.get(PatternUtils.PATTERN_COUNT)) + 1);
+              List<String> samples = (List<String>) stats.get(PatternUtils.SAMPLE_LOGS);
               if (sampleLog != null && samples.size() < maxSampleCount) {
                 samples.add(sampleLog);
               }

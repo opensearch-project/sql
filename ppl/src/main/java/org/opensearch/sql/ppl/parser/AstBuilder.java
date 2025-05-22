@@ -458,7 +458,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                 .getSettingValue(Key.DEFAULT_PATTERN_METHOD)
                 .toString()
                 .toLowerCase(Locale.ROOT);
-    String patternModeStr =
+    String patternMode =
         ctx.pattern_mode != null
             ? StringUtils.unquoteIdentifier(ctx.pattern_mode.getText()).toLowerCase(Locale.ROOT)
             : settings
@@ -480,7 +480,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         partitionByList,
         newField != null ? newField.getValue().toString() : "patterns_field",
         PatternMethod.valueOf(patternMethod.toUpperCase(Locale.ROOT)),
-        PatternMode.valueOf(patternModeStr.toUpperCase(Locale.ROOT)),
+        PatternMode.valueOf(patternMode.toUpperCase(Locale.ROOT)),
         patternMaxSampleCount,
         patternBufferLimit,
         arguments);

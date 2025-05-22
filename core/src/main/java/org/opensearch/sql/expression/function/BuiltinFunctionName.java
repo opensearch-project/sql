@@ -229,6 +229,7 @@ public enum BuiltinFunctionName {
   BRAIN(FunctionName.of("brain")),
   PATTERN_PARSER(FunctionName.of("pattern_parser")),
   PATTERN(FunctionName.of("pattern")),
+  UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
 
   INTERVAL(FunctionName.of("interval")),
 

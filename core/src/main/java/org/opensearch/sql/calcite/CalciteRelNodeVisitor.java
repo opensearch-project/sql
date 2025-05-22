@@ -16,6 +16,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +29,7 @@ import java.util.stream.Stream;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexInputRef;
@@ -90,6 +92,7 @@ import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -311,7 +314,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           new Parse(
               ParseMethod.PATTERNS,
               node.getSourceField(),
-              node.getArguments().getOrDefault("pattern", AstDSL.stringLiteral("")),
+              node.getArguments().getOrDefault(PatternUtils.PATTERN, AstDSL.stringLiteral("")),
               node.getArguments());
       buildParseRelNode(parseNode, context);
       if (PatternMode.AGGREGATION.equals(node.getPatternMode())) {
@@ -319,10 +322,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         List<AggCall> aggCalls =
             Stream.of(
                     new Alias(
-                        "pattern_count",
+                        PatternUtils.PATTERN_COUNT,
                         new AggregateFunction(BuiltinFunctionName.COUNT.name(), patternField)),
                     new Alias(
-                        "sample_logs",
+                        PatternUtils.SAMPLE_LOGS,
                         new AggregateFunction(
                             BuiltinFunctionName.TAKE.name(),
                             node.getSourceField(),
@@ -342,9 +345,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 context.rexBuilder,
                 BuiltinFunctionName.PATTERN_PARSER,
                 context.relBuilder.field(node.getAlias()),
-                context.relBuilder.field("sample_logs"));
+                context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
         flattenParsedPattern(node.getAlias(), parsedNode, context);
-        context.relBuilder.projectExcept(context.relBuilder.field("sample_logs"));
+        context.relBuilder.projectExcept(context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
       } else {
         RexNode parsedNode =
             PPLFuncImpTable.INSTANCE.resolve(
@@ -392,8 +395,31 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             node.getPartitionByList().stream()
                 .map(expr -> rexVisitor.analyze(expr, context))
                 .toList();
-        context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCall);
-        // TODO: Figure out UDTF way to expand/uncollect agg list in group by mode
+        RelNode aggNode =
+            context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCall).build();
+
+        // Patterns agg result is a list of maps. Flatten this field in row via ppl user defined
+        // table function
+        int ordinal = aggNode.getRowType().getField(node.getAlias(), true, false).getIndex();
+        RexCall tvfCall =
+            (RexCall)
+                PPLFuncImpTable.INSTANCE.resolve(
+                    context.rexBuilder,
+                    BuiltinFunctionName.UNCOLLECT_PATTERNS,
+                    // For return type inference
+                    context.rexBuilder.makeInputRef(aggNode.getRowType(), 0),
+                    // aggResult ordinal
+                    context.rexBuilder.makeLiteral(
+                        ordinal,
+                        context.relBuilder.getTypeFactory().createSqlType(SqlTypeName.TINYINT)));
+        RelNode tvfNode =
+            RelFactories.DEFAULT_TABLE_FUNCTION_SCAN_FACTORY.createTableFunctionScan(
+                context.relBuilder.getCluster(), ImmutableList.of(aggNode), tvfCall, null, null);
+        context.relBuilder.push(tvfNode).projectExcept(context.relBuilder.field(node.getAlias()));
+        List<String> currentFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+        List<String> newNames = new ArrayList<>(currentFieldNames);
+        newNames.set(currentFieldNames.size() - 3, node.getAlias());
+        context.relBuilder.rename(newNames);
       }
     }
     return context.relBuilder.peek();
@@ -812,19 +838,25 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.rexBuilder.makeCast(
             context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
             context.rexBuilder.makeCall(
-                SqlStdOperatorTable.ITEM, parsedNode, context.rexBuilder.makeLiteral("pattern")),
+                SqlStdOperatorTable.ITEM,
+                parsedNode,
+                context.rexBuilder.makeLiteral(PatternUtils.PATTERN)),
             true,
             true);
     RexNode tokensExpr =
         context.rexBuilder.makeCast(
             UserDefinedFunctionUtils.tokensMap,
             context.rexBuilder.makeCall(
-                SqlStdOperatorTable.ITEM, parsedNode, context.rexBuilder.makeLiteral("tokens")),
+                SqlStdOperatorTable.ITEM,
+                parsedNode,
+                context.rexBuilder.makeLiteral(PatternUtils.TOKENS)),
             true,
             true);
-    context.relBuilder.projectPlus(
-        context.relBuilder.alias(patternExpr, "pattern"),
-        context.relBuilder.alias(tokensExpr, "tokens"));
-    context.relBuilder.projectExcept(context.relBuilder.field(originalPatternResultAlias));
+    projectPlusOverriding(
+        Arrays.asList(
+            context.relBuilder.alias(patternExpr, originalPatternResultAlias),
+            context.relBuilder.alias(tokensExpr, PatternUtils.TOKENS)),
+        Arrays.asList(originalPatternResultAlias, PatternUtils.TOKENS),
+        context);
   }
 }

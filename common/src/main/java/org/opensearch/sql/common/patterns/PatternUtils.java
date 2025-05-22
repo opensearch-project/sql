@@ -13,8 +13,8 @@ import java.util.regex.Pattern;
 
 public final class PatternUtils {
   public static final String PATTERN = "pattern";
-  public static final String COUNT = "count";
-  public static final String SAMPLE_LOGS = "sampleLogs";
+  public static final String PATTERN_COUNT = "pattern_count";
+  public static final String SAMPLE_LOGS = "sample_logs";
   public static final String TOKENS = "tokens";
   public static final String WILDCARD_PREFIX = "<*";
   public static final Pattern WILDCARD_PATTERN = Pattern.compile("<\\*[^>]*>");
@@ -36,7 +36,8 @@ public final class PatternUtils {
         (pattern, stat) -> {
           if (left.containsKey(pattern)) {
             Map<String, Object> leftStat = left.get(pattern);
-            leftStat.put(COUNT, (Long) leftStat.get(COUNT) + (Long) stat.get(COUNT));
+            leftStat.put(
+                PATTERN_COUNT, (Long) leftStat.get(PATTERN_COUNT) + (Long) stat.get(PATTERN_COUNT));
             List<String> leftSampleLogs = (List<String>) leftStat.get(SAMPLE_LOGS);
             List<String> rightSampleLogs = (List<String>) stat.get(SAMPLE_LOGS);
             if (leftSampleLogs.size() < maxSampleCount) {
