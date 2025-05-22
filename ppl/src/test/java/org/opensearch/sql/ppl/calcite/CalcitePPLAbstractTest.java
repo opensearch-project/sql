@@ -142,6 +142,6 @@ public class CalcitePPLAbstractTest {
 
   public void verifyErrorMessageContains(Throwable t, String msg) {
     String stackTrace = getStackTrace(t);
-    assertThat(String.format("Actual stack trace was:\n%s", stack), stack.contains(msg));
+    assertThat(String.format("Actual stack trace was:\n%s", stackTrace), stackTrace.contains(msg));
   }
 }
