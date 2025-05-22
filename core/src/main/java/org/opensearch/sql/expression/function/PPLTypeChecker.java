@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,6 +17,7 @@ import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.logging.log4j.LogManager;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 
 /**
@@ -228,6 +230,27 @@ public interface PPLTypeChecker {
    * @throws IllegalArgumentException if any rule is not an {@link ImplicitCastOperandTypeChecker}
    */
   static PPLCompositeTypeChecker wrapComposite(CompositeOperandTypeChecker typeChecker) {
+    try {
+      Field compositionField = CompositeOperandTypeChecker.class.getDeclaredField("composition");
+      compositionField.setAccessible(true);
+      CompositeOperandTypeChecker.Composition composition =
+          (CompositeOperandTypeChecker.Composition) compositionField.get(typeChecker);
+      if (composition != CompositeOperandTypeChecker.Composition.OR) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Currently only OR compositions of ImplicitCastOperandTypeChecker are supported,"
+                    + " but got %s composition",
+                composition.name()));
+      }
+    } catch (IllegalAccessException e) {
+      LogManager.getLogger(PPLTypeChecker.class).error(e);
+    } catch (NoSuchFieldException e) {
+      LogManager.getLogger(PPLTypeChecker.class)
+          .error(
+              "Failed to access the composition field of CompositeOperandTypeChecker. "
+                  + "This may indicate a change in the Calcite library.");
+    }
+
     for (SqlOperandTypeChecker rule : typeChecker.getRules()) {
       if (!(rule instanceof ImplicitCastOperandTypeChecker)) {
         throw new IllegalArgumentException(

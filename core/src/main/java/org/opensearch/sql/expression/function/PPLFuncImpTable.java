@@ -38,12 +38,15 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.commons.lang3.function.TriFunction;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 
 public class PPLFuncImpTable {
+  private static final Logger logger = LogManager.getLogger(PPLFuncImpTable.class);
 
   public interface FunctionImp {
     RexNode resolve(RexBuilder builder, RexNode... args);
@@ -186,7 +189,24 @@ public class PPLFuncImpTable {
         register(functionName, createCompositeFunctionImp(operator, compositeTypeChecker));
       } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
         register(functionName, createImplicitCastFunctionImp(operator, implicitCastTypeChecker));
+      } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
+        try {
+          // If compositeTypeChecker contains operand checkers other than family type checkers or
+          // other than OR compositions, this will throw an IllegalArgumentException.
+          register(functionName, createCompositeFunctionImp(operator, compositeTypeChecker));
+        } catch (IllegalArgumentException e) {
+          // register without type checker
+          logger.debug(
+              "Cannot create composite type checker for function: {}. Will skip its type checking",
+              functionName);
+          register(
+              functionName,
+              (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
+        }
       } else {
+        logger.debug(
+            "Cannot create type checker for function: {}. Will skip its type checking",
+            functionName);
         register(
             functionName,
             (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
