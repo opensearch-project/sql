@@ -8,9 +8,9 @@ package org.opensearch.sql.expression.function;
 import static org.apache.calcite.sql.type.SqlTypeFamily.IGNORE;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
-import static org.opensearch.sql.expression.function.PPLTypeChecker.compositeWrapper;
 import static org.opensearch.sql.expression.function.PPLTypeChecker.family;
-import static org.opensearch.sql.expression.function.PPLTypeChecker.familyWrapper;
+import static org.opensearch.sql.expression.function.PPLTypeChecker.wrapComposite;
+import static org.opensearch.sql.expression.function.PPLTypeChecker.wrapFamily;
 
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
@@ -210,7 +210,7 @@ public class PPLFuncImpTable {
 
         @Override
         public PPLTypeChecker getTypeChecker() {
-          return compositeWrapper(typeChecker);
+          return wrapComposite(typeChecker);
         }
       };
     }
@@ -225,7 +225,7 @@ public class PPLFuncImpTable {
 
         @Override
         public PPLTypeChecker getTypeChecker() {
-          return familyWrapper(typeChecker);
+          return wrapFamily(typeChecker);
         }
       };
     }

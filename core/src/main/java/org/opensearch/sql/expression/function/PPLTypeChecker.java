@@ -19,7 +19,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 
 /**
- * Type checker interface for PPL (Piped Processing Language) functions.
+ * A custom type checker interface for PPL (Piped Processing Language) functions.
  *
  * <p>Provides operand type validation based on specified type families, similar to Calcite's {@link
  * SqlOperandTypeChecker}, but adapted for PPL function requirements. This abstraction is necessary
@@ -27,8 +27,20 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
  * directly used for type checking at the logical plan level.
  */
 public interface PPLTypeChecker {
+  /**
+   * Validates the operand types.
+   *
+   * @param types the list of operand types to validate
+   * @return true if the operand types are valid, false otherwise
+   */
   boolean checkOperandTypes(List<RelDataType> types);
 
+  /**
+   * Get a string representation of the allowed signatures. The format is like {@code
+   * [STRING,STRING],[INTEGER,INTEGER]}.
+   *
+   * @return a string representation of the allowed signatures
+   */
   String getAllowedSignatures();
 
   private static boolean validateOperands(
@@ -50,6 +62,10 @@ public interface PPLTypeChecker {
     return true;
   }
 
+  /**
+   * A custom {@code PPLTypeChecker} that validates operand types against a list of {@link
+   * SqlTypeFamily}. Instances can be created using {@link #family(SqlTypeFamily...)}.
+   */
   class PPLFamilyTypeChecker implements PPLTypeChecker {
     private final List<SqlTypeFamily> families;
 
@@ -74,6 +90,14 @@ public interface PPLTypeChecker {
     }
   }
 
+  /**
+   * A {@code PPLTypeChecker} implementation that wraps a Calcite {@link
+   * ImplicitCastOperandTypeChecker}.
+   *
+   * <p>This checker delegates operand count and type validation to the wrapped Calcite type
+   * checker, allowing PPL functions to leverage Calcite's implicit casting and type family logic
+   * for operand validation.
+   */
   class PPLFamilyTypeCheckerWrapper implements PPLTypeChecker {
     protected final ImplicitCastOperandTypeChecker innerTypeChecker;
 
@@ -103,7 +127,16 @@ public interface PPLTypeChecker {
     }
   }
 
-  /** Currently only support OR compositions of family type checkers. */
+  /**
+   * A {@code PPLTypeChecker} implementation that wraps a Calcite {@link
+   * CompositeOperandTypeChecker}.
+   *
+   * <p>This checker allows for the composition of multiple operand type checkers, enabling flexible
+   * validation of operand types in PPL functions.
+   *
+   * <p>The implementation currently supports only OR compositions of {@link
+   * ImplicitCastOperandTypeChecker}.
+   */
   class PPLCompositeTypeChecker implements PPLTypeChecker {
     private final List<? extends SqlOperandTypeChecker> allowedRules;
 
@@ -153,16 +186,47 @@ public interface PPLTypeChecker {
     }
   }
 
-  /** Creates a checker that passes if each operand is a member of a corresponding family */
+  /**
+   * Creates a {@link PPLFamilyTypeChecker} with a fixed operand count, validating that each operand
+   * belongs to its corresponding {@link SqlTypeFamily}.
+   *
+   * <p>The number of provided {@code families} determines the required number of operands. Each
+   * operand is checked against the type family at the same position in the array.
+   *
+   * @param families the expected {@link SqlTypeFamily} for each operand, in order
+   * @return a {@link PPLFamilyTypeChecker} that enforces the specified type families for operands
+   */
   static PPLFamilyTypeChecker family(SqlTypeFamily... families) {
     return new PPLFamilyTypeChecker(families);
   }
 
-  static PPLFamilyTypeCheckerWrapper familyWrapper(ImplicitCastOperandTypeChecker typeChecker) {
+  /**
+   * Wraps a Calcite {@link ImplicitCastOperandTypeChecker} (usually a {@link
+   * FamilyOperandTypeChecker}) into a custom PPLTypeChecker of type {@link
+   * PPLFamilyTypeCheckerWrapper}.
+   *
+   * <p>The allow operand count may be fixed or variable, depending on the wrapped type checker.
+   *
+   * @param typeChecker the Calcite type checker to wrap
+   * @return a PPLTypeChecker that uses the wrapped type checker
+   */
+  static PPLFamilyTypeCheckerWrapper wrapFamily(ImplicitCastOperandTypeChecker typeChecker) {
     return new PPLFamilyTypeCheckerWrapper(typeChecker);
   }
 
-  static PPLCompositeTypeChecker compositeWrapper(CompositeOperandTypeChecker typeChecker) {
+  /**
+   * Wraps a Calcite {@link CompositeOperandTypeChecker} into a custom {@link
+   * PPLCompositeTypeChecker}.
+   *
+   * <p>This method requires that all rules within the provided {@code CompositeOperandTypeChecker}
+   * are instances of {@link ImplicitCastOperandTypeChecker}. If any rule does not meet this
+   * requirement, an {@link IllegalArgumentException} is thrown.
+   *
+   * @param typeChecker the Calcite {@link CompositeOperandTypeChecker} to wrap
+   * @return a {@link PPLCompositeTypeChecker} that delegates type checking to the wrapped rules
+   * @throws IllegalArgumentException if any rule is not an {@link ImplicitCastOperandTypeChecker}
+   */
+  static PPLCompositeTypeChecker wrapComposite(CompositeOperandTypeChecker typeChecker) {
     for (SqlOperandTypeChecker rule : typeChecker.getRules()) {
       if (!(rule instanceof ImplicitCastOperandTypeChecker)) {
         throw new IllegalArgumentException(
@@ -174,6 +238,17 @@ public interface PPLTypeChecker {
   }
 
   // Util Functions
+  /**
+   * Generates a list of allowed function signatures based on the provided {@link
+   * FamilyOperandTypeChecker}. The signatures are generated by iterating through the operand count
+   * range and collecting the corresponding type families.
+   *
+   * <p>If the operand count range is large, the method will limit the maximum number of signatures
+   * to 10 to avoid excessive enumeration.
+   *
+   * @param typeChecker the {@link FamilyOperandTypeChecker} to use for generating signatures
+   * @return a list of allowed function signatures
+   */
   private static List<String> getFamilySignatures(FamilyOperandTypeChecker typeChecker) {
     var operandCountRange = typeChecker.getOperandCountRange();
     int min = operandCountRange.getMin();
@@ -196,6 +271,14 @@ public interface PPLTypeChecker {
     return allowedSignatures;
   }
 
+  /**
+   * Generates a string representation of the function signature based on the provided type
+   * families. The format is a list of type families enclosed in square brackets, e.g.: "[INTEGER,
+   * STRING]".
+   *
+   * @param families the list of type families to include in the signature
+   * @return a string representation of the function signature
+   */
   private static String getFamilySignature(List<SqlTypeFamily> families) {
     return "["
         + families.stream().map(SqlTypeFamily::toString).collect(Collectors.joining(","))
