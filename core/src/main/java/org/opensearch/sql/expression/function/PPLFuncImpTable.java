@@ -231,6 +231,7 @@ public class PPLFuncImpTable {
       registerOperator(CRC32, PPLBuiltinOperators.CRC32);
       registerOperator(DIVIDE, PPLBuiltinOperators.DIVIDE);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
+      registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
 
       // Register PPL Datetime UDF operator
       registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);
