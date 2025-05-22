@@ -24,12 +24,11 @@ jobs:
       SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
 
     steps:
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: 21
-      - uses: actions/checkout@v4
-        id: checkout
+      - uses: actions/checkout@v3
       - uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
           role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
@@ -45,7 +44,6 @@ jobs:
           echo "::add-mask::$SONATYPE_PASSWORD"
           echo "SONATYPE_USERNAME=$SONATYPE_USERNAME" >> $GITHUB_ENV
           echo "SONATYPE_PASSWORD=$SONATYPE_PASSWORD" >> $GITHUB_ENV
-          echo "username=$SONATYPE_USERNAME" >> $GITHUB_OUTPUT
 
       # Capture the commit ID for metadata purposes
       - name: Set commit ID
@@ -95,7 +93,8 @@ jobs:
           ./gradlew :async-query-core:shadowJar
           
           # Define constants
-          ARTIFACT_ID="direct-query" 
+          ARTIFACT_ID="async-query-core" 
+          DIR_NAME="direct-query"
           GROUP_PATH="org/opensearch"
           VERSION="${{ steps.extract_version.outputs.VERSION }}"
           
@@ -108,7 +107,7 @@ jobs:
           fi
           
           # Create directory structure in local Maven repository
-          MAVEN_LOCAL_PATH="${HOME}/.m2/repository/${GROUP_PATH}/${ARTIFACT_ID}/${VERSION}"
+          MAVEN_LOCAL_PATH="${HOME}/.m2/repository/${GROUP_PATH}/${DIR_NAME}/${VERSION}"
           mkdir -p "${MAVEN_LOCAL_PATH}"
           
           # Copy the shadow JAR to the local Maven repository with proper naming
@@ -153,58 +152,11 @@ jobs:
           cp -a $HOME/.m2/repository/* ./
           ./publish-snapshot.sh ./
 
-      - name: Create and publish parent maven-metadata.xml
-        run: |
-          # Get the version from previous step
-          VERSION="${{ steps.extract_version.outputs.VERSION }}"
-          
-          # Create temporary directory
-          TEMP_DIR=$(mktemp -d)
-          ARTIFACT_ID="direct-query"
-          
-          # Create parent metadata XML with the extracted version
-          cat > "${TEMP_DIR}/maven-metadata.xml" << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <metadata>
-          <groupId>org.opensearch</groupId>
-          <artifactId>${ARTIFACT_ID}</artifactId>
-          <versioning>
-          <latest>${VERSION}</latest>
-          <release/>
-          <versions>
-          <version>${VERSION}</version>
-          </versions>
-          <lastUpdated>$(date +%Y%m%d%H%M%S)</lastUpdated>
-          </versioning>
-          </metadata>
-          EOF
-          
-          # Generate SHA checksums for the parent metadata
-          cd "${TEMP_DIR}"
-          sha256sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha256"
-          sha512sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha512"
-          
-          # Upload parent metadata and checksum files
-          PARENT_URL="${SNAPSHOT_REPO_URL}org/opensearch/${ARTIFACT_ID}"
-          
-          echo "Uploading parent maven-metadata.xml to ${PARENT_URL}/maven-metadata.xml"
-          curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml" "${PARENT_URL}/maven-metadata.xml"
-          
-          echo "Uploading parent maven-metadata.xml.sha256"
-          curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha256" "${PARENT_URL}/maven-metadata.xml.sha256"
-          
-          echo "Uploading parent maven-metadata.xml.sha512"
-          curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha512" "${PARENT_URL}/maven-metadata.xml.sha512"
-          
-          # Clean up
-          cd -
-          rm -rf "${TEMP_DIR}"
-          echo "Parent maven-metadata.xml published successfully"
-
       - name: Update version metadata with commit ID
         run: |
           COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
-          ARTIFACT_ID="direct-query"  # Changed from async-query-core
+          DIR_NAME="direct-query"
+        
           VERSION="${{ steps.extract_version.outputs.VERSION }}"
           
           # Add commit ID to version-specific metadata file
@@ -214,7 +166,7 @@ jobs:
           METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
           
           # Download metadata from repository
-          META_URL="${SNAPSHOT_REPO_URL}org/opensearch/${ARTIFACT_ID}/${VERSION}/maven-metadata.xml"
+          META_URL="${SNAPSHOT_REPO_URL}org/opensearch/${DIR_NAME}/${VERSION}/maven-metadata.xml"
           echo "Downloading metadata from ${META_URL}"
           
           # Try to download the metadata file
@@ -249,14 +201,11 @@ jobs:
           
             echo "Updated metadata and checksums for ${VERSION}"
           else
-            echo "Failed to download metadata for ${VERSION}, skipping"
+            echo "Failed to download metadata for ${VERSION}"
+            exit 1
           fi
           
           # Clean up
           rm -rf "${TEMP_DIR}"
           
           echo "Version metadata updated with commit ID"
-
-      - name: publish plugin zip snapshots to maven
-        run: |
-          ./gradlew publishPluginZipPublicationToSnapshotsRepository
