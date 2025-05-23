@@ -32,17 +32,6 @@ jobs:
       - uses: actions/checkout@v4
         id: checkout
 
-      #Get Maven credentials
-      - name: Setup publishing credentials
-        id: creds
-        run: |
-          SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
-          echo "SONATYPE_USERNAME=$SONATYPE_USERNAME" >> $GITHUB_ENV
-          echo "SONATYPE_PASSWORD=$SONATYPE_PASSWORD" >> $GITHUB_ENV
-
       # Setup Java/Gradle
       - uses: actions/setup-java@v3
         with:
