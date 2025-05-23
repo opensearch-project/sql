@@ -20,7 +20,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -267,5 +269,35 @@ public interface PlanUtils {
         throw new UnsupportedOperationException(
             "Unexpected aggregation: " + functionName.getName().getFunctionName());
     }
+  }
+
+  /** Get all uniq input references from a RexNode. */
+  static List<RexInputRef> getInputRefs(RexNode node) {
+    List<RexInputRef> inputRefs = new ArrayList<>();
+    node.accept(
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitInputRef(RexInputRef inputRef) {
+            if (!inputRefs.contains(inputRef)) {
+              inputRefs.add(inputRef);
+            }
+            return null;
+          }
+        });
+    return inputRefs;
+  }
+
+  /** Get all uniq input references from a list of RexNodes. */
+  static List<RexInputRef> getInputRefs(List<RexNode> nodes) {
+    return nodes.stream().flatMap(node -> getInputRefs(node).stream()).toList();
+  }
+
+  /** Get all uniq input references from a list of agg calls. */
+  static List<RexInputRef> getInputRefsFromAggCall(List<RelBuilder.AggCall> aggCalls) {
+    return aggCalls.stream()
+        .map(RelBuilder.AggCall::over)
+        .map(RelBuilder.OverCall::toRex)
+        .flatMap(rex -> getInputRefs(rex).stream())
+        .toList();
   }
 }

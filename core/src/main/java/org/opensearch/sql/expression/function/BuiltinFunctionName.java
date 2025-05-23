@@ -138,6 +138,11 @@ public enum BuiltinFunctionName {
   /** IP Functions. */
   CIDRMATCH(FunctionName.of("cidrmatch")),
 
+  /** Cryptographic Functions. */
+  MD5(FunctionName.of("md5")),
+  SHA1(FunctionName.of("sha1")),
+  SHA2(FunctionName.of("sha2")),
+
   /** Arithmetic Operators. */
   ADD(FunctionName.of("+")),
   ADDFUNCTION(FunctionName.of("add")),
@@ -221,6 +226,11 @@ public enum BuiltinFunctionName {
   IF(FunctionName.of("if")),
   NULLIF(FunctionName.of("nullif")),
   ISNULL(FunctionName.of("isnull")),
+  COALESCE(FunctionName.of("coalesce")),
+
+  IS_PRESENT(FunctionName.of("ispresent")),
+  IS_EMPTY(FunctionName.of("isempty")),
+  IS_BLANK(FunctionName.of("isblank")),
 
   ROW_NUMBER(FunctionName.of("row_number")),
   RANK(FunctionName.of("rank")),

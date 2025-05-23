@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
@@ -609,30 +610,31 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /** fillnull command. */
   @Override
-  public UnresolvedPlan visitFillNullWithTheSameValue(
-      OpenSearchPPLParser.FillNullWithTheSameValueContext ctx) {
-    return new FillNull(
-        FillNull.ContainNullableFieldFill.ofSameValue(
-            internalVisitExpression(ctx.nullReplacement),
-            ctx.nullableFieldList.fieldExpression().stream()
-                .map(f -> (Field) internalVisitExpression(f))
-                .toList()));
+  public UnresolvedPlan visitFillNullWith(OpenSearchPPLParser.FillNullWithContext ctx) {
+    if (ctx.IN() != null) {
+      return FillNull.ofSameValue(
+          internalVisitExpression(ctx.replacement),
+          ctx.fieldList().fieldExpression().stream()
+              .map(f -> (Field) internalVisitExpression(f))
+              .toList());
+    } else {
+      return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of());
+    }
   }
 
   /** fillnull command. */
   @Override
-  public UnresolvedPlan visitFillNullWithFieldVariousValues(
-      OpenSearchPPLParser.FillNullWithFieldVariousValuesContext ctx) {
-    ImmutableList.Builder<FillNull.NullableFieldFill> replacementsBuilder = ImmutableList.builder();
-    for (int i = 0; i < ctx.nullReplacementExpression().size(); i++) {
+  public UnresolvedPlan visitFillNullUsing(OpenSearchPPLParser.FillNullUsingContext ctx) {
+    ImmutableList.Builder<Pair<Field, UnresolvedExpression>> replacementsBuilder =
+        ImmutableList.builder();
+    for (int i = 0; i < ctx.replacementPair().size(); i++) {
       replacementsBuilder.add(
-          new FillNull.NullableFieldFill(
-              (Field) internalVisitExpression(ctx.nullReplacementExpression(i).nullableField),
-              internalVisitExpression(ctx.nullReplacementExpression(i).nullReplacement)));
+          Pair.of(
+              (Field) internalVisitExpression(ctx.replacementPair(i).fieldExpression()),
+              internalVisitExpression(ctx.replacementPair(i).replacement)));
     }
 
-    return new FillNull(
-        FillNull.ContainNullableFieldFill.ofVariousValue(replacementsBuilder.build()));
+    return FillNull.ofVariousValue(replacementsBuilder.build());
   }
 
   /** trendline command. */

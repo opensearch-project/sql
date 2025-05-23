@@ -287,6 +287,11 @@ RADIANS:                            'RADIANS';
 SIN:                                'SIN';
 TAN:                                'TAN';
 
+// CRYPTOGRAPHIC FUNCTIONS
+MD5:                                  'MD5';
+SHA1:                                 'SHA1';
+SHA2:                                 'SHA2';
+
 // DATE AND TIME FUNCTIONS
 ADDDATE:                            'ADDDATE';
 ADDTIME:                            'ADDTIME';
@@ -367,6 +372,9 @@ ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
 BETWEEN:                            'BETWEEN';
+ISPRESENT:                          'ISPRESENT';
+ISEMPTY:                            'ISEMPTY';
+ISBLANK:                            'ISBLANK';
 
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
@@ -377,6 +385,7 @@ IFNULL:                             'IFNULL';
 NULLIF:                             'NULLIF';
 IF:                                 'IF';
 TYPEOF:                             'TYPEOF';
+COALESCE:                           'COALESCE';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';

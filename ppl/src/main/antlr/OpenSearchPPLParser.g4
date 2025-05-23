@@ -213,20 +213,20 @@ lookupPair
    ;
 
 fillnullCommand
-   : FILLNULL (fillNullWithTheSameValue
-   | fillNullWithFieldVariousValues)
+   : FILLNULL fillNullWith
+   | FILLNULL fillNullUsing
    ;
 
-fillNullWithTheSameValue
-   : WITH nullReplacement = valueExpression IN nullableFieldList = fieldList
+fillNullWith
+   : WITH replacement = valueExpression (IN fieldList)?
    ;
 
-fillNullWithFieldVariousValues
-   : USING nullReplacementExpression (COMMA nullReplacementExpression)*
+fillNullUsing
+   : USING replacementPair (COMMA replacementPair)*
    ;
 
-nullReplacementExpression
-   : nullableField = fieldExpression EQUAL nullReplacement = valueExpression
+replacementPair
+   : fieldExpression EQUAL replacement = valueExpression
    ;
 
 trendlineCommand
@@ -581,6 +581,7 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
+   | cryptographicFunctionName
    | jsonFunctionName
    | geoipFunctionName
    ;
@@ -699,6 +700,12 @@ trigonometricFunctionName
    | RADIANS
    | SIN
    | TAN
+   ;
+
+cryptographicFunctionName
+   : MD5
+   | SHA1
+   | SHA2
    ;
 
 dateTimeFunctionName
@@ -831,6 +838,9 @@ conditionFunctionName
    | ISNOTNULL
    | CIDRMATCH
    | JSON_VALID
+   | ISPRESENT
+   | ISEMPTY
+   | ISBLANK
    ;
 
 // flow control function return non-boolean value
@@ -838,6 +848,7 @@ flowControlFunctionName
    : IF
    | IFNULL
    | NULLIF
+   | COALESCE
    ;
 
 systemFunctionName
