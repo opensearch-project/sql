@@ -22,9 +22,6 @@ include 'language-grammar'  // New module for grammar files
 include 'async-query-core'
 include 'async-query'
 
-// Establish dependency between language-grammar and async-query-core
-project(':async-query-core').dependsOn(':language-grammar')
-
 // exclude integ-test/doctest in case of offline build since they need downloads
 if (!gradle.startParameter.offline) {
     include 'integ-test'
