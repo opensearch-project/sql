@@ -306,13 +306,13 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   }
 
   /**
-   * `DSL.or` can only take two arguments. To represent large lists without massive recursion, we want to represent the
-   * expression as a balanced tree. This builds that tree from a node list.
+   * `DSL.or` can only take two arguments. To represent large lists without massive recursion, we
+   * want to represent the expression as a balanced tree. This builds that tree from a node list.
    *
    * @param children The list of expressions to merge.
    * @param start The starting position (inclusive) for the current combination step.
-   * @param end The ending position (exclusive) for the current combination step.
-   *            If <= start, children[start] is returned.
+   * @param end The ending position (exclusive) for the current combination step. If <= start,
+   *     children[start] is returned.
    * @return The final `DSL.or` expression.
    */
   private Expression buildOrTree(Expression[] children, int start, int end) {

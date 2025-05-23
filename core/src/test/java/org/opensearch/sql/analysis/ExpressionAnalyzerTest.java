@@ -27,7 +27,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.expression.DSL.ref;
 
 import com.google.common.collect.ImmutableMap;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
