@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-plugins {
-    id 'base'  // Basic plugin for archive tasks
-}
+// Replace plugins {} block with apply plugin syntax
+apply plugin: 'base'  // Basic plugin for archive tasks
 
 // Get version information from root project
 def rootVersion = rootProject.version
