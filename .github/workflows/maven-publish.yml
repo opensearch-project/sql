@@ -63,9 +63,11 @@ jobs:
           TEMP_DIR=$(mktemp -d)
           echo "Directory placeholder - $(date)" > "${TEMP_DIR}/.placeholder"
           
+          GROUP_PATH="org/opensearch"
+    
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" \
             --upload-file "${TEMP_DIR}/.placeholder" \
-            "${SNAPSHOT_REPO_URL}${TARGET_REPO_PATH}/.placeholder"
+            "${SNAPSHOT_REPO_URL}${GROUP_PATH}/${ARTIFACT_ID}/.placeholder"
           
           rm -rf "${TEMP_DIR}"
 
