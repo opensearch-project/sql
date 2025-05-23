@@ -11,7 +11,7 @@ Limitations
 Inconsistent Field Types across indices
 =======================================
 
-* If the same field has different types across indices (e.g., ``field`` is a ``string`` in one index and an ``integer`` in another), PPL uses the first encountered type. Other types will be ignored during query execution.
+* If the same field has different types across indices (e.g., ``field`` is a ``string`` in one index and an ``integer`` in another), PPL selects a field type from one of the indices—this selection is non-deterministic. Fields with other types are ignored during query execution.
 * For ``object`` fields, `PPL merges subfields from different indices to tolerate schema variations <https://github.com/opensearch-project/sql/issues/3625>`_.
 
 Unsupported OpenSearch Field Types
