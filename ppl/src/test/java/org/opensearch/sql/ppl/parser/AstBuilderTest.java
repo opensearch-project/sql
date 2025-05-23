@@ -822,12 +822,15 @@ public class AstBuilderTest {
   @Test
   public void testPatternsCommand() {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_BUFFER_LIMIT)).thenReturn(100000);
     assertEqual(
         "source=t | patterns raw new_field=\"custom_field\" " + "pattern=\"custom_pattern\"",
         patterns(
             relation("t"),
             field("raw"),
-            ImmutableList.of(),
+            emptyList(),
             "custom_field",
             PatternMethod.SIMPLE_PATTERN,
             PatternMode.LABEL,
@@ -841,13 +844,16 @@ public class AstBuilderTest {
   @Test
   public void testPatternsCommandWithBrainMethod() {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_BUFFER_LIMIT)).thenReturn(100000);
     assertEqual(
         "source=t | patterns raw pattern_method=BRAIN variable_count_threshold=2"
             + " frequency_threshold_percentage=0.1",
         patterns(
             relation("t"),
             field("raw"),
-            ImmutableList.of(),
+            emptyList(),
             "patterns_field",
             PatternMethod.BRAIN,
             PatternMode.LABEL,
@@ -861,12 +867,15 @@ public class AstBuilderTest {
   @Test
   public void testPatternsWithoutArguments() {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_BUFFER_LIMIT)).thenReturn(100000);
     assertEqual(
         "source=t | patterns raw",
         patterns(
             relation("t"),
             field("raw"),
-            ImmutableList.of(),
+            emptyList(),
             "patterns_field",
             PatternMethod.SIMPLE_PATTERN,
             PatternMode.LABEL,

@@ -47,7 +47,6 @@ public class SqlUncollectPatternsTableFunction extends SqlWindowTableFunction {
   public static final SqlReturnTypeInference ARG0_TABLE_FUNCTION_UNCOLLECT =
       SqlUncollectPatternsTableFunction::inferRowType;
 
-  // TODO: translate it to parse CURSOR operand
   private static RelDataType inferRowType(SqlOperatorBinding opBinding) {
     final RelDataType inputRowType = opBinding.getOperandType(0);
     return opBinding

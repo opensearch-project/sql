@@ -36,7 +36,6 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
-import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
@@ -58,6 +57,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -330,21 +330,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     String source = visitExpression(node.getSourceField());
     String regex = node.getPattern().toString();
-    String commandName;
-    switch (node.getParseMethod()) {
-      case ParseMethod.PATTERNS:
-        commandName = "patterns";
-        break;
-      case ParseMethod.GROK:
-        commandName = "grok";
-        break;
-      default:
-        commandName = "parse";
-        break;
-    }
-    return ParseMethod.PATTERNS.equals(node.getParseMethod()) && regex.isEmpty()
-        ? StringUtils.format("%s | %s %s", child, commandName, source)
-        : StringUtils.format("%s | %s %s '%s'", child, commandName, source, regex);
+    return StringUtils.format("%s | parse %s '%s'", child, source, regex);
   }
 
   @Override
@@ -397,6 +383,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
               .map(n -> StringUtils.format("%s = %s", visitExpression(n.getLeft()), MASK_LITERAL))
               .collect(Collectors.joining(", ")));
     }
+  }
+
+  // TODO: Add more cases and visit if parameters need to be printed
+  @Override
+  public String visitPatterns(Patterns node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String sourceField = visitExpression(node.getSourceField());
+    return StringUtils.format("%s | patterns %s", child, sourceField);
   }
 
   private String groupBy(String groupBy) {
