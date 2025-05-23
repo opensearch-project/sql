@@ -7,8 +7,8 @@ apply plugin: 'base'  // Basic plugin for archive tasks
 
 // Grammar-specific configuration
 version = System.getProperty('grammar.version', '0.1.0-SNAPSHOT')
-group = 'org.opensearch'  // Make sure this is explicitly set and not variable
-def artifactId = 'language-grammar-poc2'
+group = 'org.opensearch'
+def grammarArtifactId = 'language-grammar-poc2'  // Renamed from artifactId to grammarArtifactId
 
 // Define locations
 def grammarSourceDir = file('src/main/antlr4')
@@ -75,7 +75,7 @@ task packageGrammarFiles(type: Zip) {
         include '**/*.g4'
     }
 
-    archiveFileName = "${artifactId}-${version}.zip"
+    archiveFileName = "${grammarArtifactId}-${version}.zip"  // Updated reference
     destinationDirectory = buildDir
 
     doLast {
@@ -89,7 +89,7 @@ task createGrammarPom {
 
     doLast {
         buildDir.mkdirs()
-        def pomFile = utilities.createPom(buildDir, project.group.toString(), artifactId, version.toString(),
+        def pomFile = utilities.createPom(buildDir, project.group.toString(), grammarArtifactId, version.toString(),  // Updated reference
                 "OpenSearch Language Grammar Files", "zip")
         logger.lifecycle("Created POM file: ${pomFile.absolutePath}")
     }
@@ -100,8 +100,8 @@ task prepareGrammarForMaven(dependsOn: [packageGrammarFiles, createGrammarPom]) 
     description = 'Prepare local Maven repository with grammar artifacts'
 
     doLast {
-        def mavenDir = utilities.prepareMavenDir(project.group.toString(), artifactId, version.toString())
-        logger.lifecycle("GroupId: ${project.group}, ArtifactId: ${artifactId}, Version: ${version}")
+        def mavenDir = utilities.prepareMavenDir(project.group.toString(), grammarArtifactId, version.toString())  // Updated reference
+        logger.lifecycle("GroupId: ${project.group}, ArtifactId: ${grammarArtifactId}, Version: ${version}")
 
         // Copy zip file
         copy {
@@ -111,13 +111,13 @@ task prepareGrammarForMaven(dependsOn: [packageGrammarFiles, createGrammarPom]) 
 
         // Copy POM file
         copy {
-            from "${buildDir}/${artifactId}-${version}.pom"
+            from "${buildDir}/${grammarArtifactId}-${version}.pom"  // Updated reference
             into mavenDir
         }
 
         // Generate checksums
-        utilities.generateChecksums(new File(mavenDir, "${artifactId}-${version}.zip"))
-        utilities.generateChecksums(new File(mavenDir, "${artifactId}-${version}.pom"))
+        utilities.generateChecksums(new File(mavenDir, "${grammarArtifactId}-${version}.zip"))  // Updated references
+        utilities.generateChecksums(new File(mavenDir, "${grammarArtifactId}-${version}.pom"))  // Updated references
 
         logger.lifecycle("Maven directory: ${mavenDir}")
     }

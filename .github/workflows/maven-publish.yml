@@ -26,6 +26,7 @@ jobs:
       SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
       TARGET_REPO_PATH: org/opensearch/language-grammar-poc2
       VERSION: 0.1.0-SNAPSHOT
+      ARTIFACT_ID: language-grammar-poc2  # Explicitly define the artifact ID
 
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +37,7 @@ jobs:
           role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
           aws-region: us-east-1
 
-      # Get Maven credentials
+      #Get Maven credentials
       - name: Setup publishing credentials
         id: creds
         run: |
@@ -57,14 +58,14 @@ jobs:
       - name: Prepare grammar artifacts
         run: ./gradlew :language-grammar:prepareGrammarArtifacts
 
-      # Create the initial directory structure in repository
+      # Create the initial directory structure in repository - FIXED to use env variable
       - name: Create grammar-poc directory structure in repository
         run: |
           TEMP_DIR=$(mktemp -d)
           echo "Directory placeholder - $(date)" > "${TEMP_DIR}/.placeholder"
           
           GROUP_PATH="org/opensearch"
-    
+          
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" \
             --upload-file "${TEMP_DIR}/.placeholder" \
             "${SNAPSHOT_REPO_URL}${GROUP_PATH}/${ARTIFACT_ID}/.placeholder"
@@ -96,7 +97,6 @@ jobs:
       - name: Add commit ID to grammar metadata
         run: |
           COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
-          ARTIFACT_ID="language-grammar-poc2"
           
           TEMP_DIR=$(mktemp -d)
           METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
@@ -153,6 +153,7 @@ jobs:
     env:
       SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
       DIR_NAME: direct-query-poc2
+      GROUP_PATH: org/opensearch
 
     steps:
       - uses: actions/checkout@v4
@@ -199,10 +200,24 @@ jobs:
           echo "commit_id=${COMMIT_ID}" >> $GITHUB_OUTPUT
           echo "Using commit ID: ${COMMIT_ID}"
 
+      # NEW STEP: Create directory structure for direct-query-poc2 in repository
+      - name: Create direct-query directory structure in repository
+        run: |
+          TEMP_DIR=$(mktemp -d)
+          echo "Directory placeholder - $(date)" > "${TEMP_DIR}/.placeholder"
+          
+          # Create the initial directory structure in repository
+          curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" \
+            --upload-file "${TEMP_DIR}/.placeholder" \
+            "${SNAPSHOT_REPO_URL}${GROUP_PATH}/${DIR_NAME}/.placeholder"
+          
+          echo "Created directory structure for ${GROUP_PATH}/${DIR_NAME}"
+          rm -rf "${TEMP_DIR}"
+
       # Prepare JAR using Gradle
       - name: Prepare async-query artifact
         run: |
-          ./gradlew :async-query-core:prepareAsyncQueryArtifacts -PopensearchVersion="${{ steps.extract_version.outputs.VERSION }}"
+          ./gradlew :async-query-core:prepareAsyncQueryArtifacts -PopensearchVersion="${{ steps.extract_version.outputs.VERSION }}" -PmavenDirName="${DIR_NAME}"
 
       # Checkout opensearch-build-libraries repository for publishing scripts
       - uses: actions/checkout@v4
@@ -227,7 +242,7 @@ jobs:
           METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
           
           # Download metadata from repository
-          META_URL="${SNAPSHOT_REPO_URL}org/opensearch/${DIR_NAME}/${VERSION}/maven-metadata.xml"
+          META_URL="${SNAPSHOT_REPO_URL}${GROUP_PATH}/${DIR_NAME}/${VERSION}/maven-metadata.xml"
           echo "Downloading metadata from ${META_URL}"
           
           # Try to download the metadata file
