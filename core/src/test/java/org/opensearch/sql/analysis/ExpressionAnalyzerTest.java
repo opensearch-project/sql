@@ -27,6 +27,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.expression.DSL.ref;
 
 import com.google.common.collect.ImmutableMap;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -399,6 +401,17 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     assertThrows(
         SemanticCheckException.class,
         () -> analyze(AstDSL.in(field("integer_value"), Collections.emptyList())));
+  }
+
+  @Test
+  void visit_in_large_list() {
+    List<UnresolvedExpression> ints = new ArrayList<>();
+    for (int i = 0; i < 10000; i++) {
+      ints.add(intLiteral(i));
+    }
+
+    // Shouldn't crash
+    analyze(AstDSL.in(field("integer_value"), ints));
   }
 
   @Test
