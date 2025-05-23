@@ -118,9 +118,7 @@ public class OpenSearchExprValueFactory {
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
               (c, dt) -> new ExprDoubleValue(c.doubleValue()))
-          .put(
-              OpenSearchTextType.of(),
-              (c, dt) -> new OpenSearchExprTextValue(c.stringValue()))
+          .put(OpenSearchTextType.of(), (c, dt) -> new OpenSearchExprTextValue(c.stringValue()))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),
               (c, dt) -> new ExprStringValue(c.stringValue()))
