@@ -372,6 +372,9 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testPatterns() {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MODE)).thenReturn("LABEL");
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_BUFFER_LIMIT)).thenReturn(100000);
     assertEquals("source=t | patterns email", anonymize("source=t | patterns email"));
     assertEquals(
         "source=t | patterns email | fields + email,patterns_field",

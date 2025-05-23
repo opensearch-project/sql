@@ -31,7 +31,7 @@ public class ParseUtils {
   public static final Map<ParseMethod, BuiltinFunctionName> BUILTIN_FUNCTION_MAP =
       ImmutableMap.of(
           ParseMethod.REGEX, BuiltinFunctionName.INTERNAL_REGEXP_EXTRACT,
-          ParseMethod.PATTERNS, BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_2);
+          ParseMethod.PATTERNS, BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_3);
 
   /**
    * Construct corresponding ParseExpression by {@link ParseMethod}.

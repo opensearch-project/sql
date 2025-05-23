@@ -1,0 +1,44 @@
+{
+  "mappings": {
+    "properties": {
+      "date": {
+        "type": "date",
+        "format": "uuuuMMdd"
+      },
+      "time": {
+        "type": "date",
+        "format": "HHmmss"
+      },
+      "pid": {
+        "type": "integer"
+      },
+      "level": {
+        "type": "text",
+        "fields" : {
+          "keyword" : {
+            "type" : "keyword",
+            "ignore_above":256
+          }
+        }
+      },
+      "component": {
+        "type": "text",
+        "fields" : {
+          "keyword" : {
+            "type" : "keyword",
+            "ignore_above":256
+          }
+        }
+      },
+      "content": {
+        "type": "text",
+        "fields" : {
+          "keyword" : {
+            "type" : "keyword",
+            "ignore_above":256
+          }
+        }
+      }
+    }
+  }
+}
