@@ -64,6 +64,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
@@ -118,7 +119,7 @@ public class OpenSearchExprValueFactory {
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
               (c, dt) -> new ExprDoubleValue(c.doubleValue()))
           .put(
-              OpenSearchDataType.of(OpenSearchDataType.MappingType.Text),
+              OpenSearchTextType.of(),
               (c, dt) -> new OpenSearchExprTextValue(c.stringValue()))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),
