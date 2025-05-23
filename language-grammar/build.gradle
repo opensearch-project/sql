@@ -1,16 +1,86 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 plugins {
     id 'base'  // Basic plugin for archive tasks
 }
 
-// Configuration
-version = '0.1.0-SNAPSHOT'
-group = 'org.opensearch'
+// Get version information from root project
+def rootVersion = rootProject.version
+def opensearchGroup = 'org.opensearch'
+
+ext {
+    // Common properties and utilities
+    mavenRepoUrl = 'https://aws.oss.sonatype.org/content/repositories/snapshots/'
+    mavenLocal = new File(System.getProperty('user.home'), '.m2/repository')
+
+    // Helper methods for artifact publishing
+    utilities = [
+            // Generate Maven directory path
+            createMavenPath: { String groupId, String artifactId, String version ->
+                def groupPath = groupId.replace('.', '/')
+                return "${groupPath}/${artifactId}/${version}"
+            },
+
+            // Create POM file in target directory
+            createPom: { File targetDir, String groupId, String artifactId, String version, String description = "", String packaging = "jar" ->
+                def pomFile = new File(targetDir, "${artifactId}-${version}.pom")
+                pomFile.text = """<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>${groupId}</groupId>
+    <artifactId>${artifactId}</artifactId>
+    <version>${version}</version>
+    <packaging>${packaging}</packaging>
+    <description>${description}</description>
+</project>
+"""
+                return pomFile
+            },
+
+            // Generate checksums for a file
+            generateChecksums: { File file ->
+                if (!file.exists()) return
+
+                exec {
+                    workingDir file.parentFile
+                    commandLine 'bash', '-c', "sha512sum \"${file.name}\" | awk '{print \$1}' > \"${file.name}.sha512\""
+                }
+                exec {
+                    workingDir file.parentFile
+                    commandLine 'bash', '-c', "sha256sum \"${file.name}\" | awk '{print \$1}' > \"${file.name}.sha256\""
+                }
+            },
+
+            // Prepare directory for Maven publishing
+            prepareMavenDir: { String groupId, String artifactId, String version ->
+                def mavenPath = utilities.createMavenPath(groupId, artifactId, version)
+                def mavenDir = new File(mavenLocal, mavenPath)
+                mavenDir.mkdirs()
+                return mavenDir
+            }
+    ]
+}
+
+// Use root project's repository configuration
+repositories {
+    mavenLocal()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    mavenCentral()
+}
+
+// Grammar-specific configuration - use system property with fallback
+version = System.getProperty('grammar.version', '0.1.0-SNAPSHOT')
+group = opensearchGroup
 def artifactId = 'language-grammar-poc2'
 
 // Define locations
-def grammarSourceDir = file('language-grammar/src/main/antlr4')
+def grammarSourceDir = file('src/main/antlr4')
 def buildDir = file("${project.buildDir}")
-def mavenLocal = new File(System.getProperty('user.home'), '.m2/repository')
 
 // Package grammar files into a ZIP
 task packageGrammarFiles(type: Zip) {
@@ -22,82 +92,54 @@ task packageGrammarFiles(type: Zip) {
 
     archiveFileName = "${artifactId}-${version}.zip"
     destinationDirectory = buildDir
+
+    doLast {
+        logger.lifecycle("Grammar files packaged as ${archiveFile.get().asFile}")
+    }
 }
 
-// Create POM file
-task createPom {
+// Create POM file for grammar
+task createGrammarPom {
     description = 'Create POM file for grammar artifact'
 
-    def pomFile = file("${buildDir}/${artifactId}-${version}.pom")
-    outputs.file pomFile
-
     doLast {
-        pomFile.parentFile.mkdirs()
-        pomFile.text = """<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <groupId>${group}</groupId>
-    <artifactId>${artifactId}</artifactId>
-    <version>${version}</version>
-    <packaging>zip</packaging>
-    <description>OpenSearch Language Grammar Files</description>
-</project>
-"""
+        def pomFile = utilities.createPom(buildDir, group.toString(), artifactId, version.toString(),
+                "OpenSearch Language Grammar Files", "zip")
+        logger.lifecycle("Created POM file: ${pomFile.absolutePath}")
     }
 }
 
-// Place artifacts in local Maven repository
-task prepareLocalMavenRepository(dependsOn: [packageGrammarFiles, createPom]) {
+// Place grammar artifacts in local Maven repository
+task prepareGrammarForMaven(dependsOn: [packageGrammarFiles, createGrammarPom]) {
     description = 'Prepare local Maven repository with grammar artifacts'
 
-    def groupPath = "${group}".replace('.', '/')
-    def versionPath = "${mavenLocal}/${groupPath}/${artifactId}/${version}"
-
     doLast {
-        file(versionPath).mkdirs()
+        def mavenDir = utilities.prepareMavenDir(group.toString(), artifactId, version.toString())
 
+        // Copy zip file
         copy {
             from packageGrammarFiles.archiveFile
-            into versionPath
+            into mavenDir
         }
 
+        // Copy POM file
         copy {
             from "${buildDir}/${artifactId}-${version}.pom"
-            into versionPath
+            into mavenDir
         }
 
-        println "Files placed in local Maven repository path: ${versionPath}"
+        // Generate checksums
+        utilities.generateChecksums(new File(mavenDir, "${artifactId}-${version}.zip"))
+        utilities.generateChecksums(new File(mavenDir, "${artifactId}-${version}.pom"))
+
+        logger.lifecycle("Grammar files prepared for publishing with version ${version}")
+        logger.lifecycle("Files available at: ${mavenDir}")
     }
 }
 
-// Generate checksums for Maven artifacts
-task generateChecksums(dependsOn: prepareLocalMavenRepository) {
-    description = 'Generate checksums for Maven artifacts'
-
-    def groupPath = "${group}".replace('.', '/')
-    def versionPath = "${mavenLocal}/${groupPath}/${artifactId}/${version}"
-
-    doLast {
-        file(versionPath).listFiles().each { artifact ->
-            if (artifact.name.endsWith('.zip') || artifact.name.endsWith('.pom')) {
-                exec {
-                    workingDir artifact.parentFile
-                    commandLine 'bash', '-c', "sha512sum \"${artifact.name}\" | awk '{print \$1}' > \"${artifact.name}.sha512\""
-                }
-                exec {
-                    workingDir artifact.parentFile
-                    commandLine 'bash', '-c', "sha256sum \"${artifact.name}\" | awk '{print \$1}' > \"${artifact.name}.sha256\""
-                }
-            }
-        }
-        println "Checksums generated in: ${versionPath}"
-    }
-}
-
-// Main task to prepare all artifacts
+// Main task to prepare grammar artifacts
 task prepareGrammarArtifacts {
     description = 'Prepare all grammar artifacts for publishing'
-    dependsOn generateChecksums
+    group = 'Publishing'
+    dependsOn prepareGrammarForMaven
 }

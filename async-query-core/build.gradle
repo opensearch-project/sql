@@ -12,6 +12,9 @@ plugins {
     id 'com.github.johnrengelman.shadow'
 }
 
+// Apply common utilities from language-grammar
+apply from: "${rootProject.projectDir}/language-grammar/build.gradle"
+
 repositories {
     mavenCentral()
 }
@@ -141,11 +144,72 @@ jacocoTestCoverageVerification {
 }
 check.dependsOn jacocoTestCoverageVerification
 
+// Keep the existing shadowJar configuration
 shadowJar {
+    // Get version from root project or from system property
+    def shadowVersion = rootProject.version
+
     archiveBaseName.set('async-query-core')
-    archiveVersion.set('1.0.0')  // Set the desired version
     archiveClassifier.set('all')
+
+    // Use the version from parent project
+    if (version != shadowVersion) {
+        logger.lifecycle("Using root project version for shadowJar: ${shadowVersion}")
+        archiveVersion.set(shadowVersion.toString())
+    }
 
     from sourceSets.main.output
     configurations = [project.configurations.runtimeClasspath]
+}
+
+// Maven publishing configuration - using root project version
+ext {
+    // Define Maven artifact properties
+    mavenArtifactId = 'async-query-core'
+    mavenDirName = 'direct-query'
+}
+
+// Use parent project version for consistency
+task prepareShadowJarForMaven(dependsOn: shadowJar) {
+    description = 'Prepare shadow JAR for Maven publishing'
+    group = 'Publishing'
+
+    doLast {
+        // Get consistent version
+        def pubVersion = rootProject.version
+
+        logger.lifecycle("Preparing async-query-core for Maven publication with version: ${pubVersion}")
+
+        def mavenDir = utilities.prepareMavenDir(opensearchGroup, mavenDirName, pubVersion.toString())
+        def shadowJarFile = shadowJar.archiveFile.get().asFile
+        def targetJarName = "${mavenArtifactId}-${pubVersion}.jar"
+
+        // Copy the JAR with Maven naming convention
+        copy {
+            from shadowJarFile
+            into mavenDir
+            rename { targetJarName }
+        }
+
+        // Create POM file
+        utilities.createPom(mavenDir, opensearchGroup, mavenArtifactId, pubVersion.toString(),
+                "OpenSearch Async Query Core Library")
+
+        // Generate checksums
+        utilities.generateChecksums(new File(mavenDir, targetJarName))
+        utilities.generateChecksums(new File(mavenDir, "${mavenArtifactId}-${pubVersion}.pom"))
+
+        logger.lifecycle("Async Query Core JAR prepared for publishing:")
+        logger.lifecycle("  - Group ID: ${opensearchGroup}")
+        logger.lifecycle("  - Artifact ID: ${mavenArtifactId}")
+        logger.lifecycle("  - Version: ${pubVersion}")
+        logger.lifecycle("  - Path: ${mavenDir}")
+    }
+}
+
+// Main task to prepare async-query artifacts
+task prepareAsyncQueryArtifacts {
+    description = 'Prepare all async-query-core artifacts for Maven publishing'
+    group = 'Publishing'
+    dependsOn prepareShadowJarForMaven
 }
