@@ -8,12 +8,20 @@ apply plugin: 'base'  // Basic plugin for archive tasks
 // Grammar-specific configuration
 version = System.getProperty('grammar.version', '0.1.0-SNAPSHOT')
 group = 'org.opensearch'
-def grammarArtifactId = 'language-grammar-poc2'  // Renamed from artifactId to grammarArtifactId
+def grammarArtifactId = 'language-grammar-poc2'
 
 // Define locations
 def grammarSourceDir = file('src/main/antlr4')
 def buildDir = file("${project.buildDir}")
-def mavenLocal = new File(System.getProperty('user.home'), '.m2/repository')
+
+// Define Maven local repository - allow customization through system property
+def mavenLocal = new File(System.getProperty('maven.repo.path') ?:
+        System.getProperty('user.home') + '/.m2/repository')
+
+// Local Maven repository for testing in project directory
+def projectMavenRepo = new File(project.rootDir, 'build/local-m2-repo')
+
+logger.lifecycle("Maven repository path: ${mavenLocal.absolutePath}")
 
 ext {
     // Helper methods for artifact publishing
@@ -58,9 +66,9 @@ ext {
             },
 
             // Prepare directory for Maven publishing
-            prepareMavenDir: { String groupId, String artifactId, String version ->
+            prepareMavenDir: { String groupId, String artifactId, String version, File baseDir ->
                 def mavenPath = utilities.createMavenPath(groupId, artifactId, version)
-                def mavenDir = new File(mavenLocal, mavenPath)
+                def mavenDir = new File(baseDir, mavenPath)
                 mavenDir.mkdirs()
                 return mavenDir
             }
@@ -75,7 +83,7 @@ task packageGrammarFiles(type: Zip) {
         include '**/*.g4'
     }
 
-    archiveFileName = "${grammarArtifactId}-${version}.zip"  // Updated reference
+    archiveFileName = "${grammarArtifactId}-${version}.zip"
     destinationDirectory = buildDir
 
     doLast {
@@ -89,7 +97,7 @@ task createGrammarPom {
 
     doLast {
         buildDir.mkdirs()
-        def pomFile = utilities.createPom(buildDir, project.group.toString(), grammarArtifactId, version.toString(),  // Updated reference
+        def pomFile = utilities.createPom(buildDir, project.group.toString(), grammarArtifactId, version.toString(),
                 "OpenSearch Language Grammar Files", "zip")
         logger.lifecycle("Created POM file: ${pomFile.absolutePath}")
     }
@@ -100,8 +108,9 @@ task prepareGrammarForMaven(dependsOn: [packageGrammarFiles, createGrammarPom]) 
     description = 'Prepare local Maven repository with grammar artifacts'
 
     doLast {
-        def mavenDir = utilities.prepareMavenDir(project.group.toString(), grammarArtifactId, version.toString())  // Updated reference
+        def mavenDir = utilities.prepareMavenDir(project.group.toString(), grammarArtifactId, version.toString(), mavenLocal)
         logger.lifecycle("GroupId: ${project.group}, ArtifactId: ${grammarArtifactId}, Version: ${version}")
+        logger.lifecycle("Using Maven repository: ${mavenLocal.absolutePath}")
 
         // Copy zip file
         copy {
@@ -111,15 +120,46 @@ task prepareGrammarForMaven(dependsOn: [packageGrammarFiles, createGrammarPom]) 
 
         // Copy POM file
         copy {
-            from "${buildDir}/${grammarArtifactId}-${version}.pom"  // Updated reference
+            from "${buildDir}/${grammarArtifactId}-${version}.pom"
             into mavenDir
         }
 
         // Generate checksums
-        utilities.generateChecksums(new File(mavenDir, "${grammarArtifactId}-${version}.zip"))  // Updated references
-        utilities.generateChecksums(new File(mavenDir, "${grammarArtifactId}-${version}.pom"))  // Updated references
+        utilities.generateChecksums(new File(mavenDir, "${grammarArtifactId}-${version}.zip"))
+        utilities.generateChecksums(new File(mavenDir, "${grammarArtifactId}-${version}.pom"))
 
         logger.lifecycle("Maven directory: ${mavenDir}")
+    }
+}
+
+// Special task for publishing to project-local Maven repo (useful for testing)
+task prepareGrammarForProjectRepo(dependsOn: [packageGrammarFiles, createGrammarPom]) {
+    description = 'Prepare project-local Maven repository with grammar artifacts (for testing)'
+    group = 'Publishing'
+
+    doLast {
+        def mavenDir = utilities.prepareMavenDir(project.group.toString(), grammarArtifactId, version.toString(), projectMavenRepo)
+        logger.lifecycle("GroupId: ${project.group}, ArtifactId: ${grammarArtifactId}, Version: ${version}")
+        logger.lifecycle("Using Project Maven repository: ${projectMavenRepo.absolutePath}")
+
+        // Copy zip file
+        copy {
+            from packageGrammarFiles.archiveFile
+            into mavenDir
+        }
+
+        // Copy POM file
+        copy {
+            from "${buildDir}/${grammarArtifactId}-${version}.pom"
+            into mavenDir
+        }
+
+        // Generate checksums
+        utilities.generateChecksums(new File(mavenDir, "${grammarArtifactId}-${version}.zip"))
+        utilities.generateChecksums(new File(mavenDir, "${grammarArtifactId}-${version}.pom"))
+
+        logger.lifecycle("Project Maven directory: ${mavenDir}")
+        logger.lifecycle("To test locally, artifacts are available at: ${projectMavenRepo.absolutePath}")
     }
 }
 
@@ -127,4 +167,11 @@ task prepareGrammarArtifacts {
     description = 'Prepare all grammar artifacts for publishing'
     group = 'Publishing'
     dependsOn prepareGrammarForMaven
+}
+
+// This task publishes to both the regular Maven local and the project-local repo
+task prepareAllGrammarArtifacts {
+    description = 'Prepare grammar artifacts for both system and project Maven repositories'
+    group = 'Publishing'
+    dependsOn [prepareGrammarForMaven, prepareGrammarForProjectRepo]
 }
