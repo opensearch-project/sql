@@ -818,6 +818,16 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "hobbies",
         getHobbiesIndexMapping(),
         "src/test/resources/hobbies.json"),
+    MERGE_TEST_1(
+        TestsConstants.TEST_INDEX_MERGE_TEST_1,
+        "merge_test1",
+        getMappingFile("merge_test_1_mapping.json"),
+        "src/test/resources/merge_test_1.json"),
+    MERGE_TEST_2(
+        TestsConstants.TEST_INDEX_MERGE_TEST_2,
+        "merge_test2",
+        getMappingFile("merge_test_2_mapping.json"),
+        "src/test/resources/merge_test_2.json"),
     // It's "people" table in Spark PPL ITs, to avoid conflicts, rename to "worker" here
     WORKER(
         TestsConstants.TEST_INDEX_WORKER,

@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.opensearch.request.system;
 
-import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.*;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
 
 import java.util.ArrayList;
@@ -16,8 +15,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import lombok.extern.log4j.Log4j2;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -25,6 +26,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 
+@Log4j2
 /** Describe index meta data request. */
 public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
@@ -101,7 +103,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     Map<String, IndexMapping> indexMappings =
         client.getIndexMappings(getLocalIndexNames(indexName.getIndexNames()));
     for (IndexMapping indexMapping : indexMappings.values()) {
-      fieldTypes.putAll(indexMapping.getFieldMappings());
+      mergeObjectAndArrayInsideMap(fieldTypes, indexMapping.getFieldMappings());
     }
     return fieldTypes;
   }
@@ -155,6 +157,46 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
   private String clusterName(Map<String, String> meta) {
     return meta.getOrDefault(META_CLUSTER_NAME, DEFAULT_TABLE_CAT);
+  }
+
+  /**
+   * The function accept two map and merge them. It will merge object/nested DataType if they're
+   * under same key
+   *
+   * @param target The target map we will merge into
+   * @param source The candidate map
+   */
+  private void mergeObjectAndArrayInsideMap(
+      Map<String, OpenSearchDataType> target, Map<String, OpenSearchDataType> source) {
+    for (Map.Entry<String, OpenSearchDataType> entry : source.entrySet()) {
+      String key = entry.getKey();
+      OpenSearchDataType value = entry.getValue();
+
+      if (target.containsKey(key) && checkWhetherToMerge(value, target.get(key))) {
+        OpenSearchDataType merged = target.get(key);
+        mergeObjectAndArrayInsideMap(merged.getProperties(), value.getProperties());
+        target.put(key, merged);
+      } else {
+        target.put(key, value);
+      }
+    }
+  }
+
+  /**
+   * The function check whether the two DataType need to be merged if they are under same key.
+   * currently we only merge nested and object
+   *
+   * @param first the
+   * @param second
+   * @return
+   */
+  private Boolean checkWhetherToMerge(OpenSearchDataType first, OpenSearchDataType second) {
+    if (first.getExprCoreType() == second.getExprCoreType()
+        && (first.getExprCoreType() == ExprCoreType.STRUCT
+            || first.getExprCoreType() == ExprCoreType.ARRAY)) {
+      return true;
+    }
+    return false;
   }
 
   @Override
