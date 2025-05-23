@@ -1,0 +1,22 @@
+{
+  "ppl.explain": {
+    "documentation": {
+      "url": "https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/index.rst",
+      "description": "OpenSearch PPL Reference Manual"
+    },
+    "stability" : "stable",
+    "url": {
+      "paths": [
+        {
+          "path" : "/_plugins/_ppl/_explain",
+          "methods" : ["POST"]
+        }
+      ]
+    },
+    "params": {},
+    "body": {
+      "description": "PPL Explain Query",
+      "required":true
+    }
+  }
+}
