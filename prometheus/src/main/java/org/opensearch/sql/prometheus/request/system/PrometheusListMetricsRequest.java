@@ -23,7 +23,7 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
-import org.opensearch.sql.prometheus.request.system.model.MetricMetadata;
+import org.opensearch.sql.prometheus.model.MetricMetadata;
 
 @RequiredArgsConstructor
 public class PrometheusListMetricsRequest implements PrometheusSystemRequest {
