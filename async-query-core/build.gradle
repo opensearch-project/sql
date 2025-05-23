@@ -171,6 +171,7 @@ ext {
 }
 
 // Use parent project version for consistency
+// Modify this task to fix the opensearchGroup reference
 task prepareShadowJarForMaven(dependsOn: shadowJar) {
     description = 'Prepare shadow JAR for Maven publishing'
     group = 'Publishing'
@@ -181,7 +182,8 @@ task prepareShadowJarForMaven(dependsOn: shadowJar) {
 
         logger.lifecycle("Preparing async-query-core for Maven publication with version: ${pubVersion}")
 
-        def mavenDir = utilities.prepareMavenDir(opensearchGroup, mavenDirName, pubVersion.toString())
+        // Use project.group instead of opensearchGroup
+        def mavenDir = utilities.prepareMavenDir(project.group.toString(), mavenDirName, pubVersion.toString())
         def shadowJarFile = shadowJar.archiveFile.get().asFile
         def targetJarName = "${mavenArtifactId}-${pubVersion}.jar"
 
@@ -192,8 +194,8 @@ task prepareShadowJarForMaven(dependsOn: shadowJar) {
             rename { targetJarName }
         }
 
-        // Create POM file
-        utilities.createPom(mavenDir, opensearchGroup, mavenArtifactId, pubVersion.toString(),
+        // Create POM file - also use project.group
+        utilities.createPom(mavenDir, project.group.toString(), mavenArtifactId, pubVersion.toString(),
                 "OpenSearch Async Query Core Library")
 
         // Generate checksums
@@ -201,7 +203,7 @@ task prepareShadowJarForMaven(dependsOn: shadowJar) {
         utilities.generateChecksums(new File(mavenDir, "${mavenArtifactId}-${pubVersion}.pom"))
 
         logger.lifecycle("Async Query Core JAR prepared for publishing:")
-        logger.lifecycle("  - Group ID: ${opensearchGroup}")
+        logger.lifecycle("  - Group ID: ${project.group}")
         logger.lifecycle("  - Artifact ID: ${mavenArtifactId}")
         logger.lifecycle("  - Version: ${pubVersion}")
         logger.lifecycle("  - Path: ${mavenDir}")
