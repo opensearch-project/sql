@@ -9,7 +9,6 @@ plugins {
     id 'jacoco'
     id 'antlr'
     id 'com.diffplug.spotless' version '6.22.0'
-    id 'com.gradleup.shadow'
 }
 
 repositories {
