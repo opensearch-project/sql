@@ -186,23 +186,18 @@ public class PPLFuncImpTable {
       // Only the composite operand type checker for UDFs are concerned here.
       if (operator instanceof SqlUserDefinedFunction
           && typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
-        register(functionName, createCompositeFunctionImp(operator, compositeTypeChecker));
+        // UDFs implement their own composite type checkers, which always use OR logic for argument
+        // types. Verifying the composition type would require accessing a protected field in
+        // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
+        // be skipped, so we avoid checking the composition type here.
+        register(functionName, createCompositeFunctionImp(operator, compositeTypeChecker, false));
       } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
         register(functionName, createImplicitCastFunctionImp(operator, implicitCastTypeChecker));
       } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
-        try {
-          // If compositeTypeChecker contains operand checkers other than family type checkers or
-          // other than OR compositions, this will throw an IllegalArgumentException.
-          register(functionName, createCompositeFunctionImp(operator, compositeTypeChecker));
-        } catch (IllegalArgumentException e) {
-          // register without type checker
-          logger.debug(
-              "Cannot create composite type checker for function: {}. Will skip its type checking",
-              functionName);
-          register(
-              functionName,
-              (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
-        }
+        // If compositeTypeChecker contains operand checkers other than family type checkers or
+        // other than OR compositions, the function with be registered with a null type checker,
+        // which means the function will not be type checked.
+        register(functionName, createCompositeFunctionImp(operator, compositeTypeChecker, true));
       } else {
         logger.debug(
             "Cannot create type checker for function: {}. Will skip its type checking",
@@ -221,7 +216,9 @@ public class PPLFuncImpTable {
     }
 
     private static FunctionImp createCompositeFunctionImp(
-        SqlOperator operator, CompositeOperandTypeChecker typeChecker) {
+        SqlOperator operator,
+        CompositeOperandTypeChecker typeChecker,
+        boolean checkCompositionType) {
       return new FunctionImp() {
         @Override
         public RexNode resolve(RexBuilder builder, RexNode... args) {
@@ -230,7 +227,17 @@ public class PPLFuncImpTable {
 
         @Override
         public PPLTypeChecker getTypeChecker() {
-          return wrapComposite(typeChecker);
+          try {
+            return wrapComposite(typeChecker, checkCompositionType);
+          } catch (IllegalArgumentException | UnsupportedOperationException e) {
+            logger.debug(
+                String.format(
+                    "Failed to create composite type checker for operator: %s. Will skip its type"
+                        + " checking",
+                    operator.getName()),
+                e);
+            return null;
+          }
         }
       };
     }
@@ -246,6 +253,36 @@ public class PPLFuncImpTable {
         @Override
         public PPLTypeChecker getTypeChecker() {
           return wrapFamily(typeChecker);
+        }
+      };
+    }
+
+    private static FunctionImp createFunctionImpWithTypeChecker(
+        BiFunction<RexBuilder, RexNode, RexNode> resolver, PPLTypeChecker typeChecker) {
+      return new FunctionImp1() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode arg1) {
+          return resolver.apply(builder, arg1);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return typeChecker;
+        }
+      };
+    }
+
+    private static FunctionImp createFunctionImpWithTypeChecker(
+        TriFunction<RexBuilder, RexNode, RexNode, RexNode> resolver, PPLTypeChecker typeChecker) {
+      return new FunctionImp2() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2) {
+          return resolver.apply(builder, arg1, arg2);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return typeChecker;
         }
       };
     }
@@ -536,35 +573,5 @@ public class PPLFuncImpTable {
       SqlTypeFamily booleanFamily = SqlTypeName.BOOLEAN.getFamily();
       return family(booleanFamily, booleanFamily);
     }
-  }
-
-  private static FunctionImp createFunctionImpWithTypeChecker(
-      BiFunction<RexBuilder, RexNode, RexNode> resolver, PPLTypeChecker typeChecker) {
-    return new FunctionImp1() {
-      @Override
-      public RexNode resolve(RexBuilder builder, RexNode arg1) {
-        return resolver.apply(builder, arg1);
-      }
-
-      @Override
-      public PPLTypeChecker getTypeChecker() {
-        return typeChecker;
-      }
-    };
-  }
-
-  private static FunctionImp createFunctionImpWithTypeChecker(
-      TriFunction<RexBuilder, RexNode, RexNode, RexNode> resolver, PPLTypeChecker typeChecker) {
-    return new FunctionImp2() {
-      @Override
-      public RexNode resolve(RexBuilder builder, RexNode arg1, RexNode arg2) {
-        return resolver.apply(builder, arg1, arg2);
-      }
-
-      @Override
-      public PPLTypeChecker getTypeChecker() {
-        return typeChecker;
-      }
-    };
   }
 }

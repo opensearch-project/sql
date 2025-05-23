@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,7 +18,6 @@ import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.logging.log4j.LogManager;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 
 /**
@@ -225,30 +225,29 @@ public interface PPLTypeChecker {
    * are instances of {@link ImplicitCastOperandTypeChecker}. If any rule does not meet this
    * requirement, an {@link IllegalArgumentException} is thrown.
    *
+   * <p>Additionally, if {@code checkCompositionType} is true, the method checks if the composition
+   * type of the provided {@code CompositeOperandTypeChecker} is OR via reflection. If it is not, an
+   * {@link IllegalArgumentException} is thrown. If the reflective access to the composition field
+   * of CompositeOperandTypeChecker fails, an {@link UnsupportedOperationException} is thrown.
+   *
    * @param typeChecker the Calcite {@link CompositeOperandTypeChecker} to wrap
+   * @param checkCompositionType if true, checks if the composition type is OR.
    * @return a {@link PPLCompositeTypeChecker} that delegates type checking to the wrapped rules
    * @throws IllegalArgumentException if any rule is not an {@link ImplicitCastOperandTypeChecker}
    */
-  static PPLCompositeTypeChecker wrapComposite(CompositeOperandTypeChecker typeChecker) {
-    try {
-      Field compositionField = CompositeOperandTypeChecker.class.getDeclaredField("composition");
-      compositionField.setAccessible(true);
-      CompositeOperandTypeChecker.Composition composition =
-          (CompositeOperandTypeChecker.Composition) compositionField.get(typeChecker);
-      if (composition != CompositeOperandTypeChecker.Composition.OR) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Currently only OR compositions of ImplicitCastOperandTypeChecker are supported,"
-                    + " but got %s composition",
-                composition.name()));
+  static PPLCompositeTypeChecker wrapComposite(
+      CompositeOperandTypeChecker typeChecker, boolean checkCompositionType)
+      throws IllegalArgumentException, UnsupportedOperationException {
+    if (checkCompositionType) {
+      try {
+        if (!isCompositionOr(typeChecker)) {
+          throw new IllegalArgumentException(
+              "Currently only support CompositeOperandTypeChecker with a OR composition");
+        }
+      } catch (ReflectiveOperationException | InaccessibleObjectException | SecurityException e) {
+        throw new UnsupportedOperationException(
+            String.format("Failed to check composition type of %s", typeChecker), e);
       }
-    } catch (IllegalAccessException e) {
-      LogManager.getLogger(PPLTypeChecker.class).error(e);
-    } catch (NoSuchFieldException e) {
-      LogManager.getLogger(PPLTypeChecker.class)
-          .error(
-              "Failed to access the composition field of CompositeOperandTypeChecker. "
-                  + "This may indicate a change in the Calcite library.");
     }
 
     for (SqlOperandTypeChecker rule : typeChecker.getRules()) {
@@ -307,5 +306,26 @@ public interface PPLTypeChecker {
     return "["
         + families.stream().map(SqlTypeFamily::toString).collect(Collectors.joining(","))
         + "]";
+  }
+
+  /**
+   * Checks if the provided {@link CompositeOperandTypeChecker} is of type OR composition.
+   *
+   * <p>This method uses reflection to access the protected "composition" field of the
+   * CompositeOperandTypeChecker class.
+   *
+   * @param typeChecker the CompositeOperandTypeChecker to check
+   * @return true if the composition is OR, false otherwise
+   */
+  private static boolean isCompositionOr(CompositeOperandTypeChecker typeChecker)
+      throws NoSuchFieldException,
+          IllegalAccessException,
+          InaccessibleObjectException,
+          SecurityException {
+    Field compositionField = CompositeOperandTypeChecker.class.getDeclaredField("composition");
+    compositionField.setAccessible(true);
+    CompositeOperandTypeChecker.Composition composition =
+        (CompositeOperandTypeChecker.Composition) compositionField.get(typeChecker);
+    return composition == CompositeOperandTypeChecker.Composition.OR;
   }
 }
