@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function;
 
+import static org.apache.calcite.sql.SqlJsonConstructorNullClause.NULL_ON_NULL;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -304,6 +306,31 @@ public class PPLFuncImpTable {
       registerOperator(WEEK, PPLBuiltinOperators.WEEK);
       registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
+
+      // Register Json function
+      register(
+          JSON_ARRAY,
+          ((builder, args) ->
+              builder.makeCall(
+                  SqlStdOperatorTable.JSON_ARRAY,
+                  Stream.concat(Stream.of(builder.makeFlag(NULL_ON_NULL)), Arrays.stream(args))
+                      .toArray(RexNode[]::new))));
+      register(
+          JSON_OBJECT,
+          ((builder, args) ->
+              builder.makeCall(
+                  SqlStdOperatorTable.JSON_OBJECT,
+                  Stream.concat(Stream.of(builder.makeFlag(NULL_ON_NULL)), Arrays.stream(args))
+                      .toArray(RexNode[]::new))));
+      registerOperator(JSON, PPLBuiltinOperators.JSON);
+      registerOperator(JSON_ARRAY_LENGTH, PPLBuiltinOperators.JSON_ARRAY_LENGTH);
+      registerOperator(JSON_EXTRACT, PPLBuiltinOperators.JSON_EXTRACT);
+      registerOperator(JSON_KEYS, PPLBuiltinOperators.JSON_KEYS);
+      registerOperator(JSON_VALID, SqlStdOperatorTable.IS_JSON_VALUE);
+      registerOperator(JSON_SET, PPLBuiltinOperators.JSON_SET);
+      registerOperator(JSON_DELETE, PPLBuiltinOperators.JSON_DELETE);
+      registerOperator(JSON_APPEND, PPLBuiltinOperators.JSON_APPEND);
+      registerOperator(JSON_EXTEND, PPLBuiltinOperators.JSON_EXTEND);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
