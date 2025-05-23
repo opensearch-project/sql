@@ -10,6 +10,7 @@ import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -98,7 +99,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
    */
   // TODO possible collision if two indices have fields with the same name and different mappings
   public Map<String, OpenSearchDataType> getFieldTypes() {
-    Map<String, OpenSearchDataType> fieldTypes = new LinkedHashMap<>();
+    Map<String, OpenSearchDataType> fieldTypes = new HashMap<>();
     Map<String, IndexMapping> indexMappings =
         client.getIndexMappings(getLocalIndexNames(indexName.getIndexNames()));
     for (IndexMapping indexMapping : indexMappings.values()) {
