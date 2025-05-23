@@ -1,128 +1,103 @@
 plugins {
-    id 'base'
-    id 'maven-publish'
+    id 'base'  // Basic plugin for archive tasks
 }
 
-group = 'org.opensearch'
+// Configuration
 version = '0.1.0-SNAPSHOT'
+group = 'org.opensearch'
+def artifactId = 'language-grammar-poc2'
 
-// Task to zip grammar files
-task zipGrammarFiles(type: Zip) {
-    archiveBaseName = 'opensearch-language-grammar-poc'
-    archiveExtension = 'zip'
+// Define locations
+def grammarSourceDir = file('language-grammar/src/main/antlr4')
+def buildDir = file("${project.buildDir}")
+def mavenLocal = new File(System.getProperty('user.home'), '.m2/repository')
 
-    from fileTree(dir: 'language-grammar/src/main/antlr4') {
+// Package grammar files into a ZIP
+task packageGrammarFiles(type: Zip) {
+    description = 'Package grammar files into a ZIP archive'
+
+    from(grammarSourceDir) {
         include '**/*.g4'
     }
 
-    destinationDirectory = layout.buildDirectory.dir('distributions')
+    archiveFileName = "${artifactId}-${version}.zip"
+    destinationDirectory = buildDir
+}
+
+// Create POM file
+task createPom {
+    description = 'Create POM file for grammar artifact'
+
+    def pomFile = file("${buildDir}/${artifactId}-${version}.pom")
+    outputs.file pomFile
 
     doLast {
-        println "Created grammar zip file: ${archiveFile.get()}"
+        pomFile.parentFile.mkdirs()
+        pomFile.text = """<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>${group}</groupId>
+    <artifactId>${artifactId}</artifactId>
+    <version>${version}</version>
+    <packaging>zip</packaging>
+    <description>OpenSearch Language Grammar Files</description>
+</project>
+"""
     }
 }
 
-// Generate checksums for artifacts
-task generateChecksums {
-    dependsOn zipGrammarFiles
+// Place artifacts in local Maven repository
+task prepareLocalMavenRepository(dependsOn: [packageGrammarFiles, createPom]) {
+    description = 'Prepare local Maven repository with grammar artifacts'
+
+    def groupPath = "${group}".replace('.', '/')
+    def versionPath = "${mavenLocal}/${groupPath}/${artifactId}/${version}"
 
     doLast {
-        def zipFile = zipGrammarFiles.archiveFile.get().asFile
+        file(versionPath).mkdirs()
 
-        // Generate SHA-256 checksum
-        ant.checksum(file: zipFile, algorithm: "SHA-256", fileext: ".sha256", format: "plaintext")
+        copy {
+            from packageGrammarFiles.archiveFile
+            into versionPath
+        }
 
-        // Generate SHA-512 checksum
-        ant.checksum(file: zipFile, algorithm: "SHA-512", fileext: ".sha512", format: "plaintext")
+        copy {
+            from "${buildDir}/${artifactId}-${version}.pom"
+            into versionPath
+        }
 
-        println "Generated checksums for: ${zipFile.name}"
+        println "Files placed in local Maven repository path: ${versionPath}"
     }
 }
 
-// Configure Maven publication
-publishing {
-    publications {
-        grammar(MavenPublication) {
-            artifactId = 'opensearch-language-grammar-poc'
-            artifact zipGrammarFiles
+// Generate checksums for Maven artifacts
+task generateChecksums(dependsOn: prepareLocalMavenRepository) {
+    description = 'Generate checksums for Maven artifacts'
 
-            pom {
-                name = 'OpenSearch Language Grammar'
-                description = 'OpenSearch Language Grammar Files'
-                packaging = 'zip'
+    def groupPath = "${group}".replace('.', '/')
+    def versionPath = "${mavenLocal}/${groupPath}/${artifactId}/${version}"
 
-                properties {
-                    commitId = getCommitId()
+    doLast {
+        file(versionPath).listFiles().each { artifact ->
+            if (artifact.name.endsWith('.zip') || artifact.name.endsWith('.pom')) {
+                exec {
+                    workingDir artifact.parentFile
+                    commandLine 'bash', '-c', "sha512sum \"${artifact.name}\" | awk '{print \$1}' > \"${artifact.name}.sha512\""
+                }
+                exec {
+                    workingDir artifact.parentFile
+                    commandLine 'bash', '-c', "sha256sum \"${artifact.name}\" | awk '{print \$1}' > \"${artifact.name}.sha256\""
                 }
             }
         }
-    }
-
-    repositories {
-        maven {
-            name = 'snapshotRepo'
-            // Use the environment variable for repository URL
-            url = System.getenv('SNAPSHOT_REPO_URL') ?: 'https://aws.oss.sonatype.org/content/repositories/snapshots/'
-            credentials {
-                username = System.getenv('SONATYPE_USERNAME')
-                password = System.getenv('SONATYPE_PASSWORD')
-            }
-        }
+        println "Checksums generated in: ${versionPath}"
     }
 }
 
-// Helper method to get the git commit ID
-def getCommitId() {
-    def stdout = new ByteArrayOutputStream()
-    exec {
-        commandLine 'git', 'log', '-1', '--format=%H'
-        standardOutput = stdout
-    }
-    return stdout.toString().trim()
-}
-
-// Task to create initial repository structure if needed
-task createRepoStructure {
-    doLast {
-        def username = System.getenv('SONATYPE_USERNAME')
-        def password = System.getenv('SONATYPE_PASSWORD')
-        def repoUrl = System.getenv('SNAPSHOT_REPO_URL') ?: 'https://aws.oss.sonatype.org/content/repositories/snapshots/'
-
-        if (!username || !password) {
-            throw new GradleException("Sonatype credentials not found in environment variables")
-        }
-
-        def tempDir = new File("${buildDir}/temp")
-        tempDir.mkdirs()
-
-        def placeholderFile = new File(tempDir, ".placeholder")
-        placeholderFile.text = "Directory placeholder - ${new Date()}"
-
-        def repoPath = "${repoUrl}org/opensearch/opensearch-language-grammar-poc/".toString()
-        if (!repoPath.endsWith('/')) repoPath += '/'
-
-        println "Creating repository directory structure at ${repoPath}"
-        exec {
-            commandLine 'curl', '-X', 'PUT',
-                    '-u', "${username}:${password}",
-                    '--upload-file', placeholderFile.absolutePath,
-                    "${repoPath}.placeholder"
-            ignoreExitValue = true
-        }
-    }
-}
-
-// Make publishing dependent on generating checksums
-tasks.named('publish').configure {
-    dependsOn generateChecksums, createRepoStructure
-}
-
-// Combined full publishing task
-task publishGrammar {
-    dependsOn publish
-
-    doLast {
-        println "Grammar files published successfully with commit ID: ${getCommitId()}"
-        println "Published to repository: ${System.getenv('SNAPSHOT_REPO_URL') ?: 'https://aws.oss.sonatype.org/content/repositories/snapshots/'}"
-    }
+// Main task to prepare all artifacts
+task prepareGrammarArtifacts {
+    description = 'Prepare all grammar artifacts for publishing'
+    dependsOn generateChecksums
 }
