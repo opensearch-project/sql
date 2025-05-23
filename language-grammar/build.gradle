@@ -23,8 +23,9 @@ ext {
                 return "${groupPath}/${artifactId}/${version}"
             },
 
-            // Create POM file in target directory
+            // Create POM file in target directory - FIXED: ensure directory exists
             createPom: { File targetDir, String groupId, String artifactId, String version, String description = "", String packaging = "jar" ->
+                targetDir.mkdirs() // Ensure the target directory exists
                 def pomFile = new File(targetDir, "${artifactId}-${version}.pom")
                 pomFile.text = """<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -102,6 +103,7 @@ task createGrammarPom {
     description = 'Create POM file for grammar artifact'
 
     doLast {
+        buildDir.mkdirs() // Ensure build directory exists
         def pomFile = utilities.createPom(buildDir, group.toString(), artifactId, version.toString(),
                 "OpenSearch Language Grammar Files", "zip")
         logger.lifecycle("Created POM file: ${pomFile.absolutePath}")
