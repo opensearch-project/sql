@@ -292,15 +292,38 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   private Expression visitIn(
       UnresolvedExpression field, List<UnresolvedExpression> valueList, AnalysisContext context) {
-    if (valueList.size() == 1) {
-      return visitCompare(new Compare("=", field, valueList.get(0)), context);
-    } else if (valueList.size() > 1) {
-      return DSL.or(
-          visitCompare(new Compare("=", field, valueList.get(0)), context),
-          visitIn(field, valueList.subList(1, valueList.size()), context));
-    } else {
+    if (valueList.isEmpty()) {
       throw new SemanticCheckException("Values in In clause should not be empty");
     }
+
+    Expression[] expressions = new Expression[valueList.size()];
+
+    for (int i = 0; i < expressions.length; i++) {
+      expressions[i] = visitCompare(new Compare("=", field, valueList.get(i)), context);
+    }
+
+    return buildOrTree(expressions, 0, expressions.length);
+  }
+
+  /**
+   * `DSL.or` can only take two arguments. To represent large lists without massive recursion, we want to represent the
+   * expression as a balanced tree. This builds that tree from a node list.
+   *
+   *
+   * @param children The list of expressions to merge.
+   * @param start The starting position (inclusive) for the current combination step.
+   * @param end The ending position (exclusive) for the current combination step. MUST be greater-than start.
+   * @return The final `DSL.or` expression.
+   */
+  private Expression buildOrTree(Expression[] children, int start, int end) {
+    if (end - start == 1) {
+      return children[start];
+    }
+    if (end - start == 2) {
+      return DSL.or(children[start], children[end - 1]);
+    }
+    int split = start + (end - start) / 2;
+    return DSL.or(buildOrTree(children, start, split), buildOrTree(children, split, end));
   }
 
   @Override
