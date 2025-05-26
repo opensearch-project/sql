@@ -83,7 +83,7 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<?> DEFAULT_PATTERN_MAX_SAMPLE_COUNT =
+  public static final Setting<?> DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING =
       Setting.intSetting(
           Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT.getKeyValue(),
           10,
@@ -91,7 +91,7 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<?> DEFAULT_PATTERN_BUFFER_LIMIT =
+  public static final Setting<?> DEFAULT_PATTERN_BUFFER_LIMIT_SETTING =
       Setting.intSetting(
           Key.DEFAULT_PATTERN_BUFFER_LIMIT.getKeyValue(),
           100000,
@@ -312,6 +312,24 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.DEFAULT_PATTERN_MODE,
+        DEFAULT_PATTERN_MODE_SETTING,
+        new Updater(Key.DEFAULT_PATTERN_MODE));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT,
+        DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING,
+        new Updater(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.DEFAULT_PATTERN_BUFFER_LIMIT,
+        DEFAULT_PATTERN_BUFFER_LIMIT_SETTING,
+        new Updater(Key.DEFAULT_PATTERN_BUFFER_LIMIT));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.CALCITE_ENGINE_ENABLED,
         CALCITE_ENGINE_ENABLED_SETTING,
         new Updater(Key.CALCITE_ENGINE_ENABLED));
@@ -511,8 +529,8 @@ public class OpenSearchSettings extends Settings {
         .add(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR_SETTING)
         .add(DEFAULT_PATTERN_METHOD_SETTING)
         .add(DEFAULT_PATTERN_MODE_SETTING)
-        .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT)
-        .add(DEFAULT_PATTERN_BUFFER_LIMIT)
+        .add(DEFAULT_PATTERN_MAX_SAMPLE_COUNT_SETTING)
+        .add(DEFAULT_PATTERN_BUFFER_LIMIT_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
