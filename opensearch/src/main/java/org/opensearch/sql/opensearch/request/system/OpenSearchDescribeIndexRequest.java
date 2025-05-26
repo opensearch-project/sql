@@ -172,7 +172,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
    * @param target The target map we will merge into
    * @param source The candidate map
    */
-  private void mergeObjectAndArrayInsideMap(
+  public static void mergeObjectAndArrayInsideMap(
       Map<String, OpenSearchDataType> target, Map<String, OpenSearchDataType> source) {
     for (Map.Entry<String, OpenSearchDataType> entry : source.entrySet()) {
       String key = entry.getKey();

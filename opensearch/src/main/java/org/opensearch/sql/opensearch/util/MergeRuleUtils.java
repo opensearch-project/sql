@@ -10,7 +10,6 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 
 public class MergeRuleUtils {
   public enum MergeRule {
-    NO_CHANGE,
     LATEST,
     DEEP_MERGE;
 
@@ -23,17 +22,9 @@ public class MergeRuleUtils {
     switch (type) {
       case STRUCT:
       case ARRAY:
-        return MergeRule.DEEP_MERGE;
-      case STRING:
-      case INTEGER:
-      case LONG:
-      case FLOAT:
-      case DOUBLE:
-      case BOOLEAN:
-      case DATE:
-        return MergeRule.NO_CHANGE;
+        return MergeRule.DEEP_MERGE; // Only struct and array will merge
       default:
-        return MergeRule.LATEST; // dafulat value
+        return MergeRule.LATEST;
     }
   }
 
