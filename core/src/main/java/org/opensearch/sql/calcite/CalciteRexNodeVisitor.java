@@ -74,6 +74,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return unresolved.accept(this, context);
   }
 
+  public List<RexNode> analyze(List<UnresolvedExpression> list, CalcitePlanContext context) {
+    return list.stream().map(u -> u.accept(this, context)).toList();
+  }
+
   public RexNode analyzeJoinCondition(UnresolvedExpression unresolved, CalcitePlanContext context) {
     return context.resolveJoinCondition(unresolved, this::analyze);
   }

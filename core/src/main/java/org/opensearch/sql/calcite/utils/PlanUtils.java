@@ -114,6 +114,7 @@ public interface PlanUtils {
         return withOver(
             makeAggCall(context, functionName, false, field, argList),
             partitions,
+            orderKeys,
             rows,
             lowerBound,
             upperBound);
@@ -127,7 +128,8 @@ public interface PlanUtils {
       boolean rows,
       RexWindowBound lowerBound,
       RexWindowBound upperBound) {
-    return withOver(ctx.relBuilder.sum(operation), partitions, rows, lowerBound, upperBound);
+    return withOver(
+        ctx.relBuilder.sum(operation), partitions, List.of(), rows, lowerBound, upperBound);
   }
 
   private static RexNode countOver(
@@ -140,26 +142,10 @@ public interface PlanUtils {
     return withOver(
         ctx.relBuilder.count(ImmutableList.of(operation)),
         partitions,
+        List.of(),
         rows,
         lowerBound,
         upperBound);
-  }
-
-  private static RexNode withOver(
-      RelBuilder.AggCall aggCall,
-      List<RexNode> partitions,
-      boolean rows,
-      RexWindowBound lowerBound,
-      RexWindowBound upperBound) {
-    return aggCall
-        .over()
-        .partitionBy(partitions)
-        .let(
-            c ->
-                rows
-                    ? c.rowsBetween(lowerBound, upperBound)
-                    : c.rangeBetween(lowerBound, upperBound))
-        .toRex();
   }
 
   private static RexNode withOver(
