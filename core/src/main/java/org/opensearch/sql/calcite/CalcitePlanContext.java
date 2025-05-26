@@ -9,8 +9,8 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTOR
 
 import java.sql.Connection;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
