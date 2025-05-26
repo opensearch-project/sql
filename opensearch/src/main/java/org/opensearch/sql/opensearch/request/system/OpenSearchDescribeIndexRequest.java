@@ -102,8 +102,14 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     Map<String, OpenSearchDataType> fieldTypes = new HashMap<>();
     Map<String, IndexMapping> indexMappings =
         client.getIndexMappings(getLocalIndexNames(indexName.getIndexNames()));
-    for (IndexMapping indexMapping : indexMappings.values()) {
-      mergeObjectAndArrayInsideMap(fieldTypes, indexMapping.getFieldMappings());
+    if (indexMappings.size() <= 1) {
+      for (IndexMapping indexMapping : indexMappings.values()) {
+        fieldTypes.putAll(indexMapping.getFieldMappings());
+      }
+    } else {
+      for (IndexMapping indexMapping : indexMappings.values()) {
+        mergeObjectAndArrayInsideMap(fieldTypes, indexMapping.getFieldMappings());
+      }
     }
     return fieldTypes;
   }
