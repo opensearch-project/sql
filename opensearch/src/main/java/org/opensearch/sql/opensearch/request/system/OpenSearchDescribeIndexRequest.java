@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.request.system;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.*;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
+import static org.opensearch.sql.opensearch.util.MergeRuleUtils.checkWhetherToMerge;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +19,6 @@ import java.util.Map;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -186,23 +186,6 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
         target.put(key, value);
       }
     }
-  }
-
-  /**
-   * The function check whether the two DataType need to be merged if they are under same key.
-   * currently we only merge nested and object
-   *
-   * @param first the
-   * @param second
-   * @return
-   */
-  private Boolean checkWhetherToMerge(OpenSearchDataType first, OpenSearchDataType second) {
-    if (first.getExprCoreType() == second.getExprCoreType()
-        && (first.getExprCoreType() == ExprCoreType.STRUCT
-            || first.getExprCoreType() == ExprCoreType.ARRAY)) {
-      return true;
-    }
-    return false;
   }
 
   @Override
