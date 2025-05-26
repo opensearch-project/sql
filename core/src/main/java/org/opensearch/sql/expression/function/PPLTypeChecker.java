@@ -8,17 +8,23 @@ package org.opensearch.sql.expression.function;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.ComparableOperandTypeChecker;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 
 /**
  * A custom type checker interface for PPL (Piped Processing Language) functions.
@@ -189,6 +195,74 @@ public interface PPLTypeChecker {
     }
   }
 
+  @RequiredArgsConstructor
+  class PPLComparableTypeChecker implements PPLTypeChecker {
+    private final ComparableOperandTypeChecker innerTypeChecker;
+
+    @Override
+    public boolean checkOperandTypes(List<RelDataType> types) {
+      // Check comparability of consecutive operands
+      for (int i = 0; i < types.size() - 1; i++) {
+        // TODO: Binary, Array UDT?
+        // DATETIME, NUMERIC, BOOLEAN will be regarded as comparable
+        // with strings in SqlTypeUtil.isComparable
+        RelDataType type_l = types.get(i);
+        RelDataType type_r = types.get(i + 1);
+        if (!SqlTypeUtil.isComparable(type_l, type_r)) {
+          if (areIpAndStringTypes(type_l, type_r) || areIpAndStringTypes(type_r, type_l)) {
+            // Allow IP and string comparison
+            continue;
+          }
+          return false;
+        }
+        // Disallow coercing between strings and numeric, boolean
+        if ((type_l.getFamily() == SqlTypeFamily.CHARACTER
+                && cannotConvertStringInCompare((SqlTypeFamily) type_r.getFamily()))
+            || (type_r.getFamily() == SqlTypeFamily.CHARACTER
+                && cannotConvertStringInCompare((SqlTypeFamily) type_l.getFamily()))) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    private static boolean cannotConvertStringInCompare(SqlTypeFamily typeFamily) {
+      return switch (typeFamily) {
+        case BOOLEAN, INTEGER, NUMERIC, EXACT_NUMERIC, APPROXIMATE_NUMERIC -> true;
+        default -> false;
+      };
+    }
+
+    private boolean areIpAndStringTypes(RelDataType typeIp, RelDataType typeString) {
+      if (typeIp instanceof AbstractExprRelDataType<?> exprRelDataType) {
+        return exprRelDataType.getExprType() == ExprCoreType.IP
+            && typeString.getFamily() == SqlTypeFamily.CHARACTER;
+      }
+      return false;
+    }
+
+    @Override
+    public String getAllowedSignatures() {
+      int min = innerTypeChecker.getOperandCountRange().getMin();
+      int max = innerTypeChecker.getOperandCountRange().getMax();
+      final String typeName = "COMPARABLE_TYPE";
+      if (min == -1 || max == -1) {
+        // If the range is unbounded, we cannot provide a specific signature
+        return String.format("[%s...]", typeName);
+      } else {
+        // Generate a signature based on the min and max operand counts
+        List<String> signatures = new ArrayList<>();
+        // avoid enumerating too many signatures
+        final int MAX_ARGS = 10;
+        max = Math.min(MAX_ARGS, max);
+        for (int i = min; i <= max; i++) {
+          signatures.add("[" + String.join(",", Collections.nCopies(i, typeName)) + "]");
+        }
+        return String.join(",", signatures);
+      }
+    }
+  }
+
   /**
    * Creates a {@link PPLFamilyTypeChecker} with a fixed operand count, validating that each operand
    * belongs to its corresponding {@link SqlTypeFamily}.
@@ -258,6 +332,10 @@ public interface PPLTypeChecker {
       }
     }
     return new PPLCompositeTypeChecker(typeChecker);
+  }
+
+  static PPLComparableTypeChecker wrapComparable(ComparableOperandTypeChecker typeChecker) {
+    return new PPLComparableTypeChecker(typeChecker);
   }
 
   // Util Functions
