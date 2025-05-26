@@ -13,7 +13,6 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -58,6 +57,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -71,7 +71,6 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.ast.tree.Window;
 
 /** Class of static methods to create specific node instances. */
 @UtilityClass
@@ -504,7 +503,7 @@ public class AstDSL {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
   }
 
-  public static Window window(
+  public static Patterns patterns(
       UnresolvedPlan input,
       PatternMethod patternMethod,
       UnresolvedExpression sourceField,
@@ -513,7 +512,7 @@ public class AstDSL {
     List<UnresolvedExpression> funArgs = new ArrayList<>();
     funArgs.add(sourceField);
     funArgs.addAll(arguments);
-    return new Window(
+    return new Patterns(
         new Alias(
             alias,
             new WindowFunction(
@@ -524,21 +523,23 @@ public class AstDSL {
         input);
   }
 
-  public static FillNull fillNull(UnresolvedExpression replaceNullWithMe, Field... fields) {
-    return new FillNull(
-        FillNull.ContainNullableFieldFill.ofSameValue(
-            replaceNullWithMe, ImmutableList.copyOf(fields)));
+  public static FillNull fillNull(UnresolvedPlan input, UnresolvedExpression replacement) {
+    return FillNull.ofSameValue(replacement, ImmutableList.of()).attach(input);
   }
 
   public static FillNull fillNull(
-      List<ImmutablePair<Field, UnresolvedExpression>> fieldAndReplacements) {
-    ImmutableList.Builder<FillNull.NullableFieldFill> replacementsBuilder = ImmutableList.builder();
-    for (ImmutablePair<Field, UnresolvedExpression> fieldAndReplacement : fieldAndReplacements) {
+      UnresolvedPlan input, UnresolvedExpression replacement, Field... fields) {
+    return FillNull.ofSameValue(replacement, ImmutableList.copyOf(fields)).attach(input);
+  }
+
+  public static FillNull fillNull(
+      UnresolvedPlan input, List<Pair<Field, UnresolvedExpression>> fieldAndReplacements) {
+    ImmutableList.Builder<Pair<Field, UnresolvedExpression>> replacementsBuilder =
+        ImmutableList.builder();
+    for (Pair<Field, UnresolvedExpression> fieldAndReplacement : fieldAndReplacements) {
       replacementsBuilder.add(
-          new FillNull.NullableFieldFill(
-              fieldAndReplacement.getLeft(), fieldAndReplacement.getRight()));
+          Pair.of(fieldAndReplacement.getLeft(), fieldAndReplacement.getRight()));
     }
-    return new FillNull(
-        FillNull.ContainNullableFieldFill.ofVariousValue(replacementsBuilder.build()));
+    return FillNull.ofVariousValue(replacementsBuilder.build()).attach(input);
   }
 }

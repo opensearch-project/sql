@@ -61,6 +61,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -73,7 +74,6 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -493,7 +493,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
-  public LogicalPlan visitWindow(Window node, AnalysisContext context) {
+  public LogicalPlan visitPatterns(Patterns node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     WindowExpressionAnalyzer windowAnalyzer =
         new WindowExpressionAnalyzer(expressionAnalyzer, child);
@@ -593,20 +593,22 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     ImmutableList.Builder<Pair<ReferenceExpression, Expression>> expressionsBuilder =
         new Builder<>();
-    for (FillNull.NullableFieldFill fieldFill : node.getNullableFieldFills()) {
-      Expression fieldExpr =
-          expressionAnalyzer.analyze(fieldFill.getNullableFieldReference(), context);
+    for (Pair<Field, UnresolvedExpression> fieldFill : node.getReplacementPairs()) {
+      Expression fieldExpr = expressionAnalyzer.analyze(fieldFill.getLeft(), context);
       ReferenceExpression ref =
-          DSL.ref(fieldFill.getNullableFieldReference().getField().toString(), fieldExpr.type());
+          DSL.ref(fieldFill.getLeft().getField().toString(), fieldExpr.type());
       FunctionExpression ifNullFunction =
-          DSL.ifnull(ref, expressionAnalyzer.analyze(fieldFill.getReplaceNullWithMe(), context));
+          DSL.ifnull(ref, expressionAnalyzer.analyze(fieldFill.getRight(), context));
       expressionsBuilder.add(new ImmutablePair<>(ref, ifNullFunction));
       TypeEnvironment typeEnvironment = context.peek();
       // define the new reference in type env.
       typeEnvironment.define(ref);
     }
-
-    return new LogicalEval(child, expressionsBuilder.build());
+    List<Pair<ReferenceExpression, Expression>> expressions = expressionsBuilder.build();
+    if (expressions.isEmpty()) {
+      throw new SemanticCheckException("At least one field is required for fillnull in V2.");
+    }
+    return new LogicalEval(child, expressions);
   }
 
   /** Build {@link LogicalML} for ml command. */

@@ -76,7 +76,6 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
@@ -86,7 +85,6 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.FetchCursor;
-import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
@@ -1397,14 +1395,11 @@ class AnalyzerTest extends AnalyzerTestBase {
             ImmutablePair.of(
                 DSL.ref("int_null_value", INTEGER),
                 DSL.ifnull(DSL.ref("int_null_value", INTEGER), DSL.literal(0)))),
-        new FillNull(
+        AstDSL.fillNull(
             AstDSL.relation("schema"),
-            FillNull.ContainNullableFieldFill.ofSameValue(
-                AstDSL.intLiteral(0),
-                ImmutableList.<Field>builder()
-                    .add(AstDSL.field("integer_value"))
-                    .add(AstDSL.field("int_null_value"))
-                    .build())));
+            AstDSL.intLiteral(0),
+            AstDSL.field("integer_value"),
+            AstDSL.field("int_null_value")));
   }
 
   @Test
@@ -1418,14 +1413,11 @@ class AnalyzerTest extends AnalyzerTestBase {
             ImmutablePair.of(
                 DSL.ref("int_null_value", INTEGER),
                 DSL.ifnull(DSL.ref("int_null_value", INTEGER), DSL.literal(1)))),
-        new FillNull(
+        AstDSL.fillNull(
             AstDSL.relation("schema"),
-            FillNull.ContainNullableFieldFill.ofVariousValue(
-                ImmutableList.of(
-                    new FillNull.NullableFieldFill(
-                        AstDSL.field("integer_value"), AstDSL.intLiteral(0)),
-                    new FillNull.NullableFieldFill(
-                        AstDSL.field("int_null_value"), AstDSL.intLiteral(1))))));
+            List.of(
+                Pair.of(AstDSL.field("integer_value"), AstDSL.intLiteral(0)),
+                Pair.of(AstDSL.field("int_null_value"), AstDSL.intLiteral(1)))));
   }
 
   @Test
@@ -1816,65 +1808,62 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void simple_pattern_window_function_with_no_additional_args() {
-    UnresolvedPlan unresolvedWindow =
-        AstDSL.project(
-            AstDSL.window(
-                AstDSL.relation("schema"),
-                PatternMethod.SIMPLE_PATTERN,
-                AstDSL.field("string_value"),
-                "patterns_field",
-                ImmutableList.of()),
-            AstDSL.field("string_value"));
-    LogicalPlan expectedPlan =
-        LogicalPlanDSL.project(
-            LogicalPlanDSL.window(
-                LogicalPlanDSL.relation("schema", table),
-                DSL.named(
-                    "patterns_field",
-                    DSL.simple_pattern(DSL.ref("string_value", STRING)),
-                    "patterns_field"),
-                new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
-            DSL.named("string_value", DSL.ref("string_value", STRING)));
+  public void parse_relation_with_patterns_expression() {
+    Map<String, Literal> arguments =
+        ImmutableMap.<String, Literal>builder()
+            .put("new_field", AstDSL.stringLiteral("custom_field"))
+            .put("pattern", AstDSL.stringLiteral("custom_pattern"))
+            .build();
 
-    assertAnalyzeEqual(expectedPlan, unresolvedWindow);
-  }
-
-  @Test
-  public void simple_pattern_window_function() {
-    UnresolvedPlan unresolvedWindow =
-        AstDSL.project(
-            AstDSL.window(
-                AstDSL.relation("schema"),
-                PatternMethod.SIMPLE_PATTERN,
-                AstDSL.field("string_value"),
-                "custom_field",
-                ImmutableList.of(
-                    new Argument(
-                        "pattern", AstDSL.stringLiteral("[0-9]")))), // with pattern argument
-            AstDSL.field("string_value"));
-    LogicalPlan expectedPlan =
+    assertAnalyzeEqual(
         LogicalPlanDSL.project(
-            LogicalPlanDSL.window(
-                LogicalPlanDSL.relation("schema", table),
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(
                 DSL.named(
                     "custom_field",
-                    DSL.simple_pattern(
+                    DSL.patterns(
                         DSL.ref("string_value", STRING),
-                        DSL.namedArgument(
-                            "pattern", DSL.literal("[0-9]"))), // with additional pattern argument
-                    "custom_field"),
-                new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
-            DSL.named("string_value", DSL.ref("string_value", STRING)));
-
-    assertAnalyzeEqual(expectedPlan, unresolvedWindow);
+                        DSL.literal("custom_pattern"),
+                        DSL.literal("custom_field"))))),
+        AstDSL.project(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PATTERNS,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral("custom_pattern"),
+                arguments),
+            AstDSL.alias("string_value", qualifiedName("string_value"))));
   }
 
   @Test
-  public void brain_window_function_with_no_additional_args() {
-    UnresolvedPlan unresolvedWindow =
+  public void parse_relation_with_patterns_expression_no_args() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
+            ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING))),
+            ImmutableList.of(
+                DSL.named(
+                    "patterns_field",
+                    DSL.patterns(
+                        DSL.ref("string_value", STRING),
+                        DSL.literal(""),
+                        DSL.literal("patterns_field"))))),
         AstDSL.project(
-            AstDSL.window(
+            AstDSL.parse(
+                AstDSL.relation("schema"),
+                ParseMethod.PATTERNS,
+                AstDSL.field("string_value"),
+                AstDSL.stringLiteral(""),
+                ImmutableMap.of()),
+            AstDSL.alias("string_value", qualifiedName("string_value"))));
+  }
+
+  @Test
+  public void brain_patterns_command_with_no_additional_args() {
+    UnresolvedPlan patterns =
+        AstDSL.project(
+            AstDSL.patterns(
                 AstDSL.relation("schema"),
                 PatternMethod.BRAIN,
                 AstDSL.field("string_value"),
@@ -1890,14 +1879,14 @@ class AnalyzerTest extends AnalyzerTestBase {
                 new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
             DSL.named("string_value", DSL.ref("string_value", STRING)));
 
-    assertAnalyzeEqual(expectedPlan, unresolvedWindow);
+    assertAnalyzeEqual(expectedPlan, patterns);
   }
 
   @Test
-  public void brain_window_function() {
-    UnresolvedPlan unresolvedWindow =
+  public void brain_patterns_command() {
+    UnresolvedPlan patterns =
         AstDSL.project(
-            AstDSL.window(
+            AstDSL.patterns(
                 AstDSL.relation("schema"),
                 PatternMethod.BRAIN,
                 AstDSL.field("string_value"),
@@ -1928,6 +1917,6 @@ class AnalyzerTest extends AnalyzerTestBase {
                 new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
             DSL.named("string_value", DSL.ref("string_value", STRING)));
 
-    assertAnalyzeEqual(expectedPlan, unresolvedWindow);
+    assertAnalyzeEqual(expectedPlan, patterns);
   }
 }

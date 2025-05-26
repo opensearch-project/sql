@@ -8,59 +8,46 @@ package org.opensearch.sql.calcite.utils;
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.*;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT.*;
-import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import org.apache.calcite.linq4j.tree.Types;
+import java.util.TimeZone;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.adapter.enumerable.NotNullImplementor;
+import org.apache.calcite.adapter.enumerable.NullPolicy;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.schema.ScalarFunction;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
-import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.type.InferTypes;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
-import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Optionality;
-import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
-import org.opensearch.sql.calcite.udf.UserDefinedFunction;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class UserDefinedFunctionUtils {
-  public static SqlReturnTypeInference INTEGER_FORCE_NULLABLE =
-      ReturnTypes.INTEGER.andThen(SqlTypeTransforms.FORCE_NULLABLE);
-  public static RelDataType nullableTimeUDT = TYPE_FACTORY.createUDT(EXPR_TIME, true);
-  public static RelDataType nullableDateUDT = TYPE_FACTORY.createUDT(EXPR_DATE, true);
-  public static RelDataType nullableTimestampUDT =
+  public static final RelDataType NULLABLE_DATE_UDT = TYPE_FACTORY.createUDT(EXPR_DATE, true);
+  public static final RelDataType NULLABLE_TIME_UDT = TYPE_FACTORY.createUDT(EXPR_TIME, true);
+  public static final RelDataType NULLABLE_TIMESTAMP_UDT =
       TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, true);
-  public static SqlReturnTypeInference timestampInference =
-      ReturnTypes.explicit(nullableTimestampUDT);
-  public static SqlReturnTypeInference timeInference = ReturnTypes.explicit(nullableTimeUDT);
-
-  public static SqlReturnTypeInference dateInference = ReturnTypes.explicit(nullableDateUDT);
+  public static final RelDataType NULLABLE_STRING =
+      TYPE_FACTORY.createTypeWithNullability(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), true);
 
   public static RelBuilder.AggCall TransferUserDefinedAggFunction(
       Class<? extends UserDefinedAggFunction> UDAF,
@@ -85,23 +72,6 @@ public class UserDefinedFunctionUtils {
     return relBuilder.aggregateCall(sqlUDAF, addArgList);
   }
 
-  public static SqlOperator TransferUserDefinedFunction(
-      Class<? extends UserDefinedFunction> UDF,
-      String functionName,
-      SqlReturnTypeInference returnType) {
-    final ScalarFunction udfFunction =
-        ScalarFunctionImpl.create(Types.lookupMethod(UDF, "eval", Object[].class));
-    SqlIdentifier udfLtrimIdentifier =
-        new SqlIdentifier(Collections.singletonList(functionName), null, SqlParserPos.ZERO, null);
-    return new SqlUserDefinedFunction(
-        udfLtrimIdentifier,
-        SqlKind.OTHER_FUNCTION,
-        returnType,
-        InferTypes.ANY_NULLABLE,
-        null,
-        udfFunction);
-  }
-
   static SqlReturnTypeInference getReturnTypeInferenceForArray() {
     return opBinding -> {
       RelDataTypeFactory typeFactory = opBinding.getTypeFactory();
@@ -117,139 +87,118 @@ public class UserDefinedFunctionUtils {
     };
   }
 
-  static List<Integer> transferStringExprToDateValue(String timeExpr) {
-    try {
-      if (timeExpr.contains(":")) {
-        // A timestamp
-        LocalDateTime localDateTime =
-            LocalDateTime.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-        return List.of(
-            localDateTime.getYear(), localDateTime.getMonthValue(), localDateTime.getDayOfMonth());
-      } else {
-        LocalDate localDate =
-            LocalDate.parse(timeExpr, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
-        return List.of(localDate.getYear(), localDate.getMonthValue(), localDate.getDayOfMonth());
-      }
-    } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(
-          String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", timeExpr));
-    }
-  }
-
-  /**
-   * Check whether a function gets enough arguments.
-   *
-   * @param funcName the name of the function
-   * @param expectedArguments the number of expected arguments
-   * @param actualArguments the number of actual arguments
-   * @param exactMatch whether the number of actual arguments should precisely match the number of
-   *     expected arguments. If false, it suffices as long as the number of actual number of
-   *     arguments is not smaller that the number of expected arguments.
-   * @throws IllegalArgumentException if the argument length does not match the expected one
-   */
-  public static void validateArgumentCount(
-      String funcName, int expectedArguments, int actualArguments, boolean exactMatch) {
-    if (exactMatch) {
-      if (actualArguments != expectedArguments) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Mismatch arguments: function %s expects %d arguments, but got %d",
-                funcName, expectedArguments, actualArguments));
-      }
-    } else {
-      if (actualArguments < expectedArguments) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Mismatch arguments: function %s expects at least %d arguments, but got %d",
-                funcName, expectedArguments, actualArguments));
-      }
-    }
-  }
-
-  /**
-   * Validates that the given list of objects matches the given list of types.
-   *
-   * <p>This function first checks if the sizes of the two lists match. If not, it throws an {@code
-   * IllegalArgumentException}. Then, it iterates through the lists and checks if each object is an
-   * instance of the corresponding type. If any object is not of the expected type, it throws an
-   * {@code IllegalArgumentException} with a descriptive message.
-   *
-   * @param objects the list of objects to validate
-   * @param types the list of expected types
-   * @throws IllegalArgumentException if the sizes of the lists do not match or if any object is not
-   *     an instance of the corresponding type
-   */
-  public static void validateArgumentTypes(List<Object> objects, List<Class<?>> types) {
-    validateArgumentTypes(objects, types, Collections.nCopies(types.size(), false));
-  }
-
-  public static void validateArgumentTypes(
-      List<Object> objects, List<Class<?>> types, boolean nullable) {
-    validateArgumentTypes(objects, types, Collections.nCopies(types.size(), nullable));
-  }
-
-  public static void validateArgumentTypes(
-      List<Object> objects, List<Class<?>> types, List<Boolean> nullables) {
-    if (objects.size() < types.size()) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Mismatch in the number of objects and types. Got %d objects and %d types",
-              objects.size(), types.size()));
-    }
-    for (int i = 0; i < types.size(); i++) {
-      if (objects.get(i) == null && nullables.get(i)) {
-        continue;
-      }
-      if (!types.get(i).isInstance(objects.get(i))) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Object at index %d is not of type %s (Got %s)",
-                i,
-                types.get(i).getName(),
-                objects.get(i) == null ? "null" : objects.get(i).getClass().getName()));
-      }
-    }
-  }
-
-  /** Check whether the given array contains null values. */
-  public static boolean containsNull(Object[] objects) {
-    return Arrays.stream(objects).anyMatch(Objects::isNull);
-  }
-
-  public static String formatTimestampWithoutUnnecessaryNanos(LocalDateTime localDateTime) {
-    String base = localDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-    int nano = localDateTime.getNano();
-    if (nano == 0) return base;
-
-    String nanoStr = String.format(Locale.ENGLISH, "%09d", nano);
-    nanoStr = nanoStr.replaceFirst("0+$", "");
-    if (!nanoStr.isEmpty()) {
-      return base + "." + nanoStr;
-    }
-    return base;
-  }
-
-  public static SqlTypeName transferDateRelatedTimeName(RexNode candidate) {
-    RelDataType type = candidate.getType();
-    if (type instanceof ExprSqlType) {
-      ExprUDT exprUDT = ((ExprSqlType) type).getUdt();
-      if (exprUDT == EXPR_TIME) {
-        return SqlTypeName.TIME;
-      } else if (exprUDT == EXPR_TIMESTAMP) {
-        return SqlTypeName.TIMESTAMP;
-      } else if (exprUDT == EXPR_DATE) {
-        return SqlTypeName.DATE;
-      }
-    }
-    return type.getSqlTypeName();
-  }
-
   // TODO: pass the function properties directly to the UDF instead of string
-  public static FunctionProperties restoreFunctionProperties(Object timestampStr) {
-    String expression = (String) timestampStr;
-    Instant parsed = Instant.parse(expression);
-    FunctionProperties functionProperties =
-        new FunctionProperties(parsed, ZoneId.systemDefault(), QueryType.PPL);
-    return functionProperties;
+  public static FunctionProperties restoreFunctionProperties(DataContext dataContext) {
+    long currentTimeInNanos = DataContext.Variable.UTC_TIMESTAMP.get(dataContext);
+    Instant instant =
+        Instant.ofEpochSecond(
+            currentTimeInNanos / 1_000_000_000, currentTimeInNanos % 1_000_000_000);
+    TimeZone timeZone = TimeZone.getDefault();
+    ZoneId zoneId = timeZone.toZoneId();
+    return new FunctionProperties(instant, zoneId, QueryType.PPL);
+  }
+
+  /**
+   * Convert java objects to ExprValue, so that the parameters fit the expr function signature. It
+   * invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue. Note that
+   * date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
+   *
+   * @param operands the operands to convert
+   * @param rexCall the RexCall object containing the operands
+   * @return the converted operands
+   */
+  public static List<Expression> convertToExprValues(List<Expression> operands, RexCall rexCall) {
+    List<RelDataType> types = rexCall.getOperands().stream().map(RexNode::getType).toList();
+    return convertToExprValues(operands, types);
+  }
+
+  /**
+   * Convert java objects to ExprValue, so that the parameters fit the expr function signature. It
+   * invokes ExprValueUtils.fromObjectValue to convert the java objects to ExprValue. Note that
+   * date/time/timestamp strings will be converted to strings instead of ExprDateValue, etc.
+   *
+   * @param operands the operands to convert
+   * @return the converted operands
+   */
+  public static List<Expression> convertToExprValues(
+      List<Expression> operands, List<RelDataType> types) {
+    List<ExprType> exprTypes =
+        types.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
+    List<Expression> exprValues = new ArrayList<>();
+    for (int i = 0; i < operands.size(); i++) {
+      Expression operand = Expressions.convert_(operands.get(i), Object.class);
+      exprValues.add(
+          i,
+          Expressions.call(
+              ExprValueUtils.class,
+              "fromObjectValue",
+              operand,
+              Expressions.constant(exprTypes.get(i))));
+    }
+    return exprValues;
+  }
+
+  /**
+   * Adapt a static expr method to a UserDefinedFunctionBuilder. It first converts the operands to
+   * ExprValue, then calls the method, and finally converts the result to values recognizable by
+   * Calcite by calling exprValue.valueForCalcite.
+   *
+   * @param type the class containing the static method
+   * @param methodName the name of the method
+   * @param returnTypeInference the return type inference of the UDF
+   * @param nullPolicy the null policy of the UDF
+   * @return an adapted ImplementorUDF with the expr method, which is a UserDefinedFunctionBuilder
+   */
+  public static ImplementorUDF adaptExprMethodToUDF(
+      java.lang.reflect.Type type,
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy) {
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          List<Expression> operands =
+              convertToExprValues(
+                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
+          Expression exprResult = Expressions.call(type, methodName, operands);
+          return Expressions.call(exprResult, "valueForCalcite");
+        };
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+    };
+  }
+
+  public static List<Expression> prependFunctionProperties(
+      List<Expression> operands, RexToLixTranslator translator) {
+    List<Expression> operandsWithProperties = new ArrayList<>(operands);
+    Expression properties =
+        Expressions.call(
+            UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
+    operandsWithProperties.addFirst(properties);
+    return Collections.unmodifiableList(operandsWithProperties);
+  }
+
+  public static ImplementorUDF adaptExprMethodWithPropertiesToUDF(
+      java.lang.reflect.Type type,
+      String methodName,
+      SqlReturnTypeInference returnTypeInference,
+      NullPolicy nullPolicy) {
+    NotNullImplementor implementor =
+        (translator, call, translatedOperands) -> {
+          List<Expression> operands =
+              convertToExprValues(
+                  translatedOperands, call.getOperands().stream().map(RexNode::getType).toList());
+          List<Expression> operandsWithProperties = prependFunctionProperties(operands, translator);
+          Expression exprResult = Expressions.call(type, methodName, operandsWithProperties);
+          return Expressions.call(exprResult, "valueForCalcite");
+        };
+    return new ImplementorUDF(implementor, nullPolicy) {
+      @Override
+      public SqlReturnTypeInference getReturnTypeInference() {
+        return returnTypeInference;
+      }
+    };
   }
 }

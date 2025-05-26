@@ -25,6 +25,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.describe;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
+import static org.opensearch.sql.ast.dsl.AstDSL.fillNull;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.head;
@@ -33,6 +34,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.let;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.parse;
+import static org.opensearch.sql.ast.dsl.AstDSL.patterns;
 import static org.opensearch.sql.ast.dsl.AstDSL.projectWithArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.rareTopN;
@@ -44,15 +46,15 @@ import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.tableFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
-import static org.opensearch.sql.ast.dsl.AstDSL.window;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,13 +63,11 @@ import org.mockito.Mockito;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.DataType;
-import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.PatternMethod;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
-import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -653,29 +653,19 @@ public class AstBuilderTest {
   public void testFillNullCommandSameValue() {
     assertEqual(
         "source=t | fillnull with 0 in a, b, c",
-        new FillNull(
-            relation("t"),
-            FillNull.ContainNullableFieldFill.ofSameValue(
-                intLiteral(0),
-                ImmutableList.<Field>builder()
-                    .add(field("a"))
-                    .add(field("b"))
-                    .add(field("c"))
-                    .build())));
+        fillNull(relation("t"), intLiteral(0), field("a"), field("b"), field("c")));
   }
 
   @Test
   public void testFillNullCommandVariousValues() {
     assertEqual(
         "source=t | fillnull using a = 1, b = 2, c = 3",
-        new FillNull(
+        fillNull(
             relation("t"),
-            FillNull.ContainNullableFieldFill.ofVariousValue(
-                ImmutableList.<FillNull.NullableFieldFill>builder()
-                    .add(new FillNull.NullableFieldFill(field("a"), intLiteral(1)))
-                    .add(new FillNull.NullableFieldFill(field("b"), intLiteral(2)))
-                    .add(new FillNull.NullableFieldFill(field("c"), intLiteral(3)))
-                    .build())));
+            List.of(
+                Pair.of(field("a"), intLiteral(1)),
+                Pair.of(field("b"), intLiteral(2)),
+                Pair.of(field("c"), intLiteral(3)))));
   }
 
   public void testTrendline() {
@@ -832,20 +822,25 @@ public class AstBuilderTest {
   public void testPatternsCommand() {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEqual(
-        "source=t | patterns new_field=\"custom_field\" pattern=\"custom_pattern\" raw",
-        window(
+        "source=t | patterns new_field=\"custom_field\" " + "pattern=\"custom_pattern\" raw",
+        parse(
             relation("t"),
-            PatternMethod.SIMPLE_PATTERN,
+            ParseMethod.PATTERNS,
             field("raw"),
-            "custom_field",
-            Arrays.asList(
-                new Argument("new_field", new Literal("custom_field", DataType.STRING)),
-                new Argument("pattern", new Literal("custom_pattern", DataType.STRING)))));
+            stringLiteral("custom_pattern"),
+            ImmutableMap.<String, Literal>builder()
+                .put("new_field", stringLiteral("custom_field"))
+                .put("pattern", stringLiteral("custom_pattern"))
+                .build()));
+  }
 
+  @Test
+  public void testPatternsCommandWithBrainMethod() {
+    when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEqual(
         "source=t | patterns variable_count_threshold=2 frequency_threshold_percentage=0.1 raw"
             + " BRAIN",
-        window(
+        patterns(
             relation("t"),
             PatternMethod.BRAIN,
             field("raw"),
@@ -861,12 +856,12 @@ public class AstBuilderTest {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEqual(
         "source=t | patterns raw",
-        window(
+        parse(
             relation("t"),
-            PatternMethod.SIMPLE_PATTERN,
+            ParseMethod.PATTERNS,
             field("raw"),
-            "patterns_field",
-            Arrays.asList()));
+            stringLiteral(""),
+            ImmutableMap.of()));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

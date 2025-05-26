@@ -6,7 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
+import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreRelId;
 
 import com.google.common.io.Resources;
 import java.io.IOException;
@@ -31,7 +31,7 @@ public class ExplainIT extends PPLIntegTestCase {
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_output.json")
             : loadFromFile("expectedOutput/ppl/explain_output.json");
-    assertJsonEquals(
+    assertJsonEqualsIgnoreRelId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -51,7 +51,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_filter_push.json")
             : loadFromFile("expectedOutput/ppl/explain_filter_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreRelId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -63,13 +63,12 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterAndAggPushDownExplain() throws Exception {
-    // TODO check why the agg pushdown doesn't work in calcite
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_agg_push.json")
             : loadFromFile("expectedOutput/ppl/explain_filter_agg_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreRelId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -85,7 +84,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_sort_push.json")
             : loadFromFile("expectedOutput/ppl/explain_sort_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreRelId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -102,7 +101,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_limit_push.json")
             : loadFromFile("expectedOutput/ppl/explain_limit_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreRelId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -113,9 +112,12 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFillNullPushDownExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_fillnull_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreRelId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -126,7 +128,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testTrendlinePushDownExplain() throws Exception {
     String expected = loadFromFile("expectedOutput/ppl/explain_trendline_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreRelId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -139,7 +141,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testTrendlineWithSortPushDownExplain() throws Exception {
     String expected = loadFromFile("expectedOutput/ppl/explain_trendline_sort_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreRelId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -163,5 +165,34 @@ public class ExplainIT extends PPLIntegTestCase {
       final String entity = TestUtils.getResponseBody(e.getResponse());
       assertThat(entity, containsString("Explain mode COST is not supported in v2 engine"));
     }
+  }
+
+  @Test
+  public void testPatternsWithoutAggExplain() throws Exception {
+    // TODO: Correct calcite expected result once pushdown is supported
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_patterns.json")
+            : loadFromFile("expectedOutput/ppl/explain_patterns.json");
+
+    assertJsonEqualsIgnoreRelId(
+        expected,
+        explainQueryToString("source=opensearch-sql_test_index_account | patterns email"));
+  }
+
+  @Test
+  public void testPatternsWithAggPushDownExplain() throws Exception {
+    // TODO: Correct calcite expected result once pushdown is supported
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_patterns_agg_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_patterns_agg_push.json");
+
+    assertJsonEqualsIgnoreRelId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| patterns email "
+                + "| stats count() by patterns_field"));
   }
 }

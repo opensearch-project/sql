@@ -39,6 +39,7 @@ import static org.opensearch.sql.legacy.TestUtils.getPhraseIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestUtils.getStateCountryIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getStringIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getTpchMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getUnexpandedObjectIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getWeblogsIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getWorkInformationIndexMapping;
@@ -838,11 +839,56 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "alias",
         getAliasIndexMapping(),
         "src/test/resources/alias.json"),
+    FLATTENED_VALUE(
+        TestsConstants.TEST_INDEX_FLATTENED_VALUE,
+        "flattened_value",
+        null,
+        "src/test/resources/flattened_value.json"),
     DUPLICATION_NULLABLE(
         TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE,
         "duplication_nullable",
         getDuplicationNullableIndexMapping(),
-        "src/test/resources/duplication_nullable.json");
+        "src/test/resources/duplication_nullable.json"),
+    TPCH_ORDERS(
+        "orders",
+        "tpch",
+        getTpchMappingFile("orders_index_mapping.json"),
+        "src/test/resources/tpch/data/orders.json"),
+    TPCH_NATION(
+        "nation",
+        "tpch",
+        getTpchMappingFile("nation_index_mapping.json"),
+        "src/test/resources/tpch/data/nation.json"),
+    TPCH_REGION(
+        "region",
+        "tpch",
+        getTpchMappingFile("region_index_mapping.json"),
+        "src/test/resources/tpch/data/region.json"),
+    TPCH_LINEITEM(
+        "lineitem",
+        "tpch",
+        getTpchMappingFile("lineitem_index_mapping.json"),
+        "src/test/resources/tpch/data/lineitem.json"),
+    TPCH_PARTSUPP(
+        "partsupp",
+        "tpch",
+        getTpchMappingFile("partsupp_index_mapping.json"),
+        "src/test/resources/tpch/data/partsupp.json"),
+    TPCH_SUPPLIER(
+        "supplier",
+        "tpch",
+        getTpchMappingFile("supplier_index_mapping.json"),
+        "src/test/resources/tpch/data/supplier.json"),
+    TPCH_PART(
+        "part",
+        "tpch",
+        getTpchMappingFile("part_index_mapping.json"),
+        "src/test/resources/tpch/data/part.json"),
+    TPCH_CUSTOMER(
+        "customer",
+        "tpch",
+        getTpchMappingFile("customer_index_mapping.json"),
+        "src/test/resources/tpch/data/customer.json");
 
     private final String name;
     private final String type;

@@ -114,6 +114,8 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               .put(Key.CALCITE_ENGINE_ENABLED, true)
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)
               .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
+              .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
+              .put(Key.DEFAULT_PATTERN_METHOD, "SIMPLE_PATTERN")
               .build();
 
       @Override
@@ -138,6 +140,8 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               .put(Key.CALCITE_ENGINE_ENABLED, true)
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)
               .put(Key.CALCITE_PUSHDOWN_ENABLED, true)
+              .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
+              .put(Key.DEFAULT_PATTERN_METHOD, "SIMPLE_PATTERN")
               .build();
 
       @Override
@@ -213,6 +217,8 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               throw (UnsupportedCursorRequestException) e;
             } else if (e instanceof NoCursorException) {
               throw (NoCursorException) e;
+            } else if (e instanceof UnsupportedOperationException) {
+              throw (UnsupportedOperationException) e;
             } else if (e instanceof IllegalArgumentException) {
               // most exceptions thrown by Calcite when resolve a plan.
               throw (IllegalArgumentException) e;

@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -346,6 +347,10 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitFillNull(FillNull fillNull, C context) {
     return visitChildren(fillNull, context);
+  }
+
+  public T visitPatterns(Patterns patterns, C context) {
+    return visitChildren(patterns, context);
   }
 
   public T visitWindow(Window window, C context) {

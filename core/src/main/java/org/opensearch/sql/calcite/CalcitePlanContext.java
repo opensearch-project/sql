@@ -10,6 +10,7 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTOR
 import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
@@ -46,6 +47,7 @@ public class CalcitePlanContext {
   @Getter @Setter private boolean isProjectVisited = false;
 
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
+  private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
   @Getter public Map<String, RexLambdaRef> temparolInputMap;
 
