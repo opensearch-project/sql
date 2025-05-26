@@ -71,4 +71,24 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
         "SUBSTRING function expects {[STRING,INTEGER], [STRING,INTEGER,INTEGER]}, but got"
             + " [STRING,INTEGER,STRING]");
   }
+
+  @Test
+  public void testIfWithWrongType() {
+    getRelNode("source=EMP | eval if_name = if(EMPNO > 6, 'Jack', ENAME) | fields if_name");
+    getRelNode("source=EMP | eval if_name = if(EMPNO > 6, EMPNO, DEPTNO) | fields if_name");
+    String pplWrongCondition = "source=EMP | eval if_name = if(EMPNO, 1, DEPTNO) | fields if_name";
+    Throwable t1 =
+        Assert.assertThrows(
+            ExpressionEvaluationException.class, () -> getRelNode(pplWrongCondition));
+    verifyErrorMessageContains(
+        t1, "IF function expects {[BOOLEAN,ANY,ANY]}, but got [SHORT,INTEGER,BYTE]");
+    String pplIncompatibleType =
+        "source=EMP | eval if_name = if(EMPNO > 6, 'Jack', 1) | fields if_name";
+    Throwable t2 =
+        Assert.assertThrows(IllegalArgumentException.class, () -> getRelNode(pplIncompatibleType));
+    verifyErrorMessageContains(
+        t2,
+        "Cannot resolve function: IF, arguments: [BOOLEAN, VARCHAR, INTEGER], caused by: Can't find"
+            + " leastRestrictive type for [VARCHAR, INTEGER]");
+  }
 }

@@ -193,18 +193,18 @@ public class PPLFuncImpTable {
         // types. Verifying the composition type would require accessing a protected field in
         // CompositeOperandTypeChecker. If access to this field is not allowed, type checking will
         // be skipped, so we avoid checking the composition type here.
-        register(functionName, createCompositeFunctionImp(operator, compositeTypeChecker, false));
+        register(functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, false));
       } else if (typeChecker instanceof ImplicitCastOperandTypeChecker implicitCastTypeChecker) {
-        register(functionName, createImplicitCastFunctionImp(operator, implicitCastTypeChecker));
+        register(functionName, wrapWithImplicitCastTypeChecker(operator, implicitCastTypeChecker));
       } else if (typeChecker instanceof CompositeOperandTypeChecker compositeTypeChecker) {
         // If compositeTypeChecker contains operand checkers other than family type checkers or
         // other than OR compositions, the function with be registered with a null type checker,
         // which means the function will not be type checked.
-        register(functionName, createCompositeFunctionImp(operator, compositeTypeChecker, true));
+        register(functionName, wrapWithCompositeTypeChecker(operator, compositeTypeChecker, true));
       } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {
         // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
         // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
-        register(functionName, createComparableFunctionImp(operator, comparableTypeChecker));
+        register(functionName, wrapWithComparableTypeChecker(operator, comparableTypeChecker));
       } else {
         logger.info(
             "Cannot create type checker for function: {}. Will skip its type checking",
@@ -222,7 +222,7 @@ public class PPLFuncImpTable {
       return (udfOperandMetadata == null) ? null : udfOperandMetadata.getInnerTypeChecker();
     }
 
-    private static FunctionImp createCompositeFunctionImp(
+    private static FunctionImp wrapWithCompositeTypeChecker(
         SqlOperator operator,
         CompositeOperandTypeChecker typeChecker,
         boolean checkCompositionType) {
@@ -249,7 +249,7 @@ public class PPLFuncImpTable {
       };
     }
 
-    private static FunctionImp createImplicitCastFunctionImp(
+    private static FunctionImp wrapWithImplicitCastTypeChecker(
         SqlOperator operator, ImplicitCastOperandTypeChecker typeChecker) {
       return new FunctionImp() {
         @Override
@@ -264,7 +264,7 @@ public class PPLFuncImpTable {
       };
     }
 
-    private static FunctionImp createComparableFunctionImp(
+    private static FunctionImp wrapWithComparableTypeChecker(
         SqlOperator operator, SameOperandTypeChecker typeChecker) {
       return new FunctionImp() {
         @Override
@@ -356,7 +356,6 @@ public class PPLFuncImpTable {
       registerOperator(IS_NOT_NULL, SqlStdOperatorTable.IS_NOT_NULL);
       registerOperator(IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL);
       registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
-      registerOperator(IF, SqlStdOperatorTable.CASE);
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
       registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
 
@@ -501,14 +500,14 @@ public class PPLFuncImpTable {
       // checker for it.
       register(
           SUBSTRING,
-          createCompositeFunctionImp(
+          wrapWithCompositeTypeChecker(
               SqlStdOperatorTable.SUBSTRING,
               (CompositeOperandTypeChecker)
                   OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
               false));
       register(
           SUBSTR,
-          createCompositeFunctionImp(
+          wrapWithCompositeTypeChecker(
               SqlStdOperatorTable.SUBSTRING,
               (CompositeOperandTypeChecker)
                   OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
@@ -544,6 +543,14 @@ public class PPLFuncImpTable {
               (builder, arg) ->
                   builder.makeLiteral(getLegacyTypeName(arg.getType(), QueryType.PPL)));
       register(XOR, new XOR_FUNC());
+      // SqlStdOperatorTable.CASE.getOperandTypeChecker is null. We manually create a type checker
+      // for it. The second and third operands are required to be of the same type. If not,
+      // it will throw an IllegalArgumentException with information Can't find leastRestrictive type
+      register(
+          IF,
+          wrapWithImplicitCastTypeChecker(
+              SqlStdOperatorTable.CASE,
+              OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY)));
       register(
           NULLIF,
           (FunctionImp2)
