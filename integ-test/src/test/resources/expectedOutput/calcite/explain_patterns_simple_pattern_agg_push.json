@@ -1,0 +1,6 @@
+{
+  "calcite":{
+    "logical":"LogicalProject(pattern_count=[$1], patterns_field=[SAFE_CAST(ITEM(PATTERN_PARSER($0, $2), 'pattern'))], tokens=[SAFE_CAST(ITEM(PATTERN_PARSER($0, $2), 'tokens'))])\n  LogicalAggregate(group=[{1}], pattern_count=[COUNT($1)], sample_logs=[TAKE($0, $2)])\n    LogicalProject(email=[$9], patterns_field=[REGEXP_REPLACE($9, '[a-zA-Z0-9]+':VARCHAR, '<*>')], $f18=[10])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical":"EnumerableCalc(expr#0..2=[{inputs}], expr#3=[PATTERN_PARSER($t0, $t2)], expr#4=['pattern'], expr#5=[ITEM($t3, $t4)], expr#6=[SAFE_CAST($t5)], expr#7=['tokens'], expr#8=[ITEM($t3, $t7)], expr#9=[SAFE_CAST($t8)], pattern_count=[$t1], patterns_field=[$t6], tokens=[$t9])\n  EnumerableAggregate(group=[{1}], pattern_count=[COUNT($1)], sample_logs=[TAKE($0, $2)])\n    EnumerableCalc(expr#0=[{inputs}], expr#1=['[a-zA-Z0-9]+':VARCHAR], expr#2=['<*>'], expr#3=[REGEXP_REPLACE($t0, $t1, $t2)], expr#4=[10], email=[$t0], $f1=[$t3], $f2=[$t4])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[email]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"email\"],\"excludes\":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n"
+  }
+}

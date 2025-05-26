@@ -229,8 +229,6 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
                     + " pattern_mode=aggregation pattern_max_sample_count=5"
                     + " variable_count_threshold=2 frequency_threshold_percentage=0.2",
                 TEST_INDEX_HDFS_LOGS));
-    System.out.println(result.getJSONArray("datarows"));
-    System.out.println(result.getJSONArray("schema"));
     verifySchema(
         result,
         schema("level", "string"),

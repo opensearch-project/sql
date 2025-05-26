@@ -1,0 +1,6 @@
+{
+  "calcite":{
+    "logical":"LogicalProject(patterns_field=[$1], pattern_count=[$2], tokens=[$3])\n  LogicalTableFunctionScan(invocation=[UNCOLLECT_PATTERNS($0, 0:TINYINT)], rowType=[RecordType((VARCHAR, ANY) MAP ARRAY patterns_field, VARCHAR pattern, BIGINT pattern_count, (VARCHAR, VARCHAR ARRAY) MAP tokens)])\n    LogicalAggregate(group=[{}], patterns_field=[pattern($0, $1, $2)])\n      LogicalProject(email=[$9], $f17=[10], $f18=[100000])\n        CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical":"EnumerableCalc(expr#0..3=[{inputs}], patterns_field=[$t1], pattern_count=[$t2], tokens=[$t3])\n  EnumerableTableFunctionScan(invocation=[UNCOLLECT_PATTERNS($0, 0:TINYINT)], rowType=[RecordType((VARCHAR, ANY) MAP ARRAY patterns_field, VARCHAR pattern, BIGINT pattern_count, (VARCHAR, VARCHAR ARRAY) MAP tokens)])\n    EnumerableAggregate(group=[{}], patterns_field=[pattern($0, $1, $2)])\n      EnumerableCalc(expr#0=[{inputs}], expr#1=[10], expr#2=[100000], proj#0..2=[{exprs}])\n        CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[email]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"email\"],\"excludes\":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n"
+  }
+}
