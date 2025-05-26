@@ -34,6 +34,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -328,8 +329,6 @@ public class PPLFuncImpTable {
       registerOperator(POSITION, SqlStdOperatorTable.POSITION);
       registerOperator(LOCATE, SqlStdOperatorTable.POSITION);
       registerOperator(REPLACE, SqlStdOperatorTable.REPLACE);
-      registerOperator(SUBSTRING, SqlStdOperatorTable.SUBSTRING);
-      registerOperator(SUBSTR, SqlStdOperatorTable.SUBSTRING);
       registerOperator(UPPER, SqlStdOperatorTable.UPPER);
       registerOperator(ABS, SqlStdOperatorTable.ABS);
       registerOperator(ACOS, SqlStdOperatorTable.ACOS);
@@ -498,6 +497,22 @@ public class PPLFuncImpTable {
           createFunctionImpWithTypeChecker(
               (builder, arg1, arg2) -> builder.makeCall(SqlLibraryOperators.STRCMP, arg2, arg1),
               family(SqlTypeFamily.STRING, SqlTypeFamily.STRING)));
+      // SqlStdOperatorTable.SUBSTRING.getOperandTypeChecker is null. We manually create a type
+      // checker for it.
+      register(
+          SUBSTRING,
+          createCompositeFunctionImp(
+              SqlStdOperatorTable.SUBSTRING,
+              (CompositeOperandTypeChecker)
+                  OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
+              false));
+      register(
+          SUBSTR,
+          createCompositeFunctionImp(
+              SqlStdOperatorTable.SUBSTRING,
+              (CompositeOperandTypeChecker)
+                  OperandTypes.STRING_INTEGER.or(OperandTypes.STRING_INTEGER_INTEGER),
+              false));
       register(
           LOG,
           createFunctionImpWithTypeChecker(

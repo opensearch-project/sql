@@ -44,8 +44,7 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
   public void testComparisonWithDifferentType() {
     getRelNode("source=EMP | where EMPNO > 6 | fields ENAME");
     getRelNode("source=EMP | where ENAME <= 'Jack' | fields ENAME");
-    String ppl =
-        "source=EMP | where ENAME < 6 | fields ENAME";
+    String ppl = "source=EMP | where ENAME < 6 | fields ENAME";
     Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(
         t, "LESS function expects {[COMPARABLE_TYPE,COMPARABLE_TYPE]}, but got [STRING,INTEGER]");
@@ -53,10 +52,23 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testCoalesceWithDifferentType() {
-    String ppl = "source=EMP | eval coalesce_name = coalesce(EMPNO, 'Jack', ENAME) | fields"
-        + " coalesce_name";
+    String ppl =
+        "source=EMP | eval coalesce_name = coalesce(EMPNO, 'Jack', ENAME) | fields"
+            + " coalesce_name";
     Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(
         t, "COALESCE function expects {[COMPARABLE_TYPE...]}, but got [SHORT,STRING,STRING]");
+  }
+
+  @Test
+  public void testSubstringWithWrongType() {
+    getRelNode("source=EMP | eval sub_name = substring(ENAME, 1, 3) | fields sub_name");
+    getRelNode("source=EMP | eval sub_name = substring(ENAME, 1) | fields sub_name");
+    String ppl = "source=EMP | eval sub_name = substring(ENAME, 1, '3') | fields sub_name";
+    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(
+        t,
+        "SUBSTRING function expects {[STRING,INTEGER], [STRING,INTEGER,INTEGER]}, but got"
+            + " [STRING,INTEGER,STRING]");
   }
 }
