@@ -1,0 +1,38 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.fallback.allowed : false
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
+---
+"Push down filter with nested field":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"log": {"url": {"message": "/e2e/h/zap"} } }'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | where log.url.message = "/e2e/h/zap"'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "log", "type": "struct"}]}
+  - match: {"datarows": [[{"url": {"message": "/e2e/h/zap"}}]]}
