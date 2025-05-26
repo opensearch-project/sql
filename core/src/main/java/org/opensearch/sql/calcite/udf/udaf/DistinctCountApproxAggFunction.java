@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.udf.udaf;
 import com.google.zetasketch.HyperLogLogPlusPlus;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
+/** The function use HyperLogLogPlusPlus to count distinct count approximate value */
 public class DistinctCountApproxAggFunction
     implements UserDefinedAggFunction<DistinctCountApproxAggFunction.HLLAccumulator> {
 
