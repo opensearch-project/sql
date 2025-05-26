@@ -9,6 +9,7 @@ import static org.apache.calcite.sql.type.SqlTypeFamily.IGNORE;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTypeName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 import static org.opensearch.sql.expression.function.PPLTypeChecker.family;
+import static org.opensearch.sql.expression.function.PPLTypeChecker.wrapComparable;
 import static org.opensearch.sql.expression.function.PPLTypeChecker.wrapComposite;
 import static org.opensearch.sql.expression.function.PPLTypeChecker.wrapFamily;
 
@@ -31,9 +32,9 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
-import org.apache.calcite.sql.type.ComparableOperandTypeChecker;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
+import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -199,13 +200,10 @@ public class PPLFuncImpTable {
         // other than OR compositions, the function with be registered with a null type checker,
         // which means the function will not be type checked.
         register(functionName, createCompositeFunctionImp(operator, compositeTypeChecker, true));
-      } else if (typeChecker instanceof ComparableOperandTypeChecker comparableTypeChecker) {
+      } else if (typeChecker instanceof SameOperandTypeChecker comparableTypeChecker) {
         // Comparison operators like EQUAL, GREATER_THAN, LESS_THAN, etc.
-        register(
-            functionName,
-            createFunctionImpWithTypeChecker(
-                (builder, arg1, arg2) -> builder.makeCall(operator, arg1, arg2),
-                PPLTypeChecker.wrapComparable(comparableTypeChecker)));
+        // SameOperandTypeCheckers like COALESCE, IFNULL, etc.
+        register(functionName, createComparableFunctionImp(operator, comparableTypeChecker));
       } else {
         logger.info(
             "Cannot create type checker for function: {}. Will skip its type checking",
@@ -261,6 +259,21 @@ public class PPLFuncImpTable {
         @Override
         public PPLTypeChecker getTypeChecker() {
           return wrapFamily(typeChecker);
+        }
+      };
+    }
+
+    private static FunctionImp createComparableFunctionImp(
+        SqlOperator operator, SameOperandTypeChecker typeChecker) {
+      return new FunctionImp() {
+        @Override
+        public RexNode resolve(RexBuilder builder, RexNode... args) {
+          return builder.makeCall(operator, args);
+        }
+
+        @Override
+        public PPLTypeChecker getTypeChecker() {
+          return wrapComparable(typeChecker);
         }
       };
     }

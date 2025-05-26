@@ -14,10 +14,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.type.ComparableOperandTypeChecker;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
+import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -197,10 +197,13 @@ public interface PPLTypeChecker {
 
   @RequiredArgsConstructor
   class PPLComparableTypeChecker implements PPLTypeChecker {
-    private final ComparableOperandTypeChecker innerTypeChecker;
+    private final SameOperandTypeChecker innerTypeChecker;
 
     @Override
     public boolean checkOperandTypes(List<RelDataType> types) {
+      if (!innerTypeChecker.getOperandCountRange().isValidCount(types.size())) {
+        return false;
+      }
       // Check comparability of consecutive operands
       for (int i = 0; i < types.size() - 1; i++) {
         // TODO: Binary, Array UDT?
@@ -233,7 +236,7 @@ public interface PPLTypeChecker {
       };
     }
 
-    private boolean areIpAndStringTypes(RelDataType typeIp, RelDataType typeString) {
+    private static boolean areIpAndStringTypes(RelDataType typeIp, RelDataType typeString) {
       if (typeIp instanceof AbstractExprRelDataType<?> exprRelDataType) {
         return exprRelDataType.getExprType() == ExprCoreType.IP
             && typeString.getFamily() == SqlTypeFamily.CHARACTER;
@@ -334,7 +337,7 @@ public interface PPLTypeChecker {
     return new PPLCompositeTypeChecker(typeChecker);
   }
 
-  static PPLComparableTypeChecker wrapComparable(ComparableOperandTypeChecker typeChecker) {
+  static PPLComparableTypeChecker wrapComparable(SameOperandTypeChecker typeChecker) {
     return new PPLComparableTypeChecker(typeChecker);
   }
 

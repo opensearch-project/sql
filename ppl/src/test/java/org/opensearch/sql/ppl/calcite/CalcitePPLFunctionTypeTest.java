@@ -39,4 +39,24 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
         "TIMEDIFF function expects {[STRING,STRING], [DATETIME,DATETIME], [DATETIME,STRING],"
             + " [STRING,DATETIME]}, but got [INTEGER,STRING]");
   }
+
+  @Test
+  public void testComparisonWithDifferentType() {
+    getRelNode("source=EMP | where EMPNO > 6 | fields ENAME");
+    getRelNode("source=EMP | where ENAME <= 'Jack' | fields ENAME");
+    String ppl =
+        "source=EMP | where ENAME < 6 | fields ENAME";
+    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(
+        t, "LESS function expects {[COMPARABLE_TYPE,COMPARABLE_TYPE]}, but got [STRING,INTEGER]");
+  }
+
+  @Test
+  public void testCoalesceWithDifferentType() {
+    String ppl = "source=EMP | eval coalesce_name = coalesce(EMPNO, 'Jack', ENAME) | fields"
+        + " coalesce_name";
+    Throwable t = Assert.assertThrows(ExpressionEvaluationException.class, () -> getRelNode(ppl));
+    verifyErrorMessageContains(
+        t, "COALESCE function expects {[COMPARABLE_TYPE...]}, but got [SHORT,STRING,STRING]");
+  }
 }
