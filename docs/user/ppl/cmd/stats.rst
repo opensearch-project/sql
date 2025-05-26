@@ -248,7 +248,7 @@ Usage: DISTINCT_COUNT_APPROX(expr). Return the approximate distinct count value 
 
 Example::
 
-    os> source=accounts | stats distinct_count_approx(gender);
+    PPL> source=accounts | stats distinct_count_approx(gender);
     fetched rows / total rows = 1/1
     +-------------------------------+
     | distinct_count_approx(gender) |
