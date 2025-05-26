@@ -271,7 +271,7 @@ Usage: EARLIEST(field). Return the earliest time of the field.
 
 Example::
 
-    os> source=nyc_taxi | stats earliest(timestamp);
+    PPL> source=nyc_taxi | stats earliest(timestamp);
     fetched rows / total rows = 1/1
     +-----------------------------+
     | earliest(timestamp)         |
@@ -291,7 +291,7 @@ Usage: LATEST(field). Return the latest time of the field.
 
 Example::
 
-    os> source=nyc_taxi | stats latest(timestamp);
+    PPL> source=nyc_taxi | stats latest(timestamp);
     fetched rows / total rows = 1/1
     +-----------------------------+
     | latest(timestamp)           |
