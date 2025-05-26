@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.expression.function.udf.math;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -24,6 +26,7 @@ import org.opensearch.sql.expression.function.ImplementorUDF;
  * PPL. Therefore, we implement our versions
  */
 public class DivideFunction extends ImplementorUDF {
+  public static final int MAX_SCALE = 38;
 
   public DivideFunction() {
     super(new DivideImplementor(), NullPolicy.ANY);
@@ -54,6 +57,12 @@ public class DivideFunction extends ImplementorUDF {
       if (MathUtils.isIntegral(dividend) && MathUtils.isIntegral(divisor)) {
         long result = dividend.longValue() / divisor.longValue();
         return MathUtils.coerceToWidestIntegralType(dividend, divisor, result);
+      } else if (MathUtils.isDecimal(dividend) && MathUtils.isIntegral(divisor)) {
+        return ((BigDecimal) dividend)
+            .divide(BigDecimal.valueOf(divisor.longValue()), MAX_SCALE + 1, RoundingMode.HALF_UP);
+      } else if (MathUtils.isIntegral(dividend) && MathUtils.isDecimal(divisor)) {
+        return (BigDecimal.valueOf(dividend.longValue()))
+            .divide((BigDecimal) divisor, MAX_SCALE + 1, RoundingMode.HALF_UP);
       }
       double result = dividend.doubleValue() / divisor.doubleValue();
       return MathUtils.coerceToWidestFloatingType(dividend, divisor, result);

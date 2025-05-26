@@ -206,8 +206,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
     String ppl = loadFromFile("tpch/queries/q6.ppl");
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(actual, schema("revenue", "double"));
-    // TODO should be 77949.9186 when fix https://github.com/opensearch-project/sql/issues/3614
-    verifyDataRows(actual, rows(48090.85860000001));
+    verifyDataRows(actual, rows(77949.9186));
   }
 
   @Ignore("https://github.com/opensearch-project/sql/issues/3617")

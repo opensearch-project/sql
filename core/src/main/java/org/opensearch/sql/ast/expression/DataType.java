@@ -28,6 +28,11 @@ public enum DataType {
   TIMESTAMP(ExprCoreType.TIMESTAMP),
   INTERVAL(ExprCoreType.INTERVAL),
 
+  // the decimal DataType is only used for building decimal literal,
+  // so it still maps to double core type until we support decimal type.
+  // ref https://github.com/opensearch-project/sql/issues/3619
+  DECIMAL(ExprCoreType.DOUBLE),
+
   IP(ExprCoreType.IP);
 
   @Getter private final ExprCoreType coreType;

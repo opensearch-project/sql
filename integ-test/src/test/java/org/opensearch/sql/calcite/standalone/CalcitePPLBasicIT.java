@@ -564,4 +564,74 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
                     String.format("source=%s | stats count() as _score", TEST_INDEX_ACCOUNT)));
     verifyErrorMessageContains(e, "Cannot use metadata field [_score] as the alias.");
   }
+
+  @Test
+  public void testNumericLiteral() {
+    JSONObject result =
+        executeQuery(
+            "source=test | eval decimalLiteral = 0.06 - 0.01, doubleLiteral = 0.06d - 0.01d,"
+                + " floatLiteral = 0.06f - 0.01f");
+    verifySchema(
+        result,
+        schema("name", "string"),
+        schema("age", "long"),
+        schema("decimalLiteral", "double"),
+        schema("doubleLiteral", "double"),
+        schema("floatLiteral", "float"));
+    verifyDataRows(
+        result,
+        rows("hello", 20, 0.05, 0.049999999999999996, 0.05),
+        rows("world", 30, 0.05, 0.049999999999999996, 0.05));
+  }
+
+  @Test
+  public void testDecimalLiteral() {
+    JSONObject result =
+        executeQuery(
+            "source=test | eval r1 = 22 / 7.0, r2 = 22 / 7.0d, r3 = 22.0 / 7, r4 = 22.0d / 7,"
+                + " r5 = 0.1 * 0.2, r6 = 0.1d * 0.2d, r7 = 0.1 + 0.2, r8 = 0.1d + 0.2d,"
+                + " r9 = 0.06 - 0.01, r10 = 0.06d - 0.01d, r11 = 0.1 / 0.3 * 0.3,"
+                + " r12 = 0.1d / 0.3d * 0.3d, r13 = pow(sqrt(2.0), 2), r14 = pow(sqrt(2.0d), 2),"
+                + " r15 = 7.0 / 0, r16 = 7 / 0.0");
+    verifyDataRows(
+        result,
+        rows(
+            "hello",
+            20,
+            3.142857142857143,
+            3.142857142857143,
+            3.142857142857143,
+            3.142857142857143,
+            0.02,
+            0.020000000000000004,
+            0.3,
+            0.30000000000000004,
+            0.05,
+            0.049999999999999996,
+            0.10000000298023223,
+            0.1,
+            2.0000000000000004,
+            2.0000000000000004,
+            null,
+            null),
+        rows(
+            "world",
+            30,
+            3.142857142857143,
+            3.142857142857143,
+            3.142857142857143,
+            3.142857142857143,
+            0.02,
+            0.020000000000000004,
+            0.3,
+            0.30000000000000004,
+            0.05,
+            0.049999999999999996,
+            0.10000000298023223,
+            0.1,
+            2.0000000000000004,
+            2.0000000000000004,
+            null,
+            null));
+  }
 }
