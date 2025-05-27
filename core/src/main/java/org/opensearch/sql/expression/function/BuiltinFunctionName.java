@@ -283,6 +283,7 @@ public enum BuiltinFunctionName {
 
   /** Internal functions that are not exposed to customers. */
   INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
+  INTERNAL_GROK(FunctionName.of("grok"), true),
   INTERNAL_REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2"), true);
 
   private final FunctionName name;
