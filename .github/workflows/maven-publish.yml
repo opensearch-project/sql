@@ -46,6 +46,48 @@ jobs:
           echo "SONATYPE_USERNAME=$SONATYPE_USERNAME" >> $GITHUB_ENV
           echo "SONATYPE_PASSWORD=$SONATYPE_PASSWORD" >> $GITHUB_ENV
 
+      # Clean up old directories
+      - name: Delete existing directories
+        run: |
+          # Helper function to delete a directory and its contents
+          delete_directory() {
+            local dir_url=$1
+            echo "Attempting to delete directory: $dir_url"
+          
+            # Check if directory exists with a HEAD request
+            status_code=$(curl -s -o /dev/null -w "%{http_code}" -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -X HEAD "${dir_url}")
+          
+            if [[ "$status_code" == "200" || "$status_code" == "301" || "$status_code" == "302" || "$status_code" == "307" ]]; then
+              echo "Directory exists, deleting: $dir_url"
+          
+              # Use DELETE request to remove the directory
+              curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -X DELETE "${dir_url}"
+              echo "Deletion request sent for: $dir_url"
+            else
+              echo "Directory doesn't exist or not accessible (status code: $status_code): $dir_url"
+            fi
+          }
+          
+          # List of directories to delete
+          directories=(
+            "${SNAPSHOT_REPO_URL}org/opensearch/language-grammar/"
+            "${SNAPSHOT_REPO_URL}org/opensearch/direct-query-poc2/"
+            "${SNAPSHOT_REPO_URL}org/opensearch/direct-query/"
+            "${SNAPSHOT_REPO_URL}org/opensearch/language-grammar-poc2/"
+            "${SNAPSHOT_REPO_URL}org/opensearch/opensearch-language-grammar-poc/"
+            "${SNAPSHOT_REPO_URL}org/opensearch/opensearch-language-grammar-poc2/"
+            "${SNAPSHOT_REPO_URL}org/opensearch/opensearch-spark-ppl_2.12/0.8.0-commit-metadata-poc-SNAPSHOT-SNAPSHOT/"
+            "${SNAPSHOT_REPO_URL}org/opensearch/opensearch-spark-sql-application_2.12//0.8.0-commit-metadata-poc-SNAPSHOT-SNAPSHOT/"
+            "${SNAPSHOT_REPO_URL}org/opensearch/opensearch-spark-standalone_2.12/0.8.0-commit-metadata-poc-SNAPSHOT-SNAPSHOT/"
+          )
+          
+          # Delete each directory
+          for dir in "${directories[@]}"; do
+            delete_directory "$dir"
+          done
+          
+          echo "Directory cleanup completed"
+
       # Create the initial directory structure in repository
       - name: Create grammar-poc directory structure in repository
         run: |
@@ -67,7 +109,7 @@ jobs:
       - name: Set version
         id: set_version
         run: |
-          VERSION="1.0.0-SNAPSHOT" # You can adjust this version as needed
+          VERSION="0.1.0-SNAPSHOT" # Can adjust this version as needed
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "Using version: ${VERSION}"
 
