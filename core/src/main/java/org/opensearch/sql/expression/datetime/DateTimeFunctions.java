@@ -2164,6 +2164,10 @@ public class DateTimeFunctions {
     }
   }
 
+  private static double getUnixTimestampAsDouble(ExprTimestampValue value) {
+    return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
+  }
+
   private Double unixTimeStampOfImpl(ExprValue value) {
     // Also, according to MySQL documentation:
     //    The date argument may be a DATE, DATETIME, or TIMESTAMP ...
@@ -2171,7 +2175,10 @@ public class DateTimeFunctions {
       case DATE:
         return value.dateValue().toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
       case TIMESTAMP:
-        return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
+        return getUnixTimestampAsDouble((ExprTimestampValue) value);
+      case STRING:
+        ExprTimestampValue timestampValue = new ExprTimestampValue(value.stringValue());
+        return getUnixTimestampAsDouble(timestampValue);
       default:
         //     ... or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format.
         //     If the argument includes a time part, it may optionally include a fractional
