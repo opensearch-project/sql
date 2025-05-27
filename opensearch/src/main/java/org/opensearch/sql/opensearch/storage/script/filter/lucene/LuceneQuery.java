@@ -105,7 +105,7 @@ public abstract class LuceneQuery {
     Expression expr = func.getArguments().get(1);
     ExprValue literalValue =
         expr instanceof LiteralExpression ? expr.valueOf() : cast((FunctionExpression) expr, ref);
-    return doBuild(ref.getAttr(), ref.type(), literalValue);
+    return doBuild(ref.getRawPath(), ref.type(), literalValue);
   }
 
   private ExprValue cast(FunctionExpression castFunction, ReferenceExpression ref) {
