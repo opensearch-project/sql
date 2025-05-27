@@ -133,15 +133,19 @@ public class OpenSearchDataType implements ExprType, Serializable {
         });
 
     // Begin to parse alias type fields
-    aliasMapping.forEach(
-        (k, v) -> {
-          if (result.containsKey(v)) {
-            result.put(k, new OpenSearchAliasType(v, result.get(v)));
-          } else {
-            throw new IllegalStateException(
-                String.format("Cannot find the path [%s] for alias type field [%s]", v, k));
-          }
-        });
+    if (!aliasMapping.isEmpty()) {
+      // The path of alias type may point to a nested field, so we need to flatten the result.
+      Map<String, OpenSearchDataType> flattenResult = traverseAndFlatten(result);
+      aliasMapping.forEach(
+          (k, v) -> {
+            if (flattenResult.containsKey(v)) {
+              result.put(k, new OpenSearchAliasType(v, flattenResult.get(v)));
+            } else {
+              throw new IllegalStateException(
+                  String.format("Cannot find the path [%s] for alias type field [%s]", v, k));
+            }
+          });
+    }
 
     return result;
   }
