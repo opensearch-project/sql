@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
 
@@ -30,6 +31,7 @@ public class CalcitePPLGrokIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 """
                    source = %s | grok email '%s' | head 3 | fields email, host
                    """,
@@ -47,6 +49,7 @@ public class CalcitePPLGrokIT extends CalcitePPLIntegTestCase {
     JSONObject preGrokResult =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 """
                    source = %s | head 3 | fields address
                    """,
@@ -61,6 +64,7 @@ public class CalcitePPLGrokIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 """
                    source = %s | grok address '%s' | head 3 | fields address
                    """,
@@ -74,6 +78,7 @@ public class CalcitePPLGrokIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
+                Locale.ROOT,
                 """
                    source = %s | grok message '%s' | fields message, timestamp, response
                    """,
