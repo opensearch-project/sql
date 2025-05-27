@@ -22,7 +22,7 @@ jobs:
 
     env:
       SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
-      TARGET_REPO_PATH: org/opensearch/opensearch-language-grammar-poc2
+      TARGET_REPO_PATH: org/opensearch/language-grammar
 
     steps:
       - uses: actions/setup-java@v3
@@ -57,7 +57,7 @@ jobs:
           echo "Creating initial directory structure..."
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" \
             --upload-file "${TEMP_DIR}/.placeholder" \
-            "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/opensearch-language-grammar-poc2/.placeholder"
+            "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/language-grammar/.placeholder"
           
           # Clean up
           rm -rf "${TEMP_DIR}"
@@ -103,7 +103,7 @@ jobs:
       - name: Prepare for Maven publishing
         run: |
           # Define constants
-          ARTIFACT_ID="opensearch-language-grammar-poc2"
+          ARTIFACT_ID="language-grammar"
           GROUP_ID="org.opensearch"
           VERSION="${{ steps.set_version.outputs.VERSION }}"
           
@@ -160,7 +160,7 @@ jobs:
       - name: Add commit ID to metadata
         run: |
           COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
-          ARTIFACT_ID="opensearch-language-grammar-poc2"
+          ARTIFACT_ID="language-grammar"
           VERSION="${{ steps.set_version.outputs.VERSION }}"
           
           TEMP_DIR=$(mktemp -d)
