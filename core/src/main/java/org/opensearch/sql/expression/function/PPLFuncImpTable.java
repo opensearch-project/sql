@@ -152,11 +152,13 @@ public class PPLFuncImpTable {
 
   public RexNode resolve(
       final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
+    // Check the external function registry first. This allows the data-storage-dependent
+    // function implementations to override the internal ones with the same name.
     List<Pair<CalciteFuncSignature, FunctionImp>> implementList =
-        functionRegistry.get(functionName);
-    // If the function is not part of the built-in registry, check the external registry
+        externalFunctionRegistry.get(functionName);
+    // If the function is not part of the external registry, check the internal registry.
     if (implementList == null) {
-      implementList = externalFunctionRegistry.get(functionName);
+      implementList = functionRegistry.get(functionName);
     }
     if (implementList == null || implementList.isEmpty()) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
