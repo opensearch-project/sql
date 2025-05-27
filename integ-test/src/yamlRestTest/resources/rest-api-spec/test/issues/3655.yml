@@ -33,6 +33,7 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
 
 ---
 "Support match_only_text field type with Calcite enabled":
@@ -41,6 +42,8 @@ teardown:
         body:
           transient:
             plugins.calcite.enabled : true
+            plugins.calcite.fallback.allowed : false
+
   - do:
       headers:
         Content-Type: 'application/json'
@@ -56,7 +59,7 @@ teardown:
         Content-Type: 'application/json'
       ppl:
         body:
-          query: "source=test | where match_phrase(body, 'field 2') | fields body"
+          query: "source=test | where like(body, '%field 2%') | fields body"
   - match: {"total": 1}
   - match: {"schema": [{"name": "body", "type": "string"}]}
   - match: {"datarows": [["This is a match_only_text field 2"]]}
