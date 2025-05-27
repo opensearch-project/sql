@@ -109,7 +109,7 @@ jobs:
       - name: Set version
         id: set_version
         run: |
-          VERSION="1.0.0-SNAPSHOT" # You can adjust this version as needed
+          VERSION="0.1.0-SNAPSHOT" # Can adjust this version as needed
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "Using version: ${VERSION}"
 
