@@ -253,6 +253,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
               NullPolicy.NONE)
           .toUDF("UTC_TIMESTAMP");
   public static final SqlOperator WEEK = new WeekFunction().toUDF("WEEK");
+  public static final SqlOperator PATTERN_PARSER =
+      new PatternParserFunctionImpl().toUDF("PATTERN_PARSER");
+  public static final SqlOperator UNCOLLECT_PATTERNS = new SqlUncollectPatternsTableFunction();
 
   /**
    * Invoking an implementor registered in {@link RexImpTable}, need to use reflection since they're

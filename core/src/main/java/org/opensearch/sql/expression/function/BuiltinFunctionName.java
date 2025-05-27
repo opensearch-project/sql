@@ -237,6 +237,9 @@ public enum BuiltinFunctionName {
   DENSE_RANK(FunctionName.of("dense_rank")),
 
   BRAIN(FunctionName.of("brain")),
+  PATTERN_PARSER(FunctionName.of("pattern_parser")),
+  PATTERN(FunctionName.of("pattern")),
+  UNCOLLECT_PATTERNS(FunctionName.of("uncollect_patterns")),
 
   INTERVAL(FunctionName.of("interval")),
 
@@ -283,7 +286,7 @@ public enum BuiltinFunctionName {
 
   /** Internal functions that are not exposed to customers. */
   INTERNAL_REGEXP_EXTRACT(FunctionName.of("regexp_extract"), true),
-  INTERNAL_REGEXP_REPLACE_2(FunctionName.of("regexp_replace_2"), true);
+  INTERNAL_REGEXP_REPLACE_3(FunctionName.of("regexp_replace_3"), true);
 
   private final FunctionName name;
   private boolean isInternal;
@@ -315,6 +318,7 @@ public enum BuiltinFunctionName {
           .put("take", BuiltinFunctionName.TAKE)
           .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
           .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
+          .put("pattern", BuiltinFunctionName.PATTERN)
           .build();
 
   private static final Map<String, BuiltinFunctionName> WINDOW_FUNC_MAPPING =
@@ -331,6 +335,7 @@ public enum BuiltinFunctionName {
           .put("stddev", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
+          .put("pattern", BuiltinFunctionName.PATTERN)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

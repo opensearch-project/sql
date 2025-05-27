@@ -1,0 +1,160 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+            plugins.calcite.fallback.allowed: false
+  - do:
+      bulk:
+        index: hdfs_logs
+        refresh: true
+        body:
+          - '{ "index": { "_id": 1 } }'
+          - '{ "date": "20081109", "time": "203615", "pid": 148, "level": "INFO", "component": "dfs.FSNamesystem", "content": "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to blk_-7017553867379051457 size 67108864" }'
+          - '{ "index": { "_id": 2 } }'
+          - '{ "date": "20081109", "time": "203807", "pid": 222, "level": "INFO", "component": "dfs.FSNamesystem", "content": "BLOCK* NameSystem.allocateBlock: /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296. blk_-6620182933895093708" }'
+          - '{ "index": { "_id": 3 } }'
+          - '{ "date": "20081109", "time": "204132", "pid": 26, "level": "INFO", "component": "dfs.FSNamesystem", "content": "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added to blk_-3249711809227781266 size 67108864" }'
+          - '{ "index": { "_id": 4 } }'
+          - '{ "date": "20081109", "time": "204655", "pid": 512, "level": "INFO", "component": "dfs.DataBlockScanner", "content": "Verification succeeded for blk_-1547954353065580372" }'
+          - '{ "index": { "_id": 5 } }'
+          - '{ "date": "20081109", "time": "204722", "pid": 556, "level": "INFO", "component": "dfs.FSNamesystem", "content": "BLOCK* NameSystem.allocateBlock: /user/root/sortrand/_temporary/_task_200811092030_0002_r_000318_0/part-00318. blk_2096692261399680562" }'
+          - '{ "index": { "_id": 6 } }'
+          - '{ "date": "20081109", "time": "204908", "pid": 653, "level": "INFO", "component": "dfs.DataBlockScanner", "content": "Verification succeeded for blk_6996194389878584395" }'
+          - '{ "index": { "_id": 7 } }'
+          - '{ "date": "20081109", "time": "204925", "pid": 663, "level": "WARN", "component": "dfs.DataNode$PacketResponder", "content": "PacketResponder failed for blk_6996194389878584395" }'
+          - '{ "index": { "_id": 8 } }'
+          - '{ "date": "20081109", "time": "205035", "pid": 31, "level": "WARN", "component": "dfs.DataNode$PacketResponder", "content": "PacketResponder failed for blk_-1547954353065580372" }'
+
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
+
+---
+"Patterns simple_pattern label mode":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=hdfs_logs | patterns content | head 1 | fields content, patterns_field, tokens'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "content", "type": "string"}, {"name": "patterns_field", "type": "string"}, {"name": "tokens", "type": "struct"}]}
+  - match: {"datarows": [
+    [
+      "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to blk_-7017553867379051457 size 67108864",
+      "<token1>* <token2>.<token3>: <token4> <token5>: <token6>.<token7>.<token8>.<token9>:<token10> <token11> <token12> <token13> <token14>_-<token15> <token16> <token17>",
+      {"<token1>": ["BLOCK"], "<token2>": ["NameSystem"], "<token3>": ["addStoredBlock"], "<token4>": ["blockMap"], "<token5>": ["updated"], "<token6>": ["10"], "<token7>": ["251"], "<token8>": ["31"], "<token9>": ["85"],
+       "<token10>": ["50010"], "<token11>": ["is"], "<token12>": ["added"], "<token13>": ["to"], "<token14>": ["blk"], "<token15>": ["7017553867379051457"], "<token16>": ["size"], "<token17>": ["67108864"]}
+    ]
+  ]}
+
+---
+"Patterns simple_pattern aggregation mode":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=hdfs_logs | patterns content pattern_mode=aggregation | fields patterns_field, pattern_count'
+  - match: {"total": 5}
+  - match: {"schema": [{"name": "patterns_field", "type": "string"}, {"name": "pattern_count", "type": "bigint"}]}
+  - match: {"datarows": [
+    [
+      "<token1> <token2> <token3> <token4>_-<token5>",
+      2
+    ],
+    [
+      "<token1>* <token2>.<token3>: /<token4>/<token5>/<token6>/_<token7>/_<token8>_<token9>_<token10>_<token11>_<token12>_<token13>/<token14>-<token15>. <token16>_-<token17>",
+      1
+    ],
+    [
+      "<token1> <token2> <token3> <token4>_<token5>",
+      2
+    ],
+    [
+      "<token1>* <token2>.<token3>: /<token4>/<token5>/<token6>/_<token7>/_<token8>_<token9>_<token10>_<token11>_<token12>_<token13>/<token14>-<token15>. <token16>_<token17>",
+      1
+    ],
+    [
+      "<token1>* <token2>.<token3>: <token4> <token5>: <token6>.<token7>.<token8>.<token9>:<token10> <token11> <token12> <token13> <token14>_-<token15> <token16> <token17>",
+      2
+    ]
+  ]}
+
+---
+"Patterns brain label mode":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=hdfs_logs | patterns content pattern_method=brain pattern_mode=label | head 1 | fields content, patterns_field, tokens'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "content", "type": "string"}, {"name": "patterns_field", "type": "string"}, {"name": "tokens", "type": "struct"}]}
+  - match: {"datarows": [
+    [
+      "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to blk_-7017553867379051457 size 67108864",
+      "BLOCK* NameSystem.addStoredBlock: blockMap updated: <token1> is added to blk_<token2> size <token3>",
+      {
+        "<token1>": [
+          "10.251.31.85:50010"
+        ],
+        "<token3>": [
+          "67108864"
+        ],
+        "<token2>": [
+          "-7017553867379051457"
+        ]
+      }
+    ]
+  ]}
+
+---
+"Patterns brain aggregation mode":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=hdfs_logs | patterns content pattern_method=brain pattern_mode=aggregation | fields patterns_field, pattern_count'
+  - match: {"total": 4}
+  - match: {"schema": [{"name": "patterns_field", "type": "string"}, {"name": "pattern_count", "type": "bigint"}]}
+  - match: {"datarows": [
+    [
+      "Verification succeeded <token1> blk_<token2>",
+      2
+    ],
+    [
+      "BLOCK* NameSystem.addStoredBlock: blockMap updated: <token1> is added to blk_<token2> size <token3>",
+      2
+    ],
+    [
+      "<token1> NameSystem.allocateBlock: /user/root/sortrand/_temporary/_task_<token2>_<token3>_r_<token4>_<token5>/part<token6> blk_<token7>",
+      2
+    ],
+    [
+      "PacketResponder failed <token1> blk_<token2>",
+      2
+    ]
+  ]}

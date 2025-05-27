@@ -1,0 +1,38 @@
+{
+  "root":{
+    "name":"ProjectOperator",
+    "description":{
+      "fields":"[pattern_count, sample_logs, patterns_field]"
+    },
+    "children":[
+      {
+        "name":"AggregationOperator",
+        "description":{
+          "aggregators":"[pattern_count, sample_logs]",
+          "groupBy":"[patterns_field]"
+        },
+        "children":[
+          {
+            "name":"WindowOperator",
+            "description":{
+              "function":"patterns_field",
+              "definition":{
+                "partitionBy":"[]",
+                "sortList":{}
+              }
+            },
+            "children":[
+              {
+                "name":"OpenSearchIndexScan",
+                "description":{
+                  "request":"OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account, sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\"}, needClean=true, searchDone=false, pitId=null, cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+                },
+                "children":[]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

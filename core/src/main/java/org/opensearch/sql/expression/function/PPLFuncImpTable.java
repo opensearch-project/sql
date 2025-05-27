@@ -10,12 +10,17 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.getLegacyTy
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 
 import com.google.common.collect.ImmutableMap;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
+import org.apache.calcite.adapter.enumerable.RexImpTable;
+import org.apache.calcite.adapter.enumerable.TableFunctionCallImplementor;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -27,6 +32,8 @@ import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.expression.function.SqlUncollectPatternsTableFunction.UncollectPatternsImplementor;
+import org.opensearch.sql.utils.ReflectionUtils;
 
 public class PPLFuncImpTable {
 
@@ -152,6 +159,31 @@ public class PPLFuncImpTable {
           functionName, (RexBuilder builder, RexNode... node) -> builder.makeCall(operator, node));
     }
 
+    /*
+     * Caveat!: Hacky way to modify Calcite RexImpTable tvfMap via reflection.
+     * We do this because Calcite exposed UserDefinedTableFunction's implementor only accepts RexCall
+     * without inputEnumerable. It's more useful to defined UDTF with predefined values instead of child
+     * plan's input. So we extend SqlWindowTableFunction to implement our own table function.
+     */
+    void registerTvfIntoRexImpTable() {
+      RexImpTable rexImpTable = RexImpTable.INSTANCE;
+
+      Field tvfMapField = ReflectionUtils.getDeclaredField(rexImpTable, "tvfImplementorMap");
+      assert tvfMapField != null
+          : String.format(
+              Locale.ROOT, "Could not get field: tvfImplementorMap on object: %s", rexImpTable);
+      ReflectionUtils.makeAccessible(tvfMapField);
+      Map<SqlOperator, Supplier<? extends TableFunctionCallImplementor>> tvfMap =
+          (Map<SqlOperator, Supplier<? extends TableFunctionCallImplementor>>)
+              ReflectionUtils.getFieldValue(rexImpTable, tvfMapField);
+      ImmutableMap<SqlOperator, Supplier<? extends TableFunctionCallImplementor>> newTvfMap =
+          ImmutableMap.<SqlOperator, Supplier<? extends TableFunctionCallImplementor>>builder()
+              .putAll(tvfMap)
+              .put(PPLBuiltinOperators.UNCOLLECT_PATTERNS, UncollectPatternsImplementor::new)
+              .build();
+      ReflectionUtils.setFieldValue(rexImpTable, tvfMapField, newTvfMap);
+    }
+
     void populate() {
       // Register std operator
       registerOperator(AND, SqlStdOperatorTable.AND);
@@ -219,7 +251,7 @@ public class PPLFuncImpTable {
       registerOperator(MD5, SqlLibraryOperators.MD5);
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
       registerOperator(INTERNAL_REGEXP_EXTRACT, SqlLibraryOperators.REGEXP_EXTRACT);
-      registerOperator(INTERNAL_REGEXP_REPLACE_2, SqlLibraryOperators.REGEXP_REPLACE_2);
+      registerOperator(INTERNAL_REGEXP_REPLACE_3, SqlLibraryOperators.REGEXP_REPLACE_3);
 
       // Register PPL UDF operator
       registerOperator(SPAN, PPLBuiltinOperators.SPAN);
@@ -304,6 +336,7 @@ public class PPLFuncImpTable {
       registerOperator(WEEK, PPLBuiltinOperators.WEEK);
       registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
+      registerOperator(PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
@@ -397,6 +430,10 @@ public class PPLFuncImpTable {
                               builder.makeFlag(Flag.BOTH),
                               builder.makeLiteral(" "),
                               arg)))));
+
+      // Register table function operator
+      registerOperator(UNCOLLECT_PATTERNS, PPLBuiltinOperators.UNCOLLECT_PATTERNS);
+      registerTvfIntoRexImpTable();
     }
   }
 
