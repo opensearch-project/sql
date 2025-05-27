@@ -73,6 +73,9 @@ public class DivideFunction extends ImplementorUDF {
       } else if (MathUtils.isIntegral(dividend) && MathUtils.isDecimal(divisor)) {
         return (BigDecimal.valueOf(dividend.longValue()))
             .divide((BigDecimal) divisor, MAX_NUMERIC_SCALE + 1, RoundingMode.HALF_UP);
+      } else if (MathUtils.isDecimal(dividend) && MathUtils.isDecimal(divisor)) {
+        return ((BigDecimal) dividend)
+            .divide((BigDecimal) divisor, MAX_NUMERIC_SCALE + 1, RoundingMode.HALF_UP);
       }
       double result = dividend.doubleValue() / divisor.doubleValue();
       return MathUtils.coerceToWidestFloatingType(dividend, divisor, result);

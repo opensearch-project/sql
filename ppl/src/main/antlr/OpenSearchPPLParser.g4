@@ -912,6 +912,8 @@ literalValue
    : intervalLiteral
    | stringLiteral
    | integerLiteral
+   | bigIntLiteral
+   | smallIntLiteral
    | decimalLiteral
    | doubleLiteral
    | floatLiteral
@@ -930,6 +932,14 @@ stringLiteral
 
 integerLiteral
    : (PLUS | MINUS)? INTEGER_LITERAL
+   ;
+
+bigIntLiteral
+   : (PLUS | MINUS)? BIGINT_LITERAL
+   ;
+
+smallIntLiteral
+   : (PLUS | MINUS)? SMALLINT_LITERAL
    ;
 
 decimalLiteral
