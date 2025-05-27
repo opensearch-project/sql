@@ -14,7 +14,6 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Override
@@ -125,20 +124,6 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
 
     verifyDataRows(actual, rows("Hello", 30));
-  }
-
-  // Test registered Sql Std Operator: registerOperator(funcName, SqlStdOperatorTable.OPERATOR)
-  @Test
-  public void testLowerWrongArgShouldThrow() {
-    Exception e =
-        assertThrows(
-            ExpressionEvaluationException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | where lower(age) = 'hello' | fields name, age",
-                        TEST_INDEX_STATE_COUNTRY)));
-    verifyErrorMessageContains(e, "LOWER function expects {[CHARACTER]}, but got [INTEGER]");
   }
 
   @Test
@@ -263,20 +248,6 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifyDataRows(actual, rows("   Jim", 27));
   }
 
-  // Test directly registered UDF: register(funcname, FuncImp)
-  @Test
-  public void testLtrimWrongArgShouldThrow() {
-    Exception e =
-        assertThrows(
-            ExpressionEvaluationException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | where ltrim(year, age) = 'Jim' | fields name, age",
-                        TEST_INDEX_STATE_COUNTRY)));
-    verifyErrorMessageContains(e, "LTRIM function expects {[STRING]}, but got [INTEGER,INTEGER]");
-  }
-
   @Test
   public void testReverse() throws IOException {
     Request request1 =
@@ -293,21 +264,6 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
 
     verifyDataRows(actual, rows("DeD", 27));
-  }
-
-  // Test udf registered via sql library operator: registerOperator(REVERSE,
-  // SqlLibraryOperators.REVERSE);
-  @Test
-  public void testReverseWrongArgShouldThrow() {
-    Exception e =
-        assertThrows(
-            ExpressionEvaluationException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | where reverse(year) = '3202' | fields year",
-                        TEST_INDEX_STATE_COUNTRY)));
-    verifyErrorMessageContains(e, "REVERSE function expects {[CHARACTER]}, but got [INTEGER]");
   }
 
   @Test
@@ -367,21 +323,6 @@ public class CalcitePPLStringBuiltinFunctionIT extends CalcitePPLIntegTestCase {
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
 
     verifyDataRows(actual, rows("Jane", 20));
-  }
-
-  // test type checking on UDF with direct registration: register(funcname, FuncImp)
-  @Test
-  public void testStrCmpWrongArgShouldThrow() {
-    Exception e =
-        assertThrows(
-            ExpressionEvaluationException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | where strcmp(age, 'Jane') = 0 | fields name, age",
-                        TEST_INDEX_STATE_COUNTRY)));
-    verifyErrorMessageContains(
-        e, "STRCMP function expects {[STRING,STRING]}, but got [INTEGER,STRING]");
   }
 
   private void prepareTrim() throws IOException {

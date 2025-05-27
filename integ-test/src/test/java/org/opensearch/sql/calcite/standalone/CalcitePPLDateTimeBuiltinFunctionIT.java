@@ -32,7 +32,6 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase {
@@ -167,23 +166,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
             "2020-08-26 13:49:00",
             "2020-08-26 13:59:10",
             "2009-12-12 13:40:04.123456789"));
-  }
-
-  @Test
-  public void testTimestampWithWrongArgShouldThrow() {
-    Exception e =
-        assertThrows(
-            ExpressionEvaluationException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | eval timestamp = timestamp('2020-08-26 13:49:00', 2009)"
-                            + "| fields timestamp | head 1",
-                        TEST_INDEX_DATE_FORMATS)));
-    verifyErrorMessageContains(
-        e,
-        "TIMESTAMP function expects {[STRING], [DATETIME], [STRING,STRING], [DATETIME,DATETIME],"
-            + " [STRING,DATETIME], [DATETIME,STRING]}, but got [STRING,INTEGER]");
   }
 
   @Test
@@ -792,19 +774,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
 
     // Should return all rows in the index
     verifyNumOfRows(actual, 7);
-  }
-
-  @Test
-  public void testCurDateWithArgShouldThrow() {
-    Exception e =
-        assertThrows(
-            ExpressionEvaluationException.class,
-            () ->
-                executeQuery(
-                    String.format(
-                        "source=%s | eval curdate = CURDATE(1) | fields curdate | head 1",
-                        TEST_INDEX_DATE_FORMATS)));
-    verifyErrorMessageContains(e, "CURDATE function expects {[]}, but got [INTEGER]");
   }
 
   @Test

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function;
 
+import com.google.common.collect.Lists;
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.util.ArrayList;
@@ -23,8 +24,10 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 
 /**
  * A custom type checker interface for PPL (Piped Processing Language) functions.
@@ -129,7 +132,7 @@ public interface PPLTypeChecker {
     public String getAllowedSignatures() {
       if (innerTypeChecker instanceof FamilyOperandTypeChecker familyOperandTypeChecker) {
         var allowedSignatures = PPLTypeChecker.getFamilySignatures(familyOperandTypeChecker);
-        return String.join(", ", allowedSignatures);
+        return String.join(",", allowedSignatures);
       } else {
         return "";
       }
@@ -191,7 +194,7 @@ public interface PPLTypeChecker {
               "Currently only compositions of FamilyOperandTypeChecker are supported");
         }
       }
-      return String.join(", ", allowedSignatures);
+      return String.join(",", allowedSignatures);
     }
   }
 
@@ -376,6 +379,41 @@ public interface PPLTypeChecker {
   }
 
   /**
+   * Converts a {@link SqlTypeFamily} to a list of {@link ExprType}. This method is used to display
+   * the allowed signatures for functions based on their type families.
+   *
+   * @param family the {@link SqlTypeFamily} to convert
+   * @return a list of {@link ExprType} corresponding to the concrete types of the family
+   */
+  private static List<ExprType> getExprTypes(SqlTypeFamily family) {
+    List<RelDataType> concreteTypes =
+        switch (family) {
+          case DATETIME -> List.of(
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DATE),
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIME),
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.TIMESTAMP));
+          case NUMERIC -> List.of(
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER),
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE));
+            // Integer is mapped to BIGINT in family.getDefaultConcreteType
+          case INTEGER -> List.of(
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER));
+          case ANY, IGNORE -> List.of(
+              OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.ANY));
+          default -> {
+            RelDataType type = family.getDefaultConcreteType(OpenSearchTypeFactory.TYPE_FACTORY);
+            if (type == null) {
+              yield List.of(OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.OTHER));
+            }
+            yield List.of(type);
+          }
+        };
+    return concreteTypes.stream()
+        .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+        .collect(Collectors.toList());
+  }
+
+  /**
    * Generates a string representation of the function signature based on the provided type
    * families. The format is a list of type families enclosed in square brackets, e.g.: "[INTEGER,
    * STRING]".
@@ -384,9 +422,23 @@ public interface PPLTypeChecker {
    * @return a string representation of the function signature
    */
   private static String getFamilySignature(List<SqlTypeFamily> families) {
-    return "["
-        + families.stream().map(SqlTypeFamily::toString).collect(Collectors.joining(","))
-        + "]";
+    List<List<ExprType>> exprTypes =
+        families.stream().map(PPLTypeChecker::getExprTypes).collect(Collectors.toList());
+
+    // Do a cartesian product of all ExprTypes in the family
+    List<List<ExprType>> signatures = Lists.cartesianProduct(exprTypes);
+
+    // Convert each signature to a string representation and then concatenate them
+    return signatures.stream()
+        .map(
+            types ->
+                "["
+                    + types.stream()
+                        // Display ExprCoreType.UNDEFINED as "ANY" for better interpretability
+                        .map(t -> t == ExprCoreType.UNDEFINED ? "ANY" : t.toString())
+                        .collect(Collectors.joining(","))
+                    + "]")
+        .collect(Collectors.joining(","));
   }
 
   /**
