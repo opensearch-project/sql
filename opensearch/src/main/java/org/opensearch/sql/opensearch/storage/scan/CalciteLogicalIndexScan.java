@@ -121,12 +121,17 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     }
     RelDataType newSchema = builder.build();
     CalciteLogicalIndexScan newScan = this.copyWithNewSchema(newSchema);
+    Map<String, String> aliasMapping = this.osIndex.getAliasMapping();
+    // For alias types, we need to push down its original path instead of the alias name.
+    List<String> projectedFields =
+        newSchema.getFieldNames().stream()
+            .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
+            .toList();
     newScan.pushDownContext.add(
         new PushDownAction(
             PushDownType.PROJECT,
             newSchema.getFieldNames(),
-            requestBuilder ->
-                requestBuilder.pushDownProjectStream(newSchema.getFieldNames().stream())));
+            requestBuilder -> requestBuilder.pushDownProjectStream(projectedFields.stream())));
     return newScan;
   }
 
