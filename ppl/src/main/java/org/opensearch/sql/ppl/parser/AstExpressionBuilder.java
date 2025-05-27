@@ -8,7 +8,6 @@ package org.opensearch.sql.ppl.parser;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BigIntLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArithmeticContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
@@ -37,7 +36,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LogicalXor
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.MultiFieldRelevanceFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ParentheticValueExprContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SingleFieldRelevanceFunctionContext;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SmallIntLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortFieldContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SpanClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsFunctionCallContext;
@@ -408,18 +406,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       return new Literal((int) number, DataType.INTEGER);
     }
     return new Literal(number, DataType.LONG);
-  }
-
-  @Override
-  public UnresolvedExpression visitBigIntLiteral(BigIntLiteralContext ctx) {
-    long number = Long.parseLong(ctx.getText());
-    return new Literal(number, DataType.LONG);
-  }
-
-  @Override
-  public UnresolvedExpression visitSmallIntLiteral(SmallIntLiteralContext ctx) {
-    short number = Short.parseShort(ctx.getText());
-    return new Literal(number, DataType.SHORT);
   }
 
   @Override
