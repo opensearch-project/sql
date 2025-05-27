@@ -28,7 +28,7 @@ public class CalcitePPLExplainPushdownIT extends CalcitePPLExplainIT {
             + "    \"physical\": \"CalciteEnumerableIndexScan(table=[[OpenSearch, test]],"
             + " PushDownContext=[[PROJECT->[name, age], FILTER->=($1, 20)],"
             + " OpenSearchRequestBuilder(sourceBuilder={\\\"from\\\":0,\\\"timeout\\\":\\\"1m\\\",\\\"query\\\":{\\\"term\\\":{\\\"age\\\":{\\\"value\\\":20,\\\"boost\\\":1.0}}},\\\"_source\\\":{\\\"includes\\\":[\\\"name\\\",\\\"age\\\"],\\\"excludes\\\":[]},\\\"sort\\\":[{\\\"_doc\\\":{\\\"order\\\":\\\"asc\\\"}}]},"
-            + " requestedTotalSize=200, pageSize=null, startFrom=0)])\\n"
+            + " requestedTotalSize=2000, pageSize=null, startFrom=0)])\\n"
             + "\"\n"
             + "  }\n"
             + "}",
@@ -52,7 +52,7 @@ public class CalcitePPLExplainPushdownIT extends CalcitePPLExplainIT {
             + "    \"physical\": \"CalciteEnumerableIndexScan(table=[[OpenSearch, test]],"
             + " PushDownContext=[[PROJECT->[name, age], FILTER->=($1, 20)],"
             + " OpenSearchRequestBuilder(sourceBuilder={\\\"from\\\":0,\\\"timeout\\\":\\\"1m\\\",\\\"query\\\":{\\\"term\\\":{\\\"age\\\":{\\\"value\\\":20,\\\"boost\\\":1.0}}},\\\"_source\\\":{\\\"includes\\\":[\\\"name\\\",\\\"age\\\"],\\\"excludes\\\":[]},\\\"sort\\\":[{\\\"_doc\\\":{\\\"order\\\":\\\"asc\\\"}}]},"
-            + " requestedTotalSize=200, pageSize=null, startFrom=0)]): rowcount = 1215.0,"
+            + " requestedTotalSize=2000, pageSize=null, startFrom=0)]): rowcount = 1215.0,"
             + " cumulative cost = {1215.0 rows, 1216.0 cpu, 0.0 io}, id = *\\n"
             + "\"\n"
             + "  }\n"
