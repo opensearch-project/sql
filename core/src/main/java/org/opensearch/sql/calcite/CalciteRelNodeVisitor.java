@@ -83,6 +83,7 @@ import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.utils.ParseUtils;
 
@@ -316,8 +317,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                                   .createSqlType(SqlTypeName.VARCHAR),
                               true));
                   if (ParseMethod.GROK.equals(parseMethod)) {
-                    return context.rexBuilder.makeCall(
-                        SqlStdOperatorTable.ITEM, innerRex, context.rexBuilder.makeLiteral(group));
+                    return PPLFuncImpTable.INSTANCE.resolve(
+                        context.rexBuilder,
+                        BuiltinFunctionName.INTERNAL_ITEM,
+                        innerRex,
+                        context.rexBuilder.makeLiteral(group));
                   } else {
                     return innerRex;
                   }
