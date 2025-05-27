@@ -73,24 +73,28 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
         actual,
         schema("host", "ip"),
         schema("method", "string"),
+        schema("message", "string"),
         schema("url", "string"),
         schema("response", "string"),
         schema("bytes", "string"),
         schema("status", "string"));
     verifyDataRows(
         actual,
-        rows("::1", "GET", "6245", "301", "/history/apollo/", "Redirection"),
+        rows("::1", "GET", null, "6245", "301", "/history/apollo/", "Redirection"),
         rows(
             "0.0.0.2",
             "GET",
+            null,
             "4085",
             "500",
             "/shuttle/missions/sts-73/mission-sts-73.html",
             "Server Error"),
-        rows("::3", "GET", "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
+        rows(
+            "::3", "GET", null, "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
         rows(
             "1.2.3.5",
             "GET",
+            null,
             "4321",
             null,
             "/history/voyager2/",
@@ -117,22 +121,25 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
         actual,
         schema("host", "ip"),
         schema("method", "string"),
+        schema("message", "string"),
         schema("url", "string"),
         schema("response", "string"),
         schema("bytes", "string"),
         schema("status", "string"));
     verifyDataRows(
         actual,
-        rows("::1", "GET", "6245", "301", "/history/apollo/", "Redirection"),
+        rows("::1", "GET", null, "6245", "301", "/history/apollo/", "Redirection"),
         rows(
             "0.0.0.2",
             "GET",
+            null,
             "4085",
             "500",
             "/shuttle/missions/sts-73/mission-sts-73.html",
             "Server Error"),
-        rows("::3", "GET", "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
-        rows("1.2.3.5", "GET", "4321", null, "/history/voyager2/", null));
+        rows(
+            "::3", "GET", null, "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
+        rows("1.2.3.5", "GET", null, "4321", null, "/history/voyager2/", null));
   }
 
   @Test
@@ -156,24 +163,28 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
         actual,
         schema("host", "ip"),
         schema("method", "string"),
+        schema("message", "string"),
         schema("url", "string"),
         schema("response", "string"),
         schema("bytes", "string"),
         schema("status", "string"));
     verifyDataRows(
         actual,
-        rows("::1", "GET", "6245", "301", "/history/apollo/", "Redirection"),
+        rows("::1", "GET", null, "6245", "301", "/history/apollo/", "Redirection"),
         rows(
             "0.0.0.2",
             "GET",
+            null,
             "4085",
             "500",
             "/shuttle/missions/sts-73/mission-sts-73.html",
             "Server Error"),
-        rows("::3", "GET", "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
+        rows(
+            "::3", "GET", null, "3985", "403", "/shuttle/countdown/countdown.html", "Client Error"),
         rows(
             "1.2.3.5",
             "GET",
+            null,
             "4321",
             null,
             "/history/voyager2/",
@@ -200,15 +211,16 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
         actual,
         schema("host", "ip"),
         schema("method", "string"),
+        schema("message", "string"),
         schema("url", "string"),
         schema("response", "string"),
         schema("bytes", "string"));
     verifyDataRows(
         actual,
-        rows("::1", "GET", "6245", "301", "/history/apollo/"),
-        rows("0.0.0.2", "GET", "4085", "500", "/shuttle/missions/sts-73/mission-sts-73.html"),
-        rows("::3", "GET", "3985", "403", "/shuttle/countdown/countdown.html"),
-        rows("1.2.3.5", "GET", "4321", null, "/history/voyager2/"));
+        rows("::1", "GET", null, "6245", "301", "/history/apollo/"),
+        rows("0.0.0.2", "GET", null, "4085", "500", "/shuttle/missions/sts-73/mission-sts-73.html"),
+        rows("::3", "GET", null, "3985", "403", "/shuttle/countdown/countdown.html"),
+        rows("1.2.3.5", "GET", null, "4321", null, "/history/voyager2/"));
   }
 
   @Test
@@ -234,13 +246,14 @@ public class CalcitePPLCaseFunctionIT extends CalcitePPLIntegTestCase {
         actual,
         schema("host", "ip"),
         schema("method", "string"),
+        schema("message", "string"),
         schema("url", "string"),
         schema("response", "string"),
         schema("bytes", "string"));
     verifyDataRows(
         actual,
-        rows("::1", "GET", "6245", "301", "/history/apollo/"),
-        rows("0.0.0.2", "GET", "4085", "500", "/shuttle/missions/sts-73/mission-sts-73.html"),
-        rows("::3", "GET", "3985", "403", "/shuttle/countdown/countdown.html"));
+        rows("::1", "GET", null, "6245", "301", "/history/apollo/"),
+        rows("0.0.0.2", "GET", null, "4085", "500", "/shuttle/missions/sts-73/mission-sts-73.html"),
+        rows("::3", "GET", null, "3985", "403", "/shuttle/countdown/countdown.html"));
   }
 }
