@@ -26,7 +26,6 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.executor.QueryType;
 
 public class PPLFuncImpTable {
@@ -130,15 +129,6 @@ public class PPLFuncImpTable {
     } else {
       externalFunctionRegistry.put(
           functionName, new ArrayList<>(List.of(Pair.of(signature, functionImp))));
-    }
-  }
-
-  public @Nullable RexNode resolveSafe(
-      final RexBuilder builder, final String functionName, RexNode... args) {
-    try {
-      return resolve(builder, functionName, args);
-    } catch (Exception e) {
-      return null;
     }
   }
 
