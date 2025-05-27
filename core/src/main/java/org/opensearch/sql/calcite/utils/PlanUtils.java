@@ -219,8 +219,6 @@ public interface PlanUtils {
       case AVG:
         return context.relBuilder.avg(distinct, null, field);
       case COUNT:
-        // return context.relBuilder.aggregateCall(SqlStdOperatorTable.APPROX_COUNT_DISTINCT,
-        // field);
         return context.relBuilder.count(
             distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field));
       case SUM:
