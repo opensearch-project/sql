@@ -839,6 +839,8 @@ conditionFunctionName
    | ISPRESENT
    | ISEMPTY
    | ISBLANK
+   | EARLIEST
+   | LATEST
    ;
 
 // flow control function return non-boolean value

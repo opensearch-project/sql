@@ -5,8 +5,7 @@
 
 package org.opensearch.sql.calcite.standalone;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
+import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
@@ -21,6 +20,7 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
     super.init();
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
+    loadIndex(Index.CALCS);
     Request request1 =
         new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/7?refresh=true");
     request1.setJsonEntity(
@@ -215,5 +215,32 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
     verifySchema(actual, schema("name", "string"), schema("age", "integer"));
 
     verifyDataRows(actual, rows(null, 10), rows("    ", 27), rows("", 57));
+  }
+
+  @Test
+  public void testEarliest() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where earliest('07/28/2004:12:34:27', datetime0) | stats COUNT() as"
+                    + " cnt",
+                TEST_INDEX_CALCS));
+
+    verifySchema(actual, schema("cnt", "long"));
+
+    verifyDataRows(actual, rows(4));
+  }
+
+  @Test
+  public void testLatest() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where latest('07/28/2004:12:34:27', datetime0) | stats COUNT() as cnt",
+                TEST_INDEX_CALCS));
+
+    verifySchema(actual, schema("cnt", "long"));
+
+    verifyDataRows(actual, rows(13));
   }
 }
