@@ -14,7 +14,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprTimeValue;
@@ -173,30 +172,40 @@ public class DateTimeUtils {
       return baseTime;
     }
 
-    // 1. extract snap（like @d）
-    String snapUnit = null;
-    int atIndex = input.indexOf('@');
-    if (atIndex != -1) {
-      snapUnit = input.substring(atIndex + 1);
-      input = input.substring(0, atIndex);
-    }
-
-    // 2. apply snap
     ZonedDateTime result = baseTime;
-    if (snapUnit != null && !snapUnit.isEmpty()) {
-      result = applySnap(result, snapUnit);
-    }
-
-    // 3. apply offset one by one（like -1d+2h-10m）
-    Matcher matcher = OFFSET_PATTERN.matcher(input);
-    while (matcher.find()) {
-      String sign = matcher.group(1);
-      int value = Integer.parseInt(matcher.group(2));
-      String unit = matcher.group(3);
-      if (unit == null || unit.isEmpty()) {
-        unit = "s"; // default value is second
+    int i = 0;
+    while (i < input.length()) {
+      char c = input.charAt(i);
+      if (c == '@') {
+        // parse snap
+        int j = i + 1;
+        while (j < input.length() && Character.isLetter(input.charAt(j))) {
+          j++;
+        }
+        String snapUnit = input.substring(i + 1, j);
+        result = applySnap(result, snapUnit);
+        i = j;
+      } else if (c == '+' || c == '-') {
+        // parse offset
+        int j = i + 1;
+        while (j < input.length() && Character.isDigit(input.charAt(j))) {
+          j++;
+        }
+        int value = Integer.parseInt(input.substring(i + 1, j));
+        // optional unit
+        int k = j;
+        while (k < input.length() && Character.isLetter(input.charAt(k))) {
+          k++;
+        }
+        String unit = input.substring(j, k);
+        if (unit.isEmpty()) {
+          unit = "s"; // default to seconds
+        }
+        result = applyOffset(result, String.valueOf(c), value, unit);
+        i = k;
+      } else {
+        throw new IllegalArgumentException("Wrong relative time expression: " + input);
       }
-      result = applyOffset(result, sign, value, unit);
     }
 
     return result;
