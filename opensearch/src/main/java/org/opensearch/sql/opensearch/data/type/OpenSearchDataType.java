@@ -25,6 +25,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
   public enum MappingType {
     Invalid(null, ExprCoreType.UNKNOWN),
     Text("text", ExprCoreType.UNKNOWN),
+    MatchOnlyText("match_only_text", ExprCoreType.UNKNOWN),
     Keyword("keyword", ExprCoreType.STRING),
     Ip("ip", ExprCoreType.IP),
     GeoPoint("geo_point", ExprCoreType.UNKNOWN),
@@ -172,6 +173,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
         OpenSearchDataType objectDataType = res.cloneEmpty();
         objectDataType.properties = properties;
         return objectDataType;
+      case MatchOnlyText:
       case Text:
         // TODO update these 2 below #1038 https://github.com/opensearch-project/sql/issues/1038
         Map<String, OpenSearchDataType> fields =
