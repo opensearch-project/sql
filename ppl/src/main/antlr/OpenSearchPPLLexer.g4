@@ -101,6 +101,8 @@ TIME_ZONE:                          'TIME_ZONE';
 TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
 ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
+COUNTFIELD:                         'COUNTFIELD';
+SHOWCOUNT:                          'SHOWCOUNT';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';

@@ -25,6 +25,7 @@ import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -109,7 +110,8 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     return new Settings() {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
-              .put(Key.QUERY_SIZE_LIMIT, 2000)
+              .put(Key.QUERY_SIZE_LIMIT, 200)
+              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)
@@ -135,7 +137,8 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
     return new Settings() {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
-              .put(Key.QUERY_SIZE_LIMIT, 2000)
+              .put(Key.QUERY_SIZE_LIMIT, 200)
+              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)

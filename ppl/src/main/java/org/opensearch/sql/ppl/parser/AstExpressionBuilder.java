@@ -236,7 +236,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   /** Eval function. */
   @Override
   public UnresolvedExpression visitBooleanFunctionCall(BooleanFunctionCallContext ctx) {
-    final String functionName = ctx.conditionFunctionName().getText().toLowerCase();
+    final String functionName = ctx.conditionFunctionName().getText().toLowerCase(Locale.ROOT);
     return buildFunction(
         FUNCTION_NAME_MAPPING.getOrDefault(functionName, functionName),
         ctx.functionArgs().functionArg());
@@ -290,7 +290,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitSingleFieldRelevanceFunction(
       SingleFieldRelevanceFunctionContext ctx) {
     return new Function(
-        ctx.singleFieldRelevanceFunctionName().getText().toLowerCase(),
+        ctx.singleFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),
         singleFieldRelevanceArguments(ctx));
   }
 
@@ -298,7 +298,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitMultiFieldRelevanceFunction(
       MultiFieldRelevanceFunctionContext ctx) {
     return new Function(
-        ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(),
+        ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(Locale.ROOT),
         multiFieldRelevanceArguments(ctx));
   }
 
@@ -528,7 +528,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             v ->
                 builder.add(
                     new UnresolvedArgument(
-                        v.relevanceArgName().getText().toLowerCase(),
+                        v.relevanceArgName().getText().toLowerCase(Locale.ROOT),
                         new Literal(
                             StringUtils.unquoteText(v.relevanceArgValue().getText()),
                             DataType.STRING))));
@@ -556,7 +556,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             v ->
                 builder.add(
                     new UnresolvedArgument(
-                        v.relevanceArgName().getText().toLowerCase(),
+                        v.relevanceArgName().getText().toLowerCase(Locale.ROOT),
                         new Literal(
                             StringUtils.unquoteText(v.relevanceArgValue().getText()),
                             DataType.STRING))));
