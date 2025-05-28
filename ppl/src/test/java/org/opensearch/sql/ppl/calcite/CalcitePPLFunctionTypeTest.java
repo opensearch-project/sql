@@ -87,10 +87,11 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
     String pplIncompatibleType =
         "source=EMP | eval if_name = if(EMPNO > 6, 'Jack', 1) | fields if_name";
     Throwable t2 =
-        Assert.assertThrows(IllegalArgumentException.class, () -> getRelNode(pplIncompatibleType));
+        Assert.assertThrows(
+            ExpressionEvaluationException.class, () -> getRelNode(pplIncompatibleType));
     verifyErrorMessageContains(
         t2,
-        "Cannot resolve function: IF, arguments: [BOOLEAN, VARCHAR, INTEGER], caused by: Can't find"
+        "Cannot resolve function: IF, arguments: [BOOLEAN,STRING,INTEGER], caused by: Can't find"
             + " leastRestrictive type for [VARCHAR, INTEGER]");
   }
 

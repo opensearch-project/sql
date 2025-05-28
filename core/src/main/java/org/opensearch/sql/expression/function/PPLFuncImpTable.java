@@ -146,26 +146,29 @@ public class PPLFuncImpTable {
         }
       }
     } catch (Exception e) {
-      throw new IllegalArgumentException(
+      throw new ExpressionEvaluationException(
           String.format(
               "Cannot resolve function: %s, arguments: %s, caused by: %s",
-              functionName, argTypes, e.getMessage()),
+              functionName, getActualSignature(argTypes), e.getMessage()),
           e);
     }
-    StringJoiner joiner = new StringJoiner(",");
+    StringJoiner allowedSignatures = new StringJoiner(",");
     for (var implement : implementList) {
-      joiner.add(implement.getKey().typeChecker().getAllowedSignatures());
+      allowedSignatures.add(implement.getKey().typeChecker().getAllowedSignatures());
     }
-    String actualSignature =
-        "["
-            + argTypes.stream()
-                .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
-                .map(Objects::toString)
-                .collect(Collectors.joining(","))
-            + "]";
     throw new ExpressionEvaluationException(
         String.format(
-            "%s function expects {%s}, but got %s", functionName, joiner, actualSignature));
+            "%s function expects {%s}, but got %s",
+            functionName, allowedSignatures, getActualSignature(argTypes)));
+  }
+
+  private static String getActualSignature(List<RelDataType> argTypes) {
+    return "["
+        + argTypes.stream()
+            .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+            .map(Objects::toString)
+            .collect(Collectors.joining(","))
+        + "]";
   }
 
   @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
