@@ -6,7 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreRelId;
+import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import com.google.common.io.Resources;
 import java.io.IOException;
@@ -31,7 +31,7 @@ public class ExplainIT extends PPLIntegTestCase {
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_output.json")
             : loadFromFile("expectedOutput/ppl/explain_output.json");
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -51,7 +51,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_filter_push.json")
             : loadFromFile("expectedOutput/ppl/explain_filter_push.json");
 
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -68,7 +68,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_filter_agg_push.json")
             : loadFromFile("expectedOutput/ppl/explain_filter_agg_push.json");
 
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -84,7 +84,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_sort_push.json")
             : loadFromFile("expectedOutput/ppl/explain_sort_push.json");
 
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -100,7 +100,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_limit_push.json")
             : loadFromFile("expectedOutput/ppl/explain_limit_push.json");
 
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -115,7 +115,7 @@ public class ExplainIT extends PPLIntegTestCase {
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_then_limit_push.json")
             : loadFromFile("expectedOutput/ppl/explain_filter_then_limit_push.json");
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expectedFilterThenLimit,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -129,7 +129,7 @@ public class ExplainIT extends PPLIntegTestCase {
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_limit_then_filter_push.json")
             : loadFromFile("expectedOutput/ppl/explain_limit_then_filter_push.json");
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expectedLimitThenFilter,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -144,7 +144,7 @@ public class ExplainIT extends PPLIntegTestCase {
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_limit_5_10_push.json")
             : loadFromFile("expectedOutput/ppl/explain_limit_5_10_push.json");
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected5Then10,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -156,7 +156,7 @@ public class ExplainIT extends PPLIntegTestCase {
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_limit_10_5_push.json")
             : loadFromFile("expectedOutput/ppl/explain_limit_10_5_push.json");
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected10Then5,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -169,7 +169,7 @@ public class ExplainIT extends PPLIntegTestCase {
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_limit_10_filter_5_push.json")
             : loadFromFile("expectedOutput/ppl/explain_limit_10_filter_5_push.json");
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected10ThenFilterThen5,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -186,7 +186,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_limit_offsets_push.json")
             : loadFromFile("expectedOutput/ppl/explain_limit_offsets_push.json");
 
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -197,9 +197,12 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFillNullPushDownExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_fillnull_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
 
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -210,7 +213,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testTrendlinePushDownExplain() throws Exception {
     String expected = loadFromFile("expectedOutput/ppl/explain_trendline_push.json");
 
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -223,7 +226,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testTrendlineWithSortPushDownExplain() throws Exception {
     String expected = loadFromFile("expectedOutput/ppl/explain_trendline_sort_push.json");
 
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -257,7 +260,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_patterns.json")
             : loadFromFile("expectedOutput/ppl/explain_patterns.json");
 
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | patterns email"));
   }
@@ -270,7 +273,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_patterns_agg_push.json")
             : loadFromFile("expectedOutput/ppl/explain_patterns_agg_push.json");
 
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
