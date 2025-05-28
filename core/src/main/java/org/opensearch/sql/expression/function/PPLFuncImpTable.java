@@ -224,7 +224,6 @@ import java.util.stream.Stream;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -251,6 +250,7 @@ import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.executor.QueryType;
 
 public class PPLFuncImpTable {
@@ -349,17 +349,46 @@ public class PPLFuncImpTable {
    */
   private final Map<BuiltinFunctionName, AggHandler> aggExternalFunctionRegistry;
 
+
+  /**
+   * The external function registry. Functions whose implementations depend on a specific data
+   * engine should be registered here. This reduces coupling between the core module and particular
+   * storage backends.
+   */
+  private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
+      externalFunctionRegistry;
+
   private PPLFuncImpTable(Builder builder, AggBuilder aggBuilder) {
     final ImmutableMap.Builder<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
-        mapBuilder = ImmutableMap.builder();
+            mapBuilder = ImmutableMap.builder();
     builder.map.forEach((k, v) -> mapBuilder.put(k, List.copyOf(v)));
     this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
+    this.externalFunctionRegistry = new ConcurrentHashMap<>();
 
     final ImmutableMap.Builder<BuiltinFunctionName, AggHandler> aggMapBuilder =
-        ImmutableMap.builder();
+            ImmutableMap.builder();
     aggBuilder.map.forEach(aggMapBuilder::put);
     this.aggFunctionRegistry = ImmutableMap.copyOf(aggMapBuilder.build());
     this.aggExternalFunctionRegistry = new ConcurrentHashMap<>();
+  }
+
+  /**
+   * Register a function implementation from external services dynamically.
+   *
+   * @param functionName the name of the function, has to be defined in BuiltinFunctionName
+   * @param functionImp the implementation of the function
+   */
+  public void registerExternalFunction(BuiltinFunctionName functionName, FunctionImp functionImp) {
+    CalciteFuncSignature signature =
+            new CalciteFuncSignature(functionName.getName(), functionImp.getTypeChecker());
+    externalFunctionRegistry.compute(
+            functionName,
+            (name, existingList) -> {
+              List<Pair<CalciteFuncSignature, FunctionImp>> list =
+                      existingList == null ? new ArrayList<>() : new ArrayList<>(existingList);
+              list.add(Pair.of(signature, functionImp));
+              return list;
+            });
   }
 
   /**
@@ -374,11 +403,11 @@ public class PPLFuncImpTable {
   }
 
   public RelBuilder.AggCall resolveAgg(
-      BuiltinFunctionName functionName,
-      boolean distinct,
-      RexNode field,
-      List<RexNode> argList,
-      CalcitePlanContext context) {
+          BuiltinFunctionName functionName,
+          boolean distinct,
+          RexNode field,
+          List<RexNode> argList,
+          CalcitePlanContext context) {
     AggHandler handler = aggExternalFunctionRegistry.get(functionName);
     if (handler == null) {
       handler = aggFunctionRegistry.get(functionName);
@@ -389,6 +418,8 @@ public class PPLFuncImpTable {
     return handler.apply(distinct, field, argList, context);
   }
 
+
+
   public RexNode resolve(final RexBuilder builder, final String functionName, RexNode... args) {
     Optional<BuiltinFunctionName> funcNameOpt = BuiltinFunctionName.of(functionName);
     if (funcNameOpt.isEmpty()) {
@@ -398,9 +429,15 @@ public class PPLFuncImpTable {
   }
 
   public RexNode resolve(
-      final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
+          final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
+    // Check the external function registry first. This allows the data-storage-dependent
+    // function implementations to override the internal ones with the same name.
     List<Pair<CalciteFuncSignature, FunctionImp>> implementList =
-            functionRegistry.get(functionName);
+            externalFunctionRegistry.get(functionName);
+    // If the function is not part of the external registry, check the internal registry.
+    if (implementList == null) {
+      implementList = functionRegistry.get(functionName);
+    }
     if (implementList == null || implementList.isEmpty()) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
@@ -413,19 +450,19 @@ public class PPLFuncImpTable {
       }
     } catch (Exception e) {
       throw new ExpressionEvaluationException(
-          String.format(
-              "Cannot resolve function: %s, arguments: %s, caused by: %s",
-              functionName, getActualSignature(argTypes), e.getMessage()),
-          e);
+              String.format(
+                      "Cannot resolve function: %s, arguments: %s, caused by: %s",
+                      functionName, getActualSignature(argTypes), e.getMessage()),
+              e);
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
     for (var implement : implementList) {
       allowedSignatures.add(implement.getKey().getTypeChecker().getAllowedSignatures());
     }
     throw new ExpressionEvaluationException(
-        String.format(
-            "%s function expects {%s}, but got %s",
-            functionName, allowedSignatures, getActualSignature(argTypes)));
+            String.format(
+                    "%s function expects {%s}, but got %s",
+                    functionName, allowedSignatures, getActualSignature(argTypes)));
   }
 
   private static String getActualSignature(List<RelDataType> argTypes) {
