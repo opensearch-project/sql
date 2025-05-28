@@ -1,4 +1,4 @@
-name: Publish snapshots to maven
+name: Publish to Maven
 
 on:
   workflow_dispatch:
@@ -7,9 +7,184 @@ on:
       - main
       - 1.*
       - 2.*
+      - poc/commit-metadata
 
 jobs:
-  build-and-publish-snapshots:
+  publish-grammar-files:
+    strategy:
+      fail-fast: false
+    #if: github.repository == 'opensearch-project/sql'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    env:
+      SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+      TARGET_REPO_PATH: org/opensearch/language-grammar
+
+    steps:
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: 21
+      - uses: actions/checkout@v3
+      - uses: aws-actions/configure-aws-credentials@v1.7.0
+        with:
+          role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
+          aws-region: us-east-1
+
+      # Get Maven credentials
+      - name: Setup publishing credentials
+        id: creds
+        run: |
+          SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
+          SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
+          echo "::add-mask::$SONATYPE_USERNAME"
+          echo "::add-mask::$SONATYPE_PASSWORD"
+          echo "SONATYPE_USERNAME=$SONATYPE_USERNAME" >> $GITHUB_ENV
+          echo "SONATYPE_PASSWORD=$SONATYPE_PASSWORD" >> $GITHUB_ENV
+
+      # Extract version information - using a simpler method for grammar files
+      - name: Set version
+        id: set_version
+        run: |
+          VERSION="0.1.0-SNAPSHOT" # Can adjust this version as needed
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Using version: ${VERSION}"
+
+      # Capture commit ID
+      - name: Set commit ID
+        id: set_commit
+        run: |
+          COMMIT_ID=$(git log -1 --format='%H')
+          echo "commit_id=${COMMIT_ID}" >> $GITHUB_OUTPUT
+          echo "Using commit ID: ${COMMIT_ID}"
+
+      # Create ZIP of grammar files
+      - name: Package grammar files
+        run: |
+          # Create directory for the zip content
+          mkdir -p grammar_files
+          
+          # Copy all .g4 files to the directory
+          find ./language-grammar/src/main/antlr4 -name "*.g4" -type f -exec cp {} grammar_files/ \;
+          
+          # List the files that will be included in the zip
+          echo "Files to be included in the zip:"
+          ls -la grammar_files/
+          
+          # Create zip file
+          cd grammar_files
+          zip -r ../grammar.zip ./*
+          cd ..
+          
+          # Check the zip file
+          ls -la grammar.zip
+
+      - name: Prepare for Maven publishing
+        run: |
+          # Define constants
+          ARTIFACT_ID="language-grammar"
+          GROUP_ID="org.opensearch"
+          VERSION="${{ steps.set_version.outputs.VERSION }}"
+          
+          # Create directory structure for Maven
+          MAVEN_LOCAL_PATH="${HOME}/.m2/repository/${GROUP_ID//.//}/${ARTIFACT_ID}/${VERSION}"
+          mkdir -p "${MAVEN_LOCAL_PATH}"
+          
+          # Copy the zip file to Maven directory with proper naming
+          MAVEN_ZIP_NAME="${ARTIFACT_ID}-${VERSION}.zip"
+          cp grammar.zip "${MAVEN_LOCAL_PATH}/${MAVEN_ZIP_NAME}"
+          
+          # Generate POM file
+          cat > "${MAVEN_LOCAL_PATH}/${ARTIFACT_ID}-${VERSION}.pom" << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>${GROUP_ID}</groupId>
+              <artifactId>${ARTIFACT_ID}</artifactId>
+              <version>${VERSION}</version>
+              <packaging>zip</packaging>
+              <description>OpenSearch Language Grammar Files</description>
+          </project>
+          EOF
+          
+          echo "Grammar files prepared for Maven publishing as version ${VERSION}"
+
+      # Generate checksums for the Maven artifacts
+      - name: Generate checksums
+        run: |
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.zip" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.zip" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
+
+      # Checkout build libraries for publishing scripts
+      - uses: actions/checkout@v4
+        with:
+          repository: 'opensearch-project/opensearch-build-libraries'
+          path: 'build'
+
+      # Publish to Maven
+      - name: Publish to Maven
+        run: |
+          # Copy local Maven repo to build directory
+          cd build/resources/publish/
+          cp -a $HOME/.m2/repository/* ./
+          
+          # Run the publish script
+          ./publish-snapshot.sh ./
+
+      # Update metadata with commit ID
+      - name: Add commit ID to metadata
+        run: |
+          COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
+          ARTIFACT_ID="language-grammar"
+          VERSION="${{ steps.set_version.outputs.VERSION }}"
+          
+          TEMP_DIR=$(mktemp -d)
+          METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
+          
+          # Download existing metadata
+          META_URL="${SNAPSHOT_REPO_URL}org/opensearch/${ARTIFACT_ID}/${VERSION}/maven-metadata.xml"
+          curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${METADATA_FILE}" "${META_URL}"
+          
+          if [ -s "${METADATA_FILE}" ]; then
+            cp "${METADATA_FILE}" "${METADATA_FILE}.bak"
+          
+            # Add commit ID to metadata
+            awk -v commit="${COMMIT_ID}" '
+              /<versioning>/ {
+                print $0
+                print "  <commitId>" commit "</commitId>"
+                next
+              }
+              {print}
+            ' "${METADATA_FILE}.bak" > "${METADATA_FILE}"
+          
+            # Upload modified metadata
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${METADATA_FILE}" "${META_URL}"
+          
+            # Update checksums
+            cd "${TEMP_DIR}"
+            sha256sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha256"
+            sha512sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha512"
+          
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha256" "${META_URL}.sha256"
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha512" "${META_URL}.sha512"
+          
+            echo "Version metadata updated with commit ID"
+          else
+            echo "Failed to download metadata, skipping commit ID addition"
+          fi
+          
+          rm -rf "${TEMP_DIR}"
+
+  publish-async-query-core:
     strategy:
       fail-fast: false
     if: github.repository == 'opensearch-project/sql'
@@ -19,20 +194,194 @@ jobs:
       id-token: write
       contents: write
 
+    # Set credentials once at the job level
+    env:
+      SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+
     steps:
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v3
         with:
-          distribution: temurin # Temurin is a distribution of adoptium
-          java-version: 11
-      - uses: actions/checkout@v4
+          distribution: temurin
+          java-version: 21
+      - uses: actions/checkout@v3
       - uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
           role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
           aws-region: us-east-1
-      - name: publish snapshots to maven
+
+      # Get and mask credentials once in a dedicated step
+      - name: Setup publishing credentials
+        id: creds
         run: |
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
+          SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
+          SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
           echo "::add-mask::$SONATYPE_USERNAME"
           echo "::add-mask::$SONATYPE_PASSWORD"
-          ./gradlew publishPluginZipPublicationToSnapshotsRepository
+          echo "SONATYPE_USERNAME=$SONATYPE_USERNAME" >> $GITHUB_ENV
+          echo "SONATYPE_PASSWORD=$SONATYPE_PASSWORD" >> $GITHUB_ENV
+
+      # Capture the commit ID for metadata purposes
+      - name: Set commit ID
+        id: set_commit
+        run: |
+          COMMIT_ID=$(git log -1 --format='%H')
+          echo "commit_id=${COMMIT_ID}" >> $GITHUB_OUTPUT
+          echo "Using commit ID: ${COMMIT_ID}"
+
+      # Extract version information from build.gradle
+      - name: Extract version from build.gradle
+        id: extract_version
+        run: |
+          # Extract the opensearch_version from the property declaration in build.gradle
+          OPENSEARCH_VERSION=$(grep 'opensearch_version =' build.gradle | awk -F'"' '{print $(NF-1)}')
+          echo "opensearch_version: ${OPENSEARCH_VERSION}"
+          
+          # Get the first part before any dash (equivalent to tokenize('-')[0] in Groovy)
+          BASE_VERSION=$(echo "$OPENSEARCH_VERSION" | cut -d'-' -f1)
+          echo "Base version: ${BASE_VERSION}"
+          
+          # Form the version as in build.gradle allprojects block
+          # According to build.gradle, version = opensearch_version.tokenize('-')[0] + '.0' + '-SNAPSHOT'
+          VERSION="${BASE_VERSION}.0-SNAPSHOT"
+          
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Extracted version: ${VERSION}"
+
+      - name: Build and publish shadow JAR
+        run: |
+          # Build the shadow JAR
+          ./gradlew :async-query-core:shadowJar
+          
+          # Define constants
+          ARTIFACT_ID="async-query-core" 
+          GROUP_PATH="org/opensearch"
+          VERSION="${{ steps.extract_version.outputs.VERSION }}"
+          
+          # Find the generated shadow JAR
+          SHADOW_JAR=$(find ./async-query-core/build/libs/ -name "*-all.jar" | head -n 1)
+          
+          if [ -z "$SHADOW_JAR" ]; then
+            echo "Error: Shadow JAR not found!"
+            exit 1
+          fi
+          
+          # Create directory structure in local Maven repository
+          MAVEN_LOCAL_PATH="${HOME}/.m2/repository/${GROUP_PATH}/${ARTIFACT_ID}/${VERSION}"
+          mkdir -p "${MAVEN_LOCAL_PATH}"
+          
+          # Copy the shadow JAR to the local Maven repository with proper naming
+          MAVEN_JAR_NAME="${ARTIFACT_ID}-${VERSION}.jar"
+          cp "${SHADOW_JAR}" "${MAVEN_LOCAL_PATH}/${MAVEN_JAR_NAME}"
+          
+          # Generate a POM file
+          cat > "${MAVEN_LOCAL_PATH}/${ARTIFACT_ID}-${VERSION}.pom" << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>org.opensearch</groupId>
+              <artifactId>${ARTIFACT_ID}</artifactId>
+              <version>${VERSION}</version>
+          </project>
+          EOF
+          
+          echo "Shadow JAR and POM published to local Maven repository for version ${VERSION}"
+
+      # Checkout opensearch-build-libraries repository for publishing scripts
+      - uses: actions/checkout@v4
+        with:
+          repository: 'opensearch-project/opensearch-build-libraries'
+          path: 'build'
+
+      - name: Generate SHA checksums for JAR and POM files
+        run: |
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.jar" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.jar" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
+
+      - name: Install XML tools
+        run: sudo apt-get update && sudo apt-get install -y xmlstarlet
+
+      - name: Publish snapshots to maven
+        run: |
+          # Publish snapshots to maven
+          cd build/resources/publish/
+          cp -a $HOME/.m2/repository/* ./
+          ./publish-snapshot.sh ./
+
+      - name: Update version metadata with commit ID
+        run: |
+          COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
+          ARTIFACT_ID="async-query-core"  
+          VERSION="${{ steps.extract_version.outputs.VERSION }}"
+
+          # Add commit ID to version-specific metadata file
+          echo "Processing commit ID for version: ${VERSION}"
+
+          TEMP_DIR=$(mktemp -d)
+          METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
+
+          # Download metadata from repository
+          META_URL="${SNAPSHOT_REPO_URL}org/opensearch/${ARTIFACT_ID}/${VERSION}/maven-metadata.xml"
+          echo "Downloading metadata from ${META_URL}"
+
+          # Try to download the metadata file
+          curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${METADATA_FILE}" "${META_URL}"
+
+          # Debug: Check if file exists and has content
+          if [ -f "${METADATA_FILE}" ]; then
+            echo "Metadata file found. Size: $(stat -c%s ${METADATA_FILE}) bytes"
+          else
+            echo "Metadata file not found"
+            exit 1
+          fi
+
+          # If successful, modify and upload back
+          if [ -s "${METADATA_FILE}" ]; then
+            echo "Modifying metadata for ${VERSION}"
+            cp "${METADATA_FILE}" "${METADATA_FILE}.bak"
+
+            # Debug: Show first few lines before modification
+            echo "First 10 lines before modification:"
+            head -n 10 "${METADATA_FILE}"
+
+            # Apply same awk command from working example
+            awk -v commit="${COMMIT_ID}" '
+              /<versioning>/ {
+                print $0
+                print "  <commitId>" commit "</commitId>"
+                next
+              }
+              {print}
+            ' "${METADATA_FILE}.bak" > "${METADATA_FILE}"
+
+            # Debug: Show first few lines after modification
+            echo "First 10 lines after modification:"
+            head -n 10 "${METADATA_FILE}"
+
+            # Upload modified file back
+            echo "Uploading modified metadata to ${META_URL}"
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${METADATA_FILE}" "${META_URL}"
+
+            # Update the SHA checksums
+            cd "${TEMP_DIR}"
+            sha256sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha256"
+            sha512sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha512"
+
+            # Upload the checksums
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha256" "${META_URL}.sha256"
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha512" "${META_URL}.sha512"
+            cd -
+
+            echo "Updated metadata and checksums for ${VERSION}"
+          else
+            echo "Failed to download metadata for ${VERSION} or file is empty"
+            exit 1
+          fi
+
+          # Clean up
+          rm -rf "${TEMP_DIR}"
+
+          echo "Version metadata updated with commit ID"
