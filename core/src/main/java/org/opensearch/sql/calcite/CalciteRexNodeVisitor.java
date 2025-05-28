@@ -74,6 +74,10 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     return unresolved.accept(this, context);
   }
 
+  public List<RexNode> analyze(List<UnresolvedExpression> list, CalcitePlanContext context) {
+    return list.stream().map(u -> u.accept(this, context)).toList();
+  }
+
   public RexNode analyzeJoinCondition(UnresolvedExpression unresolved, CalcitePlanContext context) {
     return context.resolveJoinCondition(unresolved, this::analyze);
   }
@@ -338,7 +342,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     List<RexNode> arguments =
         node.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
     RexNode resolvedNode =
-        PPLFuncImpTable.INSTANCE.resolveSafe(
+        PPLFuncImpTable.INSTANCE.resolve(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));
     if (resolvedNode != null) {
       return resolvedNode;
@@ -365,7 +369,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                       ? Collections.emptyList()
                       : arguments.subList(1, arguments.size());
               return PlanUtils.makeOver(
-                  context, functionName, field, args, partitions, node.getWindowFrame());
+                  context, functionName, field, args, partitions, List.of(), node.getWindowFrame());
             })
         .orElseThrow(
             () ->

@@ -151,11 +151,11 @@ headCommand
    ;
 
 topCommand
-   : TOP (number = integerLiteral)? fieldList (byClause)?
+   : TOP (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
 
 rareCommand
-   : RARE (number = integerLiteral)? fieldList (byClause)?
+   : RARE (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
 
 grokCommand
@@ -209,20 +209,20 @@ lookupPair
    ;
 
 fillnullCommand
-   : FILLNULL (fillNullWithTheSameValue
-   | fillNullWithFieldVariousValues)
+   : FILLNULL fillNullWith
+   | FILLNULL fillNullUsing
    ;
 
-fillNullWithTheSameValue
-   : WITH nullReplacement = valueExpression IN nullableFieldList = fieldList
+fillNullWith
+   : WITH replacement = valueExpression (IN fieldList)?
    ;
 
-fillNullWithFieldVariousValues
-   : USING nullReplacementExpression (COMMA nullReplacementExpression)*
+fillNullUsing
+   : USING replacementPair (COMMA replacementPair)*
    ;
 
-nullReplacementExpression
-   : nullableField = fieldExpression EQUAL nullReplacement = valueExpression
+replacementPair
+   : fieldExpression EQUAL replacement = valueExpression
    ;
 
 trendlineCommand
@@ -848,6 +848,7 @@ flowControlFunctionName
    : IF
    | IFNULL
    | NULLIF
+   | COALESCE
    ;
 
 systemFunctionName
@@ -1099,6 +1100,8 @@ keywordsCanBeId
    | TIME_ZONE
    | TRAINING_DATA_SIZE
    | ANOMALY_SCORE_THRESHOLD
+   | COUNTFIELD
+   | SHOWCOUNT
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
    | windowFunctionName

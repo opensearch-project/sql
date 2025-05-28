@@ -228,6 +228,7 @@ public enum BuiltinFunctionName {
   IF(FunctionName.of("if")),
   NULLIF(FunctionName.of("nullif")),
   ISNULL(FunctionName.of("isnull")),
+  COALESCE(FunctionName.of("coalesce")),
 
   IS_PRESENT(FunctionName.of("ispresent")),
   IS_EMPTY(FunctionName.of("isempty")),
