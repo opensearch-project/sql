@@ -330,22 +330,10 @@ jobs:
           # Try to download the metadata file
           curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${METADATA_FILE}" "${META_URL}"
 
-          # Debug: Check if file exists and has content
-          if [ -f "${METADATA_FILE}" ]; then
-            echo "Metadata file found. Size: $(stat -c%s ${METADATA_FILE}) bytes"
-          else
-            echo "Metadata file not found"
-            exit 1
-          fi
-
           # If successful, modify and upload back
           if [ -s "${METADATA_FILE}" ]; then
             echo "Modifying metadata for ${VERSION}"
             cp "${METADATA_FILE}" "${METADATA_FILE}.bak"
-
-            # Debug: Show first few lines before modification
-            echo "First 10 lines before modification:"
-            head -n 10 "${METADATA_FILE}"
 
             # Apply same awk command from working example
             awk -v commit="${COMMIT_ID}" '
@@ -356,10 +344,6 @@ jobs:
               }
               {print}
             ' "${METADATA_FILE}.bak" > "${METADATA_FILE}"
-
-            # Debug: Show first few lines after modification
-            echo "First 10 lines after modification:"
-            head -n 10 "${METADATA_FILE}"
 
             # Upload modified file back
             echo "Uploading modified metadata to ${META_URL}"
