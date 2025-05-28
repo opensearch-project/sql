@@ -8,6 +8,13 @@ JSON Functions
    :local:
    :depth: 1
 
+
+
+JsonPath: All JSON paths used in JSON functions follow the format <key1>{<index1>}.<key2>{<index2>}..., where each <key> represents a field name, and {<index>} is an optional array index used only when the corresponding key refers to an array. For example, a{2}.b{0} refers to the element at index 0 of the b array, which is nested inside the element at index 2 of the a array.
+
+The {<index>} notation applies only when the associated key points to an array. If {} is used without a specific index (i.e., {}), it is interpreted as a wildcard equivalent to {*}, meaning all elements in the array at that level.
+
+
 JSON_VALID
 ----------
 
