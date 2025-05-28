@@ -513,7 +513,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.RARE,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -525,7 +528,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.RARE,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -537,7 +543,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.RARE,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
@@ -550,7 +559,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(1))),
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -562,7 +574,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(10))),
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             emptyList(),
             field("a")));
   }
@@ -574,7 +589,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(1))),
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -586,7 +604,10 @@ public class AstBuilderTest {
         rareTopN(
             relation("t"),
             CommandType.TOP,
-            exprList(argument("noOfResults", intLiteral(1))),
+            exprList(
+                argument("noOfResults", intLiteral(1)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));

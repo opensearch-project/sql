@@ -163,12 +163,30 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testRareCommandWithGroupBy() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
     assertEquals("source=t | rare 10 a by b", anonymize("source=t | rare a by b"));
   }
 
   @Test
   public void testTopCommandWithNAndGroupBy() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(false);
     assertEquals("source=t | top 1 a by b", anonymize("source=t | top 1 a by b"));
+  }
+
+  @Test
+  public void testRareCommandWithGroupByWithCalcite() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals(
+        "source=t | rare 10 countield='count' showcount=true a by b",
+        anonymize("source=t | rare a by b"));
+  }
+
+  @Test
+  public void testTopCommandWithNAndGroupByWithCalcite() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals(
+        "source=t | top 1 countield='count' showcount=true a by b",
+        anonymize("source=t | top 1 a by b"));
   }
 
   @Test
@@ -384,7 +402,7 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   private String anonymize(UnresolvedPlan plan) {
-    final PPLQueryDataAnonymizer anonymize = new PPLQueryDataAnonymizer();
+    final PPLQueryDataAnonymizer anonymize = new PPLQueryDataAnonymizer(settings);
     return anonymize.anonymizeData(plan);
   }
 
@@ -394,7 +412,7 @@ public class PPLQueryDataAnonymizerTest {
             new AstBuilder(query),
             AstStatementBuilder.StatementBuilderContext.builder().isExplain(isExplain).build());
     Statement statement = builder.visit(parser.parse(query));
-    PPLQueryDataAnonymizer anonymize = new PPLQueryDataAnonymizer();
+    PPLQueryDataAnonymizer anonymize = new PPLQueryDataAnonymizer(settings);
     return anonymize.anonymizeStatement(statement);
   }
 }
