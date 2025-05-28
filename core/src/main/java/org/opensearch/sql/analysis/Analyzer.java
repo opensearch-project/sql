@@ -383,7 +383,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     fields.forEach(
         field -> newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));
 
-    List<Argument> options = node.getNoOfResults();
+    List<Argument> options = node.getArguments();
     Integer noOfResults = (Integer) options.get(0).getValue().getValue();
 
     return new LogicalRareTopN(child, node.getCommandType(), noOfResults, fields, groupBys);
