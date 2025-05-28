@@ -16,11 +16,15 @@ import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
+import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
  * It constructs a timestamp based on the input datetime value. If a second argument is provided, it
@@ -41,6 +45,18 @@ public class TimestampFunction extends ImplementorUDF {
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return PPLReturnTypes.TIMESTAMP_FORCE_NULLABLE;
+  }
+
+  @Override
+  public UDFOperandMetadata getOperandMetadata() {
+    return UDFOperandMetadata.wrap(
+        (CompositeOperandTypeChecker)
+            OperandTypes.STRING
+                .or(OperandTypes.DATETIME)
+                .or(OperandTypes.STRING_STRING)
+                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME))
+                .or(OperandTypes.family(SqlTypeFamily.STRING, SqlTypeFamily.DATETIME))
+                .or(OperandTypes.family(SqlTypeFamily.DATETIME, SqlTypeFamily.STRING)));
   }
 
   public static class TimestampImplementor implements NotNullImplementor {
