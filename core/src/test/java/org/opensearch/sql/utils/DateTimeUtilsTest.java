@@ -61,9 +61,9 @@ public class DateTimeUtilsTest {
 
     LocalDateTime localDateTime = LocalDateTime.parse(dateTimeString, formatter);
     ZonedDateTime zonedDateTime = localDateTime.atZone(ZoneId.systemDefault());
-    ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y", zonedDateTime);
+    ZonedDateTime snap1 = getRelativeZonedDateTime("-1d+1y@M", zonedDateTime);
     ZonedDateTime snap2 = getRelativeZonedDateTime("-3d@d-2h+10m@h", zonedDateTime);
-    assertEquals(snap1.toLocalDateTime().toString(), "2026-10-21T10:32:12");
+    assertEquals(snap1.toLocalDateTime().toString(), "2026-10-01T00:00");
     assertEquals(snap2.toLocalDateTime().toString(), "2025-10-18T22:00");
   }
 

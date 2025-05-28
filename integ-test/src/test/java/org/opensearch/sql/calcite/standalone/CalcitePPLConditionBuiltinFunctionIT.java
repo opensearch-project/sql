@@ -243,4 +243,18 @@ public class CalcitePPLConditionBuiltinFunctionIT extends CalcitePPLIntegTestCas
 
     verifyDataRows(actual, rows(13));
   }
+
+  @Test
+  public void testEarliestWithEval() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval now=utc_timestamp() | eval a = earliest(\"now\", now), b ="
+                    + " earliest(\"-2d@d\", now) | fields a,b | head 1",
+                TEST_INDEX_CALCS));
+
+    verifySchema(actual, schema("a", "boolean"), schema("b", "boolean"));
+
+    verifyDataRows(actual, rows(false, true));
+  }
 }
