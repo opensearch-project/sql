@@ -48,6 +48,12 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 @RequiredArgsConstructor
 public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Object> {
 
+  public static class ScriptQueryUnSupportedException extends RuntimeException {
+    public ScriptQueryUnSupportedException(String message) {
+      super(message);
+    }
+  }
+
   /** Serializer that serializes expression for build DSL query. */
   private final ExpressionSerializer serializer;
 
@@ -135,7 +141,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
   private ScriptQueryBuilder buildScriptQuery(FunctionExpression node) {
     Set<ReferenceExpression> fields = ExpressionScript.extractFields(node);
     if (fields.stream().anyMatch(field -> field.getType() == ExprCoreType.STRUCT)) {
-      throw new SyntaxCheckException(
+      throw new ScriptQueryUnSupportedException(
           "Script query does not support fields of struct type in OpenSearch.");
     }
     return new ScriptQueryBuilder(

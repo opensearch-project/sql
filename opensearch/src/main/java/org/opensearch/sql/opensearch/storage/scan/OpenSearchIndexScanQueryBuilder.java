@@ -26,6 +26,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
+import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder.ScriptQueryUnSupportedException;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.logical.LogicalFilter;
@@ -60,7 +61,11 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
       requestBuilder.pushDownFilter(query);
       requestBuilder.pushDownTrackedScore(trackScoresFromOpenSearchFunction(queryCondition));
       return true;
-    } catch (Exception e) {
+    } catch (ScriptQueryUnSupportedException e) {
+      // Don't catch SyntaxCheckException, which should fall back to the old SQL engine.
+      // See test {@link NestedIT::test_nested_where_with_and_conditional}, only the old SQL engine
+      // can cover this case.
+      // It will fail if catching SyntaxCheckException here and keep using v2 engine.
       if (LOG.isDebugEnabled()) {
         LOG.debug("Cannot pushdown the filter condition: {}", queryCondition, e);
       } else {
