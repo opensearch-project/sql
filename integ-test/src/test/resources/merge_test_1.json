@@ -1,2 +1,2 @@
 {"index":{"_id":"1"}}
-{"machine": {"os1": "linux", "ram1": 120}, "machine_array":  [{"os1": "linux", "ram1": 120}]}
+{"machine": {"os1": "linux", "ram1": 120}, "machine_array":  [{"os1": "linux", "ram1": 120}], "machine_deep": {"attr1": 1, "layer": {"os1": "os1"}}}

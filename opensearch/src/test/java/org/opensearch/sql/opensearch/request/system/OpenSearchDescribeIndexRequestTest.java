@@ -105,6 +105,40 @@ class OpenSearchDescribeIndexRequestTest {
     assertEquals(result.get("name"), prepareMapResult().get("name"));
   }
 
+  @Test
+  void testMergeObjectInsideMapWithLatest() {
+    OpenSearchDescribeIndexRequest openSearchDescribeIndexRequest =
+        new OpenSearchDescribeIndexRequest(client, "index");
+    when(mapping.getFieldMappings())
+        .thenReturn(
+            Map.of(
+                "name",
+                OpenSearchDataType.of(
+                    OpenSearchDataType.MappingType.Object,
+                    Map.of(
+                        "type", "object", "properties", Map.of("attr", Map.of("type", "text"))))));
+    when(mapping2.getFieldMappings())
+        .thenReturn(
+            Map.of(
+                "name",
+                OpenSearchDataType.of(
+                    OpenSearchDataType.MappingType.Object,
+                    Map.of(
+                        "type",
+                        "object",
+                        "properties",
+                        Map.of("attr", Map.of("type", "integer"))))));
+    when(client.getIndexMappings("index"))
+        .thenReturn(ImmutableMap.of("test1", mapping, "test2", mapping2));
+    Map<String, OpenSearchDataType> result = openSearchDescribeIndexRequest.getFieldTypes();
+    assertEquals(1, result.size());
+    assertEquals(
+        result.get("name"),
+        OpenSearchDataType.of(
+            OpenSearchDataType.MappingType.Object,
+            Map.of("type", "object", "properties", Map.of("attr", Map.of("type", "integer")))));
+  }
+
   private Map<String, OpenSearchDataType> prepareMap1() {
     Map<String, OpenSearchDataType> map = new HashMap<>();
     Map<String, Object> innerMap = new LinkedHashMap<>();

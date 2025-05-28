@@ -11,6 +11,20 @@
           }
         }
       },
+      "machine_deep": {
+        "properties": {
+          "attr2": {
+            "type": "long"
+          },
+          "layer": {
+            "properties": {
+              "os2": {
+                "type": "text"
+              }
+            }
+          }
+        }
+      },
       "machine_array": {
         "type": "nested",
         "properties": {

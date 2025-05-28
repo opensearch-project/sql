@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.request.system;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.*;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
-import static org.opensearch.sql.opensearch.util.MergeRuleUtils.checkWhetherToMerge;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,6 +24,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.util.MergeRules.MergeRuleHelper;
 
 @Log4j2
 /** Describe index meta data request. */
@@ -108,7 +108,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
       }
     } else {
       for (IndexMapping indexMapping : indexMappings.values()) {
-        mergeObjectAndArrayInsideMap(fieldTypes, indexMapping.getFieldMappings());
+        MergeRuleHelper.merge(fieldTypes, indexMapping.getFieldMappings());
       }
     }
     return fieldTypes;
@@ -163,29 +163,6 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
   private String clusterName(Map<String, String> meta) {
     return meta.getOrDefault(META_CLUSTER_NAME, DEFAULT_TABLE_CAT);
-  }
-
-  /**
-   * The function accept two map and merge them. It will merge object/nested DataType if they're
-   * under same key
-   *
-   * @param target The target map we will merge into
-   * @param source The candidate map
-   */
-  public static void mergeObjectAndArrayInsideMap(
-      Map<String, OpenSearchDataType> target, Map<String, OpenSearchDataType> source) {
-    for (Map.Entry<String, OpenSearchDataType> entry : source.entrySet()) {
-      String key = entry.getKey();
-      OpenSearchDataType value = entry.getValue();
-
-      if (target.containsKey(key) && checkWhetherToMerge(value, target.get(key))) {
-        OpenSearchDataType merged = target.get(key);
-        mergeObjectAndArrayInsideMap(merged.getProperties(), value.getProperties());
-        target.put(key, merged);
-      } else {
-        target.put(key, value);
-      }
-    }
   }
 
   @Override

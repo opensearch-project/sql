@@ -571,14 +571,22 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | fields machine.os1,  machine.os2, machine_array.os1, "
-                    + " machine_array.os2",
+                    + " machine_array.os2, machine_deep.attr1, machine_deep.attr2,"
+                    + " machine_deep.layer.os1, machine_deep.layer.os2",
                 TEST_INDEX_MERGE_TEST_WILDCARD));
     verifySchema(
         result,
         schema("machine.os1", "string"),
         schema("machine.os2", "string"),
         schema("machine_array.os1", "string"),
-        schema("machine_array.os2", "string"));
-    verifyDataRows(result, rows("linux", null, "linux", null), rows(null, "linux", null, "linux"));
+        schema("machine_array.os2", "string"),
+        schema("machine_deep.attr1", "long"),
+        schema("machine_deep.attr2", "long"),
+        schema("machine_deep.layer.os1", "string"),
+        schema("machine_deep.layer.os2", "string"));
+    verifyDataRows(
+        result,
+        rows("linux", null, "linux", null, 1, null, "os1", null),
+        rows(null, "linux", null, "linux", null, 2, null, "os2"));
   }
 }
