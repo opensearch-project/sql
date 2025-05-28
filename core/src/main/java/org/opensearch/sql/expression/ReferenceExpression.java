@@ -25,7 +25,7 @@ public class ReferenceExpression implements Expression {
 
   @Getter private final List<String> paths;
 
-  private final ExprType type;
+  @Getter private final ExprType type;
 
   /**
    * Constructor of ReferenceExpression.

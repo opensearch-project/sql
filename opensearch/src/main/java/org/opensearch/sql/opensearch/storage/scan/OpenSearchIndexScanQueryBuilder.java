@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -41,6 +43,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 @VisibleForTesting
 @EqualsAndHashCode
 class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
+  private static final Logger LOG = LogManager.getLogger(OpenSearchIndexScanQueryBuilder.class);
 
   final OpenSearchRequestBuilder requestBuilder;
 
@@ -52,10 +55,19 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
   public boolean pushDownFilter(LogicalFilter filter) {
     FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
     Expression queryCondition = filter.getCondition();
-    QueryBuilder query = queryBuilder.build(queryCondition);
-    requestBuilder.pushDownFilter(query);
-    requestBuilder.pushDownTrackedScore(trackScoresFromOpenSearchFunction(queryCondition));
-    return true;
+    try {
+      QueryBuilder query = queryBuilder.build(queryCondition);
+      requestBuilder.pushDownFilter(query);
+      requestBuilder.pushDownTrackedScore(trackScoresFromOpenSearchFunction(queryCondition));
+      return true;
+    } catch (Exception e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Cannot pushdown the filter condition: {}", queryCondition, e);
+      } else {
+        LOG.info("Cannot pushdown the filter condition: {}, ", queryCondition);
+      }
+      return false;
+    }
   }
 
   @Override
