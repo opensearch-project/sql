@@ -125,9 +125,7 @@ plugins.query.size_limit
 Description
 -----------
 
-The size configure the maximum amount of documents to be pull from OpenSearch. The default value is: 10000
-
-Notes: This setting will impact the correctness of the aggregation operation, for example, there are 1000 docs in the index, if you change the value to 200, only 200 docs will be extract from index and do aggregation.
+The size configures the maximum amount of rows to be fetched from PPL execution results. The default value is: 10000
 
 Example
 -------
@@ -161,4 +159,3 @@ Rollback to default value::
     }
 
 Note: the legacy settings of ``opendistro.query.size_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
-

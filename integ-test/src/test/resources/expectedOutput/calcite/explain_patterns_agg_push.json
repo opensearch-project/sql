@@ -1,6 +1,6 @@
 {
   "calcite": {
     "logical": "LogicalProject(count()=[$1], patterns_field=[$0])\n  LogicalAggregate(group=[{0}], count()=[COUNT()])\n    LogicalProject(patterns_field=[REGEXP_REPLACE($9, '[a-zA-Z0-9]':VARCHAR)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical": "EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], patterns_field=[$t0])\n  EnumerableAggregate(group=[{0}], count()=[COUNT()])\n    EnumerableCalc(expr#0=[{inputs}], expr#1=['[a-zA-Z0-9]':VARCHAR], expr#2=[REGEXP_REPLACE($t0, $t1)], $f0=[$t2])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[email]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"email\"],\"excludes\":[]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])\n"
+    "physical": "EnumerableCalc(expr#0..1=[{inputs}], count()=[$t1], patterns_field=[$t0])\n  EnumerableAggregate(group=[{0}], count()=[COUNT()])\n    EnumerableCalc(expr#0=[{inputs}], expr#1=['[a-zA-Z0-9]':VARCHAR], expr#2=[REGEXP_REPLACE($t0, $t1)], $f0=[$t2])\n      CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[PROJECT->[email]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"email\"],\"excludes\":[]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])\n"
   }
 }
