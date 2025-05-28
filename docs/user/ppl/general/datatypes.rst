@@ -88,6 +88,8 @@ The table below list the mapping between OpenSearch Data Type, PPL Data Type and
 +-----------------+---------------+-----------+
 | text            | string        | VARCHAR   |
 +-----------------+---------------+-----------+
+| match_only_text | string        | VARCHAR   |
++-----------------+---------------+-----------+
 | date            | timestamp     | TIMESTAMP |
 +-----------------+---------------+-----------+
 | ip              | ip            | VARCHAR   |
