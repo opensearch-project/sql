@@ -51,7 +51,8 @@ public class OpenSearchEvalOperator extends EvalOperator {
     for (Pair<ReferenceExpression, Expression> pair : this.getExpressionList()) {
       ExprValue value;
       if (pair.getValue()
-          instanceof OpenSearchFunctions.OpenSearchExecutableFunction openSearchExpr) {
+          instanceof OpenSearchFunctions.OpenSearchExecutableFunction) {
+        OpenSearchFunctions.OpenSearchExecutableFunction openSearchExpr = (OpenSearchFunctions.OpenSearchExecutableFunction) pair.getValue();
         value = OpenSearchEvalProcessor.process(openSearchExpr, env, nodeClient);
       } else {
         value = pair.getValue().valueOf(env);
