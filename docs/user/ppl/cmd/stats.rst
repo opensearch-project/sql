@@ -244,6 +244,8 @@ DISTINCT_COUNT_APPROX
 Description
 >>>>>>>>>>>
 
+Version: 3.1.0
+
 Usage: DISTINCT_COUNT_APPROX(expr). Return the approximate distinct count value of the expr, using the hyperloglog++ algorithm.
 
 Example::
