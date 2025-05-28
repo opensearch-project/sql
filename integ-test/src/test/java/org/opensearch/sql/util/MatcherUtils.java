@@ -361,15 +361,25 @@ public class MatcherUtils {
    * @param actual actual JSON string.
    */
   public static void assertJsonEquals(String expected, String actual) {
-    assertEquals(JsonParser.parseString(expected), JsonParser.parseString(actual));
+    assertEquals(
+        JsonParser.parseString(eliminatePid(expected)),
+        JsonParser.parseString(eliminatePid(actual)));
   }
 
   /** Compare two JSON string are equals with ignoring the RelNode id in the Calcite plan. */
-  public static void assertJsonEqualsIgnoreRelId(String expected, String actual) {
-    assertJsonEquals(eliminateRelId(expected), eliminateRelId(actual));
+  public static void assertJsonEqualsIgnoreId(String expected, String actual) {
+    assertJsonEquals(cleanUpId(expected), cleanUpId(actual));
+  }
+
+  private static String cleanUpId(String s) {
+    return eliminatePid(eliminateRelId(s));
   }
 
   private static String eliminateRelId(String s) {
     return s.replaceAll("rel#\\d+", "rel#").replaceAll("RelSubset#\\d+", "RelSubset#");
+  }
+
+  private static String eliminatePid(String s) {
+    return s.replaceAll("pitId=[^,]+,", "pitId=*,");
   }
 }

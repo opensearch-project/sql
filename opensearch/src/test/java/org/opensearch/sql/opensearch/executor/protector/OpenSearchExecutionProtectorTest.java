@@ -98,7 +98,6 @@ class OpenSearchExecutionProtectorTest {
 
     String indexName = "test";
     final int maxResultWindow = 10000;
-    final int querySizeLimit = 200;
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
@@ -119,7 +118,7 @@ class OpenSearchExecutionProtectorTest {
 
     final var name = new OpenSearchRequest.IndexName(indexName);
     final var request =
-        new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory, settings)
+        new OpenSearchRequestBuilder(exprValueFactory, settings)
             .build(
                 name,
                 maxResultWindow,
@@ -138,8 +137,7 @@ class OpenSearchExecutionProtectorTest {
                                             PhysicalPlanDSL.agg(
                                                 filter(
                                                     resourceMonitor(
-                                                        new OpenSearchIndexScan(
-                                                            client, maxResultWindow, request)),
+                                                        new OpenSearchIndexScan(client, request)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -165,8 +163,7 @@ class OpenSearchExecutionProtectorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 filter(
-                                                    new OpenSearchIndexScan(
-                                                        client, maxResultWindow, request),
+                                                    new OpenSearchIndexScan(client, request),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),

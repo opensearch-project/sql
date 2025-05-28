@@ -52,8 +52,8 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       OpenSearchRequest request) {
     this.client = client;
     this.fields = fields;
-    this.maxResponseSize = maxResponseSize;
     this.request = request;
+    this.maxResponseSize = maxResponseSize;
     this.queryCount = 0;
     this.current = null;
   }
@@ -85,9 +85,10 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   @Override
   public boolean moveNext() {
     if (queryCount >= maxResponseSize) {
-      iterator = Collections.emptyIterator();
       return false;
-    } else if (iterator == null || !iterator.hasNext()) {
+    }
+
+    if (iterator == null || !iterator.hasNext()) {
       fetchNextBatch();
     }
     if (iterator.hasNext()) {
