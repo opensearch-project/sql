@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.prometheus.constants;
+package org.opensearch.sql.prometheus.constant;
 
 public class TestConstants {
   public static final String QUERY = "test_query";
