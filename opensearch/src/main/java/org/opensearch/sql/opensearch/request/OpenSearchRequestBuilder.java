@@ -215,7 +215,10 @@ public class OpenSearchRequestBuilder {
     // E.g. for `source=t | head 10 | head 5`, we take 5
     // This also ensures that the limit won't exceed the initial default value. (set to
     // Settings.Key.QUERY_SIZE_LIMIT in OpenSearchIndex)
-    requestedTotalSize = Math.min(limit, requestedTotalSize);
+    // Besides, there may be cases when the existing requestedTotalSize does not satisfy the
+    // new limit and offset. E.g. for `head 11 | head 10 from 2`, the new requested total size
+    // is 9. We need to adjust it accordingly.
+    requestedTotalSize = Math.min(limit, requestedTotalSize - offset);
     // If there are multiple offset, we aggregate the offset
     // E.g. for `head 10 from 1 | head 5 from 2` equals to `head 5 from 3`
     startFrom += offset;

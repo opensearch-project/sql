@@ -164,6 +164,18 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| head 5 "
                 + "| fields age"));
 
+    String expected10from1then10from2 =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_10from1_10from2_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_10from1_10from2_push.json");
+    assertJsonEqualsIgnoreId(
+        expected10from1then10from2,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 10 from 1 "
+                + "| head 10 from 2 "
+                + "| fields age"));
+
     // The second limit should not be pushed down for limit-filter-limit queries
     String expected10ThenFilterThen5 =
         isCalciteEnabled()
