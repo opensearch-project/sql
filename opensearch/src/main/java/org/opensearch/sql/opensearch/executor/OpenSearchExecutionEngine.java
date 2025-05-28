@@ -74,7 +74,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             context.getSplit().ifPresent(plan::add);
             plan.open();
 
-            while (plan.hasNext()) {
+            Integer querySizeLimit = context.getQuerySizeLimit();
+            while (plan.hasNext() && (querySizeLimit == null || result.size() < querySizeLimit)) {
               result.add(plan.next());
             }
 
@@ -182,7 +183,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                     () -> {
                       try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
                         ResultSet result = statement.executeQuery();
-                        buildResultSet(result, rel.getRowType(), listener);
+                        buildResultSet(result, rel.getRowType(), context.querySizeLimit, listener);
                       } catch (SQLException e) {
                         throw new RuntimeException(e);
                       }
@@ -191,7 +192,10 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   }
 
   private void buildResultSet(
-      ResultSet resultSet, RelDataType rowTypes, ResponseListener<QueryResponse> listener)
+      ResultSet resultSet,
+      RelDataType rowTypes,
+      Integer querySizeLimit,
+      ResponseListener<QueryResponse> listener)
       throws SQLException {
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
@@ -200,7 +204,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         rowTypes.getFieldList().stream().map(RelDataTypeField::getType).collect(Collectors.toList());
     List<ExprValue> values = new ArrayList<>();
     // Iterate through the ResultSet
-    while (resultSet.next()) {
+    while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
       Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {

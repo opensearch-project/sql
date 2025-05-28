@@ -1,0 +1,47 @@
+setup:
+  - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            max_result_window: 100
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.fallback.allowed : false
+            plugins.query.size_limit : 200
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
+---
+"Handle aggregation with window_size_limit is less than query.size_limit":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "logs"}}
+             {"regionId": "1", "action": "login_attempt", "timestamp": "2024-04-29T10:00:00Z"}
+             {"index": {"_index": "logs"}}
+             {"regionId": "2", "action": "file_upload", "timestamp": "2024-04-29T10:05:00Z"}'
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=logs | stats count() as cnt'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "cnt", "type": "bigint"}]}
+  - match: {"datarows": [[2]]}

@@ -23,6 +23,7 @@ import java.util.Map;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.calcite.standalone.CalcitePPLIntegTestCase;
 import org.opensearch.sql.common.setting.Settings;
 
@@ -48,6 +49,7 @@ public class CalcitePPLTpchIT extends CalcitePPLIntegTestCase {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 10000)
+              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)

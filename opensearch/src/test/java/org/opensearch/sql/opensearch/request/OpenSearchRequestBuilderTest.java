@@ -13,6 +13,7 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +38,7 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
+import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
@@ -68,7 +70,6 @@ class OpenSearchRequestBuilderTest {
 
   private static final TimeValue DEFAULT_QUERY_TIMEOUT = TimeValue.timeValueMinutes(1L);
   private static final Integer DEFAULT_OFFSET = 0;
-  private static final Integer DEFAULT_LIMIT = 200;
   private static final Integer MAX_RESULT_WINDOW = 500;
 
   private static final OpenSearchRequest.IndexName indexName =
@@ -84,10 +85,8 @@ class OpenSearchRequestBuilderTest {
 
   @BeforeEach
   void setup() {
-    requestBuilder = new OpenSearchRequestBuilder(DEFAULT_LIMIT, exprValueFactory, settings);
-    lenient()
-        .when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER))
-        .thenReturn(true);
+
+    requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     lenient().when(settings.getSettingValue(Settings.Key.FIELD_TYPE_TOLERANCE)).thenReturn(false);
   }
 
@@ -126,7 +125,7 @@ class OpenSearchRequestBuilderTest {
   void build_PIT_request_with_correct_size() {
     when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
     when(client.createPit(any(CreatePitRequest.class))).thenReturn("samplePITId");
-    Integer limit = 0;
+    Integer limit = 1;
     Integer offset = 0;
     requestBuilder.pushDownLimit(limit, offset);
     requestBuilder.pushDownPageSize(2);
@@ -148,8 +147,7 @@ class OpenSearchRequestBuilderTest {
     when(client.createPit(any(CreatePitRequest.class))).thenReturn("samplePITId");
     Integer limit = 600;
     Integer offset = 0;
-    int requestedTotalSize = 600;
-    requestBuilder = new OpenSearchRequestBuilder(requestedTotalSize, exprValueFactory, settings);
+    requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     requestBuilder.pushDownLimit(limit, offset);
 
     assertEquals(
@@ -171,17 +169,13 @@ class OpenSearchRequestBuilderTest {
     when(settings.getSettingValue(Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER)).thenReturn(true);
     Integer limit = 400;
     Integer offset = 0;
-    int requestedTotalSize = 400;
-    requestBuilder = new OpenSearchRequestBuilder(requestedTotalSize, exprValueFactory, settings);
+    requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     requestBuilder.pushDownLimit(limit, offset);
 
     assertEquals(
         new OpenSearchQueryRequest(
             new OpenSearchRequest.IndexName("test"),
-            new SearchSourceBuilder()
-                .from(offset)
-                .size(requestedTotalSize)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
+            new SearchSourceBuilder().from(offset).size(limit).timeout(DEFAULT_QUERY_TIMEOUT),
             exprValueFactory,
             List.of()),
         requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT, client));
@@ -333,7 +327,7 @@ class OpenSearchRequestBuilderTest {
           assertEquals(
               new SearchSourceBuilder()
                   .from(DEFAULT_OFFSET)
-                  .size(DEFAULT_LIMIT)
+                  .size(MAX_RESULT_WINDOW)
                   .timeout(DEFAULT_QUERY_TIMEOUT)
                   .query(query)
                   .sort(DOC_FIELD_NAME, ASC),
@@ -396,7 +390,7 @@ class OpenSearchRequestBuilderTest {
     assertSearchSourceBuilder(
         new SearchSourceBuilder()
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .query(query)
             .sort(sortBuilder),
@@ -418,7 +412,7 @@ class OpenSearchRequestBuilderTest {
     SearchSourceBuilder expectedSourceBuilder =
         new SearchSourceBuilder()
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .query(expectedQuery)
             .sort(DOC_FIELD_NAME, SortOrder.ASC);
@@ -440,7 +434,7 @@ class OpenSearchRequestBuilderTest {
     SearchSourceBuilder expectedSourceBuilder =
         new SearchSourceBuilder()
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .query(initialBoolQuery)
             .sort(DOC_FIELD_NAME, SortOrder.ASC);
@@ -477,7 +471,7 @@ class OpenSearchRequestBuilderTest {
     assertSearchSourceBuilder(
         new SearchSourceBuilder()
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .sort(sortBuilder),
         requestBuilder);
@@ -491,7 +485,7 @@ class OpenSearchRequestBuilderTest {
     assertSearchSourceBuilder(
         new SearchSourceBuilder()
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .sort(sortBuilder),
         requestBuilder);
@@ -505,7 +499,7 @@ class OpenSearchRequestBuilderTest {
     assertSearchSourceBuilder(
         new SearchSourceBuilder()
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .sort(SortBuilders.fieldSort("intA"))
             .sort(SortBuilders.fieldSort("intB")),
@@ -514,14 +508,18 @@ class OpenSearchRequestBuilderTest {
 
   @Test
   void test_push_down_project() {
+    when(client.createPit(any(CreatePitRequest.class))).thenReturn("samplePITId");
     Set<ReferenceExpression> references = Set.of(DSL.ref("intA", INTEGER));
     requestBuilder.pushDownProjects(references);
 
     assertSearchSourceBuilder(
         new SearchSourceBuilder()
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
+            .sort(DOC_FIELD_NAME, ASC)
+            .sort(METADATA_FIELD_ID, ASC)
+            .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
             .fetchSource(new String[] {"intA"}, new String[0]),
         requestBuilder);
 
@@ -530,11 +528,16 @@ class OpenSearchRequestBuilderTest {
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder()
                 .from(DEFAULT_OFFSET)
-                .size(DEFAULT_LIMIT)
+                .size(MAX_RESULT_WINDOW)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
+                .sort(DOC_FIELD_NAME, ASC)
+                .sort(METADATA_FIELD_ID, ASC)
+                .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
                 .fetchSource("intA", null),
             exprValueFactory,
-            List.of("intA")),
+            List.of("intA"),
+            DEFAULT_QUERY_TIMEOUT,
+            "samplePITId"),
         requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT, client));
   }
 
@@ -623,13 +626,14 @@ class OpenSearchRequestBuilderTest {
         new SearchSourceBuilder()
             .query(boolQuery().filter(boolQuery().must(nestedQuery)))
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT),
         requestBuilder);
   }
 
   @Test
   void test_push_down_project_with_alias_type() {
+    when(client.createPit(any(CreatePitRequest.class))).thenReturn("samplePITId");
     Set<ReferenceExpression> references =
         Set.of(
             DSL.ref("intA", OpenSearchTextType.of()),
@@ -639,8 +643,11 @@ class OpenSearchRequestBuilderTest {
     assertSearchSourceBuilder(
         new SearchSourceBuilder()
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT)
+            .sort(DOC_FIELD_NAME, ASC)
+            .sort(METADATA_FIELD_ID, ASC)
+            .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
             .fetchSource(new String[] {"intA"}, new String[0]),
         requestBuilder);
 
@@ -649,11 +656,16 @@ class OpenSearchRequestBuilderTest {
             new OpenSearchRequest.IndexName("test"),
             new SearchSourceBuilder()
                 .from(DEFAULT_OFFSET)
-                .size(DEFAULT_LIMIT)
+                .size(MAX_RESULT_WINDOW)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
+                .sort(DOC_FIELD_NAME, ASC)
+                .sort(METADATA_FIELD_ID, ASC)
+                .pointInTimeBuilder(new PointInTimeBuilder("samplePITId"))
                 .fetchSource("intA", null),
             exprValueFactory,
-            List.of("intA")),
+            List.of("intA"),
+            DEFAULT_QUERY_TIMEOUT,
+            "samplePITId"),
         requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT, client));
   }
 
@@ -686,7 +698,7 @@ class OpenSearchRequestBuilderTest {
         new SearchSourceBuilder()
             .query(boolQuery().filter(boolQuery().must(nestedQuery)))
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT),
         requestBuilder);
   }
@@ -722,7 +734,7 @@ class OpenSearchRequestBuilderTest {
                             .must(QueryBuilders.rangeQuery("myNum").gt(3))
                             .must(nestedQuery)))
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT),
         requestBuilder);
   }
@@ -756,7 +768,7 @@ class OpenSearchRequestBuilderTest {
         new SearchSourceBuilder()
             .query(boolQuery().filter(boolQuery().must(filterQuery)))
             .from(DEFAULT_OFFSET)
-            .size(DEFAULT_LIMIT)
+            .size(MAX_RESULT_WINDOW)
             .timeout(DEFAULT_QUERY_TIMEOUT),
         requestBuilder);
   }
