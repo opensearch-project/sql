@@ -21,6 +21,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -44,14 +45,16 @@ public class CalciteEnumerableIndexScan extends CalciteIndexScan implements Enum
    */
   public CalciteEnumerableIndexScan(
       RelOptCluster cluster,
+      RelTrait relTrait,
       List<RelHint> hints,
       RelOptTable table,
       OpenSearchIndex osIndex,
       RelDataType schema,
       PushDownContext pushDownContext) {
+
     super(
         cluster,
-        cluster.traitSetOf(EnumerableConvention.INSTANCE),
+        cluster.traitSetOf(EnumerableConvention.INSTANCE, relTrait),
         hints,
         table,
         osIndex,

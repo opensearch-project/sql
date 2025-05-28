@@ -1,6 +1,7 @@
 package org.opensearch.sql.opensearch.planner.physical;
 
 import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.logical.LogicalSort;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.CalciteLogicalIndexScan;
 
@@ -12,5 +13,13 @@ public interface OpenSearchIndexScanRule {
     if (scan.getPushDownContext().isAggregatePushed()) return false;
     final RelOptTable table = scan.getTable();
     return table.unwrap(OpenSearchIndex.class) != null;
+  }
+
+  static boolean sortByFieldsOnly(LogicalSort sort) {
+    return !sort.getCollation().getFieldCollations().isEmpty() && sort.fetch == null;
+  }
+
+  static boolean isSortPushed(CalciteLogicalIndexScan scan) {
+    return scan.getPushDownContext().isSortPushed();
   }
 }

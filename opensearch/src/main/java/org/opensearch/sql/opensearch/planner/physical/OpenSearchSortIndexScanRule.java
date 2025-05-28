@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
+import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -23,12 +24,10 @@ public class OpenSearchSortIndexScanRule extends RelRule<OpenSearchSortIndexScan
     final LogicalSort sort = call.rel(0);
     final CalciteLogicalIndexScan scan = call.rel(1);
 
-    if (!sort.getCollation().getFieldCollations().isEmpty() && sort.fetch == null) {
-      var collations = sort.collation.getFieldCollations();
-      CalciteLogicalIndexScan newScan = scan.pushDownSort(collations);
-      if (newScan != null) {
-        call.transformTo(newScan);
-      }
+    var collations = sort.collation.getFieldCollations();
+    CalciteLogicalIndexScan newScan = scan.pushDownSort(collations);
+    if (newScan != null) {
+      call.transformTo(newScan);
     }
   }
 
@@ -41,10 +40,13 @@ public class OpenSearchSortIndexScanRule extends RelRule<OpenSearchSortIndexScan
             .withOperandSupplier(
                 b0 ->
                     b0.operand(LogicalSort.class)
+                        .predicate(OpenSearchIndexScanRule::sortByFieldsOnly)
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
-                                    .predicate(OpenSearchIndexScanRule::test)
+                                    .predicate(
+                                        Predicate.not(OpenSearchIndexScanRule::isSortPushed)
+                                            .and(OpenSearchIndexScanRule::test))
                                     .noInputs()));
 
     @Override

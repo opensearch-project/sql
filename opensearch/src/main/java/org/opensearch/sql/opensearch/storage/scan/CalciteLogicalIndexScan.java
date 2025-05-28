@@ -17,6 +17,7 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
@@ -171,11 +172,19 @@ public class CalciteLogicalIndexScan extends CalciteIndexScan {
   }
 
   public CalciteLogicalIndexScan pushDownSort(List<RelFieldCollation> collations) {
-    if (getPushDownContext().isSortPushed()) {
-      return null;
-    }
     try {
-      CalciteLogicalIndexScan newScan = this.copyWithNewSchema(this.getRowType());
+      // Propagate the sort to the new scan
+      RelTraitSet newTraitSet = getTraitSet().plus(RelCollations.of(collations));
+      CalciteLogicalIndexScan newScan =
+          new CalciteLogicalIndexScan(
+              getCluster(),
+              newTraitSet,
+              hints,
+              table,
+              osIndex,
+              getRowType(),
+              pushDownContext.clone());
+
       List<SortBuilder<?>> builders = new ArrayList<>();
       for (RelFieldCollation collation : collations) {
         int index = collation.getFieldIndex();
