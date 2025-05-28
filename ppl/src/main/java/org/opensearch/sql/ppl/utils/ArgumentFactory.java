@@ -109,10 +109,16 @@ public class ArgumentFactory {
    * @return the list of arguments fetched from the top command
    */
   public static List<Argument> getArgumentList(TopCommandContext ctx) {
-    return Collections.singletonList(
+    return Arrays.asList(
         ctx.number != null
             ? new Argument("noOfResults", getArgumentValue(ctx.number))
-            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)));
+            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)),
+        ctx.countfield != null
+            ? new Argument("countField", getArgumentValue(ctx.countfield))
+            : new Argument("countField", new Literal("count", DataType.STRING)),
+        ctx.showcount != null
+            ? new Argument("showCount", getArgumentValue(ctx.showcount))
+            : new Argument("showCount", new Literal(true, DataType.BOOLEAN)));
   }
 
   /**
@@ -122,8 +128,16 @@ public class ArgumentFactory {
    * @return the list of argument with default number of results for the rare command
    */
   public static List<Argument> getArgumentList(RareCommandContext ctx) {
-    return Collections.singletonList(
-        new Argument("noOfResults", new Literal(10, DataType.INTEGER)));
+    return Arrays.asList(
+        ctx.number != null
+            ? new Argument("noOfResults", getArgumentValue(ctx.number))
+            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)),
+        ctx.countfield != null
+            ? new Argument("countField", getArgumentValue(ctx.countfield))
+            : new Argument("countField", new Literal("count", DataType.STRING)),
+        ctx.showcount != null
+            ? new Argument("showCount", getArgumentValue(ctx.showcount))
+            : new Argument("showCount", new Literal(true, DataType.BOOLEAN)));
   }
 
   /**
