@@ -7,12 +7,13 @@ on:
       - main
       - 1.*
       - 2.*
+      - poc/commit-metadata
 
 jobs:
   publish-grammar-files:
     strategy:
       fail-fast: false
-    if: github.repository == 'opensearch-project/sql'
+    #if: github.repository == 'opensearch-project/sql'
     runs-on: ubuntu-latest
 
     permissions:
