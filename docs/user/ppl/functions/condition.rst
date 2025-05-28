@@ -45,6 +45,8 @@ Argument type: all the supported data type.
 
 Return type: BOOLEAN
 
+Synonyms: `ISPRESENT`_
+
 Example::
 
     os> source=accounts | where not isnotnull(employer) | fields account_number, employer
@@ -192,3 +194,158 @@ Example::
     | False  | Nanette   | Bates    |
     | False  | Dale      | Adams    |
     +--------+-----------+----------+
+
+CASE
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: case(condition1, expr1, condition2, expr2, ... conditionN, exprN else default) return expr1 if condition1 is true, or return expr2 if condition2 is true, ... if no condition is true, then return the value of ELSE clause. If the ELSE clause is not defined, it returns NULL.
+
+Argument type: all the supported data type, (NOTE : there is no comma before "else")
+
+Return type: any
+
+Example::
+
+    os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname else employer) | fields result, firstname, lastname, age, employer
+    fetched rows / total rows = 4/4
+    +--------+-----------+----------+-----+----------+
+    | result | firstname | lastname | age | employer |
+    |--------+-----------+----------+-----+----------|
+    | Pyrami | Amber     | Duke     | 32  | Pyrami   |
+    | Hattie | Hattie    | Bond     | 36  | Netagy   |
+    | Bates  | Nanette   | Bates    | 28  | Quility  |
+    | null   | Dale      | Adams    | 33  | null     |
+    +--------+-----------+----------+-----+----------+
+
+    os> source=accounts | eval result = case(age > 35, firstname, age < 30, lastname) | fields result, firstname, lastname, age
+    fetched rows / total rows = 4/4
+    +--------+-----------+----------+-----+
+    | result | firstname | lastname | age |
+    |--------+-----------+----------+-----|
+    | null   | Amber     | Duke     | 32  |
+    | Hattie | Hattie    | Bond     | 36  |
+    | Bates  | Nanette   | Bates    | 28  |
+    | null   | Dale      | Adams    | 33  |
+    +--------+-----------+----------+-----+
+
+    os> source=accounts | where true = case(age > 35, false, age < 30, false else true) | fields firstname, lastname, age
+    fetched rows / total rows = 2/2
+    +-----------+----------+-----+
+    | firstname | lastname | age |
+    |-----------+----------+-----|
+    | Amber     | Duke     | 32  |
+    | Dale      | Adams    | 33  |
+    +-----------+----------+-----+
+
+COALESCE
+--------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: coalesce(field1, field2, ...) return the first non-null value in the argument list.
+
+Argument type: all the supported data type. The data types of all fields must be same.
+
+Return type: any
+
+Example::
+
+    PPL source=accounts | eval result = coalesce(employer, firstname, lastname) | fields result, firstname, lastname, employer
+    fetched rows / total rows = 4/4
+    +---------+-----------+----------+----------+
+    | result  | firstname | lastname | employer |
+    |---------+-----------+----------+----------|
+    | Pyrami  | Amber     | Duke     | Pyrami   |
+    | Netagy  | Hattie    | Bond     | Netagy   |
+    | Quility | Nanette   | Bates    | Quility  |
+    | Dale    | Dale      | Adams    | null     |
+    +---------+-----------+----------+----------+
+
+ISPRESENT
+---------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: ispresent(field) return true if the field exists.
+
+Argument type: all the supported data type.
+
+Return type: BOOLEAN
+
+Synonyms: `ISNOTNULL`_
+
+Example::
+
+    PPL> source=accounts | where ispresent(employer) | fields employer, firstname
+    fetched rows / total rows = 3/3
+    +----------+-----------+
+    | employer | firstname |
+    |----------+-----------|
+    | Pyrami   | Amber     |
+    | Netagy   | Hattie    |
+    | Quility  | Nanette   |
+    +----------+-----------+
+
+ISBLANK
+-------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: isblank(field) returns true if the field is null, an empty string, or contains only white space.
+
+Argument type: all the supported data type.
+
+Return type: BOOLEAN
+
+Example::
+
+    PPL> source=accounts | eval temp = ifnull(employer, '   ') | eval `isblank(employer)` = isblank(employer), `isblank(temp)` = isblank(temp) | fields `isblank(temp)`, temp, `isblank(employer)`, employer
+    fetched rows / total rows = 4/4
+    +---------------+---------+-------------------+----------+
+    | isblank(temp) | temp    | isblank(employer) | employer |
+    |---------------+---------+-------------------+----------|
+    | False         | Pyrami  | False             | Pyrami   |
+    | False         | Netagy  | False             | Netagy   |
+    | False         | Quility | False             | Quility  |
+    | True          |         | True              | null     |
+    +---------------+---------+-------------------+----------+
+
+
+ISEMPTY
+-------
+
+Description
+>>>>>>>>>>>
+
+Version: 3.1.0
+
+Usage: isempty(field) returns true if the field is null or is an empty string.
+
+Argument type: all the supported data type.
+
+Return type: BOOLEAN
+
+Example::
+
+    PPL> source=accounts | eval temp = ifnull(employer, '   ') | eval `isempty(employer)` = isempty(employer), `isempty(temp)` = isempty(temp) | fields `isempty(temp)`, temp, `isempty(employer)`, employer
+    fetched rows / total rows = 4/4
+    +---------------+---------+-------------------+----------+
+    | isempty(temp) | temp    | isempty(employer) | employer |
+    |---------------+---------+-------------------+----------|
+    | False         | Pyrami  | False             | Pyrami   |
+    | False         | Netagy  | False             | Netagy   |
+    | False         | Quility | False             | Quility  |
+    | False         |         | True              | null     |
+    +---------------+---------+-------------------+----------+

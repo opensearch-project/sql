@@ -30,6 +30,11 @@ WILDCARD = "wildcard"
 NESTED = "nested"
 DATASOURCES = ".ql-datasources"
 WEBLOGS = "weblogs"
+JSON_TEST = "json_test"
+STATE_COUNTRY = "state_country"
+OCCUPATION = "occupation"
+WORKER = "worker"
+WORK_INFORMATION = "work_information"
 
 class DocTestConnection(OpenSearchConnection):
 
@@ -123,6 +128,11 @@ def set_up_test_indices(test):
     load_file("nested_objects.json", index_name=NESTED)
     load_file("datasources.json", index_name=DATASOURCES)
     load_file("weblogs.json", index_name=WEBLOGS)
+    load_file("json_test.json", index_name=JSON_TEST)
+    load_file("state_country.json", index_name=STATE_COUNTRY)
+    load_file("occupation.json", index_name=OCCUPATION)
+    load_file("worker.json", index_name=WORKER)
+    load_file("work_information.json", index_name=WORK_INFORMATION)
 
 
 def load_file(filename, index_name):
@@ -151,7 +161,7 @@ def set_up(test):
 
 def tear_down(test):
     # drop leftover tables after each test
-    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS], ignore_unavailable=True)
+    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED, WEBLOGS, JSON_TEST, STATE_COUNTRY, OCCUPATION, WORKER, WORK_INFORMATION], ignore_unavailable=True)
 
 
 docsuite = partial(doctest.DocFileSuite,

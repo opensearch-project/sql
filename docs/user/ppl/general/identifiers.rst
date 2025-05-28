@@ -161,3 +161,28 @@ Query delimited multiple indices seperated by ``,``::
     | 5       |
     +---------+
 
+Metadata Identifiers
+====================
+
+Description
+-----------
+
+One can also provide meta-field name(s) to retrieve reserved-fields (beginning with underscore) from OpenSearch documents. Meta-fields are not output
+as default field list (`search source=<index>`) and must be explicitly included to be returned.
+
+Examples
+---------
+
+Query metadata fields::
+
+    os> source=accounts | fields firstname, lastname, _index, _sort;
+    fetched rows / total rows = 4/4
+    +-----------+----------+----------+-------+
+    | firstname | lastname | _index   | _sort |
+    |-----------+----------+----------+-------|
+    | Amber     | Duke     | accounts | -2    |
+    | Hattie    | Bond     | accounts | -2    |
+    | Nanette   | Bates    | accounts | -2    |
+    | Dale      | Adams    | accounts | -2    |
+    +-----------+----------+----------+-------+
+

@@ -19,15 +19,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.execution.AbstractPlan;
 import org.opensearch.sql.executor.execution.QueryPlan;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.node.NodeClient;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchQueryManagerTest {
@@ -35,6 +36,8 @@ class OpenSearchQueryManagerTest {
   @Mock private QueryId queryId;
 
   @Mock private QueryService queryService;
+
+  @Mock private QueryType queryType;
 
   @Mock private UnresolvedPlan plan;
 
@@ -48,7 +51,7 @@ class OpenSearchQueryManagerTest {
 
     AtomicBoolean isRun = new AtomicBoolean(false);
     AbstractPlan queryPlan =
-        new QueryPlan(queryId, plan, queryService, listener) {
+        new QueryPlan(queryId, queryType, plan, queryService, listener) {
           @Override
           public void execute() {
             isRun.set(true);

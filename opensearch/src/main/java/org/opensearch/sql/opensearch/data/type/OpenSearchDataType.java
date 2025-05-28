@@ -25,6 +25,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
   public enum MappingType {
     Invalid(null, ExprCoreType.UNKNOWN),
     Text("text", ExprCoreType.UNKNOWN),
+    MatchOnlyText("match_only_text", ExprCoreType.UNKNOWN),
     Keyword("keyword", ExprCoreType.STRING),
     Ip("ip", ExprCoreType.IP),
     GeoPoint("geo_point", ExprCoreType.UNKNOWN),
@@ -109,6 +110,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
       return result;
     }
 
+    Map<String, String> aliasMapping = new LinkedHashMap<>();
     indexMapping.forEach(
         (k, v) -> {
           var innerMap = (Map<String, Object>) v;
@@ -116,7 +118,11 @@ public class OpenSearchDataType implements ExprType, Serializable {
           var type = ((String) innerMap.getOrDefault("type", "object")).replace("_", "");
           if (!EnumUtils.isValidEnumIgnoreCase(OpenSearchDataType.MappingType.class, type)) {
             // unknown type, e.g. `alias`
-            // TODO resolve alias reference
+            // Record fields of the alias type and resolve them later in case their references have
+            // not been resolved.
+            if (OpenSearchAliasType.typeName.equals(type)) {
+              aliasMapping.put(k, (String) innerMap.get(OpenSearchAliasType.pathPropertyName));
+            }
             return;
           }
           // create OpenSearchDataType
@@ -126,6 +132,22 @@ public class OpenSearchDataType implements ExprType, Serializable {
                   EnumUtils.getEnumIgnoreCase(OpenSearchDataType.MappingType.class, type),
                   innerMap));
         });
+
+    // Begin to parse alias type fields
+    if (!aliasMapping.isEmpty()) {
+      // The path of alias type may point to a nested field, so we need to flatten the result.
+      Map<String, OpenSearchDataType> flattenResult = traverseAndFlatten(result);
+      aliasMapping.forEach(
+          (k, v) -> {
+            if (flattenResult.containsKey(v)) {
+              result.put(k, new OpenSearchAliasType(v, flattenResult.get(v)));
+            } else {
+              throw new IllegalStateException(
+                  String.format("Cannot find the path [%s] for alias type field [%s]", v, k));
+            }
+          });
+    }
+
     return result;
   }
 
@@ -151,6 +173,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
         OpenSearchDataType objectDataType = res.cloneEmpty();
         objectDataType.properties = properties;
         return objectDataType;
+      case MatchOnlyText:
       case Text:
         // TODO update these 2 below #1038 https://github.com/opensearch-project/sql/issues/1038
         Map<String, OpenSearchDataType> fields =

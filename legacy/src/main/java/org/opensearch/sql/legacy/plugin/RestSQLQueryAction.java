@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -38,6 +37,7 @@ import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
+import org.opensearch.transport.client.node.NodeClient;
 
 /**
  * New SQL REST action handler. This will not be registered to OpenSearch unless:
@@ -112,6 +112,10 @@ public class RestSQLQueryAction extends BaseRestHandler {
               fallBackListener(
                   channel,
                   createQueryResponseListener(channel, request, executionErrorHandler),
+                  fallbackHandler),
+              fallBackListener(
+                  channel,
+                  createExplainResponseListener(channel, executionErrorHandler),
                   fallbackHandler));
     }
   }

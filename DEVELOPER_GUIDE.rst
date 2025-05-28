@@ -146,7 +146,6 @@ The plugin codebase is in standard layout of Gradle project::
    ├── plugin
    ├── protocol
    ├── ppl
-   ├── spark
    ├── sql
    ├── sql-cli
    ├── sql-jdbc
@@ -161,7 +160,6 @@ Here are sub-folders (Gradle modules) for plugin source code:
 - ``core``: core query engine.
 - ``opensearch``: OpenSearch storage engine.
 - ``prometheus``: Prometheus storage engine.
-- ``spark`` : Spark storage engine
 - ``protocol``: request/response protocol formatter.
 - ``common``: common util code.
 - ``integ-test``: integration and comparison test.
@@ -233,6 +231,8 @@ Most of the time you just need to run ./gradlew build which will make sure you p
      - Run all unit tests.
    * - ./gradlew :integ-test:integTest
      - Run all integration test (this takes time).
+   * - ./gradlew :integ-test:yamlRestTest
+     - Run rest integration test.
    * - ./gradlew :doctest:doctest
      - Run doctests
    * - ./gradlew build
@@ -296,7 +296,6 @@ For test cases, you can use the cases in the following checklist in case you mis
   
 - *Other Statements*
 
-  - DELETE
   - SHOW
   - DESCRIBE
   

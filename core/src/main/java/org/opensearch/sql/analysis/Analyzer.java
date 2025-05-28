@@ -10,6 +10,7 @@ import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
+import static org.opensearch.sql.common.setting.Settings.Key.CALCITE_ENGINE_ENABLED;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
@@ -53,11 +54,14 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -65,6 +69,7 @@ import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -107,6 +112,7 @@ import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalTrendline;
 import org.opensearch.sql.planner.logical.LogicalValues;
+import org.opensearch.sql.planner.logical.LogicalWindow;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.ParseUtils;
@@ -144,6 +150,27 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitSubqueryAlias(SubqueryAlias node, AnalysisContext context) {
+    LogicalPlan child = analyze(node.getChild().get(0), context);
+    if (child instanceof LogicalRelation) {
+      // Put index name or its alias in index namespace on type environment so qualifier
+      // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
+      TypeEnvironment curEnv = context.peek();
+      curEnv.define(
+          new Symbol(
+              Namespace.INDEX_NAME,
+              (node.getAlias() == null)
+                  ? ((LogicalRelation) child).getRelationName()
+                  : node.getAlias()),
+          STRUCT);
+      return child;
+    } else {
+      throw new UnsupportedOperationException(
+          "Subsearch is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+    }
+  }
+
+  @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getTableQualifiedName();
     DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver =
@@ -169,12 +196,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     table
         .getReservedFieldTypes()
         .forEach((k, v) -> curEnv.define(new Symbol(Namespace.HIDDEN_FIELD_NAME, k), v));
-
-    // Put index name or its alias in index namespace on type environment so qualifier
-    // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
-    curEnv.define(
-        new Symbol(Namespace.INDEX_NAME, (node.getAlias() == null) ? tableName : node.getAlias()),
-        STRUCT);
 
     return new LogicalRelation(tableName, table);
   }
@@ -361,7 +382,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     fields.forEach(
         field -> newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));
 
-    List<Argument> options = node.getNoOfResults();
+    List<Argument> options = node.getArguments();
     Integer noOfResults = (Integer) options.get(0).getValue().getValue();
 
     return new LogicalRareTopN(child, node.getCommandType(), noOfResults, fields, groupBys);
@@ -471,6 +492,22 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return child;
   }
 
+  @Override
+  public LogicalPlan visitPatterns(Patterns node, AnalysisContext context) {
+    LogicalPlan child = node.getChild().get(0).accept(this, context);
+    WindowExpressionAnalyzer windowAnalyzer =
+        new WindowExpressionAnalyzer(expressionAnalyzer, child);
+    child = windowAnalyzer.analyze(node.getWindowFunction(), context);
+
+    TypeEnvironment curEnv = context.peek();
+    LogicalWindow window = (LogicalWindow) child;
+    curEnv.define(
+        new Symbol(Namespace.FIELD_NAME, window.getWindowFunction().getNameOrAlias()),
+        window.getWindowFunction().getDelegated().type());
+
+    return child;
+  }
+
   /** Build {@link LogicalSort}. */
   @Override
   public LogicalPlan visitSort(Sort node, AnalysisContext context) {
@@ -556,20 +593,22 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     ImmutableList.Builder<Pair<ReferenceExpression, Expression>> expressionsBuilder =
         new Builder<>();
-    for (FillNull.NullableFieldFill fieldFill : node.getNullableFieldFills()) {
-      Expression fieldExpr =
-          expressionAnalyzer.analyze(fieldFill.getNullableFieldReference(), context);
+    for (Pair<Field, UnresolvedExpression> fieldFill : node.getReplacementPairs()) {
+      Expression fieldExpr = expressionAnalyzer.analyze(fieldFill.getLeft(), context);
       ReferenceExpression ref =
-          DSL.ref(fieldFill.getNullableFieldReference().getField().toString(), fieldExpr.type());
+          DSL.ref(fieldFill.getLeft().getField().toString(), fieldExpr.type());
       FunctionExpression ifNullFunction =
-          DSL.ifnull(ref, expressionAnalyzer.analyze(fieldFill.getReplaceNullWithMe(), context));
+          DSL.ifnull(ref, expressionAnalyzer.analyze(fieldFill.getRight(), context));
       expressionsBuilder.add(new ImmutablePair<>(ref, ifNullFunction));
       TypeEnvironment typeEnvironment = context.peek();
       // define the new reference in type env.
       typeEnvironment.define(ref);
     }
-
-    return new LogicalEval(child, expressionsBuilder.build());
+    List<Pair<ReferenceExpression, Expression>> expressions = expressionsBuilder.build();
+    if (expressions.isEmpty()) {
+      throw new SemanticCheckException("At least one field is required for fillnull in V2.");
+    }
+    return new LogicalEval(child, expressions);
   }
 
   /** Build {@link LogicalML} for ml command. */
@@ -649,6 +688,18 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitCloseCursor(CloseCursor closeCursor, AnalysisContext context) {
     return new LogicalCloseCursor(closeCursor.getChild().get(0).accept(this, context));
+  }
+
+  @Override
+  public LogicalPlan visitJoin(Join node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Join is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
+  }
+
+  @Override
+  public LogicalPlan visitLookup(Lookup node, AnalysisContext context) {
+    throw new UnsupportedOperationException(
+        "Lookup is supported only when " + CALCITE_ENGINE_ENABLED.getKeyValue() + "=true");
   }
 
   private LogicalSort buildSort(

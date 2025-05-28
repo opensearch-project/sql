@@ -58,7 +58,7 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
         AstDSL.alias(
-            "`integer_alias`.integer_value", // qualifier in SELECT is quoted originally
+            "integer_value", // qualifier in SELECT is quoted originally
             AstDSL.qualifiedName("index_alias", "integer_value")));
   }
 

@@ -8,6 +8,7 @@ package org.opensearch.sql.ast;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.AttributeList;
@@ -36,6 +37,9 @@ import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
+import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
+import org.opensearch.sql.ast.expression.subquery.InSubquery;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
@@ -48,20 +52,25 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.RelationSubquery;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.ast.tree.Window;
 
 /** AST nodes visitor Defines the traverse path. */
 public abstract class AbstractNodeVisitor<T, C> {
@@ -247,6 +256,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitAllFieldsExcludeMeta(AllFieldsExcludeMeta node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitNestedAllTupleFields(NestedAllTupleFields node, C context) {
     return visitChildren(node, context);
   }
@@ -311,6 +324,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitStatement(node, context);
   }
 
+  public T visitInSubquery(InSubquery node, C context) {
+    return visitChildren(node, context);
+  }
+
   public T visitPaginate(Paginate paginate, C context) {
     return visitChildren(paginate, context);
   }
@@ -325,5 +342,33 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitFillNull(FillNull fillNull, C context) {
     return visitChildren(fillNull, context);
+  }
+
+  public T visitPatterns(Patterns patterns, C context) {
+    return visitChildren(patterns, context);
+  }
+
+  public T visitWindow(Window window, C context) {
+    return visitChildren(window, context);
+  }
+
+  public T visitJoin(Join node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitLookup(Lookup node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitSubqueryAlias(SubqueryAlias node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitScalarSubquery(ScalarSubquery node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitExistsSubquery(ExistsSubquery node, C context) {
+    return visitChildren(node, context);
   }
 }

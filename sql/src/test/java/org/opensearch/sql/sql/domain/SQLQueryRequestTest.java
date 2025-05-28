@@ -92,6 +92,32 @@ public class SQLQueryRequestTest {
   }
 
   @Test
+  public void should_support_explain_format() {
+    SQLQueryRequest explainRequest =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .path("_plugins/_sql/_explain")
+            .params(Map.of("format", "simple"))
+            .build();
+
+    assertAll(
+        () -> assertTrue(explainRequest.isExplainRequest()),
+        () -> assertTrue(explainRequest.isSupported()));
+  }
+
+  @Test
+  public void should_not_support_explain_with_unsupported_explain_format() {
+    SQLQueryRequest explainRequest =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .path("_plugins/_sql/_explain")
+            .params(Map.of("format", "jdbc"))
+            .build();
+
+    assertAll(
+        () -> assertTrue(explainRequest.isExplainRequest()),
+        () -> assertFalse(explainRequest.isSupported()));
+  }
+
+  @Test
   public void should_support_cursor_request() {
     SQLQueryRequest fetchSizeRequest =
         SQLQueryRequestBuilder.request("SELECT 1")

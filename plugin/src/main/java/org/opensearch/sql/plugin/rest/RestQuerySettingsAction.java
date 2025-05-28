@@ -15,8 +15,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchGenerationException;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.opensearch.client.Requests;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -28,6 +26,8 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.action.RestToXContentListener;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
+import org.opensearch.transport.client.Requests;
+import org.opensearch.transport.client.node.NodeClient;
 
 public class RestQuerySettingsAction extends BaseRestHandler {
   private static final Logger LOG = LogManager.getLogger(RestQuerySettingsAction.class);
@@ -35,10 +35,8 @@ public class RestQuerySettingsAction extends BaseRestHandler {
   private static final String TRANSIENT = "transient";
   private static final String SQL_SETTINGS_PREFIX = "plugins.sql.";
   private static final String PPL_SETTINGS_PREFIX = "plugins.ppl.";
+  private static final String CALCITE_SETTINGS_PREFIX = "plugins.calcite.";
   private static final String COMMON_SETTINGS_PREFIX = "plugins.query.";
-  private static final String LEGACY_SQL_SETTINGS_PREFIX = "opendistro.sql.";
-  private static final String LEGACY_PPL_SETTINGS_PREFIX = "opendistro.ppl.";
-  private static final String LEGACY_COMMON_SETTINGS_PREFIX = "opendistro.query.";
   private static final String EXECUTION_ENGINE_SETTINGS_PREFIX = "plugins.query.executionengine";
   public static final String DATASOURCES_SETTINGS_PREFIX = "plugins.query.datasources";
   private static final List<String> SETTINGS_PREFIX =
@@ -46,15 +44,12 @@ public class RestQuerySettingsAction extends BaseRestHandler {
           SQL_SETTINGS_PREFIX,
           PPL_SETTINGS_PREFIX,
           COMMON_SETTINGS_PREFIX,
-          LEGACY_SQL_SETTINGS_PREFIX,
-          LEGACY_PPL_SETTINGS_PREFIX,
-          LEGACY_COMMON_SETTINGS_PREFIX);
+          CALCITE_SETTINGS_PREFIX);
 
   private static final List<String> DENY_LIST_SETTINGS_PREFIX =
       ImmutableList.of(EXECUTION_ENGINE_SETTINGS_PREFIX, DATASOURCES_SETTINGS_PREFIX);
 
   public static final String SETTINGS_API_ENDPOINT = "/_plugins/_query/settings";
-  public static final String LEGACY_SQL_SETTINGS_API_ENDPOINT = "/_opendistro/_sql/settings";
 
   public RestQuerySettingsAction(Settings settings, RestController restController) {
     super();
@@ -67,15 +62,7 @@ public class RestQuerySettingsAction extends BaseRestHandler {
 
   @Override
   public List<Route> routes() {
-    return ImmutableList.of();
-  }
-
-  @Override
-  public List<ReplacedRoute> replacedRoutes() {
-    return ImmutableList.of(
-        new ReplacedRoute(
-            RestRequest.Method.PUT, SETTINGS_API_ENDPOINT,
-            RestRequest.Method.PUT, LEGACY_SQL_SETTINGS_API_ENDPOINT));
+    return ImmutableList.of(new Route(RestRequest.Method.PUT, SETTINGS_API_ENDPOINT));
   }
 
   @SuppressWarnings("unchecked")

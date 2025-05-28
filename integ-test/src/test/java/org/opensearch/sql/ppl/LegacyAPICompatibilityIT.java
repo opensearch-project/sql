@@ -4,9 +4,6 @@
  */
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.LEGACY_EXPLAIN_API_ENDPOINT;
-import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.LEGACY_QUERY_API_ENDPOINT;
-import static org.opensearch.sql.plugin.rest.RestPPLStatsAction.PPL_LEGACY_STATS_API_ENDPOINT;
 import static org.opensearch.sql.plugin.rest.RestQuerySettingsAction.SETTINGS_API_ENDPOINT;
 
 import java.io.IOException;
@@ -18,49 +15,61 @@ import org.opensearch.client.Response;
 
 /** For backward compatibility, check if legacy API endpoints are accessible. */
 public class LegacyAPICompatibilityIT extends PPLIntegTestCase {
+  public static final String LEGACY_PPL_API_ENDPOINT = "/_opendistro/_ppl";
+  public static final String LEGACY_PPL_EXPLAIN_API_ENDPOINT = "/_opendistro/_ppl/_explain";
+  public static final String LEGACY_PPL_SETTINGS_API_ENDPOINT = "/_opendistro/_ppl/settings";
+  public static final String LEGACY_PPL_STATS_API_ENDPOINT = "/_opendistro/_ppl/stats";
 
   @Override
-  public void init() throws IOException {
+  public void init() throws Exception {
+    super.init();
     loadIndex(Index.ACCOUNT);
   }
 
   @Test
-  public void query() throws IOException {
+  public void query() {
     String query = "source=opensearch-sql_test_index_account | where age > 30";
-    Request request = buildRequest(query, LEGACY_QUERY_API_ENDPOINT);
-    Response response = client().performRequest(request);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    Request request = buildRequest(query, LEGACY_PPL_API_ENDPOINT);
+    assertBadRequest(() -> client().performRequest(request));
   }
 
   @Test
-  public void explain() throws IOException {
+  public void explain() {
     String query = "source=opensearch-sql_test_index_account | where age > 30";
-    Request request = buildRequest(query, LEGACY_EXPLAIN_API_ENDPOINT);
-    Response response = client().performRequest(request);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    Request request = buildRequest(query, LEGACY_PPL_EXPLAIN_API_ENDPOINT);
+    assertBadRequest(() -> client().performRequest(request));
   }
 
   @Test
-  public void stats() throws IOException {
-    Request request = new Request("GET", PPL_LEGACY_STATS_API_ENDPOINT);
-    Response response = client().performRequest(request);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+  public void stats() {
+    Request request = new Request("GET", LEGACY_PPL_STATS_API_ENDPOINT);
+    assertBadRequest(() -> client().performRequest(request));
   }
 
   @Test
-  public void legacySettingNewEndpoint() throws IOException {
+  public void legacyPPLSettingNewEndpoint() {
     String requestBody =
         "{"
             + "  \"persistent\": {"
             + "    \"opendistro.ppl.query.memory_limit\": \"80%\""
             + "  }"
             + "}";
-    Response response = updateSetting(SETTINGS_API_ENDPOINT, requestBody);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    assertBadRequest(() -> updateSetting(SETTINGS_API_ENDPOINT, requestBody));
   }
 
   @Test
-  public void newSettingNewEndpoint() throws IOException {
+  public void newPPLSettingsLegacyEndpoint() {
+    String requestBody =
+        "{"
+            + "  \"persistent\": {"
+            + "    \"plugins.ppl.query.memory_limit\": \"90%\""
+            + "  }"
+            + "}";
+    assertBadRequest(() -> updateSetting(LEGACY_PPL_SETTINGS_API_ENDPOINT, requestBody));
+  }
+
+  @Test
+  public void newPPLSettingNewEndpoint() throws IOException {
     String requestBody =
         "{" + "  \"persistent\": {" + "    \"plugins.query.size_limit\": \"100\"" + "  }" + "}";
     Response response = updateSetting(SETTINGS_API_ENDPOINT, requestBody);

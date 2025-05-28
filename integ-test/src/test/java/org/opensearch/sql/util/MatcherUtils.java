@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hamcrest.Description;
@@ -180,6 +181,10 @@ public class MatcherUtils {
     verifyInOrder(response.getJSONArray("datarows"), matchers);
   }
 
+  public static void verifyNumOfRows(JSONObject response, int numOfRow) {
+    assertEquals(numOfRow, response.getJSONArray("datarows").length());
+  }
+
   @SuppressWarnings("unchecked")
   public static <T> void verify(JSONArray array, Matcher<T>... matchers) {
     List<T> objects = new ArrayList<>();
@@ -240,6 +245,11 @@ public class MatcherUtils {
     array.iterator().forEachRemaining(o -> objects.add((T) o));
     assertEquals(matchers.length, objects.size());
     assertThat(objects, containsInRelativeOrder(matchers));
+  }
+
+  public static void verifyErrorMessageContains(Throwable t, String msg) {
+    String stack = ExceptionUtils.getStackTrace(t);
+    assertThat(String.format("Actual stack trace was:\n%s", stack), stack.contains(msg));
   }
 
   public static TypeSafeMatcher<JSONObject> schema(String expectedName, String expectedType) {
@@ -383,5 +393,14 @@ public class MatcherUtils {
    */
   public static void assertJsonEquals(String expected, String actual) {
     assertEquals(JsonParser.parseString(expected), JsonParser.parseString(actual));
+  }
+
+  /** Compare two JSON string are equals with ignoring the RelNode id in the Calcite plan. */
+  public static void assertJsonEqualsIgnoreRelId(String expected, String actual) {
+    assertJsonEquals(eliminateRelId(expected), eliminateRelId(actual));
+  }
+
+  private static String eliminateRelId(String s) {
+    return s.replaceAll("rel#\\d+", "rel#").replaceAll("RelSubset#\\d+", "RelSubset#");
   }
 }

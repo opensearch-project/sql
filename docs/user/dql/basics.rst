@@ -374,8 +374,6 @@ Description
 
 For ``LIKE`` and other full text search topics, please refer to Full Text Search documentation.
 
-Besides SQL query, WHERE clause can also be used in SQL statement such as ``DELETE``. Please refer to Data Manipulation Language documentation for details.
-
 Example 1: Comparison Operators
 -------------------------------
 

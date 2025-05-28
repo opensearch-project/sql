@@ -1,7 +1,7 @@
 package org.opensearch.sql.opensearch.client;
 
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.ml.client.MachineLearningNodeClient;
+import org.opensearch.transport.client.node.NodeClient;
 
 public class MLClient {
   private static MachineLearningNodeClient INSTANCE;

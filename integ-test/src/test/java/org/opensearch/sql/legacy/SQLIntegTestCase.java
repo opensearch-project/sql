@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getAliasIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankWithNullValuesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDataTypeNonnumericIndexMapping;
@@ -18,27 +19,37 @@ import static org.opensearch.sql.legacy.TestUtils.getDeepNestedIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogs2IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getDogs3IndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getDuplicationNullableIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getEmployeeNestedTypeIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGameOfThronesIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getGeoIpIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getGeopointIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getHobbiesIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getJoinTypeIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getJsonTestIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getLocationIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getNestedSimpleIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getNestedTypeIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getOccupationIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getOdbcIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getOrderIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getPeople2IndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getPhraseIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
+import static org.opensearch.sql.legacy.TestUtils.getStateCountryIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getStringIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getTpchMappingFile;
 import static org.opensearch.sql.legacy.TestUtils.getUnexpandedObjectIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getWeblogsIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getWorkInformationIndexMapping;
+import static org.opensearch.sql.legacy.TestUtils.getWorkerIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.CURSOR_CLOSE_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.ppl.PPLIntegTestCase.disableCalcite;
 
 import com.google.common.base.Strings;
 import java.io.IOException;
@@ -50,6 +61,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import javax.management.MBeanServerInvocationHandler;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
@@ -65,6 +77,7 @@ import org.junit.Before;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -202,7 +215,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /** Provide for each test to load test index, data and other setup work */
-  protected void init() throws Exception {}
+  protected void init() throws Exception {
+    disableCalcite();
+  }
 
   /**
    * Make it thread-safe in case tests are running in parallel but does not guarantee if test like
@@ -224,7 +239,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected Request getSqlRequest(String request, boolean explain) {
-    return getSqlRequest(request, explain, "json");
+    return getSqlRequest(request, explain, "jdbc");
   }
 
   protected Request getSqlRequest(String request, boolean explain, String requestType) {
@@ -247,6 +262,18 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     sqlRequest.setOptions(restOptionsBuilder);
 
     return sqlRequest;
+  }
+
+  protected void assertBadRequest(Callable<Response> operation) {
+    try {
+      operation.call();
+      Assert.fail("Expected ResponseException was not thrown");
+    } catch (ResponseException e) {
+      Assert.assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
+      Assert.assertEquals("Bad Request", e.getResponse().getStatusLine().getReasonPhrase());
+    } catch (Exception e) {
+      Assert.fail("Unexpected exception: " + e.getMessage());
+    }
   }
 
   protected String executeQuery(String query, String requestType) {
@@ -327,7 +354,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
     final String requestUrl =
         String.format(
-            Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT, urlEncodedQuery, "json");
+            Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT, urlEncodedQuery, "jdbc");
     return new Request("GET", requestUrl);
   }
 
@@ -419,6 +446,16 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
     return new JSONObject(executeRequest(request));
+  }
+
+  protected static String getClusterSetting(String settingPath, String type) throws IOException {
+    JSONObject settings = getAllClusterSettings();
+    String value = settings.optJSONObject(type).optString(settingPath);
+    if (StringUtils.isEmpty(value)) {
+      return settings.optJSONObject("defaults").optString(settingPath);
+    } else {
+      return value;
+    }
   }
 
   protected static class ClusterSetting {
@@ -625,6 +662,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "unexpandedObject",
         getUnexpandedObjectIndexMapping(),
         "src/test/resources/unexpanded_objects.json"),
+    GEOIP(
+        TestsConstants.TEST_INDEX_GEOIP,
+        "geoip",
+        getGeoIpIndexMapping(),
+        "src/test/resources/geoip.json"),
     BANK(
         TestsConstants.TEST_INDEX_BANK,
         "account",
@@ -721,6 +763,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "date_formats",
         getMappingFile("date_formats_index_mapping.json"),
         "src/test/resources/date_formats.json"),
+    DATE_FORMATS_WITH_NULL(
+        TestsConstants.TEST_INDEX_DATE_FORMATS_WITH_NULL,
+        "date_formats_null",
+        getMappingFile("date_formats_index_mapping.json"),
+        "src/test/resources/date_formats_with_null.json"),
     WILDCARD(
         TestsConstants.TEST_INDEX_WILDCARD,
         "wildcard",
@@ -745,7 +792,103 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         TestsConstants.TEST_INDEX_GEOPOINT,
         "dates",
         getGeopointIndexMapping(),
-        "src/test/resources/geopoints.json");
+        "src/test/resources/geopoints.json"),
+    STATE_COUNTRY(
+        TestsConstants.TEST_INDEX_STATE_COUNTRY,
+        "state_country",
+        getStateCountryIndexMapping(),
+        "src/test/resources/state_country.json"),
+    STATE_COUNTRY_WITH_NULL(
+        TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL,
+        "state_country_with_null",
+        getStateCountryIndexMapping(), // with null index use the same schema
+        "src/test/resources/state_country_with_null.json"),
+    OCCUPATION(
+        TestsConstants.TEST_INDEX_OCCUPATION,
+        "occupation",
+        getOccupationIndexMapping(),
+        "src/test/resources/occupation.json"),
+    OCCUPATION_TOP_RARE(
+        TestsConstants.TEST_INDEX_OCCUPATION_TOP_RARE,
+        "occupation_top_rare",
+        getOccupationIndexMapping(), // same mapping with above
+        "src/test/resources/occupation_top_rare.json"),
+    HOBBIES(
+        TestsConstants.TEST_INDEX_HOBBIES,
+        "hobbies",
+        getHobbiesIndexMapping(),
+        "src/test/resources/hobbies.json"),
+    // It's "people" table in Spark PPL ITs, to avoid conflicts, rename to "worker" here
+    WORKER(
+        TestsConstants.TEST_INDEX_WORKER,
+        "worker",
+        getWorkerIndexMapping(),
+        "src/test/resources/worker.json"),
+    WORK_INFORMATION(
+        TestsConstants.TEST_INDEX_WORK_INFORMATION,
+        "work_information",
+        getWorkInformationIndexMapping(),
+        "src/test/resources/work_information.json"),
+    JSON_TEST(
+        TestsConstants.TEST_INDEX_JSON_TEST,
+        "json",
+        getJsonTestIndexMapping(),
+        "src/test/resources/json_test.json"),
+    DATA_TYPE_ALIAS(
+        TestsConstants.TEST_INDEX_ALIAS,
+        "alias",
+        getAliasIndexMapping(),
+        "src/test/resources/alias.json"),
+    FLATTENED_VALUE(
+        TestsConstants.TEST_INDEX_FLATTENED_VALUE,
+        "flattened_value",
+        null,
+        "src/test/resources/flattened_value.json"),
+    DUPLICATION_NULLABLE(
+        TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE,
+        "duplication_nullable",
+        getDuplicationNullableIndexMapping(),
+        "src/test/resources/duplication_nullable.json"),
+    TPCH_ORDERS(
+        "orders",
+        "tpch",
+        getTpchMappingFile("orders_index_mapping.json"),
+        "src/test/resources/tpch/data/orders.json"),
+    TPCH_NATION(
+        "nation",
+        "tpch",
+        getTpchMappingFile("nation_index_mapping.json"),
+        "src/test/resources/tpch/data/nation.json"),
+    TPCH_REGION(
+        "region",
+        "tpch",
+        getTpchMappingFile("region_index_mapping.json"),
+        "src/test/resources/tpch/data/region.json"),
+    TPCH_LINEITEM(
+        "lineitem",
+        "tpch",
+        getTpchMappingFile("lineitem_index_mapping.json"),
+        "src/test/resources/tpch/data/lineitem.json"),
+    TPCH_PARTSUPP(
+        "partsupp",
+        "tpch",
+        getTpchMappingFile("partsupp_index_mapping.json"),
+        "src/test/resources/tpch/data/partsupp.json"),
+    TPCH_SUPPLIER(
+        "supplier",
+        "tpch",
+        getTpchMappingFile("supplier_index_mapping.json"),
+        "src/test/resources/tpch/data/supplier.json"),
+    TPCH_PART(
+        "part",
+        "tpch",
+        getTpchMappingFile("part_index_mapping.json"),
+        "src/test/resources/tpch/data/part.json"),
+    TPCH_CUSTOMER(
+        "customer",
+        "tpch",
+        getTpchMappingFile("customer_index_mapping.json"),
+        "src/test/resources/tpch/data/customer.json");
 
     private final String name;
     private final String type;

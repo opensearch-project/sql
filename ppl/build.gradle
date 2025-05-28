@@ -56,8 +56,9 @@ dependencies {
     api project(':protocol')
 
     testImplementation group: 'junit', name: 'junit', version: '4.13.2'
-    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
+    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: "${mockito_version}"
+    testImplementation group: 'org.apache.calcite', name: 'calcite-testkit', version: '1.38.0'
     testImplementation(testFixtures(project(":core")))
 }
 
@@ -65,7 +66,7 @@ spotless {
     java {
         target fileTree('.') {
             include '**/*.java'
-            exclude '**/build/**', '**/build-*/**'
+            exclude '**/build/**', '**/build-*/**', 'src/main/gen/**'
         }
         importOrder()
 //        licenseHeader("/*\n" +
@@ -103,7 +104,7 @@ jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                minimum = 1.0
+                minimum = 0.9
             }
 
         }

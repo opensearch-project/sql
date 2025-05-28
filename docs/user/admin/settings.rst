@@ -16,36 +16,6 @@ Introduction
 
 When OpenSearch bootstraps, SQL plugin will register a few settings in OpenSearch cluster settings. Most of the settings are able to change dynamically so you can control the behavior of SQL plugin without need to bounce your cluster. You can update the settings by sending requests to either ``_cluster/settings`` or ``_plugins/_query/settings`` endpoint, though the examples are sending to the latter.
 
-Breaking Change
-===============
-opendistro.sql.engine.new.enabled
----------------------------------
-The opendistro.sql.engine.new.enabled setting is deprecated and will be removed then. From OpenSearch 1.0, the new engine is always enabled.
-
-opendistro.sql.query.analysis.enabled
--------------------------------------
-The opendistro.sql.query.analysis.enabled setting is deprecated and will be removed then. From OpenSearch 1.0, the query analysis in legacy engine is disabled.
-
-opendistro.sql.query.analysis.semantic.suggestion
--------------------------------------------------
-The opendistro.sql.query.analysis.semantic.suggestion setting is deprecated and will be removed then. From OpenSearch 1.0, the query analysis suggestion in legacy engine is disabled.
-
-opendistro.sql.query.analysis.semantic.threshold
-------------------------------------------------
-The opendistro.sql.query.analysis.semantic.threshold setting is deprecated and will be removed then. From OpenSearch 1.0, the query analysis threshold in legacy engine is disabled.
-
-opendistro.sql.query.response.format
-------------------------------------
-The opendistro.sql.query.response.format setting is deprecated and will be removed then. From OpenSearch 1.0, the query response format is default to JDBC format. `You can change the format by using query parameters<../interfaces/protocol.rst>`_.
-
-opendistro.sql.cursor.enabled
------------------------------
-The opendistro.sql.cursor.enabled setting is deprecated and will be removed then. From OpenSearch 1.0, the cursor feature is enabled by default.
-
-opendistro.sql.cursor.fetch_size
---------------------------------
-The opendistro.sql.cursor.fetch_size setting is deprecated and will be removed then. From OpenSearch 1.0, the fetch_size in query body will decide whether create the cursor context. No cursor will be created if the fetch_size = 0.
-
 plugins.sql.enabled
 ======================
 
@@ -85,8 +55,6 @@ Result set::
 	    }
 	  }
 	}
-
-Note: the legacy settings of ``opendistro.sql.enabled`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
 Example 2
 ---------
@@ -150,8 +118,6 @@ Result set::
 	  }
 	}
 
-Note: the legacy settings of ``opendistro.sql.slowlog`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
-
 plugins.sql.cursor.keep_alive
 ================================
 
@@ -194,52 +160,6 @@ Result set::
 	  }
 	}
 
-Note: the legacy settings of ``opendistro.sql.cursor.keep_alive`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
-
-plugins.sql.pagination.api
-================================
-
-Description
------------
-
-This setting controls whether the SQL search queries in OpenSearch use Point-In-Time (PIT) with search_after or the traditional scroll mechanism for fetching paginated results.
-
-1. Default Value: true
-2. Possible Values: true or false
-3. When set to true, the search query in the background uses PIT with search_after instead of scroll to retrieve paginated results. The Cursor Id returned to the user will encode relevant pagination query-related information, which will be used to fetch the subsequent pages of results.
-4. This setting is node-level.
-5. This setting can be updated dynamically.
-
-
-Example
--------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
-	  "transient" : {
-	    "plugins.sql.pagination.api" : "true"
-	  }
-	}'
-
-Result set::
-
-	{
-	  "acknowledged" : true,
-	  "persistent" : { },
-	  "transient" : {
-	    "plugins" : {
-	      "sql" : {
-	        "pagination" : {
-	          "api" : "true"
-	        }
-	      }
-	    }
-	  }
-	}
-
 plugins.query.size_limit
 ===========================
 
@@ -268,8 +188,6 @@ Result set::
       }
     }
 
-Note: the legacy settings of ``opendistro.query.size_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
-
 plugins.query.memory_limit
 ==========================
 
@@ -297,64 +215,6 @@ Result set::
       },
       "transient": {}
     }
-
-Note: the legacy settings of ``opendistro.ppl.query.memory_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
-
-
-plugins.sql.delete.enabled
-======================
-
-Description
------------
-
-By default, DELETE clause disabled. You can enable DELETE clause by this setting.
-
-1. The default value is false.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-
-Example 1
----------
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"transient":{"plugins.sql.delete.enabled":"false"}}'
-    {
-      "acknowledged": true,
-      "persistent": {},
-      "transient": {
-        "plugins": {
-          "sql": {
-            "delete": {
-              "enabled": "false"
-            }
-          }
-        }
-      }
-    }
-
-Example 2
----------
-
-Query result after the setting updated is like:
-
-SQL query::
-
-    sh$ curl -sS -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_sql \
-    ... -d '{"query" : "DELETE * FROM accounts"}'
-    {
-      "error": {
-        "reason": "Invalid SQL query",
-        "details": "DELETE clause is disabled by default and will be deprecated. Using the plugins.sql.delete.enabled setting to enable it",
-        "type": "SQLFeatureDisabledException"
-      },
-      "status": 400
-    }
-
 
 plugins.query.executionengine.spark.session.limit
 ==================================================
@@ -882,3 +742,54 @@ plugins.query.field_type_tolerance setting is enabled, the SQL/PPL plugin will h
 scalar data types, allowing basic queries (e.g., SELECT * FROM tbl WHERE condition). However, using multi-value
 fields in expressions or functions will result in exceptions. If this setting is disabled or absent, only the
 first element of an array is returned, preserving the default behavior.
+
+plugins.calcite.enabled
+=======================
+
+Description
+-----------
+
+This setting is present from 3.0.0-beta. You can enable Calcite as new query optimizer and execution engine to all coming requests.
+
+1. The default value is false in 3.0.0-beta.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+Check `introduce v3 engine <../../../dev/intro-v3-engine.md>`_ for more details.
+Check `join doc <../../ppl/cmd/join.rst>`_ for example.
+
+plugins.calcite.fallback.allowed
+=======================
+
+Description
+-----------
+
+This setting is present from 3.0.0-beta. If Calcite is enabled, you can use this setting to decide whether to allow fallback to v2 engine for some queries which are not supported by v3 engine.
+
+1. The default value is true in 3.0.0-beta.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+plugins.calcite.pushdown.enabled
+=======================
+
+Description
+-----------
+
+This setting is present from 3.0.0-beta. If Calcite is enabled, you can use this setting to decide whether to enable the operator pushdown optimization for v3 engine.
+
+1. The default value is true in 3.0.0-beta.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+plugins.calcite.pushdown.rowcount.estimation.factor
+=======================
+
+Description
+-----------
+
+This setting is present from 3.1.0. If Calcite pushdown optimization is enabled, this setting is used to estimate the row count of the query plan. The value is a factor to multiply the row count of the table scan to get the estimated row count.
+
+1. The default value is 0.9 in 3.1.0.
+2. This setting is node scope.
+3. This setting can be updated dynamically.

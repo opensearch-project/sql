@@ -11,6 +11,7 @@ import static org.junit.Assert.assertThrows;
 
 import java.util.List;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.hamcrest.text.StringContainsInOrder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -95,7 +96,7 @@ public class PPLSyntaxParserTest {
   @Test
   public void testSearchCommandWithoutSourceShouldFail() {
     exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage("Failed to parse query due to offending symbol");
+    exceptionRule.expectMessage("is not a valid term at this part of the query");
 
     new PPLSyntaxParser().parse("search a=1");
   }
@@ -337,9 +338,26 @@ public class PPLSyntaxParserTest {
   @Test
   public void testDescribeCommandWithSourceShouldFail() {
     exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage("Failed to parse query due to offending symbol");
+    exceptionRule.expectMessage(
+        StringContainsInOrder.stringContainsInOrder(
+            "[=] is not a valid term at this part of the query: 'describe source=' <-- HERE.",
+            "Expecting tokens:"));
 
     new PPLSyntaxParser().parse("describe source=t");
+  }
+
+  @Test
+  public void testInvalidOperatorCombinationShouldFail() {
+    exceptionRule.expect(RuntimeException.class);
+    exceptionRule.expectMessage(
+        StringContainsInOrder.stringContainsInOrder(
+            "[<EOF>] is not a valid term at this part of the query: '...= t | where x > y OR' <--"
+                + " HERE.",
+            "Expecting one of ",
+            " possible tokens. Some examples: ",
+            "..."));
+
+    new PPLSyntaxParser().parse("source = t | where x > y OR");
   }
 
   @Test
@@ -450,5 +468,44 @@ public class PPLSyntaxParserTest {
   public void testCanParseFillNullVariousValues() {
     assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull using a = 0"));
     assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull using a = 0, b = 1"));
+  }
+
+  @Test
+  public void testLineCommentShouldPass() {
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 //this is a comment"));
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 // this is a comment "));
+    assertNotNull(
+        new PPLSyntaxParser()
+            .parse(
+                """
+                    // test is a new line comment \
+                    search source=t a=1 b=2 // test is a line comment at the end of ppl command \
+                    | fields a,b // this is line comment inner ppl command\
+                    ////this is a new line comment
+                    """));
+  }
+
+  @Test
+  public void testBlockCommentShouldPass() {
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 /*block comment*/"));
+    assertNotNull(new PPLSyntaxParser().parse("search source=t a=1 b=2 /* block comment */"));
+    assertNotNull(
+        new PPLSyntaxParser()
+            .parse(
+                """
+                    /*
+                    This is a\
+                        multiple\
+                    line\
+                    block\
+                        comment */\
+                    search /* block comment */ source=t /* block comment */ a=1 b=2
+                    |/*
+                        This is a\
+                            multiple\
+                        line\
+                        block\
+                            comment */ fields a,b /* block comment */ \
+                    """));
   }
 }

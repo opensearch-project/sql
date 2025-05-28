@@ -14,7 +14,7 @@ import org.opensearch.sql.expression.function.FunctionImplementation;
 import org.opensearch.sql.expression.function.FunctionName;
 
 /** Function Expression. */
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 @ToString
 public abstract class FunctionExpression implements Expression, FunctionImplementation {
