@@ -27,6 +27,7 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer.ExpressionNotAnalyzableException;
@@ -41,7 +42,7 @@ class AggregateAnalyzerTest {
 
   private final RelDataTypeFactory typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
   private final List<String> schema = List.of("a", "b", "c");
-  final Map<String, OpenSearchDataType> typeMapping =
+  final Map<String, ExprType> fieldTypes =
       Map.of(
           "a",
           OpenSearchDataType.of(MappingType.Integer),
@@ -124,7 +125,7 @@ class AggregateAnalyzerTest {
         createMockAggregate(
             List.of(countCall, avgCall, sumCall, minCall, maxCall), ImmutableBitSet.of());
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, schema, typeMapping, outputFields);
+        AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, outputFields);
     assertEquals(
         "[{\"cnt\":{\"value_count\":{\"field\":\"_index\"}}},"
             + " {\"avg\":{\"avg\":{\"field\":\"a\"}}},"
@@ -204,7 +205,7 @@ class AggregateAnalyzerTest {
         createMockAggregate(
             List.of(varSampCall, varPopCall, stddevSampCall, stddevPopCall), ImmutableBitSet.of());
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, schema, typeMapping, outputFields);
+        AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, outputFields);
     assertEquals(
         "[{\"var_samp\":{\"extended_stats\":{\"field\":\"a\",\"sigma\":2.0}}},"
             + " {\"var_pop\":{\"extended_stats\":{\"field\":\"a\",\"sigma\":2.0}}},"
@@ -242,7 +243,7 @@ class AggregateAnalyzerTest {
     List<String> outputFields = List.of("a", "b", "cnt");
     Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(0, 1));
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
-        AggregateAnalyzer.analyze(aggregate, schema, typeMapping, outputFields);
+        AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, outputFields);
 
     assertEquals(
         "[{\"composite_buckets\":{\"composite\":{\"size\":1000,\"sources\":["
@@ -282,7 +283,7 @@ class AggregateAnalyzerTest {
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
-            () -> AggregateAnalyzer.analyze(aggregate, schema, typeMapping, List.of("sum")));
+            () -> AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, List.of("sum")));
     assertEquals("[field] must not be null: [sum]", exception.getCause().getMessage());
   }
 
@@ -306,7 +307,7 @@ class AggregateAnalyzerTest {
     ExpressionNotAnalyzableException exception =
         assertThrows(
             ExpressionNotAnalyzableException.class,
-            () -> AggregateAnalyzer.analyze(aggregate, schema, typeMapping, outputFields));
+            () -> AggregateAnalyzer.analyze(aggregate, schema, fieldTypes, outputFields));
     assertEquals("[field] must not be null", exception.getCause().getMessage());
   }
 
