@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.planner.physical;
 
-import java.util.function.Predicate;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.logical.LogicalSort;
@@ -44,9 +43,7 @@ public class OpenSearchSortIndexScanRule extends RelRule<OpenSearchSortIndexScan
                         .oneInput(
                             b1 ->
                                 b1.operand(CalciteLogicalIndexScan.class)
-                                    .predicate(
-                                        Predicate.not(OpenSearchIndexScanRule::isSortPushed)
-                                            .and(OpenSearchIndexScanRule::test))
+                                    .predicate(OpenSearchIndexScanRule::test)
                                     .noInputs()));
 
     @Override

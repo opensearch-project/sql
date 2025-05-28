@@ -18,8 +18,4 @@ public interface OpenSearchIndexScanRule {
   static boolean sortByFieldsOnly(LogicalSort sort) {
     return !sort.getCollation().getFieldCollations().isEmpty() && sort.fetch == null;
   }
-
-  static boolean isSortPushed(CalciteLogicalIndexScan scan) {
-    return scan.getPushDownContext().isSortPushed();
-  }
 }

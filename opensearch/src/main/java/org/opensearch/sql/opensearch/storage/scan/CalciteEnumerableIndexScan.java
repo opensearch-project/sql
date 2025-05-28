@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.List;
-import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
@@ -21,7 +20,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
-import org.apache.calcite.plan.RelTrait;
+import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
@@ -45,21 +44,13 @@ public class CalciteEnumerableIndexScan extends CalciteIndexScan implements Enum
    */
   public CalciteEnumerableIndexScan(
       RelOptCluster cluster,
-      RelTrait relTrait,
+      RelTraitSet traitSet,
       List<RelHint> hints,
       RelOptTable table,
       OpenSearchIndex osIndex,
       RelDataType schema,
       PushDownContext pushDownContext) {
-
-    super(
-        cluster,
-        cluster.traitSetOf(EnumerableConvention.INSTANCE, relTrait),
-        hints,
-        table,
-        osIndex,
-        schema,
-        pushDownContext);
+    super(cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
   }
 
   @Override
