@@ -157,7 +157,7 @@ Example::
     | [1,2]                   |
     +-------------------------+
 
-     > source=json_test | eval extract = json_extract('{"a": [{"b": 1}, {"b": 2}]}', 'a{}.b', 'a{}'') | head 1 | fields extract
+     > source=json_test | eval extract = json_extract('{"a": [{"b": 1}, {"b": 2}]}', 'a{}.b', 'a{}') | head 1 | fields extract
     fetched rows / total rows = 1/1
     +---------------------------------+
     | test_json_array                 |
@@ -184,7 +184,7 @@ Example::
     +-------------------------+
     | delete                  |
     |-------------------------|
-    | {"a": [{"b": 1}]}       |
+    | {"a": [{},{"b": 1}]}    |
     +-------------------------+
 
     > source=json_test | eval delete = json_delete('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', 'a{1}.b') | head 1 | fields delete
@@ -227,11 +227,11 @@ Example::
 
     > source=json_test | eval jsonSet = json_set('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', 3, 'a{1}.b', 4) | head 1 | fields jsonSet
     fetched rows / total rows = 1/1
-    +-------------------------+
-    | jsonSet                 |
-    |-------------------------|
-    | {"a": [{"b": 3}]}       |
-    +-------------------------+
+    +-----------------------------+
+    | jsonSet                     |
+    |-----------------------------|
+    | {"a": [{"b": 3},{"b": 4}]}  |
+    +-----------------------------+
 
 JSON_APPEND
 ----------
@@ -263,7 +263,7 @@ Example::
     | {"a": [{"b": 1}, 3]}    |
     +-------------------------+
 
-     > source=json_test | eval jsonAppend = json_append('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', '[1,2]', 'a{1}.b', 4) | head 1 | fields jsonAppend
+     > source=json_test | eval jsonAppend = json_append('{"a": [{"b": 1}]}', 'a', '[1,2]', 'a{1}.b', 4) | head 1 | fields jsonAppend
     fetched rows / total rows = 1/1
     +----------------------------+
     | jsonAppend                 |
@@ -301,7 +301,7 @@ Example::
     | {"a": [{"b": 1}, 3]}    |
     +-------------------------+
 
-     > source=json_test | eval jsonExtend = json_extend('{"a": [{"b": 1}, {"b": 2}]}', 'a{0}.b', '[1,2]') | head 1 | fields jsonExtend
+     > source=json_test | eval jsonExtend = json_extend('{"a": [{"b": 1}]}', 'a', '[1,2]') | head 1 | fields jsonExtend
     fetched rows / total rows = 1/1
     +----------------------------+
     | jsonExtend                 |
@@ -315,7 +315,7 @@ JSON_KEYS
 Description
 >>>>>>>>>>>
 
-Usage: `json_keys(json_string)` Return the key list of the json_string as a string  if it's an object json string. Otherwise, return null.
+Usage: `json_keys(json_string)` Return the key list of the Json object as a Json array. Otherwise, return null.
 
 Argument type: json_string: A JSON STRING
 
@@ -324,6 +324,14 @@ Return type: STRING
 Example::
 
     > source=json_test | eval jsonKeys = json_keys('{"a": 1, "b": 2}') | head 1 | fields jsonKeys
+    fetched rows / total rows = 1/1
+    +-------------------------+
+    | jsonKeys                |
+    |-------------------------|
+    | ["a","b"]               |
+    +-------------------------+
+
+    > source=json_test | eval jsonKeys = json_keys('{"a": {"c": 1}, "b": 2}') | head 1 | fields jsonKeys
     fetched rows / total rows = 1/1
     +-------------------------+
     | jsonKeys                |
