@@ -10,7 +10,8 @@ JSON Functions
 
 
 
-### JsonPath
+JsonPath
+--------
 
 All JSON paths used in JSON functions follow the format:
 ```
