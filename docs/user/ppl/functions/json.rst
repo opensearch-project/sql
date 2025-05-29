@@ -50,7 +50,6 @@ Notes:
 - The `{<index>}` notation applies **only when** the associated key points to an array.
 - `{}` (without a specific index) is interpreted as a **wildcard**, equivalent to `{*}`, meaning "all elements" in the array at that level.
 
-
 JSON
 ----------
 
