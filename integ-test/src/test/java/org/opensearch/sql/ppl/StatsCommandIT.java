@@ -438,7 +438,15 @@ public class StatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format("source=%s | stats percentile(balance, 50, 1)", TEST_INDEX_BANK));
     verifySchema(response, schema("percentile(balance, 50, 1)", null, "bigint"));
-    verifyDataRows(response, rows(32838));
+    verifyDataRows(response, rows(29493));
+
+    // disable pushdown by adding a eval command
+    JSONObject responsePushdownDisabled =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = 1 | stats percentile(balance, 50, 1)", TEST_INDEX_BANK));
+    verifySchema(responsePushdownDisabled, schema("percentile(balance, 50, 1)", null, "bigint"));
+    verifyDataRows(responsePushdownDisabled, rows(29493));
   }
 
   @Test
