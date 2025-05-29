@@ -362,12 +362,14 @@ Usage: earliest(relative_string, field) returns true if the field is after trans
 
 relative_string: 
 The relative string can be one of the following format: 
+
 1. "now" or "now()", will use the current time. 
 
 2. With format MM/dd/yyyy:HH:mm:ss, will convert it to timestamp and compare.
 
 3. Relative format: [+|-]<time_integer><time_unit>@<time_unit> The steps to specify a relative time are: a. Indicate the time offset from the current time. b. Define the time amount, which is a number and a unit. c.Specify a "snap to" time unit. The time unit indicates the nearest or latest time to which your time amount rounds down.
 For example, current time is 2025-05-28 14:28:34, -3d+2y = 2027-05-25 14:28:34, +1d@m = 2025-05-29 14:28:00, -3M+1y@M = 2026-02-01 00:00:00
+
 
 Argument type: relative_string:STRING, field: TIMESTAMP
 
