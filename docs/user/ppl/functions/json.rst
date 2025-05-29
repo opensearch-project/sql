@@ -10,23 +10,26 @@ JSON Functions
 
 
 
-JsonPath
---------
+JSON Path
+---------
 
-All JSON paths used in JSON functions follow the format:
-``<key1>{<index1>}.<key2>{<index2>}...``
+Description
+>>>>>>>>>>>
 
-Each `<key>` represents a field name, and `{<index>}` is an optional array index that is **only applicable** when the corresponding key refers to an array.
+All JSON paths used in JSON functions follow the format `<key1>{<index1>}.<key2>{<index2>}...`.
 
-For example:  
-`a{2}.b{0}` refers to the element at index `0` of the `b` array, which is nested inside the element at index `2` of the `a` array.
+Each `<key>` represents a field name. The `{<index>}` part is optional and is only applicable when the corresponding key refers to an array.
 
-The `{<index>}` notation:
-- Applies **only** when the associated key points to an array.
-- If used as `{}`, it is interpreted as a **wildcard**, equivalent to `{*}`, meaning all elements in the array at that level.
+For example::
 
-This syntax enables precise or broad selection of nested data structures within JSON documents.
+    a{2}.b{0}
 
+This refers to the element at index 0 of the `b` array, which is nested inside the element at index 2 of the `a` array.
+
+Notes:
+
+- The `{<index>}` notation applies **only when** the associated key points to an array.
+- `{}` (without a specific index) is interpreted as a **wildcard**, equivalent to `{*}`, meaning "all elements" in the array at that level.
 
 
 JSON Path
