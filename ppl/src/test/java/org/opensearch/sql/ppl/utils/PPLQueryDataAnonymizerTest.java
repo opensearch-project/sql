@@ -370,6 +370,16 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testGrok() {
+    assertEquals(
+        "source=t | grok email '.+@%{HOSTNAME:host}'",
+        anonymize("source=t | grok email '.+@%{HOSTNAME:host}'"));
+    assertEquals(
+        "source=t | grok email '.+@%{HOSTNAME:host}' | fields + email,host",
+        anonymize("source=t | grok email '.+@%{HOSTNAME:host}' | fields email, host"));
+  }
+
+  @Test
   public void testPatterns() {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_METHOD)).thenReturn("SIMPLE_PATTERN");
     assertEquals("source=t | patterns email", anonymize("source=t | patterns email"));
