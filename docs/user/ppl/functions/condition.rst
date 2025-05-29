@@ -361,14 +361,26 @@ Version: 3.1.0
 Usage: earliest(relative_string, field) returns true if the field is after transferring the relative_string.
 
 relative_string: 
-The relative string can be one of the following format: 
+The relative string can be one of the following formats:
 
-1. "now" or "now()", will use the current time. 
+1. `"now"` or `"now()"`:  
+   Uses the current system time.
 
-2. With format MM/dd/yyyy:HH:mm:ss, will convert it to timestamp and compare.
+2. Absolute format (`MM/dd/yyyy:HH:mm:ss`):  
+   Converts the string to a timestamp and compares it with the data.
 
-3. Relative format: [+|-]<time_integer><time_unit>@<time_unit> The steps to specify a relative time are: a. Indicate the time offset from the current time. b. Define the time amount, which is a number and a unit. c.Specify a "snap to" time unit. The time unit indicates the nearest or latest time to which your time amount rounds down.
-For example, current time is 2025-05-28 14:28:34, -3d+2y = 2027-05-25 14:28:34, +1d@m = 2025-05-29 14:28:00, -3M+1y@M = 2026-02-01 00:00:00
+3. Relative format: `(+|-)<time_integer><time_unit>[+<...>]@<snap_unit>`  
+   Steps to specify a relative time:
+
+   - **a. Time offset:** Indicate the offset from the current time using `+` or `-`.  
+   - **b. Time amount:** Provide a numeric value followed by a time unit (`s`, `m`, `h`, `d`, `w`, `M`, `y`).  
+   - **c. Snap to unit:** Optionally specify a snap unit with `@<unit>` to round the result down to the nearest unit (e.g., hour, day, month).
+
+   **Examples** (assuming current time is `2025-05-28 14:28:34`):
+
+   - `-3d+2y` → `2027-05-25 14:28:34`  
+   - `+1d@m` → `2025-05-29 14:28:00`  
+   - `-3M+1y@M` → `2026-02-01 00:00:00`
 
 
 Argument type: relative_string:STRING, field: TIMESTAMP
