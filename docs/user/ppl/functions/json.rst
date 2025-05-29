@@ -14,7 +14,7 @@ JsonPath
 --------
 
 All JSON paths used in JSON functions follow the format:
-`<key1>{<index1>}.<key2>{<index2>}...`
+``<key1>{<index1>}.<key2>{<index2>}...``
 
 Each `<key>` represents a field name, and `{<index>}` is an optional array index that is **only applicable** when the corresponding key refers to an array.
 
@@ -29,32 +29,27 @@ This syntax enables precise or broad selection of nested data structures within 
 
 
 
-JSON_VALID
-----------
+JSON Path
+---------
 
 Description
 >>>>>>>>>>>
 
-Usage: `json_valid(json_string)` checks if `json_string` is a valid JSON-encoded string.
+All JSON paths used in JSON functions follow the format `<key1>{<index1>}.<key2>{<index2>}...`.
 
-Argument type: STRING
+Each `<key>` represents a field name. The `{<index>}` part is optional and is only applicable when the corresponding key refers to an array.
 
-Return type: BOOLEAN
+For example::
 
-Example::
+    a{2}.b{0}
 
-    > source=json_test | eval is_valid = json_valid(json_string) | fields test_name, json_string, is_valid
-    fetched rows / total rows = 6/6
-    +---------------------+---------------------------------+----------+
-    | test_name           | json_string                     | is_valid |
-    |---------------------|---------------------------------|----------|
-    | json nested object  | {"a":"1","b":{"c":"2","d":"3"}} | True     |
-    | json object         | {"a":"1","b":"2"}               | True     |
-    | json array          | [1, 2, 3, 4]                    | True     |
-    | json scalar string  | "abc"                           | True     |
-    | json empty string   |                                 | True     |
-    | json invalid object | {"invalid":"json", "string"}    | False    |
-    +---------------------+---------------------------------+----------+
+This refers to the element at index 0 of the `b` array, which is nested inside the element at index 2 of the `a` array.
+
+Notes:
+
+- The `{<index>}` notation applies **only when** the associated key points to an array.
+- `{}` (without a specific index) is interpreted as a **wildcard**, equivalent to `{*}`, meaning "all elements" in the array at that level.
+
 
 JSON
 ----------
