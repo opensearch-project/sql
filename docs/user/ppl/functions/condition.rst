@@ -389,7 +389,7 @@ Return type: BOOLEAN
 
 Example::
 
-    PPL> source=accounts | eval now = now() | eval a = earliest("now", now), b = earliest("-2d@d", now) | fields a, b | head 1
+    PPL> source=accounts | eval now = utc_timestamp() | eval a = earliest("now", now), b = earliest("-2d@d", now) | fields a, b | head 1
     fetched rows / total rows = 1/1
     +-------+-------+
     | a     | b     |
@@ -421,7 +421,7 @@ Return type: BOOLEAN
 
 Example::
 
-    PPL> source=accounts | eval now = now() | eval a = latest("now", now), b = latest("+2d@d", now) | fields a, b | head 1
+    PPL> source=accounts | eval now = utc_timestamp() | eval a = latest("now", now), b = latest("+2d@d", now) | fields a, b | head 1
     fetched rows / total rows = 1/1
     +-------+-------+
     | a     | b     |
