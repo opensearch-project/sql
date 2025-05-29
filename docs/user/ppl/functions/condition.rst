@@ -397,6 +397,14 @@ Example::
     | False | True  |
     +-------+-------+
 
+    PPL> source=nyc_taxi | where earliest('07/01/2014:00:30:00', timestamp) | stats COUNT() as cnt
+    fetched rows / total rows = 1/1
+    +-----+
+    | cnt |
+    |-----|
+    | 971 |
+    +-----+
+
 LATEST
 ------
 
@@ -420,3 +428,11 @@ Example::
     |-------+-------|
     | False | True  |
     +-------+-------+
+
+    PPL> source=nyc_taxi | where latest('07/21/2014:04:00:00', timestamp) | stats COUNT() as cnt
+    fetched rows / total rows = 1/1
+    +-----+
+    | cnt |
+    |-----|
+    | 968 |
+    +-----+
