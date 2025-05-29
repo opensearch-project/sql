@@ -503,3 +503,7 @@ PPL query::
     | 36  | 30       | M      |
     +-----+----------+--------+
 
+
+Limitation
+==========
+From 3.1.0, the ``stats`` command can preform a `nested aggregation <https://docs.opensearch.org/docs/latest/aggregations/bucket/nested/>`_ only when ``plugins.calcite.enabled`` is true.

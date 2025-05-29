@@ -23,6 +23,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.NESTED_SIMPLE);
   }
 
   @Test
@@ -150,7 +151,7 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| fields ageTrend"));
   }
 
-  String loadFromFile(String filename) throws Exception {
+  protected String loadFromFile(String filename) throws Exception {
     URI uri = Resources.getResource(filename).toURI();
     return new String(Files.readAllBytes(Paths.get(uri)));
   }
