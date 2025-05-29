@@ -175,7 +175,8 @@ public class GrokCompiler implements Serializable {
             throw new IllegalArgumentException(
                 format("No definition for key '%s' found, aborting", group.get("pattern")));
           }
-          String replacement = String.format(Locale.ROOT, "(?<name%d>%s)", index, definitionOfPattern);
+          String replacement =
+              String.format(Locale.ROOT, "(?<name%d>%s)", index, definitionOfPattern);
           if (namedOnly && group.get("subname") == null) {
             replacement = String.format(Locale.ROOT, "(?:%s)", definitionOfPattern);
           }

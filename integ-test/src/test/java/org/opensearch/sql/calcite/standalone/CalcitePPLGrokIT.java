@@ -35,7 +35,8 @@ public class CalcitePPLGrokIT extends CalcitePPLIntegTestCase {
                 """
                    source = %s | grok email '%s' | head 3 | fields email, host
                    """,
-                TEST_INDEX_BANK, ".+@%{HOSTNAME:host}"));
+                TEST_INDEX_BANK,
+                ".+@%{HOSTNAME:host}"));
     verifySchema(result, schema("email", "string"), schema("host", "string"));
     verifyDataRows(
         result,
@@ -68,7 +69,8 @@ public class CalcitePPLGrokIT extends CalcitePPLIntegTestCase {
                 """
                    source = %s | grok address '%s' | head 3 | fields address
                    """,
-                TEST_INDEX_BANK, "%{NUMBER} %{GREEDYDATA:address}"));
+                TEST_INDEX_BANK,
+                "%{NUMBER} %{GREEDYDATA:address}"));
     verifySchema(result, schema("address", "string"));
     verifyDataRows(result, rows("Holmes Lane"), rows("Bristol Street"), rows("Madison Street"));
   }
@@ -82,7 +84,8 @@ public class CalcitePPLGrokIT extends CalcitePPLIntegTestCase {
                 """
                    source = %s | grok message '%s' | fields message, timestamp, response
                    """,
-                TEST_INDEX_WEBLOGS, "%{COMMONAPACHELOG}"));
+                TEST_INDEX_WEBLOGS,
+                "%{COMMONAPACHELOG}"));
     verifySchema(
         result,
         schema("message", "string"),
