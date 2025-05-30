@@ -33,6 +33,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.WindowBound;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.udf.udaf.DistinctCountApproxAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
 import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -254,6 +255,14 @@ public interface PlanUtils {
         //            case PERCENTILE_APPROX:
         //                return
         // context.relBuilder.aggregateCall(SqlStdOperatorTable.PERCENTILE_CONT, field);
+      case DISTINCT_COUNT_APPROX:
+        return TransferUserDefinedAggFunction(
+            DistinctCountApproxAggFunction.class,
+            "APPROX_DISTINCT_COUNT",
+            ReturnTypes.BIGINT_FORCE_NULLABLE,
+            List.of(field),
+            argList,
+            context.relBuilder);
       case TAKE:
         return TransferUserDefinedAggFunction(
             TakeAggFunction.class,

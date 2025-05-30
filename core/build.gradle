@@ -46,6 +46,7 @@ pitest {
 }
 
 dependencies {
+    api group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     api group: 'com.google.guava', name: 'guava', version: "${guava_version}"
     api group: 'org.apache.commons', name: 'commons-lang3', version: "${commons_lang3_version}"
     api group: 'org.apache.commons', name: 'commons-text', version: "${commons_text_version}"
