@@ -151,11 +151,11 @@ headCommand
    ;
 
 topCommand
-   : TOP (number = integerLiteral)? fieldList (byClause)?
+   : TOP (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
 
 rareCommand
-   : RARE (number = integerLiteral)? fieldList (byClause)?
+   : RARE (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
 
 grokCommand
@@ -1124,6 +1124,8 @@ keywordsCanBeId
    | TIME_ZONE
    | TRAINING_DATA_SIZE
    | ANOMALY_SCORE_THRESHOLD
+   | COUNTFIELD
+   | SHOWCOUNT
    // AGGREGATIONS AND WINDOW
    | statsFunctionName
    | windowFunctionName
