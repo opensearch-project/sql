@@ -7,9 +7,7 @@ on:
       - main
       - 1.*
       - 2.*
-
-env:
-  SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+      - poc/commit-metadata
 
 env:
   SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
