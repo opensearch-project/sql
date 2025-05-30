@@ -234,6 +234,8 @@ public class PPLFuncImpTable {
       registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
       registerOperator(IF, SqlStdOperatorTable.CASE);
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
+      registerOperator(EARLIEST, PPLBuiltinOperators.EARLIEST);
+      registerOperator(LATEST, PPLBuiltinOperators.LATEST);
       registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
 
       // Register library operator
