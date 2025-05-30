@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -23,6 +25,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.PushDownUnSupportedException;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
@@ -41,6 +44,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 @VisibleForTesting
 @EqualsAndHashCode
 class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
+  private static final Logger LOG = LogManager.getLogger(OpenSearchIndexScanQueryBuilder.class);
 
   final OpenSearchRequestBuilder requestBuilder;
 
@@ -71,8 +75,18 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
 
   @Override
   public boolean pushDownLimit(LogicalLimit limit) {
-    requestBuilder.pushDownLimit(limit.getLimit(), limit.getOffset());
-    return true;
+    try {
+      requestBuilder.pushDownLimit(limit.getLimit(), limit.getOffset());
+      return true;
+    } catch (PushDownUnSupportedException e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+            "Cannot pushdown limit {} with offset {}", limit.getLimit(), limit.getOffset(), e);
+      } else {
+        LOG.info("Cannot pushdown limit {} with offset {}", limit.getLimit(), limit.getOffset());
+      }
+      return false;
+    }
   }
 
   @Override

@@ -1,0 +1,53 @@
+setup:
+  - skip:
+      features:
+        - headers
+  - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            max_result_window: 1
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"id": 1}'
+          - '{"index": {}}'
+          - '{"id": 2}'
+          - '{"index": {}}'
+          - '{"id": 3}'
+
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
+---
+"Prevent push down limit if the offset exceeds max_result_window":
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | head 1 from 1 '
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "id", "type": "bigint"}]}
+  - match: {"datarows": [[2]]}
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | head 2 | head 1 from 1 '
+  - match: { "total": 1 }
+  - match: { "schema": [ { "name": "id", "type": "bigint" } ] }
+  - match: { "datarows": [ [ 2 ] ] }

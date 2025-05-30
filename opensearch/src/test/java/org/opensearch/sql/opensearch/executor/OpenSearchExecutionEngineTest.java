@@ -178,12 +178,12 @@ class OpenSearchExecutionEngineTest {
     OpenSearchExprValueFactory exprValueFactory = mock(OpenSearchExprValueFactory.class);
     final var name = new OpenSearchRequest.IndexName("test");
     final int maxResultWindow = 10000;
-    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
+    final var requestBuilder =
+        new OpenSearchRequestBuilder(exprValueFactory, maxResultWindow, settings);
     PhysicalPlan plan =
         new OpenSearchIndexScan(
             mock(OpenSearchClient.class),
-            requestBuilder.build(
-                name, maxResultWindow, settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE), client));
+            requestBuilder.build(name, settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE), client));
 
     AtomicReference<ExplainResponse> result = new AtomicReference<>();
     executor.explain(
