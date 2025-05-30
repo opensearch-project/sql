@@ -1,0 +1,6 @@
+{
+  "calcite": {
+    "logical": "LogicalProject(age=[$8])\n  LogicalSort(fetch=[10])\n    LogicalSort(fetch=[5])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableLimit(fetch=[10])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[LIMIT->5, PROJECT->[age]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\"],\"excludes\":[]}}, requestedTotalSize=5, pageSize=null, startFrom=0)])\n"
+  }
+}
