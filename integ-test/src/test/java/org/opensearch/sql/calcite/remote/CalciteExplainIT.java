@@ -5,8 +5,11 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
+
 import java.io.IOException;
 import org.junit.Ignore;
+import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.ExplainIT;
 
 public class CalciteExplainIT extends ExplainIT {
@@ -41,6 +44,18 @@ public class CalciteExplainIT extends ExplainIT {
           }
         },
         "https://github.com/opensearch-project/sql/issues/3466");
+  }
+
+  @Test
+  public void testNestedAggPushDownExplain() throws Exception {
+    String expected = loadFromFile("expectedOutput/calcite/explain_nested_agg_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_nested_simple| stats count(address.area) as"
+                + " count_area, min(address.area) as min_area, max(address.area) as max_area,"
+                + " avg(address.area) as avg_area, avg(age) as avg_age by name"));
   }
 
   @Override

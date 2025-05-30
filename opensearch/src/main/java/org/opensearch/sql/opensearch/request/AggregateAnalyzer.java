@@ -27,6 +27,7 @@
 package org.opensearch.sql.opensearch.request;
 
 import static java.util.Objects.requireNonNull;
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
@@ -41,6 +42,7 @@ import java.util.Map;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
@@ -118,7 +120,11 @@ public class AggregateAnalyzer {
       // Process all aggregate calls
       Pair<Builder, List<MetricParser>> builderAndParser =
           processAggregateCalls(
-              groupList.size(), aggregate.getAggCallList(), fieldExpressionCreator, outputFields);
+              groupList.size(),
+              aggregate.getAggCallList(),
+              fieldExpressionCreator,
+              outputFields,
+              fieldTypes);
       Builder metricBuilder = builderAndParser.getLeft();
       List<MetricParser> metricParserList = builderAndParser.getRight();
 
@@ -146,7 +152,8 @@ public class AggregateAnalyzer {
       int groupOffset,
       List<AggregateCall> aggCalls,
       FieldExpressionCreator fieldExpressionCreator,
-      List<String> outputFields) {
+      List<String> outputFields,
+      Map<String, ExprType> fieldTypes) {
     assert aggCalls.size() + groupOffset == outputFields.size()
         : "groups size and agg calls size should match with output fields";
     Builder metricBuilder = new AggregatorFactories.Builder();
@@ -164,7 +171,17 @@ public class AggregateAnalyzer {
 
       Pair<ValuesSourceAggregationBuilder<?>, MetricParser> builderAndParser =
           createAggregationBuilderAndParser(aggCall, argStr, aggField);
-      metricBuilder.addAggregator(builderAndParser.getLeft());
+      // Nested aggregation (https://docs.opensearch.org/docs/latest/aggregations/bucket/nested/)
+      // works as expected only when pushdown is triggerred. If aggregates a nested field without
+      // pushdown, the result could be incorrect. TODO fix it later.
+      String rootStr = StringUtils.substringBefore(argStr, ".");
+      if (fieldTypes.get(rootStr) != null && fieldTypes.get(rootStr) == ARRAY) {
+        metricBuilder.addAggregator(
+            AggregationBuilders.nested(String.format("nested_%s", aggCall.getName()), rootStr)
+                .subAggregation(builderAndParser.getLeft()));
+      } else {
+        metricBuilder.addAggregator(builderAndParser.getLeft());
+      }
       metricParserList.add(builderAndParser.getRight());
     }
     return Pair.of(metricBuilder, metricParserList);
