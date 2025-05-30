@@ -20,6 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -381,7 +382,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       CalcitePlanContext context,
       LambdaFunction node,
       List<RexNode> previousArgument,
-      String functionName) {
+      String functionName,
+      @Nullable RelDataType defaultTypeForReduceAcc) {
     try {
       CalcitePlanContext lambdaContext = context.clone();
       List<RelDataType> candidateType = new ArrayList<>();
@@ -389,7 +391,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
           ((ArraySqlType) previousArgument.get(0).getType())
               .getComponentType()); // The first argument should be array type
       candidateType.addAll(previousArgument.stream().skip(1).map(RexNode::getType).toList());
-      candidateType = modifyLambdaTypeByFunction(functionName, candidateType);
+      candidateType =
+          modifyLambdaTypeByFunction(functionName, candidateType, defaultTypeForReduceAcc);
       List<QualifiedName> argNames = node.getFuncArgs();
       Map<String, RexLambdaRef> lambdaTypes = new HashMap<>();
       int candidateIndex;
@@ -421,12 +424,19 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
    *     reduce has special logic.
    */
   private List<RelDataType> modifyLambdaTypeByFunction(
-      String functionName, List<RelDataType> originalType) {
+      String functionName,
+      List<RelDataType> originalType,
+      @Nullable RelDataType defaultTypeForReduceAcc) {
     switch (functionName.toUpperCase(Locale.ROOT)) {
       case "REDUCE": // For reduce case, the first type is acc should be any since it is the output
         // of accumulator lambda function
         if (originalType.size() == 2) {
-          return List.of(originalType.get(1), originalType.get(0));
+          if (defaultTypeForReduceAcc == null
+              || defaultTypeForReduceAcc.equals(originalType.get(1))) {
+            return List.of(originalType.get(1), originalType.get(0));
+          }
+          return List.of(TYPE_FACTORY.createSqlType(SqlTypeName.ANY, true), originalType.get(0));
+
         } else {
           return List.of(originalType.get(2));
         }
@@ -442,8 +452,20 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     for (UnresolvedExpression arg : args) {
       if (arg instanceof LambdaFunction) {
         CalcitePlanContext lambdaContext =
-            prepareLambdaContext(context, (LambdaFunction) arg, arguments, node.getFuncName());
-        arguments.add(analyze(arg, lambdaContext));
+            prepareLambdaContext(
+                context, (LambdaFunction) arg, arguments, node.getFuncName(), null);
+        RexNode lambdaNode = analyze(arg, lambdaContext);
+        if (node.getFuncName().equalsIgnoreCase("reduce")) { // analyze again with calculate type
+          lambdaContext =
+              prepareLambdaContext(
+                  context,
+                  (LambdaFunction) arg,
+                  arguments,
+                  node.getFuncName(),
+                  lambdaNode.getType());
+          lambdaNode = analyze(arg, lambdaContext);
+        }
+        arguments.add(lambdaNode);
       } else {
         arguments.add(analyze(arg, context));
       }

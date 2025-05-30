@@ -85,7 +85,7 @@ public class CalciteRexNodeVisitorTest {
     when(lambdaFunction.getFuncArgs()).thenReturn(List.of(functionArg1));
 
     CalcitePlanContext lambdaContext =
-        visitor.prepareLambdaContext(context, lambdaFunction, previousArguments, "forall");
+        visitor.prepareLambdaContext(context, lambdaFunction, previousArguments, "forall", null);
 
     assertNotNull(lambdaContext);
     assertNotNull(lambdaContext.getRexLambdaRefMap());
@@ -108,7 +108,7 @@ public class CalciteRexNodeVisitorTest {
     when(lambdaFunction.getFuncArgs()).thenReturn(List.of(functionArg1, functionArg2));
 
     CalcitePlanContext lambdaContext =
-        visitor.prepareLambdaContext(context, lambdaFunction, previousArguments, "transform");
+        visitor.prepareLambdaContext(context, lambdaFunction, previousArguments, "transform", null);
 
     assertNotNull(lambdaContext);
     assertNotNull(lambdaContext.getRexLambdaRefMap());
@@ -137,7 +137,7 @@ public class CalciteRexNodeVisitorTest {
     when(lambdaFunction.getFuncArgs()).thenReturn(List.of(functionArg1, functionArg2));
 
     CalcitePlanContext lambdaContext =
-        visitor.prepareLambdaContext(context, lambdaFunction, previousArguments, "reduce");
+        visitor.prepareLambdaContext(context, lambdaFunction, previousArguments, "reduce", null);
 
     assertNotNull(lambdaContext);
     assertNotNull(lambdaContext.getRexLambdaRefMap());
@@ -165,7 +165,7 @@ public class CalciteRexNodeVisitorTest {
     when(lambdaFunction.getFuncArgs()).thenReturn(List.of(functionArg1));
 
     CalcitePlanContext lambdaContext =
-        visitor.prepareLambdaContext(context, lambdaFunction, previousArguments, "reduce");
+        visitor.prepareLambdaContext(context, lambdaFunction, previousArguments, "reduce", null);
 
     assertNotNull(lambdaContext);
     assertNotNull(lambdaContext.getRexLambdaRefMap());
