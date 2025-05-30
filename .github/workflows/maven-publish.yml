@@ -13,6 +13,41 @@ env:
   SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
 
 jobs:
+  build-and-publish-snapshots:
+    strategy:
+      fail-fast: false
+    if: github.repository == 'opensearch-project/sql'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin # Temurin is a distribution of adoptium
+          java-version: 21
+      - uses: actions/checkout@v3
+      - uses: aws-actions/configure-aws-credentials@v1.7.0
+        with:
+          role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
+          aws-region: us-east-1
+
+      # Create the initial direct-query directory structure
+      - name: Create direct-query directory structure in repository
+        run: |
+          # Get credentials for publishing
+          run: ./get-sonatype-credentials.sh
+
+      - name: publish snapshots to maven
+        run: |
+          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
+          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
+          echo "::add-mask::$SONATYPE_USERNAME"
+          echo "::add-mask::$SONATYPE_PASSWORD"
+          ./gradlew publishPluginZipPublicationToSnapshotsRepository
+
   publish-grammar-files:
     strategy:
       fail-fast: false
@@ -41,12 +76,7 @@ jobs:
       - name: Setup publishing credentials
         id: creds
         run: |
-          SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
-          echo "SONATYPE_USERNAME=$SONATYPE_USERNAME" >> $GITHUB_ENV
-          echo "SONATYPE_PASSWORD=$SONATYPE_PASSWORD" >> $GITHUB_ENV
+          run: ./get-sonatype-credentials.sh
 
       # Extract version information - using a simpler method for grammar files
       - name: Set version
@@ -211,12 +241,7 @@ jobs:
       - name: Setup publishing credentials
         id: creds
         run: |
-          SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
-          echo "SONATYPE_USERNAME=$SONATYPE_USERNAME" >> $GITHUB_ENV
-          echo "SONATYPE_PASSWORD=$SONATYPE_PASSWORD" >> $GITHUB_ENV
+          run: ./get-sonatype-credentials.sh
 
       # Capture the commit ID for metadata purposes
       - name: Set commit ID
