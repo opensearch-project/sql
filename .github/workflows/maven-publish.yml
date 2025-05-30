@@ -34,11 +34,10 @@ jobs:
           role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
           aws-region: us-east-1
 
-      # Create the initial direct-query directory structure
-      - name: Create direct-query directory structure in repository
+      - name: get credentials
         run: |
           # Get credentials for publishing
-          run: ./get-sonatype-credentials.sh
+          ./get-sonatype-credentials.sh
 
       - name: publish snapshots to maven
         run: |
@@ -76,7 +75,7 @@ jobs:
       - name: Setup publishing credentials
         id: creds
         run: |
-          run: ./get-sonatype-credentials.sh
+          ./get-sonatype-credentials.sh
 
       # Extract version information - using a simpler method for grammar files
       - name: Set version
@@ -241,7 +240,7 @@ jobs:
       - name: Setup publishing credentials
         id: creds
         run: |
-          run: ./get-sonatype-credentials.sh
+          ./get-sonatype-credentials.sh
 
       # Capture the commit ID for metadata purposes
       - name: Set commit ID
