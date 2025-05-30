@@ -335,6 +335,14 @@ public class PPLFuncImpTable {
       registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
+      registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
+      registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
+      registerOperator(FORALL, PPLBuiltinOperators.FORALL);
+      registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
+      registerOperator(FILTER, PPLBuiltinOperators.FILTER);
+      registerOperator(TRANSFORM, PPLBuiltinOperators.TRANSFORM);
+      registerOperator(REDUCE, PPLBuiltinOperators.REDUCE);
+
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
       register(

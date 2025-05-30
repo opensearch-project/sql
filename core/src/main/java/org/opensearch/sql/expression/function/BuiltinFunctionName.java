@@ -58,6 +58,15 @@ public enum BuiltinFunctionName {
   TAN(FunctionName.of("tan")),
   SPAN(FunctionName.of("span")),
 
+  /** Collection functions */
+  ARRAY(FunctionName.of("array")),
+  ARRAY_LENGTH(FunctionName.of("array_length")),
+  FORALL(FunctionName.of("forall")),
+  EXISTS(FunctionName.of("exists")),
+  FILTER(FunctionName.of("filter")),
+  TRANSFORM(FunctionName.of("transform")),
+  REDUCE(FunctionName.of("reduce")),
+
   /** Date and Time Functions. */
   ADDDATE(FunctionName.of("adddate")),
   ADDTIME(FunctionName.of("addtime")),
