@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -174,9 +175,10 @@ public class GrokCompiler implements Serializable {
             throw new IllegalArgumentException(
                 format("No definition for key '%s' found, aborting", group.get("pattern")));
           }
-          String replacement = String.format("(?<name%d>%s)", index, definitionOfPattern);
+          String replacement =
+              String.format(Locale.ROOT, "(?<name%d>%s)", index, definitionOfPattern);
           if (namedOnly && group.get("subname") == null) {
-            replacement = String.format("(?:%s)", definitionOfPattern);
+            replacement = String.format(Locale.ROOT, "(?:%s)", definitionOfPattern);
           }
           namedRegexCollection.put(
               "name" + index,
