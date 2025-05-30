@@ -21,6 +21,19 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testArray() {
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s | eval array = array(1, -1, 2, 1.0) | head 1",
+                            TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "boolean"));
+
+    verifyDataRows(actual, rows(false));
+  }
+
+  @Test
   public void testForAll() {
     JSONObject actual =
         executeQuery(

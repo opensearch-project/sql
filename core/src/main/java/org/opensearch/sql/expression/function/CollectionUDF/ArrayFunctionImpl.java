@@ -21,8 +21,10 @@ import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
 public class ArrayFunctionImpl extends ImplementorUDF {
@@ -32,17 +34,7 @@ public class ArrayFunctionImpl extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return sqlOperatorBinding -> {
-      RelDataTypeFactory typeFactory = sqlOperatorBinding.getTypeFactory();
-      List<RelDataType> argTypes = sqlOperatorBinding.collectOperandTypes();
-      RelDataType commonType = typeFactory.leastRestrictive(argTypes);
-      if (commonType == null) {
-        throw new IllegalArgumentException(
-            "All arguments in json array cannot be converted into one common types");
-      }
-      return createArrayType(
-          typeFactory, typeFactory.createTypeWithNullability(commonType, true), true);
-    };
+    return SqlLibraryOperators.ARRAY.getReturnTypeInference();
   }
 
   public static class ArrayImplementor implements NotNullImplementor {
@@ -50,32 +42,29 @@ public class ArrayFunctionImpl extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       RelDataType realType = call.getType().getComponentType();
-      List<Expression> newArgs = new ArrayList<>(translatedOperands);
+      List<Expression> newArgs = new ArrayList<>();
+      newArgs.add(Expressions.call(Types.lookupMethod(Arrays.class, "asList", Object[].class), translatedOperands));
       assert realType != null;
       newArgs.add(Expressions.constant(realType.getSqlTypeName()));
       return Expressions.call(
-          Types.lookupMethod(ArrayFunctionImpl.class, "eval", Object[].class), newArgs);
+          Types.lookupMethod(ArrayFunctionImpl.class, "internalCast", Object[].class), newArgs);
     }
   }
 
-  public static Object eval(Object... args) {
+  public static Object internalCast(Object... args) {
+    List<Object> originalList = (List<Object>) args[0];
     SqlTypeName targetType = (SqlTypeName) args[args.length - 1];
+    List<Object> result;
     switch (targetType) {
       case DOUBLE:
-        List<Object> unboxed =
-            IntStream.range(0, args.length - 1)
-                .mapToObj(i -> ((Number) args[i]).doubleValue())
-                .collect(Collectors.toList());
-
-        return unboxed;
+        result = originalList.stream().map(i -> (Object) ( (Number) i).doubleValue()).collect(Collectors.toList());
+        break;
       case FLOAT:
-        List<Object> unboxedFloat =
-            IntStream.range(0, args.length - 1)
-                .mapToObj(i -> ((Number) args[i]).floatValue())
-                .collect(Collectors.toList());
-        return unboxedFloat;
+        result = originalList.stream().map(i ->  (Object) ( (Number) i).floatValue()).collect(Collectors.toList());
+        break;
       default:
-        return Arrays.asList(args).subList(0, args.length - 1);
+        result = originalList;
     }
+    return result;
   }
 }
