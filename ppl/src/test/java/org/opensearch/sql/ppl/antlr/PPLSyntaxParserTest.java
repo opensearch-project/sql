@@ -437,6 +437,28 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testExponentLiteralShouldPass() {
+    List<String> scientificNotationList =
+        List.of(
+            "9e1",
+            "+9e+1",
+            "9e-1",
+            "-9e1",
+            "9.0e1",
+            "9.0e+1",
+            "9.0E1",
+            ".9e+2",
+            "0.9e+2",
+            "900e-1",
+            "900.0E-1");
+    for (String exponentLiteral : scientificNotationList) {
+      ParseTree tree =
+          new PPLSyntaxParser().parse("search source=t | eval scientific = " + exponentLiteral);
+      assertNotEquals(null, tree);
+    }
+  }
+
+  @Test
   public void testCanParseFillNullSameValue() {
     assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull with 0 in a"));
     assertNotNull(new PPLSyntaxParser().parse("SOURCE=test | fillnull with 0 in a, b"));

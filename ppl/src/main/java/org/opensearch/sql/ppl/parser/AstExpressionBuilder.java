@@ -20,6 +20,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DecimalLit
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DistinctCountFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ExponentLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsTableQualifiedNameContext;
@@ -407,6 +408,11 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitDecimalLiteral(DecimalLiteralContext ctx) {
+    return new Literal(Double.valueOf(ctx.getText()), DataType.DOUBLE);
+  }
+
+  @Override
+  public UnresolvedExpression visitExponentLiteral(ExponentLiteralContext ctx) {
     return new Literal(Double.valueOf(ctx.getText()), DataType.DOUBLE);
   }
 

@@ -1,0 +1,49 @@
+setup:
+  - do:
+      indices.create:
+        index: test
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              90:
+                type: double
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.fallback.allowed : false
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.fallback.allowed : true
+
+---
+"Exponent literal converts to double type":
+  - skip:
+      features:
+        - headers
+  - do:
+      bulk:
+        index: test
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"90": 90.0}'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test | eval `9e1` = 9e1, `+9e+1` = +9e+1, `900e-1` = 900e-1, `9.0e1` = 9.0e1, `9.0e+1` = 9.0e+1, `9.0E1` = 9.0E1, `.9e+2` = .9e+2, `0.09e+3` = 0.09e+3, `900.0e-1` = 900.0e-1, `-900.0E-1` = -900.0E-1'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "90", "type": "double"}, {"name": "9e1", "type": "double"}, {"name": "+9e+1", "type": "double"}, {"name": "900e-1", "type": "double"}, {"name": "9.0e1", "type": "double"}, {"name": "9.0e+1", "type": "double"}, {"name": "9.0E1", "type": "double"}, {"name": ".9e+2", "type": "double"}, {"name": "0.09e+3", "type": "double"}, {"name": "900.0e-1", "type": "double"}, {"name": "-900.0E-1", "type": "double"}]}
+  - match: {"datarows": [[90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, -90.0]]}

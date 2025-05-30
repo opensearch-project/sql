@@ -110,4 +110,30 @@ public class DataTypeIT extends PPLIntegTestCase {
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
     verifyDataRows(result, rows(2, 2), rows(3, 3));
   }
+
+  @Test
+  public void test_exponent_literal_converting_to_double_type() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval `9e1` = 9e1, `+9e+1` = +9e+1, `900e-1` = 900e-1, `9.0e1` ="
+                    + " 9.0e1, `9.0e+1` = 9.0e+1, `9.0E1` = 9.0E1, `.9e+2` = .9e+2, `0.09e+3` ="
+                    + " 0.09e+3, `900.0e-1` = 900.0e-1, `-900.0E-1` = -900.0E-1 | fields `9e1`,"
+                    + " `+9e+1`, `900e-1`, `9.0e1`, `9.0e+1`, `9.0E1`, `.9e+2`, `0.09e+3`,"
+                    + " `900.0e-1`, `-900.0E-1`",
+                TEST_INDEX_DATATYPE_NUMERIC));
+    verifySchema(
+        result,
+        schema("9e1", "double"),
+        schema("+9e+1", "double"),
+        schema("900e-1", "double"),
+        schema("9.0e1", "double"),
+        schema("9.0e+1", "double"),
+        schema("9.0E1", "double"),
+        schema(".9e+2", "double"),
+        schema("0.09e+3", "double"),
+        schema("900.0e-1", "double"),
+        schema("-900.0E-1", "double"));
+    verifyDataRows(result, rows(90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0, -90.0));
+  }
 }
