@@ -88,6 +88,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
                       case PROJECT -> rowCount;
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
+                      case LIMIT -> (Integer) action.digest;
                     }
                     * estimateRowCountFactor,
             (a, b) -> null);
@@ -97,6 +98,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
   public static class PushDownContext extends ArrayDeque<PushDownAction> {
 
     private boolean isAggregatePushed = false;
+    private boolean isLimitPushed = false;
 
     @Override
     public PushDownContext clone() {
@@ -110,6 +112,9 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       if (pushDownAction.type == PushDownType.AGGREGATION) {
         isAggregatePushed = true;
       }
+      if (pushDownAction.type == PushDownType.LIMIT) {
+        isLimitPushed = true;
+      }
       return super.add(pushDownAction);
     }
 
@@ -118,6 +123,10 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
       isAggregatePushed = !isEmpty() && super.peekLast().type == PushDownType.AGGREGATION;
       return isAggregatePushed;
     }
+
+    public boolean isLimitPushed() {
+      return isLimitPushed;
+    }
   }
 
   protected enum PushDownType {
@@ -125,7 +134,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     PROJECT,
     AGGREGATION,
     // SORT,
-    // LIMIT,
+    LIMIT,
     // HIGHLIGHT,
     // NESTED
   }
