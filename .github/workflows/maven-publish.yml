@@ -8,6 +8,9 @@ on:
       - 1.*
       - 2.*
 
+env:
+  SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+
 jobs:
   build-and-publish-snapshots:
     strategy:
@@ -30,33 +33,11 @@ jobs:
           role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
           aws-region: us-east-1
 
-      # Create the initial direct-query directory structure
-      - name: Create direct-query directory structure in repository
+      - name: get credentials
         run: |
           # Get credentials for publishing
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
-          
-          # Create a placeholder file
-          TEMP_DIR=$(mktemp -d)
-          echo "Directory placeholder - $(date)" > "${TEMP_DIR}/.placeholder"
-          
-          # Upload the placeholder file to create the directory structure
-          echo "Creating initial directory structure..."
-          curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" \
-            --upload-file "${TEMP_DIR}/.placeholder" \
-            "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query/.placeholder"
-          
-          # Clean up
-          rm -rf "${TEMP_DIR}"
-          echo "Directory structure created"
+          .github/get-sonatype-credentials.sh
 
       - name: publish snapshots to maven
         run: |
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
           ./gradlew publishPluginZipPublicationToSnapshotsRepository
