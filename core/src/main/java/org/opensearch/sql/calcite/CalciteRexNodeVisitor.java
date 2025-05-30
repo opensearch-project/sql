@@ -20,7 +20,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -378,7 +377,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
    * will map type for each lambda argument by the order of previous argument. Also, the function
    * will add these variables to the context so they can pass visitQualifiedName
    */
-  private CalcitePlanContext prepareLambdaContext(
+  public CalcitePlanContext prepareLambdaContext(
       CalcitePlanContext context,
       LambdaFunction node,
       List<RexNode> previousArgument,
@@ -424,7 +423,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   private List<RelDataType> modifyLambdaTypeByFunction(
       String functionName, List<RelDataType> originalType) {
     switch (functionName.toUpperCase(Locale.ROOT)) {
-      case "REDUCE": // For reduce case, the first type is acc should be any since it is the output of accumulator lambda function
+      case "REDUCE": // For reduce case, the first type is acc should be any since it is the output
+        // of accumulator lambda function
         if (originalType.size() == 2) {
           return List.of(originalType.get(1), originalType.get(0));
         } else {
