@@ -17,6 +17,7 @@ import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.ResponseException;
 
 public class JsonFunctionsIT extends PPLIntegTestCase {
   @Override
@@ -47,7 +48,8 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json scalar double"),
         rows("json scalar boolean true"),
         rows("json scalar boolean false"),
-        rows("json empty string"));
+        rows("json empty string"),
+        rows("json nested list"));
   }
 
   @Test
@@ -89,7 +91,10 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json scalar double", 2.99792458e8),
         rows("json scalar boolean true", true),
         rows("json scalar boolean false", false),
-        rows("json empty string", null));
+        rows("json empty string", null),
+        rows(
+            "json nested list",
+            new JSONObject(Map.of("a", "1", "b", List.of(Map.of("c", "2"), Map.of("c", "3"))))));
   }
 
   @Test
@@ -121,7 +126,24 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
         rows("json scalar double", 2.99792458e8),
         rows("json scalar boolean true", true),
         rows("json scalar boolean false", false),
-        rows("json empty string", null));
+        rows("json empty string", null),
+        rows(
+            "json nested list",
+            new JSONObject(Map.of("a", "1", "b", List.of(Map.of("c", "2"), Map.of("c", "3"))))));
+  }
+
+  @Test
+  public void test_json_throws_SemanticCheckException() throws IOException {
+    // Invalid json provided
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | where not json_valid(json_string) | eval"
+                  + " casted=json(json_string) | fields test_name, casted",
+              TEST_INDEX_JSON_TEST));
+    } catch (ResponseException invalidJsonException) {
+      assertTrue(invalidJsonException.getMessage().contains("SemanticCheckException"));
+    }
   }
 
   @Test
@@ -183,5 +205,102 @@ public class JsonFunctionsIT extends PPLIntegTestCase {
     verifySchema(result, schema("test_name", null, "string"), schema("casted", null, "boolean"));
     verifyDataRows(
         result, rows("json scalar boolean true", true), rows("json scalar boolean false", false));
+  }
+
+  @Test
+  public void test_json_extract() throws IOException {
+    JSONObject result;
+    result =
+        executeQuery(
+            String.format(
+                "source=%s | where json_valid(json_string) | eval"
+                    + " extracted=json_extract(json_string, '$.b') | fields test_name, extracted",
+                TEST_INDEX_JSON_TEST));
+    verifySchema(
+        result, schema("test_name", null, "string"), schema("extracted", null, "undefined"));
+    verifyDataRows(
+        result,
+        rows("json nested object", new JSONObject(Map.of("c", "3"))),
+        rows("json object", "2"),
+        rows("json array", null),
+        rows("json nested array", null),
+        rows("json scalar string", null),
+        rows("json scalar int", null),
+        rows("json scalar float", null),
+        rows("json scalar double", null),
+        rows("json scalar boolean true", null),
+        rows("json scalar boolean false", null),
+        rows("json empty string", null),
+        rows("json nested list", new JSONArray(List.of(Map.of("c", "2"), Map.of("c", "3")))));
+  }
+
+  @Test
+  public void test_json_extract_multiple_paths() throws IOException {
+    JSONObject resultTwoPaths =
+        executeQuery(
+            String.format(
+                "source=%s | where test_name = 'json nested list' | eval"
+                    + " extracted=json_extract(json_string, '$.a', '$.b') | fields test_name,"
+                    + " extracted",
+                TEST_INDEX_JSON_TEST));
+    verifySchema(
+        resultTwoPaths,
+        schema("test_name", null, "string"),
+        schema("extracted", null, "undefined"));
+    verifyDataRows(
+        resultTwoPaths,
+        rows(
+            "json nested list",
+            List.of("1", new JSONArray(List.of(Map.of("c", "2"), Map.of("c", "3"))))));
+
+    JSONObject resultThreePaths =
+        executeQuery(
+            String.format(
+                "source=%s | where test_name = 'json nested list' | eval"
+                    + " extracted=json_extract(json_string, '$.a', '$.b[0].c', '$.b[1].c') | fields"
+                    + " test_name, extracted",
+                TEST_INDEX_JSON_TEST));
+    verifySchema(
+        resultThreePaths,
+        schema("test_name", null, "string"),
+        schema("extracted", null, "undefined"));
+    verifyDataRows(resultThreePaths, rows("json nested list", List.of("1", "2", "3")));
+  }
+
+  @Test
+  public void test_json_extract_throws_SemanticCheckException() throws IOException {
+    // Invalid json provided
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | where not json_valid(json_string) | eval"
+                  + " extracted=json_extract(json_string, '$.a') | fields test_name, extracted",
+              TEST_INDEX_JSON_TEST));
+    } catch (ResponseException invalidJsonException) {
+      assertTrue(invalidJsonException.getMessage().contains("SemanticCheckException"));
+    }
+
+    // Invalid path provided
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | where test_name = 'json nested list' | eval"
+                  + " extracted=json_extract(json_string, '$a') | fields test_name, extracted",
+              TEST_INDEX_JSON_TEST));
+    } catch (ResponseException invalidPathException) {
+      assertTrue(invalidPathException.getMessage().contains("SemanticCheckException"));
+    }
+
+    // Invalid path with multiple paths provided
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | where test_name = 'json nested list' | eval"
+                  + " extracted=json_extract(json_string, '$a', '$.b') | fields test_name,"
+                  + " extracted",
+              TEST_INDEX_JSON_TEST));
+    } catch (ResponseException invalidPathException) {
+      assertTrue(invalidPathException.getMessage().contains("SemanticCheckException"));
+    }
   }
 }
