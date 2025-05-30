@@ -868,7 +868,6 @@ jsonFunctionName
    | JSON_OBJECT
    | JSON_ARRAY
    | JSON_ARRAY_LENGTH
-   | TO_JSON_STRING
    | JSON_EXTRACT
    | JSON_KEYS
    | JSON_VALID
