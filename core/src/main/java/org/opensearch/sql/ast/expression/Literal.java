@@ -6,10 +6,10 @@
 package org.opensearch.sql.ast.expression;
 
 import com.google.common.collect.ImmutableList;
+import java.math.BigDecimal;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 /**
@@ -18,11 +18,19 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
  */
 @Getter
 @EqualsAndHashCode(callSuper = false)
-@RequiredArgsConstructor
 public class Literal extends UnresolvedExpression {
 
   private final Object value;
   private final DataType type;
+
+  public Literal(Object value, DataType dataType) {
+    if (dataType == DataType.DECIMAL && value instanceof Double) {
+      this.value = BigDecimal.valueOf((Double) value);
+    } else {
+      this.value = value;
+    }
+    this.type = dataType;
+  }
 
   @Override
   public List<UnresolvedExpression> getChild() {

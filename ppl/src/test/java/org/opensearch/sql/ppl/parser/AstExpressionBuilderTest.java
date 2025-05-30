@@ -15,6 +15,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.cast;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.decimalLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
@@ -25,6 +26,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
+import static org.opensearch.sql.ast.dsl.AstDSL.floatLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.in;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
@@ -513,7 +515,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 alias(
                     "percentile(a, 1.0)",
                     aggregate(
-                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(1D))))),
+                        "percentile", field("a"), unresolvedArg("percent", decimalLiteral(1D))))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
@@ -527,7 +529,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     aggregate(
                         "percentile",
                         field("a"),
-                        unresolvedArg("percent", doubleLiteral(1D)),
+                        unresolvedArg("percent", decimalLiteral(1D)),
                         unresolvedArg("compression", intLiteral(100))))),
             emptyList(),
             emptyList(),
@@ -661,7 +663,19 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testDoubleLiteralExpr() {
     assertEqual(
-        "source=t b=0.1", filter(relation("t"), compare("=", field("b"), doubleLiteral(0.1))));
+        "source=t b=0.1d", filter(relation("t"), compare("=", field("b"), doubleLiteral(0.1))));
+  }
+
+  @Test
+  public void testFloatLiteralExpr() {
+    assertEqual(
+        "source=t b=0.1f", filter(relation("t"), compare("=", field("b"), floatLiteral(0.1f))));
+  }
+
+  @Test
+  public void testDecimalLiteralExpr() {
+    assertEqual(
+        "source=t b=0.1", filter(relation("t"), compare("=", field("b"), decimalLiteral(0.1))));
   }
 
   @Test

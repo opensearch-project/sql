@@ -16,6 +16,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.opensearch.sql.calcite.utils.MathUtils;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -55,7 +56,7 @@ public class SecToTimeFunction extends ImplementorUDF {
     public static String secToTime(Number seconds) {
       ExprValue returnTimeValue;
       ExprValue transferredValue = ExprValueUtils.fromObjectValue(seconds);
-      if (seconds instanceof Long || seconds instanceof Integer) {
+      if (MathUtils.isIntegral(seconds)) {
         returnTimeValue = exprSecToTime(transferredValue);
       } else {
         returnTimeValue = exprSecToTimeWithNanos(transferredValue);

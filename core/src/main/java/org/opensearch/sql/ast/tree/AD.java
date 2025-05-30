@@ -20,7 +20,7 @@ import org.opensearch.sql.ast.expression.Literal;
 @Getter
 @Setter
 @ToString
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 @AllArgsConstructor
 public class AD extends UnresolvedPlan {

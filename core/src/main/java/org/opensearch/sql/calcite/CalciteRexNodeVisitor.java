@@ -122,6 +122,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         return rexBuilder.makeApproxLiteral(
             new BigDecimal(Double.toString((Double) value)),
             typeFactory.createSqlType(SqlTypeName.DOUBLE));
+      case DECIMAL:
+        return rexBuilder.makeExactLiteral((BigDecimal) value);
       case BOOLEAN:
         return rexBuilder.makeLiteral((Boolean) value);
       case DATE:
@@ -132,9 +134,6 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       case TIMESTAMP:
         return rexBuilder.makeTimestampLiteral(
             new TimestampString(value.toString()), RelDataType.PRECISION_NOT_SPECIFIED);
-      case INTERVAL:
-        //                return rexBuilder.makeIntervalLiteral(BigDecimal.valueOf((long)
-        // node.getValue()));
       default:
         throw new UnsupportedOperationException("Unsupported literal type: " + node.getType());
     }
