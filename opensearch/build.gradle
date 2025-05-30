@@ -41,6 +41,7 @@ dependencies {
     compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     implementation group: 'org.opensearch', name:'opensearch-ml-client', version: "${opensearch_build}"
     implementation group: 'org.opensearch', name:'geospatial-client', version: "${opensearch_build}"
+    implementation group: 'org.codehaus.janino', name: 'janino', version: '3.1.11'
 
     annotationProcessor 'org.immutables:value:2.8.8'
     compileOnly 'org.immutables:value-annotations:2.8.8'

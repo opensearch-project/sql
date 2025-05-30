@@ -37,9 +37,13 @@ import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.index.query.QueryBuilders.regexpQuery;
 import static org.opensearch.index.query.QueryBuilders.termQuery;
 import static org.opensearch.index.query.QueryBuilders.termsQuery;
+import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
+import static org.opensearch.sql.opensearch.storage.script.PPLCompoundedScriptEngine.CALCITE_ENGINE_TYPE;
+import static org.opensearch.sql.opensearch.storage.script.PPLCompoundedScriptEngine.ENGINE_TYPE;
+import static org.opensearch.sql.opensearch.storage.script.PPLCompoundedScriptEngine.PPL_LANG_NAME;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Range;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.GregorianCalendar;
@@ -48,13 +52,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.apache.calcite.DataContext.Variable;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlSyntax;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -64,10 +73,15 @@ import org.apache.calcite.util.Sarg;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
+import org.opensearch.index.query.ScriptQueryBuilder;
+import org.opensearch.script.Script;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.ScriptInputGetter;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 
 /**
  * Query predicate analyzer. Uses visitor pattern to traverse existing expression and convert it to
@@ -124,20 +138,29 @@ public class PredicateAnalyzer {
   public static QueryBuilder analyze(
       RexNode expression, List<String> schema, Map<String, ExprType> filedTypes)
       throws ExpressionNotAnalyzableException {
+    return analyze(expression, schema, filedTypes, null, null);
+  }
+
+  public static QueryBuilder analyze(
+      RexNode expression,
+      List<String> schema,
+      Map<String, ExprType> filedTypes,
+      RexBuilder rexBuilder,
+      RelDataType rowType)
+      throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
     try {
       // visits expression tree
       QueryExpression queryExpression =
-          (QueryExpression) expression.accept(new Visitor(schema, filedTypes));
+          (QueryExpression) expression.accept(new Visitor(schema, filedTypes, rexBuilder, rowType));
 
       if (queryExpression != null && queryExpression.isPartial()) {
         throw new UnsupportedOperationException(
             "Can't handle partial QueryExpression: " + queryExpression);
       }
       return queryExpression != null ? queryExpression.builder() : null;
-    } catch (Throwable e) {
-      Throwables.throwIfInstanceOf(e, UnsupportedOperationException.class);
-      throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
+    } catch (PredicateAnalyzerException | UnsupportedOperationException e) {
+      return new ScriptQueryExpression(expression, rexBuilder, rowType, filedTypes).builder();
     }
   }
 
@@ -146,11 +169,19 @@ public class PredicateAnalyzer {
 
     List<String> schema;
     Map<String, ExprType> filedTypes;
+    RexBuilder rexBuilder;
+    RelDataType rowType;
 
-    private Visitor(List<String> schema, Map<String, ExprType> filedTypes) {
+    private Visitor(
+        List<String> schema,
+        Map<String, ExprType> filedTypes,
+        RexBuilder rexBuilder,
+        RelDataType rowType) {
       super(true);
       this.schema = schema;
       this.filedTypes = filedTypes;
+      this.rexBuilder = rexBuilder;
+      this.rowType = rowType;
     }
 
     @Override
@@ -423,35 +454,42 @@ public class PredicateAnalyzer {
 
     private QueryExpression andOr(RexCall call) {
       QueryExpression[] expressions = new QueryExpression[call.getOperands().size()];
-      PredicateAnalyzerException firstError = null;
       boolean partial = false;
+      // For function isEmpty and isBlank, we implement them via expression `isNull or {@function}`,
+      // Unlike `OR` in Java, `SHOULD` in DSL will evaluate both branches and lead to NPE.
+      if (call.getKind() == SqlKind.OR
+          && call.getOperands().size() == 2
+          && (call.getOperands().get(0).getKind() == SqlKind.IS_NULL
+              || call.getOperands().get(1).getKind() == SqlKind.IS_NULL)) {
+        throw new UnsupportedScriptException(
+            "DSL will evaluate both branches of OR with isNUll, prevent push-down to avoid NPE");
+      }
       for (int i = 0; i < call.getOperands().size(); i++) {
         try {
           Expression expr = call.getOperands().get(i).accept(this);
           if (expr instanceof NamedFieldExpression) {
             // nop currently
           } else {
-            expressions[i] = (QueryExpression) call.getOperands().get(i).accept(this);
+            expressions[i] = (QueryExpression) expr;
           }
           partial |= expressions[i].isPartial();
         } catch (PredicateAnalyzerException e) {
-          if (firstError == null) {
-            firstError = e;
+          try {
+            expressions[i] =
+                new ScriptQueryExpression(
+                    call.getOperands().get(i), rexBuilder, rowType, filedTypes);
+          } catch (UnsupportedScriptException ex) {
+            if (call.getKind() == SqlKind.OR) throw ex;
+            partial = true;
           }
+        } catch (UnsupportedScriptException e) {
+          if (call.getKind() == SqlKind.OR) throw e;
           partial = true;
         }
       }
 
       switch (call.getKind()) {
         case OR:
-          if (partial) {
-            if (firstError != null) {
-              throw firstError;
-            } else {
-              final String message = format(Locale.ROOT, "Unable to handle call: [%s]", call);
-              throw new PredicateAnalyzerException(message);
-            }
-          }
           return CompoundQueryExpression.or(expressions);
         case AND:
           return CompoundQueryExpression.and(partial, expressions);
@@ -620,7 +658,7 @@ public class PredicateAnalyzer {
         return new SimpleQueryExpression((NamedFieldExpression) expression);
       } else {
         String message = format(Locale.ROOT, "Unsupported expression: [%s]", expression);
-        throw new PredicateAnalyzerException(message);
+        throw new PredicateAnalyzer.PredicateAnalyzerException(message);
       }
     }
   }
@@ -682,7 +720,7 @@ public class PredicateAnalyzer {
 
     @Override
     public QueryExpression exists() {
-      throw new PredicateAnalyzerException(
+      throw new PredicateAnalyzer.PredicateAnalyzerException(
           "SqlOperatorImpl ['exists'] " + "cannot be applied to a compound expression");
     }
 
@@ -922,6 +960,132 @@ public class PredicateAnalyzer {
     }
   }
 
+  static class ScriptQueryExpression extends QueryExpression {
+    private final String code;
+
+    public ScriptQueryExpression(
+        RexNode rexNode,
+        RexBuilder rexBuilder,
+        RelDataType rowType,
+        Map<String, ExprType> fieldTypes) {
+      // Compile code when creating to detect exception as early as possible
+      JavaTypeFactoryImpl typeFactory =
+          new JavaTypeFactoryImpl(rexBuilder.getTypeFactory().getTypeSystem());
+      RexToLixTranslator.InputGetter getter =
+          new ScriptInputGetter(typeFactory, rowType, fieldTypes);
+      this.code = CalciteScriptEngine.translate(rexBuilder, List.of(rexNode), getter, rowType);
+    }
+
+    @Override
+    public QueryBuilder builder() {
+      long currentTime = Hook.CURRENT_TIME.get(-1L);
+      if (currentTime < 0) {
+        throw new UnsupportedScriptException(
+            "ScriptQueryExpression requires a valid current time from hook, but it is not set");
+      }
+      return new ScriptQueryBuilder(
+          new Script(
+              DEFAULT_SCRIPT_TYPE,
+              PPL_LANG_NAME,
+              code,
+              Map.of(ENGINE_TYPE, CALCITE_ENGINE_TYPE),
+              Map.of(Variable.UTC_TIMESTAMP.camelName, currentTime)));
+    }
+
+    @Override
+    public QueryExpression exists() {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['exists'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression contains(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['contains'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression not() {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['not'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression notExists() {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['notExists'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression like(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['like'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression notLike(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['notLike'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression equals(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['='] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression notEquals(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['not'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression gt(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['>'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression gte(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['>='] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression lt(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['<'] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression lte(LiteralExpression literal) {
+      throw new PredicateAnalyzerException(
+          "SqlOperatorImpl ['<='] " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression queryString(String query) {
+      throw new PredicateAnalyzerException(
+          "QueryString " + "cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression isTrue() {
+      throw new PredicateAnalyzerException("isTrue cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression in(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("in cannot be applied to a script expression");
+    }
+
+    @Override
+    public QueryExpression notIn(LiteralExpression literal) {
+      throw new PredicateAnalyzerException("notIn cannot be applied to a script expression");
+    }
+  }
+
   /**
    * By default, range queries on date/time need use the format of the source to parse the literal.
    * So we need to specify that the literal has "date_time" format
@@ -970,14 +1134,20 @@ public class PredicateAnalyzer {
   }
 
   /** Used for bind variables. */
-  static final class NamedFieldExpression implements TerminalExpression {
+  public static final class NamedFieldExpression implements TerminalExpression {
 
     private final String name;
     private final ExprType type;
 
-    NamedFieldExpression(int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
+    public NamedFieldExpression(
+        int refIndex, List<String> schema, Map<String, ExprType> filedTypes) {
       this.name = refIndex >= schema.size() ? null : schema.get(refIndex);
       this.type = filedTypes.get(name);
+    }
+
+    public NamedFieldExpression(String name, ExprType type) {
+      this.name = name;
+      this.type = type;
     }
 
     private NamedFieldExpression() {
@@ -1034,7 +1204,7 @@ public class PredicateAnalyzer {
       return getRootName();
     }
 
-    String getReferenceForTermQuery() {
+    public String getReferenceForTermQuery() {
       if (isTextType()) {
         return toKeywordSubField();
       }
@@ -1063,6 +1233,8 @@ public class PredicateAnalyzer {
         return booleanValue();
       } else if (isString()) {
         return RexLiteral.stringValue(literal);
+      } else if (isDecimal()) {
+        return ((BigDecimal) literal.getValue()).doubleValue();
       } else {
         return rawValue();
       }
@@ -1074,6 +1246,10 @@ public class PredicateAnalyzer {
 
     boolean isFloatingPoint() {
       return SqlTypeName.APPROX_TYPES.contains(literal.getType().getSqlTypeName());
+    }
+
+    boolean isDecimal() {
+      return SqlTypeName.DECIMAL == literal.getType().getSqlTypeName();
     }
 
     boolean isBoolean() {
@@ -1151,7 +1327,7 @@ public class PredicateAnalyzer {
         || (SqlTypeFamily.TIMESTAMP.contains(op2) && !SqlTypeFamily.TIMESTAMP.contains(op1))
         || (SqlTypeFamily.TIME.contains(op1) && !SqlTypeFamily.TIME.contains(op2))
         || (SqlTypeFamily.TIME.contains(op2) && !SqlTypeFamily.TIME.contains(op1))) {
-      throw new PredicateAnalyzerException(
+      throw new PredicateAnalyzer.PredicateAnalyzerException(
           "Cannot handle " + call.getKind() + " expression for _id field, " + call);
     }
   }

@@ -7,7 +7,7 @@ package org.opensearch.sql.opensearch.storage.script.filter;
 
 import static java.util.Collections.emptyMap;
 import static org.opensearch.script.Script.DEFAULT_SCRIPT_TYPE;
-import static org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine.EXPRESSION_LANG_NAME;
+import static org.opensearch.sql.opensearch.storage.script.PPLCompoundedScriptEngine.PPL_LANG_NAME;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
@@ -145,7 +145,6 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
           "Script query does not support fields of struct type in OpenSearch.");
     }
     return new ScriptQueryBuilder(
-        new Script(
-            DEFAULT_SCRIPT_TYPE, EXPRESSION_LANG_NAME, serializer.serialize(node), emptyMap()));
+        new Script(DEFAULT_SCRIPT_TYPE, PPL_LANG_NAME, serializer.serialize(node), emptyMap()));
   }
 }
