@@ -232,20 +232,10 @@ jobs:
       - name: Extract version from build.gradle
         id: extract_version
         run: |
-          # Extract the opensearch_version from the property declaration in build.gradle
-          OPENSEARCH_VERSION=$(grep 'opensearch_version =' build.gradle | awk -F'"' '{print $(NF-1)}')
-          echo "opensearch_version: ${OPENSEARCH_VERSION}"
-          
-          # Get the first part before any dash (equivalent to tokenize('-')[0] in Groovy)
-          BASE_VERSION=$(echo "$OPENSEARCH_VERSION" | cut -d'-' -f1)
-          echo "Base version: ${BASE_VERSION}"
-          
-          # Form the version as in build.gradle allprojects block
-          # According to build.gradle, version = opensearch_version.tokenize('-')[0] + '.0' + '-SNAPSHOT'
-          VERSION="${BASE_VERSION}.0-SNAPSHOT"
+          VERSION="0.1.0-SNAPSHOT"
           
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Extracted version: ${VERSION}"
+          echo "Version: ${VERSION}"
 
       - name: Build and publish shadow JAR
         run: |
