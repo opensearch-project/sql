@@ -1,4 +1,4 @@
-name: Publish to Maven
+name: Publish snapshots and grammar files to maven
 
 on:
   workflow_dispatch:
@@ -7,13 +7,15 @@ on:
       - main
       - 1.*
       - 2.*
-      - poc/commit-metadata
+
+env:
+  SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
 
 jobs:
   publish-grammar-files:
     strategy:
       fail-fast: false
-    #if: github.repository == 'opensearch-project/sql'
+    if: github.repository == 'opensearch-project/sql'
     runs-on: ubuntu-latest
 
     permissions:
@@ -21,7 +23,6 @@ jobs:
       contents: write
 
     env:
-      SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
       TARGET_REPO_PATH: org/opensearch/language-grammar
 
     steps:
@@ -194,10 +195,6 @@ jobs:
       id-token: write
       contents: write
 
-    # Set credentials once at the job level
-    env:
-      SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
-
     steps:
       - uses: actions/setup-java@v3
         with:
@@ -228,11 +225,17 @@ jobs:
           echo "commit_id=${COMMIT_ID}" >> $GITHUB_OUTPUT
           echo "Using commit ID: ${COMMIT_ID}"
 
-      # Extract version information from build.gradle
+      # Replace the current "Extract version from build.gradle" step with this:
       - name: Extract version from build.gradle
         id: extract_version
         run: |
-          VERSION="0.1.0-SNAPSHOT"
+          # Extract the version directly from the build.gradle file
+          VERSION=$(grep -m 1 "archiveVersion.set" ./async-query-core/build.gradle | sed -n "s/.*archiveVersion.set('\([^']*\)').*/\1/p")
+          
+          # Add -SNAPSHOT suffix for snapshot repository if not already present
+          if [[ ! $VERSION == *-SNAPSHOT ]]; then
+            VERSION="${VERSION}-SNAPSHOT"
+          fi
           
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "Version: ${VERSION}"
