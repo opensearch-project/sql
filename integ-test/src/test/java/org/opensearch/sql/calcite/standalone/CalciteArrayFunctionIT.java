@@ -23,14 +23,44 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   @Test
   public void testArray() {
     JSONObject actual =
-            executeQuery(
+        executeQuery(
+            String.format(
+                "source=%s | eval array = array(1, -1.5, 2, 1.0) | head 1 | fields array",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("array", "array"));
+
+    verifyDataRows(actual, rows(List.of(1, -1.5, 2, 1.0)));
+  }
+
+  @Test
+  public void testArrayWithString() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval array = array(1, 'demo') | head 1 | fields array",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("array", "array"));
+
+    verifyDataRows(actual, rows(List.of("1", "demo")));
+  }
+
+  @Test
+  public void testArrayWithMix() {
+    RuntimeException e =
+        assertThrows(
+            RuntimeException.class,
+            () ->
+                executeQuery(
                     String.format(
-                            "source=%s | eval array = array(1, -1, 2, 1.0) | head 1",
-                            TEST_INDEX_BANK));
+                        "source=%s | eval array = array(1, true) | head 1 | fields array",
+                        TEST_INDEX_BANK)));
 
-    verifySchema(actual, schema("result", "boolean"));
-
-    verifyDataRows(actual, rows(false));
+    assertEquals(
+        e.getMessage(),
+        "Cannot resolve function: ARRAY, arguments: [INTEGER, BOOLEAN], caused by: fail to create"
+            + " array with fixed type: inferred array element type");
   }
 
   @Test

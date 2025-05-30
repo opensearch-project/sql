@@ -336,7 +336,7 @@ public class PPLFuncImpTable {
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
-      //registerOperator(ARRAY, SqlLibraryOperators.ARRAY);
+      // registerOperator(ARRAY, SqlLibraryOperators.ARRAY);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
       registerOperator(FILTER, PPLBuiltinOperators.FILTER);
