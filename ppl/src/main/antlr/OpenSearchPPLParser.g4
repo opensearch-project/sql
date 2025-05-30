@@ -582,7 +582,6 @@ evalFunctionName
    | jsonFunctionName
    | geoipFunctionName
    | collectionFunctionName
-   | lambdaFunctionName
    ;
 
 functionArgs
@@ -701,15 +700,14 @@ geoipFunctionName
 
 collectionFunctionName
     : ARRAY
+    | ARRAY_LENGTH
+    | FORALL
+    | EXISTS
+    | FILTER
+    | TRANSFORM
+    | REDUCE
     ;
 
-lambdaFunctionName
-  : FORALL
-  | EXISTS
-  | FILTER
-  | TRANSFORM
-  | REDUCE
-  ;
 
 trigonometricFunctionName
    : ACOS

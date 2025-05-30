@@ -64,6 +64,20 @@ public class CalciteArrayFunctionIT extends CalcitePPLIntegTestCase {
   }
 
   @Test
+  public void testArrayLength() {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval array = array(1, -1.5, 2, 1.0) | eval length ="
+                    + " array_length(array) | head 1 | fields length",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("length", "integer"));
+
+    verifyDataRows(actual, rows(4));
+  }
+
+  @Test
   public void testForAll() {
     JSONObject actual =
         executeQuery(
