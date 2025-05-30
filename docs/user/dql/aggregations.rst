@@ -378,6 +378,8 @@ Description
 
 Usage: PERCENTILE(expr, percent) or PERCENTILE_APPROX(expr, percent). Returns the approximate percentile value of `expr` at the specified percentage. `percent` must be a constant between 0 and 100.
 
+Note: From 3.1.0, the percentile implementation is switched to MergingDigest from AVLTreeDigest. Ref `issue link <https://github.com/opensearch-project/OpenSearch/issues/18122>`_.
+
 Example::
 
     os> SELECT gender, percentile(age, 90) as p90 FROM accounts GROUP BY gender;
