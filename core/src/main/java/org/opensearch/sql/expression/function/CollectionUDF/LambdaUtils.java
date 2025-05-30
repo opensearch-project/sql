@@ -57,7 +57,7 @@ public class LambdaUtils {
         }
       } else if (rexNode instanceof RexCall) {
         filledOperands.add(
-            reinferReturnTypeForRexCallInsideLambda((RexCall) rexNode, filledTypes, typeFactory));
+            reInferReturnTypeForRexCallInsideLambda((RexCall) rexNode, filledTypes, typeFactory));
       } else {
         filledOperands.add(rexNode);
       }
@@ -66,7 +66,7 @@ public class LambdaUtils {
         new RexCallBinding(typeFactory, rexCall.getOperator(), filledOperands, List.of()));
   }
 
-  public static RexCall reinferReturnTypeForRexCallInsideLambda(
+  public static RexCall reInferReturnTypeForRexCallInsideLambda(
       RexCall rexCall, Map<String, RelDataType> argTypes, RelDataTypeFactory typeFactory) {
     List<RexNode> filledOperands = new ArrayList<>();
     List<RexNode> rexCallOperands = rexCall.getOperands();
@@ -79,7 +79,7 @@ public class LambdaUtils {
                 argTypes.get(rexLambdaRef.getName())));
       } else if (rexNode instanceof RexCall) {
         filledOperands.add(
-            reinferReturnTypeForRexCallInsideLambda((RexCall) rexNode, argTypes, typeFactory));
+            reInferReturnTypeForRexCallInsideLambda((RexCall) rexNode, argTypes, typeFactory));
       } else {
         filledOperands.add(rexNode);
       }

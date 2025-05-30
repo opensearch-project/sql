@@ -424,11 +424,12 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   private List<RelDataType> modifyLambdaTypeByFunction(
       String functionName, List<RelDataType> originalType) {
     switch (functionName.toUpperCase(Locale.ROOT)) {
-      case "REDUCE": // For reduce case, the first type is acc should be any
-        return Stream.concat(
-                Stream.of(TYPE_FACTORY.createSqlType(SqlTypeName.ANY)),
-                originalType.subList(0, originalType.size() - 1).stream())
-            .collect(Collectors.toList());
+      case "REDUCE": // For reduce case, the first type is acc should be any since it is the output of accumulator lambda function
+        if (originalType.size() == 2) {
+          return List.of(originalType.get(1), originalType.get(0));
+        } else {
+          return List.of(originalType.get(2));
+        }
       default:
         return originalType;
     }
