@@ -207,7 +207,16 @@ public class CalciteOpenSearchIndexScan extends OpenSearchTableScan {
     // NESTED
   }
 
-  private record PushDownAction(PushDownType type, Object digest, AbstractAction action) {
+  private static class PushDownAction {
+    private final PushDownType type;
+    private final Object digest;
+    private final AbstractAction action;
+
+    public PushDownAction(PushDownType type, Object digest, AbstractAction action) {
+      this.type = type;
+      this.digest = digest;
+      this.action = action;
+    }
     static PushDownAction of(PushDownType type, Object digest, AbstractAction action) {
       return new PushDownAction(type, digest, action);
     }
