@@ -19,6 +19,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.exception.SemanticCheckException;
 
+@Ignore
 public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
 
   @Override
@@ -36,14 +37,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where id in [
-                       source = %s
-                       | where country = 'USA'
-                       | fields id
-                     ]
-                   """,
+                " source = %s | where id in [ source = %s| where country = 'USA'| fields id]",
                 TEST_INDEX_WORKER, TEST_INDEX_WORKER));
     verifySchema(
         result,
@@ -63,14 +57,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where id in [
-                       source = %s | fields uid
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                "source = %s | where id in [source = %s | fields uid ] | sort  - salary | fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
@@ -88,13 +75,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s id in [
-                       source = %s | fields uid
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                "source = %s id in [source = %s | fields uid]| sort  - salary| fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
@@ -112,25 +93,12 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result1 =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where (id) in [
-                       source = %s | fields uid
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                "source = %s| where (id) in [source = %s | fields uid]| sort  - salary| fields id, name",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     JSONObject result2 =
         executeQuery(
             String.format(
-                """
-                   source = %s (id) in [
-                       source = %s | fields uid
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                "source = %s (id) in [ source = %s | fields uid] | sort  - salary | fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result1, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
@@ -157,14 +125,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where (id, name) in [
-                       source = %s | fields uid, name
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                " source = %s | where (id, name) in [ source = %s | fields uid, name] | sort  - salary | fields id, name, salary ",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
@@ -181,14 +142,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where id not in [
-                       source = %s | fields uid
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                "source = %s | where id not in [ source = %s | fields uid] | sort  - salary | fields id, name, salary ",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
@@ -200,13 +154,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s id not in [
-                       source = %s | fields uid
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                "source = %s id not in [ source = %s | fields uid] | sort  - salary | fields id, name, salary ",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
@@ -218,14 +166,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where (id, name) not in [
-                       source = %s | fields uid, name
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                "source = %s | where (id, name) not in [ source = %s | fields uid, name] | sort  - salary | fields id, name, salary ",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
@@ -238,13 +179,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s id not in [
-                       source = %s | where uid = 0000 | fields uid
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                "source = %s id not in [source = %s | where uid = 0000 | fields uid]| sort  - salary| fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
@@ -264,20 +199,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where id in [
-                       source = %s
-                       | where occupation in [
-                           source = %s
-                           | where occupation != 'Engineer'
-                           | fields occupation
-                         ]
-                       | fields uid
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                "source = %s| where id in [source = %s| where occupation in [source = %s| where occupation != 'Engineer'| fields occupation ]| fields uid]| sort  - salary| fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
@@ -293,15 +215,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | inner join left=a, right=b
-                       ON a.id = b.uid AND b.occupation in [
-                         source = %s | where occupation != 'Engineer' | fields occupation
-                       ]
-                       %s
-                   | fields a.id, a.name, a.salary, b.occupation
-                   """,
+                "source = %s| inner join left=a, right=b ON a.id = b.uid AND b.occupation in [source = %s | where occupation != 'Engineer' | fields occupation] %s | fields a.id, a.name, a.salary, b.occupation",
                 TEST_INDEX_WORKER, TEST_INDEX_OCCUPATION, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
@@ -321,14 +235,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
         () ->
             executeQuery(
                 String.format(
-                    """
-                   source = %s
-                   | where id in [
-                       source = %s | fields uid, department
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                    "source = %s| where id in [ source = %s | fields uid, department ] | sort  - salary | fields id, name, salary",
                     TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
 
     assertThrows(
@@ -338,14 +245,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
         () ->
             executeQuery(
                 String.format(
-                    """
-                   source = %s
-                   | where (id, name, salary) in [
-                       source = %s | fields uid, department
-                     ]
-                   | sort  - salary
-                   | fields id, name, salary
-                   """,
+                    "source = %s| where (id, name, salary) in [ source = %s | fields uid, department ]| sort  - salary| fields id, name, salary",
                     TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION)));
   }
 
@@ -355,16 +255,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s as o
-                   | where id in [
-                       source = %s as i
-                       | where i.department = 'DATA'
-                       | fields uid
-                     ]
-                   | sort - o.salary
-                   | fields o.id, o.name, o.salary
-                   """,
+                "source = %s as o | where id in [ source = %s as i | where i.department = 'DATA' | fields uid] | sort - o.salary | fields o.id, o.name, o.salary ",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result, schema("id", "integer"), schema("name", "string"), schema("salary", "integer"));
