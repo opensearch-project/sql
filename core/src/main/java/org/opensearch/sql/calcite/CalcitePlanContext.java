@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.sql.Connection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.function.BiFunction;
@@ -30,6 +31,7 @@ public class CalcitePlanContext {
   public final ExtendedRexBuilder rexBuilder;
   public final FunctionProperties functionProperties;
   public final QueryType queryType;
+  public final Integer querySizeLimit;
 
   @Getter @Setter private boolean isResolvingJoinCondition = false;
   @Getter @Setter private boolean isResolvingSubquery = false;
@@ -43,9 +45,11 @@ public class CalcitePlanContext {
   @Getter @Setter private boolean isProjectVisited = false;
 
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
+  private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
-  private CalcitePlanContext(FrameworkConfig config, QueryType queryType) {
+  private CalcitePlanContext(FrameworkConfig config, Integer querySizeLimit, QueryType queryType) {
     this.config = config;
+    this.querySizeLimit = querySizeLimit;
     this.queryType = queryType;
     this.connection = CalciteToolsHelper.connect(config, TYPE_FACTORY);
     this.relBuilder = CalciteToolsHelper.create(config, TYPE_FACTORY, connection);
@@ -82,7 +86,8 @@ public class CalcitePlanContext {
     }
   }
 
-  public static CalcitePlanContext create(FrameworkConfig config, QueryType queryType) {
-    return new CalcitePlanContext(config, queryType);
+  public static CalcitePlanContext create(
+      FrameworkConfig config, Integer querySizeLimit, QueryType queryType) {
+    return new CalcitePlanContext(config, querySizeLimit, queryType);
   }
 }

@@ -1,6 +1,6 @@
 {
-  "calcite":{
-    "logical":"LogicalProject(ageMinus=[$17])\n  LogicalSort(fetch=[5])\n    LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16], ageMinus=[-($8, 30)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
-    "physical":"EnumerableCalc(expr#0..16=[{inputs}], expr#17=[30], expr#18=[-($t8, $t17)], ageMinus=[$t18])\n  EnumerableLimit(fetch=[5])\n    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n"
+  "calcite": {
+    "logical": "LogicalProject(ageMinus=[$17])\n  LogicalSort(fetch=[5])\n    LogicalProject(account_number=[$0], firstname=[$1], address=[$2], balance=[$3], gender=[$4], city=[$5], employer=[$6], state=[$7], age=[$8], email=[$9], lastname=[$10], _id=[$11], _index=[$12], _score=[$13], _maxscore=[$14], _sort=[$15], _routing=[$16], ageMinus=[-($8, 30)])\n      CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])\n",
+    "physical": "EnumerableCalc(expr#0=[{inputs}], expr#1=[30], expr#2=[-($t0, $t1)], $f0=[$t2])\n  CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]], PushDownContext=[[LIMIT->5, PROJECT->[age]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\",\"_source\":{\"includes\":[\"age\"],\"excludes\":[]}}, requestedTotalSize=5, pageSize=null, startFrom=0)])\n"
   }
 }

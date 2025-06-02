@@ -54,6 +54,7 @@ commands
    | joinCommand
    | renameCommand
    | statsCommand
+   | eventstatsCommand
    | dedupCommand
    | sortCommand
    | evalCommand
@@ -80,6 +81,7 @@ commandName
    | JOIN
    | RENAME
    | STATS
+   | EVENTSTATS
    | DEDUP
    | SORT
    | EVAL
@@ -128,6 +130,10 @@ statsCommand
    : STATS (PARTITIONS EQUAL partitions = integerLiteral)? (ALLNUM EQUAL allnum = booleanLiteral)? (DELIM EQUAL delim = stringLiteral)? statsAggTerm (COMMA statsAggTerm)* (statsByClause)? (DEDUP_SPLITVALUES EQUAL dedupsplit = booleanLiteral)?
    ;
 
+eventstatsCommand
+   : EVENTSTATS eventstatsAggTerm (COMMA eventstatsAggTerm)* (statsByClause)?
+   ;
+
 dedupCommand
    : DEDUP (number = integerLiteral)? fieldList (KEEPEMPTY EQUAL keepempty = booleanLiteral)? (CONSECUTIVE EQUAL consecutive = booleanLiteral)?
    ;
@@ -145,11 +151,11 @@ headCommand
    ;
 
 topCommand
-   : TOP (number = integerLiteral)? fieldList (byClause)?
+   : TOP (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
 
 rareCommand
-   : RARE (number = integerLiteral)? fieldList (byClause)?
+   : RARE (number = integerLiteral)? (COUNTFIELD EQUAL countfield = stringLiteral)? (SHOWCOUNT EQUAL showcount = booleanLiteral)? fieldList (byClause)?
    ;
 
 grokCommand
@@ -203,20 +209,20 @@ lookupPair
    ;
 
 fillnullCommand
-   : FILLNULL (fillNullWithTheSameValue
-   | fillNullWithFieldVariousValues)
+   : FILLNULL fillNullWith
+   | FILLNULL fillNullUsing
    ;
 
-fillNullWithTheSameValue
-   : WITH nullReplacement = valueExpression IN nullableFieldList = fieldList
+fillNullWith
+   : WITH replacement = valueExpression (IN fieldList)?
    ;
 
-fillNullWithFieldVariousValues
-   : USING nullReplacementExpression (COMMA nullReplacementExpression)*
+fillNullUsing
+   : USING replacementPair (COMMA replacementPair)*
    ;
 
-nullReplacementExpression
-   : nullableField = fieldExpression EQUAL nullReplacement = valueExpression
+replacementPair
+   : fieldExpression EQUAL replacement = valueExpression
    ;
 
 trendlineCommand
@@ -346,6 +352,31 @@ sortbyClause
 
 evalClause
    : fieldExpression EQUAL expression
+   ;
+
+eventstatsAggTerm
+   : windowFunction (AS alias = wcFieldExpression)?
+   ;
+
+windowFunction
+   : windowFunctionName LT_PRTHS functionArgs RT_PRTHS
+   ;
+
+windowFunctionName
+   : statsFunctionName
+   | scalarWindowFunctionName
+   ;
+
+scalarWindowFunctionName
+   : ROW_NUMBER
+   | RANK
+   | DENSE_RANK
+   | PERCENT_RANK
+   | CUME_DIST
+   | FIRST
+   | LAST
+   | NTH
+   | NTILE
    ;
 
 // aggregation terms
@@ -546,6 +577,7 @@ evalFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | positionFunctionName
+   | cryptographicFunctionName
    | jsonFunctionName
    | geoipFunctionName
    ;
@@ -664,6 +696,12 @@ trigonometricFunctionName
    | RADIANS
    | SIN
    | TAN
+   ;
+
+cryptographicFunctionName
+   : MD5
+   | SHA1
+   | SHA2
    ;
 
 dateTimeFunctionName
@@ -796,6 +834,9 @@ conditionFunctionName
    | ISNOTNULL
    | CIDRMATCH
    | JSON_VALID
+   | ISPRESENT
+   | ISEMPTY
+   | ISBLANK
    ;
 
 // flow control function return non-boolean value
@@ -803,6 +844,7 @@ flowControlFunctionName
    : IF
    | IFNULL
    | NULLIF
+   | COALESCE
    ;
 
 systemFunctionName
@@ -1054,8 +1096,11 @@ keywordsCanBeId
    | TIME_ZONE
    | TRAINING_DATA_SIZE
    | ANOMALY_SCORE_THRESHOLD
-   // AGGREGATIONS
+   | COUNTFIELD
+   | SHOWCOUNT
+   // AGGREGATIONS AND WINDOW
    | statsFunctionName
+   | windowFunctionName
    | DISTINCT_COUNT
    | ESTDC
    | ESTDC_ERROR
@@ -1069,8 +1114,6 @@ keywordsCanBeId
    | VAR_SAMP
    | VAR_POP
    | TAKE
-   | FIRST
-   | LAST
    | LIST
    | VALUES
    | PER_DAY

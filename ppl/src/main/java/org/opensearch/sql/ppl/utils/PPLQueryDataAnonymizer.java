@@ -23,6 +23,7 @@ import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Argument;
+import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
@@ -40,6 +41,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
@@ -49,6 +51,7 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
+import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
@@ -65,6 +68,8 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -81,9 +86,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   private static final String MASK_LITERAL = "***";
 
   private final AnonymizerExpressionAnalyzer expressionAnalyzer;
+  private final Settings settings;
 
-  public PPLQueryDataAnonymizer() {
+  public PPLQueryDataAnonymizer(Settings settings) {
     this.expressionAnalyzer = new AnonymizerExpressionAnalyzer(this);
+    this.settings = settings;
   }
 
   /**
@@ -115,6 +122,12 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitRelation(Relation node, String context) {
+    if (node instanceof DescribeRelation) {
+      // remove the system table suffix
+      String systemTable = node.getTableQualifiedName().toString();
+      return StringUtils.format(
+          "describe %s", systemTable.substring(0, systemTable.lastIndexOf('.')));
+    }
     return StringUtils.format("source=%s", node.getTableQualifiedName().toString());
   }
 
@@ -223,19 +236,34 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         child, String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
   }
 
+  @Override
+  public String visitWindow(Window node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    return StringUtils.format(
+        "%s | eventstats %s",
+        child, String.join(" ", visitExpressionList(node.getWindowFunctionList())).trim());
+  }
+
   /** Build {@link LogicalRareTopN}. */
   @Override
   public String visitRareTopN(RareTopN node, String context) {
     final String child = node.getChild().get(0).accept(this, context);
-    List<Argument> options = node.getNoOfResults();
-    Integer noOfResults = (Integer) options.get(0).getValue().getValue();
+    ArgumentMap arguments = ArgumentMap.of(node.getArguments());
+    Integer noOfResults = (Integer) arguments.get("noOfResults").getValue();
+    String countField = (String) arguments.get("countField").getValue();
+    Boolean showCount = (Boolean) arguments.get("showCount").getValue();
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
+    String options =
+        isCalciteEnabled(settings)
+            ? StringUtils.format("countield='%s' showcount=%s ", countField, showCount)
+            : "";
     return StringUtils.format(
-        "%s | %s %d %s",
+        "%s | %s %d %s%s",
         child,
         node.getCommandType().name().toLowerCase(),
         noOfResults,
+        options,
         String.join(" ", fields, groupBy(group)).trim());
   }
 
@@ -359,32 +387,39 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   @Override
   public String visitFillNull(FillNull node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    List<FillNull.NullableFieldFill> fieldFills = node.getNullableFieldFills();
-    final UnresolvedExpression firstReplacement = fieldFills.getFirst().getReplaceNullWithMe();
-    if (fieldFills.stream().allMatch(n -> firstReplacement == n.getReplaceNullWithMe())) {
+    List<Pair<Field, UnresolvedExpression>> fieldFills = node.getReplacementPairs();
+    if (fieldFills.isEmpty()) {
+      return StringUtils.format("%s | fillnull with %s", child, MASK_LITERAL);
+    }
+    final UnresolvedExpression firstReplacement = fieldFills.getFirst().getRight();
+    if (fieldFills.stream().allMatch(n -> firstReplacement == n.getRight())) {
       return StringUtils.format(
           "%s | fillnull with %s in %s",
           child,
-          firstReplacement,
-          node.getNullableFieldFills().stream()
-              .map(n -> visitExpression(n.getNullableFieldReference()))
+          MASK_LITERAL,
+          node.getReplacementPairs().stream()
+              .map(n -> visitExpression(n.getLeft()))
               .collect(Collectors.joining(", ")));
     } else {
       return StringUtils.format(
           "%s | fillnull using %s",
           child,
-          node.getNullableFieldFills().stream()
-              .map(
-                  n ->
-                      StringUtils.format(
-                          "%s = %s",
-                          visitExpression(n.getNullableFieldReference()), n.getReplaceNullWithMe()))
+          node.getReplacementPairs().stream()
+              .map(n -> StringUtils.format("%s = %s", visitExpression(n.getLeft()), MASK_LITERAL))
               .collect(Collectors.joining(", ")));
     }
   }
 
   private String groupBy(String groupBy) {
     return Strings.isNullOrEmpty(groupBy) ? "" : StringUtils.format("by %s", groupBy);
+  }
+
+  private boolean isCalciteEnabled(Settings settings) {
+    if (settings != null) {
+      return settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED);
+    } else {
+      return false;
+    }
   }
 
   /** Expression Anonymizer. */
@@ -458,6 +493,20 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
               .map(unresolvedExpression -> analyze(unresolvedExpression, context))
               .collect(Collectors.joining(","));
       return StringUtils.format("%s(%s)", node.getFuncName(), arguments);
+    }
+
+    @Override
+    public String visitWindowFunction(WindowFunction node, String context) {
+      String function = analyze(node.getFunction(), context);
+      String partitions =
+          node.getPartitionByList().stream()
+              .map(p -> analyze(p, context))
+              .collect(Collectors.joining(","));
+      if (partitions.isEmpty()) {
+        return StringUtils.format("%s", function);
+      } else {
+        return StringUtils.format("%s by %s", function, partitions);
+      }
     }
 
     @Override

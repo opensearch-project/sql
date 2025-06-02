@@ -25,6 +25,7 @@ import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -110,10 +111,12 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
+              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)
               .put(Key.CALCITE_PUSHDOWN_ENABLED, false)
+              .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
               .put(Key.DEFAULT_PATTERN_METHOD, "SIMPLE_PATTERN")
               .build();
 
@@ -135,10 +138,12 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
       private final Map<Key, Object> defaultSettings =
           new ImmutableMap.Builder<Key, Object>()
               .put(Key.QUERY_SIZE_LIMIT, 200)
+              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
               .put(Key.CALCITE_ENGINE_ENABLED, true)
               .put(Key.CALCITE_FALLBACK_ALLOWED, false)
               .put(Key.CALCITE_PUSHDOWN_ENABLED, true)
+              .put(Key.CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR, 0.9)
               .put(Key.DEFAULT_PATTERN_METHOD, "SIMPLE_PATTERN")
               .build();
 
@@ -215,6 +220,8 @@ public abstract class CalcitePPLIntegTestCase extends PPLIntegTestCase {
               throw (UnsupportedCursorRequestException) e;
             } else if (e instanceof NoCursorException) {
               throw (NoCursorException) e;
+            } else if (e instanceof UnsupportedOperationException) {
+              throw (UnsupportedOperationException) e;
             } else if (e instanceof IllegalArgumentException) {
               // most exceptions thrown by Calcite when resolve a plan.
               throw (IllegalArgumentException) e;

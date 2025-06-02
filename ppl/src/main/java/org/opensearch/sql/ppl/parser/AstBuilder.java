@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
@@ -78,6 +79,7 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -326,6 +328,46 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             span,
             ArgumentFactory.getArgumentList(ctx));
     return aggregation;
+  }
+
+  public UnresolvedPlan visitEventstatsCommand(OpenSearchPPLParser.EventstatsCommandContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> partExprListBuilder = new ImmutableList.Builder<>();
+    Optional.ofNullable(ctx.statsByClause())
+        .map(OpenSearchPPLParser.StatsByClauseContext::bySpanClause)
+        .map(this::internalVisitExpression)
+        .ifPresent(partExprListBuilder::add);
+
+    Optional.ofNullable(ctx.statsByClause())
+        .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
+        .map(
+            expr ->
+                expr.fieldExpression().stream()
+                    .map(
+                        groupCtx ->
+                            (UnresolvedExpression)
+                                new Alias(
+                                    StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
+                                    internalVisitExpression(groupCtx)))
+                    .collect(Collectors.toList()))
+        .ifPresent(partExprListBuilder::addAll);
+
+    ImmutableList.Builder<UnresolvedExpression> windownFunctionListBuilder =
+        new ImmutableList.Builder<>();
+    for (OpenSearchPPLParser.EventstatsAggTermContext aggCtx : ctx.eventstatsAggTerm()) {
+      UnresolvedExpression windowFunction = internalVisitExpression(aggCtx.windowFunction());
+      // set partition by list for window function
+      if (windowFunction instanceof WindowFunction) {
+        ((WindowFunction) windowFunction).setPartitionByList(partExprListBuilder.build());
+      }
+      String name =
+          aggCtx.alias == null
+              ? getTextInQuery(aggCtx)
+              : StringUtils.unquoteIdentifier(aggCtx.alias.getText());
+      Alias alias = new Alias(name, windowFunction);
+      windownFunctionListBuilder.add(alias);
+    }
+
+    return new Window(windownFunctionListBuilder.build());
   }
 
   /** Dedup command. */
@@ -582,30 +624,31 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   /** fillnull command. */
   @Override
-  public UnresolvedPlan visitFillNullWithTheSameValue(
-      OpenSearchPPLParser.FillNullWithTheSameValueContext ctx) {
-    return new FillNull(
-        FillNull.ContainNullableFieldFill.ofSameValue(
-            internalVisitExpression(ctx.nullReplacement),
-            ctx.nullableFieldList.fieldExpression().stream()
-                .map(f -> (Field) internalVisitExpression(f))
-                .toList()));
+  public UnresolvedPlan visitFillNullWith(OpenSearchPPLParser.FillNullWithContext ctx) {
+    if (ctx.IN() != null) {
+      return FillNull.ofSameValue(
+          internalVisitExpression(ctx.replacement),
+          ctx.fieldList().fieldExpression().stream()
+              .map(f -> (Field) internalVisitExpression(f))
+              .toList());
+    } else {
+      return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of());
+    }
   }
 
   /** fillnull command. */
   @Override
-  public UnresolvedPlan visitFillNullWithFieldVariousValues(
-      OpenSearchPPLParser.FillNullWithFieldVariousValuesContext ctx) {
-    ImmutableList.Builder<FillNull.NullableFieldFill> replacementsBuilder = ImmutableList.builder();
-    for (int i = 0; i < ctx.nullReplacementExpression().size(); i++) {
+  public UnresolvedPlan visitFillNullUsing(OpenSearchPPLParser.FillNullUsingContext ctx) {
+    ImmutableList.Builder<Pair<Field, UnresolvedExpression>> replacementsBuilder =
+        ImmutableList.builder();
+    for (int i = 0; i < ctx.replacementPair().size(); i++) {
       replacementsBuilder.add(
-          new FillNull.NullableFieldFill(
-              (Field) internalVisitExpression(ctx.nullReplacementExpression(i).nullableField),
-              internalVisitExpression(ctx.nullReplacementExpression(i).nullReplacement)));
+          Pair.of(
+              (Field) internalVisitExpression(ctx.replacementPair(i).fieldExpression()),
+              internalVisitExpression(ctx.replacementPair(i).replacement)));
     }
 
-    return new FillNull(
-        FillNull.ContainNullableFieldFill.ofVariousValue(replacementsBuilder.build()));
+    return FillNull.ofVariousValue(replacementsBuilder.build());
   }
 
   /** trendline command. */

@@ -59,7 +59,7 @@ public class OpenSearchRequestBuilder {
   private final SearchSourceBuilder sourceBuilder;
 
   /** Query size of the request -- how many rows will be returned. */
-  private int requestedTotalSize;
+  private int requestedTotalSize = Integer.MAX_VALUE;
 
   /** Size of each page request to return. */
   private Integer pageSize = null;
@@ -73,9 +73,7 @@ public class OpenSearchRequestBuilder {
   @ToString.Exclude private final Settings settings;
 
   /** Constructor. */
-  public OpenSearchRequestBuilder(
-      int requestedTotalSize, OpenSearchExprValueFactory exprValueFactory, Settings settings) {
-    this.requestedTotalSize = requestedTotalSize;
+  public OpenSearchRequestBuilder(OpenSearchExprValueFactory exprValueFactory, Settings settings) {
     this.settings = settings;
     this.sourceBuilder =
         new SearchSourceBuilder()
@@ -95,6 +93,22 @@ public class OpenSearchRequestBuilder {
       int maxResultWindow,
       TimeValue cursorKeepAlive,
       OpenSearchClient client) {
+    return build(indexName, maxResultWindow, cursorKeepAlive, client, false);
+  }
+
+  public OpenSearchRequest build(
+      OpenSearchRequest.IndexName indexName,
+      int maxResultWindow,
+      TimeValue cursorKeepAlive,
+      OpenSearchClient client,
+      boolean isMappingEmpty) {
+    /* Don't use PIT search:
+     * 1. If the size of source is 0. It means this is an aggregation request and no need to use pit.
+     * 2. If mapping is empty. It means no data in the index. PIT search relies on `_id` fields to do sort, thus it will fail if using PIT search in this case.
+     */
+    if (sourceBuilder.size() == 0 || isMappingEmpty) {
+      return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, List.of());
+    }
     return buildRequestWithPit(indexName, maxResultWindow, cursorKeepAlive, client);
   }
 
@@ -116,7 +130,7 @@ public class OpenSearchRequestBuilder {
             indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
       } else {
         sourceBuilder.from(startFrom);
-        sourceBuilder.size(requestedTotalSize);
+        sourceBuilder.size(size);
         // Search with non-Pit request
         return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
       }
@@ -197,9 +211,18 @@ public class OpenSearchRequestBuilder {
 
   /** Pushdown size (limit) and from (offset) to DSL request. */
   public void pushDownLimit(Integer limit, Integer offset) {
-    requestedTotalSize = limit;
-    startFrom = offset;
-    sourceBuilder.from(offset).size(limit);
+    // If there are multiple limit, we take the minimum among them
+    // E.g. for `source=t | head 10 | head 5`, we take 5
+    // This also ensures that the limit won't exceed the initial default value. (set to
+    // Settings.Key.QUERY_SIZE_LIMIT in OpenSearchIndex)
+    // Besides, there may be cases when the existing requestedTotalSize does not satisfy the
+    // new limit and offset. E.g. for `head 11 | head 10 from 2`, the new requested total size
+    // is 9. We need to adjust it accordingly.
+    requestedTotalSize = Math.min(limit, requestedTotalSize - offset);
+    // If there are multiple offset, we aggregate the offset
+    // E.g. for `head 10 from 1 | head 5 from 2` equals to `head 5 from 3`
+    startFrom += offset;
+    sourceBuilder.from(startFrom).size(requestedTotalSize);
   }
 
   public void pushDownTrackedScore(boolean trackScores) {

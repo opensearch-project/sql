@@ -50,7 +50,7 @@ public class IPFunctions {
    * @throws SemanticCheckException if the address or range is not valid, or if they do not use the
    *     same version (IPv4 or IPv6).
    */
-  private ExprValue exprCidrMatch(ExprValue addressExprValue, ExprValue rangeExprValue) {
+  public static ExprValue exprCidrMatch(ExprValue addressExprValue, ExprValue rangeExprValue) {
 
     IPAddress address = addressExprValue.ipValue();
     IPAddress range = IPUtils.toRange(rangeExprValue.stringValue());

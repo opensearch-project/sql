@@ -31,8 +31,8 @@ import org.opensearch.sql.calcite.plan.OpenSearchRules;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
-/** Relational expression representing a scan of an OpenSearchIndex type. */
-public class CalciteEnumerableIndexScan extends CalciteIndexScan implements EnumerableRel {
+/** The physical relational operator representing a scan of an OpenSearchIndex type. */
+public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan implements EnumerableRel {
   private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);
 
   /**
@@ -86,12 +86,17 @@ public class CalciteEnumerableIndexScan extends CalciteIndexScan implements Enum
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
+  /**
+   * This Enumerator may be iterated for multiple times, so we need to create opensearch request for
+   * each time to avoid reusing source builder. That's because the source builder has stats like PIT
+   * or SearchAfter recorded during previous search.
+   */
   public Enumerable<@Nullable Object> scan() {
-    OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
-    pushDownContext.forEach(action -> action.apply(requestBuilder));
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
+        OpenSearchRequestBuilder requestBuilder = osIndex.createRequestBuilder();
+        pushDownContext.forEach(action -> action.apply(requestBuilder));
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getFieldPath(),

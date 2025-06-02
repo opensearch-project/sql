@@ -29,7 +29,6 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 public class Patterns extends UnresolvedPlan {
 
   private final UnresolvedExpression windowFunction;
-
   private UnresolvedPlan child;
 
   @Override

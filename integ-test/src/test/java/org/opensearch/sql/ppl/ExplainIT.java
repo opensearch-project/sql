@@ -6,7 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
+import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 
 import com.google.common.io.Resources;
 import java.io.IOException;
@@ -31,7 +31,7 @@ public class ExplainIT extends PPLIntegTestCase {
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_output.json")
             : loadFromFile("expectedOutput/ppl/explain_output.json");
-    assertJsonEquals(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -51,7 +51,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_filter_push.json")
             : loadFromFile("expectedOutput/ppl/explain_filter_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -63,13 +63,12 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testFilterAndAggPushDownExplain() throws Exception {
-    // TODO check why the agg pushdown doesn't work in calcite
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_filter_agg_push.json")
             : loadFromFile("expectedOutput/ppl/explain_filter_agg_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -85,7 +84,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_sort_push.json")
             : loadFromFile("expectedOutput/ppl/explain_sort_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -96,13 +95,12 @@ public class ExplainIT extends PPLIntegTestCase {
 
   @Test
   public void testLimitPushDownExplain() throws Exception {
-    // TODO fix after https://github.com/opensearch-project/sql/issues/3381
     String expected =
         isCalciteEnabled()
             ? loadFromFile("expectedOutput/calcite/explain_limit_push.json")
             : loadFromFile("expectedOutput/ppl/explain_limit_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -112,10 +110,111 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFillNullPushDownExplain() throws Exception {
-    String expected = loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
+  public void testLimitWithFilterPushdownExplain() throws Exception {
+    String expectedFilterThenLimit =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_filter_then_limit_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_filter_then_limit_push.json");
+    assertJsonEqualsIgnoreId(
+        expectedFilterThenLimit,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| where age > 30 "
+                + "| head 5 "
+                + "| fields age"));
 
-    assertJsonEquals(
+    // The filter in limit-then-filter queries should not be pushed since the current DSL will
+    // execute it as filter-then-limit
+    String expectedLimitThenFilter =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_then_filter_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_then_filter_push.json");
+    assertJsonEqualsIgnoreId(
+        expectedLimitThenFilter,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| where age > 30 "
+                + "| fields age"));
+  }
+
+  @Test
+  public void testMultipleLimitExplain() throws Exception {
+    String expected5Then10 =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_5_10_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_5_10_push.json");
+    assertJsonEqualsIgnoreId(
+        expected5Then10,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 5 "
+                + "| head 10 "
+                + "| fields age"));
+
+    String expected10Then5 =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_10_5_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_10_5_push.json");
+    assertJsonEqualsIgnoreId(
+        expected10Then5,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 10 "
+                + "| head 5 "
+                + "| fields age"));
+
+    String expected10from1then10from2 =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_10from1_10from2_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_10from1_10from2_push.json");
+    assertJsonEqualsIgnoreId(
+        expected10from1then10from2,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 10 from 1 "
+                + "| head 10 from 2 "
+                + "| fields age"));
+
+    // The second limit should not be pushed down for limit-filter-limit queries
+    String expected10ThenFilterThen5 =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_10_filter_5_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_10_filter_5_push.json");
+    assertJsonEqualsIgnoreId(
+        expected10ThenFilterThen5,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 10 "
+                + "| where age > 30 "
+                + "| head 5 "
+                + "| fields age"));
+  }
+
+  @Test
+  public void testLimitWithMultipleOffsetPushdownExplain() throws Exception {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_limit_offsets_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_limit_offsets_push.json");
+
+    assertJsonEqualsIgnoreId(
+        expected,
+        explainQueryToString(
+            "source=opensearch-sql_test_index_account"
+                + "| head 10 from 1 "
+                + "| head 5 from 2 "
+                + "| fields age"));
+  }
+
+  @Test
+  public void testFillNullPushDownExplain() throws Exception {
+    String expected =
+        isCalciteEnabled()
+            ? loadFromFile("expectedOutput/calcite/explain_fillnull_push.json")
+            : loadFromFile("expectedOutput/ppl/explain_fillnull_push.json");
+
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -126,7 +225,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testTrendlinePushDownExplain() throws Exception {
     String expected = loadFromFile("expectedOutput/ppl/explain_trendline_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -139,7 +238,7 @@ public class ExplainIT extends PPLIntegTestCase {
   public void testTrendlineWithSortPushDownExplain() throws Exception {
     String expected = loadFromFile("expectedOutput/ppl/explain_trendline_sort_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
@@ -173,7 +272,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_patterns.json")
             : loadFromFile("expectedOutput/ppl/explain_patterns.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString("source=opensearch-sql_test_index_account | patterns email"));
   }
@@ -186,7 +285,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_patterns_agg_push.json")
             : loadFromFile("expectedOutput/ppl/explain_patterns_agg_push.json");
 
-    assertJsonEquals(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"

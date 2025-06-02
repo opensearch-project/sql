@@ -12,7 +12,6 @@ public class CalciteFillNullCommandIT extends FillNullCommandIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
-    // TODO: "https://github.com/opensearch-project/sql/issues/3461"
-    // disallowCalciteFallback();
+    disallowCalciteFallback();
   }
 }

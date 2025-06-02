@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.calcite.udf.udaf;
 
-import com.tdunning.math.stats.AVLTreeDigest;
+import com.tdunning.math.stats.MergingDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -85,7 +85,7 @@ public class PercentileApproxFunction
     public Object value(Object... argList) {
       double percent = (double) argList[1];
       double compression = (double) argList[0];
-      AVLTreeDigest tree = new AVLTreeDigest(compression);
+      MergingDigest tree = new MergingDigest(compression);
       for (Number num : candidate) {
         tree.add(num.doubleValue());
       }
