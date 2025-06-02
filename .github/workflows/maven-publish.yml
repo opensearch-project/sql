@@ -1,4 +1,4 @@
-name: Publish snapshots to maven
+name: Publish grammar files to maven
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
       - 2.*
 
 jobs:
-  build-and-publish-snapshots:
+  publish-grammar-files:
     strategy:
       fail-fast: false
     if: github.repository == 'opensearch-project/sql'
@@ -18,6 +18,10 @@ jobs:
     permissions:
       id-token: write
       contents: write
+
+    env:
+      SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+      TARGET_REPO_PATH: org/opensearch/opensearch-language-grammar
 
     steps:
       - uses: actions/setup-java@v3
@@ -30,15 +34,20 @@ jobs:
           role-to-assume: ${{ secrets.PUBLISH_SNAPSHOTS_ROLE }}
           aws-region: us-east-1
 
-      # Create the initial direct-query directory structure
-      - name: Create direct-query directory structure in repository
+      # Get Maven credentials
+      - name: Setup publishing credentials
+        id: creds
         run: |
-          # Get credentials for publishing
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
+          SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
+          SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
           echo "::add-mask::$SONATYPE_USERNAME"
           echo "::add-mask::$SONATYPE_PASSWORD"
-          
+          echo "SONATYPE_USERNAME=$SONATYPE_USERNAME" >> $GITHUB_ENV
+          echo "SONATYPE_PASSWORD=$SONATYPE_PASSWORD" >> $GITHUB_ENV
+
+      # Create the initial directory structure in repository
+      - name: Create grammar-poc directory structure in repository
+        run: |
           # Create a placeholder file
           TEMP_DIR=$(mktemp -d)
           echo "Directory placeholder - $(date)" > "${TEMP_DIR}/.placeholder"
@@ -47,16 +56,146 @@ jobs:
           echo "Creating initial directory structure..."
           curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" \
             --upload-file "${TEMP_DIR}/.placeholder" \
-            "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/direct-query/.placeholder"
+            "https://aws.oss.sonatype.org/content/repositories/snapshots/org/opensearch/opensearch-language-grammar/.placeholder"
           
           # Clean up
           rm -rf "${TEMP_DIR}"
           echo "Directory structure created"
 
-      - name: publish snapshots to maven
+      # Extract version information - using a simpler method for grammar files
+      - name: Set version
+        id: set_version
         run: |
-          export SONATYPE_USERNAME=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-username --query SecretString --output text)
-          export SONATYPE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id maven-snapshots-password --query SecretString --output text)
-          echo "::add-mask::$SONATYPE_USERNAME"
-          echo "::add-mask::$SONATYPE_PASSWORD"
-          ./gradlew publishPluginZipPublicationToSnapshotsRepository
+          VERSION="1.0.0-SNAPSHOT" # You can adjust this version as needed
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Using version: ${VERSION}"
+
+      # Capture commit ID
+      - name: Set commit ID
+        id: set_commit
+        run: |
+          COMMIT_ID=$(git log -1 --format='%H')
+          echo "commit_id=${COMMIT_ID}" >> $GITHUB_OUTPUT
+          echo "Using commit ID: ${COMMIT_ID}"
+
+      # Create ZIP of grammar files
+      - name: Package grammar files
+        run: |
+          # Create directory for the zip content
+          mkdir -p grammar_files
+          
+          # Copy all .g4 files to the directory
+          find ./language-grammar/src/main/antlr4 -name "*.g4" -type f -exec cp {} grammar_files/ \;
+          
+          # List the files that will be included in the zip
+          echo "Files to be included in the zip:"
+          ls -la grammar_files/
+          
+          # Create zip file
+          cd grammar_files
+          zip -r ../grammar.zip ./*
+          cd ..
+          
+          # Check the zip file
+          ls -la grammar.zip
+
+      - name: Prepare for Maven publishing
+        run: |
+          # Define constants
+          ARTIFACT_ID="opensearch-language-grammar"
+          GROUP_ID="org.opensearch"
+          VERSION="${{ steps.set_version.outputs.VERSION }}"
+          
+          # Create directory structure for Maven
+          MAVEN_LOCAL_PATH="${HOME}/.m2/repository/${GROUP_ID//.//}/${ARTIFACT_ID}/${VERSION}"
+          mkdir -p "${MAVEN_LOCAL_PATH}"
+          
+          # Copy the zip file to Maven directory with proper naming
+          MAVEN_ZIP_NAME="${ARTIFACT_ID}-${VERSION}.zip"
+          cp grammar.zip "${MAVEN_LOCAL_PATH}/${MAVEN_ZIP_NAME}"
+          
+          # Generate POM file
+          cat > "${MAVEN_LOCAL_PATH}/${ARTIFACT_ID}-${VERSION}.pom" << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+              <modelVersion>4.0.0</modelVersion>
+              <groupId>${GROUP_ID}</groupId>
+              <artifactId>${ARTIFACT_ID}</artifactId>
+              <version>${VERSION}</version>
+              <packaging>zip</packaging>
+              <description>OpenSearch Language Grammar Files</description>
+          </project>
+          EOF
+          
+          echo "Grammar files prepared for Maven publishing as version ${VERSION}"
+
+      # Generate checksums for the Maven artifacts
+      - name: Generate checksums
+        run: |
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.zip" -type f`; do sha512sum "$i" | awk '{print $1}' >> "$i.sha512"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
+          for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.zip" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
+
+      # Checkout build libraries for publishing scripts
+      - uses: actions/checkout@v4
+        with:
+          repository: 'opensearch-project/opensearch-build-libraries'
+          path: 'build'
+
+      # Publish to Maven
+      - name: Publish to Maven
+        run: |
+          # Copy local Maven repo to build directory
+          cd build/resources/publish/
+          cp -a $HOME/.m2/repository/* ./
+          
+          # Run the publish script
+          ./publish-snapshot.sh ./
+
+      # Update metadata with commit ID
+      - name: Add commit ID to metadata
+        run: |
+          COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
+          ARTIFACT_ID="opensearch-language-grammar"
+          VERSION="${{ steps.set_version.outputs.VERSION }}"
+          
+          TEMP_DIR=$(mktemp -d)
+          METADATA_FILE="${TEMP_DIR}/maven-metadata.xml"
+          
+          # Download existing metadata
+          META_URL="${SNAPSHOT_REPO_URL}org/opensearch/${ARTIFACT_ID}/${VERSION}/maven-metadata.xml"
+          curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${METADATA_FILE}" "${META_URL}"
+          
+          if [ -s "${METADATA_FILE}" ]; then
+            cp "${METADATA_FILE}" "${METADATA_FILE}.bak"
+          
+            # Add commit ID to metadata
+            awk -v commit="${COMMIT_ID}" '
+              /<versioning>/ {
+                print $0
+                print "  <commitId>" commit "</commitId>"
+                next
+              }
+              {print}
+            ' "${METADATA_FILE}.bak" > "${METADATA_FILE}"
+          
+            # Upload modified metadata
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${METADATA_FILE}" "${META_URL}"
+          
+            # Update checksums
+            cd "${TEMP_DIR}"
+            sha256sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha256"
+            sha512sum "maven-metadata.xml" | awk '{print $1}' > "maven-metadata.xml.sha512"
+          
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha256" "${META_URL}.sha256"
+            curl -X PUT -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "maven-metadata.xml.sha512" "${META_URL}.sha512"
+          
+            echo "Version metadata updated with commit ID"
+          else
+            echo "Failed to download metadata, skipping commit ID addition"
+          fi
+          
+          rm -rf "${TEMP_DIR}"
