@@ -41,13 +41,13 @@ jobs:
       - name: Setup publishing credentials
         id: creds
         run: |
-          ./get-sonatype-credentials.sh
+          .github/get-sonatype-credentials.sh
 
-      # Extract version information - using a simpler method for grammar files
+      # Extract version information from build.gradle
       - name: Set version
         id: set_version
         run: |
-          VERSION="0.1.0-SNAPSHOT" # Can adjust this version as needed
+          VERSION=$(./gradlew -q printVersion | grep "VERSION=" | cut -d= -f2)
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "Using version: ${VERSION}"
 
@@ -206,7 +206,7 @@ jobs:
       - name: Setup publishing credentials
         id: creds
         run: |
-          ./get-sonatype-credentials.sh
+          .github/get-sonatype-credentials.sh
 
       # Capture the commit ID for metadata purposes
       - name: Set commit ID
