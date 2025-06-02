@@ -43,11 +43,11 @@ jobs:
         run: |
           .github/get-sonatype-credentials.sh
 
-      # Extract version information from build.gradle
+      # Extract version information directly from build.gradle
       - name: Set version
         id: set_version
         run: |
-          VERSION=$(./gradlew -q printVersion | grep "VERSION=" | cut -d= -f2)
+          VERSION=$(grep "version = " ./language-grammar/build.gradle | cut -d "'" -f 2)
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "Using version: ${VERSION}"
 
