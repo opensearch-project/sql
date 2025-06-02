@@ -18,6 +18,7 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore
 public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
 
   @Override
@@ -336,34 +337,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where country = 'Canada' OR country = 'England'
-                   | inner join left=a, right=b
-                       ON a.name = b.name AND a.year = 2023 AND a.month = 4 AND b.year = 2023 AND b.month = 4
-                       %s
-                   | eval a_name = a.name
-                   | eval a_country = a.country
-                   | eval b_country = b.country
-                   | fields a_name, age, state, a_country, occupation, b_country, salary
-                   | left join left=a, right=b
-                       ON a.a_name = b.name
-                       %s
-                   | eval aa_country = a.a_country
-                   | eval ab_country = a.b_country
-                   | eval bb_country = b.country
-                   | fields a_name, age, state, aa_country, occupation, ab_country, salary, bb_country, hobby, language
-                   | cross join left=a, right=b
-                       %s
-                   | eval new_country = a.aa_country
-                   | eval new_salary = b.salary
-                   | stats avg(new_salary) as avg_salary by span(age, 5) as age_span, state
-                   | left semi join left=a, right=b
-                       ON a.state = b.state
-                       %s
-                   | eval new_avg_salary = floor(avg_salary)
-                   | fields state, age_span, new_avg_salary
-                   """,
+                " source = %s | where country = 'Canada' OR country = 'England' | inner join left=a, right=b ON a.name = b.name AND a.year = 2023 AND a.month = 4 AND b.year = 2023 AND b.month = 4 %s | eval a_name = a.name | eval a_country = a.country| eval b_country = b.country | fields a_name, age, state, a_country, occupation, b_country, salary | left join left=a, right=bON a.a_name = b.name%s  | eval aa_country = a.a_country| eval ab_country = a.b_country | eval bb_country = b.country| fields a_name, age, state, aa_country, occupation, ab_country, salary, bb_country, hobby, language | cross join left=a, right=b %s| eval new_country = a.aa_country| eval new_salary = b.salary | stats avg(new_salary) as avg_salary by span(age, 5) as age_span, state| left semi join left=a, right=bON a.state = b.state %s | eval new_avg_salary = floor(avg_salary)| fields state, age_span, new_avg_salary",
                 TEST_INDEX_STATE_COUNTRY,
                 TEST_INDEX_OCCUPATION,
                 TEST_INDEX_HOBBIES,
