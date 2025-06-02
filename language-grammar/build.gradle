@@ -1,0 +1,10 @@
+group = 'org.opensearch'
+version = '0.1.0-SNAPSHOT'
+description = 'OpenSearch Language Grammar Files'
+
+// Task to print the version for GitHub Actions
+task printVersion {
+    doLast {
+        println "VERSION=${project.version}"
+    }
+}

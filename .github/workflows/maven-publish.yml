@@ -37,7 +37,7 @@ jobs:
       - name: get credentials
         run: |
           # Get credentials for publishing
-          ./get-sonatype-credentials.sh
+          .github/get-sonatype-credentials.sh
 
       - name: publish snapshots to maven
         run: |
