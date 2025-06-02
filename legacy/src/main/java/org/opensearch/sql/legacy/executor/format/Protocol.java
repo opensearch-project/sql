@@ -202,11 +202,31 @@ public class Protocol {
 
   private String rawEntry(Row row, Schema schema) {
     // TODO String separator is being kept to "|" for the time being as using "\t" will require
-    // formatting since
-    // TODO tabs are occurring in multiple of 4 (one option is Guava's Strings.padEnd() method)
+    // formatting since tabs are occurring in multiple of 4 (one option is Guava's Strings.padEnd()
+    // method)
     return StreamSupport.stream(schema.spliterator(), false)
         .map(column -> row.getDataOrDefault(column.getName(), "NULL").toString())
         .collect(Collectors.joining("|"));
+  }
+
+  /**
+   * Apply the V2 type mapping described in docs/user/general/datatypes.rst#data-types-mapping. The
+   * legacy engine works directly on OpenSearch types internally (trying to map on reading the OS
+   * schema fails when other parts call Type.valueOf(...)), so we need to apply this mapping at the
+   * serialization stage.
+   *
+   * @param column The column to fetch the type for
+   * @return The type mapped to the appropriate OpenSearch SQL type
+   */
+  private String v2MappedType(Column column) {
+    String type = column.getType();
+
+    return switch (type) {
+      case "half_float", "scaled_float" -> "float";
+      case "date", "date_nanos" -> "timestamp";
+      case "object" -> "struct";
+      default -> type;
+    };
   }
 
   private JSONArray getSchemaAsJson() {
@@ -214,16 +234,7 @@ public class Protocol {
     JSONArray schemaJson = new JSONArray();
 
     for (Column column : schema) {
-      // Hacky workaround for #3159, #1545: Legacy sometimes falsely converts `timestamp`s to
-      // `date`s, which causes
-      // breakage for consumers like JDBC. Until Calcite's done and we can delete legacy, just reset
-      // the type.
-      String t = column.getType();
-      if (t.equals("date")) {
-        schemaJson.put(schemaEntry(column.getName(), column.getAlias(), "timestamp"));
-      } else {
-        schemaJson.put(schemaEntry(column.getName(), column.getAlias(), t));
-      }
+      schemaJson.put(schemaEntry(column.getName(), column.getAlias(), v2MappedType(column)));
     }
 
     return schemaJson;
