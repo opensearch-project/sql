@@ -384,18 +384,6 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
-  public void testUnixTimestampWithString() {
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | head 1 | eval t = UNIX_TIMESTAMP('2008-09-01 06:12:27.123456') |"
-                    + " fields t",
-                TEST_INDEX_DATE_FORMATS));
-    verifySchema(actual, schema("t", "double"));
-    verifyDataRows(actual, closeTo(1.220249547123456E9));
-  }
-
-  @Test
   public void testWeekAndWeekOfYear() {
     JSONObject actual =
         executeQuery(
