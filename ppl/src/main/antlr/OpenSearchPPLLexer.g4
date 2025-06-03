@@ -375,6 +375,7 @@ ISBLANK:                            'ISBLANK';
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
 JSON:                               'JSON';
+JSON_EXTRACT:                       'JSON_EXTRACT';
 
 // FLOWCONTROL FUNCTIONS
 IFNULL:                             'IFNULL';
