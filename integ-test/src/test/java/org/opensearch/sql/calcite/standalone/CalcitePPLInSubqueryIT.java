@@ -224,19 +224,17 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where id in [
-                       source = %s
-                       | where occupation in [
-                           source = %s
-                           | where occupation != 'Engineer'
-                           | fields occupation
-                         ]
-                       | fields uid
-                     ]
-                   | sort  - salary
-                   """,
+                    "source = %s\n" +
+                    "| where id in [\n" +
+                    "    source = %s\n" +
+                    "    | where occupation in [\n" +
+                    "        source = %s\n" +
+                    "        | where occupation != 'Engineer'\n" +
+                    "        | fields occupation\n" +
+                    "      ]\n" +
+                    "    | fields uid\n" +
+                    "  ]\n" +
+                    "| sort  - salary\n",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(
         result,

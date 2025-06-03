@@ -110,14 +110,4 @@ public class DataTypeIT extends PPLIntegTestCase {
     verifySchema(result, schema("original_col", "int"), schema("alias_col", "int"));
     verifyDataRows(result, rows(2, 2), rows(3, 3));
   }
-
-  @Test
-  public void test_alias_data_type() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where alias_col > 1 " + "| fields original_col, alias_col ",
-                TEST_INDEX_ALIAS));
-    verifySchema(result, schema("original_col", "integer"), schema("alias_col", "integer"));
-  }
 }

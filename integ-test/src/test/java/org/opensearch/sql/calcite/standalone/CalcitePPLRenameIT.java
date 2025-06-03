@@ -75,9 +75,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
             () ->
                 executeQuery(
                     String.format(
-                        """
-                   source = %s | rename name as _id
-                   """,
+                            "source = %s | rename name as _id\n",
                         TEST_INDEX_STATE_COUNTRY)));
     assertEquals("Cannot use metadata field [_id] in Rename command.", e.getMessage());
 
@@ -85,9 +83,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | rename age as _ID
-                   """,
+                    "source = %s | rename age as _ID\n",
                 TEST_INDEX_STATE_COUNTRY));
     verifySchema(
         result,

@@ -21,7 +21,6 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestsConstants;
 
-@Ignore
 public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
 
   @Override

@@ -67,13 +67,11 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | where exists [
-                       source = %s | where id = uid
-                     ]
-                   | stats count() by country
-                   """,
+                    "source = %s\n" +
+                    "| where exists [\n" +
+                    "    source = %s | where id = uid\n" +
+                    "  ]\n" +
+                    "| stats count() by country\n",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("country", "string"), schema("count()", "long"));
     verifyDataRows(result, rows(1, null), rows(2, "Canada"), rows(1, "USA"), rows(1, "England"));
@@ -278,15 +276,13 @@ public class CalcitePPLExistsSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | fields id, country
-                   | where exists [
-                       source = %s
-                       | where id = uid
-                     ]
-                   | stats count() by country
-                   """,
+                    "source = %s\n" +
+                    "| fields id, country\n" +
+                    "| where exists [\n" +
+                    "    source = %s\n" +
+                    "    | where id = uid\n" +
+                    "  ]\n" +
+                    "| stats count() by country\n",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchemaInOrder(result, schema("count()", "long"), schema("country", "string"));
     verifyDataRows(result, rows(1, null), rows(1, "England"), rows(1, "USA"), rows(2, "Canada"));
