@@ -40,13 +40,13 @@ public class SpanFunction implements UserDefinedFunction {
     DateTimeUnit dateTimeUnit = DateTimeUnit.resolve((String) args[3]);
 
     switch (sqlTypeName) {
-      case SqlTypeName.DATE:
+      case DATE:
         LocalDate date = LocalDate.ofEpochDay(((Integer) args[0]).longValue());
         long dateEpochValue =
             dateTimeUnit.round(
                 date.atStartOfDay().atZone(ZoneOffset.UTC).toInstant().toEpochMilli(), interval);
         return SqlFunctions.timestampToDate(dateEpochValue);
-      case SqlTypeName.TIME:
+      case TIME:
         /*
          * Follow current logic to ignore time frame greater than hour because TIME type like '17:59:59.99' doesn't have day, month, year, etc.
          * See @org.opensearch.sql.planner.physical.collector.TimeRounding
@@ -57,7 +57,7 @@ public class SpanFunction implements UserDefinedFunction {
         }
         long timeEpochValue = dateTimeUnit.round(((Integer) args[0]).longValue(), interval);
         return SqlFunctions.time(timeEpochValue);
-      case SqlTypeName.TIMESTAMP:
+      case TIMESTAMP:
         return dateTimeUnit.round((long) args[0], interval);
       default:
         throw new IllegalArgumentException("Unsupported time based column in Span function");

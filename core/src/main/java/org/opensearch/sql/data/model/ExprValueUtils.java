@@ -129,14 +129,16 @@ public class ExprValueUtils {
       return longValue(((Long) o));
     } else if (o instanceof Boolean) {
       return booleanValue((Boolean) o);
-    } else if (o instanceof Double d) {
+    } else if (o instanceof Double) {
+      Double d = (Double) o;
       if (Double.isNaN(d)) {
         return LITERAL_NULL;
       }
       return doubleValue(d);
     } else if (o instanceof String) {
       return stringValue((String) o);
-    } else if (o instanceof Float f) {
+    } else if (o instanceof Float) {
+      Float f = (Float) o;
       if (Float.isNaN(f)) {
         return LITERAL_NULL;
       }

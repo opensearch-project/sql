@@ -25,12 +25,14 @@ public class ModFunction implements UserDefinedFunction {
 
     Object arg0 = args[0];
     Object arg1 = args[1];
-    if (!(arg0 instanceof Number num0) || !(arg1 instanceof Number num1)) {
+    if (!(arg0 instanceof Number) || !(arg1 instanceof Number)) {
       throw new IllegalArgumentException(
           String.format(
               "MOD function requires two numeric arguments, but got %s and %s",
               arg0.getClass().getSimpleName(), arg1.getClass().getSimpleName()));
     }
+    Number num0 = (Number) arg0;
+    Number num1 = (Number) arg1;
 
     // TODO: This precision check is arbitrary.
     if (Math.abs(num1.doubleValue()) < 0.0000001) {

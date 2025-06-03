@@ -244,7 +244,7 @@ public interface BuiltinFunctionUtils {
         List<RexNode> LogArgs = new ArrayList<>();
         RelDataTypeFactory typeFactory = context.rexBuilder.getTypeFactory();
         if (argList.size() == 1) {
-          LogArgs.add(argList.getFirst());
+          LogArgs.add(argList.get(0));
           LogArgs.add(
               context.rexBuilder.makeExactLiteral(
                   BigDecimal.valueOf(E), typeFactory.createSqlType(SqlTypeName.DOUBLE)));

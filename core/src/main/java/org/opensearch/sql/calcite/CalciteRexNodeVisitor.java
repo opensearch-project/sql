@@ -148,22 +148,22 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitIn(In node, CalcitePlanContext context) {
     final RexNode field = analyze(node.getField(), context);
     final List<RexNode> valueList =
-        node.getValueList().stream().map(value -> analyze(value, context)).toList();
+        node.getValueList().stream().map(value -> analyze(value, context)).collect(Collectors.toList());
     final List<RelDataType> dataTypes =
-        new java.util.ArrayList<>(valueList.stream().map(RexNode::getType).toList());
+            new java.util.ArrayList<>(valueList.stream().map(RexNode::getType).collect(Collectors.toList()));
     dataTypes.add(field.getType());
     RelDataType commonType = context.rexBuilder.getTypeFactory().leastRestrictive(dataTypes);
     if (commonType != null) {
       List<RexNode> newValueList =
-          valueList.stream().map(value -> context.rexBuilder.makeCast(commonType, value)).toList();
+          valueList.stream().map(value -> context.rexBuilder.makeCast(commonType, value)).collect(Collectors.toList());
       return context.rexBuilder.makeIn(field, newValueList);
     } else {
       List<ExprType> exprTypes =
-          dataTypes.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).toList();
+          dataTypes.stream().map(OpenSearchTypeFactory::convertRelDataTypeToExprType).collect(Collectors.toList());
       throw new SemanticCheckException(
           StringUtils.format(
               "In expression types are incompatible: fields type %s, values type %s",
-              exprTypes.getLast(), exprTypes.subList(0, exprTypes.size() - 1)));
+                  exprTypes.get(exprTypes.size() - 1), exprTypes.subList(0, exprTypes.size() - 1)));
     }
   }
 

@@ -499,11 +499,7 @@ public class CalcitePPLBasicIT extends CalcitePPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                """
-                    source=%s
-                    | where birthdate between date('2018-06-01') and date('2018-06-30')
-                    | fields firstname, birthdate
-                    """,
+                "source=%s| where birthdate between date('2018-06-01') and date('2018-06-30')| fields firstname, birthdate",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("firstname", "string"), schema("birthdate", "timestamp"));
     verifyDataRows(
