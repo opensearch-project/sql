@@ -44,7 +44,6 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.EqualTo;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
@@ -80,8 +79,6 @@ import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.ast.tree.Window;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
@@ -632,7 +629,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
           internalVisitExpression(ctx.replacement),
           ctx.fieldList().fieldExpression().stream()
               .map(f -> (Field) internalVisitExpression(f))
-              .toList());
+              .collect(Collectors.toList()));
     } else {
       return FillNull.ofSameValue(internalVisitExpression(ctx.replacement), List.of());
     }

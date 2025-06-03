@@ -126,7 +126,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     List<String> projectedFields =
         newSchema.getFieldNames().stream()
             .map(fieldName -> aliasMapping.getOrDefault(fieldName, fieldName))
-            .toList();
+                .collect(Collectors.toList());
     newScan.pushDownContext.add(
         new PushDownAction(
             PushDownType.PROJECT,
@@ -175,7 +175,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan {
     try {
       CalciteLogicalIndexScan newScan = this.copyWithNewSchema(getRowType());
       newScan.pushDownContext.add(
-          PushDownAction.of(
+          new PushDownAction(
               PushDownType.LIMIT,
               limit,
               requestBuilder -> requestBuilder.pushDownLimit(limit, offset)));

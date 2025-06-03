@@ -176,9 +176,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitSubqueryAlias(SubqueryAlias node, String context) {
     Node childNode = node.getChild().get(0);
     String child = childNode.accept(this, context);
-    if (childNode instanceof Project project
-        && project.getProjectList().get(0) instanceof AllFields) {
-      childNode = childNode.getChild().get(0);
+    if (childNode instanceof Project) {
+      Project project = (Project) childNode;
+      if (project.getProjectList().get(0) instanceof AllFields) {
+        childNode = childNode.getChild().get(0);
+      }
     }
     // add "[]" only if its child is not a root
     String format = childNode.getChild().isEmpty() ? "%s as %s" : "[ %s ] as %s";
@@ -343,10 +345,10 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String regex = node.getPattern().toString();
     String commandName;
     switch (node.getParseMethod()) {
-      case ParseMethod.PATTERNS:
+      case PATTERNS:
         commandName = "patterns";
         break;
-      case ParseMethod.GROK:
+      case GROK:
         commandName = "grok";
         break;
       default:
@@ -391,7 +393,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     if (fieldFills.isEmpty()) {
       return StringUtils.format("%s | fillnull with %s", child, MASK_LITERAL);
     }
-    final UnresolvedExpression firstReplacement = fieldFills.getFirst().getRight();
+    final UnresolvedExpression firstReplacement = fieldFills.get(0).getRight();
     if (fieldFills.stream().allMatch(n -> firstReplacement == n.getRight())) {
       return StringUtils.format(
           "%s | fillnull with %s in %s",

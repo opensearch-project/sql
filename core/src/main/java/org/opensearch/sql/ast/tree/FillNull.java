@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 
 import lombok.AllArgsConstructor;
 import java.util.Optional;
+
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
@@ -31,7 +33,7 @@ public class FillNull extends UnresolvedPlan {
 
   public static FillNull ofSameValue(UnresolvedExpression replacement, List<Field> fieldList) {
     List<Pair<Field, UnresolvedExpression>> replacementPairs =
-        fieldList.stream().map(f -> Pair.of(f, replacement)).toList();
+        fieldList.stream().map(f -> Pair.of(f, replacement)).collect(Collectors.toList());
     FillNull instance = new FillNull(replacementPairs);
     if (replacementPairs.isEmpty()) {
       // no field specified, the replacement value will be applied to all fields.
@@ -51,7 +53,7 @@ public class FillNull extends UnresolvedPlan {
   private UnresolvedPlan child;
 
   public List<Field> getFields() {
-    return getReplacementPairs().stream().map(Pair::getLeft).toList();
+    return getReplacementPairs().stream().map(Pair::getLeft).collect(Collectors.toList());
   }
 
   @Override

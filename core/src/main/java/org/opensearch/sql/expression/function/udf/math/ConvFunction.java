@@ -39,8 +39,8 @@ public class ConvFunction extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      RelDataType numberType = call.getOperands().getFirst().getType();
-      Expression number = translatedOperands.getFirst();
+      RelDataType numberType = call.getOperands().get(0).getType();
+      Expression number = translatedOperands.get(0);
       Expression fromBase = translatedOperands.get(1);
       Expression toBase = translatedOperands.get(2);
       if (numberType.getFamily() == SqlTypeFamily.NUMERIC) {

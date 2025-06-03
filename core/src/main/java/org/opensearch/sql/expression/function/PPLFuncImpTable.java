@@ -16,6 +16,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
@@ -123,7 +125,7 @@ public class PPLFuncImpTable {
     if (implementList == null || implementList.isEmpty()) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
-    List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
+    List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).collect(Collectors.toList());
     try {
       for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
         if (implement.getKey().match(functionName.getName(), argTypes)) {

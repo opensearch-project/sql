@@ -358,7 +358,7 @@ public class OpenSearchExprValueFactory {
     }
 
     public String getRootPath() {
-      return paths.getFirst();
+      return paths.get(0);
     }
 
     public JsonPath getChildPath() {

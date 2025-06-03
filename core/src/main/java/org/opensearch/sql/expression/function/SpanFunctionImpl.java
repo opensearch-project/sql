@@ -20,6 +20,7 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.BuiltInMethod;
 import org.opensearch.sql.calcite.type.ExprSqlType;
@@ -55,23 +56,43 @@ public class SpanFunctionImpl extends ImplementorUDF {
       RelDataType unitType = call.getOperands().get(2).getType();
 
       if (SqlTypeUtil.isNull(unitType)) {
-        return switch (call.getType().getSqlTypeName()) {
-          case BIGINT, INTEGER, SMALLINT, TINYINT -> Expressions.multiply(
-              Expressions.divide(field, interval), interval);
-          default -> Expressions.multiply(
-              Expressions.call(BuiltInMethod.FLOOR.method, Expressions.divide(field, interval)),
-              interval);
-        };
-      } else if (fieldType instanceof ExprSqlType exprSqlType) {
+        SqlTypeName sqlTypeName = call.getType().getSqlTypeName();
+        Expression result;
+
+        switch (sqlTypeName) {
+          case BIGINT:
+          case INTEGER:
+          case SMALLINT:
+          case TINYINT:
+            result = Expressions.multiply(
+                    Expressions.divide(field, interval), interval);
+            break;
+          default:
+            result = Expressions.multiply(
+                    Expressions.call(BuiltInMethod.FLOOR.method, Expressions.divide(field, interval)),
+                    interval);
+            break;
+        }
+
+        return result;
+      } else if (fieldType instanceof ExprSqlType) {
+        ExprSqlType exprSqlType = (ExprSqlType) fieldType;
         // TODO: pass in constant arguments when constructing
-        String methodName =
-            switch (exprSqlType.getUdt()) {
-              case EXPR_DATE -> "evalDate";
-              case EXPR_TIME -> "evalTime";
-              case EXPR_TIMESTAMP -> "evalTimestamp";
-              default -> throw new IllegalArgumentException(
-                  String.format("Unsupported expr type: %s", exprSqlType.getExprType()));
-            };
+        String methodName;
+        switch (exprSqlType.getUdt()) {
+          case EXPR_DATE:
+            methodName = "evalDate";
+            break;
+          case EXPR_TIME:
+            methodName = "evalTime";
+            break;
+          case EXPR_TIMESTAMP:
+            methodName = "evalTimestamp";
+            break;
+          default:
+            throw new IllegalArgumentException(
+                    String.format("Unsupported expr type: %s", exprSqlType.getExprType()));
+        }
         ScalarFunctionImpl function =
             (ScalarFunctionImpl)
                 ScalarFunctionImpl.create(

@@ -11,11 +11,27 @@ import java.util.List;
 import org.apache.calcite.rel.type.RelDataType;
 
 /** Function signature is composed by function name and arguments list. */
-public record CalciteFuncSignature(FunctionName functionName, List<RelDataType> funcArgTypes) {
+public class CalciteFuncSignature {
+
+  private final FunctionName functionName;
+  private final List<RelDataType> funcArgTypes;
+
+  public CalciteFuncSignature(FunctionName functionName, List<RelDataType> funcArgTypes) {
+    this.functionName = functionName;
+    this.funcArgTypes = funcArgTypes;
+  }
+
+  public FunctionName getFunctionName() {
+    return functionName;
+  }
+
+  public List<RelDataType> getFuncArgTypes() {
+    return funcArgTypes;
+  }
 
   public boolean match(FunctionName functionName, List<RelDataType> paramTypeList) {
     if (funcArgTypes == null) return true;
-    if (!functionName.equals(this.functionName()) || paramTypeList.size() != funcArgTypes.size()) {
+    if (!functionName.equals(this.functionName) || paramTypeList.size() != funcArgTypes.size()) {
       return false;
     }
     for (int i = 0; i < paramTypeList.size(); i++) {

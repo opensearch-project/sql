@@ -140,25 +140,25 @@ public class AddSubDateFunction extends ImplementorUDF {
     public static String dateAddDaysOnTimestamp(
         FunctionProperties properties, ExprValue datetime, long days) {
       var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();
-      return (String) new ExprTimestampValue(dt.plusDays(days)).valueForCalcite();
+      return (String) new ExprTimestampValue(dt.plusDays(days).toInstant(ZoneOffset.UTC)).valueForCalcite();
     }
 
     public static String dateSubDaysOnTimestamp(
         FunctionProperties properties, ExprValue datetime, long days) {
       var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();
-      return (String) new ExprTimestampValue(dt.minusDays(days)).valueForCalcite();
+      return (String) new ExprTimestampValue(dt.minusDays(days).toInstant(ZoneOffset.UTC)).valueForCalcite();
     }
 
     public static String dateAddInterval(
         FunctionProperties properties, ExprValue datetime, TemporalAmount interval) {
       var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();
-      return (String) new ExprTimestampValue(dt.plus(interval)).valueForCalcite();
+      return (String) new ExprTimestampValue(dt.plus(interval).toInstant(ZoneOffset.UTC)).valueForCalcite();
     }
 
     public static String dateSubInterval(
         FunctionProperties properties, ExprValue datetime, TemporalAmount interval) {
       var dt = extractTimestamp(datetime, properties).atZone(ZoneOffset.UTC).toLocalDateTime();
-      return (String) new ExprTimestampValue(dt.minus(interval)).valueForCalcite();
+      return (String) new ExprTimestampValue(dt.minus(interval).toInstant(ZoneOffset.UTC)).valueForCalcite();
     }
   }
 }

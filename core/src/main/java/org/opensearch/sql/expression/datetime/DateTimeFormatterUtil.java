@@ -279,7 +279,7 @@ public class DateTimeFormatterUtil {
    * @param formatExpr the format ExprValue of String type.
    * @return Date formatted using format and returned as a String.
    */
-  static ExprValue getFormattedDate(ExprValue dateExpr, ExprValue formatExpr) {
+  public static ExprValue getFormattedDate(ExprValue dateExpr, ExprValue formatExpr) {
     final LocalDateTime date = dateExpr.datetimeValue();
     return getFormattedString(formatExpr, DATE_HANDLERS, date);
   }

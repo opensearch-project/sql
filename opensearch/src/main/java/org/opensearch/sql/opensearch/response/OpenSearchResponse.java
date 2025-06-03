@@ -156,8 +156,8 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
       ImmutableMap.Builder<String, ExprValue> builder, SearchHit hit) {
     List<String> metaDataFieldSet =
         includes.isEmpty()
-            ? METADATAFIELD_TYPE_MAP.keySet().stream().toList()
-            : includes.stream().filter(METADATAFIELD_TYPE_MAP::containsKey).toList();
+            ? METADATAFIELD_TYPE_MAP.keySet().stream().collect(Collectors.toList())
+            : includes.stream().filter(METADATAFIELD_TYPE_MAP::containsKey).collect(Collectors.toList());
     ExprFloatValue maxScore =
         Float.isNaN(hits.getMaxScore()) ? null : new ExprFloatValue(hits.getMaxScore());
 

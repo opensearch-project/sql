@@ -14,6 +14,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
@@ -75,7 +77,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   }
 
   public List<RexNode> analyze(List<UnresolvedExpression> list, CalcitePlanContext context) {
-    return list.stream().map(u -> u.accept(this, context)).toList();
+    return list.stream().map(u -> u.accept(this, context)).collect(Collectors.toList());
   }
 
   public RexNode analyzeJoinCondition(UnresolvedExpression unresolved, CalcitePlanContext context) {
@@ -340,7 +342,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
     List<RexNode> arguments =
-        node.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
+        node.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
     RexNode resolvedNode =
         PPLFuncImpTable.INSTANCE.resolveSafe(
             context.rexBuilder, node.getFuncName(), arguments.toArray(new RexNode[0]));
@@ -354,16 +356,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitWindowFunction(WindowFunction node, CalcitePlanContext context) {
     Function windowFunction = (Function) node.getFunction();
     List<RexNode> arguments =
-        windowFunction.getFuncArgs().stream().map(arg -> analyze(arg, context)).toList();
+        windowFunction.getFuncArgs().stream().map(arg -> analyze(arg, context)).collect(Collectors.toList());
     List<RexNode> partitions =
         node.getPartitionByList().stream()
             .map(arg -> analyze(arg, context))
             .map(this::extractRexNodeFromAlias)
-            .toList();
+                .collect(Collectors.toList());
     return BuiltinFunctionName.ofWindowFunction(windowFunction.getFuncName())
         .map(
             functionName -> {
-              RexNode field = arguments.isEmpty() ? null : arguments.getFirst();
+              RexNode field = arguments.isEmpty() ? null : arguments.get(0);
               List<RexNode> args =
                   (arguments.isEmpty() || arguments.size() == 1)
                       ? Collections.emptyList()

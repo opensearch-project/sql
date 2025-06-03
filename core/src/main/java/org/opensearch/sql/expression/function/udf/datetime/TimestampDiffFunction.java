@@ -66,7 +66,7 @@ public class TimestampDiffFunction extends ImplementorUDF {
       Expression functionProperties =
           Expressions.call(
               UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
-      Expression unit = Expressions.new_(ExprStringValue.class, translatedOperands.getFirst());
+      Expression unit = Expressions.new_(ExprStringValue.class, translatedOperands.get(0));
       Expression start =
           Expressions.call(
               ExprValueUtils.class,
