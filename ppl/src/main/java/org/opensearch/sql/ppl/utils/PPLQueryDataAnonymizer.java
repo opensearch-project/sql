@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.ppl.utils;
 
+import static org.opensearch.sql.calcite.utils.PlanUtils.getRelation;
+import static org.opensearch.sql.calcite.utils.PlanUtils.transformPlanToAttachChild;
+
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -50,6 +53,7 @@ import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.DescribeRelation;
 import org.opensearch.sql.ast.tree.Eval;
@@ -363,6 +367,17 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     String computations = visitExpressionList(node.getComputations(), " ");
     return StringUtils.format("%s | trendline %s", child, computations);
+  }
+
+  @Override
+  public String visitAppendCol(AppendCol node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    UnresolvedPlan relation = getRelation(node);
+    transformPlanToAttachChild(node.getSubSearch(), relation);
+    String subsearch = anonymizeData(node.getSubSearch());
+    String subsearchWithoutRelation = subsearch.substring(subsearch.indexOf("|") + 1);
+    return StringUtils.format(
+        "%s | appendcol override=%s [%s ]", child, node.isOverride(), subsearchWithoutRelation);
   }
 
   private String visitFieldList(List<Field> fieldList) {

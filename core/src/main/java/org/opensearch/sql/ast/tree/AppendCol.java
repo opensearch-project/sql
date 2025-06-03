@@ -10,21 +10,31 @@ import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 
-/** AST node to represent pagination operation. Actually a wrapper to the AST. */
-@RequiredArgsConstructor
-@EqualsAndHashCode(callSuper = false)
+/**
+ * Logical plan node of AppendCol, the interface for building appending column actions in queries.
+ */
+@Getter
+@Setter
 @ToString
-public class Paginate extends UnresolvedPlan {
-  @Getter private final int pageSize;
+@EqualsAndHashCode(callSuper = false)
+@RequiredArgsConstructor
+public class AppendCol extends UnresolvedPlan {
+
+  private final boolean override;
+
+  private final UnresolvedPlan subSearch;
+
   private UnresolvedPlan child;
 
-  public Paginate(int pageSize, UnresolvedPlan child) {
-    this.pageSize = pageSize;
+  @Override
+  public UnresolvedPlan attach(UnresolvedPlan child) {
     this.child = child;
+    return this;
   }
 
   @Override
@@ -33,13 +43,7 @@ public class Paginate extends UnresolvedPlan {
   }
 
   @Override
-  public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitPaginate(this, context);
-  }
-
-  @Override
-  public UnresolvedPlan attach(UnresolvedPlan child) {
-    this.child = child;
-    return this;
+  public <T, C> T accept(AbstractNodeVisitor<T, C> visitor, C context) {
+    return visitor.visitAppendCol(this, context);
   }
 }
