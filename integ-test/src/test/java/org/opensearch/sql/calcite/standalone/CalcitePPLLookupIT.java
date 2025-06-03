@@ -33,11 +33,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | LOOKUP %s uid AS id REPLACE department
-                   | fields id, name, occupation, country, salary, department
-                   """,
+                "source = %s| LOOKUP %s uid AS id REPLACE department| fields id, name, occupation, country, salary, department",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -62,11 +58,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | LOOKUP %s uid AS id APPEND department
-                   | fields id, name, occupation, country, salary, department
-                   """,
+                "source = %s | LOOKUP %s uid AS id APPEND department| fields id, name, occupation, country, salary, department",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -91,11 +83,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | LOOKUP %s uid AS id REPLACE department AS country
-                   | fields id, name, occupation, salary, country
-                   """,
+                "source = %s | LOOKUP %s uid AS id REPLACE department AS country| fields id, name, occupation, salary, country",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -119,11 +107,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | LOOKUP %s uid AS id APPEND department AS country
-                   | fields id, name, occupation, salary, country
-                   """,
+                "source = %s| LOOKUP %s uid AS id APPEND department AS country| fields id, name, occupation, salary, country",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -147,11 +131,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | LOOKUP %s uid AS id, name REPLACE department
-                   | fields id, name, occupation, country, salary, department
-                   """,
+                "source = %s| LOOKUP %s uid AS id, name REPLACE department | fields id, name, occupation, country, salary, department",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -176,11 +156,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | LOOKUP %s uid AS id, name APPEND department
-                   | fields id, name, occupation, country, salary, department
-                   """,
+                "source = %s| LOOKUP %s uid AS id, name APPEND department| fields id, name, occupation, country, salary, department ",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -234,12 +210,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | eval major = occupation
-                   | fields id, name, major, country, salary
-                   | LOOKUP %s name REPLACE occupation AS major
-                   """,
+                "source = %s | eval major = occupation | fields id, name, major, country, salary | LOOKUP %s name REPLACE occupation AS major",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -263,12 +234,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | eval major = occupation
-                   | fields id, name, major, country, salary
-                   | LOOKUP %s name APPEND occupation AS major
-                   """,
+                "source = %s | eval major = occupation | fields id, name, major, country, salary | LOOKUP %s name APPEND occupation AS major",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -292,11 +258,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | LOOKUP %s name
-                   | fields id, name, country, salary, uid, department, occupation
-                   """,
+                "source = %s | LOOKUP %s name | fields id, name, country, salary, uid, department, occupation",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -324,12 +286,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | rename id as uid | rename country as department
-                   | LOOKUP %s uid
-                   | fields salary, uid, name, department, occupation
-                   """,
+                "source = %s| rename id as uid | rename country as department | LOOKUP %s uid| fields salary, uid, name, department, occupation",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -401,11 +358,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | LOOKUP %s name REPLACE occupation
-                   | fields id, name, country, salary, occupation
-                   """,
+                "source = %s | LOOKUP %s name REPLACE occupation| fields id, name, country, salary, occupation",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -429,11 +382,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s
-                   | LOOKUP %s name REPLACE occupation AS new_col
-                   | fields id, name, occupation, country, salary, new_col
-                   """,
+                "source = %s | LOOKUP %s name REPLACE occupation AS new_col| fields id, name, occupation, country, salary, new_col",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(
         result,
@@ -458,9 +407,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                 source = %s | eval uid =  id | LOOKUP %s uid as id REPLACE occupation as new_col
-                 """,
+                "source = %s | eval uid =  id | LOOKUP %s uid as id REPLACE occupation as new_col",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifyNumOfRows(result, 6);
   }
