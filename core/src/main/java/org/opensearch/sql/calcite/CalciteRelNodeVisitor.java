@@ -56,33 +56,9 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
-import org.opensearch.sql.ast.tree.AD;
-import org.opensearch.sql.ast.tree.Aggregation;
-import org.opensearch.sql.ast.tree.CloseCursor;
-import org.opensearch.sql.ast.tree.Dedupe;
-import org.opensearch.sql.ast.tree.Eval;
-import org.opensearch.sql.ast.tree.FetchCursor;
-import org.opensearch.sql.ast.tree.FillNull;
-import org.opensearch.sql.ast.tree.Filter;
-import org.opensearch.sql.ast.tree.Head;
-import org.opensearch.sql.ast.tree.Join;
-import org.opensearch.sql.ast.tree.Kmeans;
-import org.opensearch.sql.ast.tree.Lookup;
+import org.opensearch.sql.ast.tree.*;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
-import org.opensearch.sql.ast.tree.ML;
-import org.opensearch.sql.ast.tree.Paginate;
-import org.opensearch.sql.ast.tree.Parse;
-import org.opensearch.sql.ast.tree.Project;
-import org.opensearch.sql.ast.tree.RareTopN;
-import org.opensearch.sql.ast.tree.Relation;
-import org.opensearch.sql.ast.tree.Rename;
-import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
-import org.opensearch.sql.ast.tree.SubqueryAlias;
-import org.opensearch.sql.ast.tree.TableFunction;
-import org.opensearch.sql.ast.tree.Trendline;
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
@@ -846,5 +822,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitTrendline(Trendline node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("Trendline command is unsupported in Calcite");
+  }
+
+  @Override
+  public RelNode visitExpand(Expand expand, CalcitePlanContext context) {
+    throw new CalciteUnsupportedException("Expand command is unsupported in Calcite");
   }
 }

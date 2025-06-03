@@ -37,6 +37,7 @@ KMEANS:                             'KMEANS';
 AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
+EXPAND:                             'EXPAND';
 TRENDLINE:                          'TRENDLINE';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';

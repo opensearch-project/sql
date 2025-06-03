@@ -69,6 +69,7 @@ commands
    | adCommand
    | mlCommand
    | fillnullCommand
+   | expandCommand
    | trendlineCommand
    ;
 
@@ -96,6 +97,7 @@ commandName
    | AD
    | ML
    | FILLNULL
+   | EXPAND
    | TRENDLINE
    | EXPLAIN
    ;
@@ -220,6 +222,10 @@ fillNullWith
 fillNullUsing
    : USING replacementPair (COMMA replacementPair)*
    ;
+
+expandCommand
+    : EXPAND fieldExpression (AS alias = qualifiedName)?
+    ;
 
 replacementPair
    : fieldExpression EQUAL replacement = valueExpression

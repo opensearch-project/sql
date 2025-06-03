@@ -55,31 +55,8 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFunction;
-import org.opensearch.sql.ast.tree.AD;
-import org.opensearch.sql.ast.tree.Aggregation;
-import org.opensearch.sql.ast.tree.Dedupe;
-import org.opensearch.sql.ast.tree.DescribeRelation;
-import org.opensearch.sql.ast.tree.Eval;
-import org.opensearch.sql.ast.tree.FillNull;
-import org.opensearch.sql.ast.tree.Filter;
-import org.opensearch.sql.ast.tree.Head;
-import org.opensearch.sql.ast.tree.Join;
-import org.opensearch.sql.ast.tree.Kmeans;
-import org.opensearch.sql.ast.tree.Lookup;
-import org.opensearch.sql.ast.tree.ML;
-import org.opensearch.sql.ast.tree.Parse;
-import org.opensearch.sql.ast.tree.Patterns;
-import org.opensearch.sql.ast.tree.Project;
-import org.opensearch.sql.ast.tree.RareTopN;
+import org.opensearch.sql.ast.tree.*;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
-import org.opensearch.sql.ast.tree.Relation;
-import org.opensearch.sql.ast.tree.Rename;
-import org.opensearch.sql.ast.tree.Sort;
-import org.opensearch.sql.ast.tree.SubqueryAlias;
-import org.opensearch.sql.ast.tree.TableFunction;
-import org.opensearch.sql.ast.tree.Trendline;
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -649,6 +626,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return FillNull.ofVariousValue(replacementsBuilder.build());
+  }
+
+    /** expand command. */
+  @Override
+  public UnresolvedPlan visitExpandCommand(OpenSearchPPLParser.ExpandCommandContext ctx) {
+    return new Expand((Field) internalVisitExpression(ctx.fieldExpression()),
+            ctx.alias!=null ? Optional.of(internalVisitExpression(ctx.alias)) : Optional.empty());
   }
 
   /** trendline command. */
