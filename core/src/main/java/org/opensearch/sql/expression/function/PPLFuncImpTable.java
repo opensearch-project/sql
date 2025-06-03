@@ -33,6 +33,7 @@ public class PPLFuncImpTable {
   public interface FunctionImp {
     RelDataType ANY_TYPE = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
 
+    // TODO: Support argument coercion and casting
     RexNode resolve(RexBuilder builder, RexNode... args);
 
     /**
