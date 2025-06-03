@@ -42,17 +42,22 @@ public class CryptographicFunction extends ImplementorUDF {
     }
 
     public static String getDigest(String input, int algorithm) {
-      return switch (algorithm) {
-        case 224 -> Hex.encodeHexString(
-            DigestUtils.getDigest(MessageDigestAlgorithms.SHA_224).digest(input.getBytes()));
-        case 256 -> DigestUtils.sha256Hex(input);
-        case 384 -> DigestUtils.sha384Hex(input);
-        case 512 -> DigestUtils.sha512Hex(input);
-        default -> throw new IllegalArgumentException(
-            String.format(
-                "Unsupported SHA2 algorithm: %d. Only 224, 256, 384, and 512 are supported.",
-                algorithm));
-      };
+      switch (algorithm) {
+        case 224:
+          return Hex.encodeHexString(
+                  DigestUtils.getDigest(MessageDigestAlgorithms.SHA_224).digest(input.getBytes()));
+        case 256:
+          return DigestUtils.sha256Hex(input);
+        case 384:
+          return DigestUtils.sha384Hex(input);
+        case 512:
+          return DigestUtils.sha512Hex(input);
+        default:
+          throw new IllegalArgumentException(
+                  String.format(
+                          "Unsupported SHA2 algorithm: %d. Only 224, 256, 384, and 512 are supported.",
+                          algorithm));
+      }
     }
   }
 }

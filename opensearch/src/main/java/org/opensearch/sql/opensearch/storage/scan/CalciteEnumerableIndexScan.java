@@ -6,6 +6,8 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -109,6 +111,6 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan impleme
   private List<String> getFieldPath() {
     return getRowType().getFieldNames().stream()
         .map(f -> osIndex.getAliasMapping().getOrDefault(f, f))
-        .toList();
+            .collect(Collectors.toList());
   }
 }

@@ -372,7 +372,4 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
-  public T visitWindow(Window window, C context) {
-    return visitChildren(window, context);
-  }
 }

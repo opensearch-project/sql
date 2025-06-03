@@ -6,6 +6,8 @@
 package org.opensearch.sql.opensearch.storage.system;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -75,6 +77,6 @@ public class CalciteEnumerableSystemIndexScan extends AbstractCalciteSystemIndex
   }
 
   private List<String> getFieldPath() {
-    return getRowType().getFieldNames().stream().toList();
+    return getRowType().getFieldNames().stream().collect(Collectors.toList());
   }
 }

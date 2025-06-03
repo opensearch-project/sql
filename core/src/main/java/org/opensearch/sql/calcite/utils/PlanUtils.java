@@ -19,6 +19,7 @@ import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.Transfer
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
@@ -42,19 +43,43 @@ public interface PlanUtils {
   String ROW_NUMBER_COLUMN_NAME = "_row_number_";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
-    return switch (unit) {
-      case MICROSECOND -> SpanUnit.MILLISECOND;
-      case SECOND -> SpanUnit.SECOND;
-      case MINUTE -> SpanUnit.MINUTE;
-      case HOUR -> SpanUnit.HOUR;
-      case DAY -> SpanUnit.DAY;
-      case WEEK -> SpanUnit.WEEK;
-      case MONTH -> SpanUnit.MONTH;
-      case QUARTER -> SpanUnit.QUARTER;
-      case YEAR -> SpanUnit.YEAR;
-      case UNKNOWN -> SpanUnit.UNKNOWN;
-      default -> throw new UnsupportedOperationException("Unsupported interval unit: " + unit);
-    };
+    SpanUnit result;
+    switch (unit) {
+      case MICROSECOND:
+        result = SpanUnit.MILLISECOND;
+        break;
+      case SECOND:
+        result = SpanUnit.SECOND;
+        break;
+      case MINUTE:
+        result = SpanUnit.MINUTE;
+        break;
+      case HOUR:
+        result = SpanUnit.HOUR;
+        break;
+      case DAY:
+        result = SpanUnit.DAY;
+        break;
+      case WEEK:
+        result = SpanUnit.WEEK;
+        break;
+      case MONTH:
+        result = SpanUnit.MONTH;
+        break;
+      case QUARTER:
+        result = SpanUnit.QUARTER;
+        break;
+      case YEAR:
+        result = SpanUnit.YEAR;
+        break;
+      case UNKNOWN:
+        result = SpanUnit.UNKNOWN;
+        break;
+      default:
+        throw new UnsupportedOperationException("Unsupported interval unit: " + unit);
+    }
+    return result;
+
   }
 
   static RexNode makeOver(
@@ -201,15 +226,18 @@ public interface PlanUtils {
   }
 
   static RexWindowBound convert(CalcitePlanContext context, WindowBound windowBound) {
-    if (windowBound instanceof WindowBound.UnboundedWindowBound unbounded) {
+    if (windowBound instanceof WindowBound.UnboundedWindowBound) {
+      WindowBound.UnboundedWindowBound unbounded = (WindowBound.UnboundedWindowBound) windowBound;
       if (unbounded.isPreceding()) {
         return UNBOUNDED_PRECEDING;
       } else {
         return UNBOUNDED_FOLLOWING;
       }
-    } else if (windowBound instanceof WindowBound.CurrentRowWindowBound current) {
+    } else if (windowBound instanceof WindowBound.CurrentRowWindowBound) {
+      WindowBound.CurrentRowWindowBound current = (WindowBound.CurrentRowWindowBound) windowBound;
       return CURRENT_ROW;
-    } else if (windowBound instanceof WindowBound.OffSetWindowBound offset) {
+    } else if (windowBound instanceof WindowBound.OffSetWindowBound) {
+      WindowBound.OffSetWindowBound offset = (WindowBound.OffSetWindowBound) windowBound;
       if (offset.isPreceding()) {
         return preceding(context.relBuilder.literal(offset.getOffset()));
       } else {
@@ -296,7 +324,7 @@ public interface PlanUtils {
 
   /** Get all uniq input references from a list of RexNodes. */
   static List<RexInputRef> getInputRefs(List<RexNode> nodes) {
-    return nodes.stream().flatMap(node -> getInputRefs(node).stream()).toList();
+    return nodes.stream().flatMap(node -> getInputRefs(node).stream()).collect(Collectors.toList());
   }
 
   /** Get all uniq input references from a list of agg calls. */
@@ -305,6 +333,6 @@ public interface PlanUtils {
         .map(RelBuilder.AggCall::over)
         .map(RelBuilder.OverCall::toRex)
         .flatMap(rex -> getInputRefs(rex).stream())
-        .toList();
+            .collect(Collectors.toList());
   }
 }

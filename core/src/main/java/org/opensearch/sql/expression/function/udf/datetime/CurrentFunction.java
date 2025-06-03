@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.udf.datetime;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -13,6 +14,7 @@ import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -24,6 +26,8 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
+
+import static org.opensearch.sql.data.type.ExprCoreType.*;
 
 /**
  * Implementation of the now-like functions:
@@ -46,13 +50,19 @@ public class CurrentFunction extends ImplementorUDF {
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
-    return opBinding ->
-        switch (returnType) {
-          case ExprCoreType.DATE -> UserDefinedFunctionUtils.NULLABLE_DATE_UDT;
-          case ExprCoreType.TIME -> UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
-          case ExprCoreType.TIMESTAMP -> UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
-          default -> throw new IllegalArgumentException("Unsupported return type: " + returnType);
-        };
+      return opBinding -> {
+          RelDataType result;
+          if (returnType.equals(DATE)) {
+              result = UserDefinedFunctionUtils.NULLABLE_DATE_UDT;
+          } else if (returnType.equals(TIME)) {
+              result = UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
+          } else if (returnType.equals(TIMESTAMP)) {
+              result = UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
+          } else {
+              throw new IllegalArgumentException("Unsupported return type: " + returnType);
+          }
+          return result;
+      };
   }
 
   @RequiredArgsConstructor
@@ -63,15 +73,19 @@ public class CurrentFunction extends ImplementorUDF {
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
 
-      String functionName =
-          switch (returnType) {
-            case ExprCoreType.DATE -> "currentDate";
-            case ExprCoreType.TIME -> "currentTime";
-            case ExprCoreType.TIMESTAMP -> "currentTimestamp";
-            default -> throw new IllegalArgumentException("Unsupported return type: " + returnType);
-          };
+        String functionName;
+        if (returnType.equals(DATE)) {
+            functionName = "currentDate";
+        } else if (returnType.equals(TIME)) {
+            functionName = "currentTime";
+        } else if (returnType.equals(TIMESTAMP)) {
+            functionName = "currentTimestamp";
+        } else {
+            throw new IllegalArgumentException("Unsupported return type: " + returnType);
+        }
 
-      Expression properties =
+
+        Expression properties =
           Expressions.call(
               UserDefinedFunctionUtils.class, "restoreFunctionProperties", translator.getRoot());
       Expression now =
@@ -93,7 +107,7 @@ public class CurrentFunction extends ImplementorUDF {
     }
 
     public static String currentTimestamp(LocalDateTime now) {
-      return (String) new ExprTimestampValue(now).valueForCalcite();
+      return (String) new ExprTimestampValue(now.toInstant(ZoneOffset.UTC)).valueForCalcite();
     }
   }
 }

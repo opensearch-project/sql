@@ -39,7 +39,8 @@ public class Rename extends UnresolvedPlan {
   }
 
   private void validate(UnresolvedExpression expr) {
-    if (expr instanceof Field field) {
+    if (expr instanceof Field) {
+      Field field = (Field) expr;
       String name = field.getField().toString();
       if (OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(name)) {
         throw new IllegalArgumentException(

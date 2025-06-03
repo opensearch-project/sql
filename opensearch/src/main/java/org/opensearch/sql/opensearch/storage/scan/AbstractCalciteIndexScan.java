@@ -80,18 +80,31 @@ public abstract class AbstractCalciteIndexScan extends TableScan {
     double estimateRowCountFactor =
         osIndex.getSettings().getSettingValue(CALCITE_PUSHDOWN_ROWCOUNT_ESTIMATION_FACTOR);
     return pushDownContext.stream()
-        .reduce(
-            osIndex.getMaxResultWindow().doubleValue(),
-            (rowCount, action) ->
-                switch (action.type) {
-                      case AGGREGATION -> mq.getRowCount((RelNode) action.digest);
-                      case PROJECT -> rowCount;
-                      case FILTER -> NumberUtil.multiply(
-                          rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
-                      case LIMIT -> (Integer) action.digest;
-                    }
-                    * estimateRowCountFactor,
-            (a, b) -> null);
+            .reduce(
+                    osIndex.getMaxResultWindow().doubleValue(),
+                    (rowCount, action) -> {
+                      double estimated;
+                      switch (action.type) {
+                        case AGGREGATION:
+                          estimated = mq.getRowCount((RelNode) action.digest);
+                          break;
+                        case PROJECT:
+                          estimated = rowCount;
+                          break;
+                        case FILTER:
+                          estimated = NumberUtil.multiply(
+                                  rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
+                          break;
+                        case LIMIT:
+                          estimated = ((Integer) action.digest).doubleValue();
+                          break;
+                        default:
+                          throw new IllegalStateException("Unexpected value: " + action.type);
+                      }
+                      return estimated * estimateRowCountFactor;
+                    },
+                    (a, b) -> null);
+
   }
 
   // TODO: should we consider equivalent among PushDownContexts with different push down sequence?

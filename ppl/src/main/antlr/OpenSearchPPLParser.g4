@@ -63,7 +63,6 @@ commands
    | rareCommand
    | grokCommand
    | parseCommand
-<<<<<<< HEAD
    | patternsCommand
    | lookupCommand
    | kmeansCommand
@@ -98,16 +97,11 @@ commandName
    | ML
    | FILLNULL
    | TRENDLINE
-<<<<<<< HEAD
-=======
    | kmeansCommand
    | adCommand
    | mlCommand
    | patternsCommand
->>>>>>> 0d749958b (Improved patterns command with new algorithm (#3263) (#3335))
-=======
    | EXPLAIN
->>>>>>> 03378ddd0 (Support `explain` PPL command (#3560))
    ;
 
 searchCommand

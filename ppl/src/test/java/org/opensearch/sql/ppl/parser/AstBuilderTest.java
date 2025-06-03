@@ -48,7 +48,6 @@ import static org.opensearch.sql.ast.dsl.AstDSL.trendline;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.tree.Trendline.TrendlineType.SMA;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
-import static org.opensearch.sql.ast.dsl.AstDSL.window;
 import static org.opensearch.sql.utils.SystemIndexUtils.DATASOURCES_TABLE_NAME;
 
 import com.google.common.collect.ImmutableMap;
