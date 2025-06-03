@@ -180,13 +180,7 @@ public class CalcitePPLLookupIT extends CalcitePPLIntegTestCase {
   public void testUidASIdName() {
     JSONObject result =
         executeQuery(
-            String.format(
-                """
-                   source = %s
-                   | LOOKUP %s uid AS id, name
-                   | fields id, name, country, salary, department, occupation
-                   """,
-                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+                "source = " + TEST_INDEX_WORKER + "\n| LOOKUP " + TEST_INDEX_WORK_INFORMATION + " uid AS id, name\n| fields id, name, country, salary, department, occupation\n");
     verifySchema(
         result,
         schema("id", "integer"),

@@ -633,22 +633,7 @@ public class CalcitePPLJoinIT extends CalcitePPLIntegTestCase {
   public void testInnerJoinWithRelationSubquery() {
     JSONObject actual =
         executeQuery(
-            String.format(
-                """
-                   source = %s
-                   | where country = 'USA' OR country = 'England'
-                   | inner join left=a, right=b
-                       ON a.name = b.name
-                       [
-                         source = %s
-                         | where salary > 0
-                         | fields name, country, salary
-                         | sort salary
-                         | head 3
-                       ]
-                   | stats avg(salary) by span(age, 10) as age_span, b.country
-                   """,
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
+                "source = " + TEST_INDEX_STATE_COUNTRY + "\n| where country = 'USA' OR country = 'England'\n| inner join left=a, right=b\n    ON a.name = b.name\n    [\n      source = " + TEST_INDEX_OCCUPATION + "\n      | where salary > 0\n      | fields name, country, salary\n      | sort salary\n      | head 3\n    ]\n| stats avg(salary) by span(age, 10) as age_span, b.country\n");
     verifySchema(
         actual,
         schema("avg(salary)", "double"),

@@ -28,11 +28,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
   public void testRename() {
     JSONObject result =
         executeQuery(
-            String.format(
-                """
-                   source = %s | rename age as renamed_age
-                   """,
-                TEST_INDEX_STATE_COUNTRY));
+                "source = " + TEST_INDEX_STATE_COUNTRY + " | rename age as renamed_age\n");
     verifySchema(
         result,
         schema("name", "string"),
@@ -50,11 +46,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
             IllegalArgumentException.class,
             () ->
                 executeQuery(
-                    String.format(
-                        """
-                   source = %s | rename age as renamed_age | fields age
-                   """,
-                        TEST_INDEX_STATE_COUNTRY)));
+                        "source = " + TEST_INDEX_STATE_COUNTRY + " | rename age as renamed_age | fields age\n"));
     assertEquals(
         "field [age] not found; input fields are: [name, country, state, month, year, renamed_age]",
         e.getMessage());
@@ -67,11 +59,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
             IllegalArgumentException.class,
             () ->
                 executeQuery(
-                    String.format(
-                        """
-                   source = %s | rename renamed_age as age
-                   """,
-                        TEST_INDEX_STATE_COUNTRY)));
+                        "source = " + TEST_INDEX_STATE_COUNTRY + " | rename renamed_age as age\n"));
     assertEquals(
         "field [renamed_age] not found; input fields are: [name, country, state, month, year, age]",
         e.getMessage());
@@ -81,12 +69,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
   public void testMultipleRename() {
     JSONObject result =
         executeQuery(
-            String.format(
-                """
-                   source = %s | rename name as renamed_name, country as renamed_country
-                   | fields renamed_name, age, renamed_country
-                   """,
-                TEST_INDEX_STATE_COUNTRY));
+                "source = " + TEST_INDEX_STATE_COUNTRY + " | rename name as renamed_name, country as renamed_country\n| fields renamed_name, age, renamed_country\n");
     verifySchema(
         result,
         schema("renamed_name", "string"),
@@ -104,11 +87,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
   public void testRenameInAgg() {
     JSONObject result =
         executeQuery(
-            String.format(
-                """
-                   source = %s | rename age as user_age | stats avg(user_age) by country
-                   """,
-                TEST_INDEX_STATE_COUNTRY));
+                "source = " + TEST_INDEX_STATE_COUNTRY + " | rename age as user_age | stats avg(user_age) by country\n");
     verifySchemaInOrder(result, schema("avg(user_age)", "double"), schema("country", "string"));
     verifyDataRows(result, rows(22.5, "Canada"), rows(50.0, "USA"));
   }
@@ -117,12 +96,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
   public void testMultipleRenameWithBackticks() {
     JSONObject result =
         executeQuery(
-            String.format(
-                """
-                   source = %s |  rename name as `renamed_name`, country as `renamed_country`
-                   | fields `renamed_name`, `age`, `renamed_country`
-                   """,
-                TEST_INDEX_STATE_COUNTRY));
+                "source = " + TEST_INDEX_STATE_COUNTRY + " |  rename name as `renamed_name`, country as `renamed_country`\n| fields `renamed_name`, `age`, `renamed_country`\n");
     verifySchema(
         result,
         schema("renamed_name", "string"),
@@ -140,11 +114,7 @@ public class CalcitePPLRenameIT extends CalcitePPLIntegTestCase {
   public void testRenameWithBackticksInAgg() {
     JSONObject result =
         executeQuery(
-            String.format(
-                """
-                   source = %s | rename age as `user_age` | stats avg(`user_age`) by country
-                   """,
-                TEST_INDEX_STATE_COUNTRY));
+                "source = " + TEST_INDEX_STATE_COUNTRY + " | rename age as `user_age` | stats avg(`user_age`) by country\n");
     verifySchemaInOrder(result, schema("avg(`user_age`)", "double"), schema("country", "string"));
     verifyDataRows(result, rows(22.5, "Canada"), rows(50.0, "USA"));
   }
