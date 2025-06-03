@@ -314,6 +314,12 @@ public interface PlanUtils {
         .toList();
   }
 
+  /**
+   * Visit the children of an unresolved plan to find it leaf relation
+   *
+   * @param node to visit its children
+   * @return the relation if found
+   */
   static UnresolvedPlan getRelation(UnresolvedPlan node) {
     AbstractNodeVisitor<Relation, Object> relationVisitor =
         new AbstractNodeVisitor<Relation, Object>() {
@@ -325,6 +331,12 @@ public interface PlanUtils {
     return node.getChild().getFirst().accept(relationVisitor, null);
   }
 
+  /**
+   * Transform plan to attach specified child to the first leaf node.
+   *
+   * @param node to transform
+   * @param child to attach
+   */
   static void transformPlanToAttachChild(UnresolvedPlan node, UnresolvedPlan child) {
     AbstractNodeVisitor<Void, Object> leafVisitor =
         new AbstractNodeVisitor<Void, Object>() {
