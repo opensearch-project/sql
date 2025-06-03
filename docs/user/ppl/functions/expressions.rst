@@ -14,6 +14,52 @@ Introduction
 
 Expressions, particularly value expressions, are those which return a scalar value. Expressions have different types and forms. For example, there are literal values as atom expression and arithmetic, predicate and function expression built on top of them. And also expressions can be used in different clauses, such as using arithmetic expression in ``Filter``, ``Stats`` command.
 
+Literal Values
+==============
+
+Description
+-----------
+
+A literal is a symbol that represents a value. The most common literal values include:
+
+1. Numeric literals: specify numeric values such as integer and floating-point numbers.
+2. String literals: specify a string enclosed by single or double quotes.
+3. Boolean literals: ``true`` or ``false``.
+4. Date and Time literals: DATE 'YYYY-MM-DD' represent the date, TIME 'hh:mm:ss' represent the time, TIMESTAMP 'YYYY-MM-DD hh:mm:ss' represent the timestamp.
+
+Examples
+--------
+
+Here is an example for different type of literals::
+
+    os> source=accounts | eval `123`=123, `'hello'`='hello', `false`=false, `-4.567`=-4.567, `9.876E-1`=9.876E-1, `DATE '2020-07-07'`=DATE '2020-07-07', `TIME '01:01:01'`=TIME '01:01:01', `TIMESTAMP '2020-07-07 01:01:01'`=TIMESTAMP '2020-07-07 01:01:01' | fields `123`, `'hello'`, `false`, `-4.567`, `9.876E-1`, `DATE '2020-07-07'`, `TIME '01:01:01'`, `TIMESTAMP '2020-07-07 01:01:01'` | head 1;
+    fetched rows / total rows = 1/1
+    +-----+---------+-------+--------+----------+-------------------+-----------------+---------------------------------+
+    | 123 | 'hello' | false | -4.567 | 9.876E-1 | DATE '2020-07-07' | TIME '01:01:01' | TIMESTAMP '2020-07-07 01:01:01' |
+    |-----+---------+-------+--------+----------+-------------------+-----------------+---------------------------------|
+    | 123 | hello   | False | -4.567 | 0.9876   | 2020-07-07        | 01:01:01        | 2020-07-07 01:01:01             |
+    +-----+---------+-------+--------+----------+-------------------+-----------------+---------------------------------+
+
+
+    os> source=accounts | eval `"Hello"`="Hello", `'Hello'`='Hello', `"It""s"`="It""s", `'It''s'`='It''s', `"It's"`="It's", `'"Its"'`='"Its"', `'It\'s'`='It\'s', `'It\\\'s'`='It\\\'s', `"\I\t\s"`="\I\t\s" | fields `"Hello"`, `'Hello'`, `"It""s"`, `'It''s'`, `"It's"`, `'"Its"'`, `'It\'s'`, `'It\\\'s'`, `"\I\t\s"` | head 1;
+    fetched rows / total rows = 1/1
+    +---------+---------+---------+---------+--------+---------+---------+-----------+----------+
+    | "Hello" | 'Hello' | "It""s" | 'It''s' | "It's" | '"Its"' | 'It\'s' | 'It\\\'s' | "\I\t\s" |
+    |---------+---------+---------+---------+--------+---------+---------+-----------+----------|
+    | Hello   | Hello   | It"s    | It's    | It's   | "Its"   | It's    | It\'s     | \I\t\s   |
+    +---------+---------+---------+---------+--------+---------+---------+-----------+----------+
+
+
+    os> source=accounts | eval `{DATE '2020-07-07'}`={DATE '2020-07-07'}, `{TIME '01:01:01'}`={TIME '01:01:01'}, `{TIMESTAMP '2020-07-07 01:01:01'}`={TIMESTAMP '2020-07-07 01:01:01'} | fields `{DATE '2020-07-07'}`, `{TIME '01:01:01'}`, `{TIMESTAMP '2020-07-07 01:01:01'}` | head 1;
+    fetched rows / total rows = 1/1
+    +---------------------+-------------------+-----------------------------------+
+    | {DATE '2020-07-07'} | {TIME '01:01:01'} | {TIMESTAMP '2020-07-07 01:01:01'} |
+    |---------------------+-------------------+-----------------------------------|
+    | 2020-07-07          | 01:01:01          | 2020-07-07 01:01:01               |
+    +---------------------+-------------------+-----------------------------------+
+
+
+
 Arithmetic Operators
 ====================
 
