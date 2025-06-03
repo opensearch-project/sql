@@ -428,13 +428,8 @@ public class StatsCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | stats percentile(balance, 50)", TEST_INDEX_BANK_WITH_NULL_VALUES));
-<<<<<<< HEAD
-    verifySchema(response, schema("percentile(balance, 50)", null, "long"));
-    verifyDataRows(response, rows(36031));
-=======
     verifySchema(response, schema("percentile(balance, 50)", null, "bigint"));
     verifyDataRows(response, rows(39225));
->>>>>>> 41917ef53 (Unified OpenSearch PPL Data Type (#3345))
   }
 
   @Test

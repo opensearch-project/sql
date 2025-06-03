@@ -19,7 +19,6 @@ public class CalcitePPLIPFunctionIT extends CalcitePPLIntegTestCase {
   @Override
   public void init() throws IOException {
     super.init();
-    loadIndex(Index.GEOIP);
     loadIndex(Index.WEBLOG);
   }
 

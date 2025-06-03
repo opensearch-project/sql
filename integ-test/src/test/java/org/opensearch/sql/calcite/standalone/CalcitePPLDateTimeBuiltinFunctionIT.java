@@ -532,12 +532,13 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     List<String> relativeList = List.of("NOW", "TMR", "+month", "-2wk", "-1d@d");
     int index = 0;
     for (String time : relativeList) {
-      Request request =
-          new Request(
+      Request request = new Request(
               "PUT",
-              "/opensearch-sql_test_index_date_formats/_doc/%s?refresh=true".formatted(index));
+              String.format("/opensearch-sql_test_index_date_formats/_doc/%s?refresh=true", index));
+
       request.setJsonEntity(
-          "{\"strict_date_optional_time\":\"%s\"}".formatted(convertTimeExpression(time)));
+              String.format("{\"strict_date_optional_time\":\"%s\"}", convertTimeExpression(time)));
+
 
       index++;
       client().performRequest(request);
