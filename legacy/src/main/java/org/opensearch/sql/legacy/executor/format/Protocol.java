@@ -222,8 +222,9 @@ public class Protocol {
     String type = column.getType();
 
     return switch (type) {
-      case "half_float", "scaled_float" -> "float";
       case "date", "date_nanos" -> "timestamp";
+      case "half_float", "scaled_float" -> "float";
+      case "nested" -> "array";
       case "object" -> "struct";
       default -> type;
     };
