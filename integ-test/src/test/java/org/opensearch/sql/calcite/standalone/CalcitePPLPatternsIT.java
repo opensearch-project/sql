@@ -28,9 +28,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | patterns email | fields email, patterns_field
-                   """,
+                    "source = %s | patterns email | fields email, patterns_field\n",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("email", "string"), schema("patterns_field", "string"));
     verifyDataRows(
@@ -49,9 +47,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | patterns email | stats count() by patterns_field
-                   """,
+                    "source = %s | patterns email | stats count() by patterns_field\n",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("count()", "long"), schema("patterns_field", "string"));
     verifyDataRows(result, rows(7, "@."));
@@ -62,9 +58,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | patterns pattern='@.*' email | fields email, patterns_field
-                   """,
+                    "source = %s | patterns pattern='@.*' email | fields email, patterns_field\n",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("email", "string"), schema("patterns_field", "string"));
     verifyDataRows(
@@ -83,9 +77,7 @@ public class CalcitePPLPatternsIT extends CalcitePPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                """
-                   source = %s | patterns pattern='@.*' new_field='username' email | fields email, username
-                   """,
+                    "source = %s | patterns pattern='@.*' new_field='username' email | fields email, username\n",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("email", "string"), schema("username", "string"));
     verifyDataRows(
