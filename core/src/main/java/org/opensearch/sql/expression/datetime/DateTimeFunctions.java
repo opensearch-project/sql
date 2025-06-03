@@ -983,8 +983,7 @@ public class DateTimeFunctions {
             LONG),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DATE),
         impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, TIMESTAMP),
-        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DOUBLE),
-        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, STRING));
+        impl(nullMissingHandling(DateTimeFunctions::unixTimeStampOf), DOUBLE, DOUBLE));
   }
 
   /** UTC_DATE(). return the current UTC Date in format yyyy-MM-dd */
