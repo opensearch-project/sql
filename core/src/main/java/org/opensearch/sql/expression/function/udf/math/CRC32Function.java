@@ -40,7 +40,7 @@ public class CRC32Function extends ImplementorUDF {
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
-      return Expressions.call(Crc32Implementor.class, "crc32", translatedOperands.getFirst());
+      return Expressions.call(Crc32Implementor.class, "crc32", translatedOperands.get(0));
     }
 
     public static long crc32(String value) {

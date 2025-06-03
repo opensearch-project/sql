@@ -166,7 +166,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitChildren(node, context);
     List<RexNode> projectList;
     if (node.getProjectList().size() == 1
-        && node.getProjectList().getFirst() instanceof AllFields allFields) {
+        && node.getProjectList().get(0) instanceof AllFields) {
+      AllFields allFields = (AllFields) node.getProjectList().get(0);
       tryToRemoveNestedFields(context);
       tryToRemoveMetaFields(context, allFields instanceof AllFieldsExcludeMeta);
       return context.relBuilder.peek();
@@ -199,7 +200,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                   return -1 != lastDot && allFields.contains(field.substring(0, lastDot));
                 })
             .map(field -> (RexNode) context.relBuilder.field(field))
-            .toList();
+                .collect(Collectors.toList());
     if (!duplicatedNestedFields.isEmpty()) {
       context.relBuilder.projectExcept(duplicatedNestedFields);
     }
@@ -222,7 +223,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           originalFields.stream()
               .filter(OpenSearchConstants.METADATAFIELD_TYPE_MAP::containsKey)
               .map(metaField -> (RexNode) context.relBuilder.field(metaField))
-              .toList();
+                  .collect(Collectors.toList());
       // Remove metadata fields if there is and ensure there are other fields.
       if (!metaFieldsRef.isEmpty() && metaFieldsRef.size() != originalFields.size()) {
         context.relBuilder.projectExcept(metaFieldsRef);
@@ -320,7 +321,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                             pattern,
                             context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
                             true)))
-            .toList();
+                .collect(Collectors.toList());
     projectPlusOverriding(newFields, groupCandidates, context);
     return context.relBuilder.peek();
   }
@@ -365,7 +366,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         originalFieldNames.stream()
             .filter(newNames::contains)
             .map(a -> (RexNode) context.relBuilder.field(a))
-            .toList();
+                .collect(Collectors.toList());
     // 1. add the new fields, For example "age0, country0"
     context.relBuilder.projectPlus(newFields);
     // 2. drop the overriding field list, it's duplicated now. For example "age, country"
@@ -443,9 +444,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<UnresolvedExpression> aggExprList,
       CalcitePlanContext context) {
     List<AggCall> aggCallList =
-        aggExprList.stream().map(expr -> aggVisitor.analyze(expr, context)).toList();
+        aggExprList.stream().map(expr -> aggVisitor.analyze(expr, context)).collect(Collectors.toList());
     List<RexNode> groupByList =
-        groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList();
+        groupExprList.stream().map(expr -> rexVisitor.analyze(expr, context)).collect(Collectors.toList());
     return Pair.of(groupByList, aggCallList);
   }
 
@@ -707,7 +708,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitWindow(Window node, CalcitePlanContext context) {
     visitChildren(node, context);
     List<RexNode> overExpressions =
-        node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).toList();
+        node.getWindowFunctionList().stream().map(w -> rexVisitor.analyze(w, context)).collect(Collectors.toList());
     context.relBuilder.projectPlus(overExpressions);
     return context.relBuilder.peek();
   }
@@ -716,7 +717,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitFillNull(FillNull node, CalcitePlanContext context) {
     visitChildren(node, context);
     if (node.getFields().size()
-        != new HashSet<>(node.getFields().stream().map(f -> f.getField().toString()).toList())
+        != new HashSet<>(node.getFields().stream().map(f -> f.getField().toString()).collect(Collectors.toList()))
             .size()) {
       throw new IllegalArgumentException("The field list cannot be duplicated in fillnull");
     }
@@ -797,7 +798,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 1. group the group-by list + field list and add a count() aggregation
     List<UnresolvedExpression> groupExprList = new ArrayList<>(node.getGroupExprList());
     List<UnresolvedExpression> fieldList =
-        node.getFields().stream().map(f -> (UnresolvedExpression) f).toList();
+        node.getFields().stream().map(f -> (UnresolvedExpression) f).collect(Collectors.toList());
     groupExprList.addAll(fieldList);
     List<UnresolvedExpression> aggExprList =
         List.of(AstDSL.alias(countFieldName, AstDSL.aggregate("count", null)));

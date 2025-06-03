@@ -84,7 +84,6 @@ public abstract class Rounding<T> {
     }
   }
 
-<<<<<<< HEAD
   static class DatetimeRounding extends Rounding<LocalDateTime> {
     private final ExprValue interval;
     private final DateTimeUnit dateTimeUnit;

@@ -58,12 +58,12 @@ public class WeekdayFunction extends ImplementorUDF {
               rexToLixTranslator.getRoot());
       ExprType dateType =
           OpenSearchTypeFactory.convertRelDataTypeToExprType(
-              rexCall.getOperands().getFirst().getType());
+              rexCall.getOperands().get(0).getType());
       Expression date =
           Expressions.call(
               ExprValueUtils.class,
               "fromObjectValue",
-              operands.getFirst(),
+              operands.get(0),
               Expressions.constant(dateType));
 
       if (ExprCoreType.TIME.equals(dateType)) {

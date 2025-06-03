@@ -28,7 +28,6 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 import static org.opensearch.sql.expression.function.FunctionDSL.implWithProperties;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
-<<<<<<< HEAD
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_NO_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
@@ -1858,7 +1857,7 @@ public class DateTimeFunctions {
    * @param datetime A DATE/DATETIME/TIMESTAMP/STRING ExprValue.
    * @return An DATE value corresponding to the last day of the month of the given argument.
    */
-  private ExprValue exprLastDay(ExprValue datetime) {
+  public ExprValue exprLastDay(ExprValue datetime) {
     return new ExprDateValue(getLastDay(datetime.dateValue()));
   }
 

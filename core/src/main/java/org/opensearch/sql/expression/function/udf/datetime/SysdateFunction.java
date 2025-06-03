@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.udf.datetime;
 
 import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -52,12 +53,12 @@ public class SysdateFunction extends ImplementorUDF {
 
     public static String sysdate() {
       var localDateTime = DateTimeFunctions.formatNow(Clock.systemDefaultZone(), 0);
-      return (String) new ExprTimestampValue(localDateTime).valueForCalcite();
+      return (String) new ExprTimestampValue(localDateTime.toInstant(ZoneOffset.UTC)).valueForCalcite();
     }
 
     public static String sysdate(int precision) {
       var localDateTime = DateTimeFunctions.formatNow(Clock.systemDefaultZone(), precision);
-      return (String) new ExprTimestampValue(localDateTime).valueForCalcite();
+      return (String) new ExprTimestampValue(localDateTime.toInstant(ZoneOffset.UTC)).valueForCalcite();
     }
   }
 }

@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function.udf.datetime;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.convertToExprValues;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.prependFunctionProperties;
 import static org.opensearch.sql.calcite.utils.datetime.DateTimeConversionUtils.convertToTimestampValue;
+import static org.opensearch.sql.data.type.ExprCoreType.*;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.*;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprToSecondsForIntType;
 
@@ -23,6 +24,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 
@@ -59,12 +61,14 @@ public class ToSecondsFunction extends ImplementorUDF {
   }
 
   public static long toSeconds(FunctionProperties properties, ExprValue datetime) {
-    return switch (datetime.type()) {
-      case ExprCoreType.DATE, ExprCoreType.TIME, ExprCoreType.TIMESTAMP, ExprCoreType.STRING -> {
-        ExprValue dateTimeValue = convertToTimestampValue(datetime, properties);
-        yield exprToSeconds(dateTimeValue).longValue();
+    long result;
+      ExprType type = datetime.type();
+      if (type.equals(DATE) || type.equals(TIME) || type.equals(TIMESTAMP) || type.equals(STRING)) {
+          ExprValue dateTimeValue = convertToTimestampValue(datetime, properties);
+          result = exprToSeconds(dateTimeValue).longValue();
+      } else {
+          result = exprToSecondsForIntType(new ExprLongValue(datetime.longValue())).longValue();
       }
-      default -> exprToSecondsForIntType(new ExprLongValue(datetime.longValue())).longValue();
-    };
+    return result;
   }
 }

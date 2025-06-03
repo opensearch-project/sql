@@ -85,7 +85,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   @Override
   public RelDataType createTypeWithNullability(RelDataType type, boolean nullable) {
-    if (type instanceof AbstractExprRelDataType<?> udt) {
+    if (type instanceof AbstractExprRelDataType<?>) {
+      AbstractExprRelDataType<?> udt = (AbstractExprRelDataType<?>) type;
       return udt.createWithNullability(this, nullable);
     }
     return super.createTypeWithNullability(type, nullable);
@@ -94,7 +95,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   @Override
   public RelDataType createTypeWithCharsetAndCollation(
       RelDataType type, Charset charset, SqlCollation collation) {
-    if (type instanceof AbstractExprRelDataType<?> udt) {
+    if (type instanceof AbstractExprRelDataType<?>) {
+      AbstractExprRelDataType<?> udt = (AbstractExprRelDataType<?>) type;
       return udt.createWithCharsetAndCollation(this, charset, collation);
     }
     return super.createTypeWithCharsetAndCollation(type, charset, collation);
@@ -118,19 +120,26 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   }
 
   public RelDataType createUDT(ExprUDT typeName) {
-    RelDataType udt =
-        switch (typeName) {
-          case EXPR_DATE:
-            yield new ExprDateType(this);
-          case EXPR_TIME:
-            yield new ExprTimeType(this);
-          case EXPR_TIMESTAMP:
-            yield new ExprTimeStampType(this);
-          case EXPR_BINARY:
-            yield new ExprBinaryType(this);
-          case EXPR_IP:
-            yield new ExprIPType(this);
-        };
+    RelDataType udt;
+    switch (typeName) {
+      case EXPR_DATE:
+        udt = new ExprDateType(this);
+        break;
+      case EXPR_TIME:
+        udt = new ExprTimeType(this);
+        break;
+      case EXPR_TIMESTAMP:
+        udt = new ExprTimeStampType(this);
+        break;
+      case EXPR_BINARY:
+        udt = new ExprBinaryType(this);
+        break;
+      case EXPR_IP:
+        udt = new ExprIPType(this);
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported type: " + typeName);
+    }
     return canonize(SqlTypeUtil.addCharsetAndCollation(udt, this));
   }
 
@@ -216,36 +225,77 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    * all ExprCoreType.
    */
   public static ExprType convertSqlTypeNameToExprType(SqlTypeName sqlTypeName) {
-    return switch (sqlTypeName) {
-      case TINYINT -> BYTE;
-      case SMALLINT -> SHORT;
-      case INTEGER -> INTEGER;
-      case BIGINT -> LONG;
-      case FLOAT, REAL -> FLOAT;
-      case DOUBLE -> DOUBLE;
-      case CHAR, VARCHAR -> STRING;
-      case BOOLEAN -> BOOLEAN;
-      case DATE -> DATE;
-      case TIME, TIME_TZ, TIME_WITH_LOCAL_TIME_ZONE -> TIME;
-      case TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE, TIMESTAMP_TZ -> TIMESTAMP;
-      case INTERVAL_YEAR,
-          INTERVAL_YEAR_MONTH,
-          INTERVAL_MONTH,
-          INTERVAL_DAY,
-          INTERVAL_DAY_HOUR,
-          INTERVAL_DAY_MINUTE,
-          INTERVAL_DAY_SECOND,
-          INTERVAL_HOUR,
-          INTERVAL_HOUR_MINUTE,
-          INTERVAL_HOUR_SECOND,
-          INTERVAL_MINUTE,
-          INTERVAL_MINUTE_SECOND,
-          INTERVAL_SECOND -> INTERVAL;
-      case ARRAY -> ARRAY;
-      case MAP -> STRUCT;
-      case NULL -> UNDEFINED;
-      default -> UNKNOWN;
-    };
+    ExprCoreType result;
+    switch (sqlTypeName) {
+      case TINYINT:
+        result = BYTE;
+        break;
+      case SMALLINT:
+        result = SHORT;
+        break;
+      case INTEGER:
+        result = INTEGER;
+        break;
+      case BIGINT:
+        result = LONG;
+        break;
+      case FLOAT:
+      case REAL:
+        result = FLOAT;
+        break;
+      case DOUBLE:
+        result = DOUBLE;
+        break;
+      case CHAR:
+      case VARCHAR:
+        result = STRING;
+        break;
+      case BOOLEAN:
+        result = BOOLEAN;
+        break;
+      case DATE:
+        result = DATE;
+        break;
+      case TIME:
+      case TIME_TZ:
+      case TIME_WITH_LOCAL_TIME_ZONE:
+        result = TIME;
+        break;
+      case TIMESTAMP:
+      case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+      case TIMESTAMP_TZ:
+        result = TIMESTAMP;
+        break;
+      case INTERVAL_YEAR:
+      case INTERVAL_YEAR_MONTH:
+      case INTERVAL_MONTH:
+      case INTERVAL_DAY:
+      case INTERVAL_DAY_HOUR:
+      case INTERVAL_DAY_MINUTE:
+      case INTERVAL_DAY_SECOND:
+      case INTERVAL_HOUR:
+      case INTERVAL_HOUR_MINUTE:
+      case INTERVAL_HOUR_SECOND:
+      case INTERVAL_MINUTE:
+      case INTERVAL_MINUTE_SECOND:
+      case INTERVAL_SECOND:
+        result = INTERVAL;
+        break;
+      case ARRAY:
+        result = ARRAY;
+        break;
+      case MAP:
+        result = STRUCT;
+        break;
+      case NULL:
+        result = UNDEFINED;
+        break;
+      default:
+        result = UNKNOWN;
+        break;
+    }
+    return result;
+
   }
 
   /** Get legacy name for a RelDataType. */
@@ -257,7 +307,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
-    if (type instanceof AbstractExprRelDataType<?> udt) {
+    if (type instanceof AbstractExprRelDataType<?>) {
+      AbstractExprRelDataType<?> udt = (AbstractExprRelDataType<?>) type;
       return udt.getExprType();
     }
     ExprType exprType = convertSqlTypeNameToExprType(type.getSqlTypeName());
@@ -283,7 +334,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
   /** not in use for now, but let's keep this code for future reference. */
   @Override
   public Type getJavaClass(RelDataType type) {
-    if (type instanceof AbstractExprRelDataType<?> exprRelDataType) {
+    if (type instanceof AbstractExprRelDataType<?>) {
+      AbstractExprRelDataType<?> exprRelDataType = (AbstractExprRelDataType<?>) type;
       return exprRelDataType.getJavaType();
     }
     return super.getJavaClass(type);

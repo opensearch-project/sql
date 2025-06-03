@@ -45,44 +45,78 @@ public class ExprSqlType extends AbstractExprRelDataType<BasicSqlType> {
   @Override
   public Type getJavaType() {
     SqlTypeName type = super.relType.getSqlTypeName();
-    return switch (type) {
-      case VARCHAR, CHAR -> String.class;
-      case DATE,
-          TIME,
-          TIME_WITH_LOCAL_TIME_ZONE,
-          TIME_TZ,
-          INTEGER,
-          INTERVAL_YEAR,
-          INTERVAL_YEAR_MONTH,
-          INTERVAL_MONTH -> this.isNullable() ? Integer.class : int.class;
-      case TIMESTAMP,
-          TIMESTAMP_WITH_LOCAL_TIME_ZONE,
-          TIMESTAMP_TZ,
-          BIGINT,
-          INTERVAL_DAY,
-          INTERVAL_DAY_HOUR,
-          INTERVAL_DAY_MINUTE,
-          INTERVAL_DAY_SECOND,
-          INTERVAL_HOUR,
-          INTERVAL_HOUR_MINUTE,
-          INTERVAL_HOUR_SECOND,
-          INTERVAL_MINUTE,
-          INTERVAL_MINUTE_SECOND,
-          INTERVAL_SECOND -> this.isNullable() ? Long.class : long.class;
-      case SMALLINT -> this.isNullable() ? Short.class : short.class;
-      case TINYINT -> this.isNullable() ? Byte.class : byte.class;
-      case DECIMAL -> BigDecimal.class;
-      case BOOLEAN -> this.isNullable() ? Boolean.class : boolean.class;
-      case DOUBLE, FLOAT -> // sic
-      this.isNullable() ? Double.class : double.class;
-      case REAL -> this.isNullable() ? Float.class : float.class;
-      case BINARY, VARBINARY -> ByteString.class;
-      case GEOMETRY -> Geometry.class;
-      case SYMBOL -> Enum.class;
-      case ANY -> Object.class;
-      case NULL -> Void.class;
-      default -> throw new IllegalArgumentException("Unsupported sql type name: " + type);
-    };
+      Class<?> result;
+      switch (type) {
+          case VARCHAR:
+          case CHAR:
+              result = String.class;
+              break;
+          case DATE:
+          case TIME:
+          case TIME_WITH_LOCAL_TIME_ZONE:
+          case TIME_TZ:
+          case INTEGER:
+          case INTERVAL_YEAR:
+          case INTERVAL_YEAR_MONTH:
+          case INTERVAL_MONTH:
+              result = this.isNullable() ? Integer.class : int.class;
+              break;
+          case TIMESTAMP:
+          case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+          case TIMESTAMP_TZ:
+          case BIGINT:
+          case INTERVAL_DAY:
+          case INTERVAL_DAY_HOUR:
+          case INTERVAL_DAY_MINUTE:
+          case INTERVAL_DAY_SECOND:
+          case INTERVAL_HOUR:
+          case INTERVAL_HOUR_MINUTE:
+          case INTERVAL_HOUR_SECOND:
+          case INTERVAL_MINUTE:
+          case INTERVAL_MINUTE_SECOND:
+          case INTERVAL_SECOND:
+              result = this.isNullable() ? Long.class : long.class;
+              break;
+          case SMALLINT:
+              result = this.isNullable() ? Short.class : short.class;
+              break;
+          case TINYINT:
+              result = this.isNullable() ? Byte.class : byte.class;
+              break;
+          case DECIMAL:
+              result = BigDecimal.class;
+              break;
+          case BOOLEAN:
+              result = this.isNullable() ? Boolean.class : boolean.class;
+              break;
+          case DOUBLE:
+          case FLOAT:
+              result = this.isNullable() ? Double.class : double.class;
+              break;
+          case REAL:
+              result = this.isNullable() ? Float.class : float.class;
+              break;
+          case BINARY:
+          case VARBINARY:
+              result = ByteString.class;
+              break;
+          case GEOMETRY:
+              result = Geometry.class;
+              break;
+          case SYMBOL:
+              result = Enum.class;
+              break;
+          case ANY:
+              result = Object.class;
+              break;
+          case NULL:
+              result = Void.class;
+              break;
+          default:
+              throw new IllegalArgumentException("Unsupported sql type name: " + type);
+      }
+      return result;
+
   }
 
   @Override
