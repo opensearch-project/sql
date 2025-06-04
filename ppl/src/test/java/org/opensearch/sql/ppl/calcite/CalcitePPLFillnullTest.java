@@ -64,24 +64,24 @@ public class CalcitePPLFillnullTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testFillnullUsing() {
-    String ppl = "source=EMP | fillnull using MGR=7000, COMM=0.00";
+    String ppl = "source=EMP | fillnull using MGR=7000, COMM=0.0";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[COALESCE($3, 7000)], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[COALESCE($6, 0.0E0:DOUBLE)], DEPTNO=[$7])\n"
+            + " SAL=[$5], COMM=[COALESCE($6, 0.0:DECIMAL(2, 1))], DEPTNO=[$7])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     String expectedResult =
         "EMPNO=7369; ENAME=SMITH; JOB=CLERK; MGR=7902; HIREDATE=1980-12-17; SAL=800.00; COMM=0.0;"
             + " DEPTNO=20\n"
             + "EMPNO=7499; ENAME=ALLEN; JOB=SALESMAN; MGR=7698; HIREDATE=1981-02-20; SAL=1600.00;"
-            + " COMM=300.0; DEPTNO=30\n"
+            + " COMM=300.00; DEPTNO=30\n"
             + "EMPNO=7521; ENAME=WARD; JOB=SALESMAN; MGR=7698; HIREDATE=1981-02-22; SAL=1250.00;"
-            + " COMM=500.0; DEPTNO=30\n"
+            + " COMM=500.00; DEPTNO=30\n"
             + "EMPNO=7566; ENAME=JONES; JOB=MANAGER; MGR=7839; HIREDATE=1981-02-04; SAL=2975.00;"
             + " COMM=0.0; DEPTNO=20\n"
             + "EMPNO=7654; ENAME=MARTIN; JOB=SALESMAN; MGR=7698; HIREDATE=1981-09-28; SAL=1250.00;"
-            + " COMM=1400.0; DEPTNO=30\n"
+            + " COMM=1400.00; DEPTNO=30\n"
             + "EMPNO=7698; ENAME=BLAKE; JOB=MANAGER; MGR=7839; HIREDATE=1981-01-05; SAL=2850.00;"
             + " COMM=0.0; DEPTNO=30\n"
             + "EMPNO=7782; ENAME=CLARK; JOB=MANAGER; MGR=7839; HIREDATE=1981-06-09; SAL=2450.00;"
@@ -91,7 +91,7 @@ public class CalcitePPLFillnullTest extends CalcitePPLAbstractTest {
             + "EMPNO=7839; ENAME=KING; JOB=PRESIDENT; MGR=7000; HIREDATE=1981-11-17; SAL=5000.00;"
             + " COMM=0.0; DEPTNO=10\n"
             + "EMPNO=7844; ENAME=TURNER; JOB=SALESMAN; MGR=7698; HIREDATE=1981-09-08; SAL=1500.00;"
-            + " COMM=0.0; DEPTNO=30\n"
+            + " COMM=0.00; DEPTNO=30\n"
             + "EMPNO=7876; ENAME=ADAMS; JOB=CLERK; MGR=7788; HIREDATE=1987-05-23; SAL=1100.00;"
             + " COMM=0.0; DEPTNO=20\n"
             + "EMPNO=7900; ENAME=JAMES; JOB=CLERK; MGR=7698; HIREDATE=1981-12-03; SAL=950.00;"
@@ -104,7 +104,7 @@ public class CalcitePPLFillnullTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         "SELECT `EMPNO`, `ENAME`, `JOB`, COALESCE(`MGR`, 7000) `MGR`, `HIREDATE`, `SAL`,"
-            + " COALESCE(`COMM`, 0E0) `COMM`, `DEPTNO`\n"
+            + " COALESCE(`COMM`, 0.0) `COMM`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
