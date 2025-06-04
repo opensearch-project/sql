@@ -415,6 +415,13 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         groupList);
   }
 
+  /** expand command. */
+  @Override
+  public UnresolvedPlan visitExpandCommand(OpenSearchPPLParser.ExpandCommandContext ctx) {
+    Field fieldExpression = (Field) internalVisitExpression(ctx.fieldExpression());
+    return new Expand(fieldExpression);
+  }
+
   @Override
   public UnresolvedPlan visitGrokCommand(OpenSearchPPLParser.GrokCommandContext ctx) {
     UnresolvedExpression sourceField = internalVisitExpression(ctx.source_field);
@@ -626,13 +633,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return FillNull.ofVariousValue(replacementsBuilder.build());
-  }
-
-    /** expand command. */
-  @Override
-  public UnresolvedPlan visitExpandCommand(OpenSearchPPLParser.ExpandCommandContext ctx) {
-    return new Expand((Field) internalVisitExpression(ctx.fieldExpression()),
-            ctx.alias!=null ? Optional.of(internalVisitExpression(ctx.alias)) : Optional.empty());
   }
 
   /** trendline command. */

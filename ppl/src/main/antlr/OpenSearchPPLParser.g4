@@ -69,8 +69,8 @@ commands
    | adCommand
    | mlCommand
    | fillnullCommand
-   | expandCommand
    | trendlineCommand
+   | expandCommand
    ;
 
 commandName
@@ -223,10 +223,6 @@ fillNullUsing
    : USING replacementPair (COMMA replacementPair)*
    ;
 
-expandCommand
-    : EXPAND fieldExpression (AS alias = qualifiedName)?
-    ;
-
 replacementPair
    : fieldExpression EQUAL replacement = valueExpression
    ;
@@ -242,6 +238,10 @@ trendlineClause
 trendlineType
    : SMA
    ;
+
+expandCommand
+    : EXPAND fieldExpression
+    ;
 
 kmeansCommand
    : KMEANS (kmeansParameter)*

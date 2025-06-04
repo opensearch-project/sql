@@ -28,6 +28,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -164,7 +165,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
-  private void tryToRemoveNestedFields(CalcitePlanContext context) {
+  private static void tryToRemoveNestedFields(CalcitePlanContext context) {
     Set<String> allFields = new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
     List<RexNode> duplicatedNestedFields =
         allFields.stream()
@@ -824,8 +825,52 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     throw new CalciteUnsupportedException("Trendline command is unsupported in Calcite");
   }
 
+  /**
+   * Expand command visitor to handle array field expansion. 1. Unnest 2. Join with the original
+   * table to get all fields
+   *
+   * <p>S = π_{field, other_fields}(R ⨝ UNNEST_field(R))
+   *
+   * @param expand Expand command to be visited
+   * @param context CalcitePlanContext containing the RelBuilder and other context
+   * @return RelNode representing records with the expanded array field
+   */
   @Override
   public RelNode visitExpand(Expand expand, CalcitePlanContext context) {
-    throw new CalciteUnsupportedException("Expand command is unsupported in Calcite");
+    // 1. Visit Children
+    visitChildren(expand, context);
+
+    var relBuilder = context.relBuilder;
+
+    // 3. Get the field to expand
+    Field arrayField = expand.getField();
+
+    // 5. Unnest the array field
+    // Analyze the array field to get its RexNode
+    RexNode arrayFieldRex = rexVisitor.analyze(arrayField, context);
+
+    // Push the original table to the RelBuilder stack
+    RelNode originalTable = relBuilder.peek();
+    // No alias is provided in the expand command, so we remove the original array field,
+    // then replace it with the unnest result.
+    relBuilder.projectExcept(arrayFieldRex);
+    relBuilder.push(originalTable);
+
+    // Join on ROW_NUMBER_COLUMN_NAME
+    Holder<RexCorrelVariable> correlVariable = Holder.empty();
+    relBuilder.variable(correlVariable::set);
+
+    relBuilder.project(List.of(arrayFieldRex), List.of(), false, List.of(correlVariable.get().id));
+    // Alias is not supported in expand yet, we pass in an empty list
+    relBuilder.uncollect(List.of(), false);
+
+    List<RexNode> allFields =
+        relBuilder.peek().getRowType().getFieldList().stream()
+            .map(f -> (RexNode) relBuilder.field(f.getName()))
+            .toList();
+
+    relBuilder.correlate(JoinRelType.INNER, correlVariable.get().id, relBuilder.fields());
+
+    return relBuilder.peek();
   }
 }

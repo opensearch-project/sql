@@ -85,6 +85,10 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(node, context);
   }
 
+  public T visitExpand(Expand expand, C context) {
+    return visitChildren(expand, context);
+  }
+
   public T visitTableFunction(TableFunction node, C context) {
     return visitChildren(node, context);
   }
@@ -315,10 +319,6 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitFillNull(FillNull fillNull, C context) {
     return visitChildren(fillNull, context);
-  }
-
-  public T visitExpand(Expand expand, C context) {
-    return visitChildren(expand, context);
   }
 
   public T visitPatterns(Patterns patterns, C context) {
