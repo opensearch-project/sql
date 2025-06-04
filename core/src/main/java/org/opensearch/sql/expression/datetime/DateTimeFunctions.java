@@ -387,96 +387,72 @@ public class DateTimeFunctions {
    */
   private DefaultFunctionResolver addtime() {
     return define(
-        BuiltinFunctionName.ADDTIME.getName(),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime), TIME, TIME, TIME),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime), TIME, TIME, DATE),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            TIME,
-            TIME,
-            TIMESTAMP),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            DATETIME,
-            DATETIME,
-            TIME),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            DATETIME,
-            DATETIME,
-            DATE),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            DATETIME,
-            DATETIME,
-            DATETIME),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            DATETIME,
-            DATETIME,
-            TIMESTAMP),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            DATETIME,
-            DATE,
-            TIME),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            DATETIME,
-            DATE,
-            DATE),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            DATETIME,
-            DATE,
-            DATETIME),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            DATETIME,
-            DATE,
-            TIMESTAMP),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            DATETIME,
-            TIMESTAMP,
-            TIME),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            DATETIME,
-            TIMESTAMP,
-            DATE),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            TIMESTAMP,
-            DATE,
-            TIME),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            TIMESTAMP,
-            DATE,
-            DATE),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            TIMESTAMP,
-            DATE,
-            TIMESTAMP),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            TIMESTAMP,
-            TIMESTAMP,
-            TIME),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            TIMESTAMP,
-            TIMESTAMP,
-            DATE),
-        implWithProperties(
-            nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
-            DATETIME,
-            TIMESTAMP,
-            TIMESTAMP));
+            BuiltinFunctionName.ADDTIME.getName(),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime), TIME, TIME, TIME),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime), TIME, TIME, DATE),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime), TIME, TIME, DATETIME),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
+                    TIME,
+                    TIME,
+                    TIMESTAMP),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
+                    DATETIME,
+                    DATETIME,
+                    TIME),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
+                    DATETIME,
+                    DATETIME,
+                    DATE),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
+                    DATETIME,
+                    DATETIME,
+                    DATETIME),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
+                    DATETIME,
+                    DATETIME,
+                    TIMESTAMP),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime), DATETIME, DATE, TIME),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime), DATETIME, DATE, DATE),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
+                    DATETIME,
+                    DATE,
+                    DATETIME),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
+                    DATETIME,
+                    DATE,
+                    TIMESTAMP),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
+                    DATETIME,
+                    TIMESTAMP,
+                    TIME),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
+                    DATETIME,
+                    TIMESTAMP,
+                    DATE),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
+                    DATETIME,
+                    TIMESTAMP,
+                    DATETIME),
+            implWithProperties(
+                    nullMissingHandlingWithProperties(DateTimeFunctions::exprAddTime),
+                    DATETIME,
+                    TIMESTAMP,
+                    TIMESTAMP));
   }
 
   /**
@@ -497,18 +473,6 @@ public class DateTimeFunctions {
         impl(
             nullMissingHandling(DateTimeFunctions::exprConvertTZ),
             DATETIME,
-            STRING,
-            STRING,
-            STRING),
-        impl(
-            nullMissingHandling(DateTimeFunctions::exprConvertTZ),
-            TIMESTAMP,
-            TIMESTAMP,
-            STRING,
-            STRING),
-        impl(
-            nullMissingHandling(DateTimeFunctions::exprConvertTZ),
-            TIMESTAMP,
             STRING,
             STRING,
             STRING));
@@ -617,9 +581,7 @@ public class DateTimeFunctions {
     return define(
         BuiltinFunctionName.DATETIME.getName(),
         impl(nullMissingHandling(DateTimeFunctions::exprDateTime), DATETIME, STRING, STRING),
-        impl(nullMissingHandling(DateTimeFunctions::exprDateTimeNoTimezone), DATETIME, STRING),
-        impl(nullMissingHandling(DateTimeFunctions::exprDateTime), TIMESTAMP, STRING, STRING),
-        impl(nullMissingHandling(DateTimeFunctions::exprDateTimeNoTimezone), TIMESTAMP, STRING));
+        impl(nullMissingHandling(DateTimeFunctions::exprDateTimeNoTimezone), DATETIME, STRING));
   }
 
   private DefaultFunctionResolver date_add() {
@@ -749,7 +711,6 @@ public class DateTimeFunctions {
     return define(
         BuiltinFunctionName.FROM_UNIXTIME.getName(),
         impl(nullMissingHandling(DateTimeFunctions::exprFromUnixTime), DATETIME, DOUBLE),
-        impl(nullMissingHandling(DateTimeFunctions::exprFromUnixTime), TIMESTAMP, DOUBLE),
         impl(
             nullMissingHandling(DateTimeFunctions::exprFromUnixTimeFormat),
             STRING,
@@ -1054,13 +1015,6 @@ public class DateTimeFunctions {
                 (functionProperties, arg, format) ->
                     DateTimeFunctions.exprStrToDate(functionProperties, arg, format)),
             DATETIME,
-            STRING,
-            STRING),
-        implWithProperties(
-            nullMissingHandlingWithProperties(
-                (functionProperties, arg, format) ->
-                    DateTimeFunctions.exprStrToDate(functionProperties, arg, format)),
-            TIMESTAMP,
             STRING,
             STRING));
   }

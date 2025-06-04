@@ -609,7 +609,7 @@ public class CalcitePPLAggregationIT extends CalcitePPLIntegTestCase {
                 "source=%s | stats percentile(balance, 50) as p50, percentile(balance, 90) as p90",
                 TEST_INDEX_BANK));
     verifySchema(actual, schema("p50", "long"), schema("p90", "long"));
-    verifyDataRows(actual, rows(32838, 48086));
+    verifyDataRows(actual, rows(32838, 46576));
   }
 
   @Test

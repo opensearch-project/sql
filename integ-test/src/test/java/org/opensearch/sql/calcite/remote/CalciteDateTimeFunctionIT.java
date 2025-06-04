@@ -12,6 +12,7 @@ public class CalciteDateTimeFunctionIT extends DateTimeFunctionIT {
   public void init() throws Exception {
     super.init();
     enableCalcite();
+    dataType = "timestamp";
     disallowCalciteFallback();
   }
 }
