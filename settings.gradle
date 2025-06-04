@@ -20,6 +20,7 @@ include 'datasources'
 include 'spark'
 include 'async-query-core'
 include 'async-query'
+include 'language-grammar'
 
 // exclude integ-test/doctest in case of offline build since they need downloads
 if (!gradle.startParameter.offline) {
