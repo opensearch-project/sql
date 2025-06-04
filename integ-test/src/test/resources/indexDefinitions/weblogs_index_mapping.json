@@ -15,6 +15,9 @@
       },
       "bytes": {
         "type": "text"
+      },
+      "message": {
+        "type": "text"
       }
     }
   }
