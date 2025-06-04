@@ -1232,66 +1232,66 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testADDTATEInvalid() {
 
-    ExpressionEvaluationException e1 =
+    SemanticCheckException e1 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=ADDDATE('2025-13-02', INTERVAL 1 HOUR) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e1, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e1, "unsupported format");
 
-    ExpressionEvaluationException e2 =
+    SemanticCheckException e2 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=ADDDATE('16:00:61', INTERVAL 1 HOUR) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e2, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e2, "unsupported format");
 
-    ExpressionEvaluationException e3 =
+    SemanticCheckException e3 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=ADDDATE('2025-12-01 15:02:61', INTERVAL 1 HOUR) |"
                             + " fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e3, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e3, "unsupported format");
 
-    ExpressionEvaluationException e4 =
+    SemanticCheckException e4 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=ADDDATE('2025-13-02', 1) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e4, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e4, "unsupported format");
 
-    ExpressionEvaluationException e5 =
+    SemanticCheckException e5 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=ADDDATE('16:00:61', 1) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e5, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e5, "unsupported format");
 
-    ExpressionEvaluationException e6 =
+    SemanticCheckException e6 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=ADDDATE('2025-12-01 15:02:61', 1) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e6, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e6, "unsupported format");
   }
 
   @Test
@@ -1332,71 +1332,71 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testDATE_ADDInvalid() {
 
-    ExpressionEvaluationException e1 =
+    SemanticCheckException e1 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=DATE_ADD('2025-13-02', INTERVAL 1 HOUR) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e1, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e1, "unsupported format");
 
-    ExpressionEvaluationException e2 =
+    SemanticCheckException e2 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=DATE_ADD('16:00:61', INTERVAL 1 HOUR) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e2, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e2, "unsupported format");
 
-    ExpressionEvaluationException e3 =
+    SemanticCheckException e3 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=DATE_ADD('2025-12-01 15:02:61', INTERVAL 1 HOUR) |"
                             + " fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e3, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e3, "unsupported format");
   }
 
   @Test
   public void testDATE_SUBInvalid() {
 
-    ExpressionEvaluationException e1 =
+    SemanticCheckException e1 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=DATE_SUB('2025-13-02', INTERVAL 1 HOUR) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e1, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e1, "unsupported format");
 
-    ExpressionEvaluationException e2 =
+    SemanticCheckException e2 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=DATE_SUB('16:00:61', INTERVAL 1 HOUR) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e2, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e2, "unsupported format");
 
-    ExpressionEvaluationException e3 =
+    SemanticCheckException e3 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=DATE_SUB('2025-12-01 15:02:61', INTERVAL 1 HOUR) |"
                             + " fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e3, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e3, "unsupported format");
   }
 
   @Test
@@ -1437,66 +1437,66 @@ public class CalcitePPLBuiltinDatetimeFunctionInvalidIT extends CalcitePPLIntegT
   @Test
   public void testSUBDATEInvalid() {
 
-    ExpressionEvaluationException e1 =
+    SemanticCheckException e1 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=SUBDATE('2025-13-02', INTERVAL 1 HOUR) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e1, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e1, "unsupported format");
 
-    ExpressionEvaluationException e2 =
+    SemanticCheckException e2 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=SUBDATE('16:00:61', INTERVAL 1 HOUR) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e2, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e2, "unsupported format");
 
-    ExpressionEvaluationException e3 =
+    SemanticCheckException e3 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=SUBDATE('2025-12-01 15:02:61', INTERVAL 1 HOUR) |"
                             + " fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e3, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e3, "unsupported format");
 
-    ExpressionEvaluationException e4 =
+    SemanticCheckException e4 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=SUBDATE('2025-13-02', 1) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e4, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e4, "unsupported format");
 
-    ExpressionEvaluationException e5 =
+    SemanticCheckException e5 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=SUBDATE('16:00:61', 1) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e5, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e5, "unsupported format");
 
-    ExpressionEvaluationException e6 =
+    SemanticCheckException e6 =
         assertThrows(
-                ExpressionEvaluationException.class,
+                SemanticCheckException.class,
             () ->
                 executeQuery(
                     String.format(
                         "source=%s  |  eval a=SUBDATE('2025-12-01 15:02:61', 1) | fields a",
                         TEST_INDEX_DATE_FORMATS_WITH_NULL)));
-    verifyErrorMessageContains(e6, "invalid to get timestampValue from value of type STRING");
+    verifyErrorMessageContains(e6, "unsupported format");
   }
 
   @Test
