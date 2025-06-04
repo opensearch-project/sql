@@ -60,6 +60,10 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownFilter(LogicalFilter filter) {
+    // Current DSL can not handle limit-then-filter correctly
+    if (isLimitPushedDown) {
+      return false;
+    }
     return delegate.pushDownFilter(filter);
   }
 
