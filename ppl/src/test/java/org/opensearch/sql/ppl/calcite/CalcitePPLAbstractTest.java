@@ -39,6 +39,7 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
@@ -76,7 +77,8 @@ public class CalcitePPLAbstractTest {
   /** Creates a CalcitePlanContext with transformed config. */
   private CalcitePlanContext createBuilderContext(UnaryOperator<RelBuilder.Config> transform) {
     config.context(Contexts.of(transform.apply(RelBuilder.Config.DEFAULT)));
-    return CalcitePlanContext.create(config.build(), PPL);
+    return CalcitePlanContext.create(
+        config.build(), settings.getSettingValue(Key.QUERY_SIZE_LIMIT), PPL);
   }
 
   /** Get the root RelNode of the given PPL query */

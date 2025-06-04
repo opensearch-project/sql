@@ -177,14 +177,11 @@ class OpenSearchExecutionEngineTest {
 
     OpenSearchExprValueFactory exprValueFactory = mock(OpenSearchExprValueFactory.class);
     final var name = new OpenSearchRequest.IndexName("test");
-    final int defaultQuerySize = 100;
     final int maxResultWindow = 10000;
-    final var requestBuilder =
-        new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory, settings);
+    final var requestBuilder = new OpenSearchRequestBuilder(exprValueFactory, settings);
     PhysicalPlan plan =
         new OpenSearchIndexScan(
             mock(OpenSearchClient.class),
-            maxResultWindow,
             requestBuilder.build(
                 name, maxResultWindow, settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE), client));
 
@@ -239,6 +236,7 @@ class OpenSearchExecutionEngineTest {
     FakePhysicalPlan plan = new FakePhysicalPlan(expected.iterator());
     when(protector.protect(plan)).thenReturn(plan);
     when(executionContext.getSplit()).thenReturn(Optional.of(split));
+    when(executionContext.getQuerySizeLimit()).thenReturn(null);
 
     OpenSearchExecutionEngine executor =
         new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));
