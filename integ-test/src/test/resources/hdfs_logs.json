@@ -1,0 +1,16 @@
+{"index":{"_id":1}}
+{ "date": "20081109", "time": "203615", "pid": 148, "level": "INFO", "component": "dfs.FSNamesystem", "content": "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.31.85:50010 is added to blk_-7017553867379051457 size 67108864" }
+{"index":{"_id":2}}
+{ "date": "20081109", "time": "203807", "pid": 222, "level": "INFO", "component": "dfs.FSNamesystem", "content": "BLOCK* NameSystem.allocateBlock: /user/root/sortrand/_temporary/_task_200811092030_0002_r_000296_0/part-00296. blk_-6620182933895093708" }
+{"index":{"_id":3}}
+{ "date": "20081109", "time": "204132", "pid": 26, "level": "INFO", "component": "dfs.FSNamesystem", "content": "BLOCK* NameSystem.addStoredBlock: blockMap updated: 10.251.107.19:50010 is added to blk_-3249711809227781266 size 67108864" }
+{"index":{"_id":4}}
+{ "date": "20081109", "time": "204655", "pid": 512, "level": "INFO", "component": "dfs.DataBlockScanner", "content": "Verification succeeded for blk_-1547954353065580372" }
+{"index":{"_id":5}}
+{ "date": "20081109", "time": "204722", "pid": 556, "level": "INFO", "component": "dfs.FSNamesystem", "content": "BLOCK* NameSystem.allocateBlock: /user/root/sortrand/_temporary/_task_200811092030_0002_r_000318_0/part-00318. blk_2096692261399680562" }
+{"index":{"_id":6}}
+{ "date": "20081109", "time": "204908", "pid": 653, "level": "INFO", "component": "dfs.DataBlockScanner", "content": "Verification succeeded for blk_6996194389878584395" }
+{"index":{"_id":7}}
+{ "date": "20081109", "time": "204925", "pid": 663, "level": "WARN", "component": "dfs.DataNode$PacketResponder", "content": "PacketResponder failed for blk_6996194389878584395" }
+{"index":{"_id":8}}
+{ "date": "20081109", "time": "205035", "pid": 31, "level": "WARN", "component": "dfs.DataNode$PacketResponder", "content": "PacketResponder failed for blk_-1547954353065580372" }

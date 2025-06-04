@@ -172,12 +172,11 @@ patternsMethod
    ;
 
 patternsCommand
-   : PATTERNS (patternsParameter)* (source_field = expression) (pattern_method = patternMethod)*
+   : PATTERNS (source_field = expression) (statsByClause)? (PATTERN_METHOD EQUAL pattern_method = patternMethod)? (PATTERN_MODE EQUAL pattern_mode = patternMode)? (PATTERN_MAX_SAMPLE_COUNT EQUAL pattern_max_sample_count = integerLiteral)? (PATTERN_BUFFER_LIMIT EQUAL pattern_buffer_limit = integerLiteral)? (NEW_FIELD EQUAL new_field = stringLiteral)? (patternsParameter)*
    ;
 
 patternsParameter
-   : (NEW_FIELD EQUAL new_field = stringLiteral)
-   | (PATTERN EQUAL pattern = stringLiteral)
+   : (PATTERN EQUAL pattern = stringLiteral)
    | (VARIABLE_COUNT_THRESHOLD EQUAL variable_count_threshold = integerLiteral)
    | (FREQUENCY_THRESHOLD_PERCENTAGE EQUAL frequency_threshold_percentage = decimalLiteral)
    ;
@@ -185,6 +184,11 @@ patternsParameter
 patternMethod
    : SIMPLE_PATTERN
    | BRAIN
+   ;
+
+patternMode
+   : LABEL
+   | AGGREGATION
    ;
 
 // lookup
@@ -1043,7 +1047,6 @@ keywordsCanBeId
    | multiFieldRelevanceFunctionName
    | commandName
    | comparisonOperator
-   | patternMethod
    | explainMode
    // commands assist keywords
    | CASE
@@ -1058,8 +1061,12 @@ keywordsCanBeId
    | FROM
    | PATTERN
    | NEW_FIELD
+   | PATTERN_MODE
+   | PATTERN_METHOD
    | VARIABLE_COUNT_THRESHOLD
    | FREQUENCY_THRESHOLD_PERCENTAGE
+   | PATTERN_MAX_SAMPLE_COUNT
+   | PATTERN_BUFFER_LIMIT
    | WITH
    | REGEX
    | PUNCT

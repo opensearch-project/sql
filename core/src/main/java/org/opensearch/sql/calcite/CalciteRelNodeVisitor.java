@@ -17,6 +17,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,10 +26,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.ViewExpanders;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
@@ -40,21 +44,28 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilder.AggCall;
 import org.apache.calcite.util.Holder;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.PatternMethod;
+import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -72,6 +83,7 @@ import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
+import org.opensearch.sql.ast.tree.Patterns;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -86,6 +98,8 @@ import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.JoinAndLookupUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -295,30 +309,132 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitParse(Parse node, CalcitePlanContext context) {
     visitChildren(node, context);
-    RexNode sourceField = rexVisitor.analyze(node.getSourceField(), context);
-    ParseMethod parseMethod = node.getParseMethod();
-    java.util.Map<String, Literal> arguments = node.getArguments();
-    String patternValue = (String) node.getPattern().getValue();
-    String pattern =
-        ParseMethod.PATTERNS.equals(parseMethod) && Strings.isNullOrEmpty(patternValue)
-            ? "[a-zA-Z0-9]"
-            : patternValue;
-    List<String> groupCandidates =
-        ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments);
-    List<RexNode> newFields =
-        groupCandidates.stream()
-            .map(
-                group ->
-                    PPLFuncImpTable.INSTANCE.resolve(
-                        context.rexBuilder,
-                        ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod),
-                        sourceField,
-                        context.rexBuilder.makeLiteral(
-                            pattern,
-                            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
-                            true)))
-            .toList();
-    projectPlusOverriding(newFields, groupCandidates, context);
+    buildParseRelNode(node, context);
+    return context.relBuilder.peek();
+  }
+
+  @Override
+  public RelNode visitPatterns(Patterns node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    if (PatternMethod.SIMPLE_PATTERN.equals(node.getPatternMethod())) {
+      Parse parseNode =
+          new Parse(
+              ParseMethod.PATTERNS,
+              node.getSourceField(),
+              node.getArguments().getOrDefault(PatternUtils.PATTERN, AstDSL.stringLiteral("")),
+              node.getArguments());
+      buildParseRelNode(parseNode, context);
+      if (PatternMode.AGGREGATION.equals(node.getPatternMode())) {
+        Field patternField = AstDSL.field(node.getAlias());
+        List<AggCall> aggCalls =
+            Stream.of(
+                    new Alias(
+                        PatternUtils.PATTERN_COUNT,
+                        new AggregateFunction(BuiltinFunctionName.COUNT.name(), patternField)),
+                    new Alias(
+                        PatternUtils.SAMPLE_LOGS,
+                        new AggregateFunction(
+                            BuiltinFunctionName.TAKE.name(),
+                            node.getSourceField(),
+                            ImmutableList.of(node.getPatternMaxSampleCount()))))
+                .map(aggFun -> aggVisitor.analyze(aggFun, context))
+                .toList();
+        List<RexNode> groupByList = new ArrayList<>();
+        groupByList.add(rexVisitor.analyze(patternField, context));
+        groupByList.addAll(
+            node.getPartitionByList().stream()
+                .map(expr -> rexVisitor.analyze(expr, context))
+                .toList());
+        context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCalls);
+
+        RexNode parsedNode =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
+                context.relBuilder.field(node.getAlias()),
+                context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
+        flattenParsedPattern(node.getAlias(), parsedNode, context);
+        context.relBuilder.projectExcept(context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
+      } else {
+        RexNode parsedNode =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
+                context.relBuilder.field(node.getAlias()),
+                rexVisitor.analyze(node.getSourceField(), context));
+        flattenParsedPattern(node.getAlias(), parsedNode, context);
+      }
+    } else {
+      List<UnresolvedExpression> funcParamList = new ArrayList<>();
+      funcParamList.add(node.getSourceField());
+      funcParamList.add(node.getPatternMaxSampleCount());
+      funcParamList.add(node.getPatternBufferLimit());
+      funcParamList.addAll(
+          node.getArguments().entrySet().stream()
+              .map(entry -> new Argument(entry.getKey(), entry.getValue()))
+              .sorted(Comparator.comparing(Argument::getArgName))
+              .toList());
+      if (PatternMode.LABEL.equals(
+          node.getPatternMode())) { // Label mode, resolve the plan as window function
+        RexNode windowNode =
+            rexVisitor.analyze(
+                new WindowFunction(
+                    new Function(
+                        BuiltinFunctionName.INTERNAL_PATTERN.getName().getFunctionName(),
+                        funcParamList),
+                    node.getPartitionByList(),
+                    List.of()),
+                context);
+        RexNode nestedNode =
+            context.relBuilder.alias(
+                PPLFuncImpTable.INSTANCE.resolve(
+                    context.rexBuilder,
+                    BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
+                    rexVisitor.analyze(node.getSourceField(), context),
+                    windowNode),
+                node.getAlias());
+        context.relBuilder.projectPlus(nestedNode);
+        flattenParsedPattern(node.getAlias(), context.relBuilder.field(node.getAlias()), context);
+      } else { // Aggregation mode, resolve plan as aggregation
+        AggCall aggCall =
+            aggVisitor
+                .analyze(
+                    new Function(
+                        BuiltinFunctionName.INTERNAL_PATTERN.getName().getFunctionName(),
+                        funcParamList),
+                    context)
+                .as(node.getAlias());
+        List<RexNode> groupByList =
+            node.getPartitionByList().stream()
+                .map(expr -> rexVisitor.analyze(expr, context))
+                .toList();
+        RelNode aggNode =
+            context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCall).build();
+
+        // Patterns agg result is a list of maps. Flatten this field in row via ppl user defined
+        // table function
+        int ordinal = aggNode.getRowType().getField(node.getAlias(), true, false).getIndex();
+        RexCall tvfCall =
+            (RexCall)
+                PPLFuncImpTable.INSTANCE.resolve(
+                    context.rexBuilder,
+                    BuiltinFunctionName.INTERNAL_UNCOLLECT_PATTERNS,
+                    // For return type inference
+                    context.rexBuilder.makeInputRef(aggNode.getRowType(), 0),
+                    // aggResult ordinal
+                    context.rexBuilder.makeLiteral(
+                        ordinal,
+                        context.relBuilder.getTypeFactory().createSqlType(SqlTypeName.TINYINT)));
+        RelNode tvfNode =
+            RelFactories.DEFAULT_TABLE_FUNCTION_SCAN_FACTORY.createTableFunctionScan(
+                context.relBuilder.getCluster(), ImmutableList.of(aggNode), tvfCall, null, null);
+        context.relBuilder.push(tvfNode).projectExcept(context.relBuilder.field(node.getAlias()));
+        List<String> currentFieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+        List<String> newNames = new ArrayList<>(currentFieldNames);
+        newNames.set(currentFieldNames.size() - 3, node.getAlias());
+        context.relBuilder.rename(newNames);
+      }
+    }
     return context.relBuilder.peek();
   }
 
@@ -846,5 +962,63 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitTrendline(Trendline node, CalcitePlanContext context) {
     throw new CalciteUnsupportedException("Trendline command is unsupported in Calcite");
+  }
+
+  private void buildParseRelNode(Parse node, CalcitePlanContext context) {
+    RexNode sourceField = rexVisitor.analyze(node.getSourceField(), context);
+    ParseMethod parseMethod = node.getParseMethod();
+    java.util.Map<String, Literal> arguments = node.getArguments();
+    String patternValue = (String) node.getPattern().getValue();
+    String pattern =
+        ParseMethod.PATTERNS.equals(parseMethod) && Strings.isNullOrEmpty(patternValue)
+            ? "[a-zA-Z0-9]+"
+            : patternValue;
+    List<String> groupCandidates =
+        ParseUtils.getNamedGroupCandidates(parseMethod, pattern, arguments);
+    RexNode[] rexNodeList =
+        new RexNode[] {
+          sourceField,
+          context.rexBuilder.makeLiteral(
+              pattern, context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true)
+        };
+    if (ParseMethod.PATTERNS.equals(parseMethod)) {
+      rexNodeList = ArrayUtils.add(rexNodeList, context.relBuilder.literal("<*>"));
+    }
+    final RexNode resolved =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder, ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod), rexNodeList);
+    List<RexNode> newFields = groupCandidates.stream().map(group -> resolved).toList();
+    projectPlusOverriding(newFields, groupCandidates, context);
+  }
+
+  private void flattenParsedPattern(
+      String originalPatternResultAlias, RexNode parsedNode, CalcitePlanContext context) {
+    // Flatten map struct fields
+    RexNode patternExpr =
+        context.rexBuilder.makeCast(
+            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_ITEM,
+                parsedNode,
+                context.rexBuilder.makeLiteral(PatternUtils.PATTERN)),
+            true,
+            true);
+    RexNode tokensExpr =
+        context.rexBuilder.makeCast(
+            UserDefinedFunctionUtils.tokensMap,
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_ITEM,
+                parsedNode,
+                context.rexBuilder.makeLiteral(PatternUtils.TOKENS)),
+            true,
+            true);
+    projectPlusOverriding(
+        Arrays.asList(
+            context.relBuilder.alias(patternExpr, originalPatternResultAlias),
+            context.relBuilder.alias(tokensExpr, PatternUtils.TOKENS)),
+        Arrays.asList(originalPatternResultAlias, PatternUtils.TOKENS),
+        context);
   }
 }

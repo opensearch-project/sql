@@ -13,6 +13,7 @@ import org.apache.logging.log4j.util.Strings;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -49,6 +50,25 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
               return PlanUtils.makeAggCall(
                   context, functionName, node.getDistinct(), field, argList);
             })
+        .orElseThrow(
+            () ->
+                new UnsupportedOperationException("Unexpected aggregation: " + node.getFuncName()));
+  }
+
+  // Visit special UDAFs that are derived from command. For example, patterns command generates
+  // brain function.
+  @Override
+  public AggCall visitFunction(Function node, CalcitePlanContext context) {
+    List<RexNode> argList = new ArrayList<>();
+    RexNode field =
+        node.getFuncArgs().isEmpty()
+            ? null
+            : rexNodeVisitor.analyze(node.getFuncArgs().get(0), context);
+    for (int i = 1; i < node.getFuncArgs().size(); i++) {
+      argList.add(rexNodeVisitor.analyze(node.getFuncArgs().get(i), context));
+    }
+    return BuiltinFunctionName.ofAggregation(node.getFuncName())
+        .map(functionName -> PlanUtils.makeAggCall(context, functionName, false, field, argList))
         .orElseThrow(
             () ->
                 new UnsupportedOperationException("Unexpected aggregation: " + node.getFuncName()));

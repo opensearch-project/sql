@@ -29,6 +29,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.parse.PatternsExpression;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.frame.BufferPatternRowsWindowFrame;
 import org.opensearch.sql.expression.window.frame.CurrentRowWindowFrame;
@@ -67,7 +68,9 @@ public class PatternsWindowFunctionBenchmark {
     CurrentRowWindowFrame windowFrame =
         new CurrentRowWindowFrame(new WindowDefinition(ImmutableList.of(), ImmutableList.of()));
 
-    run(windowFrame, DSL.simple_pattern(DSL.ref("message", STRING)));
+    run(
+        windowFrame,
+        new PatternsExpression(DSL.ref("message", STRING), DSL.literal(""), DSL.literal("")));
   }
 
   @Benchmark
