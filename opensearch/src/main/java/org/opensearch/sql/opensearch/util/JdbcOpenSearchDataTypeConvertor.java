@@ -11,8 +11,10 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
 import lombok.experimental.UtilityClass;
+import org.locationtech.jts.geom.Point;
 import org.apache.calcite.avatica.util.ArrayImpl;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.type.ExprJavaType;
@@ -24,6 +26,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 
 /** This class is used to convert the data type from JDBC to OpenSearch data type. */
 @UtilityClass
@@ -59,7 +62,7 @@ public class JdbcOpenSearchDataTypeConvertor {
   }
 
   public static ExprValue getExprValueFromSqlType(
-      ResultSet rs, int i, int sqlType, RelDataType fieldType) throws SQLException {
+      ResultSet rs, int i, int sqlType, RelDataType fieldType, String fieldName) throws SQLException {
     Object value = rs.getObject(i);
     if (value == null) {
       return ExprNullValue.of();
@@ -67,6 +70,11 @@ public class JdbcOpenSearchDataTypeConvertor {
 
     if (fieldType instanceof ExprJavaType && value instanceof ExprValue) {
       return (ExprValue) value;
+    } else if (fieldType.getSqlTypeName() == SqlTypeName.GEOMETRY) {
+      // Use getObject by name instead of index to avoid Avatica's transformation on the accessor.
+      // Otherwise, Avatica will transform Geometry to String.
+      Point geoPoint = (Point) rs.getObject(fieldName);
+      return new OpenSearchExprGeoPointValue(geoPoint.getY(), geoPoint.getX());
     }
 
     try {

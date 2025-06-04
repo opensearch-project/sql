@@ -101,7 +101,7 @@ public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
     JSONObject result1 =
         executeQuery(
             String.format(
-                "source = %s| where (id) in [source = %s | fields uid]| sort  - salary| fields id, name",
+                "source = %s| where (id) in [source = %s | fields uid]| sort  - salary| fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     JSONObject result2 =
         executeQuery(
