@@ -10,6 +10,7 @@ on:
 
 env:
   SNAPSHOT_REPO_URL: https://aws.oss.sonatype.org/content/repositories/snapshots/
+  COMMIT_MAP_FILENAME: commit-version-map.json
 
 jobs:
   publish-grammar-files:
@@ -135,6 +136,10 @@ jobs:
           # Run the publish script
           ./publish-snapshot.sh ./
 
+      # Install XML and JSON tools
+      - name: Install XML and JSON tools
+        run: sudo apt-get update && sudo apt-get install -y xmlstarlet jq
+
       # Update metadata with commit ID
       - name: Add commit ID to metadata
         run: |
@@ -180,6 +185,86 @@ jobs:
           
           rm -rf "${TEMP_DIR}"
 
+      - name: Update commit-version mapping
+        run: |
+          COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
+          VERSION="${{ steps.set_version.outputs.VERSION }}"
+          ARTIFACT_ID="language-grammar"
+          
+          # Create temp directory for work
+          MAPPING_DIR=$(mktemp -d)
+          MAPPING_FILE="${MAPPING_DIR}/${COMMIT_MAP_FILENAME}"
+          
+          # Try to extract the actual ZIP version from metadata
+          TEMP_METADATA=$(mktemp)
+          META_URL="${SNAPSHOT_REPO_URL}org/opensearch/${ARTIFACT_ID}/${VERSION}/maven-metadata.xml"
+          curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${TEMP_METADATA}" "${META_URL}"
+          
+          # Extract the latest ZIP version from metadata
+          ARTIFACT_VERSION=""
+          if [ -s "${TEMP_METADATA}" ]; then
+            # Extract the latest ZIP version with xmlstarlet
+            ARTIFACT_VERSION=$(xmlstarlet sel -t -v "//snapshotVersion[extension='zip' and not(classifier)]/value" "${TEMP_METADATA}" | head -1)
+            echo "Latest ZIP version for ${ARTIFACT_ID}: ${ARTIFACT_VERSION}"
+          else
+            echo "Warning: Could not find ZIP version in metadata for ${ARTIFACT_ID}"
+            ARTIFACT_VERSION="${VERSION}"
+          fi
+          
+          # Try to download existing mapping file
+          MAPPING_URL="${SNAPSHOT_REPO_URL}org/opensearch/${COMMIT_MAP_FILENAME}"
+          HTTP_CODE=$(curl -s -o "${MAPPING_FILE}" -w "%{http_code}" -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${MAPPING_URL}" || echo "000")
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "Downloaded existing mapping file"
+          else
+            echo "No existing mapping file found, creating new one"
+            echo '{"mappings":[]}' > "${MAPPING_FILE}"
+          fi
+          
+          # Create artifacts JSON object with detailed version info
+          ARTIFACTS_JSON="{\"${ARTIFACT_ID}\": {\"base_version\": \"${VERSION}\", \"artifact_version\": \"${ARTIFACT_VERSION}\"}}"
+          
+          # Add new mapping entry
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          # Use temporary file for JSON manipulation
+          TEMP_JSON="${MAPPING_DIR}/temp.json"
+          
+          # Use jq to add the new mapping
+          cat "${MAPPING_FILE}" | jq --arg commit "$COMMIT_ID" \
+                                    --arg timestamp "$TIMESTAMP" \
+                                    --argjson artifacts "$ARTIFACTS_JSON" '
+          # Look for an existing entry with this commit ID
+          if (.mappings | map(select(.commit_id == $commit)) | length) == 0 then
+            # No entry exists, add a new one
+            .mappings += [{"commit_id": $commit, "timestamp": $timestamp, "artifacts": $artifacts}]
+          else
+            # Update the existing entry
+            .mappings = [.mappings[] | if .commit_id == $commit then 
+              # Update timestamp and merge artifacts
+              . + {"timestamp": $timestamp, "artifacts": (.artifacts + $artifacts)} 
+            else . end]
+          end
+          ' > "${TEMP_JSON}"
+          
+          mv "${TEMP_JSON}" "${MAPPING_FILE}"
+          
+          # Sort mappings by timestamp (newest first)
+          cat "${MAPPING_FILE}" | jq '.mappings |= sort_by(.timestamp) | .mappings |= reverse' > "${TEMP_JSON}"
+          mv "${TEMP_JSON}" "${MAPPING_FILE}"
+          
+          # Print the updated mapping
+          echo "Updated mapping file content:"
+          cat "${MAPPING_FILE}"
+          
+          # Upload the mapping file
+          echo "Uploading mapping file to ${MAPPING_URL}"
+          curl -v -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${MAPPING_FILE}" "${MAPPING_URL}"
+          
+          # Clean up
+          rm -rf "${MAPPING_DIR}" "${TEMP_METADATA}"
+
   publish-async-query-core:
     strategy:
       fail-fast: false
@@ -215,7 +300,7 @@ jobs:
           echo "commit_id=${COMMIT_ID}" >> $GITHUB_OUTPUT
           echo "Using commit ID: ${COMMIT_ID}"
 
-      # Replace the current "Extract version from build.gradle" step with this:
+      # Extract version from build.gradle
       - name: Extract version from build.gradle
         id: extract_version
         run: |
@@ -284,8 +369,9 @@ jobs:
           for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.pom" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
           for i in `find ${HOME}/.m2/repository/org/opensearch/ -name "*.jar" -type f`; do sha256sum "$i" | awk '{print $1}' >> "$i.sha256"; done
 
-      - name: Install XML tools
-        run: sudo apt-get update && sudo apt-get install -y xmlstarlet
+      # Install XML and JSON tools
+      - name: Install XML and JSON tools
+        run: sudo apt-get update && sudo apt-get install -y xmlstarlet jq
 
       - name: Publish snapshots to maven
         run: |
@@ -352,3 +438,83 @@ jobs:
           rm -rf "${TEMP_DIR}"
 
           echo "Version metadata updated with commit ID"
+
+      - name: Update commit-version mapping
+        run: |
+          COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
+          VERSION="${{ steps.extract_version.outputs.VERSION }}"
+          ARTIFACT_ID="async-query-core"
+          
+          # Create temp directory for work
+          MAPPING_DIR=$(mktemp -d)
+          MAPPING_FILE="${MAPPING_DIR}/${COMMIT_MAP_FILENAME}"
+          
+          # Try to extract the actual JAR version from metadata
+          TEMP_METADATA=$(mktemp)
+          META_URL="${SNAPSHOT_REPO_URL}org/opensearch/${ARTIFACT_ID}/${VERSION}/maven-metadata.xml"
+          curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${TEMP_METADATA}" "${META_URL}"
+          
+          # Extract the latest JAR version from metadata
+          ARTIFACT_VERSION=""
+          if [ -s "${TEMP_METADATA}" ]; then
+            # Extract the latest JAR version with xmlstarlet
+            ARTIFACT_VERSION=$(xmlstarlet sel -t -v "//snapshotVersion[extension='jar' and not(classifier)]/value" "${TEMP_METADATA}" | head -1)
+            echo "Latest JAR version for ${ARTIFACT_ID}: ${ARTIFACT_VERSION}"
+          else
+            echo "Warning: Could not find JAR version in metadata for ${ARTIFACT_ID}"
+            ARTIFACT_VERSION="${VERSION}"
+          fi
+          
+          # Try to download existing mapping file
+          MAPPING_URL="${SNAPSHOT_REPO_URL}org/opensearch/${COMMIT_MAP_FILENAME}"
+          HTTP_CODE=$(curl -s -o "${MAPPING_FILE}" -w "%{http_code}" -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" "${MAPPING_URL}" || echo "000")
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "Downloaded existing mapping file"
+          else
+            echo "No existing mapping file found, creating new one"
+            echo '{"mappings":[]}' > "${MAPPING_FILE}"
+          fi
+          
+          # Create artifacts JSON object with detailed version info
+          ARTIFACTS_JSON="{\"${ARTIFACT_ID}\": {\"base_version\": \"${VERSION}\", \"artifact_version\": \"${ARTIFACT_VERSION}\"}}"
+          
+          # Add new mapping entry
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          # Use temporary file for JSON manipulation
+          TEMP_JSON="${MAPPING_DIR}/temp.json"
+          
+          # Use jq to add the new mapping or update existing one
+          cat "${MAPPING_FILE}" | jq --arg commit "$COMMIT_ID" \
+                                    --arg timestamp "$TIMESTAMP" \
+                                    --argjson artifacts "$ARTIFACTS_JSON" '
+          # Look for an existing entry with this commit ID
+          if (.mappings | map(select(.commit_id == $commit)) | length) == 0 then
+            # No entry exists, add a new one
+            .mappings += [{"commit_id": $commit, "timestamp": $timestamp, "artifacts": $artifacts}]
+          else
+            # Update the existing entry
+            .mappings = [.mappings[] | if .commit_id == $commit then 
+              # Update timestamp and merge artifacts
+              . + {"timestamp": $timestamp, "artifacts": (.artifacts + $artifacts)} 
+            else . end]
+          end
+          ' > "${TEMP_JSON}"
+          
+          mv "${TEMP_JSON}" "${MAPPING_FILE}"
+          
+          # Sort mappings by timestamp (newest first)
+          cat "${MAPPING_FILE}" | jq '.mappings |= sort_by(.timestamp) | .mappings |= reverse' > "${TEMP_JSON}"
+          mv "${TEMP_JSON}" "${MAPPING_FILE}"
+          
+          # Print the updated mapping
+          echo "Updated mapping file content:"
+          cat "${MAPPING_FILE}"
+          
+          # Upload the mapping file
+          echo "Uploading mapping file to ${MAPPING_URL}"
+          curl -v -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" --upload-file "${MAPPING_FILE}" "${MAPPING_URL}"
+          
+          # Clean up
+          rm -rf "${MAPPING_DIR}" "${TEMP_METADATA}"
