@@ -101,6 +101,8 @@ TIME_ZONE:                          'TIME_ZONE';
 TRAINING_DATA_SIZE:                 'TRAINING_DATA_SIZE';
 ANOMALY_SCORE_THRESHOLD:            'ANOMALY_SCORE_THRESHOLD';
 APPEND:                             'APPEND';
+COUNTFIELD:                         'COUNTFIELD';
+SHOWCOUNT:                          'SHOWCOUNT';
 
 // COMPARISON FUNCTION KEYWORDS
 CASE:                               'CASE';
@@ -366,6 +368,9 @@ ISNULL:                             'ISNULL';
 ISNOTNULL:                          'ISNOTNULL';
 CIDRMATCH:                          'CIDRMATCH';
 BETWEEN:                            'BETWEEN';
+ISPRESENT:                          'ISPRESENT';
+ISEMPTY:                            'ISEMPTY';
+ISBLANK:                            'ISBLANK';
 
 // JSON FUNCTIONS
 JSON_VALID:                         'JSON_VALID';
@@ -385,6 +390,7 @@ IFNULL:                             'IFNULL';
 NULLIF:                             'NULLIF';
 IF:                                 'IF';
 TYPEOF:                             'TYPEOF';
+COALESCE:                           'COALESCE';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 MATCH:                              'MATCH';

@@ -26,9 +26,9 @@ import org.apache.calcite.util.NumberUtil;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 
-/** Relational expression representing a scan of an OpenSearchIndex type. */
+/** An abstract relational operator representing a scan of an OpenSearchIndex type. */
 @Getter
-public abstract class CalciteIndexScan extends TableScan {
+public abstract class AbstractCalciteIndexScan extends TableScan {
   public final OpenSearchIndex osIndex;
   // The schema of this scan operator, it's initialized with the row type of the table, but may be
   // changed by push down operations.
@@ -40,7 +40,7 @@ public abstract class CalciteIndexScan extends TableScan {
   // so we cannot apply these actions right away.
   protected final PushDownContext pushDownContext;
 
-  protected CalciteIndexScan(
+  protected AbstractCalciteIndexScan(
       RelOptCluster cluster,
       RelTraitSet traitSet,
       List<RelHint> hints,
@@ -88,6 +88,7 @@ public abstract class CalciteIndexScan extends TableScan {
                       case PROJECT -> rowCount;
                       case FILTER -> NumberUtil.multiply(
                           rowCount, RelMdUtil.guessSelectivity((RexNode) action.digest));
+                      case LIMIT -> (Integer) action.digest;
                     }
                     * estimateRowCountFactor,
             (a, b) -> null);
@@ -97,6 +98,7 @@ public abstract class CalciteIndexScan extends TableScan {
   public static class PushDownContext extends ArrayDeque<PushDownAction> {
 
     private boolean isAggregatePushed = false;
+    private boolean isLimitPushed = false;
 
     @Override
     public PushDownContext clone() {
@@ -110,6 +112,9 @@ public abstract class CalciteIndexScan extends TableScan {
       if (pushDownAction.type == PushDownType.AGGREGATION) {
         isAggregatePushed = true;
       }
+      if (pushDownAction.type == PushDownType.LIMIT) {
+        isLimitPushed = true;
+      }
       return super.add(pushDownAction);
     }
 
@@ -118,6 +123,10 @@ public abstract class CalciteIndexScan extends TableScan {
       isAggregatePushed = !isEmpty() && super.peekLast().type == PushDownType.AGGREGATION;
       return isAggregatePushed;
     }
+
+    public boolean isLimitPushed() {
+      return isLimitPushed;
+    }
   }
 
   protected enum PushDownType {
@@ -125,7 +134,7 @@ public abstract class CalciteIndexScan extends TableScan {
     PROJECT,
     AGGREGATION,
     // SORT,
-    // LIMIT,
+    LIMIT,
     // HIGHLIGHT,
     // NESTED
   }

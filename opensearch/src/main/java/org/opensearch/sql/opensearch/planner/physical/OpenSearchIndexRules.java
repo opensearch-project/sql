@@ -16,9 +16,12 @@ public class OpenSearchIndexRules {
       OpenSearchFilterIndexScanRule.Config.DEFAULT.toRule();
   private static final OpenSearchAggregateIndexScanRule AGGREGATE_INDEX_SCAN =
       OpenSearchAggregateIndexScanRule.Config.DEFAULT.toRule();
+  private static final OpenSearchLimitIndexScanRule LIMIT_INDEX_SCAN =
+      OpenSearchLimitIndexScanRule.Config.DEFAULT.toRule();
 
   public static final List<RelOptRule> OPEN_SEARCH_INDEX_SCAN_RULES =
-      ImmutableList.of(PROJECT_INDEX_SCAN, FILTER_INDEX_SCAN, AGGREGATE_INDEX_SCAN);
+      ImmutableList.of(
+          PROJECT_INDEX_SCAN, FILTER_INDEX_SCAN, AGGREGATE_INDEX_SCAN, LIMIT_INDEX_SCAN);
 
   // prevent instantiation
   private OpenSearchIndexRules() {}

@@ -12,6 +12,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.*;
 
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -21,13 +22,12 @@ import java.util.stream.Stream;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.executor.QueryType;
 
 public class PPLFuncImpTable {
@@ -93,21 +93,44 @@ public class PPLFuncImpTable {
     INSTANCE = new PPLFuncImpTable(builder);
   }
 
-  private final ImmutableMap<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>> map;
+  /**
+   * The registry for built-in functions. Functions defined by the PPL specification, whose
+   * implementations are independent of any specific data storage, should be registered here
+   * internally.
+   */
+  private final ImmutableMap<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
+      functionRegistry;
+
+  /**
+   * The external function registry. Functions whose implementations depend on a specific data
+   * engine should be registered here. This reduces coupling between the core module and particular
+   * storage backends.
+   */
+  private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
+      externalFunctionRegistry;
 
   private PPLFuncImpTable(Builder builder) {
-    final ImmutableMap.Builder<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>>
+    final ImmutableMap.Builder<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>>
         mapBuilder = ImmutableMap.builder();
-    builder.map.forEach((k, v) -> mapBuilder.put(k, v.immutable()));
-    this.map = ImmutableMap.copyOf(mapBuilder.build());
+    builder.map.forEach((k, v) -> mapBuilder.put(k, List.copyOf(v)));
+    this.functionRegistry = ImmutableMap.copyOf(mapBuilder.build());
+    this.externalFunctionRegistry = new HashMap<>();
   }
 
-  public @Nullable RexNode resolveSafe(
-      final RexBuilder builder, final String functionName, RexNode... args) {
-    try {
-      return resolve(builder, functionName, args);
-    } catch (Exception e) {
-      return null;
+  /**
+   * Register a function implementation from external services dynamically.
+   *
+   * @param functionName the name of the function, has to be defined in BuiltinFunctionName
+   * @param functionImp the implementation of the function
+   */
+  public void registerExternalFunction(BuiltinFunctionName functionName, FunctionImp functionImp) {
+    CalciteFuncSignature signature =
+        new CalciteFuncSignature(functionName.getName(), functionImp.getParams());
+    if (externalFunctionRegistry.containsKey(functionName)) {
+      externalFunctionRegistry.get(functionName).add(Pair.of(signature, functionImp));
+    } else {
+      externalFunctionRegistry.put(
+          functionName, new ArrayList<>(List.of(Pair.of(signature, functionImp))));
     }
   }
 
@@ -121,7 +144,14 @@ public class PPLFuncImpTable {
 
   public RexNode resolve(
       final RexBuilder builder, final BuiltinFunctionName functionName, RexNode... args) {
-    final PairList<CalciteFuncSignature, FunctionImp> implementList = map.get(functionName);
+    // Check the external function registry first. This allows the data-storage-dependent
+    // function implementations to override the internal ones with the same name.
+    List<Pair<CalciteFuncSignature, FunctionImp>> implementList =
+        externalFunctionRegistry.get(functionName);
+    // If the function is not part of the external registry, check the internal registry.
+    if (implementList == null) {
+      implementList = functionRegistry.get(functionName);
+    }
     if (implementList == null || implementList.isEmpty()) {
       throw new IllegalStateException(String.format("Cannot resolve function: %s", functionName));
     }
@@ -183,6 +213,7 @@ public class PPLFuncImpTable {
       registerOperator(ASIN, SqlStdOperatorTable.ASIN);
       registerOperator(ATAN, SqlStdOperatorTable.ATAN);
       registerOperator(ATAN2, SqlStdOperatorTable.ATAN2);
+      registerOperator(CEIL, SqlStdOperatorTable.CEIL);
       registerOperator(CEILING, SqlStdOperatorTable.CEIL);
       registerOperator(COS, SqlStdOperatorTable.COS);
       registerOperator(COT, SqlStdOperatorTable.COT);
@@ -201,9 +232,11 @@ public class PPLFuncImpTable {
       registerOperator(SIN, SqlStdOperatorTable.SIN);
       registerOperator(CBRT, SqlStdOperatorTable.CBRT);
       registerOperator(IS_NOT_NULL, SqlStdOperatorTable.IS_NOT_NULL);
+      registerOperator(IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL);
       registerOperator(IS_NULL, SqlStdOperatorTable.IS_NULL);
       registerOperator(IF, SqlStdOperatorTable.CASE);
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
+      registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
@@ -230,6 +263,7 @@ public class PPLFuncImpTable {
       registerOperator(CRC32, PPLBuiltinOperators.CRC32);
       registerOperator(DIVIDE, PPLBuiltinOperators.DIVIDE);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
+      registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
 
       // Register PPL Datetime UDF operator
       registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);
@@ -398,11 +432,33 @@ public class PPLFuncImpTable {
                       builder.makeCall(SqlStdOperatorTable.EQUALS, arg1, arg2),
                       builder.makeNullLiteral(arg1.getType()),
                       arg1));
+      register(
+          IS_EMPTY,
+          ((FunctionImp1)
+              (builder, arg) ->
+                  builder.makeCall(
+                      SqlStdOperatorTable.OR,
+                      builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
+                      builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg))));
+      register(
+          IS_BLANK,
+          ((FunctionImp1)
+              (builder, arg) ->
+                  builder.makeCall(
+                      SqlStdOperatorTable.OR,
+                      builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
+                      builder.makeCall(
+                          SqlStdOperatorTable.IS_EMPTY,
+                          builder.makeCall(
+                              SqlStdOperatorTable.TRIM,
+                              builder.makeFlag(Flag.BOTH),
+                              builder.makeLiteral(" "),
+                              arg)))));
     }
   }
 
   private static class Builder extends AbstractBuilder {
-    private final Map<BuiltinFunctionName, PairList<CalciteFuncSignature, FunctionImp>> map =
+    private final Map<BuiltinFunctionName, List<Pair<CalciteFuncSignature, FunctionImp>>> map =
         new HashMap<>();
 
     @Override
@@ -410,9 +466,9 @@ public class PPLFuncImpTable {
       CalciteFuncSignature signature =
           new CalciteFuncSignature(functionName.getName(), implement.getParams());
       if (map.containsKey(functionName)) {
-        map.get(functionName).add(signature, implement);
+        map.get(functionName).add(Pair.of(signature, implement));
       } else {
-        map.put(functionName, PairList.of(signature, implement));
+        map.put(functionName, new ArrayList<>(List.of(Pair.of(signature, implement))));
       }
     }
   }

@@ -382,7 +382,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     fields.forEach(
         field -> newEnv.define(new Symbol(Namespace.FIELD_NAME, field.toString()), field.type()));
 
-    List<Argument> options = node.getNoOfResults();
+    List<Argument> options = node.getArguments();
     Integer noOfResults = (Integer) options.get(0).getValue().getValue();
 
     return new LogicalRareTopN(child, node.getCommandType(), noOfResults, fields, groupBys);
@@ -593,20 +593,22 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     ImmutableList.Builder<Pair<ReferenceExpression, Expression>> expressionsBuilder =
         new Builder<>();
-    for (FillNull.NullableFieldFill fieldFill : node.getNullableFieldFills()) {
-      Expression fieldExpr =
-          expressionAnalyzer.analyze(fieldFill.getNullableFieldReference(), context);
+    for (Pair<Field, UnresolvedExpression> fieldFill : node.getReplacementPairs()) {
+      Expression fieldExpr = expressionAnalyzer.analyze(fieldFill.getLeft(), context);
       ReferenceExpression ref =
-          DSL.ref(fieldFill.getNullableFieldReference().getField().toString(), fieldExpr.type());
+          DSL.ref(fieldFill.getLeft().getField().toString(), fieldExpr.type());
       FunctionExpression ifNullFunction =
-          DSL.ifnull(ref, expressionAnalyzer.analyze(fieldFill.getReplaceNullWithMe(), context));
+          DSL.ifnull(ref, expressionAnalyzer.analyze(fieldFill.getRight(), context));
       expressionsBuilder.add(new ImmutablePair<>(ref, ifNullFunction));
       TypeEnvironment typeEnvironment = context.peek();
       // define the new reference in type env.
       typeEnvironment.define(ref);
     }
-
-    return new LogicalEval(child, expressionsBuilder.build());
+    List<Pair<ReferenceExpression, Expression>> expressions = expressionsBuilder.build();
+    if (expressions.isEmpty()) {
+      throw new SemanticCheckException("At least one field is required for fillnull in V2.");
+    }
+    return new LogicalEval(child, expressions);
   }
 
   /** Build {@link LogicalML} for ml command. */

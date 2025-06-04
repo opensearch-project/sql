@@ -20,7 +20,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ReturnTypes;
@@ -36,6 +38,8 @@ import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 public interface PlanUtils {
+
+  String ROW_NUMBER_COLUMN_NAME = "_row_number_";
 
   static SpanUnit intervalUnitToSpanUnit(IntervalUnit unit) {
     return switch (unit) {
@@ -59,9 +63,10 @@ public interface PlanUtils {
       RexNode field,
       List<RexNode> argList,
       List<RexNode> partitions,
+      List<RexNode> orderKeys,
       @Nullable WindowFrame windowFrame) {
     if (windowFrame == null) {
-      windowFrame = WindowFrame.defaultFrame();
+      windowFrame = WindowFrame.rowsUnbounded();
     }
     boolean rows = windowFrame.getType() == WindowFrame.FrameType.ROWS;
     RexWindowBound lowerBound = convert(context, windowFrame.getLower());
@@ -97,10 +102,19 @@ public interface PlanUtils {
         return variance(context, field, partitions, rows, lowerBound, upperBound, true, false);
       case VARSAMP:
         return variance(context, field, partitions, rows, lowerBound, upperBound, false, false);
+      case ROW_NUMBER:
+        return withOver(
+            context.relBuilder.aggregateCall(SqlStdOperatorTable.ROW_NUMBER),
+            partitions,
+            orderKeys,
+            true,
+            lowerBound,
+            upperBound);
       default:
         return withOver(
             makeAggCall(context, functionName, false, field, argList),
             partitions,
+            orderKeys,
             rows,
             lowerBound,
             upperBound);
@@ -114,7 +128,8 @@ public interface PlanUtils {
       boolean rows,
       RexWindowBound lowerBound,
       RexWindowBound upperBound) {
-    return withOver(ctx.relBuilder.sum(operation), partitions, rows, lowerBound, upperBound);
+    return withOver(
+        ctx.relBuilder.sum(operation), partitions, List.of(), rows, lowerBound, upperBound);
   }
 
   private static RexNode countOver(
@@ -127,6 +142,7 @@ public interface PlanUtils {
     return withOver(
         ctx.relBuilder.count(ImmutableList.of(operation)),
         partitions,
+        List.of(),
         rows,
         lowerBound,
         upperBound);
@@ -135,12 +151,14 @@ public interface PlanUtils {
   private static RexNode withOver(
       RelBuilder.AggCall aggCall,
       List<RexNode> partitions,
+      List<RexNode> orderKeys,
       boolean rows,
       RexWindowBound lowerBound,
       RexWindowBound upperBound) {
     return aggCall
         .over()
         .partitionBy(partitions)
+        .orderBy(orderKeys)
         .let(
             c ->
                 rows
@@ -258,5 +276,35 @@ public interface PlanUtils {
         throw new UnsupportedOperationException(
             "Unexpected aggregation: " + functionName.getName().getFunctionName());
     }
+  }
+
+  /** Get all uniq input references from a RexNode. */
+  static List<RexInputRef> getInputRefs(RexNode node) {
+    List<RexInputRef> inputRefs = new ArrayList<>();
+    node.accept(
+        new RexVisitorImpl<Void>(true) {
+          @Override
+          public Void visitInputRef(RexInputRef inputRef) {
+            if (!inputRefs.contains(inputRef)) {
+              inputRefs.add(inputRef);
+            }
+            return null;
+          }
+        });
+    return inputRefs;
+  }
+
+  /** Get all uniq input references from a list of RexNodes. */
+  static List<RexInputRef> getInputRefs(List<RexNode> nodes) {
+    return nodes.stream().flatMap(node -> getInputRefs(node).stream()).toList();
+  }
+
+  /** Get all uniq input references from a list of agg calls. */
+  static List<RexInputRef> getInputRefsFromAggCall(List<RelBuilder.AggCall> aggCalls) {
+    return aggCalls.stream()
+        .map(RelBuilder.AggCall::over)
+        .map(RelBuilder.OverCall::toRex)
+        .flatMap(rex -> getInputRefs(rex).stream())
+        .toList();
   }
 }
