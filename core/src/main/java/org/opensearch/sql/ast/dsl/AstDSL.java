@@ -9,9 +9,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -213,6 +212,14 @@ public class AstDSL {
 
   public static Literal doubleLiteral(Double value) {
     return literal(value, DataType.DOUBLE);
+  }
+
+  public static Literal decimalLiteral(Double value) {
+    return literal(BigDecimal.valueOf(value), DataType.DECIMAL);
+  }
+
+  public static Literal decimalLiteral(BigDecimal value) {
+    return literal(value, DataType.DECIMAL);
   }
 
   public static Literal stringLiteral(String value) {

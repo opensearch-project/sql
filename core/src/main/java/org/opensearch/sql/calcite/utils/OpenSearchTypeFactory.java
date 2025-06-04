@@ -245,6 +245,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         result = FLOAT;
         break;
       case DOUBLE:
+      case DECIMAL:
         result = DOUBLE;
         break;
       case CHAR:

@@ -13,5 +13,6 @@ public class CalciteStatsCommandIT extends StatsCommandIT {
     super.init();
     enableCalcite();
     disallowCalciteFallback();
+    setQuerySizeLimit(2000);
   }
 }
