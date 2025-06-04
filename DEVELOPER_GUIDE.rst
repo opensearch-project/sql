@@ -87,14 +87,15 @@ Firstly you need to add the following configuration to the JVM used by your IDE.
 
    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
 
-This is automatically applied if you pass the `debugJVM` flag when running.
+This is automatically applied if you pass the ``debugJVM`` flag when
+running.
 
-```
-gradlew opensearch-sql:run -DdebugJVM
-```
+::
 
-To connect to the cluster with the debugger in an IDE, you'll need to connect to that port.
-For IntelliJ, see [attaching to a remote process](https://www.jetbrains.com/help/idea/attach-to-process.html#attach-to-remote).
+   gradlew opensearch-sql:run -DdebugJVM
+
+To connect to the cluster with the debugger in an IDE, you’ll need to
+connect to that port. For IntelliJ, see `attaching to a remote process <https://www.jetbrains.com/help/idea/attach-to-process.html#attach-to-remote>`_.
 
 License Header
 --------------
