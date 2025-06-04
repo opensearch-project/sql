@@ -424,6 +424,8 @@ percentileApproxFunction
 numericLiteral
     : integerLiteral
     | decimalLiteral
+    | doubleLiteral
+    | floatLiteral
     ;
 
 // expressions
@@ -644,6 +646,8 @@ relevanceFieldAndWeight
 relevanceFieldWeight
    : integerLiteral
    | decimalLiteral
+   | doubleLiteral
+   | floatLiteral
    ;
 
 relevanceField
@@ -914,6 +918,8 @@ literalValue
    | stringLiteral
    | integerLiteral
    | decimalLiteral
+   | doubleLiteral
+   | floatLiteral
    | booleanLiteral
    | datetimeLiteral //#datetime
    ;
@@ -933,6 +939,14 @@ integerLiteral
 
 decimalLiteral
    : (PLUS | MINUS)? DECIMAL_LITERAL
+   ;
+
+doubleLiteral
+   : (PLUS | MINUS)? DOUBLE_LITERAL
+   ;
+
+floatLiteral
+   : (PLUS | MINUS)? FLOAT_LITERAL
    ;
 
 booleanLiteral

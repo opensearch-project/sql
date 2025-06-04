@@ -9,6 +9,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.*;
 import static org.opensearch.sql.utils.ExpressionUtils.PATH_SEP;
 
 import inet.ipaddr.IPAddress;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -134,6 +135,10 @@ public class ExprValueUtils {
         return LITERAL_NULL;
       }
       return doubleValue(d);
+    } else if (o instanceof BigDecimal d) {
+      // TODO fallback decimal to double in v2
+      // until https://github.com/opensearch-project/sql/issues/3619 fixed.
+      return new ExprDoubleValue(d);
     } else if (o instanceof String) {
       return stringValue((String) o);
     } else if (o instanceof Float f) {
