@@ -107,7 +107,6 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
 
   public static class LogParserAccumulator implements Accumulator {
     private final List<String> logMessages;
-    private BrainLogParser logParser;
     public Map<String, Map<String, Object>> patternGroupMap = new HashMap<>();
 
     public int size() {
@@ -124,15 +123,16 @@ public class LogPatternAggFunction implements UserDefinedAggFunction<LogParserAc
 
     public void clearBuffer() {
       logMessages.clear();
-      logParser = null;
     }
 
     public void partialMerge(Object... argList) {
       if (logMessages.isEmpty()) {
         return;
       }
+      assert argList.length == 3 : "partialMerge of LogParserAccumulator requires 3 parameters";
       int maxSampleCount = (int) argList[0];
-      logParser = new BrainLogParser((int) argList[1], ((Double) argList[2]).floatValue());
+      BrainLogParser logParser =
+          new BrainLogParser((int) argList[1], ((Double) argList[2]).floatValue());
       Map<String, Map<String, Object>> partialPatternGroupMap =
           logParser.parseAllLogPatterns(logMessages, maxSampleCount);
       patternGroupMap =
