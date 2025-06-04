@@ -36,6 +36,7 @@ public enum Format {
     builder.put(CSV.formatName, CSV);
     builder.put(RAW.formatName, RAW);
     builder.put(TABLE.formatName, TABLE);
+    builder.put(JSON.formatName, JSON);
     RESPONSE_FORMATS = builder.build();
 
     builder = new ImmutableMap.Builder<>();
