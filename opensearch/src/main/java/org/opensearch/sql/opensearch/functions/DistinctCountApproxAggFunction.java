@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.calcite.udf.udaf;
+package org.opensearch.sql.opensearch.functions;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -13,22 +13,22 @@ import org.opensearch.common.util.BigArrays;
 import org.opensearch.search.aggregations.metrics.HyperLogLogPlusPlus;
 import org.opensearch.sql.calcite.udf.UserDefinedAggFunction;
 
-/** The function use HyperLogLogPlusPlus to count distinct count approximate value */
 public class DistinctCountApproxAggFunction
     implements UserDefinedAggFunction<DistinctCountApproxAggFunction.HLLAccumulator> {
 
   @Override
-  public HLLAccumulator init() {
-    return new HLLAccumulator();
+  public DistinctCountApproxAggFunction.HLLAccumulator init() {
+    return new DistinctCountApproxAggFunction.HLLAccumulator();
   }
 
   @Override
-  public Object result(HLLAccumulator accumulator) {
+  public Object result(DistinctCountApproxAggFunction.HLLAccumulator accumulator) {
     return accumulator.value();
   }
 
   @Override
-  public HLLAccumulator add(HLLAccumulator acc, Object... values) {
+  public DistinctCountApproxAggFunction.HLLAccumulator add(
+      DistinctCountApproxAggFunction.HLLAccumulator acc, Object... values) {
     for (Object value : values) {
       if (value != null) {
         acc.add(value);

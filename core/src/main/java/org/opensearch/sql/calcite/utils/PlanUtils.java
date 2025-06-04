@@ -10,11 +10,7 @@ import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_FOLLOWING;
 import static org.apache.calcite.rex.RexWindowBounds.UNBOUNDED_PRECEDING;
 import static org.apache.calcite.rex.RexWindowBounds.following;
 import static org.apache.calcite.rex.RexWindowBounds.preceding;
-import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_POP_NULLABLE;
-import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.STDDEV_SAMP_NULLABLE;
-import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_POP_NULLABLE;
-import static org.opensearch.sql.calcite.utils.CalciteToolsHelper.VAR_SAMP_NULLABLE;
-import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.TransferUserDefinedAggFunction;
+import static org.opensearch.sql.calcite.udf.udaf.AggTransferFunctionMap.AGG_FUNCTION_MAP;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -25,7 +21,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBound;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
-import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.expression.IntervalUnit;
@@ -33,9 +28,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.WindowBound;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.calcite.udf.udaf.DistinctCountApproxAggFunction;
-import org.opensearch.sql.calcite.udf.udaf.PercentileApproxFunction;
-import org.opensearch.sql.calcite.udf.udaf.TakeAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.AggHandler;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 public interface PlanUtils {
@@ -227,64 +220,13 @@ public interface PlanUtils {
       boolean distinct,
       RexNode field,
       List<RexNode> argList) {
-    switch (functionName) {
-      case MAX:
-        return context.relBuilder.max(field);
-      case MIN:
-        return context.relBuilder.min(field);
-      case AVG:
-        return context.relBuilder.avg(distinct, null, field);
-      case COUNT:
-        return context.relBuilder.count(
-            distinct, null, field == null ? ImmutableList.of() : ImmutableList.of(field));
-      case SUM:
-        return context.relBuilder.sum(distinct, null, field);
-        //            case MEAN:
-        //                throw new UnsupportedOperationException("MEAN is not supported in PPL");
-        //            case STDDEV:
-        //                return context.relBuilder.aggregateCall(SqlStdOperatorTable.STDDEV,
-        // field);
-      case VARSAMP:
-        return context.relBuilder.aggregateCall(VAR_SAMP_NULLABLE, field);
-      case VARPOP:
-        return context.relBuilder.aggregateCall(VAR_POP_NULLABLE, field);
-      case STDDEV_POP:
-        return context.relBuilder.aggregateCall(STDDEV_POP_NULLABLE, field);
-      case STDDEV_SAMP:
-        return context.relBuilder.aggregateCall(STDDEV_SAMP_NULLABLE, field);
-        //            case PERCENTILE_APPROX:
-        //                return
-        // context.relBuilder.aggregateCall(SqlStdOperatorTable.PERCENTILE_CONT, field);
-      case DISTINCT_COUNT_APPROX:
-        return TransferUserDefinedAggFunction(
-            DistinctCountApproxAggFunction.class,
-            "APPROX_DISTINCT_COUNT",
-            ReturnTypes.BIGINT_FORCE_NULLABLE,
-            List.of(field),
-            argList,
-            context.relBuilder);
-      case TAKE:
-        return TransferUserDefinedAggFunction(
-            TakeAggFunction.class,
-            "TAKE",
-            UserDefinedFunctionUtils.getReturnTypeInferenceForArray(),
-            List.of(field),
-            argList,
-            context.relBuilder);
-      case PERCENTILE_APPROX:
-        List<RexNode> newArgList = new ArrayList<>(argList);
-        newArgList.add(context.rexBuilder.makeFlag(field.getType().getSqlTypeName()));
-        return TransferUserDefinedAggFunction(
-            PercentileApproxFunction.class,
-            "percentile_approx",
-            ReturnTypes.ARG0_FORCE_NULLABLE,
-            List.of(field),
-            newArgList,
-            context.relBuilder);
-      default:
-        throw new UnsupportedOperationException(
-            "Unexpected aggregation: " + functionName.getName().getFunctionName());
+    AggHandler handler = AGG_FUNCTION_MAP.get(functionName);
+
+    if (handler == null) {
+      throw new UnsupportedOperationException("Unexpected aggregation: " + functionName);
     }
+
+    return handler.apply(distinct, field, argList, context);
   }
 
   /** Get all uniq input references from a RexNode. */
