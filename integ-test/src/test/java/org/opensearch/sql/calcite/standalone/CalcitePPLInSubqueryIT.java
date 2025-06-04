@@ -22,7 +22,6 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.exception.SemanticCheckException;
 
-@Ignore
 public class CalcitePPLInSubqueryIT extends CalcitePPLIntegTestCase {
 
   @Override
