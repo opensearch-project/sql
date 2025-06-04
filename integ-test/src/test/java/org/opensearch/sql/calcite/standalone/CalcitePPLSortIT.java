@@ -17,7 +17,6 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
-@Ignore
 public class CalcitePPLSortIT extends CalcitePPLIntegTestCase {
 
   @Override
