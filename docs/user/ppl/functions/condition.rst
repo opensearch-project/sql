@@ -256,7 +256,7 @@ Return type: any
 
 Example::
 
-    PPL source=accounts | eval result = coalesce(employer, firstname, lastname) | fields result, firstname, lastname, employer
+    PPL> source=accounts | eval result = coalesce(employer, firstname, lastname) | fields result, firstname, lastname, employer
     fetched rows / total rows = 4/4
     +---------+-----------+----------+----------+
     | result  | firstname | lastname | employer |
