@@ -17,6 +17,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 public class SystemFunctionIT extends PPLIntegTestCase {
+  protected String datetimeDataType = "DATETIME";
 
   @Override
   public void init() throws Exception {
@@ -47,7 +48,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
                     + "`datetime` = typeof(DATETIME('1961-04-12 09:07:00'))"
                     + " | fields `timestamp`, `time`, `date`, `datetime`",
                 TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(response, rows("TIMESTAMP", "TIME", "DATE", "DATETIME"));
+    verifyDataRows(response, rows("TIMESTAMP", "TIME", "DATE", datetimeDataType));
   }
 
   @Test
