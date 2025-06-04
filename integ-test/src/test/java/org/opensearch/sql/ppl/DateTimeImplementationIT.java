@@ -18,16 +18,13 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 public class DateTimeImplementationIT extends PPLIntegTestCase {
-  private String dataType = "datetime";
+  protected String dataType = "datetime";
 
   @Override
   public void init() throws Exception {
     super.init();
     loadIndex(Index.DATE);
     loadIndex(Index.DATE_FORMATS);
-    if (isCalciteEnabled()) {
-      dataType = "timestamp";
-    }
   }
 
   @Test

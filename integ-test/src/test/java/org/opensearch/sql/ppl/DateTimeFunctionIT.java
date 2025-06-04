@@ -26,7 +26,7 @@ import org.opensearch.sql.common.utils.StringUtils;
 
 @SuppressWarnings("unchecked")
 public class DateTimeFunctionIT extends PPLIntegTestCase {
-  private String dataType = "datetime";
+  protected String dataType = "datetime";
 
   @Override
   public void init() throws Exception {
@@ -34,9 +34,6 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     loadIndex(Index.DATE);
     loadIndex(Index.PEOPLE2);
     loadIndex(Index.BANK);
-    if (isCalciteEnabled()) {
-      dataType = "timestamp";
-    }
   }
 
   // Integration test framework sets for OpenSearch instance a random timezone.
@@ -1572,7 +1569,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f = timestampdiff(YEAR, '1997-01-01 00:00:00', '2001-03-06"
                     + " 00:00:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, isCalciteEnabled() ? "bigint" : "timestamp"));
+    verifySchema(result, schema("f", null, isCalciteEnabled() ? "bigint" : "datetime"));
     verifySome(result.getJSONArray("datarows"), rows(4));
   }
 
