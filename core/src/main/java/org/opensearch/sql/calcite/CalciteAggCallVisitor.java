@@ -38,7 +38,8 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
 
   @Override
   public AggCall visitAggregateFunction(AggregateFunction node, CalcitePlanContext context) {
-    RexNode field = rexNodeVisitor.analyze(node.getField(), context);
+    RexNode field =
+        node.getField() == null ? null : rexNodeVisitor.analyze(node.getField(), context);
     List<RexNode> argList = new ArrayList<>();
     for (UnresolvedExpression arg : node.getArgList()) {
       argList.add(rexNodeVisitor.analyze(arg, context));
