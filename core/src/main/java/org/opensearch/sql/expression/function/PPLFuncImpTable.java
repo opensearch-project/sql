@@ -235,6 +235,7 @@ public class PPLFuncImpTable {
       registerOperator(IF, SqlStdOperatorTable.CASE);
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
       registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
+      registerOperator(INTERNAL_ITEM, SqlStdOperatorTable.ITEM);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
@@ -262,6 +263,7 @@ public class PPLFuncImpTable {
       registerOperator(DIVIDE, PPLBuiltinOperators.DIVIDE);
       registerOperator(SHA2, PPLBuiltinOperators.SHA2);
       registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
+      registerOperator(INTERNAL_GROK, PPLBuiltinOperators.GROK);
 
       // Register PPL Datetime UDF operator
       registerOperator(TIMESTAMP, PPLBuiltinOperators.TIMESTAMP);

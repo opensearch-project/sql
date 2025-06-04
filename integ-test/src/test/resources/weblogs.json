@@ -1,12 +1,12 @@
 {"index":{}}
-{"host": "::1", "method": "GET", "url": "/history/apollo/", "response": "200", "bytes": "6245"}
+{"host": "::1", "method": "GET", "url": "/history/apollo/", "response": "200", "bytes": "6245", "message": "177.95.8.74 - upton5450 [28/Sep/2022:10:15:57 -0700] \"HEAD /e-business/mindshare HTTP/1.0\" 404 19927"}
 {"index":{}}
-{"host": "0.0.0.2", "method": "GET", "url": "/shuttle/missions/sts-73/mission-sts-73.html", "response": "200", "bytes": "4085"}
+{"host": "0.0.0.2", "method": "GET", "url": "/shuttle/missions/sts-73/mission-sts-73.html", "response": "200", "bytes": "4085", "message": "127.45.152.6 - pouros8756 [28/Sep/2022:10:15:57 -0700] \"GET /architectures/convergence/niches/mindshare HTTP/1.0\" 100 28722"}
 {"index":{}}
-{"host": "::3", "method": "GET", "url": "/shuttle/countdown/countdown.html", "response": "200", "bytes": "3985"}
+{"host": "::3", "method": "GET", "url": "/shuttle/countdown/countdown.html", "response": "200", "bytes": "3985", "message": null}
 {"index":{}}
-{"host": "::FFFF:1.2.3.4", "method": "GET", "url": "/history/voyager1/", "response": "200", "bytes": "1234"}
+{"host": "::FFFF:1.2.3.4", "method": "GET", "url": "/history/voyager1/", "response": "200", "bytes": "1234", "message": "118.223.210.105 - - [28/Sep/2022:10:15:57 -0700] \"PATCH /strategize/out-of-the-box HTTP/1.0\" 401 27439"}
 {"index":{}}
-{"host": "1.2.3.5", "method": "GET", "url": "/history/voyager2/", "response": "200", "bytes": "4321"}
+{"host": "1.2.3.5", "method": "GET", "url": "/history/voyager2/", "response": "200", "bytes": "4321", "message": "210.204.15.104 - - [28/Sep/2022:10:15:57 -0700] \"POST /users HTTP/1.1\" 301 9481"}
 {"index":{}}
-{"host": "::FFFF:1234", "method": "GET", "url": "/history/artemis/", "response": "200", "bytes": "9876"}
+{"host": "::FFFF:1234", "method": "GET", "url": "/history/artemis/", "response": "200", "bytes": "9876", "message": null}

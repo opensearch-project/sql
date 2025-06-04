@@ -46,7 +46,7 @@ public class GrokExpression extends ParseExpression {
   }
 
   @Override
-  ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
+  public ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
     String rawString = value.stringValue();
     Match grokMatch = grok.match(rawString);
     Map<String, Object> capture = grokMatch.capture();

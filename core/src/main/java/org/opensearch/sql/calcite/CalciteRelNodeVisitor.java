@@ -308,15 +308,29 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> newFields =
         groupCandidates.stream()
             .map(
-                group ->
-                    PPLFuncImpTable.INSTANCE.resolve(
+                group -> {
+                  RexNode innerRex =
+                      PPLFuncImpTable.INSTANCE.resolve(
+                          context.rexBuilder,
+                          ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod),
+                          sourceField,
+                          context.rexBuilder.makeLiteral(
+                              pattern,
+                              context
+                                  .rexBuilder
+                                  .getTypeFactory()
+                                  .createSqlType(SqlTypeName.VARCHAR),
+                              true));
+                  if (ParseMethod.GROK.equals(parseMethod)) {
+                    return PPLFuncImpTable.INSTANCE.resolve(
                         context.rexBuilder,
-                        ParseUtils.BUILTIN_FUNCTION_MAP.get(parseMethod),
-                        sourceField,
-                        context.rexBuilder.makeLiteral(
-                            pattern,
-                            context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
-                            true)))
+                        BuiltinFunctionName.INTERNAL_ITEM,
+                        innerRex,
+                        context.rexBuilder.makeLiteral(group));
+                  } else {
+                    return innerRex;
+                  }
+                })
             .toList();
     projectPlusOverriding(newFields, groupCandidates, context);
     return context.relBuilder.peek();
