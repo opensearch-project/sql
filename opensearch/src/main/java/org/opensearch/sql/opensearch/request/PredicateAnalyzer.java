@@ -1006,17 +1006,21 @@ public class PredicateAnalyzer {
     }
 
     boolean isTextType() {
-      return type != null && type instanceof OpenSearchTextType;
+      return type != null && type.getOriginalExprType() instanceof OpenSearchTextType;
     }
 
     String toKeywordSubField() {
+      ExprType type = this.type.getOriginalExprType();
       if (type instanceof OpenSearchTextType) {
         OpenSearchTextType textType = (OpenSearchTextType) type;
+        // For OpenSearch Alias type which maps to the field of text type,
+        // we have to use its original path
+        String path = this.type.getOriginalPath().orElse(this.name);
         // Find the first subfield with type keyword, return null if non-exist.
         return textType.getFields().entrySet().stream()
             .filter(e -> e.getValue().getMappingType() == MappingType.Keyword)
             .findFirst()
-            .map(e -> name + "." + e.getKey())
+            .map(e -> path + "." + e.getKey())
             .orElse(null);
       }
       return null;
