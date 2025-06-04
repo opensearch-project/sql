@@ -270,6 +270,19 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testAppendcol() {
+    assertEquals(
+        "source=t | stats count() by b | appendcol override=false [ stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | appendcol [ stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | stats count() by b | appendcol override=true [ stats sum(c) by b ]",
+        anonymize("source=t | stats count() by b | appendcol override=true [ stats sum(c) by b ]"));
+    assertEquals(
+        "source=t | appendcol override=false [ where a = *** ]",
+        anonymize("source=t | appendcol override=false [ where a = 1 ]"));
+  }
+
+  @Test
   public void testSubqueryAlias() {
     assertEquals("source=t as t1", anonymize("source=t as t1"));
   }

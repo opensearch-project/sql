@@ -38,6 +38,7 @@ AD:                                 'AD';
 ML:                                 'ML';
 FILLNULL:                           'FILLNULL';
 TRENDLINE:                          'TRENDLINE';
+APPENDCOL:                          'APPENDCOL';
 SIMPLE_PATTERN:                     'SIMPLE_PATTERN';
 BRAIN:                              'BRAIN';
 VARIABLE_COUNT_THRESHOLD:           'VARIABLE_COUNT_THRESHOLD';
@@ -69,6 +70,7 @@ SIMPLE:                             'SIMPLE';
 STANDARD:                           'STANDARD';
 COST:                               'COST';
 EXTENDED:                           'EXTENDED';
+OVERRIDE:                           'OVERRIDE';
 
 // SORT FIELD KEYWORDS
 // TODO #3180: Fix broken sort functionality

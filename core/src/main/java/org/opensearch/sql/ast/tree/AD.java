@@ -41,6 +41,6 @@ public class AD extends UnresolvedPlan {
 
   @Override
   public List<UnresolvedPlan> getChild() {
-    return ImmutableList.of(this.child);
+    return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
   }
 }

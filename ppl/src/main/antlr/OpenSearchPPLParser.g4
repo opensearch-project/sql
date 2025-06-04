@@ -70,6 +70,7 @@ commands
    | mlCommand
    | fillnullCommand
    | trendlineCommand
+   | appendcolCommand
    ;
 
 commandName
@@ -235,6 +236,10 @@ trendlineClause
 
 trendlineType
    : SMA
+   ;
+
+appendcolCommand
+   : APPENDCOL (OVERRIDE EQUAL override = booleanLiteral)? LT_SQR_PRTHS commands (PIPE commands)* RT_SQR_PRTHS
    ;
 
 kmeansCommand
@@ -1070,6 +1075,7 @@ keywordsCanBeId
    | INTERVAL
    | PLUS
    | MINUS
+   | OVERRIDE
    // SORT FIELD KEYWORDS
    | AUTO
    | STR
