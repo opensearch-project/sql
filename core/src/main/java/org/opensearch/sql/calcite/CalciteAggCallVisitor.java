@@ -60,9 +60,10 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
   @Override
   public AggCall visitFunction(Function node, CalcitePlanContext context) {
     List<RexNode> argList = new ArrayList<>();
-    assert !node.getFuncArgs().isEmpty()
-        : "UDAF should at least have one argument like target field";
-    RexNode field = rexNodeVisitor.analyze(node.getFuncArgs().get(0), context);
+    RexNode field =
+        node.getFuncArgs().isEmpty()
+            ? null
+            : rexNodeVisitor.analyze(node.getFuncArgs().get(0), context);
     for (int i = 1; i < node.getFuncArgs().size(); i++) {
       argList.add(rexNodeVisitor.analyze(node.getFuncArgs().get(i), context));
     }

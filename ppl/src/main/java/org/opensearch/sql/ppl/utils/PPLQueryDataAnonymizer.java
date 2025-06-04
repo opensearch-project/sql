@@ -396,12 +396,32 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     }
   }
 
-  // TODO: Add more cases and visit if parameters need to be printed
   @Override
   public String visitPatterns(Patterns node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     String sourceField = visitExpression(node.getSourceField());
-    return StringUtils.format("%s | patterns %s", child, sourceField);
+    StringBuilder builder = new StringBuilder();
+    builder.append(child).append(" | patterns ").append(sourceField);
+    if (!node.getPartitionByList().isEmpty()) {
+      String partitionByList = visitExpressionList(node.getPartitionByList());
+      builder.append(" by ").append(partitionByList);
+    }
+    builder.append(" pattern_method=").append(node.getPatternMethod().toString());
+    builder.append(" pattern_mode=").append(node.getPatternMode().toString());
+    builder
+        .append(" pattern_max_sample_count=")
+        .append(visitExpression(node.getPatternMaxSampleCount()));
+    builder.append(" pattern_buffer_limit=").append(visitExpression(node.getPatternBufferLimit()));
+    builder.append(" new_field=").append(node.getAlias());
+    if (!node.getArguments().isEmpty()) {
+      for (java.util.Map.Entry<String, Literal> entry : node.getArguments().entrySet()) {
+        builder.append(
+            String.format(
+                Locale.ROOT, " %s=%s", entry.getKey(), visitExpression(entry.getValue())));
+      }
+    }
+
+    return builder.toString();
   }
 
   private String groupBy(String groupBy) {

@@ -350,7 +350,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         RexNode parsedNode =
             PPLFuncImpTable.INSTANCE.resolve(
                 context.rexBuilder,
-                BuiltinFunctionName.PATTERN_PARSER,
+                BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
                 context.relBuilder.field(node.getAlias()),
                 context.relBuilder.field(PatternUtils.SAMPLE_LOGS));
         flattenParsedPattern(node.getAlias(), parsedNode, context);
@@ -359,7 +359,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         RexNode parsedNode =
             PPLFuncImpTable.INSTANCE.resolve(
                 context.rexBuilder,
-                BuiltinFunctionName.PATTERN_PARSER,
+                BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
                 context.relBuilder.field(node.getAlias()),
                 rexVisitor.analyze(node.getSourceField(), context));
         flattenParsedPattern(node.getAlias(), parsedNode, context);
@@ -379,7 +379,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         RexNode windowNode =
             rexVisitor.analyze(
                 new WindowFunction(
-                    new Function(BuiltinFunctionName.PATTERN.name(), funcParamList),
+                    new Function(
+                        BuiltinFunctionName.INTERNAL_PATTERN.getName().getFunctionName(),
+                        funcParamList),
                     node.getPartitionByList(),
                     List.of()),
                 context);
@@ -387,7 +389,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             context.relBuilder.alias(
                 PPLFuncImpTable.INSTANCE.resolve(
                     context.rexBuilder,
-                    BuiltinFunctionName.PATTERN_PARSER,
+                    BuiltinFunctionName.INTERNAL_PATTERN_PARSER,
                     rexVisitor.analyze(node.getSourceField(), context),
                     windowNode),
                 node.getAlias());
@@ -396,7 +398,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       } else { // Aggregation mode, resolve plan as aggregation
         AggCall aggCall =
             aggVisitor
-                .analyze(new Function(BuiltinFunctionName.PATTERN.name(), funcParamList), context)
+                .analyze(
+                    new Function(
+                        BuiltinFunctionName.INTERNAL_PATTERN.getName().getFunctionName(),
+                        funcParamList),
+                    context)
                 .as(node.getAlias());
         List<RexNode> groupByList =
             node.getPartitionByList().stream()
@@ -412,7 +418,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             (RexCall)
                 PPLFuncImpTable.INSTANCE.resolve(
                     context.rexBuilder,
-                    BuiltinFunctionName.UNCOLLECT_PATTERNS,
+                    BuiltinFunctionName.INTERNAL_UNCOLLECT_PATTERNS,
                     // For return type inference
                     context.rexBuilder.makeInputRef(aggNode.getRowType(), 0),
                     // aggResult ordinal
@@ -991,8 +997,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode patternExpr =
         context.rexBuilder.makeCast(
             context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
-            context.rexBuilder.makeCall(
-                SqlStdOperatorTable.ITEM,
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_ITEM,
                 parsedNode,
                 context.rexBuilder.makeLiteral(PatternUtils.PATTERN)),
             true,
@@ -1000,8 +1007,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode tokensExpr =
         context.rexBuilder.makeCast(
             UserDefinedFunctionUtils.tokensMap,
-            context.rexBuilder.makeCall(
-                SqlStdOperatorTable.ITEM,
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_ITEM,
                 parsedNode,
                 context.rexBuilder.makeLiteral(PatternUtils.TOKENS)),
             true,

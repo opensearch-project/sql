@@ -300,7 +300,7 @@ public class ExplainIT extends PPLIntegTestCase {
             ? loadFromFile("expectedOutput/calcite/explain_patterns_brain_agg_push.json")
             : loadFromFile("expectedOutput/ppl/explain_patterns_brain_agg_push.json");
 
-    assertJsonEqualsIgnoreRelId(
+    assertJsonEqualsIgnoreId(
         expected,
         explainQueryToString(
             "source=opensearch-sql_test_index_account"

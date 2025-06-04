@@ -393,10 +393,22 @@ public class PPLQueryDataAnonymizerTest {
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_MODE)).thenReturn("LABEL");
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_MAX_SAMPLE_COUNT)).thenReturn(10);
     when(settings.getSettingValue(Key.DEFAULT_PATTERN_BUFFER_LIMIT)).thenReturn(100000);
-    assertEquals("source=t | patterns email", anonymize("source=t | patterns email"));
     assertEquals(
-        "source=t | patterns email | fields + email,patterns_field",
+        "source=t | patterns email pattern_method=SIMPLE_PATTERN pattern_mode=LABEL"
+            + " pattern_max_sample_count=*** pattern_buffer_limit=*** new_field=patterns_field",
+        anonymize("source=t | patterns email"));
+    assertEquals(
+        "source=t | patterns email pattern_method=SIMPLE_PATTERN pattern_mode=LABEL"
+            + " pattern_max_sample_count=*** pattern_buffer_limit=*** new_field=patterns_field |"
+            + " fields + email,patterns_field",
         anonymize("source=t | patterns email | fields email, patterns_field"));
+    assertEquals(
+        "source=t | patterns email pattern_method=BRAIN pattern_mode=AGGREGATION"
+            + " pattern_max_sample_count=*** pattern_buffer_limit=*** new_field=patterns_field"
+            + " variable_count_threshold=***",
+        anonymize(
+            "source=t | patterns email pattern_method=BRAIN pattern_mode=AGGREGATION"
+                + " variable_count_threshold=5"));
   }
 
   private String anonymize(String query) {

@@ -273,7 +273,7 @@ public interface PlanUtils {
             List.of(field),
             newArgList,
             context.relBuilder);
-      case PATTERN:
+      case INTERNAL_PATTERN:
         return TransferUserDefinedAggFunction(
             LogPatternAggFunction.class,
             "pattern",

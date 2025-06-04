@@ -267,6 +267,7 @@ public class PPLFuncImpTable {
       registerOperator(IF, SqlStdOperatorTable.CASE);
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
       registerOperator(COALESCE, SqlStdOperatorTable.COALESCE);
+      registerOperator(INTERNAL_ITEM, SqlStdOperatorTable.ITEM);
 
       // Register library operator
       registerOperator(REGEXP, SqlLibraryOperators.REGEXP);
@@ -366,7 +367,7 @@ public class PPLFuncImpTable {
       registerOperator(WEEK, PPLBuiltinOperators.WEEK);
       registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
       registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
-      registerOperator(PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
+      registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
@@ -462,7 +463,7 @@ public class PPLFuncImpTable {
                               arg)))));
 
       // Register table function operator
-      registerOperator(UNCOLLECT_PATTERNS, PPLBuiltinOperators.UNCOLLECT_PATTERNS);
+      registerOperator(INTERNAL_UNCOLLECT_PATTERNS, PPLBuiltinOperators.UNCOLLECT_PATTERNS);
       registerTvfIntoRexImpTable();
     }
   }

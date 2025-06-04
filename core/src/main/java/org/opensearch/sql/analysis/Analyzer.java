@@ -497,7 +497,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     }
 
     if (PatternMode.AGGREGATION.equals(node.getPatternMode())) {
-      Aggregation aggNode = analyzePatterns(node);
+      Aggregation aggNode = analyzePatternsAgg(node);
       return analyzeAggregation(aggNode, child, context);
     }
     return child;
@@ -789,7 +789,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalAggregation(child, aggregators, groupBys);
   }
 
-  private Aggregation analyzePatterns(Patterns node) {
+  private Aggregation analyzePatternsAgg(Patterns node) {
     UnresolvedExpression patternsField =
         AstDSL.alias(node.getAlias(), AstDSL.field(node.getAlias()));
     List<UnresolvedExpression> aggExprs =
