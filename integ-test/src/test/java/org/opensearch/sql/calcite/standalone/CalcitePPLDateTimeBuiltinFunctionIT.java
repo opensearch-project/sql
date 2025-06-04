@@ -594,6 +594,19 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
   }
 
   @Test
+  public void testDateAddAndSub2() {
+    String expectedDate = getFormattedLocalDate();
+
+    JSONObject actual =
+            executeQuery(
+                    String.format(
+                            "source=%s "
+                                    + "| eval t4 = DATE_ADD('2020-08-26 01:01:01', INTERVAL 1 DAY) "
+                                    + "| head 1",
+                            TEST_INDEX_DATE_FORMATS));
+  }
+
+  @Test
   public void testDateAddAndSub() {
     String expectedDate = getFormattedLocalDate();
 
