@@ -186,7 +186,6 @@ jobs:
           
           rm -rf "${TEMP_DIR}"
 
-      # Add commit-version mapping
       - name: Update commit-version mapping
         run: |
           COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
@@ -203,14 +202,14 @@ jobs:
           curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${TEMP_METADATA}" "${META_URL}"
           
           # Extract the latest ZIP version from metadata
-          ZIP_VERSION=""
+          ARTIFACT_VERSION=""
           if [ -s "${TEMP_METADATA}" ]; then
             # Extract the latest ZIP version with xmlstarlet
-            ZIP_VERSION=$(xmlstarlet sel -t -v "//snapshotVersion[extension='zip' and not(classifier)]/value" "${TEMP_METADATA}" | head -1)
-            echo "Latest ZIP version for ${ARTIFACT_ID}: ${ZIP_VERSION}"
+            ARTIFACT_VERSION=$(xmlstarlet sel -t -v "//snapshotVersion[extension='zip' and not(classifier)]/value" "${TEMP_METADATA}" | head -1)
+            echo "Latest ZIP version for ${ARTIFACT_ID}: ${ARTIFACT_VERSION}"
           else
             echo "Warning: Could not find ZIP version in metadata for ${ARTIFACT_ID}"
-            ZIP_VERSION="${VERSION}"
+            ARTIFACT_VERSION="${VERSION}"
           fi
           
           # Try to download existing mapping file
@@ -224,8 +223,8 @@ jobs:
             echo '{"mappings":[]}' > "${MAPPING_FILE}"
           fi
           
-          # Create artifacts JSON object
-          ARTIFACTS_JSON="{\"${ARTIFACT_ID}\": \"${ZIP_VERSION}\"}"
+          # Create artifacts JSON object with detailed version info
+          ARTIFACTS_JSON="{\"${ARTIFACT_ID}\": {\"base_version\": \"${VERSION}\", \"artifact_version\": \"${ARTIFACT_VERSION}\"}}"
           
           # Add new mapping entry
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -235,13 +234,18 @@ jobs:
           
           # Use jq to add the new mapping
           cat "${MAPPING_FILE}" | jq --arg commit "$COMMIT_ID" \
-                                    --arg version "$VERSION" \
                                     --arg timestamp "$TIMESTAMP" \
                                     --argjson artifacts "$ARTIFACTS_JSON" '
+          # Look for an existing entry with this commit ID
           if (.mappings | map(select(.commit_id == $commit)) | length) == 0 then
-            .mappings += [{"commit_id": $commit, "version": $version, "timestamp": $timestamp, "artifacts": $artifacts}]
+            # No entry exists, add a new one
+            .mappings += [{"commit_id": $commit, "timestamp": $timestamp, "artifacts": $artifacts}]
           else
-            .mappings = [.mappings[] | if .commit_id == $commit then . + {"artifacts": $artifacts} else . end]
+            # Update the existing entry
+            .mappings = [.mappings[] | if .commit_id == $commit then 
+              # Update timestamp and merge artifacts
+              . + {"timestamp": $timestamp, "artifacts": (.artifacts + $artifacts)} 
+            else . end]
           end
           ' > "${TEMP_JSON}"
           
@@ -436,7 +440,6 @@ jobs:
 
           echo "Version metadata updated with commit ID"
 
-      # Add commit-version mapping
       - name: Update commit-version mapping
         run: |
           COMMIT_ID="${{ steps.set_commit.outputs.commit_id }}"
@@ -453,14 +456,14 @@ jobs:
           curl -s -u "${SONATYPE_USERNAME}:${SONATYPE_PASSWORD}" -o "${TEMP_METADATA}" "${META_URL}"
           
           # Extract the latest JAR version from metadata
-          JAR_VERSION=""
+          ARTIFACT_VERSION=""
           if [ -s "${TEMP_METADATA}" ]; then
             # Extract the latest JAR version with xmlstarlet
-            JAR_VERSION=$(xmlstarlet sel -t -v "//snapshotVersion[extension='jar' and not(classifier)]/value" "${TEMP_METADATA}" | head -1)
-            echo "Latest JAR version for ${ARTIFACT_ID}: ${JAR_VERSION}"
+            ARTIFACT_VERSION=$(xmlstarlet sel -t -v "//snapshotVersion[extension='jar' and not(classifier)]/value" "${TEMP_METADATA}" | head -1)
+            echo "Latest JAR version for ${ARTIFACT_ID}: ${ARTIFACT_VERSION}"
           else
             echo "Warning: Could not find JAR version in metadata for ${ARTIFACT_ID}"
-            JAR_VERSION="${VERSION}"
+            ARTIFACT_VERSION="${VERSION}"
           fi
           
           # Try to download existing mapping file
@@ -474,8 +477,8 @@ jobs:
             echo '{"mappings":[]}' > "${MAPPING_FILE}"
           fi
           
-          # Create artifacts JSON object
-          ARTIFACTS_JSON="{\"${ARTIFACT_ID}\": \"${JAR_VERSION}\"}"
+          # Create artifacts JSON object with detailed version info
+          ARTIFACTS_JSON="{\"${ARTIFACT_ID}\": {\"base_version\": \"${VERSION}\", \"artifact_version\": \"${ARTIFACT_VERSION}\"}}"
           
           # Add new mapping entry
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -485,17 +488,16 @@ jobs:
           
           # Use jq to add the new mapping or update existing one
           cat "${MAPPING_FILE}" | jq --arg commit "$COMMIT_ID" \
-                                    --arg version "$VERSION" \
                                     --arg timestamp "$TIMESTAMP" \
                                     --argjson artifacts "$ARTIFACTS_JSON" '
           # Look for an existing entry with this commit ID
           if (.mappings | map(select(.commit_id == $commit)) | length) == 0 then
             # No entry exists, add a new one
-            .mappings += [{"commit_id": $commit, "version": $version, "timestamp": $timestamp, "artifacts": $artifacts}]
+            .mappings += [{"commit_id": $commit, "timestamp": $timestamp, "artifacts": $artifacts}]
           else
             # Update the existing entry
             .mappings = [.mappings[] | if .commit_id == $commit then 
-              # Merge the artifacts objects
+              # Update timestamp and merge artifacts
               . + {"timestamp": $timestamp, "artifacts": (.artifacts + $artifacts)} 
             else . end]
           end
